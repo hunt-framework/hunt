@@ -1,0 +1,60 @@
+name:          Holumbus-Server
+version:       2
+license:       MIT
+license-file:  LICENSE
+author:        
+copyright:     
+maintainer:    
+stability:     experimental
+category:      Text, Data
+synopsis:      A search and indexing engine.
+homepage:      http://holumbus.fh-wedel.de
+description:   Standalone Search Server based on holumbus searchengine
+cabal-version: >=1.6
+build-type:    Simple
+-- tested-with:   ghc-7.0.3
+
+extra-source-files:
+    README
+
+source-repository head
+  type:        git
+  location:    https://github.com/UlfS/holumbus.git
+
+executable holumbusServer
+  main-is:      Server.hs
+
+  other-modules:   
+
+  build-depends:   base                   >= 4     && < 5
+                 , scotty
+                 , aeson
+                 , blaze-html
+                 , text
+                 , wai-extra
+
+  -- instance NFData (Map k v) has moved from deepseq into containers (dependency hell)
+  if impl( ghc < 7.4 )
+    build-depends: containers             >= 0.2   && < 0.4.2
+                 , deepseq                >= 1.1   && < 1.2
+  else
+    build-depends: containers             >= 0.4.2
+                 , deepseq                >= 1.2
+
+  hs-source-dirs: src
+
+  ghc-options:   -threaded
+                 -Wall
+                 -funbox-strict-fields
+
+  if impl( ghc >= 7 )
+    ghc-options: -rtsopts
+                 -fwarn-tabs
+  
+  extensions: MultiParamTypeClasses
+              FlexibleContexts
+              FlexibleInstances
+              GeneralizedNewtypeDeriving
+              TypeSynonymInstances
+              OverloadedStrings
+              CPP
