@@ -32,6 +32,7 @@ executable holumbusServer
                  , blaze-html
                  , text
                  , wai-extra
+                 , Holumbus-Searchengine  >= 2
 
   -- instance NFData (Map k v) has moved from deepseq into containers (dependency hell)
   if impl( ghc < 7.4 )

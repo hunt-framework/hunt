@@ -8,7 +8,7 @@ build		: ; $(MAKE) target action=build
 install		: ; $(MAKE) target action=install
 
 target	:
-	( cd searchengine           && cabal $(action) )
-	( cd server                 && cabal $(action))
+	( cd searchengine           && cabal clean && cabal $(action) )
+	( cd server                 && cabal clean && cabal $(action))
 
 .PHONY	: target clean configure build install all

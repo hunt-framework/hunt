@@ -22,6 +22,7 @@ where
 
 import Control.Monad                    ( liftM3 )
 import Control.DeepSeq
+import Control.Applicative
 
 import Data.Binary                      ( Binary (..) )
 
@@ -29,6 +30,7 @@ import Holumbus.Index.Common.BasicTypes
 
 import Text.XML.HXT.Core
 
+import Data.Aeson
 -- ------------------------------------------------------------
 
 -- | A document consists of a title and its unique identifier (URI)
@@ -40,6 +42,13 @@ data Document a                 = Document
                                   , custom :: ! (Maybe a)
                                   }
                                   deriving (Show, Eq, Ord)
+
+instance ToJSON a => ToJSON (Document a) where
+  toJSON (Document t u mc) = object
+    [ "title" .= t
+    , "uri"   .= u
+    , "custom" .= toJSON mc
+    ]
 
 instance Binary a => Binary (Document a) where
     put (Document t u c)        = put t >> put u >> put c

@@ -16,6 +16,9 @@ import Data.Monoid (mconcat)
 import Data.Aeson hiding (json)
 import qualified Data.Aeson as J
 
+-- import holu 1.3.2 types
+import Holumbus.Index.Common 
+
 
 -- entity to test json 
 data Customer = Customer {
