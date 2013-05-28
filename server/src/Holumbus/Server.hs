@@ -7,6 +7,7 @@ import           Network.Wai.Middleware.RequestLogger
 import           Control.Applicative
 import           Control.Monad            (mzero)
 
+import           Data.Map
 import qualified Data.Text as T
 --import qualified Text.Blaze.Html5 as H
 --import Text.Blaze.Html.Renderer.Text (renderHtml)
@@ -15,8 +16,7 @@ import qualified Data.Text as T
 import           Data.Monoid              (mconcat)
 import           Data.Aeson hiding        (json)
 --import           Data.Aeson.Types         --((.:), (.:?), FromJSON, parseJSON, Parser, Value (Array, Object))
-import           Data.Map
-import qualified Data.Aeson as J
+--import qualified Data.Aeson as J
 
 
 -- import holu 1.3.2 types
@@ -53,23 +53,23 @@ data Customer = Customer T.Text T.Text Int
 
 -- we dont really need this...
 instance ToJSON ApiDocument where
-  toJSON (ApiDocument uri desc words) = object
+  toJSON (ApiDocument uri desc contextWords) = object
     [ "uri"   .= uri
     , "desc"  .= toJSON desc
-    , "words" .= toJSON words
+    , "words" .= toJSON contextWords
     ]
 
 
 -- we need this - but ... how???
 instance FromJSON ApiDocument where
   parseJSON (Object o) = do
-  desc    <- o    .: "desc"
-  uri     <- o    .: "uri"
-  words   <- o    .: "words"
+  desc      <- o    .: "desc"
+  uri       <- o    .: "uri"
+  conWords  <- o    .: "words"
   return ApiDocument
     { apiDocUri     = uri
     , apiDocDesc    = desc
-    , apiDocWords   = words
+    , apiDocWords   = conWords
     }
 
 
@@ -83,6 +83,7 @@ instance FromJSON Customer where
   parseJSON _ = mzero
 
 -- server itself
+start :: IO ()
 start = scotty 3000 $ do
   let documents = [ ApiDocument "1"
                       (Data.Map.fromList [("title", "document1"), ("content", "... ... ... ")])
