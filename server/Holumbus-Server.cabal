@@ -33,6 +33,7 @@ executable holumbusServer
                  , text
                  , wai-extra
                  , Holumbus-Searchengine  >= 2
+                 , transformers
 
   -- instance NFData (Map k v) has moved from deepseq into containers (dependency hell)
   if impl( ghc < 7.4 )

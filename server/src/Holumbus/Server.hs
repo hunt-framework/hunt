@@ -6,9 +6,14 @@ import           Network.Wai.Middleware.RequestLogger
 
 import           Control.Applicative
 import           Control.Monad            (mzero)
+import           Control.Monad.IO.Class   (liftIO)
+import           Control.Concurrent.MVar
 
 import           Data.Map
 import qualified Data.Text as T
+--import qualified Data.Text.Lazy as TL
+--import qualified Data.Text.Lazy.Encoding as TEL
+
 --import qualified Text.Blaze.Html5 as H
 --import Text.Blaze.Html.Renderer.Text (renderHtml)
 --import Text.Blaze.Html5 ((!))
@@ -29,26 +34,42 @@ import           Data.Aeson hiding        (json)
 -- Words contains data to for index structures
 --
 data ApiDocument = ApiDocument
-  { apiDocUri   :: Uri
-  , apiDocDesc  :: Description
-  , apiDocWords :: Words
+  { apiDocUri     :: Uri
+  , apiDocDesc    :: Description
+  , apiDocWords   :: Words
   } deriving Show
-type Attribute = String
-type Description = Map Attribute String
-type Words = Map Context WordList
-type Context = String
-type WordList = Map Word [Int]
-type Word = String
-type Uri = String
+
+type Attribute    = String
+type Description  = Map Attribute String
+type Words        = Map Context WordList
+type Context      = String
+type WordList     = Map Word [Int]
+type Word         = String
+type Uri          = String
 --
 -- outgoing documents
 --
 -- search results contain serialized documents:
 --
-data Document = Document (Uri, Description)
+data Document     = Document (Uri, Description)
 --
 --
-data Customer = Customer T.Text T.Text Int
+data Customer     = Customer T.Text T.Text Int
+
+
+-- some sort of json response format
+data JsonResponse = JsonSuccess String | JsonFailure String
+
+instance ToJSON JsonResponse where
+  toJSON (JsonSuccess msg) = object
+    [ "code"  .= (0 :: Int)
+    , "msg"   .= msg
+    ]
+
+  toJSON (JsonFailure msg) = object
+    [ "code"  .= (1 :: Int)
+    , "msg"   .= msg
+    ]
 
 
 -- we dont really need this...
@@ -89,6 +110,8 @@ start = scotty 3000 $ do
                       (Data.Map.fromList [("title", "document1"), ("content", "... ... ... ")])
                       (Data.Map.fromList [("context1", Data.Map.fromList [("hallo", [2,6,7])])])
                   ]
+  -- MVar for the docs
+  docs <- liftIO $ newMVar documents
 
   middleware logStdoutDev
 
@@ -96,11 +119,28 @@ start = scotty 3000 $ do
 
  -- get "/customers" $ json customers
 
+  -- list all the docs
+  get "/documents" $ liftIO (readMVar docs) >>= json
+
+  -- get a specific doc
   get "/documents/:index" $ do
     index <- param "index"
-    if length documents > index
-      then json $ documents !! index
+    ds <- liftIO $ readMVar docs
+    if length ds > index
+      then json $ ds !! index
       else text $ "index out of range"
+
+  -- add a doc
+  post "/add" $ do
+        -- Raises an exception if parse is unsuccessful
+        js <- jsonData
+        case js of
+            doc@ApiDocument {}  -> do
+                -- add to list
+                liftIO $ modifyMVar_ docs (\ds -> return $ doc:ds)
+                json $ JsonSuccess "document added"
+        --ds <- liftIO $ readMVar docs
+        --text $ TL.pack . show . length $ ds
 
   get "/:word" $ do
     txt <- param "word"
