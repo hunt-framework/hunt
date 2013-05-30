@@ -114,26 +114,26 @@ inverted2compactInverted        = fromList PM.emptyInvertedOSerialized . toList
 -- -}
 -- ------------------------------------------------------------
 
-type HolumbusState  di          = IndexerState       Inverted Documents di
-type HolumbusConfig di          = IndexCrawlerConfig Inverted Documents di
+type HolumbusState              = IndexerState       Inverted Documents
+type HolumbusConfig             = IndexCrawlerConfig Inverted Documents
 
-emptyHolumbusState              :: HolumbusState di
+emptyHolumbusState              :: HolumbusState
 emptyHolumbusState              = emptyIndexerState emptyInverted emptyDocuments
 
 type SmallDocuments             = Documents
 
-emptySmallDocuments             :: SmallDocuments a
+emptySmallDocuments             :: SmallDocuments
 emptySmallDocuments             = emptyDocuments
 
 -- ------------------------------------------------------------
 
-defragmentHolumbusState :: (Binary di) => HolumbusState di -> HolumbusState di
+defragmentHolumbusState :: HolumbusState -> HolumbusState
 defragmentHolumbusState = id
 
 -- ------------------------------------------------------------
 
 mergeAndWritePartialRes' :: (MonadIO m, NFData i, Binary i) =>
-                            (SmallDocuments i -> SmallDocuments i) -> [String] -> String -> m ()
+                            (SmallDocuments -> SmallDocuments) -> [String] -> String -> m ()
 mergeAndWritePartialRes' id' pxs out
     = do notice $ ["merge hashed partial doctables from"] ++ pxs
          mdocs <- mergeSmallDocs $ map (++ ".doc") pxs
@@ -145,7 +145,7 @@ mergeAndWritePartialRes' id' pxs out
          liftIO $ encodeFile (out ++ ".idx") mixs
          notice $ ["merge partial hashed doctables and indexes done"]
 
-mergeSmallDocs :: (MonadIO m, NFData i, Binary i) => [String] -> m (SmallDocuments i)
+mergeSmallDocs :: MonadIO m => [String] -> m SmallDocuments
 mergeSmallDocs []
     = return emptySmallDocuments
 mergeSmallDocs (x : xs)
@@ -194,7 +194,7 @@ writeBin out v
              liftIO $ encodeFile out v
              notice ["writing binary data finished"]
 
-writeSearchBin :: (Binary c, MonadIO m) => FilePath -> HolumbusState c -> m ()
+writeSearchBin :: MonadIO m => FilePath -> HolumbusState -> m ()
 writeSearchBin out state
     | null out
         = notice ["no search index written"]
@@ -210,15 +210,13 @@ writeSearchBin out state
 
 -- ------------------------------------------------------------
 
-writePartialIndex :: (NFData c, XmlPickler c, Binary c) =>
-                     Bool -> FilePath -> CrawlerAction a (HolumbusState c) ()
+writePartialIndex :: Bool -> FilePath -> CrawlerAction a HolumbusState  ()
 writePartialIndex xout fn
     = modifyStateIO
       theResultAccu
       (writePartialIndex' xout fn)
 
-writePartialIndex' :: (NFData c, XmlPickler c, Binary c) =>
-                      Bool -> FilePath -> HolumbusState c -> IO (HolumbusState c)
+writePartialIndex' :: Bool -> FilePath -> HolumbusState -> IO HolumbusState
 writePartialIndex' xout out ixs
     = do writeSearchBin out ixs
          if xout

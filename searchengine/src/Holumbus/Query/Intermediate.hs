@@ -18,10 +18,10 @@
 
 {-# OPTIONS #-}
 
-module Holumbus.Query.Intermediate 
+module Holumbus.Query.Intermediate
 (
   -- * The intermediate result type.
-  Intermediate 
+  Intermediate
 
   -- * Construction
   , emptyIntermediate
@@ -33,9 +33,9 @@ module Holumbus.Query.Intermediate
   -- * Combine
   , union
   , difference
-  , intersection  
+  , intersection
   , unions
-  
+
   -- * Conversion
   , fromList
   , toResult
@@ -110,20 +110,20 @@ fromList t c os                 = mapDocIdMap transform $
                                   unionsWithDocIdMap (flip $ (:) . head)
                                                      (map insertWords os)
   where
-  insertWords (w, o)            = mapDocIdMap (\p -> [(w, (WordInfo [t] 0.0 , p))]) o   
+  insertWords (w, o)            = mapDocIdMap (\p -> [(w, (WordInfo [t] 0.0 , p))]) o
   transform w                   = M.singleton c (M.fromList w)
 
 -- | Convert to a @Result@ by generating the 'WordHits' structure.
 
-toResult                        :: HolDocuments d c => d c -> Intermediate -> Result c
+toResult                        :: HolDocuments d => d -> Intermediate -> Result
 toResult d im                   = Result (createDocHits d im) (createWordHits im)
 
 -- | Create the doc hits structure from an intermediate result.
 
-createDocHits                   :: HolDocuments d c => d c -> Intermediate -> DocHits c
+createDocHits                   :: HolDocuments d => d -> Intermediate -> DocHits
 createDocHits d im              = mapWithKeyDocIdMap transformDocs im
   where
-  transformDocs did ic          = let doc = fromMaybe (Document "" "" Nothing) (lookupById d did) in
+  transformDocs did ic          = let doc = fromMaybe (Document "" M.empty) (lookupById d did) in
                                   (DocInfo doc 0.0, M.map (M.map (\(_, p) -> p)) ic)
 
 -- | Create the word hits structure from an intermediate result.
@@ -137,7 +137,7 @@ createWordHits im               = foldWithKeyDocIdMap transformDoc M.empty im
       where
       insertWord w (wi, pos) wh''
                                 = if terms wi == [""]
-                                  then wh'' 
+                                  then wh''
                                   else M.insertWith combineWordHits
                                            w
                                            (wi, M.singleton c (singletonDocIdMap d pos))

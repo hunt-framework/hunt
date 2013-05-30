@@ -20,10 +20,12 @@
 module Holumbus.Index.Common.Document
 where
 
-import Control.Monad                    ( liftM3 )
+import Control.Monad                    ( liftM, liftM2 )
 import Control.DeepSeq
-import Control.Applicative
 
+import           Data.Map (Map)
+import           Data.Text (Text)
+import Data.Text.Encoding as TE
 import Data.Binary                      ( Binary (..) )
 
 import Holumbus.Index.Common.BasicTypes
@@ -36,33 +38,53 @@ import Data.Aeson
 -- | A document consists of a title and its unique identifier (URI)
 -- and a customizable component
 
-data Document a                 = Document
-                                  { title  :: ! Title
-                                  , uri    :: ! URI
-                                  , custom :: ! (Maybe a)
+-- TODO: redundant/move?
+type Attribute    = Text
+type Description  = Map Attribute Text
+type Words        = Map CContext WordList
+type CContext     = Text
+type WordList     = Map WWord [Int]
+type WWord        = Text
+type Uri          = Text
+
+-- XXX: move + UTF-8 serialization?
+instance Binary Text where
+  put = put . encodeUtf8
+  get = liftM decodeUtf8 get
+
+data Document                   = Document
+                                  { uri   :: ! URI
+                                  , desc  :: ! Description
                                   }
                                   deriving (Show, Eq, Ord)
 
-instance ToJSON a => ToJSON (Document a) where
-  toJSON (Document t u mc) = object
-    [ "title" .= t
-    , "uri"   .= u
-    , "custom" .= toJSON mc
+
+instance ToJSON Document where
+  toJSON (Document u d) = object
+    [ "uri"   .= u
+    , "desc"  .= toJSON d
     ]
 
-instance Binary a => Binary (Document a) where
-    put (Document t u c)        = put t >> put u >> put c
-    get                         = liftM3 Document get get get
 
-instance XmlPickler a => XmlPickler (Document a) where
-    xpickle                     = xpWrap ( \ (t, u, i) -> Document t u i
-                                         , \ (Document t u i) -> (t, u, i)
-                                         ) (xpTriple xpTitle xpURI xpickle)
+instance Binary Document where
+    put (Document u d)          = put u >> put d
+    get                         = liftM2 Document get get
+
+
+-- FIXME: implement
+instance XmlPickler Description where
+    xpickle = undefined
+
+
+instance XmlPickler Document where
+    xpickle                     = xpWrap ( \ (t, d) -> Document t d
+                                         , \ (Document t d) -> (t, d)
+                                         ) (xpPair xpURI xpickle)
         where
         xpURI                   = xpAttr "href"  xpText0
-        xpTitle                 = xpAttr "title" xpText0
 
-instance NFData a => NFData (Document a) where
-    rnf (Document t u c)        = rnf t `seq` rnf u `seq` rnf c
+
+instance NFData Document where
+    rnf (Document t d)        = rnf t `seq` rnf d
 
 -- ------------------------------------------------------------

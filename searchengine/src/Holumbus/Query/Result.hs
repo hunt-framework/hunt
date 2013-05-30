@@ -11,15 +11,15 @@
 
   The data type for results of Holumbus queries.
 
-  The result of a query is defined in terms of two partial results, 
-  the documents containing the search terms and the words which 
+  The result of a query is defined in terms of two partial results,
+  the documents containing the search terms and the words which
   are possible completions of the serach terms.
 
 -}
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Query.Result 
+module Holumbus.Query.Result
   (
   -- * Result data types
   Result (..)
@@ -32,7 +32,7 @@ module Holumbus.Query.Result
   , DocInfo (..)
   , WordInfo (..)
   , Score
-  
+
   -- * Construction
   , emptyResult
 
@@ -47,7 +47,7 @@ module Holumbus.Query.Result
   -- * Transform
   , setDocScore
   , setWordScore
-  
+
   -- * Picklers
   , xpDocHits
   , xpWordHits
@@ -75,28 +75,28 @@ import Text.XML.HXT.Core
 -- ----------------------------------------------------------------------------
 
 -- | The combined result type for Holumbus queries.
-data Result a           = Result        
-                          { docHits  :: (DocHits a)  -- ^ The documents matching the query.
+data Result             = Result
+                          { docHits  :: DocHits      -- ^ The documents matching the query.
                           , wordHits :: WordHits     -- ^ The words which are completions of the query terms.
                           }
                           deriving (Eq, Show)
 
 -- | Information about an document.
-data DocInfo a          = DocInfo 
-                          { document :: (Document a) -- ^ The document itself.
+data DocInfo            = DocInfo
+                          { document :: Document     -- ^ The document itself.
                           , docScore :: Score        -- ^ The score for the document (initial score for all documents is @0.0@).
                           }
                           deriving (Eq, Show)
 
 -- | Information about a word.
-data WordInfo           = WordInfo 
+data WordInfo           = WordInfo
                           { terms     :: Terms    -- ^ The search terms that led to this very word.
                           , wordScore :: Score    -- ^ The frequency of the word in the document for a context.
                           }
                           deriving (Eq, Show)
 
 -- | A mapping from a document to it's score and the contexts where it was found.
-type DocHits a          = DocIdMap (DocInfo a, DocContextHits)
+type DocHits            = DocIdMap (DocInfo, DocContextHits)
 
 -- | A mapping from a context to the words of the document that were found in this context.
 type DocContextHits     = Map Context DocWordHits
@@ -121,11 +121,11 @@ type Terms              = [String]
 
 -- ----------------------------------------------------------------------------
 
-instance Binary a => Binary (Result a) where
+instance Binary Result where
   put (Result dh wh)    = put dh >> put wh
   get                   = liftM2 Result get get
 
-instance Binary a => Binary (DocInfo a) where
+instance Binary DocInfo where
   put (DocInfo d s)     = put d >> put s
   get                   = liftM2 DocInfo get get
 
@@ -133,22 +133,22 @@ instance Binary WordInfo where
   put (WordInfo t s)    = put t >> put s
   get                   = liftM2 WordInfo get get
 
-instance NFData a => NFData (Result a) where
+instance NFData Result where
   rnf (Result dh wh)    = rnf dh `seq` rnf wh
 
-instance NFData a => NFData (DocInfo a) where
+instance NFData DocInfo where
   rnf (DocInfo d s)     = rnf d `seq` rnf s
 
 instance NFData WordInfo where
   rnf (WordInfo t s)    = rnf t `seq` rnf s
 
-instance XmlPickler a => XmlPickler (Result a) where
-  xpickle               = xpElem "result" $ 
+instance XmlPickler Result where
+  xpickle               = xpElem "result" $
                           xpWrap ( \ (dh, wh) -> Result dh wh
                                  , \ (Result dh wh) -> (dh, wh)
                                  ) (xpPair xpDocHits xpWordHits)
 
-instance XmlPickler a => XmlPickler (DocInfo a) where
+instance XmlPickler DocInfo where
   xpickle               = xpWrap ( \ (d, s) -> DocInfo d s
                                  , \ (DocInfo d s) -> (d, s)
                                  ) xpDocInfo'
@@ -167,7 +167,7 @@ instance XmlPickler WordInfo where
 -- ----------------------------------------------------------------------------
 
 -- | The XML pickler for the document hits. Will be sorted by score.
-xpDocHits               :: XmlPickler a => PU (DocHits a)
+xpDocHits               :: PU DocHits
 xpDocHits               = xpElem "dochits" $
                           xpWrap ( fromListDocIdMap
                                  , toListSorted
@@ -219,31 +219,31 @@ xpWordDocHits           = xpOccurrences
 -- ----------------------------------------------------------------------------
 
 -- | Create an empty result.
-emptyResult             :: Result a
+emptyResult             :: Result
 emptyResult             = Result emptyDocIdMap M.empty
 
 -- | Query the number of documents in a result.
-sizeDocHits             :: Result a -> Int
+sizeDocHits             :: Result -> Int
 sizeDocHits             = sizeDocIdMap . docHits
 
 -- | Query the number of documents in a result.
-sizeWordHits            :: Result a -> Int
+sizeWordHits            :: Result -> Int
 sizeWordHits            = M.size . wordHits
 
 -- | Query the maximum score of the documents.
-maxScoreDocHits         :: Result a -> Score
+maxScoreDocHits         :: Result -> Score
 maxScoreDocHits         = (foldDocIdMap (\(di, _) r -> max (docScore di) r) 0.0) . docHits
 
 -- | Query the maximum score of the words.
-maxScoreWordHits        :: Result a -> Score
+maxScoreWordHits        :: Result -> Score
 maxScoreWordHits        = (M.fold (\(wi, _) r -> max (wordScore wi) r) 0.0) . wordHits
 
 -- | Test if the result contains anything.
-null                    :: Result a -> Bool
+null                    :: Result -> Bool
 null                    = nullDocIdMap . docHits
 
 -- | Set the score in a document info.
-setDocScore             :: Score -> DocInfo a -> DocInfo a
+setDocScore             :: Score -> DocInfo -> DocInfo
 setDocScore s (DocInfo d _)
                         = DocInfo d s
 
@@ -253,7 +253,7 @@ setWordScore s (WordInfo t _)
                         = WordInfo t s
 
 -- | Extract all documents from a result
-getDocuments            :: Result a -> [Document a]
+getDocuments            :: Result -> [Document]
 getDocuments r          = map (document . fst . snd) $
                           toListDocIdMap (docHits r)
 

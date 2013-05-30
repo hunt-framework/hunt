@@ -16,7 +16,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.CompactDocuments 
+module Holumbus.Index.CompactDocuments
 (
   -- * Documents type
   Documents (..)
@@ -27,9 +27,9 @@ module Holumbus.Index.CompactDocuments
   -- * Construction
   , emptyDocuments
   , singleton
-  
+
   -- * Conversion
-  , simplify
+  --, simplify
   , toDocument
   , fromDocument
   , fromDocMap
@@ -57,13 +57,13 @@ import           Text.XML.HXT.Core
 -- | The table which is used to map a document to an artificial id and vice versa.
 
 type URIMap                     = M.PrefixTree DocId
-type DocMap a                   = DocIdMap (CompressedDoc a)
+type DocMap                     = DocIdMap CompressedDoc
 
-newtype CompressedDoc a         = CDoc { unCDoc :: ByteString }
+newtype CompressedDoc           = CDoc { unCDoc :: ByteString }
                                   deriving (Eq, Show)
 
-data Documents a                = Documents
-                                  { idToDoc   :: ! (DocMap a)   -- ^ A mapping from a document id to
+data Documents                  = Documents
+                                  { idToDoc   :: ! DocMap       -- ^ A mapping from a document id to
                                                                 --   the document itself.
                                   , docToId   :: ! URIMap       -- ^ A space efficient mapping from
                                                                 --   the URI of a document to its id.
@@ -73,7 +73,7 @@ data Documents a                = Documents
 
 -- ----------------------------------------------------------------------------
 
-instance (Binary a, HolIndex i) => HolDocIndex Documents a i where
+instance HolIndex i => HolDocIndex Documents i where
     defragmentDocIndex dt ix  = (dt1, ix1)
         where
           dt1                   = editDocIds editId dt
@@ -93,7 +93,7 @@ instance (Binary a, HolIndex i) => HolDocIndex Documents a i where
           dt2s                  = editDocIds    add1 dt2
           ix2s                  = updateDocIds' add1 ix2
 
-          add1                  = addDocId disp 
+          add1                  = addDocId disp
           max1                  = maxKeyDocIdMap . toMap $ dt1
           min2                  = minKeyDocIdMap . toMap $ dt2
           disp                  = incrDocId $ subDocId max1 min2
@@ -103,26 +103,26 @@ instance (Binary a, HolIndex i) => HolDocIndex Documents a i where
 
 -- ----------------------------------------------------------------------------
 
-toDocument                      :: (Binary a) => CompressedDoc a -> Document a
+toDocument                      :: CompressedDoc -> Document
 toDocument                      = B.decode . BZ.decompress . unCDoc
 
-fromDocument                    :: (Binary a) => Document a -> CompressedDoc a
+fromDocument                    :: Document -> CompressedDoc
 fromDocument                    = CDoc . BZ.compress . B.encode
 
-mapDocument                     :: (Binary a) => (Document a -> Document a) -> CompressedDoc a -> CompressedDoc a
+mapDocument                     :: (Document -> Document) -> CompressedDoc-> CompressedDoc
 mapDocument f                   = fromDocument . f . toDocument
 
-toDocMap                        :: (Binary a) => DocIdMap (Document a) -> DocMap a
+toDocMap                        :: DocIdMap Document -> DocMap
 toDocMap                        = mapDocIdMap fromDocument
 
-fromDocMap                      :: (Binary a) => DocMap a -> DocIdMap (Document a)
+fromDocMap                      :: DocMap -> DocIdMap Document
 fromDocMap                      = mapDocIdMap toDocument
 
 -- ----------------------------------------------------------------------------
 
-instance Binary a => HolDocuments Documents a where
+instance HolDocuments Documents where
   sizeDocs d                    = sizeDocIdMap (idToDoc d)
-  
+
   lookupById  d i               = maybe (fail "") return
                                   . fmap toDocument
                                   . lookupDocIdMap i
@@ -176,7 +176,7 @@ instance Binary a => HolDocuments Documents a where
       newId                     = incrDocId (lastDocId ds)
 
   updateDoc ds i d              = rnf d' `seq`                  -- force document compression
-                                  ds 
+                                  ds
                                   { idToDoc = insertDocIdMap i d' (idToDoc ds)
                                   , docToId = M.insert (uri d) i (docToId (removeById ds i))
                                   }
@@ -185,7 +185,7 @@ instance Binary a => HolDocuments Documents a where
 
   removeById ds d               = maybe ds reallyRemove (lookupById ds d)
     where
-    reallyRemove (Document _ u _)
+    reallyRemove (Document u _)
                                 = Documents
                                   (deleteDocIdMap d (idToDoc ds))
                                   (M.delete u (docToId ds))
@@ -196,8 +196,8 @@ instance Binary a => HolDocuments Documents a where
     updated                     = mapDocIdMap (mapDocument f) (idToDoc d)
 
   filterDocuments p d           = Documents filtered (idToDoc2docToId filtered) (lastId filtered)
-    where 
-    filtered                    = filterDocIdMap (p . toDocument) (idToDoc d)  
+    where
+    filtered                    = filterDocIdMap (p . toDocument) (idToDoc d)
 
   fromMap itd'                  = Documents itd (idToDoc2docToId itd) (lastId itd)
     where
@@ -218,7 +218,7 @@ instance Binary a => HolDocuments Documents a where
 
 -- Ignoring last document id when testing for equality
 
-instance Eq a =>                Eq (Documents a)
+instance Eq Documents
     where
     (==) (Documents i2da d2ia _) (Documents i2db d2ib _)
                                 = (i2da == i2db)
@@ -227,14 +227,13 @@ instance Eq a =>                Eq (Documents a)
 
 -- ----------------------------------------------------------------------------
 
-instance NFData a =>            NFData (Documents a)
+instance NFData Documents
     where
     rnf (Documents i2d d2i lid) = rnf i2d `seq` rnf d2i `seq` rnf lid
 
 -- ----------------------------------------------------------------------------
 
-instance (Binary a, XmlPickler a) =>
-                                XmlPickler (Documents a)
+instance XmlPickler Documents
     where
     xpickle                     = xpElem "documents" $
                                   xpWrap convertDoctable $
@@ -249,7 +248,7 @@ instance (Binary a, XmlPickler a) =>
 
 -- ----------------------------------------------------------------------------
 
-instance Binary a =>            Binary (Documents a)
+instance Binary Documents
     where
     put (Documents i2d _ lid)   = B.put lid >> B.put i2d
     get                         = do lid <- B.get
@@ -258,22 +257,21 @@ instance Binary a =>            Binary (Documents a)
 
 -- ------------------------------------------------------------
 
-instance (Binary a, XmlPickler a) =>
-                                XmlPickler (CompressedDoc a)
+instance XmlPickler CompressedDoc
     where
     xpickle                     = xpWrap (fromDocument , toDocument) $
                                   xpickle
 
 -- ----------------------------------------------------------------------------
 
-instance Binary a =>            Binary (CompressedDoc a)
+instance Binary CompressedDoc
     where
     put                         = B.put . unCDoc
     get                         = B.get >>= return . CDoc
 
 -- ----------------------------------------------------------------------------
 
-instance                        NFData (CompressedDoc a)
+instance                        NFData CompressedDoc
     where
     rnf (CDoc s)                = BS.length s `seq` ()
 
@@ -281,12 +279,12 @@ instance                        NFData (CompressedDoc a)
 
 -- | Create an empty table.
 
-emptyDocuments                  :: Documents a
+emptyDocuments                  :: Documents
 emptyDocuments                  = Documents emptyDocIdMap M.empty nullDocId
 
 -- | Create a document table containing a single document.
 
-singleton                       :: (Binary a) => Document a -> Documents a
+singleton                       :: Document -> Documents
 singleton d                     = rnf d' `seq`
                                   Documents
                                   (singletonDocIdMap firstDocId d')
@@ -295,27 +293,28 @@ singleton d                     = rnf d' `seq`
     where
       d'                        = fromDocument d
 
+-- TODO: can be deleted!?
 -- | Simplify a document table by transforming the custom information into a string.
-
+{-
 simplify                        :: (Binary a, Show a) => Documents a -> Documents String
 simplify dt                     = Documents (simple (idToDoc dt)) (docToId dt) (lastDocId dt)
   where
   simple i2d                    = mapDocIdMap
                                   ( fromDocument
-                                    . (\d -> Document (title d) (uri d) (maybe Nothing (Just . show) (custom d)))
+                                    . (\d -> Document (uri d) (maybe Nothing (Just . show)))
                                     . toDocument
                                   ) i2d
-
+-}
 -- | Construct the inverse map from the original map.
 
-idToDoc2docToId                 :: Binary a => DocMap a -> URIMap
+idToDoc2docToId                 :: DocMap -> URIMap
 idToDoc2docToId                 = foldWithKeyDocIdMap
                                   (\i d r -> M.insert (uri . toDocument $ d) i r)
                                   M.empty
 
 -- | Query the 'idToDoc' part of the document table for the last id.
 
-lastId                          :: DocMap a -> DocId
+lastId                          :: DocMap -> DocId
 lastId                          = maxKeyDocIdMap
 
 -- ------------------------------------------------------------

@@ -20,7 +20,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.CompactSmallDocuments 
+module Holumbus.Index.CompactSmallDocuments
 (
   -- * Documents type
   SmallDocuments (..)
@@ -54,14 +54,14 @@ import           Text.XML.HXT.Core
 --
 -- see also 'Holumbus.Index.CompactDocuments.Documents' data type
 
-newtype SmallDocuments a        = SmallDocuments
-                                  { idToSmallDoc   :: CD.DocMap a -- ^ A mapping from a doc id
+newtype SmallDocuments         = SmallDocuments
+                                  { idToSmallDoc   :: CD.DocMap   -- ^ A mapping from a doc id
                                                                   --   to the document itself.
                                   }
 
 -- ----------------------------------------------------------------------------
 
-instance (Binary a, HolIndex i) => HolDocIndex SmallDocuments a i where
+instance HolIndex i => HolDocIndex SmallDocuments i where
     defragmentDocIndex          = notImpl
 {-
     defragmentDocIndex dt ix    = (dt1, ix1)
@@ -80,9 +80,9 @@ instance (Binary a, HolIndex i) => HolDocIndex SmallDocuments a i where
 
 -- ----------------------------------------------------------------------------
 
-instance Binary a => HolDocuments SmallDocuments a where
+instance HolDocuments SmallDocuments where
   sizeDocs                      = sizeDocIdMap . idToSmallDoc
-  
+
   lookupById  d i               = maybe (fail "") return
                                   . fmap CD.toDocument
                                   . lookupDocIdMap i
@@ -144,14 +144,13 @@ instance Binary a => HolDocuments SmallDocuments a where
 
 -- ----------------------------------------------------------------------------
 
-instance NFData a =>            NFData (SmallDocuments a)
+instance NFData SmallDocuments
     where
     rnf (SmallDocuments i2d)    = rnf i2d
 
 -- ----------------------------------------------------------------------------
 
-instance (Binary a, XmlPickler a) =>
-                                XmlPickler (SmallDocuments a)
+instance XmlPickler SmallDocuments
     where
     xpickle                     = xpElem "documents" $
                                   xpWrap convertDoctable $
@@ -166,7 +165,7 @@ instance (Binary a, XmlPickler a) =>
 
 -- ----------------------------------------------------------------------------
 
-instance Binary a =>            Binary (SmallDocuments a)
+instance Binary SmallDocuments
     where
     put (SmallDocuments i2d)    = B.put i2d
     get                         = do
@@ -182,18 +181,18 @@ notImpl                         = error "operation not implemented for SmallDocu
 
 -- | Create an empty table.
 
-emptyDocuments                  :: SmallDocuments a
+emptyDocuments                  :: SmallDocuments
 emptyDocuments                  = SmallDocuments emptyDocIdMap
 
 -- | Create a document table containing a single document.
 
-singleton                       :: (Binary a) => Document a -> SmallDocuments a
+singleton                       :: Document -> SmallDocuments
 singleton d                     = SmallDocuments (singletonDocIdMap firstDocId (CD.fromDocument d))
 
 -- | Convert a Compact document table into a small compact document table.
 -- Called at the end of building an index
 
-docTable2smallDocTable          :: CD.Documents a -> SmallDocuments a
+docTable2smallDocTable          :: CD.Documents -> SmallDocuments
 docTable2smallDocTable          =  SmallDocuments . CD.idToDoc
 
 -- ------------------------------------------------------------

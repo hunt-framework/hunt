@@ -8,7 +8,6 @@ module Holumbus.Crawler.IndexerCore
     , RawContext
     , RawWords
     , RawWord
-    , RawTitle
     , IndexCrawlerConfig
     , IndexContextConfig(..)
     , IndexerState(..)
@@ -30,6 +29,9 @@ import           Data.Binary                    ( Binary )
 import qualified Data.Binary                    as B
 import           Data.Function.Selector
 import           Data.Maybe
+import           Data.Map                       (Map)
+import qualified Data.Map                       as M
+import Data.Text (Text)
 
 import           Holumbus.Crawler
 
@@ -39,31 +41,31 @@ import           Text.XML.HXT.Core
 
 -- ------------------------------------------------------------
 
-type RawDoc c                   = (RawContexts, RawTitle, Maybe c)      -- c is the user defined custom info
+type RawDoc                     = (RawContexts, RawDescription)      -- c is the user defined custom info
 type RawContexts                = [RawContext]
 type RawContext                 = (Context, RawWords)
 type RawWords                   = [RawWord]
 type RawWord                    = (Word, Position)
-type RawTitle                   = String
+type RawDescription             = Map Text Text -- XXX: split up?
 
-type IndexCrawlerConfig i d c   = CrawlerConfig (RawDoc c) (IndexerState i d c)
-type IndexCrawlerState  i d c   = CrawlerState             (IndexerState i d c)
+type IndexCrawlerConfig i d     = CrawlerConfig RawDoc (IndexerState i d)
+type IndexCrawlerState  i d     = CrawlerState         (IndexerState i d)
 
 data IndexContextConfig         = IndexContextConfig
                                   { ixc_name           :: String
                                   , ixc_collectText    :: IOSArrow XmlTree String
                                   , ixc_textToWords    :: String -> [String]
                                   , ixc_boringWord     :: String -> Bool
-                                  }   
+                                  }
 
-data IndexerState i d c         = IndexerState
+data IndexerState i d           = IndexerState
                                   { ixs_index           :: ! i          -- the index type
-                                  , ixs_documents       :: ! (d c)      -- the type for document descriptions
+                                  , ixs_documents       :: ! d          -- the type for document descriptions
                                   } deriving (Show)
 
 -- ------------------------------------------------------------
 
-instance (NFData i, NFData (d c)) => NFData (IndexerState i d c)
+instance (NFData i, NFData d) => NFData (IndexerState i d)
     where
     rnf IndexerState { ixs_index     = i
                      , ixs_documents = d
@@ -71,7 +73,7 @@ instance (NFData i, NFData (d c)) => NFData (IndexerState i d c)
 
 -- ------------------------------------------------------------
 
-instance (Binary i, Binary (d c)) => Binary (IndexerState i d c)
+instance (Binary i, Binary d) => Binary (IndexerState i d)
     where
     put s                       = B.put (ixs_index s)
                                   >>
@@ -86,7 +88,7 @@ instance (Binary i, Binary (d c)) => Binary (IndexerState i d c)
 
 -- ------------------------------------------------------------
 
-instance (XmlPickler i, XmlPickler (d c)) => XmlPickler (IndexerState i d c)
+instance (XmlPickler i, XmlPickler d) => XmlPickler (IndexerState i d)
     where
     xpickle                     = xpElem "index-state" $
                                   xpWrap ( uncurry IndexerState
@@ -96,7 +98,7 @@ instance (XmlPickler i, XmlPickler (d c)) => XmlPickler (IndexerState i d c)
 
 -- ------------------------------------------------------------
 
-emptyIndexerState               :: i -> d c -> IndexerState i d c
+emptyIndexerState               :: i -> d -> IndexerState i d
 emptyIndexerState eix edm       = IndexerState
                                   { ixs_index           = eix
                                   , ixs_documents       = edm
@@ -105,20 +107,19 @@ emptyIndexerState eix edm       = IndexerState
 -- ------------------------------------------------------------
 
 stdIndexer                      :: ( Binary i
-                                   , Binary (d c)
+                                   , Binary d
                                    , Binary c
                                    , HolIndexM IO i
-                                   , HolDocuments d c
+                                   , HolDocuments d
                                    , NFData i
-                                   , NFData (d c)
-                                   , NFData c) =>
-                                   IndexCrawlerConfig i d c     -- ^ adapt configuration to special needs,
+                                   , NFData d) =>
+                                   IndexCrawlerConfig i d       -- ^ adapt configuration to special needs,
                                                                 --   use id if default is ok
                                 -> Maybe String                 -- ^ resume from interrupted index run with state
                                                                 --   stored in file
                                 -> [URI]                        -- ^ start indexing with this set of uris
-                                -> IndexerState i d c           -- ^ the initial empty indexer state
-                                -> IO (IndexCrawlerState i d c) -- ^ result is a state consisting of the index and the map of indexed documents
+                                -> IndexerState i d             -- ^ the initial empty indexer state
+                                -> IO (IndexCrawlerState i d)   -- ^ result is a state consisting of the index and the map of indexed documents
 
 stdIndexer config resumeLoc startUris eis
                                 = execCrawler action config (initCrawlerState eis)
@@ -134,22 +135,20 @@ stdIndexer config resumeLoc startUris eis
 -- general HolIndexM IO i version, for old specialized version see code at end of this file
 
 indexCrawlerConfig              :: ( HolIndexM IO i
-                                   , HolDocuments d c
-                                   , HolDocIndex  d c i
+                                   , HolDocuments d
+                                   , HolDocIndex  d i
                                    , NFData i
-                                   , NFData c
-                                   , NFData (d c)
+                                   , NFData d
                                    ) =>
                                    SysConfig                                    -- ^ document read options
                                 -> (URI -> Bool)                                -- ^ the filter for deciding, whether the URI shall be processed
                                 -> Maybe (IOSArrow XmlTree String)              -- ^ the document href collection filter, default is 'Holumbus.Crawler.Html.getHtmlReferences'
                                 -> Maybe (IOSArrow XmlTree XmlTree)             -- ^ the pre document filter, default is the this arrow
-                                -> Maybe (IOSArrow XmlTree String)              -- ^ the filter for computing the document title, default is empty string
-                                -> Maybe (IOSArrow XmlTree c)                   -- ^ the filter for the cutomized doc info, default Nothing
+                                -> Maybe (IOSArrow XmlTree Description)         -- ^ the filter for the doc description, default Nothing
                                 -> [IndexContextConfig]                         -- ^ the configuration of the various index parts
-                                -> IndexCrawlerConfig i d c                     -- ^ result is a crawler config
+                                -> IndexCrawlerConfig i d                       -- ^ result is a crawler config
 
-indexCrawlerConfig opts followRef getHrefF preDocF titleF0 customF0 contextCs
+indexCrawlerConfig opts followRef getHrefF preDocF descF0 contextCs
                                 = addSysConfig (defaultOpts >>> opts)           -- install the default read options
                                   >>>
                                   ( setS theFollowRef followRef )
@@ -172,16 +171,13 @@ indexCrawlerConfig opts followRef getHrefF preDocF titleF0 customF0 contextCs
     where
     rawDocF                     = ( listA contextFs
                                     &&&
-                                    titleF
-                                    &&&
-                                    customF
-                                  )
-                                  >>^ (\ (x3, (x2, x1)) -> (x3, x2, x1))
+                                    descF
+                                  ) >>^ (\ (x2, x1) -> (x2, x1))
 
-    titleF                      = ( fromMaybe (constA "") titleF0 ) >. concat
+    -- TODO: add description filter
+    --customF                     = ( fromMaybe none customF0 ) >. listToMaybe
+    descF                       = none
 
-    customF                     = ( fromMaybe none customF0 ) >. listToMaybe
-                                  
     contextFs                   :: IOSArrow XmlTree RawContext
     contextFs                   = catA . map contextF $ contextCs               -- collect all contexts
 
@@ -217,12 +213,12 @@ indexCrawlerConfig opts followRef getHrefF preDocF titleF0 customF0 contextCs
 
 unionIndexerStatesM             :: ( MonadIO m
                                    , HolIndexM m i
-                                   , HolDocuments d c
-                                   , HolDocIndex d c i
+                                   , HolDocuments d
+                                   , HolDocIndex d i
                                    ) =>
-                                   IndexerState i d c
-                                -> IndexerState i d c
-                                -> m (IndexerState i d c)
+                                   IndexerState i d
+                                -> IndexerState i d
+                                -> m (IndexerState i d)
 unionIndexerStatesM ixs1 ixs2
     = return
       $! IndexerState { ixs_index        = ix
@@ -239,16 +235,15 @@ unionIndexerStatesM ixs1 ixs2
 
 insertRawDocM                   :: ( MonadIO m
                                    , HolIndexM m i
-                                   , HolDocuments d c
+                                   , HolDocuments d
                                    , NFData i
-                                   , NFData c
-                                   , NFData (d c)
+                                   , NFData d
                                    ) =>
-                                   (URI, RawDoc c)                              -- ^ extracted URI and doc info
-                                -> IndexerState i d c                           -- ^ old indexer state
-                                -> m (IndexerState i d c)                       -- ^ new indexer state
+                                   (URI, RawDoc)                                -- ^ extracted URI and doc info
+                                -> IndexerState i d                             -- ^ old indexer state
+                                -> m (IndexerState i d)                         -- ^ new indexer state
 
-insertRawDocM (rawUri, (rawContexts, rawTitle, rawCustom)) ixs
+insertRawDocM (rawUri, (rawContexts, rawDescription)) ixs
     | nullContexts              = return ixs    -- no words found in document,
                                                 -- so there are no refs in index
                                                 -- and document is thrown away
@@ -264,9 +259,8 @@ insertRawDocM (rawUri, (rawContexts, rawTitle, rawCustom)) ixs
     nullContexts                = and . map (null . snd) $ rawContexts
     (did, newDocs)              = insertDoc (ixs_documents ixs) doc
     doc                         = Document
-                                  { title       = rawTitle
-                                  , uri         = rawUri
-                                  , custom      = rawCustom
+                                  { uri     = rawUri
+                                  , desc    = rawDescription -- TODO: insert title?
                                   }
 
 insertRawContextM               :: (Monad m, HolIndexM m i) =>

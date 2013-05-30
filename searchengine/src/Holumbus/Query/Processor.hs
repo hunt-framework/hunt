@@ -20,11 +20,11 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Query.Processor 
+module Holumbus.Query.Processor
   (
   -- * Processor types
   ProcessConfig (..)
-  
+
   -- * Processing
   , processQuery
   , processPartial
@@ -62,7 +62,7 @@ import qualified Holumbus.Query.Intermediate    as I
 -- | The configuration for the query processor.
 
 data ProcessConfig
-    = ProcessConfig 
+    = ProcessConfig
       { fuzzyConfig   :: ! FuzzyConfig -- ^ The configuration for fuzzy queries.
       , optimizeQuery :: ! Bool        -- ^ Optimize the query before processing.
       , wordLimit     :: ! Int         -- ^ The maximum number of words used from a prefix. Zero switches off limiting.
@@ -77,7 +77,7 @@ instance Binary ProcessConfig where
 
 -- | The internal state of the query processor.
 data ProcessState i
-    = ProcessState 
+    = ProcessState
       { config   :: ! ProcessConfig   -- ^ The configuration for the query processor.
       , contexts :: ! [Context]       -- ^ The current list of contexts.
       , index    :: ! i               -- ^ The index to search.
@@ -134,7 +134,7 @@ allDocuments s = forAllContexts (\c -> I.fromList "" c $ IDX.allWords (index s) 
 allDocumentsM :: HolIndexM m i => ProcessState i -> m Intermediate
 allDocumentsM s = forAllContextsM (\c -> IDX.allWordsM (index s) c >>= \r -> return $ I.fromList "" c r) (contexts s)
 
--- | Process a query only partially in terms of a distributed index. Only the intermediate 
+-- | Process a query only partially in terms of a distributed index. Only the intermediate
 -- result will be returned.
 
 processPartial :: (HolIndex i) => ProcessConfig -> i -> Int -> Query -> Intermediate
@@ -151,12 +151,12 @@ processPartialM cfg i t q = initStateM cfg i t >>= (flip processM) oq
 
 -- | Process a query on a specific index with regard to the configuration.
 
-processQuery :: (HolIndex i, HolDocuments d c) => ProcessConfig -> i -> d c -> Query -> Result c
+processQuery :: (HolIndex i, HolDocuments d) => ProcessConfig -> i -> d -> Query -> Result
 processQuery cfg i d q = I.toResult d (processPartial cfg i (sizeDocs d) q)
 
 -- | Monadic version of 'processQuery'.
 
-processQueryM :: (HolIndexM m i, HolDocuments d c) => ProcessConfig -> i -> d c -> Query -> m (Result c)
+processQueryM :: (HolIndexM m i, HolDocuments d) => ProcessConfig -> i -> d -> Query -> m Result
 processQueryM cfg i d q = processPartialM cfg i (sizeDocs d) q >>= \ir -> return $ I.toResult d ir
 
 -- | Continue processing a query by deciding what to do depending on the current query element.
@@ -224,7 +224,7 @@ processPhrase s q = forAllContexts phraseNoCase (contexts s)
 -- processPhraseM :: HolIndexM m i => ProcessState i -> String -> m Intermediate
 -- processPhraseM s q = forAllContextsM phraseNoCase (contexts s)
 --   where
---   phraseNoCase c = 
+--   phraseNoCase c =
 
 -- | Process a phrase case-sensitive.
 
@@ -237,7 +237,7 @@ processCasePhrase s q = forAllContexts phraseCase (contexts s)
 
 processPhraseInternal :: (String -> RawResult) -> Context -> String -> Intermediate
 processPhraseInternal f c q = let
-  w = words q 
+  w = words q
   m = mergeOccurrencesList $ map snd $ f (head w) in
   if nullDocIdMap m
   then I.emptyIntermediate
@@ -267,7 +267,7 @@ processFuzzyWord s oq = processFuzzyWord' (F.toList $ F.fuzz (getFuzzyConfig s) 
 
 processFuzzyWordM :: HolIndexM m i => ProcessState i -> String -> m Intermediate
 processFuzzyWordM s oq = do
-  sr <- processWordM s oq 
+  sr <- processWordM s oq
   cfg <- getFuzzyConfigM s
   processFuzzyWordM' (F.toList $ F.fuzz cfg oq) sr
     where
@@ -302,8 +302,8 @@ processBin But r1 r2 = I.difference r1 r2
 --
 -- TODO: This is fixed to 2000, should be part of the config part of the state
 --
--- A 2. simple heuristic is used to 
--- determine the quality of a word: The total number of occurrences divided by the number of 
+-- A 2. simple heuristic is used to
+-- determine the quality of a word: The total number of occurrences divided by the number of
 -- documents in which the word appears.
 --
 -- The second heuristic isn't that expensive any more when the resul list is cut of by the heuristic

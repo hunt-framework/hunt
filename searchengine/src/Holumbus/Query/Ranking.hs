@@ -10,29 +10,29 @@
   Portability: portable
   Version    : 0.3
 
-  The ranking mechanism for Holumbus. 
-  
-  Customized ranking functions for both documents and suggested words can be 
+  The ranking mechanism for Holumbus.
+
+  Customized ranking functions for both documents and suggested words can be
   provided by the user. Some predefined ranking functions are avaliable, too.
 
 -}
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Query.Ranking 
+module Holumbus.Query.Ranking
   (
   -- * Ranking types
   RankConfig (..)
   , DocRanking
   , WordRanking
-  
+
   -- * Ranking
   , rank
-  
+
   -- * Predefined document rankings
   , docRankByCount
   , docRankWeightedByCount
-  
+
   -- * Predefined word rankings
   , wordRankByCount
   , wordRankWeightedByCount
@@ -53,13 +53,13 @@ import Holumbus.Index.Common
 -- ----------------------------------------------------------------------------
 
 -- | The configuration of the ranking mechanism.
-data RankConfig a       = RankConfig 
-                          { docRanking :: DocRanking a  -- ^ A function to determine the score of a document.
+data RankConfig         = RankConfig
+                          { docRanking :: DocRanking    -- ^ A function to determine the score of a document.
                           , wordRanking :: WordRanking  -- ^ A funciton to determine the score of a word.
                           }
 
 -- | The signature of a function to determine the score of a document.
-type DocRanking a       = DocId -> DocInfo a -> DocContextHits -> Score
+type DocRanking         = DocId -> DocInfo -> DocContextHits -> Score
 
 -- | The signature of a function to determine the score of a word.
 type WordRanking        = Word -> WordInfo -> WordContextHits -> Score
@@ -68,7 +68,7 @@ type WordRanking        = Word -> WordInfo -> WordContextHits -> Score
 
 -- | Rank the result with custom ranking functions.
 
-rank                    :: RankConfig a -> Result a -> Result a
+rank                    :: RankConfig -> Result -> Result
 rank (RankConfig fd fw {-ld lw-}) r
                         = Result scoredDocHits scoredWordHits
   where
@@ -79,7 +79,7 @@ rank (RankConfig fd fw {-ld lw-}) r
 
 -- | Rank documents by count.
 
-docRankByCount          :: DocId -> DocInfo a -> DocContextHits -> Score
+docRankByCount          :: DocId -> DocInfo -> DocContextHits -> Score
 docRankByCount _ _ h    = fromIntegral $
                           M.fold (\h1 r1 -> M.fold (\h2 r2 -> sizePos h2 + r2) r1 h1) 0 h
 
@@ -91,7 +91,7 @@ wordRankByCount _ _ h   = fromIntegral $ M.fold (\h1 r1 -> foldDocIdMap ((+) . s
 -- | Rank documents by context-weighted count. The weights will be normalized to a maximum of 1.0.
 -- Contexts with no weight (or a weight of zero) will be ignored.
 
-docRankWeightedByCount  :: [(Context, Score)] -> DocId -> DocInfo a -> DocContextHits -> Score
+docRankWeightedByCount  :: [(Context, Score)] -> DocId -> DocInfo -> DocContextHits -> Score
 docRankWeightedByCount ws _ _ h
                         =  M.foldrWithKey (calcWeightedScore ws) 0.0 h
 

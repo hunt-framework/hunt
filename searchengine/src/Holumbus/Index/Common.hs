@@ -25,7 +25,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common 
+module Holumbus.Index.Common
   (
   -- * Common index types and classes
   HolIndex (..)
@@ -86,7 +86,7 @@ class HolIndex i where
 
   -- | Searches for and exact word in a given context (case-insensitive).
   lookupNoCase                  :: i -> Context -> String -> RawResult
-  
+
   -- | Insert occurrences.
   insertOccurrences             :: Context -> Word -> Occurrences -> i -> i
 
@@ -101,7 +101,7 @@ class HolIndex i where
   deletePosition                :: Context -> Word -> DocId -> Position -> i -> i
   deletePosition c w d p i      = deleteOccurrences c w (singletonOccurrence d p) i
 
-  -- | Merges two indexes. 
+  -- | Merges two indexes.
   mergeIndexes                  :: i -> i -> i
 
   -- | Substract one index from another.
@@ -125,12 +125,12 @@ class HolIndex i where
   updateDocIds'                 :: (DocId -> DocId) -> i -> i
   updateDocIds' f               = updateDocIds (const . const $ f)
 
-  -- Convert an Index to a list. Can be used for easy conversion between different index  
+  -- Convert an Index to a list. Can be used for easy conversion between different index
   -- implementations
 
   toList                        :: i -> [(Context, Word, Occurrences)]
-  
-  -- Create an Index from a list. Can be used for easy conversion between different index  
+
+  -- Create an Index from a list. Can be used for easy conversion between different index
   -- implementations. Needs an empty index as first argument
 
   fromList                      :: i -> [(Context, Word, Occurrences)] -> i
@@ -176,7 +176,7 @@ class (Monad m) => HolIndexM m i where
   deletePositionM               :: Context -> Word -> DocId -> Position -> i -> m i
   deletePositionM c w d p i     = deleteOccurrencesM c w (singletonOccurrence d p) i
 
-  -- | Merges two indexes. 
+  -- | Merges two indexes.
   mergeIndexesM                 :: i -> i -> m i
 
   -- | Update document id's (e.g. for renaming documents). If the function maps two different id's
@@ -187,11 +187,11 @@ class (Monad m) => HolIndexM m i where
   -- | Update document id's with an simple injective editing function.
   updateDocIdsM'                :: (DocId -> DocId) -> i -> m i
 
-  -- Convert an Index to a list. Can be used for easy conversion between different index  
+  -- Convert an Index to a list. Can be used for easy conversion between different index
   -- implementations
   toListM                       :: i -> m [(Context, Word, Occurrences)]
 
-  -- Create an Index from a list. Can be used vor easy conversion between different index  
+  -- Create an Index from a list. Can be used vor easy conversion between different index
   -- implementations. Needs an empty index as first argument
   fromListM                     :: i -> [(Context, Word, Occurrences)] -> m i
   fromListM e                   = foldM (\i (c,w,o) -> insertOccurrencesM c w o i) e
@@ -220,64 +220,64 @@ instance (HolIndex i) => HolIndexM IO i where
 
 -- ------------------------------------------------------------
 
-class HolDocuments d a where
+class HolDocuments d where
   -- | doctable empty?
-  nullDocs                      :: d a -> Bool
+  nullDocs                      :: d -> Bool
   nullDocs                      = (== 0) . sizeDocs
 
   -- | Returns the number of unique documents in the table.
-  sizeDocs                      :: d a -> Int
-  
+  sizeDocs                      :: d -> Int
+
   -- | Lookup a document by its id.
-  lookupById                    :: Monad m => d a -> DocId -> m (Document a)
+  lookupById                    :: Monad m => d -> DocId -> m Document
 
   -- | Lookup the id of a document by an URI.
-  lookupByURI                   :: Monad m => d a -> URI -> m DocId
+  lookupByURI                   :: Monad m => d -> URI -> m DocId
 
   -- | Union of two disjoint document tables. It is assumed, that the DocIds and the document uris
   -- of both indexes are disjoint. If only the sets of uris are disjoint, the DocIds can be made
   -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
 
-  unionDocs                     :: d a -> d a -> d a
+  unionDocs                     :: d -> d -> d
   unionDocs dt1                 = foldDocIdMap addDoc dt1 . toMap
       where
       addDoc d dt               = snd . insertDoc dt $ d
 
   -- | Test whether the doc ids of both tables are disjoint
-  disjointDocs                  :: d a -> d a -> Bool
+  disjointDocs                  :: d -> d -> Bool
 
   -- | Return an empty document table. The input parameter is taken to identify the typeclass
-  makeEmpty                     :: d a -> d a
-  
-  -- | Insert a document into the table. Returns a tuple of the id for that document and the 
-  -- new table. If a document with the same URI is already present, its id will be returned 
+  makeEmpty                     :: d -> d
+
+  -- | Insert a document into the table. Returns a tuple of the id for that document and the
+  -- new table. If a document with the same URI is already present, its id will be returned
   -- and the table is returned unchanged.
 
-  insertDoc                     :: d a -> (Document a) -> (DocId, d a)
+  insertDoc                     :: d -> Document -> (DocId, d)
 
-  -- | Update a document with a certain DocId. 
-  updateDoc                     :: d a -> DocId -> (Document a) -> d a
+  -- | Update a document with a certain DocId.
+  updateDoc                     :: d -> DocId -> Document -> d
 
   -- | Removes the document with the specified id from the table.
-  removeById                    :: d a -> DocId -> d a
+  removeById                    :: d -> DocId -> d
 
   -- | Removes the document with the specified URI from the table.
-  removeByURI                   :: d a -> URI -> d a
+  removeByURI                   :: d -> URI -> d
   removeByURI ds u              = maybe ds (removeById ds) (lookupByURI ds u)
 
   -- | Update documents (through mapping over all documents).
-  updateDocuments               :: (Document a -> Document a) -> d a -> d a
+  updateDocuments               :: (Document -> Document) -> d -> d
 
-  filterDocuments               :: (Document a -> Bool) -> d a -> d a
+  filterDocuments               :: (Document -> Bool) -> d -> d
 
   -- | Create a document table from a single map.
-  fromMap                       :: DocIdMap (Document a) -> d a
+  fromMap                       :: DocIdMap Document -> d
 
   -- | Convert document table to a single map
-  toMap                         :: d a -> DocIdMap (Document a)
+  toMap                         :: d -> DocIdMap Document
 
   -- | Edit document ids
-  editDocIds                    :: (DocId -> DocId) -> d a -> d a
+  editDocIds                    :: (DocId -> DocId) -> d -> d
   editDocIds f                  = fromMap . foldWithKeyDocIdMap (insertDocIdMap . f) emptyDocIdMap . toMap
 
 -- ------------------------------------------------------------
@@ -287,7 +287,7 @@ class HolCache c where
   -- upon failure or if no text found for the document, @Nothing@ is returned.
   getDocText  :: c -> Context -> DocId -> IO (Maybe Content)
 
-  -- | Store the full text of a document for a given context. May throw an exception if the 
+  -- | Store the full text of a document for a given context. May throw an exception if the
   -- storage of the text failed.
 
   putDocText  :: c -> Context -> DocId -> Content -> IO ()
@@ -298,17 +298,17 @@ class HolCache c where
 
 -- ------------------------------------------------------------
 
-class (HolDocuments d a, HolIndex i) => HolDocIndex d a i where
+class (HolDocuments d, HolIndex i) => HolDocIndex d i where
 
     -- | Merge two doctables and indexes together into a single doctable and index
-    unionDocIndex               :: d a -> i -> d a -> i -> (d a, i)
+    unionDocIndex               :: d -> i -> d -> i -> (d, i)
 
     -- | Defragment a doctable and index, useful when the doc ids are
     -- organized as an intervall of ints.
     --
     -- Default implementation is the identity
 
-    defragmentDocIndex          :: d a -> i -> (d a, i)
+    defragmentDocIndex          :: d -> i -> (d, i)
     defragmentDocIndex          = (,)
 
 -- ------------------------------------------------------------

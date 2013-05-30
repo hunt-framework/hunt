@@ -125,25 +125,25 @@ inverted2compactInverted        = fromList PM.emptyInvertedOSerialized . toList
 -- -}
 -- ------------------------------------------------------------
 
-type HolumbusState  di          = IndexerState       Inverted Documents di
-type HolumbusConfig di          = IndexCrawlerConfig Inverted Documents di
+type HolumbusState              = IndexerState       Inverted Documents
+type HolumbusConfig             = IndexCrawlerConfig Inverted Documents
 
-emptyHolumbusState              :: HolumbusState di
+emptyHolumbusState              :: HolumbusState
 emptyHolumbusState              = emptyIndexerState emptyInverted emptyDocuments
 
-flushHolumbusState              :: HolumbusState di -> HolumbusState di
+flushHolumbusState              :: HolumbusState -> HolumbusState
 flushHolumbusState hs           = hs { ixs_index     = emptyInverted
                                      , ixs_documents = emptyDocuments
                                                        { lastDocId = lastDocId . ixs_documents $ hs }
                                      }
 
-emptySmallDocuments             :: SmallDocuments a
+emptySmallDocuments             :: SmallDocuments
 emptySmallDocuments             = CSD.emptyDocuments
 
 -- ------------------------------------------------------------
 
 defragmentHolumbusState         :: (Binary di) =>
-                                   HolumbusState di -> HolumbusState di
+                                   HolumbusState -> HolumbusState
 defragmentHolumbusState IndexerState
               { ixs_index     = ix
               , ixs_documents = dt
@@ -156,8 +156,8 @@ defragmentHolumbusState IndexerState
 
 -- ------------------------------------------------------------
 
-mergeAndWritePartialRes' :: (MonadIO m, NFData i, Binary i) =>
-                            (SmallDocuments i -> SmallDocuments i) -> [String] -> String -> m ()
+mergeAndWritePartialRes' :: MonadIO m =>
+                            (SmallDocuments -> SmallDocuments) -> [String] -> String -> m ()
 mergeAndWritePartialRes' id' pxs out
     = do notice $ ["merge partial doctables from"] ++ pxs
          mdocs <- mergeSmallDocs $ map (++ ".doc") pxs
@@ -169,7 +169,7 @@ mergeAndWritePartialRes' id' pxs out
          liftIO $ encodeFile (out ++ ".idx") mixs
          notice $ ["merge partial doctables and indexes done"]
 
-mergeSmallDocs :: (MonadIO m, NFData i, Binary i) => [String] -> m (SmallDocuments i)
+mergeSmallDocs :: MonadIO m => [String] -> m SmallDocuments
 mergeSmallDocs []
     = return emptySmallDocuments
 mergeSmallDocs (x : xs)
@@ -179,7 +179,7 @@ mergeSmallDocs (x : xs)
          rnf doc1 `seq`
                  (return $ unionDocs docs doc1)
 
-mergeCompactIxs :: (MonadIO m) => [String] -> m CompactInverted
+mergeCompactIxs :: MonadIO m => [String] -> m CompactInverted
 mergeCompactIxs []
     = return emptyCompactInverted
 mergeCompactIxs (x : xs)
@@ -218,7 +218,7 @@ writeBin out v
              liftIO $ encodeFile out v
              notice ["writing binary data finished"]
 
-writeSearchBin :: (Binary c, MonadIO m) => FilePath -> HolumbusState c -> m ()
+writeSearchBin :: MonadIO m => FilePath -> HolumbusState -> m ()
 writeSearchBin out state
     | null out
         = notice ["no search index written"]
@@ -234,8 +234,7 @@ writeSearchBin out state
 
 -- ------------------------------------------------------------
 
-writePartialIndex :: (NFData c, XmlPickler c, Binary c) =>
-                     Bool -> FilePath -> CrawlerAction a (HolumbusState c) ()
+writePartialIndex :: Bool -> FilePath -> CrawlerAction a HolumbusState ()
 writePartialIndex xout fn
     = modifyStateIO
       (theResultAccu .&&&. theResultInit)
@@ -254,8 +253,7 @@ writePartialIndex xout fn
    but when running the parallel one, the index ids will overlap.
 -}
 
-writePartialIndex' :: (NFData c, XmlPickler c, Binary c) =>
-                      Bool -> FilePath -> HolumbusState c -> IO (HolumbusState c)
+writePartialIndex' :: Bool -> FilePath -> HolumbusState -> IO HolumbusState
 writePartialIndex' xout out ixs
     = do writeSearchBin out ixs
          if xout

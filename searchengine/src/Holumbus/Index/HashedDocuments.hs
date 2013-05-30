@@ -21,7 +21,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.HashedDocuments 
+module Holumbus.Index.HashedDocuments
     (
       -- * Documents type
       Documents (..)
@@ -31,7 +31,7 @@ module Holumbus.Index.HashedDocuments
       -- * Construction
     , emptyDocuments
     , singleton
-  
+
       -- * Conversion
     , toDocument
     , fromDocument
@@ -60,15 +60,15 @@ import           Text.XML.HXT.Core
 
 -- | The table which is used to map a document to an artificial id and vice versa.
 
-type DocMap a
-    = DocIdMap (CompressedDoc a)
+type DocMap
+    = DocIdMap CompressedDoc
 
-newtype CompressedDoc a
+newtype CompressedDoc
     = CDoc { unCDoc :: ByteString }
       deriving (Eq, Show)
 
-newtype Documents a
-    = Documents { idToDoc   :: DocMap a }   -- ^ A mapping from a document id to
+newtype Documents
+    = Documents { idToDoc   :: DocMap }     -- ^ A mapping from a document id to
                                             --   the document itself.
       deriving (Eq, Show, NFData)
 
@@ -80,7 +80,7 @@ docToId = mkDocId . integerDigest . sha1 . B.encode
 
 -- ----------------------------------------------------------------------------
 
-instance (Binary a, HolIndex i) => HolDocIndex Documents a i where
+instance HolIndex i => HolDocIndex Documents i where
     unionDocIndex dt1 ix1 dt2 ix2
         | s1 == 0
             = (dt2, ix2)
@@ -98,27 +98,27 @@ instance (Binary a, HolIndex i) => HolDocIndex Documents a i where
 
 -- ----------------------------------------------------------------------------
 
-toDocument                      :: (Binary a) => CompressedDoc a -> Document a
+toDocument                      :: CompressedDoc -> Document
 toDocument                      = B.decode . BZ.decompress . unCDoc
 
-fromDocument                    :: (Binary a) => Document a -> CompressedDoc a
+fromDocument                    :: Document -> CompressedDoc
 fromDocument                    = CDoc . BZ.compress . B.encode
 
-mapDocument                     :: (Binary a) => (Document a -> Document a) -> CompressedDoc a -> CompressedDoc a
+mapDocument                     :: (Document -> Document) -> CompressedDoc -> CompressedDoc
 mapDocument f                   = fromDocument . f . toDocument
 
-toDocMap                        :: (Binary a) => DocIdMap (Document a) -> DocMap a
+toDocMap                        :: DocIdMap Document -> DocMap
 toDocMap                        = mapDocIdMap fromDocument
 
-fromDocMap                      :: (Binary a) => DocMap a -> DocIdMap (Document a)
+fromDocMap                      :: DocMap -> DocIdMap Document
 fromDocMap                      = mapDocIdMap toDocument
 
 -- ----------------------------------------------------------------------------
 
-instance Binary a => HolDocuments Documents a where
+instance HolDocuments Documents where
   sizeDocs
       = sizeDocIdMap . idToDoc
-  
+
   lookupById  d i
       = maybe (fail "") return
         . fmap toDocument
@@ -183,7 +183,7 @@ instance Binary a => HolDocuments Documents a where
 
 -- ----------------------------------------------------------------------------
 
-instance (Binary a, XmlPickler a) => XmlPickler (Documents a) where
+instance XmlPickler Documents where
     xpickle
         = xpElem "documents" $
           xpWrap convertDoctable $
@@ -198,26 +198,26 @@ instance (Binary a, XmlPickler a) => XmlPickler (Documents a) where
 
 -- ----------------------------------------------------------------------------
 
-instance Binary a => Binary (Documents a) where
+instance Binary Documents where
     put = B.put . idToDoc
     get = fmap Documents B.get
 
 -- ------------------------------------------------------------
 
-instance (Binary a, XmlPickler a) => XmlPickler (CompressedDoc a) where
+instance XmlPickler CompressedDoc where
     xpickle
         = xpWrap (fromDocument , toDocument) $
           xpickle
 
 -- ----------------------------------------------------------------------------
 
-instance Binary a => Binary (CompressedDoc a) where
+instance Binary CompressedDoc where
     put = B.put . unCDoc
     get = B.get >>= return . CDoc
 
 -- ----------------------------------------------------------------------------
 
-instance NFData (CompressedDoc a) where
+instance NFData CompressedDoc where
     rnf (CDoc s)
         = BS.length s `seq` ()
 
@@ -225,18 +225,18 @@ instance NFData (CompressedDoc a) where
 
 -- | Create an empty table.
 
-emptyDocuments :: Documents a
+emptyDocuments :: Documents
 emptyDocuments
     = Documents emptyDocIdMap
 
-unionDocs' :: Documents a -> Documents a -> Documents a
+unionDocs' :: Documents -> Documents -> Documents
 unionDocs' dt1 dt2
     = Documents
       { idToDoc = unionDocIdMap (idToDoc dt1) (idToDoc dt2) }
 
 -- | Create a document table containing a single document.
 
-singleton :: (Binary a) => Document a -> Documents a
+singleton :: Document -> Documents
 singleton d
     = rnf d' `seq`
       Documents {idToDoc = singletonDocIdMap (docToId . uri $ d) d'}

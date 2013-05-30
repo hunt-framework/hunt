@@ -43,8 +43,9 @@ library
                , parsec                 >= 2.1 && < 4
                , process                >= 1   && < 2
                , SHA                    >= 1.4 && < 2
-               , unix                   >= 2.3 && < 3              
+               , unix                   >= 2.3 && < 3
                , aeson
+               , text
 
   -- instance NFData (Map k v) has moved from deepseq into containers (dependency hell)
   if impl(ghc < 7.4)
