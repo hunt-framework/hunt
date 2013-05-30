@@ -1,31 +1,30 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
+
 module Holumbus.Server {-(start)-} where
 
 import           Web.Scotty
 import           Network.Wai.Middleware.RequestLogger
+--import           Network.Wai.Middleware.Static
 
-import           Control.Applicative
 import           Control.Monad            (mzero)
 import           Control.Monad.IO.Class   (liftIO)
 import           Control.Concurrent.MVar
 
-import           Data.Map
+import           Data.Map hiding ((!))
 import qualified Data.Text as T
---import qualified Data.Text.Lazy as TL
---import qualified Data.Text.Lazy.Encoding as TEL
-
---import qualified Text.Blaze.Html5 as H
---import Text.Blaze.Html.Renderer.Text (renderHtml)
---import Text.Blaze.Html5 ((!))
---import qualified Text.Blaze.Html5.Attributes as A
-import           Data.Monoid              (mconcat)
 import           Data.Aeson hiding        (json)
+
+import           Text.Blaze.Html.Renderer.Text (renderHtml)
+--import qualified Data.Text.Lazy.Encoding as TEL
+--import qualified Data.Text.Lazy as TL
+
+
 --import           Data.Aeson.Types         --((.:), (.:?), FromJSON, parseJSON, Parser, Value (Array, Object))
 --import qualified Data.Aeson as J
 
+import qualified Holumbus.Server.Template as Tmpl
 
--- import holu 1.3.2 types
---import Holumbus.Index.Common
 
 --
 -- incoming documents:
@@ -33,37 +32,51 @@ import           Data.Aeson hiding        (json)
 -- Description contains data for persistent storage of document
 -- Words contains data to for index structures
 --
+type Attribute    = T.Text
+type Description  = Map Attribute String
+type Words        = Map Context WordList
+type Context      = T.Text
+type WordList     = Map Word [Int]
+type Word         = T.Text
+type Uri          = T.Text
+
 data ApiDocument = ApiDocument
   { apiDocUri     :: Uri
   , apiDocDesc    :: Description
   , apiDocWords   :: Words
   } deriving Show
 
-type Attribute    = String
-type Description  = Map Attribute String
-type Words        = Map Context WordList
-type Context      = String
-type WordList     = Map Word [Int]
-type Word         = String
-type Uri          = String
---
+emptyApiDoc :: ApiDocument 
+emptyApiDoc = ApiDocument
+  { apiDocUri     = "id::1"
+  , apiDocDesc    = (insert "title" "empty document" $ empty)
+  , apiDocWords   = (insert "defaultContext" (insert "word" [] $ empty) $ empty)
+  }
+
 -- outgoing documents
 --
--- search results contain serialized documents:
+-- search results contain serialized documents
+-- this document should be imported from searchengine later
 --
-data Document     = Document (Uri, Description)
---
---
-data Customer     = Customer T.Text T.Text Int
+data Document     = Document 
+  { docUri  :: Uri
+  , docDesc :: Description
+  }
+  deriving Show
 
+emptyDoc :: Document
+emptyDoc = Document
+  { docUri     = "id::1"
+  , docDesc    = (insert "title" "empty document" $ empty)
+  }
 
 -- some sort of json response format
-data JsonResponse = JsonSuccess String | JsonFailure String
+data JsonResponse r = JsonSuccess r | JsonFailure String
 
-instance ToJSON JsonResponse where
+instance (ToJSON r) => ToJSON (JsonResponse r) where
   toJSON (JsonSuccess msg) = object
     [ "code"  .= (0 :: Int)
-    , "msg"   .= msg
+    , "msg"   .= toJSON msg
     ]
 
   toJSON (JsonFailure msg) = object
@@ -71,79 +84,66 @@ instance ToJSON JsonResponse where
     , "msg"   .= msg
     ]
 
-
--- we dont really need this...
-instance ToJSON ApiDocument where
-  toJSON (ApiDocument uri desc contextWords) = object
+-- document to outgoing json result
+instance ToJSON Document where
+  toJSON (Document uri desc) = object
     [ "uri"   .= uri
     , "desc"  .= toJSON desc
-    , "words" .= toJSON contextWords
     ]
 
+instance ToJSON ApiDocument where
+  toJSON (ApiDocument uri desc ws) = object
+    [ "uri"   .= uri
+    , "desc"  .= toJSON desc
+    , "words" .= toJSON ws
+    ]
 
--- we need this - but ... how???
+-- incoming json to apidocument
 instance FromJSON ApiDocument where
   parseJSON (Object o) = do
-  desc      <- o    .: "desc"
-  uri       <- o    .: "uri"
-  conWords  <- o    .: "words"
-  return ApiDocument
-    { apiDocUri     = uri
-    , apiDocDesc    = desc
-    , apiDocWords   = conWords
-    }
-
-
-
-instance FromJSON Customer where
-  parseJSON (Object v)
-    = Customer
-        <$> v .: "name"
-        <*> v .: "address"
-        <*> v .: "age"
+    desc      <- o    .: "desc"
+    uri       <- o    .: "uri"
+    conWords  <- o    .: "words"
+    return ApiDocument
+      { apiDocUri     = uri
+      , apiDocDesc    = desc
+      , apiDocWords   = conWords
+      }
   parseJSON _ = mzero
+
 
 -- server itself
 start :: IO ()
 start = scotty 3000 $ do
-  let documents = [ ApiDocument "1"
-                      (Data.Map.fromList [("title", "document1"), ("content", "... ... ... ")])
-                      (Data.Map.fromList [("context1", Data.Map.fromList [("hallo", [2,6,7])])])
-                  ]
-  -- MVar for the docs
-  docs <- liftIO $ newMVar documents
+  
+  -- tmp documents store
+  docs    <- liftIO $ newMVar [emptyDoc]
 
+  -- request / response logging
   middleware logStdoutDev
 
-  get "/" $ text "mainpage"
+  get "/" $ html $ Tmpl.index
+  
+  -- list all indexed documents
+  get "/search/:query" $ do 
+    ds <-liftIO (readMVar docs)
+    json $ JsonSuccess ds
 
- -- get "/customers" $ json customers
-
-  -- list all the docs
-  get "/documents" $ liftIO (readMVar docs) >>= json
-
-  -- get a specific doc
-  get "/documents/:index" $ do
+  -- get a specific document
+  get "/document/:index" $ do
     index <- param "index"
     ds <- liftIO $ readMVar docs
     if length ds > index
       then json $ ds !! index
       else text $ "index out of range"
 
-  -- add a doc
-  post "/add" $ do
-        -- Raises an exception if parse is unsuccessful
-        js <- jsonData
-        case js of
-            doc@ApiDocument {}  -> do
-                -- add to list
-                liftIO $ modifyMVar_ docs (\ds -> return $ doc:ds)
-                json $ JsonSuccess "document added"
-        --ds <- liftIO $ readMVar docs
-        --text $ TL.pack . show . length $ ds
-
-  get "/:word" $ do
-    txt <- param "word"
-    html $ mconcat ["<h1>", txt, "</h1>"]
+  -- add a document
+  post "/document/add" $ do
+    -- Raises an exception if parse is unsuccessful
+    js <- jsonData
+    case js of
+      ApiDocument u d _  -> do
+        liftIO $ modifyMVar_ docs (\ds -> return $ (Document u d):ds)
+        json $ JsonSuccess ("document added"::T.Text)
 
   notFound . redirect $ "/"
