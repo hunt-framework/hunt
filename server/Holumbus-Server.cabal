@@ -31,6 +31,7 @@ executable holumbusServer
                  , blaze-html
                  , text
                  , hamlet                 >= 1.1.7.1
+                 , shakespeare-js         >= 1.1.4
                  , wai-extra
                  , Holumbus-Searchengine  >= 2
                  , transformers
