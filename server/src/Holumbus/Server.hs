@@ -12,6 +12,7 @@ import           Control.Monad.IO.Class   (liftIO)
 import           Control.Concurrent.MVar
 
 import           Data.Map hiding ((!))
+import           Data.Text                (Text)
 import qualified Data.Text as T
 import           Data.Aeson hiding        (json)
 
@@ -32,13 +33,13 @@ import qualified Holumbus.Server.Template as Tmpl
 -- Description contains data for persistent storage of document
 -- Words contains data to for index structures
 --
-type Attribute    = T.Text
-type Description  = Map Attribute String
+type Attribute    = Text
+type Description  = Map Attribute T.Text
 type Words        = Map Context WordList
-type Context      = T.Text
+type Context      = Text
 type WordList     = Map Word [Int]
-type Word         = T.Text
-type Uri          = T.Text
+type Word         = Text
+type Uri          = Text
 
 data ApiDocument = ApiDocument
   { apiDocUri     :: Uri
@@ -46,7 +47,7 @@ data ApiDocument = ApiDocument
   , apiDocWords   :: Words
   } deriving Show
 
-emptyApiDoc :: ApiDocument 
+emptyApiDoc :: ApiDocument
 emptyApiDoc = ApiDocument
   { apiDocUri     = "id::1"
   , apiDocDesc    = (insert "title" "empty document" $ empty)
@@ -58,7 +59,7 @@ emptyApiDoc = ApiDocument
 -- search results contain serialized documents
 -- this document should be imported from searchengine later
 --
-data Document     = Document 
+data Document     = Document
   { docUri  :: Uri
   , docDesc :: Description
   }
@@ -115,7 +116,7 @@ instance FromJSON ApiDocument where
 -- server itself
 start :: IO ()
 start = scotty 3000 $ do
-  
+
   -- tmp documents store
   docs    <- liftIO $ newMVar [emptyDoc]
 
@@ -123,9 +124,9 @@ start = scotty 3000 $ do
   middleware logStdoutDev
 
   get "/" $ html $ Tmpl.index
-  
+
   -- list all indexed documents
-  get "/search/:query" $ do 
+  get "/search/:query" $ do
     ds <-liftIO (readMVar docs)
     json $ JsonSuccess ds
 

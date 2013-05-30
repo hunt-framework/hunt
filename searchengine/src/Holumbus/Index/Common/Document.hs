@@ -38,14 +38,9 @@ import Data.Aeson
 -- | A document consists of a title and its unique identifier (URI)
 -- and a customizable component
 
--- TODO: redundant/move?
+-- FIXME: redundant/move?
 type Attribute    = Text
 type Description  = Map Attribute Text
-type Words        = Map CContext WordList
-type CContext     = Text
-type WordList     = Map WWord [Int]
-type WWord        = Text
-type Uri          = Text
 
 -- XXX: move + UTF-8 serialization?
 instance Binary Text where

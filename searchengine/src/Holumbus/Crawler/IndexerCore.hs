@@ -174,7 +174,7 @@ indexCrawlerConfig opts followRef getHrefF preDocF descF0 contextCs
                                     descF
                                   ) >>^ (\ (x2, x1) -> (x2, x1))
 
-    -- TODO: add description filter
+    -- FIXME: add description filter
     --customF                     = ( fromMaybe none customF0 ) >. listToMaybe
     descF                       = none
 
@@ -260,7 +260,7 @@ insertRawDocM (rawUri, (rawContexts, rawDescription)) ixs
     (did, newDocs)              = insertDoc (ixs_documents ixs) doc
     doc                         = Document
                                   { uri     = rawUri
-                                  , desc    = rawDescription -- TODO: insert title?
+                                  , desc    = rawDescription -- XXX: insert title?
                                   }
 
 insertRawContextM               :: (Monad m, HolIndexM m i) =>
