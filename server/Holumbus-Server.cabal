@@ -12,7 +12,6 @@ homepage:      http://holumbus.fh-wedel.de
 description:   Standalone Search Server based on holumbus searchengine
 cabal-version: >=1.6
 build-type:    Simple
--- tested-with:   ghc-7.0.3
 
 extra-source-files:
     README
@@ -31,9 +30,11 @@ executable holumbusServer
                  , aeson
                  , blaze-html
                  , text
+                 , hamlet                 >= 1.1.7.1
                  , wai-extra
                  , Holumbus-Searchengine  >= 2
                  , transformers
+                 , wai-middleware-static  >= 0.3.2
 
   -- instance NFData (Map k v) has moved from deepseq into containers (dependency hell)
   if impl( ghc < 7.4 )
@@ -59,4 +60,6 @@ executable holumbusServer
               GeneralizedNewtypeDeriving
               TypeSynonymInstances
               OverloadedStrings
-              CPP
+              TemplateHaskell
+              QuasiQuotes
+              RankNTypes
