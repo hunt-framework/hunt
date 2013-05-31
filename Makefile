@@ -11,4 +11,5 @@ target	:
 	( cd searchengine           && cabal clean && cabal $(action) )
 	( cd server                 && cabal clean && cabal $(action))
 
+
 .PHONY	: target clean configure build install all
