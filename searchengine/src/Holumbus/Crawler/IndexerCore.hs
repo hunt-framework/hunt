@@ -30,7 +30,7 @@ import qualified Data.Binary                    as B
 import           Data.Function.Selector
 import           Data.Maybe
 import           Data.Map                       (Map)
-import qualified Data.Map                       as M
+--import qualified Data.Map                       as M
 import Data.Text (Text)
 
 import           Holumbus.Crawler
@@ -108,7 +108,6 @@ emptyIndexerState eix edm       = IndexerState
 
 stdIndexer                      :: ( Binary i
                                    , Binary d
-                                   , Binary c
                                    , HolIndexM IO i
                                    , HolDocuments d
                                    , NFData i

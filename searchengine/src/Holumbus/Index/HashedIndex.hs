@@ -132,7 +132,7 @@ defragmentHolumbusState = id
 
 -- ------------------------------------------------------------
 
-mergeAndWritePartialRes' :: (MonadIO m, NFData i, Binary i) =>
+mergeAndWritePartialRes' :: (MonadIO m {-,NFData i, Binary i-}) =>
                             (SmallDocuments -> SmallDocuments) -> [String] -> String -> m ()
 mergeAndWritePartialRes' id' pxs out
     = do notice $ ["merge hashed partial doctables from"] ++ pxs

@@ -142,8 +142,7 @@ emptySmallDocuments             = CSD.emptyDocuments
 
 -- ------------------------------------------------------------
 
-defragmentHolumbusState         :: (Binary di) =>
-                                   HolumbusState -> HolumbusState
+defragmentHolumbusState         :: HolumbusState -> HolumbusState
 defragmentHolumbusState IndexerState
               { ixs_index     = ix
               , ixs_documents = dt
