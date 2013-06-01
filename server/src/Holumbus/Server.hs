@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 module Holumbus.Server {-(start)-} where
 
@@ -8,15 +7,15 @@ import           Network.Wai.Middleware.RequestLogger
 --import           Network.Wai.Middleware.Static
 
 import           Control.Monad            (mzero)
-import           Control.Monad.IO.Class   (liftIO)
+import           Control.Monad.IO.Class   (MonadIO, liftIO)
 import           Control.Concurrent.MVar
 
-import           Data.Map hiding ((!))
+import           Data.Map                 (Map, insert, empty)
+import qualified Data.Map                 as M
 import           Data.Text                (Text)
-import qualified Data.Text as T
+import qualified Data.Text                as T
 import           Data.Aeson hiding        (json)
 
-import           Text.Blaze.Html.Renderer.Text (renderHtml)
 --import qualified Data.Text.Lazy.Encoding as TEL
 --import qualified Data.Text.Lazy as TL
 
@@ -24,7 +23,11 @@ import           Text.Blaze.Html.Renderer.Text (renderHtml)
 --import           Data.Aeson.Types         --((.:), (.:?), FromJSON, parseJSON, Parser, Value (Array, Object))
 --import qualified Data.Aeson as J
 
-import qualified Holumbus.Server.Template as Tmpl
+import qualified Holumbus.Server.Template       as Tmpl
+import           Holumbus.Index.Common hiding   (Description, Attribute, Context, Word, Document)
+--import Holumbus.Index.Common.Document
+import           Holumbus.Index.Inverted.PrefixMem
+--import           Holumbus.Index.Common.RawResult
 
 
 --
@@ -50,8 +53,8 @@ data ApiDocument = ApiDocument
 emptyApiDoc :: ApiDocument
 emptyApiDoc = ApiDocument
   { apiDocUri     = "id::1"
-  , apiDocDesc    = (insert "title" "empty document" $ empty)
-  , apiDocWords   = (insert "defaultContext" (insert "word" [] $ empty) $ empty)
+  , apiDocDesc    = insert "title" "empty document" empty
+  , apiDocWords   = insert "defaultContext" (insert "word" [] empty) empty
   }
 
 -- outgoing documents
@@ -68,11 +71,11 @@ data Document     = Document
 emptyDoc :: Document
 emptyDoc = Document
   { docUri     = "id::1"
-  , docDesc    = (insert "title" "empty document" $ empty)
+  , docDesc    = insert "title" "empty document" empty
   }
 
 -- some sort of json response format
-data JsonResponse r = JsonSuccess r | JsonFailure String
+data JsonResponse r = JsonSuccess r | JsonFailure Text
 
 instance (ToJSON r) => ToJSON (JsonResponse r) where
   toJSON (JsonSuccess msg) = object
@@ -113,30 +116,64 @@ instance FromJSON ApiDocument where
   parseJSON _ = mzero
 
 
+-- the index (with random data)
+inverted :: Inverted
+inverted = fromList emptyInverted [(context, word, occs) | context <- ["context"], word <- ["foo", "foobar"]]
+    where
+    occs = foldl mergeOccurrences emptyOccurrences
+             [ singletonOccurrence (DocId 1) 5
+             , singletonOccurrence (DocId 15) 20
+             ]
+
+
+(.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
+(.::) = (.).(.)
+
+-- do something with the index
+withIndex' :: MonadIO m => MVar a -> (a -> IO b) -> m b
+withIndex' im a = liftIO $ readMVar im >>= a
+
+-- modify the index
+modIndex_ :: MonadIO m => MVar a -> (a -> IO a) -> m ()
+modIndex_ = liftIO .:: modifyMVar_
+
+-- modify the index with return value
+modIndex :: MonadIO m => MVar a -> (a -> IO (a,b)) -> m b
+modIndex = liftIO .:: modifyMVar
+
+
 -- server itself
 start :: IO ()
 start = scotty 3000 $ do
 
-  -- tmp documents store
-  docs    <- liftIO $ newMVar [emptyDoc]
+  -- index
+  invM    <- liftIO $ newMVar inverted
+  --(Inverted -> IO b)        -> ActionM b
+  let withInv = withIndex' invM :: MonadIO m => (Inverted -> IO b)        -> m b
+  --(Inverted -> IO Inverted) -> ActionM ()
+  let modInv_ = modIndex_ invM :: MonadIO m => (Inverted -> IO Inverted) -> m ()
 
   -- request / response logging
   middleware logStdoutDev
 
-  get "/" $ html $ Tmpl.index
+  get "/" $ html Tmpl.index
 
   -- list all indexed documents
-  get "/search/:query" $ do
-    ds <-liftIO (readMVar docs)
-    json $ JsonSuccess ds
+  get "/search/:context/:query" $ do
+    context <- param "context"
+    query   <- param "query"
+    res <- withInv $ \i ->
+            return . show . resultByWord context $ prefixNoCase i context query
+    json $ JsonSuccess res
 
-  -- get a specific document
-  get "/document/:index" $ do
-    index <- param "index"
-    ds <- liftIO $ readMVar docs
-    if length ds > index
-      then json $ ds !! index
-      else text $ "index out of range"
+
+  -- list all words
+  get "/words/:context" $ do
+    context <- param "context"
+    res <- withInv $ \i ->
+            -- simple Text response
+            return . show $ allWords i context
+    json $ JsonSuccess res
 
   -- add a document
   post "/document/add" $ do
@@ -144,7 +181,14 @@ start = scotty 3000 $ do
     js <- jsonData
     case js of
       ApiDocument u d _  -> do
-        liftIO $ modifyMVar_ docs (\ds -> return $ (Document u d):ds)
-        json $ JsonSuccess ("document added"::T.Text)
+        -- transform doc
+        let doc = Document u d
+        modInv_ $ \i -> do
+          -- add to doc table & index
+          -- default impl. in HolIndex class for insert uninverted?
+          -- the crawler should have some kind of insert implementation
+          let modifiedIndex = insertOccurrences "context" "newWord" emptyOccurrences i
+          return modifiedIndex
+        json (JsonFailure "not implemented" :: JsonResponse Text)
 
   notFound . redirect $ "/"
