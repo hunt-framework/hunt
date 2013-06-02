@@ -153,17 +153,7 @@ modIndex_ = liftIO .:: modifyMVar_
 modIndex :: MonadIO m => MVar a -> (a -> IO (a,b)) -> m b
 modIndex = liftIO .:: modifyMVar
 
-
--- the index (with random data)
-inverted :: Inverted
-inverted = Co.fromList emptyInverted [(context, word, occs) | context <- ["context"], word <- ["foo", "foobar"]]
-    where
-    occs = foldl Co.mergeOccurrences Co.emptyOccurrences
-             [ Co.singletonOccurrence (DocId 1) 5
-             , Co.singletonOccurrence (DocId 15) 20
-             ]
-
-
+-- the indexer
 indexer :: Indexer Inverted Documents
 indexer = Indexer emptyInverted emptyDocuments
 
@@ -208,7 +198,6 @@ start = scotty 3000 $ do
         -- transform doc
         let doc = Document u d
         modIx_ $ \ix ->
-          -- insertDocument is not implemented yet
           return $ insertDoc doc ws ix
         json (JsonSuccess "doc added" :: JsonResponse Text)
 
