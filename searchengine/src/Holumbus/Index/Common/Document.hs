@@ -20,7 +20,7 @@
 module Holumbus.Index.Common.Document
 where
 
-import Control.Monad                    ( liftM, liftM2 )
+import Control.Monad                    ( liftM, liftM2, mzero )
 import Control.DeepSeq
 
 import           Data.Map (Map)
@@ -53,12 +53,22 @@ data Document                   = Document
                                   }
                                   deriving (Show, Eq, Ord)
 
-
 instance ToJSON Document where
   toJSON (Document u d) = object
     [ "uri"   .= u
     , "desc"  .= toJSON d
     ]
+
+
+instance FromJSON Document where
+  parseJSON (Object o) = do
+    parsedDesc      <- o    .: "desc"
+    parsedUri       <- o    .: "uri"
+    return Document
+      { uri     = parsedUri
+      , desc    = parsedDesc
+      }
+  parseJSON _ = mzero
 
 
 instance Binary Document where

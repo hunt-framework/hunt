@@ -24,7 +24,7 @@ import           Data.Aeson hiding        (json)
 --import qualified Data.Aeson as J
 
 import qualified Holumbus.Server.Template       as Tmpl
-import           Holumbus.Index.Common hiding   (Description, Attribute, Context, Word, Document)
+import           Holumbus.Index.Common hiding   (Attribute)
 --import Holumbus.Index.Common.Document
 import           Holumbus.Index.Inverted.PrefixMem
 --import           Holumbus.Index.Common.RawResult
@@ -37,42 +37,20 @@ import           Holumbus.Index.Inverted.PrefixMem
 -- Words contains data to for index structures
 --
 type Attribute    = Text
-type Description  = Map Attribute T.Text
+--type Description  = Map Attribute T.Text
 type Words        = Map Context WordList
-type Context      = Text
+--type Context      = Text
 type WordList     = Map Word [Int]
-type Word         = Text
-type Uri          = Text
+--type Word         = Text
 
 data ApiDocument = ApiDocument
-  { apiDocUri     :: Uri
+  { apiDocUri     :: URI
   , apiDocDesc    :: Description
   , apiDocWords   :: Words
   } deriving Show
 
 emptyApiDoc :: ApiDocument
-emptyApiDoc = ApiDocument
-  { apiDocUri     = "id::1"
-  , apiDocDesc    = insert "title" "empty document" empty
-  , apiDocWords   = insert "defaultContext" (insert "word" [] empty) empty
-  }
-
--- outgoing documents
---
--- search results contain serialized documents
--- this document should be imported from searchengine later
---
-data Document     = Document
-  { docUri  :: Uri
-  , docDesc :: Description
-  }
-  deriving Show
-
-emptyDoc :: Document
-emptyDoc = Document
-  { docUri     = "id::1"
-  , docDesc    = insert "title" "empty document" empty
-  }
+emptyApiDoc = ApiDocument "" empty empty
 
 -- some sort of json response format
 data JsonResponse r = JsonSuccess r | JsonFailure Text
@@ -89,29 +67,24 @@ instance (ToJSON r) => ToJSON (JsonResponse r) where
     ]
 
 -- document to outgoing json result
-instance ToJSON Document where
-  toJSON (Document uri desc) = object
-    [ "uri"   .= uri
-    , "desc"  .= toJSON desc
-    ]
 
 instance ToJSON ApiDocument where
-  toJSON (ApiDocument uri desc ws) = object
-    [ "uri"   .= uri
-    , "desc"  .= toJSON desc
+  toJSON (ApiDocument u d ws) = object
+    [ "uri"   .= u
+    , "desc"  .= toJSON d
     , "words" .= toJSON ws
     ]
 
 -- incoming json to apidocument
 instance FromJSON ApiDocument where
   parseJSON (Object o) = do
-    desc      <- o    .: "desc"
-    uri       <- o    .: "uri"
-    conWords  <- o    .: "words"
+    parsedDesc      <- o    .: "desc"
+    parsedUri       <- o    .: "uri"
+    parsedWords     <- o    .: "words"
     return ApiDocument
-      { apiDocUri     = uri
-      , apiDocDesc    = desc
-      , apiDocWords   = conWords
+      { apiDocUri     = parsedUri
+      , apiDocDesc    = parsedDesc
+      , apiDocWords   = parsedWords
       }
   parseJSON _ = mzero
 
