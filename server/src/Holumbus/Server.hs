@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
 module Holumbus.Server {-(start)-} where
 
@@ -10,10 +11,10 @@ import           Control.Monad            (mzero)
 import           Control.Monad.IO.Class   (MonadIO, liftIO)
 import           Control.Concurrent.MVar
 
-import           Data.Map                 (Map, insert, empty)
+import           Data.Map                 (Map, empty)
 import qualified Data.Map                 as M
 import           Data.Text                (Text)
-import qualified Data.Text                as T
+--import qualified Data.Text                as T
 import           Data.Aeson hiding        (json)
 
 --import qualified Data.Text.Lazy.Encoding as TEL
@@ -24,10 +25,14 @@ import           Data.Aeson hiding        (json)
 --import qualified Data.Aeson as J
 
 import qualified Holumbus.Server.Template       as Tmpl
-import           Holumbus.Index.Common hiding   (Attribute)
+import           Holumbus.Index.Common          (Position, Word, Context, URI, Description, Document(..), RawResult, DocId(..)
+                                                , HolIndex, HolDocuments)
+import qualified Holumbus.Index.Common          as Co
+import           Holumbus.Index.Common.Occurences
 --import Holumbus.Index.Common.Document
 import           Holumbus.Index.Inverted.PrefixMem
 --import           Holumbus.Index.Common.RawResult
+import           Holumbus.Index.CompactDocuments
 
 
 --
@@ -40,7 +45,7 @@ type Attribute    = Text
 --type Description  = Map Attribute T.Text
 type Words        = Map Context WordList
 --type Context      = Text
-type WordList     = Map Word [Int]
+type WordList     = Map Word [Position]
 --type Word         = Text
 
 data ApiDocument = ApiDocument
@@ -89,14 +94,48 @@ instance FromJSON ApiDocument where
   parseJSON _ = mzero
 
 
--- the index (with random data)
-inverted :: Inverted
-inverted = fromList emptyInverted [(context, word, occs) | context <- ["context"], word <- ["foo", "foobar"]]
+-- which ops should an indexer support? maybe already in crawler?
+-- uses functional dependencies
+class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d, i d -> ix where
+  -- insert a new document (and the corresponding words and occurrences) into the indexer
+  newIndexer                :: i -> d -> ix
+  index                     :: ix -> i
+  docTable                  :: ix -> d
+  insertDoc                 :: Document -> Words -> ix -> ix
+  searchPrefixNoCase        :: ix -> Context -> String -> RawResult
+  allWords                  :: ix -> Context -> RawResult
+
+
+-- generic indexer - combination of an index and a doc table
+data Indexer i d
+  = Indexer
+    { ixIndex    :: i
+    , ixDocTable :: d
+    }
+
+
+-- type class for an indexer - combination of index and doctable
+instance (HolIndex i, HolDocuments d) => HolIndexer (Indexer i d) i d where
+  newIndexer          i d                       = Indexer i d
+  index               (Indexer i _)             = i
+  docTable            (Indexer _ d)             = d
+  searchPrefixNoCase                            = Co.prefixNoCase . index
+  allWords                                      = Co.allWords . index
+  -- FIXME: insert the doc and words as into the index and the document table
+  insertDoc      doc wrds ix                    = newIndexer newIndex newDocTable
     where
-    occs = foldl mergeOccurrences emptyOccurrences
-             [ singletonOccurrence (DocId 1) 5
-             , singletonOccurrence (DocId 15) 20
-             ]
+    (dId, newDocTable) = Co.insertDoc (docTable ix) doc
+    -- insertDoc                     :: d -> Document -> (DocId, d)
+    newIndex           = foldr (\(c, w, ps) -> Co.insertOccurrences c w (mkOccs dId ps)) (index ix) $ flattenWords wrds
+
+    mkOccs :: DocId -> [Position] -> Occurrences
+    mkOccs did pl = insertOccs did pl emptyOccurrences
+
+    insertOccs :: DocId -> [Position] -> Occurrences -> Occurrences
+    insertOccs docId ws os = foldr (insertOccurrence docId) os ws
+    
+    flattenWords :: Map t (Map t1 t2) -> [(t, t1, t2)]
+    flattenWords = concat . map (\(c, wl) -> map (\(w, ps)-> (c, w, ps)) $ M.toList wl) . M.toList
 
 
 (.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
@@ -115,16 +154,28 @@ modIndex :: MonadIO m => MVar a -> (a -> IO (a,b)) -> m b
 modIndex = liftIO .:: modifyMVar
 
 
+-- the index (with random data)
+inverted :: Inverted
+inverted = Co.fromList emptyInverted [(context, word, occs) | context <- ["context"], word <- ["foo", "foobar"]]
+    where
+    occs = foldl Co.mergeOccurrences Co.emptyOccurrences
+             [ Co.singletonOccurrence (DocId 1) 5
+             , Co.singletonOccurrence (DocId 15) 20
+             ]
+
+
+indexer :: Indexer Inverted Documents
+indexer = Indexer emptyInverted emptyDocuments
+
+
 -- server itself
 start :: IO ()
 start = scotty 3000 $ do
 
   -- index
-  invM    <- liftIO $ newMVar inverted
-  --(Inverted -> IO b)        -> ActionM b
-  let withInv = withIndex' invM :: MonadIO m => (Inverted -> IO b)        -> m b
-  --(Inverted -> IO Inverted) -> ActionM ()
-  let modInv_ = modIndex_ invM :: MonadIO m => (Inverted -> IO Inverted) -> m ()
+  ixM    <- liftIO $ newMVar indexer
+  let withIx = withIndex' ixM :: MonadIO m => (Indexer Inverted Documents -> IO b) -> m b
+  let modIx_ = modIndex_ ixM :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents)) -> m ()
 
   -- request / response logging
   middleware logStdoutDev
@@ -135,15 +186,15 @@ start = scotty 3000 $ do
   get "/search/:context/:query" $ do
     context <- param "context"
     query   <- param "query"
-    res <- withInv $ \i ->
-            return . show . resultByWord context $ prefixNoCase i context query
+    res <- withIx $ \i ->
+            return . show . Co.resultByWord context $ searchPrefixNoCase i context query
     json $ JsonSuccess res
 
 
   -- list all words
   get "/words/:context" $ do
     context <- param "context"
-    res <- withInv $ \i ->
+    res <- withIx $ \i ->
             -- simple Text response
             return . show $ allWords i context
     json $ JsonSuccess res
@@ -153,15 +204,12 @@ start = scotty 3000 $ do
     -- Raises an exception if parse is unsuccessful
     js <- jsonData
     case js of
-      ApiDocument u d _  -> do
+      ApiDocument u d ws  -> do
         -- transform doc
         let doc = Document u d
-        modInv_ $ \i -> do
-          -- add to doc table & index
-          -- default impl. in HolIndex class for insert uninverted?
-          -- the crawler should have some kind of insert implementation
-          let modifiedIndex = insertOccurrences "context" "newWord" emptyOccurrences i
-          return modifiedIndex
-        json (JsonFailure "not implemented" :: JsonResponse Text)
+        modIx_ $ \ix ->
+          -- insertDocument is not implemented yet
+          return $ insertDoc doc ws ix
+        json (JsonSuccess "doc added" :: JsonResponse Text)
 
   notFound . redirect $ "/"
