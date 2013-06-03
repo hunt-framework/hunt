@@ -48,14 +48,34 @@ import           Holumbus.Query.Result
 
 -- which ops should an indexer support? maybe already in crawler?
 -- uses functional dependencies
-class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d, i d -> ix where
+class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d where
   -- insert a new document (and the corresponding words and occurrences) into the indexer
   newIndexer                :: i -> d -> ix
   index                     :: ix -> i
   docTable                  :: ix -> d
-  insertDoc                 :: Document -> Words -> ix -> ix
+
+  -- index functions
   searchPrefixNoCase        :: ix -> Context -> String -> RawResult
+  searchPrefixNoCase        = Co.prefixNoCase . index
+
   allWords                  :: ix -> Context -> RawResult
+  allWords                  = Co.allWords . index
+
+  insertDoc                 :: Document -> Words -> ix -> ix
+  insertDoc doc wrds ix     = newIndexer newIndex newDocTable
+    where
+    (dId, newDocTable) = Co.insertDoc (docTable ix) doc
+    -- insertDoc                     :: d -> Document -> (DocId, d)
+    newIndex           = foldr (\(c, w, ps) -> Co.insertOccurrences c w (mkOccs dId ps)) (index ix) $ flattenWords wrds
+
+    mkOccs :: DocId -> [Position] -> Occurrences
+    mkOccs did pl = insertOccs did pl emptyOccurrences
+
+    insertOccs :: DocId -> [Position] -> Occurrences -> Occurrences
+    insertOccs docId ws os = foldr (insertOccurrence docId) os ws
+
+    flattenWords :: Map t (Map t1 t2) -> [(t, t1, t2)]
+    flattenWords = concat . map (\(c, wl) -> map (\(w, ps)-> (c, w, ps)) $ M.toList wl) . M.toList
 
 
 -- generic indexer - combination of an index and a doc table
@@ -71,26 +91,10 @@ instance (HolIndex i, HolDocuments d) => HolIndexer (Indexer i d) i d where
   newIndexer          i d                       = Indexer i d
   index               (Indexer i _)             = i
   docTable            (Indexer _ d)             = d
-  searchPrefixNoCase                            = Co.prefixNoCase . index
-  allWords                                      = Co.allWords . index
-  -- FIXME: insert the doc and words as into the index and the document table
-  insertDoc      doc wrds ix                    = newIndexer newIndex newDocTable
-    where
-    (dId, newDocTable) = Co.insertDoc (docTable ix) doc
-    -- insertDoc                     :: d -> Document -> (DocId, d)
-    newIndex           = foldr (\(c, w, ps) -> Co.insertOccurrences c w (mkOccs dId ps)) (index ix) $ flattenWords wrds
-
-    mkOccs :: DocId -> [Position] -> Occurrences
-    mkOccs did pl = insertOccs did pl emptyOccurrences
-
-    insertOccs :: DocId -> [Position] -> Occurrences -> Occurrences
-    insertOccs docId ws os = foldr (insertOccurrence docId) os ws
-    
-    flattenWords :: Map t (Map t1 t2) -> [(t, t1, t2)]
-    flattenWords = concat . map (\(c, wl) -> map (\(w, ps)-> (c, w, ps)) $ M.toList wl) . M.toList
+ 
 
 
-(.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
+(.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d 
 (.::) = (.).(.)
 
 -- do something with the index
@@ -107,7 +111,7 @@ modIndex = liftIO .:: modifyMVar
 
 -- the indexer
 indexer :: Indexer Inverted Documents
-indexer = Indexer emptyInverted emptyDocuments
+indexer = newIndexer emptyInverted emptyDocuments
 
 queryConfig :: ProcessConfig
 queryConfig = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
@@ -124,8 +128,8 @@ start = scotty 3000 $ do
 
   -- index
   ixM    <- liftIO $ newMVar indexer
-  let withIx = withIndex' ixM :: MonadIO m => (Indexer Inverted Documents -> IO b) -> m b
-  let modIx_ = modIndex_ ixM :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents)) -> m ()
+  let withIx = withIndex' ixM-- :: MonadIO m => (Indexer Inverted Documents -> IO b) -> m b
+  let modIx_ = modIndex_ ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents)) -> m ()
 
   -- request / response logging
   middleware logStdoutDev
@@ -135,24 +139,24 @@ start = scotty 3000 $ do
   -- text "should get simple text query as param"
   get "/search/:query" $ do
     queryStr <- param "query"
-    res      <- withIx $ \(Indexer ix dx) -> do
+    res      <- withIx $ \ix -> do
                           case parseQuery queryStr of
                             (Left err) -> return . JsonFailure $ T.pack err
                             (Right query) -> return . JsonSuccess
-                              $ map (\(_,(DocInfo doc _,_)) -> doc) 
-                              $ Co.toListDocIdMap . docHits 
-                              $ runQuery ix dx query
+                              $ map (\(_,(DocInfo doc _,_)) -> doc)
+                              $ Co.toListDocIdMap . docHits
+                              $ runQuery (index ix) (docTable ix) query
     json res
 
   get "/completion/:query" $ do
     queryStr <- param "query"
-    res      <- withIx $ \(Indexer ix dx) -> do
+    res      <- withIx $ \ix -> do
                           case parseQuery queryStr of
                             (Left err) -> return . JsonFailure $ T.pack err
                             (Right query) -> return . JsonSuccess
-                              $ map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + Co.sizeDocIdMap m) 0 o)) 
-                              $ M.toList. wordHits 
-                              $ runQuery ix dx query
+                              $ map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + Co.sizeDocIdMap m) 0 o))
+                              $ M.toList. wordHits
+                              $ runQuery (index ix) (docTable ix) query
     json res
 
 
