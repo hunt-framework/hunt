@@ -14,7 +14,7 @@ import           Control.Concurrent.MVar
 import           Data.Map                 (Map,{- empty-})
 import qualified Data.Map                 as M
 import           Data.Text                (Text)
---import qualified Data.Text                as T
+import qualified Data.Text                as T
 --import           Data.Aeson hiding        (json)
 
 --import qualified Data.Text.Lazy.Encoding as TEL
@@ -40,7 +40,7 @@ import           Holumbus.Index.Inverted.PrefixMem
 import           Holumbus.Index.CompactDocuments
 
 import           Holumbus.Query.Language.Grammar
---import           Holumbus.Query.Language.Parser
+import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Result
@@ -134,18 +134,26 @@ start = scotty 3000 $ do
 
   -- text "should get simple text query as param"
   get "/search/:query" $ do
-    query <- param "query"
-    res   <- withIx $ \(Indexer ix dx) -> do
-                          let hits = docHits $ runQuery ix dx (Word query)
-                          return $ map (\(_,(DocInfo doc _,_)) -> doc) (Co.toListDocIdMap hits)
-    json $ JsonSuccess res
+    queryStr <- param "query"
+    res      <- withIx $ \(Indexer ix dx) -> do
+                          case parseQuery queryStr of
+                            (Left err) -> return . JsonFailure $ T.pack err
+                            (Right query) -> return . JsonSuccess
+                              $ map (\(_,(DocInfo doc _,_)) -> doc) 
+                              $ Co.toListDocIdMap . docHits 
+                              $ runQuery ix dx query
+    json res
 
   get "/completion/:query" $ do
-    query <- param "query"
-    res   <- withIx $ \(Indexer ix dx) -> do
-                          let hits = wordHits $ runQuery ix dx (Word query)
-                          return $ map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + Co.sizeDocIdMap m) 0 o)) (M.toList hits)
-    json $ JsonSuccess res
+    queryStr <- param "query"
+    res      <- withIx $ \(Indexer ix dx) -> do
+                          case parseQuery queryStr of
+                            (Left err) -> return . JsonFailure $ T.pack err
+                            (Right query) -> return . JsonSuccess
+                              $ map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + Co.sizeDocIdMap m) 0 o)) 
+                              $ M.toList. wordHits 
+                              $ runQuery ix dx query
+    json res
 
 
 
