@@ -7,15 +7,15 @@ import           Web.Scotty
 import           Network.Wai.Middleware.RequestLogger
 --import           Network.Wai.Middleware.Static
 
-import           Control.Monad            (mzero)
+--import           Control.Monad            (mzero)
 import           Control.Monad.IO.Class   (MonadIO, liftIO)
 import           Control.Concurrent.MVar
 
-import           Data.Map                 (Map, empty)
+import           Data.Map                 (Map,{- empty-})
 import qualified Data.Map                 as M
 import           Data.Text                (Text)
 --import qualified Data.Text                as T
-import           Data.Aeson hiding        (json)
+--import           Data.Aeson hiding        (json)
 
 --import qualified Data.Text.Lazy.Encoding as TEL
 --import qualified Data.Text.Lazy as TL
@@ -25,7 +25,12 @@ import           Data.Aeson hiding        (json)
 --import qualified Data.Aeson as J
 
 import qualified Holumbus.Server.Template       as Tmpl
-import           Holumbus.Index.Common          (Position, Word, Context, URI, Description, Document(..), RawResult, DocId(..)
+import           Holumbus.Server.Common
+
+import           Holumbus.Index.Common          ( Position, Context
+                                              --  , Word, URI Description
+                                                , Document(..)
+                                                , RawResult, DocId(..)
                                                 , HolIndex, HolDocuments)
 import qualified Holumbus.Index.Common          as Co
 import           Holumbus.Index.Common.Occurences
@@ -34,64 +39,11 @@ import           Holumbus.Index.Inverted.PrefixMem
 --import           Holumbus.Index.Common.RawResult
 import           Holumbus.Index.CompactDocuments
 
-
---
--- incoming documents:
---
--- Description contains data for persistent storage of document
--- Words contains data to for index structures
---
-type Attribute    = Text
---type Description  = Map Attribute T.Text
-type Words        = Map Context WordList
---type Context      = Text
-type WordList     = Map Word [Position]
---type Word         = Text
-
-data ApiDocument = ApiDocument
-  { apiDocUri     :: URI
-  , apiDocDesc    :: Description
-  , apiDocWords   :: Words
-  } deriving Show
-
-emptyApiDoc :: ApiDocument
-emptyApiDoc = ApiDocument "" empty empty
-
--- some sort of json response format
-data JsonResponse r = JsonSuccess r | JsonFailure Text
-
-instance (ToJSON r) => ToJSON (JsonResponse r) where
-  toJSON (JsonSuccess msg) = object
-    [ "code"  .= (0 :: Int)
-    , "msg"   .= toJSON msg
-    ]
-
-  toJSON (JsonFailure msg) = object
-    [ "code"  .= (1 :: Int)
-    , "msg"   .= msg
-    ]
-
--- document to outgoing json result
-
-instance ToJSON ApiDocument where
-  toJSON (ApiDocument u d ws) = object
-    [ "uri"   .= u
-    , "desc"  .= toJSON d
-    , "words" .= toJSON ws
-    ]
-
--- incoming json to apidocument
-instance FromJSON ApiDocument where
-  parseJSON (Object o) = do
-    parsedDesc      <- o    .: "desc"
-    parsedUri       <- o    .: "uri"
-    parsedWords     <- o    .: "words"
-    return ApiDocument
-      { apiDocUri     = parsedUri
-      , apiDocDesc    = parsedDesc
-      , apiDocWords   = parsedWords
-      }
-  parseJSON _ = mzero
+import           Holumbus.Query.Language.Grammar
+--import           Holumbus.Query.Language.Parser
+import           Holumbus.Query.Processor
+import           Holumbus.Query.Fuzzy
+import           Holumbus.Query.Result
 
 
 -- which ops should an indexer support? maybe already in crawler?
@@ -157,8 +109,16 @@ modIndex = liftIO .:: modifyMVar
 indexer :: Indexer Inverted Documents
 indexer = Indexer emptyInverted emptyDocuments
 
+queryConfig :: ProcessConfig
+queryConfig = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
--- server itself
+runQuery :: (HolIndex i, HolDocuments d) => i -> d -> Query -> Result
+runQuery = processQuery queryConfig
+
+-- server itself:
+--
+--  -> should get some kind of state from command line or config file
+--     f.e: which index impl to use, which doc store, which persistent backend etc...
 start :: IO ()
 start = scotty 3000 $ do
 
@@ -172,14 +132,30 @@ start = scotty 3000 $ do
 
   get "/" $ html Tmpl.index
 
-  -- list all indexed documents
-  get "/search/:context/:query" $ do
-    context <- param "context"
-    query   <- param "query"
-    res <- withIx $ \i ->
-            return . show . Co.resultByWord context $ searchPrefixNoCase i context query
+  -- text "should get simple text query as param"
+  get "/search/:query" $ do
+    query <- param "query"
+    res   <- withIx $ \(Indexer ix dx) -> do
+                          let hits = docHits $ runQuery ix dx (Word query)
+                          return $ map (\(_,(DocInfo doc _,_)) -> doc) (Co.toListDocIdMap hits)
     json $ JsonSuccess res
 
+  get "/completion/:query" $ do
+    query <- param "query"
+    res   <- withIx $ \(Indexer ix dx) -> do
+                          let hits = wordHits $ runQuery ix dx (Word query)
+                          return $ map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + Co.sizeDocIdMap m) 0 o)) (M.toList hits)
+    json $ JsonSuccess res
+
+
+
+  -- list all indexed documents
+--  get "/search/:context/:query" $ do
+--    context <- param "context"
+--    query   <- param "query"
+--    res <- withIx $ \i ->
+--            return . show . Co.resultByWord context $ searchPrefixNoCase i context query
+--    json $ JsonSuccess res
 
   -- list all words
   get "/words/:context" $ do

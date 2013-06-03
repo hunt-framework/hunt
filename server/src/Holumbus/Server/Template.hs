@@ -23,7 +23,7 @@ index =
 <hr>
 <form>
   <textarea .span6 name=document #txt-document style=height:100px>
-    {"desc":{"title":"empty document"},"uri":"id::1","words":{"defaultContext":{"word":[]}}}
+    {"desc":{"title":"example document", "content": "ein kurzer string"},"uri":"id::1","words":{"context":{"ein":[0],"kurzer":[4], "string":[11]}}}
   <button .btn .btn-primary #btn-add>
     Add Document
 |]) `LT.append` 
