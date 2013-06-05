@@ -36,15 +36,22 @@ index =
     $("#btn-add").click(function(ev){
       ev.preventDefault();
       var json = $("#txt-document").val();
-      $.post("/document/add", json);
+      $.post( "/document/add"
+            , json
+            , function(data) { 
+                if (data.code === 0) alert ("Document added to Index")
+                else alert ("Error occured") 
+              }
+            );
     });
-
-
 
     /* search button handler */
     $("#btn-search").click(function(ev){
       ev.preventDefault();
       var query = $("#txt-search").val();
+
+      if (query === "") return;
+
       $.get("/search/" + query, function(data) {
         if (data.code === 0)
         {
