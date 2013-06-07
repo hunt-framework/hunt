@@ -137,6 +137,7 @@ start = scotty 3000 $ do
   get "/" $ html Tmpl.index
 
   -- text "should get simple text query as param"
+  -- Note: route /search not handled here! 
   get "/search/:query" $ do
     queryStr <- param "query"
     res      <- withIx $ \ix -> do
