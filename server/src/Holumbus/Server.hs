@@ -37,7 +37,8 @@ import           Holumbus.Index.Common.Occurences
 --import Holumbus.Index.Common.Document
 import           Holumbus.Index.Inverted.PrefixMem
 --import           Holumbus.Index.Common.RawResult
-import           Holumbus.Index.CompactDocuments
+--import           Holumbus.Index.CompactDocuments
+import           Holumbus.Index.HashedDocuments
 
 import           Holumbus.Query.Language.Grammar
 import           Holumbus.Query.Language.Parser
@@ -75,7 +76,7 @@ class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d where
     insertOccs docId ws os = foldr (insertOccurrence docId) os ws
 
     flattenWords :: Map t (Map t1 t2) -> [(t, t1, t2)]
-    flattenWords = concat . map (\(c, wl) -> map (\(w, ps)-> (c, w, ps)) $ M.toList wl) . M.toList
+    flattenWords = concatMap (\(c, wl) -> map (\(w, ps)-> (c, w, ps)) $ M.toList wl) . M.toList
 
 
 -- generic indexer - combination of an index and a doc table
@@ -88,13 +89,12 @@ data Indexer i d
 
 -- type class for an indexer - combination of index and doctable
 instance (HolIndex i, HolDocuments d) => HolIndexer (Indexer i d) i d where
-  newIndexer          i d                       = Indexer i d
+  newIndexer                                    = Indexer
   index               (Indexer i _)             = i
   docTable            (Indexer _ d)             = d
- 
 
 
-(.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d 
+(.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
 (.::) = (.).(.)
 
 -- do something with the index

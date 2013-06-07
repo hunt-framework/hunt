@@ -46,6 +46,7 @@ library
                , unix                   >= 2.3 && < 3
                , aeson
                , text
+               , murmur-hash
 
   -- instance NFData (Map k v) has moved from deepseq into containers (dependency hell)
   if impl(ghc < 7.4)
@@ -103,7 +104,7 @@ library
     Holumbus.Query.Processor
     Holumbus.Query.Ranking
     Holumbus.Query.Result
-    Holumbus.Utility    
+    Holumbus.Utility
 
   hs-source-dirs: src
 

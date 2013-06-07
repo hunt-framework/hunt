@@ -50,7 +50,7 @@ import qualified Data.Binary            as B
 import           Data.ByteString.Lazy   ( ByteString )
 import qualified Data.ByteString.Lazy   as BS
 
-import           Data.Digest.Pure.SHA
+import           Data.Digest.Murmur64
 
 import           Holumbus.Index.Common
 
@@ -76,7 +76,7 @@ newtype Documents
 -- | The hash function from URIs to DocIds
 
 docToId :: URI -> DocId
-docToId = mkDocId . integerDigest . sha1 . B.encode
+docToId = mkDocId . fromIntegral . asWord64 . hash64 . B.encode
 
 -- ----------------------------------------------------------------------------
 
@@ -116,6 +116,9 @@ fromDocMap                      = mapDocIdMap toDocument
 -- ----------------------------------------------------------------------------
 
 instance HolDocuments Documents where
+  nullDocs
+      = nullDocIdMap . idToDoc
+
   sizeDocs
       = sizeDocIdMap . idToDoc
 
@@ -206,7 +209,7 @@ instance Binary Documents where
 
 instance XmlPickler CompressedDoc where
     xpickle
-        = xpWrap (fromDocument , toDocument) $
+        = xpWrap (fromDocument , toDocument)
           xpickle
 
 -- ----------------------------------------------------------------------------

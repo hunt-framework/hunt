@@ -121,7 +121,9 @@ fromDocMap                      = mapDocIdMap toDocument
 -- ----------------------------------------------------------------------------
 
 instance HolDocuments Documents where
-  sizeDocs d                    = sizeDocIdMap (idToDoc d)
+  nullDocs                      = nullDocIdMap . idToDoc
+
+  sizeDocs                      = sizeDocIdMap . idToDoc
 
   lookupById  d i               = maybe (fail "") return
                                   . fmap toDocument
@@ -259,7 +261,7 @@ instance Binary Documents
 
 instance XmlPickler CompressedDoc
     where
-    xpickle                     = xpWrap (fromDocument , toDocument) $
+    xpickle                     = xpWrap (fromDocument , toDocument)
                                   xpickle
 
 -- ----------------------------------------------------------------------------
