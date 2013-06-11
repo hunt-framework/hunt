@@ -1,32 +1,37 @@
 module Holumbus.Server.Template (
-  index 
+  index
 ) where
 --import qualified Data.Text      as T
 import qualified Data.Text.Lazy as LT
 
 import           Text.Hamlet
-import           Text.Julius 
+import           Text.Julius
 import           Text.Blaze.Html.Renderer.Text (renderHtml)
 
 -- | main page
 index :: LT.Text
-index = 
-  -- generate html with hamlet 
+index =
+  -- generate html with hamlet
   (renderHtml . defaultLayout $ [xshamlet|
 <h1>Holumbus Server
 <hr>
 <form>
   <div .input-append>
-    <input .span6 type=text #txt-search > 
+    <input .span6 type=text #txt-search >
     <button .btn .btn-primary type=button #btn-search>Search
 <div  #result>
 <hr>
 <form>
   <textarea .span6 name=document #txt-document style=height:100px>
-    {"desc":{"title":"example document", "content": "ein kurzer string"},"uri":"id::1","words":{"context":{"ein":[0],"kurzer":[4], "string":[11]}}}
+    [
+      { "desc": {"title":"example document", "content": "ein kurzer string"}
+      , "uri": "id::1"
+      , "words": {"context": {"ein": [0],"kurzer": [4], "string": [11]}}
+      }
+    ]
   <button .btn .btn-primary #btn-add>
     Add Document
-|]) `LT.append` 
+|]) `LT.append`
   -- generate javascript
   renderJavascriptUrl (\_ _ -> "") [julius|
 <script>
@@ -38,9 +43,9 @@ index =
       var json = $("#txt-document").val();
       $.post( "/document/add"
             , json
-            , function(data) { 
+            , function(data) {
                 if (data.code === 0) alert ("Document added to Index")
-                else alert ("Error occured") 
+                else alert ("Error occured")
               }
             );
     });
@@ -55,7 +60,7 @@ index =
       $.get("/search/" + query, function(data) {
         if (data.code === 0)
         {
-          var docs = data.msg;          
+          var docs = data.msg;
           var res = '<table class="table table-bordered">';
           $(docs).each(function(i,e) {
              res += "<tr><td>" + e.uri + "</td><td>";
@@ -64,11 +69,11 @@ index =
                res += "<p>" + key + ":" + desc[key] + "</p>";
              }
              res += "</td></tr>";
-          });         
+          });
           res += "</table>";
           $("#result").html(res);
         }
-        else 
+        else
         {
           alert("search failed...");
         }
