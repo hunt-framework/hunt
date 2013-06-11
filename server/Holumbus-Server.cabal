@@ -29,7 +29,7 @@ executable holumbusServer
                  , aeson
                  , aeson-pretty
                  , blaze-html
-                 , containers             >= 5
+                 , containers             >= 0.5
                  , deepseq                >= 1.2
                  , hamlet                 >= 1.1.7.1
                  , Holumbus-Searchengine  >= 2

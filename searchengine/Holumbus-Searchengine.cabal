@@ -28,7 +28,7 @@ library
                , binary                 >= 0.5 && < 1
                , bytestring             >= 0.9 && < 1
                , bzlib                  >= 0.4 && < 1
-               , containers             >= 5
+               , containers             >= 0.5
                , deepseq                >= 1.2
                , directory              >= 1   && < 2
                , enummapset             >= 0   && < 1
