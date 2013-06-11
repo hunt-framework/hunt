@@ -15,8 +15,10 @@ import           Data.Map                 (Map,{- empty-})
 import qualified Data.Map                 as M
 import           Data.Text                (Text)
 import qualified Data.Text                as T
---import           Data.Aeson hiding        (json)
-
+{-
+import qualified Data.Aeson               as A
+import           Data.Aeson.Encode.Pretty (encodePretty)
+-}
 --import qualified Data.Text.Lazy.Encoding as TEL
 --import qualified Data.Text.Lazy as TL
 
@@ -119,6 +121,18 @@ queryConfig = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 
 runQuery :: (HolIndex i, HolDocuments d) => i -> d -> Query -> Result
 runQuery = processQuery queryConfig
 
+-- Replacement for the scotty json function for pretty JSON encoding.
+-- There should be a new release of scotty soon (end of the month?)
+-- which will most likely contain the 'raw' function which is introduced
+-- with the yet to be merged pull request:
+-- https://github.com/xich/scotty/pull/33
+{-
+jsonPretty :: (A.ToJSON a) => a -> ActionM ()
+jsonPretty v = do
+  header "Content-Type" "application/json"
+  raw $ encodePretty v
+-}
+
 -- server itself:
 --
 --  -> should get some kind of state from command line or config file
@@ -137,7 +151,7 @@ start = scotty 3000 $ do
   get "/" $ html Tmpl.index
 
   -- text "should get simple text query as param"
-  -- Note: route /search not handled here! 
+  -- Note: route /search not handled here!
   get "/search/:query" $ do
     queryStr <- param "query"
     res      <- withIx $ \ix -> do

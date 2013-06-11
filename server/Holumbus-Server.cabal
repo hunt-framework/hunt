@@ -28,6 +28,7 @@ executable holumbusServer
   build-depends:   base                   >= 4     && < 5
                  , scotty
                  , aeson
+                 , aeson-pretty
                  , blaze-html
                  , text
                  , hamlet                 >= 1.1.7.1
