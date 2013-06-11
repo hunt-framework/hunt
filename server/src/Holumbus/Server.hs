@@ -195,13 +195,11 @@ start = scotty 3000 $ do
   -- add a document
   post "/document/add" $ do
     -- Raises an exception if parse is unsuccessful
-    js <- jsonData
-    case js of
-      ApiDocument u d ws  -> do
-        -- transform doc
-        let doc = Document u d
-        modIx_ $ \ix ->
-          return $ insertDoc doc ws ix
-        json (JsonSuccess "doc added" :: JsonResponse Text)
+    jss <- jsonData :: ActionM [ApiDocument]
+    modIx_ $ \ix ->
+      return $ foldr (\(ApiDocument u d ws) ->
+                        let doc = Document u d
+                        in insertDoc doc ws) ix jss
+    json (JsonSuccess "doc added" :: JsonResponse Text)
 
   notFound . redirect $ "/"
