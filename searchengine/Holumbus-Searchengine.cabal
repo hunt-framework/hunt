@@ -28,6 +28,8 @@ library
                , binary                 >= 0.5 && < 1
                , bytestring             >= 0.9 && < 1
                , bzlib                  >= 0.4 && < 1
+               , containers             >= 5
+               , deepseq                >= 1.2
                , directory              >= 1   && < 2
                , enummapset             >= 0   && < 1
                , filepath               >= 1   && < 2
@@ -47,14 +49,6 @@ library
                , aeson
                , text
                , murmur-hash
-
-  -- instance NFData (Map k v) has moved from deepseq into containers (dependency hell)
-  if impl(ghc < 7.4)
-    build-depends: containers             >= 0.2 && < 0.4.2
-                 , deepseq                >= 1.1 && < 1.2
-  else
-    build-depends: containers             >= 0.4.2
-                 , deepseq                >= 1.2
 
   exposed-modules:
     Control.Concurrent.MapFold

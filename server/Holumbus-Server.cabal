@@ -25,26 +25,20 @@ executable holumbusServer
 
   other-modules:   
 
-  build-depends:   base                   >= 4     && < 5
-                 , scotty
+  build-depends:   base                   >= 4
                  , aeson
                  , aeson-pretty
                  , blaze-html
-                 , text
+                 , containers             >= 5
+                 , deepseq                >= 1.2
                  , hamlet                 >= 1.1.7.1
+                 , Holumbus-Searchengine  >= 2
+                 , text
+                 , transformers
+                 , scotty
                  , shakespeare-js         >= 1.1.4
                  , wai-extra
-                 , Holumbus-Searchengine  >= 2
-                 , transformers
                  , wai-middleware-static  >= 0.3.2
-
-  -- instance NFData (Map k v) has moved from deepseq into containers (dependency hell)
-  if impl( ghc < 7.4 )
-    build-depends: containers             >= 0.2   && < 0.4.2
-                 , deepseq                >= 1.1   && < 1.2
-  else
-    build-depends: containers             >= 0.4.2
-                 , deepseq                >= 1.2
 
   hs-source-dirs: src
 
