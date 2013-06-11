@@ -52,16 +52,16 @@ joke2Api (n, who, what, wher, grp)
           = T.pack . ("joke://joke" ++) . show $ n
       , apiDocDesc
           = M.fromList $
-            if null wher
+            (if null wher
             then []
-            else [("wo", T.pack wher)]
+            else [("wo", T.pack wher)])
             ++
             [ ("wer",    T.pack who)
             , ("was",    T.pack what)
             , ("gruppe", T.pack grp)
             ]
       , apiDocWords
-          = M.fromList $
+          = M.fromList
             [ ("wer",    toWL who)
             , ("was",    toWL what)
             , ("wo",     toWL wher)
@@ -73,8 +73,8 @@ toWL :: String -> WordList
 toWL = foldr insert M.empty . scanText
     where
       insert :: (Word32, Text) -> WordList -> WordList
-      insert (p, w) wl
-          = M.insertWith (++) w [p] wl
+      insert (p, w)
+          = M.insertWith (++) w [p]
 
 scanText :: String -> [(Word32, Text)]
 scanText
@@ -100,4 +100,3 @@ main
          hPutStrLn h ""
          hClose h
          return ()
-

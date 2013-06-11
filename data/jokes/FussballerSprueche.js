@@ -272,7 +272,11 @@
   },
   {
     "uri": "joke://joke3",
-    "desc": {},
+    "desc": {
+      "wer": "Aleksandar Ristic",
+      "was": "Wenn man ein 0:2 kassiert, dann ist ein 1:1 nicht mehr möglich.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Aleksandar": [
@@ -466,7 +470,11 @@
   },
   {
     "uri": "joke://joke5",
-    "desc": {},
+    "desc": {
+      "wer": "Andreas Brehme",
+      "was": "Bedanken möchten wir uns auch bei den Fans, auf denen wir uns immer verlassen konnten.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Andreas": [
@@ -529,7 +537,11 @@
   },
   {
     "uri": "joke://joke6",
-    "desc": {},
+    "desc": {
+      "wer": "Andreas Brehme",
+      "was": "Haste Scheiße am Fuß, haste Scheiße am Fuß!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Andreas": [
@@ -569,7 +581,11 @@
   },
   {
     "uri": "joke://joke7",
-    "desc": {},
+    "desc": {
+      "wer": "Andreas Brehme",
+      "was": "Wenn der Mann in Schwarz pfeift, kann der Schiedsrichter auch nichts mehr machen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Andreas": [
@@ -846,7 +862,11 @@
   },
   {
     "uri": "joke://joke10",
-    "desc": {},
+    "desc": {
+      "wer": "Andreas Möller",
+      "was": "Das ist eine Deprimierung.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Andreas": [
@@ -880,7 +900,11 @@
   },
   {
     "uri": "joke://joke11",
-    "desc": {},
+    "desc": {
+      "wer": "Andreas Möller",
+      "was": "Der Basler, der ist eh doof.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Andreas": [
@@ -1031,7 +1055,11 @@
   },
   {
     "uri": "joke://joke13",
-    "desc": {},
+    "desc": {
+      "wer": "Andreas Möller",
+      "was": "Ich habe mit Erich Ribbeck telefoniert, und er hat zu mir gesagt, ich stehe für die Maltareise nicht zur Verfügung.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Andreas": [
@@ -1113,7 +1141,11 @@
   },
   {
     "uri": "joke://joke14",
-    "desc": {},
+    "desc": {
+      "wer": "Andreas Möller",
+      "was": "Ich hatte vom Feeling her ein gutes Gefühl.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Andreas": [
@@ -1159,7 +1191,11 @@
   },
   {
     "uri": "joke://joke15",
-    "desc": {},
+    "desc": {
+      "wer": "Andreas Möller",
+      "was": "Mailand oder Madrid - Hauptsache Italien!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Andreas": [
@@ -1196,7 +1232,11 @@
   },
   {
     "uri": "joke://joke16",
-    "desc": {},
+    "desc": {
+      "wer": "Andreas Möller",
+      "was": "Mein Problem ist, dass ich immer sehr selbstkritisch bin, auch mir selbst gegenüber.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Andreas": [
@@ -1538,7 +1578,11 @@
   },
   {
     "uri": "joke://joke21",
-    "desc": {},
+    "desc": {
+      "wer": "ARD/ZDF-Videotext",
+      "was": "Der DFB-Elf reichte ein 0:0-Zittersieg gegen die Türkei.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "ARD": [
@@ -1597,7 +1641,11 @@
   },
   {
     "uri": "joke://joke22",
-    "desc": {},
+    "desc": {
+      "wer": "Arnim Basche",
+      "was": "Kickenbacher Offers",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Arnim": [
@@ -2001,7 +2049,11 @@
   },
   {
     "uri": "joke://joke27",
-    "desc": {},
+    "desc": {
+      "wer": "Bela Rethy",
+      "was": "Das da vorn, was aussieht wie eine Klobürste, ist Valderrama.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Bela": [
@@ -2053,7 +2105,11 @@
   },
   {
     "uri": "joke://joke28",
-    "desc": {},
+    "desc": {
+      "wer": "Bela Rethy",
+      "was": "Der Oberarm gehört zur Hand.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Bela": [
@@ -2090,7 +2146,11 @@
   },
   {
     "uri": "joke://joke29",
-    "desc": {},
+    "desc": {
+      "wer": "Bela Rethy",
+      "was": "Portugal spielt heute mit sechs Ausländern.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Bela": [
@@ -2130,7 +2190,11 @@
   },
   {
     "uri": "joke://joke30",
-    "desc": {},
+    "desc": {
+      "wer": "Bela Rethy",
+      "was": "Ziege ist da umgeknickt... Scheint sich um eine Schulterverletzung zu handeln.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Bela": [
@@ -2185,7 +2249,11 @@
   },
   {
     "uri": "joke://joke31",
-    "desc": {},
+    "desc": {
+      "wer": "Beni Turnher",
+      "was": "Der Rasen sieht alt und gebraucht aus, irgendwie erinnert er mich an die Kleider der Kelly Family.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Beni": [
@@ -2258,7 +2326,11 @@
   },
   {
     "uri": "joke://joke32",
-    "desc": {},
+    "desc": {
+      "wer": "Beni Turnher",
+      "was": "Jetzt, Überzahl! Zwei gegen zwei!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Beni": [
@@ -2295,7 +2367,11 @@
   },
   {
     "uri": "joke://joke33",
-    "desc": {},
+    "desc": {
+      "wer": "Bernd Hölzenbein",
+      "was": "Unser Training war so geheim, dass wir manchmal selbst nicht zuschauen durften.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Bernd": [
@@ -2432,7 +2508,11 @@
   },
   {
     "uri": "joke://joke35",
-    "desc": {},
+    "desc": {
+      "wer": "Bernd Krauss",
+      "was": "Wir wollten unbedingt einen frühen Rückstand vermeiden. Das ist uns auch gelungen. Der VfB Stuttgart hat in den ersten zweieinhalb Minuten kein Tor geschossen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Bernd": [
@@ -2679,7 +2759,11 @@
   },
   {
     "uri": "joke://joke38",
-    "desc": {},
+    "desc": {
+      "wer": "Berti Vogts",
+      "was": "Das Spielfeld war zu lang für Doppelpässe.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Berti": [
@@ -2820,7 +2904,11 @@
   },
   {
     "uri": "joke://joke40",
-    "desc": {},
+    "desc": {
+      "wer": "Berti Vogts",
+      "was": "Haß gehört nicht ins Stadion. Solche Gefühle soll man gemeinsam mit seiner Frau daheim im Wohnzimmer ausleben.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Berti": [
@@ -3058,7 +3146,11 @@
   },
   {
     "uri": "joke://joke43",
-    "desc": {},
+    "desc": {
+      "wer": "Berti Vogts",
+      "was": "Ich glaube, dass der Tabellenerste jederzeit den Spitzenreiter schlagen kann.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Berti": [
@@ -3189,7 +3281,11 @@
   },
   {
     "uri": "joke://joke45",
-    "desc": {},
+    "desc": {
+      "wer": "Berti Vogts",
+      "was": "Kompliment an meine Mannschaft und meinen Dank an die Mediziner. Sie haben Unmenschliches geleistet.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Berti": [
@@ -3251,7 +3347,11 @@
   },
   {
     "uri": "joke://joke46",
-    "desc": {},
+    "desc": {
+      "wer": "Berti Vogts",
+      "was": "Sex vor einem Spiel? Das können meine Jungs halten, wie sie wollen. Nur in der Halbzeit, da geht nichts.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Berti": [
@@ -3330,7 +3430,11 @@
   },
   {
     "uri": "joke://joke47",
-    "desc": {},
+    "desc": {
+      "wer": "Berti Vogts",
+      "was": "Vielleicht war es mit mir wie mit Helmut Kohl. Dessen Gesicht haben sie ja auch nicht mehr gewollt.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Berti": [
@@ -3404,7 +3508,11 @@
   },
   {
     "uri": "joke://joke48",
-    "desc": {},
+    "desc": {
+      "wer": "Berti Vogts",
+      "was": "Wenn ich über's Wasser laufe, dann sagen meine Kritiker, nicht mal schwimmen kann er.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Berti": [
@@ -3471,7 +3579,11 @@
   },
   {
     "uri": "joke://joke49",
-    "desc": {},
+    "desc": {
+      "wer": "Berti Vogts",
+      "was": "Wenn wir Deutschen tanzen, und nebenan tanzen Brasilianer, dann sieht das bei uns eben aus wie bei Kühlschränken.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Berti": [
@@ -3543,7 +3655,11 @@
   },
   {
     "uri": "joke://joke50",
-    "desc": {},
+    "desc": {
+      "wer": "Berti Vogts",
+      "was": "Wir haben ein Abstimmungsproblem - das müssen wir automatisieren.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Berti": [
@@ -3589,7 +3705,11 @@
   },
   {
     "uri": "joke://joke51",
-    "desc": {},
+    "desc": {
+      "wer": "Berti Vogts",
+      "was": "Wir wissen alle, dass Mario nicht gesagt hat, was er gesagt hat, was er gesagt haben soll, dass er es gesagt hat.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Berti": [
@@ -3659,7 +3779,11 @@
   },
   {
     "uri": "joke://joke52",
-    "desc": {},
+    "desc": {
+      "wer": "Bill Shankley",
+      "was": "Manche Leute halten Fußball für eine Sache von Leben und Tod. Ich bin von dieser Einstellung sehr enttäuscht. Ich kann Ihnen versichern, es ist sehr viel wichtiger als das!",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Bill": [
@@ -4041,7 +4165,11 @@
   },
   {
     "uri": "joke://joke55",
-    "desc": {},
+    "desc": {
+      "wer": "Brian Moore",
+      "was": "Rosenborg hat 66 Spiele gewonnen, und sie haben in jedem getroffen!",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Brian": [
@@ -4096,7 +4224,11 @@
   },
   {
     "uri": "joke://joke56",
-    "desc": {},
+    "desc": {
+      "wer": "Bruno Labbadia",
+      "was": "Das wird alles von den Medien hochsterilisiert.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Bruno": [
@@ -4139,7 +4271,11 @@
   },
   {
     "uri": "joke://joke57",
-    "desc": {},
+    "desc": {
+      "wer": "Bryan Robson",
+      "was": "Würden wir jede Woche so spielen, wären unsere Leistungen nicht so schwankend.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Bryan": [
@@ -4271,7 +4407,11 @@
   },
   {
     "uri": "joke://joke59",
-    "desc": {},
+    "desc": {
+      "wer": "Carmen Thomas",
+      "was": "Schalke 05.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Carmen": [
@@ -4299,7 +4439,11 @@
   },
   {
     "uri": "joke://joke60",
-    "desc": {},
+    "desc": {
+      "wer": "Carsten Fuss",
+      "was": "Auswärts sind die Greuther stärker als in der Fremde.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Carsten": [
@@ -4418,7 +4562,11 @@
   },
   {
     "uri": "joke://joke62",
-    "desc": {},
+    "desc": {
+      "wer": "Christoph Daum",
+      "was": "Das Gegentor fiel zum psychologisch ungünstigsten Zeitpunkt. Aber man muss an dieser Stelle auch einmal die Frage stellen, ob es Gegentore gibt, die zu einem psychologisch günstigen Zeitpunkt fallen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Christoph": [
@@ -4618,7 +4766,11 @@
   },
   {
     "uri": "joke://joke64",
-    "desc": {},
+    "desc": {
+      "wer": "Christoph Daum",
+      "was": "Einige Spieler wissen zwar, wer im Film ´Star Trek´ welche Rolle spielt, aber nicht, mit wem sie es im nächsten Spiel zu tun haben.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Christoph": [
@@ -4789,7 +4941,11 @@
   },
   {
     "uri": "joke://joke66",
-    "desc": {},
+    "desc": {
+      "wer": "Christoph Daum",
+      "was": "Man muss nicht immer die absolute Mehrheit hinter sich haben, manchmal reichen auch 51 Prozent.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Christoph": [
@@ -4856,7 +5012,11 @@
   },
   {
     "uri": "joke://joke67",
-    "desc": {},
+    "desc": {
+      "wer": "Christoph Daum",
+      "was": "Wer in Bochum von Strafraum zu Strafraum geht und sich dabei nicht den Knöchel bricht, dem gebe ich einen aus.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Christoph": [
@@ -5231,7 +5391,11 @@
   },
   {
     "uri": "joke://joke72",
-    "desc": {},
+    "desc": {
+      "wer": "Dettmar Cramer",
+      "was": "Es hängt alles irgendwo zusammen. Sie können sich am Hintern ein Haar ausreißen, dann tränt das Auge.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Cramer": [
@@ -5304,7 +5468,11 @@
   },
   {
     "uri": "joke://joke73",
-    "desc": {},
+    "desc": {
+      "wer": "Die Siegener Zeitung",
+      "was": "...Dahlin, Sohn einer schwedischen Psychologin und eines venezuelanischen Bongotrommlers, kann sich seine Durststrecke beim HSV nicht erklären...",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Die": [
@@ -5383,7 +5551,11 @@
   },
   {
     "uri": "joke://joke74",
-    "desc": {},
+    "desc": {
+      "wer": "Die Zeitschrift Sports",
+      "was": "Eher tritt der Papst aus der Kirche aus, als dass ein Münchner vom überzeugten Bayer zum Sechziger wird.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Die": [
@@ -5627,7 +5799,11 @@
   },
   {
     "uri": "joke://joke77",
-    "desc": {},
+    "desc": {
+      "wer": "Dieter Eilts",
+      "was": "Das interessiert mich wie eine geplatzte Currywurst im ostfriesischen Wattenmeer.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Dieter": [
@@ -5764,7 +5940,11 @@
   },
   {
     "uri": "joke://joke79",
-    "desc": {},
+    "desc": {
+      "wer": "Dieter Eilts",
+      "was": "Wir sind insgesamt so gefestigt, dass jeder die Meinung des Trainers akzeptiert.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Dieter": [
@@ -5822,7 +6002,11 @@
   },
   {
     "uri": "joke://joke80",
-    "desc": {},
+    "desc": {
+      "wer": "Dieter Kürten",
+      "was": "Die Stadt ist schwarz voller Menschen in orange.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Dieter": [
@@ -5868,7 +6052,11 @@
   },
   {
     "uri": "joke://joke81",
-    "desc": {},
+    "desc": {
+      "wer": "Dieter Nuhr",
+      "was": "Bei der Fußball-WM habe ich mir Österreich gegen Kamerun angeschaut. Warum? Auf der einen Seite Exoten, fremde Kultur, wilde Riten - und auf der anderen Seite Kamerun!",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Dieter": [
@@ -5966,7 +6154,11 @@
   },
   {
     "uri": "joke://joke82",
-    "desc": {},
+    "desc": {
+      "wer": "Dino Zoff",
+      "was": "Es ist das Schicksal aller Trainer, früher oder später mit Tomaten beworfen zu werden.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Dino": [
@@ -6162,7 +6354,11 @@
   },
   {
     "uri": "joke://joke85",
-    "desc": {},
+    "desc": {
+      "wer": "Dragoslav Stepanovic",
+      "was": "Was der Rudi Bommer heute mit seinen 800 Jahren geleistet hat, war schon phänomenal.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Dragoslav": [
@@ -6361,7 +6557,11 @@
   },
   {
     "uri": "joke://joke88",
-    "desc": {},
+    "desc": {
+      "wer": "Edgar Endress",
+      "was": "Bisher ziehen sich die Bayern toll aus der Atmosphäre.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Edgar": [
@@ -6410,7 +6610,11 @@
   },
   {
     "uri": "joke://joke89",
-    "desc": {},
+    "desc": {
+      "wer": "Edmund Stoiber",
+      "was": "Unterhaching ist von der gesamttechnischen Perfektion sehr kompakt.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Edmund": [
@@ -6744,7 +6948,11 @@
   },
   {
     "uri": "joke://joke93",
-    "desc": {},
+    "desc": {
+      "wer": "Eric Meijer",
+      "was": "Es ist nichts scheißer als Platz zwei.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Eric": [
@@ -6866,7 +7074,11 @@
   },
   {
     "uri": "joke://joke95",
-    "desc": {},
+    "desc": {
+      "wer": "Erich Laaser",
+      "was": "Balakov hat viel Raum - und Platz ohne Ende.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Erich": [
@@ -6912,7 +7124,11 @@
   },
   {
     "uri": "joke://joke96",
-    "desc": {},
+    "desc": {
+      "wer": "Erich Ribbeck",
+      "was": "Bei uns wird auf dem Platz zu wenig gesprochen. Das könnte an der Kommunikation liegen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Erich": [
@@ -7084,7 +7300,11 @@
   },
   {
     "uri": "joke://joke98",
-    "desc": {},
+    "desc": {
+      "wer": "Erich Ribbeck",
+      "was": "Es ist egal, ob ein Spieler bei Bayern München spielt oder sonstwo im Ausland.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Erich": [
@@ -7148,7 +7368,11 @@
   },
   {
     "uri": "joke://joke99",
-    "desc": {},
+    "desc": {
+      "wer": "Erich Ribbeck",
+      "was": "Ich kann es mir als Verantwortlicher für die Mannschaft nicht erlauben, die Dinge subjektiv zu sehen. Grundsätzlich werde ich versuchen zu erkennen, ob die subjektiv geäußerten Meinungen subjektiv sind oder objektiv sind. Wenn sie subjektiv sind, dann werde ich an meinen objektiven festhalten. Wenn sie objektiv sind, werde ich überlegen und vielleicht die objektiven subjektiv geäußerten Meinungen der Spieler mit in meine objektiven einfließen lassen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Erich": [
@@ -7321,7 +7545,11 @@
   },
   {
     "uri": "joke://joke100",
-    "desc": {},
+    "desc": {
+      "wer": "Erich Ribbeck",
+      "was": "Konzepte sind Kokolores.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Erich": [
@@ -7352,7 +7580,11 @@
   },
   {
     "uri": "joke://joke101",
-    "desc": {},
+    "desc": {
+      "wer": "Erich Rutemöller",
+      "was": "Mach et, Otze!",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Erich": [
@@ -7679,7 +7911,11 @@
   },
   {
     "uri": "joke://joke106",
-    "desc": {},
+    "desc": {
+      "wer": "Erwin Kostedde",
+      "was": "Ich möchte nie mehr arbeiten, sondern nur noch am Tresen stehen und saufen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Erwin": [
@@ -7740,7 +7976,11 @@
   },
   {
     "uri": "joke://joke107",
-    "desc": {},
+    "desc": {
+      "wer": "Eugen Drewermann",
+      "was": "Kein Pferd würde auf den Körper eines Menschen treten, der am Boden liegt. Kroatische Spieler schon.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Drewermann": [
@@ -7813,7 +8053,11 @@
   },
   {
     "uri": "joke://joke108",
-    "desc": {},
+    "desc": {
+      "wer": "Ewald Lienen",
+      "was": "Der neue Rahmenterminkalender ist so voll, da gibt es in den nächsten zwei Jahren keinen Termin, an dem man mit seiner Frau Kaffee trinken kann.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Ewald": [
@@ -7910,7 +8154,11 @@
   },
   {
     "uri": "joke://joke109",
-    "desc": {},
+    "desc": {
+      "wer": "Ewald Lienen",
+      "was": "Ich habe ihn ausgewechselt, weil ich einen anderen Spieler einwechseln wollte. Da mußte ich einen auswechseln.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Ewald": [
@@ -8052,7 +8300,11 @@
   },
   {
     "uri": "joke://joke111",
-    "desc": {},
+    "desc": {
+      "wer": "Fabrizio Hayer",
+      "was": "Ich weiß auch nicht, wo bei uns der Wurm hängt.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Fabrizio": [
@@ -8104,7 +8356,11 @@
   },
   {
     "uri": "joke://joke112",
-    "desc": {},
+    "desc": {
+      "wer": "Felix Magath",
+      "was": "Franz Böhmert hat versucht, Wolfgang Sidka den Abgang so schön wie möglich zu machen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Felix": [
@@ -8495,7 +8751,11 @@
   },
   {
     "uri": "joke://joke117",
-    "desc": {},
+    "desc": {
+      "wer": "Frank Pagelsdorf",
+      "was": "Es hat sich gezeigt, dass Haching gerade zuhause so heimstark ist.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Frank": [
@@ -8550,7 +8810,11 @@
   },
   {
     "uri": "joke://joke118",
-    "desc": {},
+    "desc": {
+      "wer": "Frank Pagelsdorf",
+      "was": "Wir werden nur noch Einzelgespräche führen, damit sich keiner verletzt.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Frank": [
@@ -8602,7 +8866,11 @@
   },
   {
     "uri": "joke://joke120",
-    "desc": {},
+    "desc": {
+      "wer": "Franz Beckenbauer",
+      "was": "Berkant Öktan ist erst siebzehn. Wenn er Glück hat, wird er nächsten Monat achtzehn.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Beckenbauer": [
@@ -8819,7 +9087,11 @@
   },
   {
     "uri": "joke://joke123",
-    "desc": {},
+    "desc": {
+      "wer": "Franz Beckenbauer",
+      "was": "Der Grund war nicht die Ursache, sondern der Auslöser.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Beckenbauer": [
@@ -9090,7 +9362,11 @@
   },
   {
     "uri": "joke://joke127",
-    "desc": {},
+    "desc": {
+      "wer": "Franz Beckenbauer",
+      "was": "Die Schweden sind keine Holländer - das hat man ganz genau gesehen.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Beckenbauer": [
@@ -9248,7 +9524,11 @@
   },
   {
     "uri": "joke://joke129",
-    "desc": {},
+    "desc": {
+      "wer": "Franz Beckenbauer",
+      "was": "In einem Jahr hab ich mal 15 Monate durchgespielt.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Beckenbauer": [
@@ -9297,7 +9577,11 @@
   },
   {
     "uri": "joke://joke130",
-    "desc": {},
+    "desc": {
+      "wer": "Franz Beckenbauer",
+      "was": "Ja gut, am Ergebnis wird sich nicht mehr viel ändern, es sei denn, es schießt einer ein Tor.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Beckenbauer": [
@@ -9371,7 +9655,11 @@
   },
   {
     "uri": "joke://joke131",
-    "desc": {},
+    "desc": {
+      "wer": "Franz Beckenbauer",
+      "was": "Ja gut, es gibt nur eine Möglichkeit: Sieg, Unentschieden oder Niederlage!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Beckenbauer": [
@@ -9426,7 +9714,11 @@
   },
   {
     "uri": "joke://joke132",
-    "desc": {},
+    "desc": {
+      "wer": "Franz Beckenbauer",
+      "was": "Kaiserslautern wird mit Sicherheit nicht ins blinde Messer laufen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Beckenbauer": [
@@ -9623,7 +9915,11 @@
   },
   {
     "uri": "joke://joke134",
-    "desc": {},
+    "desc": {
+      "wer": "Fredrik Ljungberg",
+      "was": "Wenn ich in der Nacht vor einem Spiel Sex habe, verliere ich jegliches Gefühl in meinen Füßen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Fredrik": [
@@ -9780,7 +10076,11 @@
   },
   {
     "uri": "joke://joke136",
-    "desc": {},
+    "desc": {
+      "wer": "Friedel Rausch",
+      "was": "Ich will jetzt nicht noch zusätzlich Feuer ins Öl gießen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Friedel": [
@@ -9832,7 +10132,11 @@
   },
   {
     "uri": "joke://joke137",
-    "desc": {},
+    "desc": {
+      "wer": "Friedel Rausch",
+      "was": "Wenn ich den Martin Schneider weiter aufstelle, glauben die Leute am Ende wirklich noch, ich sei schwul.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Friedel": [
@@ -9903,7 +10207,11 @@
   },
   {
     "uri": "joke://joke138",
-    "desc": {},
+    "desc": {
+      "wer": "Friedhelm Funkel",
+      "was": "Die Situation ist bedrohlich, aber nicht bedenklich.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Friedhelm": [
@@ -9946,7 +10254,11 @@
   },
   {
     "uri": "joke://joke139",
-    "desc": {},
+    "desc": {
+      "wer": "Fritz Langner",
+      "was": "Ihr fünf spielt jetzt vier gegen drei.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Fritz": [
@@ -9989,7 +10301,11 @@
   },
   {
     "uri": "joke://joke140",
-    "desc": {},
+    "desc": {
+      "wer": "Fritz Walter jun.",
+      "was": "Der Jürgen Klinsmann und ich, wir sind ein gutes Trio. (etwas später dann) Ich meinte: ein Quartett.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Fritz": [
@@ -10063,7 +10379,11 @@
   },
   {
     "uri": "joke://joke141",
-    "desc": {},
+    "desc": {
+      "wer": "Fritz Walter jun.",
+      "was": "Die Sanitäter haben mir sofort eine Invasion gelegt.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Fritz": [
@@ -10176,7 +10496,11 @@
   },
   {
     "uri": "joke://joke143",
-    "desc": {},
+    "desc": {
+      "wer": "Gary Lineker",
+      "was": "Fußball ist ein Spiel von 22 Leuten, die rumlaufen, den Ball spielen, und einem Schiedsrichter, der eine Reihe dummer Fehler macht, und am Ende gewinnt immer Deutschland.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Gary": [
@@ -10277,7 +10601,11 @@
   },
   {
     "uri": "joke://joke144",
-    "desc": {},
+    "desc": {
+      "wer": "George Best",
+      "was": "Ich habe viel von meinem Geld für Alkohol, Weiber und schnelle Autos ausgegeben... Den Rest habe ich einfach verpraßt.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Best": [
@@ -10354,7 +10682,11 @@
   },
   {
     "uri": "joke://joke145",
-    "desc": {},
+    "desc": {
+      "wer": "George Best",
+      "was": "Ich könnte den anonymen Alkoholikern beitreten. Das Problem dabei ist nur, ich kann nicht anonym bleiben.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Best": [
@@ -10424,7 +10756,11 @@
   },
   {
     "uri": "joke://joke146",
-    "desc": {},
+    "desc": {
+      "wer": "Gerald Asamoah",
+      "was": "Da krieg' ich so den Ball und das ist ja immer mein Problem.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Asamoah": [
@@ -10485,7 +10821,11 @@
   },
   {
     "uri": "joke://joke147",
-    "desc": {},
+    "desc": {
+      "wer": "Gerd Delling",
+      "was": "An der Temperatur hat sich nichts geändert. Es ist noch kälter geworden.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Delling": [
@@ -10543,7 +10883,11 @@
   },
   {
     "uri": "joke://joke148",
-    "desc": {},
+    "desc": {
+      "wer": "Gerd Delling",
+      "was": "Die Luft, die nie drin war, ist raus aus dem Spiel.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Delling": [
@@ -10598,7 +10942,11 @@
   },
   {
     "uri": "joke://joke149",
-    "desc": {},
+    "desc": {
+      "wer": "Gerd Delling",
+      "was": "Die Schotten feiern richtig schön, ohne Ausschreitungen. Die trinken so viel, da können sie gar nicht mehr zuhauen.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Delling": [
@@ -10752,7 +11100,11 @@
   },
   {
     "uri": "joke://joke151",
-    "desc": {},
+    "desc": {
+      "wer": "Gerd Niebaum",
+      "was": "Heute haben die Spieler doch mehr Pressekontakte als Ballkontakte.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Gerd": [
@@ -10801,7 +11153,11 @@
   },
   {
     "uri": "joke://joke152",
-    "desc": {},
+    "desc": {
+      "wer": "Gerd Rubenbauer",
+      "was": "Auch wenn er über links kommt, hat er nur einen rechten Fuß.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Gerd": [
@@ -10857,7 +11213,11 @@
   },
   {
     "uri": "joke://joke153",
-    "desc": {},
+    "desc": {
+      "wer": "Gerd Rubenbauer",
+      "was": "Die Achillesferse von Bobic ist die rechte Schulter.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Gerd": [
@@ -10903,7 +11263,11 @@
   },
   {
     "uri": "joke://joke154",
-    "desc": {},
+    "desc": {
+      "wer": "Gerd Rubenbauer",
+      "was": "Die Mannschaft hat ihren Libero aufgelöst - jetzt hat sie einen Mann mehr auf dem Platz.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Gerd": [
@@ -10968,7 +11332,11 @@
   },
   {
     "uri": "joke://joke155",
-    "desc": {},
+    "desc": {
+      "wer": "Gerd Rubenbauer",
+      "was": "Die Rudi-Rufe hat es vorher nur für Uwe Seeler gegeben.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Gerd": [
@@ -11023,7 +11391,11 @@
   },
   {
     "uri": "joke://joke156",
-    "desc": {},
+    "desc": {
+      "wer": "Gerd Rubenbauer",
+      "was": "Einen so harten Ellenbogen hat der in ganz Kolumbien noch nicht erlebt. Aber genaugenommen war es das Knie.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Gerd": [
@@ -11169,7 +11541,11 @@
   },
   {
     "uri": "joke://joke158",
-    "desc": {},
+    "desc": {
+      "wer": "Gerd Rubenbauer",
+      "was": "Sie spielen wechselnd alternierend.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Gerd": [
@@ -11203,7 +11579,11 @@
   },
   {
     "uri": "joke://joke159",
-    "desc": {},
+    "desc": {
+      "wer": "Gerd Rubenbauer",
+      "was": "Wenn er von hinten kommt, ist er nicht zu halten!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Gerd": [
@@ -11253,7 +11633,11 @@
   },
   {
     "uri": "joke://joke160",
-    "desc": {},
+    "desc": {
+      "wer": "Gerd Rubenbauer",
+      "was": "Zidane hat den Oberkörper eines echten Zweikämpfers, aber die Fußsohlen einer Ballerina.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Gerd": [
@@ -11529,7 +11913,11 @@
   },
   {
     "uri": "joke://joke163",
-    "desc": {},
+    "desc": {
+      "wer": "Giovanni Trappatoni",
+      "was": "Es gibt nur einen Ball. Wenn der Gegner ihn hat, muß man sich fragen: Warum!? Ja, warum? Und was muß man tun? Ihn sich wiederholen!",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Giovanni": [
@@ -11620,7 +12008,11 @@
   },
   {
     "uri": "joke://joke164",
-    "desc": {},
+    "desc": {
+      "wer": "Giovanni Trappatoni",
+      "was": "Fußball ist Ding, Dang, Dong. Es gibt nicht nur Ding.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Giovanni": [
@@ -11670,7 +12062,11 @@
   },
   {
     "uri": "joke://joke165",
-    "desc": {},
+    "desc": {
+      "wer": "Giovanni Trappatoni",
+      "was": "Ich habe fertig.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Giovanni": [
@@ -11701,7 +12097,11 @@
   },
   {
     "uri": "joke://joke166",
-    "desc": {},
+    "desc": {
+      "wer": "Glenn Hoddle",
+      "was": "Wenn wir meinen, die Spieler haben es nötig, dann lassen wir ihre Frauen und Freundinnen hierher holen, um die Jungs wieder hoch zu kriegen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Glenn": [
@@ -11791,7 +12191,11 @@
   },
   {
     "uri": "joke://joke167",
-    "desc": {},
+    "desc": {
+      "wer": "Guido Buchwald",
+      "was": "Wir schaffen es halt immer noch nicht, den Gegner auf spielerische Art und Weise auszuspielen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Buchwald": [
@@ -11964,7 +12368,11 @@
   },
   {
     "uri": "joke://joke169",
-    "desc": {},
+    "desc": {
+      "wer": "Günter Netzer",
+      "was": "Da haben Spieler auf dem Spielfeld gestanden, gestandene Spieler...",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Günter": [
@@ -12011,7 +12419,11 @@
   },
   {
     "uri": "joke://joke170",
-    "desc": {},
+    "desc": {
+      "wer": "Günter Netzer",
+      "was": "Da war ein sinnliches Verhältnis zu meinem Objekt, das bei jedem Fußtritt anders reagierte, das stets anders behandelt werden wollte.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Günter": [
@@ -12089,7 +12501,11 @@
   },
   {
     "uri": "joke://joke171",
-    "desc": {},
+    "desc": {
+      "wer": "Günter Netzer",
+      "was": "Ich hoffe, dass die deutsche Mannschaft auch in der 2. Halbzeit eine runde Leistung zeigt, das würde die Leistung abrunden!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Günter": [
@@ -12167,7 +12583,11 @@
   },
   {
     "uri": "joke://joke172",
-    "desc": {},
+    "desc": {
+      "wer": "Günter Netzer",
+      "was": "Man muss feststellen, dass der Spruch auch nicht mehr stimmt, dass der Schütze nicht selber schießen soll. Ich stelle fest, dass der Schütze sehr wohl den Elfmeter selber schießt.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Günter": [
@@ -12353,7 +12773,11 @@
   },
   {
     "uri": "joke://joke174",
-    "desc": {},
+    "desc": {
+      "wer": "Gyula Lorant",
+      "was": "Der Ball ist rund. Wäre er eckig, wäre er ja ein Würfel.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Gyula": [
@@ -12409,7 +12833,11 @@
   },
   {
     "uri": "joke://joke175",
-    "desc": {},
+    "desc": {
+      "wer": "Gyula Lorant",
+      "was": "Wenn ich ihm sein linkes Bein wegnehme, fällt er einfach um, weil kein rechtes Bein da ist.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Gyula": [
@@ -12559,7 +12987,11 @@
   },
   {
     "uri": "joke://joke177",
-    "desc": {},
+    "desc": {
+      "wer": "Hans Krankl",
+      "was": "Ich muss versuchen die Mannschaft so zu formen, dass wir gleich im ersten Spiel, auf jeden Fall aber so schnell wie möglich, punkten.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Hans": [
@@ -12648,7 +13080,11 @@
   },
   {
     "uri": "joke://joke178",
-    "desc": {},
+    "desc": {
+      "wer": "Hans Krankl",
+      "was": "Wir müssen gewinnen, alles andere ist primär.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Hans": [
@@ -12761,7 +13197,11 @@
   },
   {
     "uri": "joke://joke180",
-    "desc": {},
+    "desc": {
+      "wer": "Hansi Müller",
+      "was": "Es stört mich nicht, dass in Deutschland ein paar hunderttausend Wellensittiche 'Hansi' heißen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Hansi": [
@@ -13208,7 +13648,11 @@
   },
   {
     "uri": "joke://joke184",
-    "desc": {},
+    "desc": {
+      "wer": "Harald Schmidt",
+      "was": "Ein Trainerstab ist kein Vibrator.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Harald": [
@@ -13248,7 +13692,11 @@
   },
   {
     "uri": "joke://joke185",
-    "desc": {},
+    "desc": {
+      "wer": "Harald Schmidt",
+      "was": "Golden Goal ist scheiße. Man weiß nie, ob man sich noch ein Bier holen soll.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Harald": [
@@ -13318,7 +13766,11 @@
   },
   {
     "uri": "joke://joke186",
-    "desc": {},
+    "desc": {
+      "wer": "Harald Schmidt",
+      "was": "Jürgen Klinsmann ist inzwischen 694 Minuten ohne Tor. Das hat vor ihm, glaube ich, nur Sepp Maier geschafft.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Harald": [
@@ -13575,7 +14027,11 @@
   },
   {
     "uri": "joke://joke189",
-    "desc": {},
+    "desc": {
+      "wer": "Helmut Schulte",
+      "was": "Ball rund muss in Tor eckig!",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Helmut": [
@@ -13615,7 +14071,11 @@
   },
   {
     "uri": "joke://joke190",
-    "desc": {},
+    "desc": {
+      "wer": "Helmut Schulte",
+      "was": "Das größte Problem beim Fußball sind die Spieler. Wenn wir die abschaffen könnten, wäre alles gut.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Helmut": [
@@ -13683,7 +14143,11 @@
   },
   {
     "uri": "joke://joke191",
-    "desc": {},
+    "desc": {
+      "wer": "Helmut Schulte",
+      "was": "Wer hinten steht, hat das Pech der Glücklosen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Helmut": [
@@ -13729,7 +14193,11 @@
   },
   {
     "uri": "joke://joke192",
-    "desc": {},
+    "desc": {
+      "wer": "Henry Vogt",
+      "was": "Yeboah blieb heute sehr blass.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Henry": [
@@ -13839,7 +14307,11 @@
   },
   {
     "uri": "joke://joke194",
-    "desc": {},
+    "desc": {
+      "wer": "Heribert Faßbender",
+      "was": "Da kommt ein Spieler der Uerdinger Mannschaft frei, aber doch ungedeckt, zum Kopfball.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Faßbender": [
@@ -13900,7 +14372,11 @@
   },
   {
     "uri": "joke://joke195",
-    "desc": {},
+    "desc": {
+      "wer": "Heribert Faßbender",
+      "was": "Da singen sie: We are red, we are white, we are Danish Dynamite - Wir sind rote, wir sind weiße wir sind dänische..., äh...",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Faßbender": [
@@ -14073,7 +14549,11 @@
   },
   {
     "uri": "joke://joke197",
-    "desc": {},
+    "desc": {
+      "wer": "Heribert Faßbender",
+      "was": "Es steht 1:1, genauso gut könnte es umgekehrt stehen.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Faßbender": [
@@ -14123,7 +14603,11 @@
   },
   {
     "uri": "joke://joke198",
-    "desc": {},
+    "desc": {
+      "wer": "Heribert Faßbender",
+      "was": "Jeremies ist kein Eilts!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Faßbender": [
@@ -14157,7 +14641,11 @@
   },
   {
     "uri": "joke://joke199",
-    "desc": {},
+    "desc": {
+      "wer": "Heribert Faßbender",
+      "was": "Jetzt sind auch die Fans begeistert. Sie singen \"Oh, wie bist Du schön!\"",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Faßbender": [
@@ -14218,7 +14706,11 @@
   },
   {
     "uri": "joke://joke200",
-    "desc": {},
+    "desc": {
+      "wer": "Heribert Faßbender",
+      "was": "Koemann. Der heißt schon so. Dem würde ich auch nicht über den Weg trauen!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Faßbender": [
@@ -14355,7 +14847,11 @@
   },
   {
     "uri": "joke://joke202",
-    "desc": {},
+    "desc": {
+      "wer": "Heribert Faßbender",
+      "was": "Rivaldo ist ein Super-Techniker, oh, äh, das ist ja Cafu!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Faßbender": [
@@ -14408,7 +14904,11 @@
   },
   {
     "uri": "joke://joke203",
-    "desc": {},
+    "desc": {
+      "wer": "Heribert Faßbender",
+      "was": "Roberto Baggio, der Mozart des Fußballs - nicht nur, was sein Freistoßgenie angeht.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Faßbender": [
@@ -14655,7 +15155,11 @@
   },
   {
     "uri": "joke://joke207",
-    "desc": {},
+    "desc": {
+      "wer": "Heribert Faßbender",
+      "was": "Und da sehen Sie den schwedischen Vollmond.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Faßbender": [
@@ -14698,7 +15202,11 @@
   },
   {
     "uri": "joke://joke208",
-    "desc": {},
+    "desc": {
+      "wer": "Heribert Faßbender",
+      "was": "Und jetzt skandieren die Fans wieder: \"Türkiye! Türkiye!\", was so viel heißt wie \"Türkei! Türkei!\"",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Faßbender": [
@@ -14761,7 +15269,11 @@
   },
   {
     "uri": "joke://joke209",
-    "desc": {},
+    "desc": {
+      "wer": "Hermann Gerland",
+      "was": "Bevor man untern Torf kommt, macht man einiges mit im Leben.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Gerland": [
@@ -14814,7 +15326,11 @@
   },
   {
     "uri": "joke://joke210",
-    "desc": {},
+    "desc": {
+      "wer": "Hermann Gerland",
+      "was": "Hätte, wenn und aber, alles nur blödes Gelaber!",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Gerland": [
@@ -14860,7 +15376,11 @@
   },
   {
     "uri": "joke://joke211",
-    "desc": {},
+    "desc": {
+      "wer": "Hermann Gerland",
+      "was": "Heute hatten wir Scheiße anne Füße!",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Gerland": [
@@ -15014,7 +15534,11 @@
   },
   {
     "uri": "joke://joke213",
-    "desc": {},
+    "desc": {
+      "wer": "Hermann Gerland",
+      "was": "Sicher, Reina hat das Tor erstklassig erzielt. Aber er durfte die Kugel doch gleich dreimal wie ein Artist hochhalten und dann reinhauen. Das hätte es früher nicht gegeben. Da wäre einer dazwischen gefegt und Billy wäre erst wieder vor seiner alten Haustür in Unna gelandet.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Gerland": [
@@ -15167,7 +15691,11 @@
   },
   {
     "uri": "joke://joke214",
-    "desc": {},
+    "desc": {
+      "wer": "Hermann Neuberger",
+      "was": "Die Breite an der Spitze ist dichter geworden.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Hermann": [
@@ -15385,7 +15913,11 @@
   },
   {
     "uri": "joke://joke217",
-    "desc": {},
+    "desc": {
+      "wer": "Holger Obermann",
+      "was": "Zwei Minuten gespielt, noch immer hohes Tempo.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Holger": [
@@ -15498,7 +16030,11 @@
   },
   {
     "uri": "joke://joke219",
-    "desc": {},
+    "desc": {
+      "wer": "Horst Hrubesch",
+      "was": "Ich sage nur ein Wort: \"Vielen Dank!\"",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Horst": [
@@ -15602,7 +16138,11 @@
   },
   {
     "uri": "joke://joke221",
-    "desc": {},
+    "desc": {
+      "wer": "Horst Hrubesch",
+      "was": "Wir müssen das alles nochmal Paroli laufen lassen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Horst": [
@@ -15648,7 +16188,11 @@
   },
   {
     "uri": "joke://joke222",
-    "desc": {},
+    "desc": {
+      "wer": "Horst Szymaniak",
+      "was": "Ein Drittel? Nee, ich will mindestens ein Viertel.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Horst": [
@@ -15764,7 +16308,11 @@
   },
   {
     "uri": "joke://joke224",
-    "desc": {},
+    "desc": {
+      "wer": "Ingo Anderbrügge",
+      "was": "Das Tor gehört zu 70 % mir und zu 40 % dem Wilmots.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Anderbrügge": [
@@ -16131,7 +16679,11 @@
   },
   {
     "uri": "joke://joke228",
-    "desc": {},
+    "desc": {
+      "wer": "Jean Löring",
+      "was": "Ich als Verein musste ja reagieren.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Jean": [
@@ -16171,7 +16723,11 @@
   },
   {
     "uri": "joke://joke229",
-    "desc": {},
+    "desc": {
+      "wer": "Jean-Paul Sartre",
+      "was": "Bei einem Fußballspiel verkompliziert sich allerdings alles durch die Anwesenheit der gegnerischen Mannschaft.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Jean": [
@@ -16238,7 +16794,11 @@
   },
   {
     "uri": "joke://joke230",
-    "desc": {},
+    "desc": {
+      "wer": "Jens Jeremies",
+      "was": "Das ist Schnee von morgen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Jens": [
@@ -16275,7 +16835,11 @@
   },
   {
     "uri": "joke://joke231",
-    "desc": {},
+    "desc": {
+      "wer": "Joachim Böttcher",
+      "was": "Jan Furtok, ein Stürmer, wie man ihn an der Ramschtheke im Supermarkt zu Dutzenden findet...",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Böttcher": [
@@ -16342,7 +16906,11 @@
   },
   {
     "uri": "joke://joke232",
-    "desc": {},
+    "desc": {
+      "wer": "Joachim Böttcher",
+      "was": "Jemand sollte Jan Furtok mal die polnische Übersetzung der Memoiren Casanovas schenken, da steht nämlich drin, wie man seine Chancen nutzt!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Böttcher": [
@@ -16512,7 +17080,11 @@
   },
   {
     "uri": "joke://joke234",
-    "desc": {},
+    "desc": {
+      "wer": "Johannes B. Kerner",
+      "was": "Dass er im Abseits stand, können Sie an den Streifen im Rasen erkennen, die nach FIFA-Regeln gemäht wurden.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "B": [
@@ -16877,7 +17449,11 @@
   },
   {
     "uri": "joke://joke238",
-    "desc": {},
+    "desc": {
+      "wer": "Johannes B. Kerner",
+      "was": "Pässe der Marke Lothar Matthäus - da möchte man Ball sein.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "B": [
@@ -17188,7 +17764,11 @@
   },
   {
     "uri": "joke://joke241",
-    "desc": {},
+    "desc": {
+      "wer": "Jörg Berger",
+      "was": "Resignation ist der Egoismus der Schwachen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Berger": [
@@ -17302,7 +17882,11 @@
   },
   {
     "uri": "joke://joke243",
-    "desc": {},
+    "desc": {
+      "wer": "Jörg Dahlmann",
+      "was": "Julio Cesar hat sich heute nacht fortgepflanzt. Victoria heißt die Kleine.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Dahlmann": [
@@ -17357,7 +17941,11 @@
   },
   {
     "uri": "joke://joke244",
-    "desc": {},
+    "desc": {
+      "wer": "Jörg Dahlmann",
+      "was": "Möller und Chappi befruchten sich gegenseitig.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Dahlmann": [
@@ -17397,7 +17985,11 @@
   },
   {
     "uri": "joke://joke245",
-    "desc": {},
+    "desc": {
+      "wer": "Jörg Wontorra",
+      "was": "Baslers Freistöße sind wie das wirkliche Leben: Mal weich und kurz, mal hart und lang.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Jörg": [
@@ -17547,7 +18139,11 @@
   },
   {
     "uri": "joke://joke247",
-    "desc": {},
+    "desc": {
+      "wer": "Jörg Wontorra",
+      "was": "Marc Wilmots, der Held vom Borsigplatz.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Jörg": [
@@ -17587,7 +18183,11 @@
   },
   {
     "uri": "joke://joke248",
-    "desc": {},
+    "desc": {
+      "wer": "Jörg Wontorra",
+      "was": "Telefonieren Sie mit uns oder rufen Sie uns an!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Jörg": [
@@ -17632,7 +18232,11 @@
   },
   {
     "uri": "joke://joke249",
-    "desc": {},
+    "desc": {
+      "wer": "Junior Baiano",
+      "was": "Bremen war ein Alptraum. Es muß die kälteste Stadt auf dieser Erde sein. Ich habe immer gefroren, ich habe niemanden verstanden, und mir ging es schlecht.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Baiano": [
@@ -17730,7 +18334,11 @@
   },
   {
     "uri": "joke://joke250",
-    "desc": {},
+    "desc": {
+      "wer": "Jupp Heynckes",
+      "was": "Mark Hughes ist ein typich briticher Chtürmer. Weder Fich noch Fleich.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Heynckes": [
@@ -17785,7 +18393,11 @@
   },
   {
     "uri": "joke://joke251",
-    "desc": {},
+    "desc": {
+      "wer": "Jürgen Klinsmann",
+      "was": "Das sind Gefühle, wo man schwer beschreiben kann.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Jürgen": [
@@ -17958,7 +18570,11 @@
   },
   {
     "uri": "joke://joke253",
-    "desc": {},
+    "desc": {
+      "wer": "Jürgen Röber",
+      "was": "Wir müssen jetzt mit dem Boden auf den Füßen bleiben.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Jürgen": [
@@ -18010,7 +18626,11 @@
   },
   {
     "uri": "joke://joke254",
-    "desc": {},
+    "desc": {
+      "wer": "Jürgen Wegmann",
+      "was": "Das muß man verstehen, dass er Schwierigkeiten hat sich einzugewöhnen. Er ist die deutsche Sprache noch nicht mächtig.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Jürgen": [
@@ -18086,7 +18706,11 @@
   },
   {
     "uri": "joke://joke255",
-    "desc": {},
+    "desc": {
+      "wer": "Jürgen Wegmann",
+      "was": "Ich bin giftiger als die giftigste Kobra.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Jürgen": [
@@ -18217,7 +18841,11 @@
   },
   {
     "uri": "joke://joke257",
-    "desc": {},
+    "desc": {
+      "wer": "Jürgen Wegmann",
+      "was": "Zuerst hatten wir kein Glück, und dann kam auch noch Pech dazu.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Jürgen": [
@@ -18275,7 +18903,11 @@
   },
   {
     "uri": "joke://joke258",
-    "desc": {},
+    "desc": {
+      "wer": "Juri Sawitschew",
+      "was": "Elfmeterschießen, das ist irgendwie wie mit Frauen und Autos - reine Glückssache!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Juri": [
@@ -18421,7 +19053,11 @@
   },
   {
     "uri": "joke://joke260",
-    "desc": {},
+    "desc": {
+      "wer": "Karl-Heinz Körbel",
+      "was": "Die Eintracht ist vom Pech begünstigt.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Heinz": [
@@ -18550,7 +19186,11 @@
   },
   {
     "uri": "joke://joke262",
-    "desc": {},
+    "desc": {
+      "wer": "Karl-Heinz Rummenigge",
+      "was": "Das war nicht ganz unrisikovoll.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Heinz": [
@@ -18590,7 +19230,11 @@
   },
   {
     "uri": "joke://joke263",
-    "desc": {},
+    "desc": {
+      "wer": "Karl-Heinz Rummenigge",
+      "was": "Eine gefährliche Parabole aufs Tor.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Heinz": [
@@ -18630,7 +19274,11 @@
   },
   {
     "uri": "joke://joke264",
-    "desc": {},
+    "desc": {
+      "wer": "Karl-Heinz Rummenigge",
+      "was": "In letzter Konsequenz waren wir nicht konsequent genug.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Heinz": [
@@ -18679,7 +19327,11 @@
   },
   {
     "uri": "joke://joke265",
-    "desc": {},
+    "desc": {
+      "wer": "Karl-Heinz Rummenigge",
+      "was": "Riedle muß man nur füttern. Dann kommt irgendetwas dabei raus.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Heinz": [
@@ -18734,7 +19386,11 @@
   },
   {
     "uri": "joke://joke266",
-    "desc": {},
+    "desc": {
+      "wer": "Karl-Heinz Rummenigge",
+      "was": "Wenn man über rechts kommt, muss die hintere Mitte links wandern, da es sonst vorn Einbrüche gibt.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Heinz": [
@@ -19065,7 +19721,11 @@
   },
   {
     "uri": "joke://joke270",
-    "desc": {},
+    "desc": {
+      "wer": "Klaus Lufen",
+      "was": "Auch größenmäßig ist es der größte Nachteil, dass die Torhüter in Japan nicht die allergrößten sind!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Klaus": [
@@ -19133,7 +19793,11 @@
   },
   {
     "uri": "joke://joke271",
-    "desc": {},
+    "desc": {
+      "wer": "Klaus Schwarze",
+      "was": "Saarbrücken bezwang Freiburg mit 1:1.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Klaus": [
@@ -19171,7 +19835,11 @@
   },
   {
     "uri": "joke://joke272",
-    "desc": {},
+    "desc": {
+      "wer": "Klaus Täuber",
+      "was": "Heute knall ich mir die Birne voll, bis mir das Bier zu den Ohren rausläuft!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Klaus": [
@@ -19236,7 +19904,11 @@
   },
   {
     "uri": "joke://joke273",
-    "desc": {},
+    "desc": {
+      "wer": "Klaus Thomforde",
+      "was": "In der ersten Liga die Bälle zu halten find ich total geil. Da geht mir voll einer ab!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Klaus": [
@@ -19518,7 +20190,11 @@
   },
   {
     "uri": "joke://joke276",
-    "desc": {},
+    "desc": {
+      "wer": "Kommentator",
+      "was": "Es war so leise im Stadion, dass man die berühmte Stecknadel im Heu suchen konnte.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Kommentator": [
@@ -19580,7 +20256,11 @@
   },
   {
     "uri": "joke://joke277",
-    "desc": {},
+    "desc": {
+      "wer": "Kommentator",
+      "was": "Statistiken sind hinterhältige Begleiter. Jedenfalls, wenn man sie überinterpretiert. Zum Beispiel Slowenien. (Er überlegt.) Zu Slowenien habe ich gar keine Statistik, die gibt es erst seit ein paar Jahren.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Kommentator": [
@@ -19858,7 +20538,11 @@
   },
   {
     "uri": "joke://joke280",
-    "desc": {},
+    "desc": {
+      "wer": "Leo Beenhakker",
+      "was": "Ich bin jetzt seit 34 Jahren Trainer, da habe ich gelernt, dass 2 und 2 niemals 4 ist.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Beenhakker": [
@@ -20021,7 +20705,11 @@
   },
   {
     "uri": "joke://joke282",
-    "desc": {},
+    "desc": {
+      "wer": "Lothar Emmerich",
+      "was": "Gib mich die Kirsche!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Emmerich": [
@@ -20055,7 +20743,11 @@
   },
   {
     "uri": "joke://joke283",
-    "desc": {},
+    "desc": {
+      "wer": "Lothar Matthäus",
+      "was": "Das Chancenplus war ausgeglichen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Lothar": [
@@ -20280,7 +20972,11 @@
   },
   {
     "uri": "joke://joke286",
-    "desc": {},
+    "desc": {
+      "wer": "Lothar Matthäus",
+      "was": "Ein Lothar Matthäus läßt sich nicht von seinem Körper besiegen, ein Lothar Matthäus entscheidet selbst über sein Schicksal.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Lothar": [
@@ -20352,7 +21048,11 @@
   },
   {
     "uri": "joke://joke287",
-    "desc": {},
+    "desc": {
+      "wer": "Lothar Matthäus",
+      "was": "Ein Lothar Matthäus spricht kein Französisch.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Lothar": [
@@ -20392,7 +21092,11 @@
   },
   {
     "uri": "joke://joke288",
-    "desc": {},
+    "desc": {
+      "wer": "Lothar Matthäus",
+      "was": "Ein Wort gab das andere - wir hatten uns nichts zu sagen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Lothar": [
@@ -20447,7 +21151,11 @@
   },
   {
     "uri": "joke://joke289",
-    "desc": {},
+    "desc": {
+      "wer": "Lothar Matthäus",
+      "was": "Es ist wichtig, dass man neunzig Minuten mit voller Konzentration an das nächste Spiel denkt.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Lothar": [
@@ -20748,7 +21456,11 @@
   },
   {
     "uri": "joke://joke293",
-    "desc": {},
+    "desc": {
+      "wer": "Lothar Matthäus",
+      "was": "Ich bin sicher, daß ich in vier oder sechs Wochen Interviews auf Englisch geben kann, die auch der Deutsche verstehen wird.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Lothar": [
@@ -20833,7 +21545,11 @@
   },
   {
     "uri": "joke://joke294",
-    "desc": {},
+    "desc": {
+      "wer": "Lothar Matthäus",
+      "was": "Ich hab gleich gemerkt, das ist ein Druckschmerz, wenn man drauf drückt.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Lothar": [
@@ -20891,7 +21607,11 @@
   },
   {
     "uri": "joke://joke295",
-    "desc": {},
+    "desc": {
+      "wer": "Lothar Matthäus",
+      "was": "Manchmal spreche ich zuviel.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Lothar": [
@@ -21028,7 +21748,11 @@
   },
   {
     "uri": "joke://joke297",
-    "desc": {},
+    "desc": {
+      "wer": "Lothar Matthäus",
+      "was": "Wir dürfen jetzt nur nicht den Sand in den Kopf stecken!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Lothar": [
@@ -21081,7 +21805,11 @@
   },
   {
     "uri": "joke://joke298",
-    "desc": {},
+    "desc": {
+      "wer": "Lothar Matthäus",
+      "was": "Wir sind eine gut intrigierte Truppe.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Lothar": [
@@ -21121,7 +21849,11 @@
   },
   {
     "uri": "joke://joke299",
-    "desc": {},
+    "desc": {
+      "wer": "Ludwig Kögl",
+      "was": "Entweder ich gehe links vorbei, oder ich gehe rechts vorbei.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Kögl": [
@@ -21167,7 +21899,11 @@
   },
   {
     "uri": "joke://joke300",
-    "desc": {},
+    "desc": {
+      "wer": "Ludwig Kögl",
+      "was": "I spui mei Spui.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Kögl": [
@@ -21290,7 +22026,11 @@
   },
   {
     "uri": "joke://joke302",
-    "desc": {},
+    "desc": {
+      "wer": "Manfred Kaltz",
+      "was": "Was, der Kapellmann wird Arzt? Der wird doch Doktor!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Kaltz": [
@@ -21337,7 +22077,11 @@
   },
   {
     "uri": "joke://joke303",
-    "desc": {},
+    "desc": {
+      "wer": "Manfred Krafft",
+      "was": "Meine Mannschaft ist 15- oder 16mal ins Abseits gerannt. Das haben wir auch die ganze Woche geübt.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Krafft": [
@@ -21410,7 +22154,11 @@
   },
   {
     "uri": "joke://joke304",
-    "desc": {},
+    "desc": {
+      "wer": "Manfred Schwabl",
+      "was": "Wenn's lafft, dann lafft's. Wenn net, dann net. Aber bei uns lafft's.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Manfred": [
@@ -21463,7 +22211,11 @@
   },
   {
     "uri": "joke://joke305",
-    "desc": {},
+    "desc": {
+      "wer": "Marcel Reif",
+      "was": "Auch ohne Matthias Sammer hat die deutsche Mannschaft bewiesen, dass sie in der Lage ist, ihn zu ersetzen.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Marcel": [
@@ -21720,7 +22472,11 @@
   },
   {
     "uri": "joke://joke308",
-    "desc": {},
+    "desc": {
+      "wer": "Marcel Reif",
+      "was": "Je länger das Spiel dauert, desto weniger Zeit bleibt.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Marcel": [
@@ -21830,7 +22586,11 @@
   },
   {
     "uri": "joke://joke310",
-    "desc": {},
+    "desc": {
+      "wer": "Marcel Reif",
+      "was": "Und dieser öffnende Pass brachte wieder 57 cm Raumgewinn!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Marcel": [
@@ -21879,7 +22639,11 @@
   },
   {
     "uri": "joke://joke311",
-    "desc": {},
+    "desc": {
+      "wer": "Marcel Reif",
+      "was": "Wenn Sie dieses Spiel atemberaubend finden, dann haben Sie's an den Bronchien.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Marcel": [
@@ -21938,7 +22702,11 @@
   },
   {
     "uri": "joke://joke312",
-    "desc": {},
+    "desc": {
+      "wer": "Marco Rehmer",
+      "was": "Wir sind hierher gefahren und haben gesagt: Okay, wenn wir verlieren, fahren wir wieder nach Hause.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Marco": [
@@ -22006,7 +22774,11 @@
   },
   {
     "uri": "joke://joke313",
-    "desc": {},
+    "desc": {
+      "wer": "Marco Reich",
+      "was": "Früher war ich ein großer Fan von Mönchengladbach. Doch da hatte ich noch keine Ahnung vom Fußball.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Marco": [
@@ -22144,7 +22916,11 @@
   },
   {
     "uri": "joke://joke315",
-    "desc": {},
+    "desc": {
+      "wer": "Mario Basler",
+      "was": "Das habe ich ihm dann auch verbal gesagt.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Basler": [
@@ -22293,7 +23069,11 @@
   },
   {
     "uri": "joke://joke317",
-    "desc": {},
+    "desc": {
+      "wer": "Mario Basler",
+      "was": "Eigentlich bin ich ein Supertyp. Aber ich kann wohl auch ein richtiger Arsch sein!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Basler": [
@@ -22450,7 +23230,11 @@
   },
   {
     "uri": "joke://joke319",
-    "desc": {},
+    "desc": {
+      "wer": "Mario Basler",
+      "was": "Ich grüße meine Mama, meinen Papa und ganz besonders meine Eltern.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Basler": [
@@ -22503,7 +23287,11 @@
   },
   {
     "uri": "joke://joke320",
-    "desc": {},
+    "desc": {
+      "wer": "Mario Basler",
+      "was": "Ich habe immer gesagt, dass ich kein Dauerläufer bin, sonst könnte ich ja gleich beim Marathon starten.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Basler": [
@@ -22574,7 +23362,11 @@
   },
   {
     "uri": "joke://joke321",
-    "desc": {},
+    "desc": {
+      "wer": "Mario Basler",
+      "was": "Im ersten Moment war ich nicht nur glücklich, ein Tor geschossen zu haben, sondern auch, dass der Ball reinging.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Basler": [
@@ -22653,7 +23445,11 @@
   },
   {
     "uri": "joke://joke322",
-    "desc": {},
+    "desc": {
+      "wer": "Mario Basler",
+      "was": "Jede Seite hat zwei Medaillen",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Basler": [
@@ -22849,7 +23645,11 @@
   },
   {
     "uri": "joke://joke325",
-    "desc": {},
+    "desc": {
+      "wer": "Mario Basler",
+      "was": "Kritik macht mich nur noch stärker. Wenn mich in Dortmund von 55 000 Zuschauer 50 000 hassen, mir am liebsten ein Bein abhacken würden, mich mit \"Arschloch\" begrüßen, dann fühle ich mich wie Arnold Schwarzenegger gegen den Rest der Welt. Das ist geil für mich.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Basler": [
@@ -23070,7 +23870,11 @@
   },
   {
     "uri": "joke://joke327",
-    "desc": {},
+    "desc": {
+      "wer": "Martin Driller",
+      "was": "Fußball ist wie eine Frikadelle, man weiß nie, was drin ist.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Driller": [
@@ -23229,7 +24033,11 @@
   },
   {
     "uri": "joke://joke329",
-    "desc": {},
+    "desc": {
+      "wer": "Martin Pieckenhagen",
+      "was": "Wenn die Leute meinen, wir seien unter Druck, dann müssen wir wohl die nächsten 5 Spieltage auf dem Klo verbringen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Martin": [
@@ -23307,7 +24115,11 @@
   },
   {
     "uri": "joke://joke330",
-    "desc": {},
+    "desc": {
+      "wer": "Matthias Sammer",
+      "was": "Das nächste Spiel ist immer das nächste.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Matthias": [
@@ -23550,7 +24362,11 @@
   },
   {
     "uri": "joke://joke333",
-    "desc": {},
+    "desc": {
+      "wer": "Max Merkel",
+      "was": "Der Basler spielt wie eine Parkuhr. Er steht rum und die Bayern stopfen Geld rein.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Max": [
@@ -23617,7 +24433,11 @@
   },
   {
     "uri": "joke://joke334",
-    "desc": {},
+    "desc": {
+      "wer": "Max Merkel",
+      "was": "Der Dettmar Cramer hat doch nur den Schwarzen im Senegal beigebracht, wie man Kakteen umdribbelt. (Die Antwort von Dettmar Cramer: Hier ist der Kollege Merkel schlecht in Geographie: Im Senegal gibt es gar keine Kakteen.)",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Max": [
@@ -23917,7 +24737,11 @@
   },
   {
     "uri": "joke://joke337",
-    "desc": {},
+    "desc": {
+      "wer": "Max Merkel",
+      "was": "Eine Straßenbahn hat mehr Anhänger als Uerdingen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Max": [
@@ -24064,7 +24888,11 @@
   },
   {
     "uri": "joke://joke339",
-    "desc": {},
+    "desc": {
+      "wer": "Max Merkel",
+      "was": "Im Training habe ich mal die Alkoholiker meiner Mannschaft gegen die Antialkoholiker spielen lassen. Die Alkoholiker gewannen 7:1. Da war's mir wurscht. Da hab i g'sagt: Sauft's weiter.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Max": [
@@ -24174,7 +25002,11 @@
   },
   {
     "uri": "joke://joke340",
-    "desc": {},
+    "desc": {
+      "wer": "Max Merkel",
+      "was": "In Dänemark habe ich nur Eier und Butter geholt, aber keine Fußballer.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Max": [
@@ -24232,7 +25064,11 @@
   },
   {
     "uri": "joke://joke341",
-    "desc": {},
+    "desc": {
+      "wer": "Max Merkel",
+      "was": "Spieler vertragen kein Lob. Sie müssen täglich die Peitsche im Nacken fühlen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Max": [
@@ -24392,7 +25228,11 @@
   },
   {
     "uri": "joke://joke343",
-    "desc": {},
+    "desc": {
+      "wer": "Mehmet Scholl",
+      "was": "Die schönsten Tore sind diejenigen, bei denen der Ball schön flach oben rein geht.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Mehmet": [
@@ -24664,7 +25504,11 @@
   },
   {
     "uri": "joke://joke347",
-    "desc": {},
+    "desc": {
+      "wer": "Mehmet Scholl",
+      "was": "Ich hatte noch nie Streit mit meiner Frau. Bis auf das eine Mal, als sie mit auf's Hochzeitsfoto wollte.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Mehmet": [
@@ -24870,7 +25714,11 @@
   },
   {
     "uri": "joke://joke349",
-    "desc": {},
+    "desc": {
+      "wer": "Mehmet Scholl",
+      "was": "Meine Unbekümmertheit wandelte sich in kontollierte Spontaneität.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Mehmet": [
@@ -25008,7 +25856,11 @@
   },
   {
     "uri": "joke://joke351",
-    "desc": {},
+    "desc": {
+      "wer": "Michael Lusch",
+      "was": "Ich kann mich an kein Spiel erinnern, beim dem so viele Spieler mit der Barriere vom Platz getragen wurden.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Lusch": [
@@ -25087,7 +25939,11 @@
   },
   {
     "uri": "joke://joke352",
-    "desc": {},
+    "desc": {
+      "wer": "Michael Meier",
+      "was": "Möller hat mit seinem Berater bei uns um mehr Geld gepokert, gleichzeitig gesagt, er stünde bei einem anderen Club im Wort. Dann hat er offenbart, dass er nach Schalke gehen will. Wir haben ihm nicht gesagt, dass er bekloppt ist. Aber gedacht haben wir es schon.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Meier": [
@@ -25231,7 +26087,11 @@
   },
   {
     "uri": "joke://joke353",
-    "desc": {},
+    "desc": {
+      "wer": "Michael Meier",
+      "was": "Sie können mir nicht absprechen, daß ich ohne Konzept eingekauft hätte.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Meier": [
@@ -25286,7 +26146,11 @@
   },
   {
     "uri": "joke://joke354",
-    "desc": {},
+    "desc": {
+      "wer": "Michael Wiese",
+      "was": "Wolfsburg hat die letzten drei Heimspiele verloren zu Hause.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Michael": [
@@ -25421,7 +26285,11 @@
   },
   {
     "uri": "joke://joke356",
-    "desc": {},
+    "desc": {
+      "wer": "Mini Jacobsen",
+      "was": "Ich habe 2 1/2 Jahre bei Young Boys Bern, 6 Monate bei Lierse und 53 Minuten bei Duisburg gespielt.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Jacobsen": [
@@ -25721,7 +26589,11 @@
   },
   {
     "uri": "joke://joke359",
-    "desc": {},
+    "desc": {
+      "wer": "Nationaltrainer",
+      "was": "Die Zeitung: Russische Juden sind mit die besten Stürmer der Welt. Das Originalzitat: Rush an' Hughes are some of the best attackers in the world.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Nationaltrainer": [
@@ -25971,7 +26843,11 @@
   },
   {
     "uri": "joke://joke362",
-    "desc": {},
+    "desc": {
+      "wer": "Norbert Nigbur",
+      "was": "Offenbach hätte 3:0 gewonnen, wenn ich nicht ein Papstbild in der Tasche gehabt hätte.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Nigbur": [
@@ -26036,7 +26912,11 @@
   },
   {
     "uri": "joke://joke363",
-    "desc": {},
+    "desc": {
+      "wer": "Norbert Pflippen",
+      "was": "Im übrigen vermarkte ich lieber Frauen. Die haben zwei Vorteile: Sie wissen, was Geld ist und sie können keine Spielerfrauen heiraten.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Norbert": [
@@ -26124,7 +27004,11 @@
   },
   {
     "uri": "joke://joke364",
-    "desc": {},
+    "desc": {
+      "wer": "Olaf Thon",
+      "was": "Ich habe ihn nur ganz leicht retuschiert.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Olaf": [
@@ -26167,7 +27051,11 @@
   },
   {
     "uri": "joke://joke365",
-    "desc": {},
+    "desc": {
+      "wer": "Olaf Thon",
+      "was": "Ich sehe einen positiven Trend: Tiefer kann es nicht mehr gehen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Olaf": [
@@ -26222,7 +27110,11 @@
   },
   {
     "uri": "joke://joke366",
-    "desc": {},
+    "desc": {
+      "wer": "Olaf Thon",
+      "was": "In erster Linie stehe ich voll hinter dem Trainer, in zweiter Linie hat er recht.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Olaf": [
@@ -26287,7 +27179,11 @@
   },
   {
     "uri": "joke://joke367",
-    "desc": {},
+    "desc": {
+      "wer": "Olaf Thon",
+      "was": "Man darf das Spiel doch nicht so schlecht reden wie es wirklich war.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Olaf": [
@@ -26348,7 +27244,11 @@
   },
   {
     "uri": "joke://joke368",
-    "desc": {},
+    "desc": {
+      "wer": "Olaf Thon",
+      "was": "Man soll auch die anderen Mannschaften nicht unter dem Teppich kehren lassen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Olaf": [
@@ -26635,7 +27535,11 @@
   },
   {
     "uri": "joke://joke371",
-    "desc": {},
+    "desc": {
+      "wer": "Olaf Thon",
+      "was": "Wir lassen uns nicht nervös machen, und das geben wir auch nicht zu!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Olaf": [
@@ -26694,7 +27598,11 @@
   },
   {
     "uri": "joke://joke372",
-    "desc": {},
+    "desc": {
+      "wer": "Olaf Thon",
+      "was": "Wir spielen hinten Mann gegen Mann, und ich spiel gegen den Mann.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Olaf": [
@@ -26746,7 +27654,11 @@
   },
   {
     "uri": "joke://joke373",
-    "desc": {},
+    "desc": {
+      "wer": "Oliver Kahn",
+      "was": "Das einzige Tier bei uns zu Hause bin ich.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Kahn": [
@@ -27176,7 +28088,11 @@
   },
   {
     "uri": "joke://joke378",
-    "desc": {},
+    "desc": {
+      "wer": "Ottmar Hitzfeld",
+      "was": "Von der Anzahl her hatten wir mehr Chancen",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Hitzfeld": [
@@ -27222,7 +28138,11 @@
   },
   {
     "uri": "joke://joke379",
-    "desc": {},
+    "desc": {
+      "wer": "Ottmar Hitzfeld",
+      "was": "Wenn alle Spieler so engagiert wären wie Oliver Kahn, wäre das gefährlich für die Mannschaft.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Hitzfeld": [
@@ -27445,7 +28365,11 @@
   },
   {
     "uri": "joke://joke382",
-    "desc": {},
+    "desc": {
+      "wer": "Otto Rehhagel",
+      "was": "Franz ist wie Marlene Dietrich. Ein alternder Star, den man nach wie vor bewundern muß.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Otto": [
@@ -27510,7 +28434,11 @@
   },
   {
     "uri": "joke://joke383",
-    "desc": {},
+    "desc": {
+      "wer": "Otto Rehhagel",
+      "was": "Mit 50 bist Du als Fußballtrainer reif für die Klapsmühle. Wenn Du genug Geld verdient hast, kannst Du wenigstens erster Klasse liegen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Otto": [
@@ -27594,7 +28522,11 @@
   },
   {
     "uri": "joke://joke384",
-    "desc": {},
+    "desc": {
+      "wer": "Otto Rehhagel",
+      "was": "Wozu braucht meine Mannschaft Doping? Sie hat ja mich.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Otto": [
@@ -27780,7 +28712,11 @@
   },
   {
     "uri": "joke://joke386",
-    "desc": {},
+    "desc": {
+      "wer": "Paul Breitner",
+      "was": "Da kam dann das Elfmeterschießen. Wir hatten alle die Hosen voll, aber bei mir lief's ganz flüssig.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Breitner": [
@@ -27856,7 +28792,11 @@
   },
   {
     "uri": "joke://joke387",
-    "desc": {},
+    "desc": {
+      "wer": "Paul Breitner",
+      "was": "Ich habe nur immer meinen Finger in Wunden gelegt, die sonst unter den Tisch gekehrt worden wären.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Breitner": [
@@ -28179,7 +29119,11 @@
   },
   {
     "uri": "joke://joke391",
-    "desc": {},
+    "desc": {
+      "wer": "Paul Gascoigne",
+      "was": "Ich mache nie Voraussagen und werde das auch niemals tun.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Gascoigne": [
@@ -28231,7 +29175,11 @@
   },
   {
     "uri": "joke://joke392",
-    "desc": {},
+    "desc": {
+      "wer": "Paul Ince",
+      "was": "Tackling ist viel schöner als Sex!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Ince": [
@@ -28562,7 +29510,11 @@
   },
   {
     "uri": "joke://joke396",
-    "desc": {},
+    "desc": {
+      "wer": "Peter Neururer",
+      "was": "Die Stimmung ist eigentlich wie vor dem Spiel. Mit dem kleinen Unterschied, dass wir aus dieser äußerst großen Minimalchance, minimaler geht's gar nicht mehr, eine etwas kleinere gemacht haben, die größer geworden ist.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Neururer": [
@@ -28791,7 +29743,11 @@
   },
   {
     "uri": "joke://joke398",
-    "desc": {},
+    "desc": {
+      "wer": "Peter Neururer",
+      "was": "Wir fahren hin, hau'n die weg und fahren wieder zurück.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Neururer": [
@@ -28844,7 +29800,11 @@
   },
   {
     "uri": "joke://joke399",
-    "desc": {},
+    "desc": {
+      "wer": "Peter Neururer",
+      "was": "Wir waren alle vorher überzeugt davon, dass wir das Spiel gewinnen. So war auch das Auftreten meiner Mannschaft, zumindest in den ersten zweieinhalb Minuten.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Neururer": [
@@ -28936,7 +29896,11 @@
   },
   {
     "uri": "joke://joke400",
-    "desc": {},
+    "desc": {
+      "wer": "Peter Pacult",
+      "was": "Ja, der FC Tirol hat eine Obduktion auf mich.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Pacult": [
@@ -29061,7 +30025,11 @@
   },
   {
     "uri": "joke://joke402",
-    "desc": {},
+    "desc": {
+      "wer": "Pierre Littbarski",
+      "was": "In der ersten Halbzeit haben wir ganz gut gespielt, in der zweiten fehlte uns die Kontinu..., äh Kontuni..., ach scheiß Fremdwörter: Wir waren nicht beständig genug!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Littbarski": [
@@ -29442,7 +30410,11 @@
   },
   {
     "uri": "joke://joke406",
-    "desc": {},
+    "desc": {
+      "wer": "Reiner Calmund",
+      "was": "Als ich zuletzt Sergio in Eurosport gesehen habe, dachte ich mir auch nur: Das kann er nicht sein, da muss sich einer maskiert haben.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Calmund": [
@@ -29534,7 +30506,11 @@
   },
   {
     "uri": "joke://joke407",
-    "desc": {},
+    "desc": {
+      "wer": "Reiner Calmund",
+      "was": "Am Sonntag um 13.00 Uhr haben wir ein Weißwurst-Wettfressen mit der Bayern-Spitze. Da bin ich gut dabei.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Calmund": [
@@ -29735,7 +30711,11 @@
   },
   {
     "uri": "joke://joke409",
-    "desc": {},
+    "desc": {
+      "wer": "Reiner Calmund",
+      "was": "Die italienischen Vereine sagen mir: Von der Ablösesumme für Emerson könnt ihr euch doch zwei Spieler kaufen. Ich antworte denen dann immer: Dann kauft euch die doch selbst.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Calmund": [
@@ -30019,7 +30999,11 @@
   },
   {
     "uri": "joke://joke412",
-    "desc": {},
+    "desc": {
+      "wer": "Reiner Calmund",
+      "was": "Zum Schluss mussten wir Markus Happe einen Kompaß geben, damit er den Weg in die Kabine findet.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Calmund": [
@@ -30262,7 +31246,11 @@
   },
   {
     "uri": "joke://joke414",
-    "desc": {},
+    "desc": {
+      "wer": "Richard Golz",
+      "was": "Ich habe nie an unserer Chancenlosigkeit gezweifelt.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Golz": [
@@ -30402,7 +31390,11 @@
   },
   {
     "uri": "joke://joke416",
-    "desc": {},
+    "desc": {
+      "wer": "Robert Seeger",
+      "was": "Der Ball geht ins Seitenout - und es gibt Eckball.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Robert": [
@@ -30561,7 +31553,11 @@
   },
   {
     "uri": "joke://joke418",
-    "desc": {},
+    "desc": {
+      "wer": "Roland Schmider",
+      "was": "Für uns war die Trainerfrage nie eine Trainerfrage.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Roland": [
@@ -30605,7 +31601,11 @@
   },
   {
     "uri": "joke://joke419",
-    "desc": {},
+    "desc": {
+      "wer": "Roland Wohlfahrt",
+      "was": "Zwei Chancen, ein Tor - das nenne ich hundertprozentige Chancenauswertung.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Roland": [
@@ -30654,7 +31654,11 @@
   },
   {
     "uri": "joke://joke420",
-    "desc": {},
+    "desc": {
+      "wer": "Rolf Kramer",
+      "was": "Diese Kameruner, sie sind wie eine Schlange, die in der Sonne liegt und schläft. Plötzlich sind sie da, auf einmal züngeln sie, beißen sie, und schon wieder haben sie die Weltmeisterschaft vergiftet!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Kramer": [
@@ -30758,7 +31762,11 @@
   },
   {
     "uri": "joke://joke421",
-    "desc": {},
+    "desc": {
+      "wer": "Rolf Rüssmann",
+      "was": "Wenn wir hier nicht gewinnen, dann treten wir ihnen wenigstens den Rasen kaputt.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Rolf": [
@@ -30921,7 +31929,11 @@
   },
   {
     "uri": "joke://joke423",
-    "desc": {},
+    "desc": {
+      "wer": "Rolf Töpperwien",
+      "was": "Dies ist überlebensnotwichtig für den Verein.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Rolf": [
@@ -31038,7 +32050,11 @@
   },
   {
     "uri": "joke://joke425",
-    "desc": {},
+    "desc": {
+      "wer": "Ron Atkinson",
+      "was": "Ich wage mal eine Prognose: Es könnte so oder so ausgehen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Atkinson": [
@@ -31091,7 +32107,11 @@
   },
   {
     "uri": "joke://joke426",
-    "desc": {},
+    "desc": {
+      "wer": "Ronald Koeman",
+      "was": "Die deutschen Spieler hören erst dann auf zu kämpfen, wenn sie im Bus sitzen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Koeman": [
@@ -31155,7 +32175,11 @@
   },
   {
     "uri": "joke://joke427",
-    "desc": {},
+    "desc": {
+      "wer": "Roy Präger",
+      "was": "Auffe Bank sitzen is scheiße, da tut dir der Arsch weh.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Präger": [
@@ -31210,7 +32234,11 @@
   },
   {
     "uri": "joke://joke428",
-    "desc": {},
+    "desc": {
+      "wer": "Roy Präger",
+      "was": "Im Endeffekt sind Regeln dazu da, gebrochen zu werden.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Präger": [
@@ -31259,7 +32287,11 @@
   },
   {
     "uri": "joke://joke429",
-    "desc": {},
+    "desc": {
+      "wer": "Roy Präger",
+      "was": "Jetzt kommt es darauf an, dass wir die entscheidenden Punkte gegen den Nicht-Abstieg sammeln!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Präger": [
@@ -31581,7 +32613,11 @@
   },
   {
     "uri": "joke://joke432",
-    "desc": {},
+    "desc": {
+      "wer": "Rudi Völler",
+      "was": "Was meine Frisur betrifft, da bin ich Realist.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Rudi": [
@@ -31627,7 +32663,11 @@
   },
   {
     "uri": "joke://joke433",
-    "desc": {},
+    "desc": {
+      "wer": "Rudi Völler",
+      "was": "Zu 50 Prozent stehen wir im Viertelfinale, aber die halbe Miete ist das noch lange nicht!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Rudi": [
@@ -31697,7 +32737,11 @@
   },
   {
     "uri": "joke://joke434",
-    "desc": {},
+    "desc": {
+      "wer": "Rui Costa",
+      "was": "Zum Glück hatten wir Glück.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Costa": [
@@ -31732,7 +32776,11 @@
   },
   {
     "uri": "joke://joke435",
-    "desc": {},
+    "desc": {
+      "wer": "Sabine Töpperwien",
+      "was": "...wie Statisten ausgerechnet haben...",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Sabine": [
@@ -31766,7 +32814,11 @@
   },
   {
     "uri": "joke://joke436",
-    "desc": {},
+    "desc": {
+      "wer": "Sammy Kuffour",
+      "was": "Wenn wir die drei Titel holen, dann ich Chef in Ghana.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Kuffour": [
@@ -31895,7 +32947,11 @@
   },
   {
     "uri": "joke://joke438",
-    "desc": {},
+    "desc": {
+      "wer": "Sascha Rufer",
+      "was": "Bei diesem Spiel erkennt man den Unterschied zwischen guten und schlechten Herzschrittmachern",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Rufer": [
@@ -31953,7 +33009,11 @@
   },
   {
     "uri": "joke://joke439",
-    "desc": {},
+    "desc": {
+      "wer": "Sascha Rufer",
+      "was": "Die Stimmung auf den Rängen kommt mir vor wie bei der Einweihung einer Kläranlage.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Rufer": [
@@ -32017,7 +33077,11 @@
   },
   {
     "uri": "joke://joke440",
-    "desc": {},
+    "desc": {
+      "wer": "Sascha Rufer",
+      "was": "Stancovic hat die Zukunft noch vor sich.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Rufer": [
@@ -32060,7 +33124,11 @@
   },
   {
     "uri": "joke://joke441",
-    "desc": {},
+    "desc": {
+      "wer": "Sean Dundee",
+      "was": "Ich bleibe auf jeden Fall wahrscheinlich beim KSC.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Dundee": [
@@ -32176,7 +33244,11 @@
   },
   {
     "uri": "joke://joke443",
-    "desc": {},
+    "desc": {
+      "wer": "Sepp Maier",
+      "was": "Morgens um sieben ist die Welt noch in Dortmund.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Maier": [
@@ -32225,7 +33297,11 @@
   },
   {
     "uri": "joke://joke444",
-    "desc": {},
+    "desc": {
+      "wer": "Sport1",
+      "was": "Das Spiel der nigerianischen Nationalmannschaft gegen Nigeria fand am Donnerstag nachmittag statt.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Sport1": [
@@ -32543,7 +33619,11 @@
   },
   {
     "uri": "joke://joke448",
-    "desc": {},
+    "desc": {
+      "wer": "Stefan Reuter",
+      "was": "Zur Schiedsrichterleistung will ich gar nichts sagen, aber das war eine Frechheit, was da gepfiffen wurde!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Reuter": [
@@ -32690,7 +33770,11 @@
   },
   {
     "uri": "joke://joke450",
-    "desc": {},
+    "desc": {
+      "wer": "Steffen Baumgart",
+      "was": "Wir haben genügend Potenz für die Bundesliga.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Baumgart": [
@@ -32733,7 +33817,11 @@
   },
   {
     "uri": "joke://joke451",
-    "desc": {},
+    "desc": {
+      "wer": "Steffen Freund",
+      "was": "Es war ein wunderschöner Augenblick, als der Bundestrainer sagte: \"Komm Stefan, zieh deine Sachen aus, jetzt geht's los.\"",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Freund": [
@@ -32876,7 +33964,11 @@
   },
   {
     "uri": "joke://joke453",
-    "desc": {},
+    "desc": {
+      "wer": "Tagesspiegel",
+      "was": "Stuttgart im Rausch, auf der Galerie und im Gras! Elber schlägt die Pässe schon per Fallrückzieher und auch Fredi Bobic trifft wie er will. Sogar seine Freundin ist schwanger.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Tagesspiegel": [
@@ -32981,7 +34073,11 @@
   },
   {
     "uri": "joke://joke454",
-    "desc": {},
+    "desc": {
+      "wer": "Terri Venables",
+      "was": "Ich denke, wenn die Geschichte sich wiederholt, können wir nochmal das gleiche erwarten.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Terri": [
@@ -33367,7 +34463,11 @@
   },
   {
     "uri": "joke://joke458",
-    "desc": {},
+    "desc": {
+      "wer": "Thomas Doll",
+      "was": "Ich brauche keinen Butler. Ich habe eine junge Frau! (Diese ist mittlerweile übrigens mit Olaf Bodden verheiratet.)",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Doll": [
@@ -33517,7 +34617,11 @@
   },
   {
     "uri": "joke://joke460",
-    "desc": {},
+    "desc": {
+      "wer": "Thomas Häßler",
+      "was": "Herzlichen Glückwunsch an Marco Kurz. Seine Frau ist zum zweiten Mal Vater geworden.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Häßler": [
@@ -33578,7 +34682,11 @@
   },
   {
     "uri": "joke://joke461",
-    "desc": {},
+    "desc": {
+      "wer": "Thomas Häßler",
+      "was": "Ich bin körperlich und physisch topfit.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Häßler": [
@@ -33618,7 +34726,11 @@
   },
   {
     "uri": "joke://joke462",
-    "desc": {},
+    "desc": {
+      "wer": "Thomas Häßler",
+      "was": "In der Schule gab's für mich Höhen und Tiefen. Die Höhen waren der Fußball.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Häßler": [
@@ -33834,7 +34946,11 @@
   },
   {
     "uri": "joke://joke465",
-    "desc": {},
+    "desc": {
+      "wer": "Thomas Häßler",
+      "was": "Wir wollten in Bremen kein Gegentor kassieren. Das hat auch bis zum Gegentor ganz gut geklappt.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Häßler": [
@@ -33902,7 +35018,11 @@
   },
   {
     "uri": "joke://joke466",
-    "desc": {},
+    "desc": {
+      "wer": "Thomas Hermann",
+      "was": "Die letzten zwei Heimspiele hat München 60 kein Tor gegen den VfL Bochum erzielt, heute schon zwei. Das ist eine Steigerung um 200 %.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Hermann": [
@@ -34156,7 +35276,11 @@
   },
   {
     "uri": "joke://joke468",
-    "desc": {},
+    "desc": {
+      "wer": "Thomas Klementz",
+      "was": "Sutter hat in den Füßen mehr Gefühl als andere in den Händen. Bei ihm möchte man Ball sein.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Klementz": [
@@ -34228,7 +35352,11 @@
   },
   {
     "uri": "joke://joke469",
-    "desc": {},
+    "desc": {
+      "wer": "Thomas Strunz",
+      "was": "Alles andere als die Nicht-Meisterschaft wäre ja eine Katastrophe gewesen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Strunz": [
@@ -34283,7 +35411,11 @@
   },
   {
     "uri": "joke://joke470",
-    "desc": {},
+    "desc": {
+      "wer": "Thomas Strunz",
+      "was": "Das Schönste an Stuttgart ist die Autobahn nach München.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Strunz": [
@@ -34332,7 +35464,11 @@
   },
   {
     "uri": "joke://joke471",
-    "desc": {},
+    "desc": {
+      "wer": "Thomas Strunz",
+      "was": "Es ist ein Sehnenabriß am Schambeinknochen. Hört sich lustig an - ist aber trotzdem beim Fußball passiert.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Strunz": [
@@ -34400,7 +35536,11 @@
   },
   {
     "uri": "joke://joke472",
-    "desc": {},
+    "desc": {
+      "wer": "Thomas Wark",
+      "was": "Axel Kruse, er hat in Rostock mehrere Pferdchen laufen.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Thomas": [
@@ -34449,7 +35589,11 @@
   },
   {
     "uri": "joke://joke473",
-    "desc": {},
+    "desc": {
+      "wer": "Timo Konietzka",
+      "was": "Die Laufduelle von Matthäus mit Turbo Zenden nahmen schon fast dramatische Formen an. Matthäus kam mir vor wie ein Schmetterling, der gegen den Wind startet.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Konietzka": [
@@ -34852,7 +35996,11 @@
   },
   {
     "uri": "joke://joke478",
-    "desc": {},
+    "desc": {
+      "wer": "Toni Polster",
+      "was": "Der behandelt den Ball wie ein rohes Ei, obwohl noch gar nicht Ostern ist.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Polster": [
@@ -35013,7 +36161,11 @@
   },
   {
     "uri": "joke://joke480",
-    "desc": {},
+    "desc": {
+      "wer": "Toni Polster",
+      "was": "Es gibt Leute, die denken so, und es gibt Leute, die denken so. Das ist immer so, wenn viele Leute zusammenkommen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Polster": [
@@ -35084,7 +36236,11 @@
   },
   {
     "uri": "joke://joke481",
-    "desc": {},
+    "desc": {
+      "wer": "Toni Polster",
+      "was": "Für mich gibt es nur \"entweder-oder\". Also entweder voll oder ganz!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Polster": [
@@ -35138,7 +36294,11 @@
   },
   {
     "uri": "joke://joke482",
-    "desc": {},
+    "desc": {
+      "wer": "Toni Polster",
+      "was": "Ich bin Optimist. Sogar meine Blutgruppe ist positiv.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Polster": [
@@ -35345,7 +36505,11 @@
   },
   {
     "uri": "joke://joke485",
-    "desc": {},
+    "desc": {
+      "wer": "Toni Polster",
+      "was": "Man hetzt die Leute auf mit Tatsachen, die nicht der Wahrheit entsprechen.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Polster": [
@@ -36295,7 +37459,11 @@
   },
   {
     "uri": "joke://joke497",
-    "desc": {},
+    "desc": {
+      "wer": "Torsten Legat",
+      "was": "Verstärken können die sich, aber nicht auf der rechten Seite. Da bin ich. Ich komme selber aussem Pott. Mein Vater war auf der Hütte. Wenn ich wieder fit bin, zeig ich dehnen, wat malochen heißt.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Legat": [
@@ -36571,7 +37739,11 @@
   },
   {
     "uri": "joke://joke500",
-    "desc": {},
+    "desc": {
+      "wer": "Udo Lattek",
+      "was": "Sie spielen taktisch gut, obwohl sie ohne Taktik spielen.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Lattek": [
@@ -36618,7 +37790,11 @@
   },
   {
     "uri": "joke://joke501",
-    "desc": {},
+    "desc": {
+      "wer": "Ulf Kirsten",
+      "was": "Wenn bei einem Auswärtsspiel keiner ruft: \"Kirsten, Du Arschloch\", dann weiß ich genau, dass ich schlecht bin.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Kirsten": [
@@ -36769,7 +37945,11 @@
   },
   {
     "uri": "joke://joke503",
-    "desc": {},
+    "desc": {
+      "wer": "Uli Hoeneß",
+      "was": "Der Alain Sutter muss nur mal ab und zu auf sein Müsli verzichten und sich einen ordentlichen Schweinebraten einverleiben. (die Antwort von Sutter: Wie man aussieht, wenn man zu viel Schweinebraten isst, sieht man ja an Herrn Hoeneß.)",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Hoeneß": [
@@ -36963,7 +38143,11 @@
   },
   {
     "uri": "joke://joke505",
-    "desc": {},
+    "desc": {
+      "wer": "Uli Hoeneß",
+      "was": "Ich glaube nicht, daß wir das Spiel verloren hätten, wenn es 1:1 ausgegangen wäre.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Hoeneß": [
@@ -37028,7 +38212,11 @@
   },
   {
     "uri": "joke://joke506",
-    "desc": {},
+    "desc": {
+      "wer": "Uli Hoeneß",
+      "was": "Wir haben einen Hund zu Hause, der ist acht Wochen alt. Der hat am letzten Sonntag völlig verstört unter dem Sofa hervor geschaut. Denn als Bremen in Dortmund das 3:1 erzielt hat, habe ich einen Schrei losgelassen, dass die Wände wackelten.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Hoeneß": [
@@ -37172,7 +38360,11 @@
   },
   {
     "uri": "joke://joke507",
-    "desc": {},
+    "desc": {
+      "wer": "Uli Stielike",
+      "was": "Mal ist die Suppe dick, mal ist sie dünn... nur wenn nix Flüssiges drin ist, gibt es einen ätzenden Geruch.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Stielike": [
@@ -37250,7 +38442,11 @@
   },
   {
     "uri": "joke://joke508",
-    "desc": {},
+    "desc": {
+      "wer": "Uwe Bahn",
+      "was": "Die einzigen Techniker beim HSV vor der Ära von Trainer Pagelsdorf waren die Stadion-Elektriker.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Bahn": [
@@ -37415,7 +38611,11 @@
   },
   {
     "uri": "joke://joke510",
-    "desc": {},
+    "desc": {
+      "wer": "Uwe Klimaschewski",
+      "was": "Unsere Spieler können 50-Meter-Pässe spielen: fünf Meter weit und 45 Meter hoch.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Klimaschewski": [
@@ -37475,7 +38675,11 @@
   },
   {
     "uri": "joke://joke511",
-    "desc": {},
+    "desc": {
+      "wer": "Uwe Morawe",
+      "was": "Der geht mir auf den Sack, der Jovic, das ist ein Scheißspieler.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Morawe": [
@@ -37533,7 +38737,11 @@
   },
   {
     "uri": "joke://joke512",
-    "desc": {},
+    "desc": {
+      "wer": "Uwe Seeler",
+      "was": "Ein Mittelstürmer verbringt die meiste Zeit seines Lebens im Strafraum.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Seeler": [
@@ -37585,7 +38793,11 @@
   },
   {
     "uri": "joke://joke513",
-    "desc": {},
+    "desc": {
+      "wer": "Vlado Saric",
+      "was": "Ich fair foul gespielt. Ich nicht getreten.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Saric": [
@@ -37626,7 +38838,11 @@
   },
   {
     "uri": "joke://joke514",
-    "desc": {},
+    "desc": {
+      "wer": "Volker Finke",
+      "was": "Ich habe zwei verschiedene Halbzeiten gesehen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Finke": [
@@ -37666,7 +38882,11 @@
   },
   {
     "uri": "joke://joke515",
-    "desc": {},
+    "desc": {
+      "wer": "Waldemar Hartmann",
+      "was": "Guten Abend, meine Damen und Herren, und - bonne noir.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Hartmann": [
@@ -37713,7 +38933,11 @@
   },
   {
     "uri": "joke://joke516",
-    "desc": {},
+    "desc": {
+      "wer": "Waldemar Hartmann",
+      "was": "Was sie hier auf dem Rasen sehen, kostet viele viele viele Millionen Geld, wenn man diese Spieler kauft.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Hartmann": [
@@ -37785,7 +39009,11 @@
   },
   {
     "uri": "joke://joke517",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Hansch",
+      "was": "Aumanns Trikot ist voller Schlamm. Wenn der sich jetzt auf ne Heizung setzt, kann er sich mit nem Hammer ausziehen.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Hansch": [
@@ -37932,7 +39160,11 @@
   },
   {
     "uri": "joke://joke519",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Hansch",
+      "was": "Dressels Beitrag zum Mozart-Jahr: ein Foul aus dem Knöchelverzeichnis.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Hansch": [
@@ -38066,7 +39298,11 @@
   },
   {
     "uri": "joke://joke521",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Hansch",
+      "was": "Ingo Anderbrügge, der Mann mit dem härtesten Schuß der Liga. Alle denken, jetzt holt er den Hammer raus. Aber es war nur der Glasschneider...",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Hansch": [
@@ -38156,7 +39392,11 @@
   },
   {
     "uri": "joke://joke522",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Hansch",
+      "was": "Ja, Statistiken. Aber welche Statistik stimmt schon? Nach der Statistik ist jeder vierte Mensch ein Chinese, aber hier spielt gar kein Chinese mit.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Hansch": [
@@ -38243,7 +39483,11 @@
   },
   {
     "uri": "joke://joke523",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Hansch",
+      "was": "Nein, liebe Zuschauer, das ist keine Zeitlupe, der läuft wirklich so langsam.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Hansch": [
@@ -38301,7 +39545,11 @@
   },
   {
     "uri": "joke://joke524",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Hansch",
+      "was": "Und wieder nur 500 Zuschauer im Kölner Südstadion, rufen Sie an und ich gebe Ihnen die Namen durch.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Hansch": [
@@ -38377,7 +39625,11 @@
   },
   {
     "uri": "joke://joke525",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Hansch",
+      "was": "Wenn das keine Chance war, dann war das zumindest eine große Möglichkeit.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Hansch": [
@@ -38657,7 +39909,11 @@
   },
   {
     "uri": "joke://joke527",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Lorant",
+      "was": "Erich Ribbeck ist vom Fußball so weit weg wie die Erde vom Mars.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Lorant": [
@@ -38716,7 +39972,11 @@
   },
   {
     "uri": "joke://joke528",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Lorant",
+      "was": "Ich wechsle nur aus, wenn sich einer ein Bein bricht.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Lorant": [
@@ -38768,7 +40028,11 @@
   },
   {
     "uri": "joke://joke529",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Lorant",
+      "was": "Spieler haben vielleicht ein Problem mit mir, aber ich nicht mit ihnen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Lorant": [
@@ -38894,7 +40158,11 @@
   },
   {
     "uri": "joke://joke531",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Zimmer",
+      "was": "Das bedeutet, dass der Zuschauerschnitt unterboten wurde, und zwar negativ.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Werner": [
@@ -38946,7 +40214,11 @@
   },
   {
     "uri": "joke://joke532",
-    "desc": {},
+    "desc": {
+      "wer": "Wilfried Mohren",
+      "was": "Auch die Schiedsrichterassistenten an der Linie haben heute ganz ordentlich gepfiffen.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Mohren": [
@@ -39080,7 +40352,11 @@
   },
   {
     "uri": "joke://joke534",
-    "desc": {},
+    "desc": {
+      "wer": "Wilfried Mohren",
+      "was": "Die Spieler haben einen Blick für Spielübersicht.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Mohren": [
@@ -39232,7 +40508,11 @@
   },
   {
     "uri": "joke://joke536",
-    "desc": {},
+    "desc": {
+      "wer": "Wilfried Mohren",
+      "was": "Wie auch immer es ausgehen mag, es war ein schwer erkämpfter Sieg für die Bayern.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Mohren": [
@@ -39297,7 +40577,11 @@
   },
   {
     "uri": "joke://joke537",
-    "desc": {},
+    "desc": {
+      "wer": "Wilfried Mohren",
+      "was": "Wir nähern uns jetzt dem Punkt im Spiel, der der Dreh- und Angelpunkt sein kann, muß aber wohlgemerkt nicht der Kulminationspunkt sein.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Mohren": [
@@ -39379,7 +40663,11 @@
   },
   {
     "uri": "joke://joke538",
-    "desc": {},
+    "desc": {
+      "wer": "Willi \"Ente\" Lippens",
+      "was": "Berti Vogts hatte vor jedem Spiel gegen mich Dünnschiss.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Ente": [
@@ -39431,7 +40719,11 @@
   },
   {
     "uri": "joke://joke539",
-    "desc": {},
+    "desc": {
+      "wer": "Willi \"Ente\" Lippens",
+      "was": "Ich habe nie eine Torchance überhastet vergeben. Lieber habe ich sie vertändelt.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Ente": [
@@ -39599,7 +40891,11 @@
   },
   {
     "uri": "joke://joke541",
-    "desc": {},
+    "desc": {
+      "wer": "Willi \"Ente\" Lippens",
+      "was": "Schiri zeigt gelb und sagt: \"Ich verwarne Ihnen!\" Ente: \"Ich danke Sie!\" (Schiri zeigt rot)",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Ente": [
@@ -39663,7 +40959,11 @@
   },
   {
     "uri": "joke://joke542",
-    "desc": {},
+    "desc": {
+      "wer": "Willi Entenmann",
+      "was": "Unser Schiff hat Schlagseite. Es läßt sich nur wieder aufrichten, wenn wir alle auf dieselbe Seite gehen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Entenmann": [
@@ -39845,7 +41145,11 @@
   },
   {
     "uri": "joke://joke544",
-    "desc": {},
+    "desc": {
+      "wer": "Willi Lemke",
+      "was": "Das beste Trainingslager ist eine Frau, die eigene natürlich.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Lemke": [
@@ -40092,7 +41396,11 @@
   },
   {
     "uri": "joke://joke547",
-    "desc": {},
+    "desc": {
+      "wer": "Wolf-Dieter Poschmann",
+      "was": "Schalten wir 'rüber zum SV Schalke.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Dieter": [
@@ -40135,7 +41443,11 @@
   },
   {
     "uri": "joke://joke548",
-    "desc": {},
+    "desc": {
+      "wer": "Wolf-Dieter Poschmann",
+      "was": "Und wie sieht's in Brasilien aus, dem Mutterland des Fußballs?",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Dieter": [
@@ -40193,7 +41505,11 @@
   },
   {
     "uri": "joke://joke549",
-    "desc": {},
+    "desc": {
+      "wer": "Wolf-Dieter Poschmann",
+      "was": "Von Jürgen Kohler, den sie alle nur \"Kokser\" nennen, zurück zum heutigen Gegner Kolumbien - eine gelungende Überleitung wie ich finde.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Dieter": [
@@ -40278,7 +41594,11 @@
   },
   {
     "uri": "joke://joke550",
-    "desc": {},
+    "desc": {
+      "wer": "Wolf-Dieter Poschmann",
+      "was": "Wir erinnern uns: Gegen Portugal gab es schon mühevolle Unentschieden- und Remis-Spiele.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Dieter": [
@@ -40342,7 +41662,11 @@
   },
   {
     "uri": "joke://joke551",
-    "desc": {},
+    "desc": {
+      "wer": "Wolfgang Ley",
+      "was": "Die Choten machen die Choten dicht.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Ley": [
@@ -40380,7 +41704,11 @@
   },
   {
     "uri": "joke://joke552",
-    "desc": {},
+    "desc": {
+      "wer": "Wolfgang Ley",
+      "was": "Häßler verliert das Kopfballduell. Das mußte ja mal so kommen.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Ley": [
@@ -40541,7 +41869,11 @@
   },
   {
     "uri": "joke://joke554",
-    "desc": {},
+    "desc": {
+      "wer": "Wolfgang Ley",
+      "was": "Letchkov, der die Deutschen bei der WM über den Jordan brachte.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Ley": [
@@ -40594,7 +41926,11 @@
   },
   {
     "uri": "joke://joke555",
-    "desc": {},
+    "desc": {
+      "wer": "Wolfgang Ley",
+      "was": "Schauen sie nur seinen Mund an. Der ist so breit, wenn der lacht, bekommen die Ohren Besuch!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Ley": [
@@ -40780,7 +42116,11 @@
   },
   {
     "uri": "joke://joke557",
-    "desc": {},
+    "desc": {
+      "wer": "Wolfram Esser",
+      "was": "Das Spiel ist zu weit, zu eng.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Esser": [
@@ -40821,7 +42161,11 @@
   },
   {
     "uri": "joke://joke558",
-    "desc": {},
+    "desc": {
+      "wer": "Wolfram Esser",
+      "was": "Die 'Aida' haben wir auch schon in stimmungsvolleren Stadien gehört... in Italien... (es wurde übrigens der Zigeunerchor aus dem 'Troubadour' gespielt)",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Esser": [
@@ -41090,7 +42434,11 @@
   },
   {
     "uri": "joke://joke562",
-    "desc": {},
+    "desc": {
+      "wer": "Zeitung",
+      "was": "Der Werder-Trainer sah nach dem Spiel aus, als ob er gerade eine Heizdecke von Woolworth gewonnen hätte und nicht die Eintrittskarte fürs Berliner Olympiastadion.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Zeitung": [
@@ -41518,7 +42866,11 @@
   },
   {
     "uri": "joke://joke567",
-    "desc": {},
+    "desc": {
+      "wer": "Adi Furler ",
+      "was": "Liebe Zuschauer, meine Kollegen haben geackert wie die Kümmeltürken, um Ihnen diesen Bericht noch zeigen zu können!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Adi": [
@@ -41950,7 +43302,11 @@
   },
   {
     "uri": "joke://joke572",
-    "desc": {},
+    "desc": {
+      "wer": "Campino ",
+      "was": "Jeder sollte an irgend etwas glauben, und wenn es an Fortuna Düsseldorf ist.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Campino": [
@@ -42976,7 +44332,11 @@
   },
   {
     "uri": "joke://joke593",
-    "desc": {},
+    "desc": {
+      "wer": "Klaus Lufen",
+      "was": "Auch größenmäßig ist es der größte Nachteil, dass die Torhüter in Japan nicht die allergrößten sind. ",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Klaus": [
@@ -43919,7 +45279,11 @@
   },
   {
     "uri": "joke://joke603",
-    "desc": {},
+    "desc": {
+      "wer": "Peter Neururer",
+      "was": "Wenn wir ein Quiz machen würden unter den Trainern in Deutschland, wer am meisten Ahnung hat von Trainingslehre, Psychologie, und der Trainer mit den besten Ergebnissen kriegt den besten Klub - dann wäre ich bald bei Real Madrid.\"",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Neururer": [
@@ -44553,7 +45917,11 @@
   },
   {
     "uri": "joke://joke609",
-    "desc": {},
+    "desc": {
+      "wer": "Anthony Yeboah",
+      "was": "Blöd an meinem Job: Ich muss arbeiten wenn auf NDR 2 Fußball läuft. ",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Anthony": [
@@ -44749,7 +46117,11 @@
   },
   {
     "uri": "joke://joke611",
-    "desc": {},
+    "desc": {
+      "wer": "Oliver Kahn",
+      "was": "Die Holländer sind vorne vom Feinsten bestückt. ",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Kahn": [
@@ -46432,7 +47804,11 @@
   },
   {
     "uri": "joke://joke626",
-    "desc": {},
+    "desc": {
+      "wer": "Otto Rehhagel",
+      "was": "Mit 50 bist du als Fußballtrainer reif für die Klapsmühle. Wenn du genug Geld verdient hast, kannst du wenigstens erster Klasse liegen!",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Otto": [
@@ -46819,7 +48195,11 @@
   },
   {
     "uri": "joke://joke630",
-    "desc": {},
+    "desc": {
+      "wer": "Wolfram Wuttke",
+      "was": "Immer, wenn ich breit bin, werd ich spitz.\n",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Wolfram": [
@@ -46957,7 +48337,11 @@
   },
   {
     "uri": "joke://joke633",
-    "desc": {},
+    "desc": {
+      "wer": "Ernst Kuzorra",
+      "was": "Wenn ich nicht wusste, wohin mit dem Ball, hab ich n einfach reingewichst!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Ernst": [
@@ -48310,7 +49694,11 @@
   },
   {
     "uri": "joke://joke649",
-    "desc": {},
+    "desc": {
+      "wer": "Eduard Geyer",
+      "was": "Manche junge Spieler haben eine Einstellung zum Leistungssport wie die Nutten auf St. Pauli. Die rauchen, saufen und huren rum, gehen morgens um 6 Uhr ins Bett. ",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Eduard": [
@@ -48413,7 +49801,11 @@
   },
   {
     "uri": "joke://joke650",
-    "desc": {},
+    "desc": {
+      "wer": "Bobby Robson",
+      "was": "Die ersten 90 Minuten sind die schwersten.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Bobby": [
@@ -49237,7 +50629,11 @@
   },
   {
     "uri": "joke://joke657",
-    "desc": {},
+    "desc": {
+      "wer": "Klaus Toppmöller",
+      "was": "Ein Frühling macht noch keinen Sommer.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Klaus": [
@@ -49491,7 +50887,11 @@
   },
   {
     "uri": "joke://joke661",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Hansch",
+      "was": "Deutlich ging für mich der Ellenbogen zur Hand.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Hansch": [
@@ -49655,7 +51055,11 @@
   },
   {
     "uri": "joke://joke663",
-    "desc": {},
+    "desc": {
+      "wer": "Felix Magath",
+      "was": "Wenn mein Vater da gewesen wäre, hätte sich mein Leben vollkommen anders entwickelt. Viel zielgerichteter. Dann wäre meine Mutter zu Hause gewesen. Ich hätte vernünftig für die Schule gearbeitet, einen normalen Beruf erlernt und wäre nicht in den Fußball abgedriftet. ",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Felix": [
@@ -50180,7 +51584,11 @@
   },
   {
     "uri": "joke://joke669",
-    "desc": {},
+    "desc": {
+      "wer": "Felix Magath",
+      "was": "Ich habe viel mit Mario Basler gemeinsam.\nWir sind beide Fußballer, wir trinken beide gern mal einen,\nich allerdings erst nach der Arbeit!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Felix": [
@@ -50370,7 +51778,11 @@
   },
   {
     "uri": "joke://joke671",
-    "desc": {},
+    "desc": {
+      "wer": "Bela Rethy",
+      "was": "Portugal spielt heute mit sechs Ausländern.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Bela": [
@@ -50484,7 +51896,11 @@
   },
   {
     "uri": "joke://joke673",
-    "desc": {},
+    "desc": {
+      "wer": "Giovanni van Bronckhorst",
+      "was": "Wenn sein Schuss reingegangen wäre, hätte das Ergebnis anders aussehen können.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Bronckhorst": [
@@ -50899,7 +52315,11 @@
   },
   {
     "uri": "joke://joke677",
-    "desc": {},
+    "desc": {
+      "wer": "Helmut Schön",
+      "was": "Da gehe ich mit Ihnen ganz chlorophorm.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Helmut": [
@@ -51029,7 +52449,11 @@
   },
   {
     "uri": "joke://joke679",
-    "desc": {},
+    "desc": {
+      "wer": "Andreas Brehme",
+      "was": "Uns steht ein hartes Programm ins Gesicht.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Andreas": [
@@ -51072,7 +52496,11 @@
   },
   {
     "uri": "joke://joke680",
-    "desc": {},
+    "desc": {
+      "wer": "Guido Buchwald",
+      "was": "Ich hab eine Oberschenkelzerrung im linken Fuß.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Buchwald": [
@@ -51115,7 +52543,11 @@
   },
   {
     "uri": "joke://joke681",
-    "desc": {},
+    "desc": {
+      "wer": "Christian Beeck",
+      "was": "Wir haben mit der notwendigen fairen Brutalität gespielt.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Beeck": [
@@ -51381,7 +52813,11 @@
   },
   {
     "uri": "joke://joke684",
-    "desc": {},
+    "desc": {
+      "wer": "Berti Vogts",
+      "was": "Der Deutsche hat nie Angst.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Berti": [
@@ -51418,7 +52854,11 @@
   },
   {
     "uri": "joke://joke685",
-    "desc": {},
+    "desc": {
+      "wer": "Oliver Bierhoff",
+      "was": "Als Deutschland muss man gegen Finnland gewinnen!",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Bierhoff": [
@@ -51461,7 +52901,11 @@
   },
   {
     "uri": "joke://joke686",
-    "desc": {},
+    "desc": {
+      "wer": "Lothar Matthäus",
+      "was": "Gewollt hab ich schon gemocht, aber gedurft ham sie mich nicht gelassen!",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Lothar": [
@@ -51519,7 +52963,11 @@
   },
   {
     "uri": "joke://joke687",
-    "desc": {},
+    "desc": {
+      "wer": "Bernd Schmelzer",
+      "was": "Demichelis - Im Vergleich zu Makaay die Aldi-Variante.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Bernd": [
@@ -51966,7 +53414,11 @@
   },
   {
     "uri": "joke://joke692",
-    "desc": {},
+    "desc": {
+      "wer": "Rolf Dohmen",
+      "was": "Es kommt kein Sponsor mehr, wenn man in Hannover 2:2 spielt.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Dohmen": [
@@ -52457,7 +53909,11 @@
   },
   {
     "uri": "joke://joke698",
-    "desc": {},
+    "desc": {
+      "wer": "Edmund Becker",
+      "was": "Wir müssen schauen, ob wir in Karlsruhe zwei oder drei Banken ausrauben können, um einen Spieler dieser Qualität verpflichten zu können.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Becker": [
@@ -52974,7 +54430,11 @@
   },
   {
     "uri": "joke://joke704",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Hansch",
+      "was": "\"....ein Schuß, wie durch Gelee gezogen!\"",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Hansch": [
@@ -54441,7 +55901,11 @@
   },
   {
     "uri": "joke://joke719",
-    "desc": {},
+    "desc": {
+      "wer": "Felix Magath",
+      "was": "Madlung hat einen Hexenschuss. Das kann jedem passieren bei so einem Sauwetter.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Felix": [
@@ -54736,7 +56200,11 @@
   },
   {
     "uri": "joke://joke723",
-    "desc": {},
+    "desc": {
+      "wer": "Dieter Hoeneß",
+      "was": "Das Ziel für dieses Jahr ist erreicht. Es fehlen nur ein paar Punkte.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Dieter": [
@@ -55647,7 +57115,11 @@
   },
   {
     "uri": "joke://joke735",
-    "desc": {},
+    "desc": {
+      "wer": "Franz Beckenbauer",
+      "was": "Abseits ist, wenn der Schiedsrichter pfeifft",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Beckenbauer": [
@@ -55687,7 +57159,11 @@
   },
   {
     "uri": "joke://joke736",
-    "desc": {},
+    "desc": {
+      "wer": "Krassimir Balakow",
+      "was": "Für mich spielen Punkte keine Rolle. Ich schaue immer nach oben weil ich am Ende dort sthehen möchte.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Balakow": [
@@ -55872,7 +57348,11 @@
   },
   {
     "uri": "joke://joke738",
-    "desc": {},
+    "desc": {
+      "wer": "John Motson (BBC Kommentator)",
+      "was": "Die Weltmeisterschaft ist wirklich ein internationales Turnier.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "BBC": [
@@ -55921,7 +57401,11 @@
   },
   {
     "uri": "joke://joke739",
-    "desc": {},
+    "desc": {
+      "wer": "Berti Vogts",
+      "was": "Die Realität sieht anders aus als die Wirklichkeit.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Berti": [
@@ -55967,7 +57451,11 @@
   },
   {
     "uri": "joke://joke740",
-    "desc": {},
+    "desc": {
+      "wer": "Uwe Seeler",
+      "was": "Also, ein normales Foul ist für mich nicht unfair.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Seeler": [
@@ -56016,7 +57504,11 @@
   },
   {
     "uri": "joke://joke741",
-    "desc": {},
+    "desc": {
+      "wer": "Brian Clough",
+      "was": "Akne ist ein grösseres Problem als Verletzungen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Brian": [
@@ -56059,7 +57551,11 @@
   },
   {
     "uri": "joke://joke742",
-    "desc": {},
+    "desc": {
+      "wer": "Dettmar Cramer",
+      "was": "Die Wahrscheinlichkeit, nicht Meister zu werden, ist grösser als die Wahrscheinlichkeit, dem Abstieg zu entgehen. ",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Cramer": [
@@ -56207,7 +57703,11 @@
   },
   {
     "uri": "joke://joke744",
-    "desc": {},
+    "desc": {
+      "wer": "Jörg Wontorra",
+      "was": "Ich bin ganz sicher, dass Mario Basler in der 2.Halbzeit vielleicht noch kommen wird.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Jörg": [
@@ -56274,7 +57774,11 @@
   },
   {
     "uri": "joke://joke745",
-    "desc": {},
+    "desc": {
+      "wer": "Robert Wieschemann",
+      "was": "Für uns sind Nichteuropäer genauso Menschen wie Europäer!",
+      "gruppe": "Amateursprüche"
+    },
     "words": {
       "wer": {
         "Robert": [
@@ -56320,7 +57824,11 @@
   },
   {
     "uri": "joke://joke746",
-    "desc": {},
+    "desc": {
+      "wer": "Matthias Sammer",
+      "was": "Ich bin auch ein Mensch.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Matthias": [
@@ -56357,7 +57865,11 @@
   },
   {
     "uri": "joke://joke747",
-    "desc": {},
+    "desc": {
+      "wer": "Kevin Keegan",
+      "was": "Ich glaube nicht, das irgendwer grösser oder kleiner ist als Maradona.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Keegan": [
@@ -56412,7 +57924,11 @@
   },
   {
     "uri": "joke://joke748",
-    "desc": {},
+    "desc": {
+      "wer": "Mehmet Scholl",
+      "was": "Ich fliege irgendwo in den Süden - vielleicht nach Kanada oder so.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Mehmet": [
@@ -56467,7 +57983,11 @@
   },
   {
     "uri": "joke://joke749",
-    "desc": {},
+    "desc": {
+      "wer": "Eike Immel",
+      "was": "Im Grossen und Ganzen war es ein Spiel, das, wenn es anders läuft, auch anders hätte laufen können.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Eike": [
@@ -56539,7 +58059,11 @@
   },
   {
     "uri": "joke://joke750",
-    "desc": {},
+    "desc": {
+      "wer": "SAT.1",
+      "was": "In der letzten Saison hat der VFL Bochum von 5 Elfmetern 6 verschossen.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "1": [
@@ -56601,7 +58125,11 @@
   },
   {
     "uri": "joke://joke751",
-    "desc": {},
+    "desc": {
+      "wer": "Otto Rehhagel",
+      "was": "Mal verliert man und mal gewinnen die anderen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Otto": [
@@ -56647,7 +58175,11 @@
   },
   {
     "uri": "joke://joke752",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Altegoer",
+      "was": "Man tritt immer nur dann ein Tor, wenn man auf die Bude schiesst.",
+      "gruppe": "Amateursprüche"
+    },
     "words": {
       "wer": {
         "Altegoer": [
@@ -56708,7 +58240,11 @@
   },
   {
     "uri": "joke://joke753",
-    "desc": {},
+    "desc": {
+      "wer": "Kevin Keegan",
+      "was": "Steve McManaman wird mit Steve Highway verglichen, dabei ist er überhaupt nicht wie er, und ich weiss auch warum: Weil er ein bisschen anders ist.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Keegan": [
@@ -56797,7 +58333,11 @@
   },
   {
     "uri": "joke://joke754",
-    "desc": {},
+    "desc": {
+      "wer": "Rudi Völler",
+      "was": "Wie so oft liegt auch hier die Mitte in der Wahrheit.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Rudi": [
@@ -56852,7 +58392,11 @@
   },
   {
     "uri": "joke://joke755",
-    "desc": {},
+    "desc": {
+      "wer": "Reiner Calmund",
+      "was": "Wir sind nur die Underducks.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Calmund": [
@@ -56889,7 +58433,11 @@
   },
   {
     "uri": "joke://joke756",
-    "desc": {},
+    "desc": {
+      "wer": "Bela Rethy",
+      "was": "Jetzt kommt der Mann, dessen Name hervorragend zum Wedau-Stadion passt: Marcus Wedau.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Bela": [
@@ -57039,7 +58587,11 @@
   },
   {
     "uri": "joke://joke758",
-    "desc": {},
+    "desc": {
+      "wer": "Bela Rethy",
+      "was": "Pinto fordert den Ball, aber Soldo entschließt sich zu einem Fehlpass.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Bela": [
@@ -57094,7 +58646,11 @@
   },
   {
     "uri": "joke://joke759",
-    "desc": {},
+    "desc": {
+      "wer": "Bela Rethy",
+      "was": "Jetzt kommt einer, der in der Lage ist, im 1-gegen-1 Überzahl zu schaffen.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Bela": [
@@ -57157,7 +58713,11 @@
   },
   {
     "uri": "joke://joke760",
-    "desc": {},
+    "desc": {
+      "wer": "Beni Thurnheer",
+      "was": "Das irische Publikum wird von seinen Fans ausgebuht.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Beni": [
@@ -57282,7 +58842,11 @@
   },
   {
     "uri": "joke://joke762",
-    "desc": {},
+    "desc": {
+      "wer": "Dani Wyler",
+      "was": "Eine Riesenchance. Das Tor war leer, bis auf den Torhüter.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Dani": [
@@ -57501,7 +59065,11 @@
   },
   {
     "uri": "joke://joke766",
-    "desc": {},
+    "desc": {
+      "wer": "Günter Netzer",
+      "was": "Die meisten Spiele, die 1:0 ausgingen, wurden gewonnen.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Günter": [
@@ -57550,7 +59118,11 @@
   },
   {
     "uri": "joke://joke767",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Schneyder",
+      "was": "Zu spielen: noch eine halbe Stunde, sogar noch etwas drüber, also noch 15 Minuten.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Schneyder": [
@@ -57610,7 +59182,11 @@
   },
   {
     "uri": "joke://joke768",
-    "desc": {},
+    "desc": {
+      "wer": "Sport1.de",
+      "was": "Zuvor jedoch mussten die BVB-Fans zittern, als Köln den Angriffsdruck erhöhte und Anthony Lurling wenige Sekunden vor seiner Einwechslung (72.) nur den Innenpfosten traf.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Sport1": [
@@ -58021,7 +59597,11 @@
   },
   {
     "uri": "joke://joke771",
-    "desc": {},
+    "desc": {
+      "wer": "Werner Hansch",
+      "was": "Wer hinten so offen ist, kann nicht ganz dicht sein.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Hansch": [
@@ -58276,7 +59856,11 @@
   },
   {
     "uri": "joke://joke774",
-    "desc": {},
+    "desc": {
+      "wer": "Franz Beckenbauer",
+      "was": "Wenn du die Meisterschale überreicht bekommst, dann bist du Meister.",
+      "gruppe": "Promis & Presse"
+    },
     "words": {
       "wer": {
         "Beckenbauer": [
@@ -58424,7 +60008,11 @@
   },
   {
     "uri": "joke://joke776",
-    "desc": {},
+    "desc": {
+      "wer": "Torsten Legat",
+      "was": "Che Guevara war ein Rebell, ein Kämpfer für sein Land. Das will ich auch sein. Ich will den Schwachen helfen. Das ist im Fußball genauso, da muss man den schwachen Gegner auch aufbauen. Das ist so eine eigene Logik von mir, dazu will ich gar nicht viel sagen.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Legat": [
@@ -58570,7 +60158,11 @@
   },
   {
     "uri": "joke://joke777",
-    "desc": {},
+    "desc": {
+      "wer": "Klaus Augenthaler",
+      "was": "Es ist egal, ob man 24 Stunden am Tag arbeitet. Wenn man unter der Woche drei Purzelbäume macht und das Spiel gewinnt, hat man alles richtig gemacht.",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Augenthaler": [
@@ -58669,7 +60261,11 @@
   },
   {
     "uri": "joke://joke778",
-    "desc": {},
+    "desc": {
+      "wer": "Otto Rehhagel",
+      "was": "Jeder kann sagen, was ich will. ",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Otto": [
@@ -58709,7 +60305,11 @@
   },
   {
     "uri": "joke://joke779",
-    "desc": {},
+    "desc": {
+      "wer": "Günter Netzer",
+      "was": "Der Pfosten ist ein Freund des Torwarts, auf den er sich nicht verlassen kann. \n",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Günter": [
@@ -62993,7 +64593,11 @@
   },
   {
     "uri": "joke://joke824",
-    "desc": {},
+    "desc": {
+      "wer": "Max Merkel",
+      "was": "Lieber 9 Minuten Maradona beim Autowaschen zuschauen, als 90 Minuten Hansi Pflügler beim Fußball!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Max": [
@@ -64812,7 +66416,11 @@
   },
   {
     "uri": "joke://joke843",
-    "desc": {},
+    "desc": {
+      "wer": "Cristiano Ronaldo",
+      "was": "Wenn ich nicht Fußballer geworden wäre, wäre ich Superman geworden.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Cristiano": [
@@ -68894,7 +70502,11 @@
   },
   {
     "uri": "joke://joke881",
-    "desc": {},
+    "desc": {
+      "wer": "Mark van Bommel",
+      "was": "Ich wollte gegen Barcelona treten. Aber manchmal kommt man einfach nicht ran an den Mann und der Gegner ist viel besser, da kann man machen, was man will.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Bommel": [
@@ -69754,7 +71366,11 @@
   },
   {
     "uri": "joke://joke890",
-    "desc": {},
+    "desc": {
+      "wer": "NDR 2 Radio Konferenz ",
+      "was": "Mike Hanke mit dem1:0 für Hannover! Erziehlt per Fuss und nicht per Kopf. Und vor allem nicht Per Mertesacker.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "2": [
@@ -69838,7 +71454,11 @@
   },
   {
     "uri": "joke://joke891",
-    "desc": {},
+    "desc": {
+      "wer": "Giovanni Trappatoni",
+      "was": "Man darf bei Fußball nicht denken wie Beamter - 0:0 halten bis Feierabend!",
+      "gruppe": "Trainersprüche"
+    },
     "words": {
       "wer": {
         "Giovanni": [
@@ -69897,7 +71517,11 @@
   },
   {
     "uri": "joke://joke892",
-    "desc": {},
+    "desc": {
+      "wer": "Heribert Faßbender",
+      "was": "Die Polen darf man nicht unterschätzen. Diese Balkan-Kicker sind unberechenbar!",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Faßbender": [
@@ -69952,7 +71576,11 @@
   },
   {
     "uri": "joke://joke893",
-    "desc": {},
+    "desc": {
+      "wer": "Heribert Faßbender",
+      "was": "Die Saudis sind übrigens Asienmeister, obwohl das ebensowenig Asiaten sind wie die Türken Europäer. Die Saudis haben ja gar keine Mandelaugen, wie man das von Asiaten erwartet. Das sind eher Araber statt Asiaten.",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Faßbender": [
@@ -70057,7 +71685,11 @@
   },
   {
     "uri": "joke://joke894",
-    "desc": {},
+    "desc": {
+      "wer": "Heribert Faßbender",
+      "was": "Fußball ist inzwischen Nr.1 in Frankreich. Handball übrigens auch. ",
+      "gruppe": "Reportersprüche"
+    },
     "words": {
       "wer": {
         "Faßbender": [
@@ -73138,7 +74770,11 @@
   },
   {
     "uri": "joke://joke925",
-    "desc": {},
+    "desc": {
+      "wer": "Bastian Schweinsteiger",
+      "was": "Wenn du beim FC Bayern einen Vertrag unterschreibst, steht drin, dass du deutscher Meister werden musst.",
+      "gruppe": "Spielersprüche"
+    },
     "words": {
       "wer": {
         "Bastian": [
