@@ -11,6 +11,7 @@ import           Network.Wai.Middleware.RequestLogger
 import           Control.Monad.IO.Class   (MonadIO, liftIO)
 import           Control.Concurrent.MVar
 
+import           Data.Maybe               (isJust)
 import           Data.Map                 (Map,{- empty-})
 import qualified Data.Map                 as M
 import           Data.Text                (Text)
@@ -63,6 +64,14 @@ class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d where
 
   allWords                  :: ix -> Context -> RawResult
   allWords                  = Co.allWords . index
+
+  -- doctable functions
+  lookupById                :: Monad m => ix -> DocId -> m Document
+  lookupById                = Co.lookupById . docTable
+
+  -- TODO: Co.URI is a String - should be Text
+  lookupByURI               :: Monad m => ix -> Co.URI -> m DocId
+  lookupByURI               = Co.lookupByURI . docTable
 
   insertDoc                 :: Document -> Words -> ix -> ix
   insertDoc doc wrds ix     = newIndexer newIndex newDocTable
@@ -142,8 +151,9 @@ start = scotty 3000 $ do
 
   -- index
   ixM    <- liftIO $ newMVar indexer
-  let withIx = withIndex' ixM-- :: MonadIO m => (Indexer Inverted Documents -> IO b) -> m b
-  let modIx_ = modIndex_ ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents)) -> m ()
+  let withIx = withIndex' ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO b) -> m b
+  --let modIx_ = modIndex_  ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents)) -> m ()
+  let modIx  = modIndex   ixM
 
   -- request / response logging
   middleware logStdoutDev
@@ -192,14 +202,34 @@ start = scotty 3000 $ do
             return . show $ allWords i context
     json $ JsonSuccess res
 
-  -- add a document
-  post "/document/add" $ do
+  -- insert a document (fails if a document (the uri) already exists)
+  post "/document/insert" $ do
     -- Raises an exception if parse is unsuccessful
     jss <- jsonData :: ActionM [ApiDocument]
-    modIx_ $ \ix ->
-      return $ foldr (\(ApiDocument u d ws) ->
-                        let doc = Document u d
-                        in insertDoc doc ws) ix jss
-    json (JsonSuccess "doc added" :: JsonResponse Text)
+
+    -- res :: Maybe [Co.URI]  -- the documents that already exist or Nothing when successful
+    res <- modIx $ \ix -> do
+      let apiDocsM
+              = map (\apiDoc -> let uri = apiDocUri apiDoc
+                                in (uri, lookupByURI ix uri)) jss :: [(Co.URI, Maybe DocId)]
+      let failedDocs = map fst . filter (isJust . snd) $ apiDocsM :: [Co.URI]
+
+      return $ if Prelude.null failedDocs
+       then
+          ( foldr (\(ApiDocument u d ws) ->
+                      let doc = Document u d
+                      in insertDoc doc ws) ix jss
+          , Nothing
+          )
+        
+       else
+          ( ix
+          , return failedDocs
+          )
+
+    json $ maybe
+            (          JsonSuccess "docs inserted" :: JsonResponse Text)
+            (\errL ->  JsonFailure . T.pack . show $ errL) -- TODO: adjust JsonReponse format
+            res
 
   notFound . redirect $ "/"
