@@ -11,7 +11,7 @@ import           Network.Wai.Middleware.RequestLogger
 import           Control.Monad.IO.Class   (MonadIO, liftIO)
 import           Control.Concurrent.MVar
 
-import           Data.Maybe               (isJust)
+import           Data.Maybe               (isJust, isNothing, fromJust)
 import           Data.Map                 (Map,{- empty-})
 import qualified Data.Map                 as M
 import           Data.Text                (Text)
@@ -57,6 +57,11 @@ class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d where
   newIndexer                :: i -> d -> ix
   index                     :: ix -> i
   docTable                  :: ix -> d
+  modifyIndexer             :: ix -> i -> d -> ix
+  modifyIndex               :: ix -> i -> ix
+  modifyIndex ix i          = modifyIndexer ix i (docTable ix)
+  modifyDocTable            :: ix -> d -> ix
+  modifyDocTable ix         = modifyIndexer ix (index ix)
 
   -- index functions
   searchPrefixNoCase        :: ix -> Context -> String -> RawResult
@@ -69,12 +74,25 @@ class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d where
   lookupById                :: Monad m => ix -> DocId -> m Document
   lookupById                = Co.lookupById . docTable
 
+  removeByURI               :: ix -> Co.URI -> ix
+  removeByURI ix u          = modifyDocTable ix . Co.removeByURI (docTable ix) $ u
+
+
   -- TODO: Co.URI is a String - should be Text
   lookupByURI               :: Monad m => ix -> Co.URI -> m DocId
   lookupByURI               = Co.lookupByURI . docTable
 
+  -- FIXME: add a delete function
+  updateDoc                 :: DocId -> Document -> Words -> ix -> ix
+  updateDoc docId doc w ix  = modifyIndexer ix newIndex newDocTable
+    where
+      --updateDoc                     :: d -> DocId -> Document -> d
+    newDocTable = let d = docTable ix
+                  in Co.updateDoc d docId doc
+    newIndex    = index ix -- FIXME: delete + insert
+
   insertDoc                 :: Document -> Words -> ix -> ix
-  insertDoc doc wrds ix     = newIndexer newIndex newDocTable
+  insertDoc doc wrds ix     = modifyIndexer ix newIndex newDocTable
     where
     (dId, newDocTable) = Co.insertDoc (docTable ix) doc
     -- insertDoc                     :: d -> Document -> (DocId, d)
@@ -103,6 +121,7 @@ instance (HolIndex i, HolDocuments d) => HolIndexer (Indexer i d) i d where
   newIndexer                                    = Indexer
   index               (Indexer i _)             = i
   docTable            (Indexer _ d)             = d
+  modifyIndexer       ix i d                    = ix {ixIndex = i, ixDocTable = d}
 
 
 (.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
@@ -142,6 +161,15 @@ jsonPretty v = do
   raw $ encodePretty v
 -}
 
+
+checkApiDocUris :: HolIndexer ix i d => (Maybe DocId -> Bool) -> [ApiDocument] -> ix -> [(Co.URI, Maybe DocId)]
+checkApiDocUris filterDocIds apiDocs ix =
+  let apiDocsM
+          = map (\apiDoc -> let docUri = apiDocUri apiDoc
+                            in (docUri, lookupByURI ix docUri)) apiDocs
+  in filter (filterDocIds . snd) apiDocsM
+
+
 -- server itself:
 --
 --  -> should get some kind of state from command line or config file
@@ -158,7 +186,9 @@ start = scotty 3000 $ do
   -- request / response logging
   middleware logStdoutDev
 
+
   get "/" $ html Tmpl.index
+
 
   -- text "should get simple text query as param"
   -- Note: route /search not handled here!
@@ -172,6 +202,7 @@ start = scotty 3000 $ do
                               $ Co.toListDocIdMap . docHits
                               $ runQuery (index ix) (docTable ix) query
     json res
+
 
   get "/completion/:query" $ do
     queryStr <- param "query"
@@ -202,33 +233,50 @@ start = scotty 3000 $ do
             return . show $ allWords i context
     json $ JsonSuccess res
 
+
   -- insert a document (fails if a document (the uri) already exists)
   post "/document/insert" $ do
     -- Raises an exception if parse is unsuccessful
     jss <- jsonData :: ActionM [ApiDocument]
 
-    -- res :: Maybe [Co.URI]  -- the documents that already exist or Nothing when successful
+    -- res :: Maybe [Co.URI]  -- maybe the documents that already exist
     res <- modIx $ \ix -> do
-      let apiDocsM
-              = map (\apiDoc -> let uri = apiDocUri apiDoc
-                                in (uri, lookupByURI ix uri)) jss :: [(Co.URI, Maybe DocId)]
-      let failedDocs = map fst . filter (isJust . snd) $ apiDocsM :: [Co.URI]
+      let failedDocUris = map fst $ checkApiDocUris isJust jss ix :: [Co.URI]
 
-      return $ if Prelude.null failedDocs
+      return $ if Prelude.null failedDocUris
        then
           ( foldr (\(ApiDocument u d ws) ->
                       let doc = Document u d
                       in insertDoc doc ws) ix jss
-          , Nothing
-          )
-        
-       else
-          ( ix
-          , return failedDocs
-          )
+          , Nothing)
+       else (ix, return failedDocUris)
 
     json $ maybe
-            (          JsonSuccess "docs inserted" :: JsonResponse Text)
+            (          JsonSuccess "document(s) added" :: JsonResponse Text)
+            (\errL ->  JsonFailure . T.pack . show $ errL) -- TODO: adjust JsonReponse format
+            res
+
+
+-- updated/replaces a document (fails if a document (the uri) does not exists)
+  post "/document/update" $ do
+    -- Raises an exception if parse is unsuccessful
+    jss <- jsonData :: ActionM [ApiDocument]
+
+    -- res :: Maybe [Co.URI]  -- maybe the documents/uris that do not exist
+    res <- modIx $ \ix -> do
+      let allDocs    = checkApiDocUris (const True) jss ix :: [(Co.URI, Maybe DocId)]
+      let failedDocUris = map fst . filter (isNothing . snd) $ allDocs
+
+      return $ if Prelude.null failedDocUris
+       then
+          ( foldr (\(docId, ApiDocument u d ws) ->
+                      let doc = Document u d
+                      in updateDoc docId doc ws) ix (zip (map (fromJust . snd) allDocs) jss)
+          , Nothing)
+       else (ix, return failedDocUris)
+
+    json $ maybe
+            (          JsonSuccess "document(s) updated" :: JsonResponse Text)
             (\errL ->  JsonFailure . T.pack . show $ errL) -- TODO: adjust JsonReponse format
             res
 
