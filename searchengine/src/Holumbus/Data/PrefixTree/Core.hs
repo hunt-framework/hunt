@@ -20,7 +20,7 @@
 
   Most other function names clash with "Prelude" names, therefore this module is usually
   imported @qualified@, e.g.
-  
+
   > import Holumbus.Data.PrefixTree (PrefixTree)
   > import qualified Holumbus.Data.PrefixTree as T
 
@@ -29,11 +29,11 @@
   key (the number of bytes in the list). The functions for searching a prefix have a worst-case
   complexity of /O(max(L,R))/. This means that the operation can become linear with
   /R/, the number of elements found for the prefix, with a minimum of /L/.
-  
+
   The module exports include the internal data types, their constructors and access
-  functions for ultimate flexibility. Derived modules should not export these 
+  functions for ultimate flexibility. Derived modules should not export these
   (as shown in "Holumbus.Data.StrMap") to provide only a restricted interface.
-  
+
 -}
 
 -- ----------------------------------------------------------------------------
@@ -78,18 +78,18 @@ data PrefixTree v       = Empty
                                  }
                         | LsSeq  { syms   :: ! Key1             -- a sequence of single childs
                                  , child  :: ! (PrefixTree v)   -- in a last node
-                                 } 
+                                 }
                         | BrSeq  { syms   :: ! Key1             -- a sequence of single childs
                                  , child  :: ! (PrefixTree v)   -- in a branch node
                                  , next   :: ! (PrefixTree v)
-                                 } 
+                                 }
                         | LsSeL  { syms   :: ! Key1             -- a sequence of single childs
-                                 , value' ::   v                -- with a leaf 
-                                 } 
+                                 , value' ::   v                -- with a leaf
+                                 }
                         | BrSeL  { syms   :: ! Key1             -- a sequence of single childs
                                  , value' ::   v                -- with a leaf in a branch node
                                  , next   :: ! (PrefixTree v)
-                                 } 
+                                 }
                         | BrVal  { sym    :: {-# UNPACK #-}
                                              ! Sym              -- a branch with a single char
                                  , value' ::   v                -- and a value
@@ -108,7 +108,7 @@ data PrefixTree v       = Empty
 data Key1               = Nil
                         | Cons  {-# UNPACK #-}
                                 ! Sym
-                                ! Key1            
+                                ! Key1
                           deriving (Show, Eq, Ord)
 
 (.++.)                  :: Key1 -> Key1 -> Key1
@@ -183,9 +183,9 @@ norm                            :: PrefixTree v -> PrefixTree v
 norm (Leaf v)                   = Val v empty
 norm (Last k c)                 = Branch k c empty
 norm (LsSeq (Cons k Nil) c)     = Branch k c empty
-norm (LsSeq (Cons k ks ) c)     = Branch k (siseq ks c) empty 
+norm (LsSeq (Cons k ks ) c)     = Branch k (siseq ks c) empty
 norm (BrSeq (Cons k Nil) c n)   = Branch k c n
-norm (BrSeq (Cons k ks ) c n)   = Branch k (siseq ks c) n 
+norm (BrSeq (Cons k ks ) c n)   = Branch k (siseq ks c) n
 norm (LsSeL    ks  v)           = norm (LsSeq ks  (val v empty))
 norm (BrSeL    ks  v n)         = norm (BrSeq ks  (val v empty) n)
 norm (LsVal    k   v)           = norm (LsSeq (Cons k Nil) (val v empty))
@@ -303,7 +303,7 @@ insertWithKey f k               = insertWith (f k) k
 
 {-# INLINE insertWithKey #-}
 
--- | /O(min(n,L))/ Updates a value at a given key (if that key is in the trie) or deletes the 
+-- | /O(min(n,L))/ Updates a value at a given key (if that key is in the trie) or deletes the
 -- element if the result of the updating function is 'Nothing'. If the key is not found, the trie
 -- is returned unchanged.
 
@@ -312,7 +312,7 @@ update                          = update'
 
 {-# INLINE update #-}
 
--- | /O(min(n,L))/ Updates a value at a given key (if that key is in the trie) or deletes the 
+-- | /O(min(n,L))/ Updates a value at a given key (if that key is in the trie) or deletes the
 -- element if the result of the updating function is 'Nothing'. If the key is not found, the trie
 -- is returned unchanged.
 
@@ -321,7 +321,16 @@ updateWithKey f k               = update' (f k) k
 
 {-# INLINE updateWithKey #-}
 
--- | /O(min(n,L))/ Delete an element from the map. If no element exists for the key, the map 
+
+-- | /O(n)/ Updates a value or deletes the element if the result of the updating function is 'Nothing'.
+
+mapMaybe                          :: (a -> Maybe b) -> PrefixTree a -> PrefixTree b
+mapMaybe                          = mapMaybe'
+
+{-# INLINE mapMaybe #-}
+
+
+-- | /O(min(n,L))/ Delete an element from the map. If no element exists for the key, the map
 -- remains unchanged.
 
 delete                          :: Key -> PrefixTree a -> PrefixTree a
@@ -356,10 +365,10 @@ lookup' k t
 
 -- | /O(max(L,R))/ Find all values where the string is a prefix of the key.
 
-prefixFind                      :: Key -> PrefixTree a -> [a] 
+prefixFind                      :: Key -> PrefixTree a -> [a]
 prefixFind k                    = elems . lookupPx' k
 
--- | /O(max(L,R))/ Find all values where the string is a prefix of the key and include the keys 
+-- | /O(max(L,R))/ Find all values where the string is a prefix of the key and include the keys
 -- in the result.
 
 prefixFindWithKey               :: Key -> PrefixTree a -> [(Key, a)]
@@ -414,7 +423,24 @@ update' f k0                    = upd k0 . norm
 
 -- ----------------------------------------
 
--- | /O(n+m)/ Left-biased union of two maps. It prefers the first map when duplicate keys are 
+mapMaybe'                       :: (a -> Maybe b) -> PrefixTree a -> PrefixTree b
+mapMaybe' f                     = upd . norm
+    where
+    upd'                        = mapMaybe' f
+
+    upd (Branch c' s' n')
+        = branch c' (upd' s') (upd' n')
+
+    upd Empty                   = empty
+
+    upd (Val v' t')
+        = maybe t (flip val t) $ f v'
+        where t = upd' t'
+    upd _                       = normError "update'"
+
+-- ----------------------------------------
+
+-- | /O(n+m)/ Left-biased union of two maps. It prefers the first map when duplicate keys are
 -- encountered, i.e. ('union' == 'unionWith' 'const').
 
 union                                           :: PrefixTree a -> PrefixTree a -> PrefixTree a
@@ -440,7 +466,7 @@ union' f pt1 pt2                                = uni (norm pt1) (norm pt2)
     uni    (Val v1 t1)       t2@(Branch _ _ _)  = val    v1     (uni' t1 t2)
 
     uni    (Branch c1 s1 n1)     Empty          = branch c1 s1 n1
-    uni t1@(Branch _  _  _ )    (Val v2 t2)     = val v2 (uni' t1 t2) 
+    uni t1@(Branch _  _  _ )    (Val v2 t2)     = val v2 (uni' t1 t2)
     uni t1@(Branch c1 s1 n1) t2@(Branch c2 s2 n2)
         | c1 <  c2                              = branch c1       s1     (uni' n1 t2)
         | c1 >  c2                              = branch c2          s2  (uni' t1 n2)
@@ -469,7 +495,7 @@ union'' f kf pt1 pt2                            = uni (norm pt1) (norm pt2)
     uni    (Val v1 t1)       t2@(Branch _ _ _)  = val            v1     (uni' t1 t2)
 
     uni    (Branch c1 s1 n1)     Empty          = branch c1 s1 n1
-    uni t1@(Branch _  _  _ )    (Val v2 t2)     = val v2 (uni' t1 t2) 
+    uni t1@(Branch _  _  _ )    (Val v2 t2)     = val v2 (uni' t1 t2)
     uni t1@(Branch c1 s1 n1) t2@(Branch c2 s2 n2)
         | c1 <  c2                              = branch c1                         s1     (uni' n1 t2)
         | c1 >  c2                              = branch c2                            s2  (uni' t1 n2)
@@ -515,7 +541,7 @@ diff'' f kf pt1 pt2             = dif (norm pt1) (norm pt2)
     dif    (Val v1 t1)       t2@(Branch _ _ _)  =  val v1 (dif' t1 t2)
 
     dif    (Branch c1 s1 n1)     Empty          = branch c1 s1 n1
-    dif t1@(Branch _  _  _ )    (Val _  t2)     = dif' t1 t2 
+    dif t1@(Branch _  _  _ )    (Val _  t2)     = dif' t1 t2
     dif t1@(Branch c1 s1 n1) t2@(Branch c2 s2 n2)
         | c1 <  c2                              = branch c1                        s1       (dif' n1 t2)
         | c1 >  c2                              =                                            dif' t1 n2
@@ -531,8 +557,8 @@ diff'' f kf pt1 pt2             = dif (norm pt1) (norm pt2)
 --
 -- @lookup' k' . cutPx' (singlePS k) $ t == lookup' k t@ for every @k'@ with @k@ prefix of @k'@
 --
--- @lookup' k' . cutPx' (singlePS k) $ t == Nothing@ for every @k'@ with @k@ not being a prefix of @k'@ 
- 
+-- @lookup' k' . cutPx' (singlePS k) $ t == Nothing@ for every @k'@ with @k@ not being a prefix of @k'@
+
 cutPx''                         :: (PrefixTree a -> PrefixTree a) -> PrefixSet -> PrefixTree a -> PrefixTree a
 cutPx'' cf s1' t2'              = cut s1' (norm t2')
     where
@@ -801,7 +827,7 @@ keys                            = foldWithKey (\ k _v r -> k : r) []
 -- > br :: Tree a -> [a]
 -- > br t = map rootLabel $
 -- >        concat $
--- >        takeWhile (not . null) $                
+-- >        takeWhile (not . null) $
 -- >        iterate (concatMap subForest) [t]
 
 toListBF                        :: PrefixTree v -> [(Key, v)]
@@ -824,10 +850,10 @@ subForest kf (Branch c s n)     = (kf . (c:), s) : subForest kf (norm n)
 subForest _  Empty              = []
 subForest kf (Val _ t)          = subForest kf (norm t)
 subForest _  _                  = error "PrefixTree.Core.subForest: Pattern match failure"
- 
+
 -- ----------------------------------------
 
--- | /O(max(L,R))/ Find all values where the string is a prefix of the key and include the keys 
+-- | /O(max(L,R))/ Find all values where the string is a prefix of the key and include the keys
 -- in the result. The result list contains short words first
 
 prefixFindWithKeyBF             :: Key -> PrefixTree a -> [(Key, a)]

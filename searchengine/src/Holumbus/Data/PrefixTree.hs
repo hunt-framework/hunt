@@ -12,7 +12,7 @@
   Portability: not portable
 
   Facade for prefix tree implementation
-  
+
 -}
 
 -- ----------------------------------------------------------------------------
@@ -27,7 +27,7 @@ module Holumbus.Data.PrefixTree
     , size
     , member
     , lookup
-    , findWithDefault  
+    , findWithDefault
     , prefixFind
     , prefixFindWithKey
     , prefixFindWithKeyBF
@@ -43,6 +43,7 @@ module Holumbus.Data.PrefixTree
     , mapWithKey
     , mapM
     , mapWithKeyM
+    , mapMaybe
     , fold
     , foldWithKey
     , union
