@@ -63,6 +63,9 @@ insertOccurrence d p    = insertWithDocIdMap IS.union d (singletonPos p)
 deleteOccurrence        :: DocId -> Position -> Occurrences -> Occurrences
 deleteOccurrence d p    = substractOccurrences (singletonDocIdMap d (singletonPos p))
 
+delete                  :: DocId -> Occurrences -> Occurrences
+delete                  = deleteDocIdMap
+
 updateOccurrences       :: (DocId -> DocId) -> Occurrences -> Occurrences
 updateOccurrences f     = foldWithKeyDocIdMap
                           (\ d ps res -> insertWithDocIdMap IS.union (f d) ps res) emptyOccurrences

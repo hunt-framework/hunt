@@ -4,39 +4,46 @@
   Module     : Holumbus.Index.Compression
   Copyright  : Copyright (C) 2008 Timo B. Huebel
   License    : MIT
-  
+
   Maintainer : Timo B. Huebel (tbh@holumbus.org)
   Stability  : experimental
   Portability: portable
   Version    : 0.1
-  
+
   This module provides several specific compression mechanisms for different
-  parts of indexes. Right now, just a general compression scheme for 
+  parts of indexes. Right now, just a general compression scheme for
   the 'Occurrences' and 'Positions' are provided.
 
 -}
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Compression 
+module Holumbus.Index.Compression
   (
   -- * Compression types
   CompressedOccurrences
   , CompressedPositions
-  
+
   -- * Compress
   , deflateOcc
   , deflatePos
-  
+
   -- * Decompress
   , inflateOcc
   , inflatePos
+  -- * Efficiency
+  , delete
+  , differenceWithKeySet
   )
 where
 
+import           Data.Set (Set)
+import qualified Data.Set as S
+
 import Holumbus.Index.Common.DocIdMap
-import Holumbus.Index.Common.Occurences
+import Holumbus.Index.Common.Occurences     hiding (delete)
 import Holumbus.Index.Common.DiffList
+import Holumbus.Index.Common.DocId                 (DocId)
 
 -- ----------------------------------------------------------------------------
 
@@ -54,6 +61,18 @@ inflateOcc = mapDocIdMap inflatePos
 
 deflateOcc :: Occurrences -> CompressedOccurrences
 deflateOcc = mapDocIdMap deflatePos
+
+-- XXX: Maybe unnecessary due to lazy evaluation
+-- | Delete without deflating and inflating.
+
+delete :: DocId -> CompressedOccurrences -> CompressedOccurrences
+delete = deleteDocIdMap
+
+
+-- | Difference without deflating and inflating.
+
+differenceWithKeySet :: Set DocId -> CompressedOccurrences -> CompressedOccurrences
+differenceWithKeySet = flip $ S.foldr delete
 
 -- | Convert the compressed differences back to a set of integers.
 
