@@ -11,9 +11,10 @@ import           Network.Wai.Middleware.RequestLogger
 import           Control.Monad.IO.Class   (MonadIO, liftIO)
 import           Control.Concurrent.MVar
 
-import           Data.Maybe               (isJust, isNothing, fromJust)
+import           Data.Maybe               (isJust, isNothing, fromJust, fromMaybe)
 import           Data.Map                 (Map,{- empty-})
 import qualified Data.Map                 as M
+import qualified Data.Set                 as S
 import           Data.Text                (Text)
 import qualified Data.Text                as T
 {-
@@ -74,28 +75,31 @@ class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d where
   lookupById                :: Monad m => ix -> DocId -> m Document
   lookupById                = Co.lookupById . docTable
 
-  removeByURI               :: ix -> Co.URI -> ix
-  removeByURI ix u          = modifyDocTable ix . Co.removeByURI (docTable ix) $ u
-
-
   -- TODO: Co.URI is a String - should be Text
   lookupByURI               :: Monad m => ix -> Co.URI -> m DocId
   lookupByURI               = Co.lookupByURI . docTable
 
-  -- FIXME: add a delete function
-  updateDoc                 :: DocId -> Document -> Words -> ix -> ix
-  updateDoc docId doc w ix  = modifyIndexer ix newIndex newDocTable
+  deleteDocById             :: DocId -> ix -> ix
+  deleteDocById docId ix    = fromMaybe ix doIt
     where
-      --updateDoc                     :: d -> DocId -> Document -> d
-    newDocTable = let d = docTable ix
-                  in Co.updateDoc d docId doc
-    newIndex    = index ix -- FIXME: delete + insert
+    doIt = do
+      -- might save deleting from the index (very expensive operation)
+      _              <- Co.lookupById (docTable ix) docId -- XXX: impl. elem function?
+      let newDocTable = Co.removeById (docTable ix) docId
+      let newIndex    = Co.deleteDocs (S.singleton docId) (index ix)
+      return $ modifyIndexer ix newIndex newDocTable
 
+  deleteDocByURI            :: Co.URI -> ix -> ix
+  deleteDocByURI u ix       = maybe ix (`deleteDocById` ix) $ Co.lookupByURI (docTable ix) u
+
+  updateDoc                 :: DocId -> Document -> Words -> ix -> ix
+  updateDoc docId doc w     = insertDoc doc w . deleteDocById docId
+
+  -- TODO: less qnd
   insertDoc                 :: Document -> Words -> ix -> ix
   insertDoc doc wrds ix     = modifyIndexer ix newIndex newDocTable
     where
     (dId, newDocTable) = Co.insertDoc (docTable ix) doc
-    -- insertDoc                     :: d -> Document -> (DocId, d)
     newIndex           = foldr (\(c, w, ps) -> Co.insertOccurrences c w (mkOccs dId ps)) (index ix) $ flattenWords wrds
 
     mkOccs :: DocId -> [Position] -> Occurrences
@@ -180,7 +184,7 @@ start = scotty 3000 $ do
   -- index
   ixM    <- liftIO $ newMVar indexer
   let withIx = withIndex' ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO b) -> m b
-  --let modIx_ = modIndex_  ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents)) -> m ()
+  let modIx_ = modIndex_  ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents)) -> m ()
   let modIx  = modIndex   ixM
 
   -- request / response logging
@@ -280,4 +284,11 @@ start = scotty 3000 $ do
             (\errL ->  JsonFailure . T.pack . show $ errL) -- TODO: adjust JsonReponse format
             res
 
-  notFound . redirect $ "/"
+
+  get "/document/delete/:uri" $ do
+    docUri <- param "uri"
+    modIx_ $ \ix -> return $ deleteDocByURI docUri ix
+    json (JsonSuccess "document deleted" :: JsonResponse Text)
+
+
+  notFound $ text "page not found"
