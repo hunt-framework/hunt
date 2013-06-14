@@ -50,6 +50,7 @@ where
 
 import Control.Monad                    ( foldM )
 
+import Data.Set                         ( Set )
 -- import Data.Binary                   ( Binary (..) )
 -- import Data.Maybe
 
@@ -100,6 +101,9 @@ class HolIndex i where
   -- | Delete a position for a single document.
   deletePosition                :: Context -> Word -> DocId -> Position -> i -> i
   deletePosition c w d p i      = deleteOccurrences c w (singletonOccurrence d p) i
+
+  -- | Delete documents completely (all occurrences).
+  deleteDocs                    :: Set DocId -> i -> i
 
   -- | Merges two indexes.
   mergeIndexes                  :: i -> i -> i
@@ -258,6 +262,7 @@ class HolDocuments d where
   -- | Update a document with a certain DocId.
   updateDoc                     :: d -> DocId -> Document -> d
 
+  -- XXX: reverse order of arguments?
   -- | Removes the document with the specified id from the table.
   removeById                    :: d -> DocId -> d
 

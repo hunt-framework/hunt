@@ -6,11 +6,11 @@
   Module     : Holumbus.Index.Inverted.PrefixMem
   Copyright  : Copyright (C) 2007 - 2009 Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
   License    : MIT
-  
+
   Maintainer : Uwe Schmidt (uwe@fh-wedel.de)
   Stability  : experimental
   Portability: portable
-  
+
   A variant of the Inverted.Memory index with an optimized prefix tree
   instead of a trie as central data structure. This version should be
   more space efficient as the trie and more runtime efficient when combining
@@ -22,13 +22,13 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Inverted.PrefixMem 
+module Holumbus.Index.Inverted.PrefixMem
     (
      -- * Inverted index types
      Inverted (..)
     , Parts
     , Part
-  
+
     -- * Construction
     , singleton
     , emptyInverted
@@ -43,11 +43,12 @@ import           Data.List
 import           Data.Map                       (Map)
 import qualified Data.Map                       as M
 import           Data.Maybe
+import           Data.Set                       (Set)
 
 import qualified Holumbus.Data.PrefixTree       as PT
 
 import           Holumbus.Index.Common
-import           Holumbus.Index.Compression
+import           Holumbus.Index.Compression     as C
 
 import           Text.XML.HXT.Core
 
@@ -55,7 +56,7 @@ import           Text.XML.HXT.Core
 
 -- | The index consists of a table which maps documents to ids and a number of index parts.
 
-newtype Inverted        = Inverted { indexParts :: Parts } 
+newtype Inverted        = Inverted { indexParts :: Parts }
                           deriving (Show, Eq)
 
 -- | The index parts are identified by a name, which should denote the context of the words.
@@ -131,10 +132,14 @@ instance HolIndex Inverted where
     updateOcc                   = foldWithKeyDocIdMap updateId emptyDocIdMap
     updateId                    = insertDocIdMap . f
 
-  toList i                      = concat $ map convertPart $ M.toList (indexParts i) 
+  toList i                      = concat $ map convertPart $ M.toList (indexParts i)
     where convertPart (c,p)     = map (\(w, o) -> (c, w, inflateOcc o)) $
                                   PT.toList $
                                   p
+
+  deleteDocs = deleteDocs'
+
+  {-# INLINE deleteDocs #-}
 
 -- ----------------------------------------------------------------------------
 
@@ -169,10 +174,13 @@ instance Binary Inverted where
 
 -- ----------------------------------------------------------------------------
 
+liftInv                         :: (Parts -> Parts) -> Inverted -> Inverted
+liftInv f                       = Inverted . f . indexParts
+
 -- | Create an empty index.
 emptyInverted                   :: Inverted
 emptyInverted                   = Inverted M.empty
-                  
+
 -- | Create an index with just one word in one context.
 singleton                       :: Context -> String -> Occurrences -> Inverted
 singleton c w o                 = Inverted (M.singleton c (PT.singleton w (deflateOcc o)))
@@ -217,12 +225,28 @@ allocate f (x:xs) (y:ys)        = allocate f xs (sortBy (compare `on` fst) ((com
   where
   combine (s1, v1) (s2, v2)     = (s1 + s2, f v1 v2)
 
--- | Create empty buckets for allocating indexes.  
+-- | Create empty buckets for allocating indexes.
 createBuckets                   :: Int -> [(Int, Inverted)]
 createBuckets n                 = (replicate n (0, emptyInverted))
-  
+
 -- | Return a part of the index for a given context.
 getPart                         :: Context -> Inverted -> Part
 getPart c i                     = fromMaybe PT.empty (M.lookup c $ indexParts i)
 
 -- ----------------------------------------------------------------------------
+
+deleteDocs' :: Set DocId -> Inverted -> Inverted
+deleteDocs' docIds = liftInv $ M.mapMaybe deleteInParts
+  where
+  deleteInParts :: Part -> Maybe Part
+  deleteInParts p
+    = let p' = PT.mapMaybe deleteInPT p
+      in if PT.null p'
+            then Nothing
+            else return p'
+  deleteInPT :: CompressedOccurrences -> Maybe CompressedOccurrences
+  deleteInPT occ
+    = let occ' = C.differenceWithKeySet docIds occ
+      in if nullDocIdMap occ'
+            then Nothing
+            else return occ'
