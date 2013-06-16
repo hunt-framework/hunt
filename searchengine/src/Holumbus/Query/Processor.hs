@@ -41,6 +41,8 @@ import           Control.Parallel.Strategies
 import           Data.Binary                    ( Binary (..) )
 import           Data.Function
 import qualified Data.List                      as L
+import           Data.Text                      ( Text )
+import qualified Data.Text                      as T
 
 import           Holumbus.Index.Common          hiding (contexts)
 import qualified Holumbus.Index.Common          as IDX
@@ -188,35 +190,35 @@ processM s (BinQuery o q1 q2) = do
 
 -- | Process a single, case-insensitive word by finding all documents whreturn I.emptyIntermediate -- ich contain the word as prefix.
 
-processWord :: HolIndex i => ProcessState i -> String -> Intermediate
+processWord :: HolIndex i => ProcessState i -> Text -> Intermediate
 processWord s q = forAllContexts wordNoCase (contexts s)
   where
   wordNoCase c = I.fromList q c $ limitWords s $ IDX.prefixNoCase (index s) c q
 
 -- | Monadic version of 'processWord'.
 
-processWordM :: HolIndexM m i => ProcessState i -> String -> m Intermediate
+processWordM :: HolIndexM m i => ProcessState i -> Text -> m Intermediate
 processWordM s q = forAllContextsM wordNoCase (contexts s)
   where
   wordNoCase c = IDX.prefixNoCaseM (index s) c q >>= limitWordsM s >>= \r -> return $ I.fromList q c r
 
 -- | Process a single, case-sensitive word by finding all documents which contain the word as prefix.
 
-processCaseWord :: HolIndex i => ProcessState i -> String -> Intermediate
+processCaseWord :: HolIndex i => ProcessState i -> Text -> Intermediate
 processCaseWord s q = forAllContexts wordCase (contexts s)
   where
   wordCase c = I.fromList q c $ limitWords s $ IDX.prefixCase (index s) c q
 
 -- | Monadic version of 'processCaseWord'.
 
-processCaseWordM :: HolIndexM m i => ProcessState i -> String -> m Intermediate
+processCaseWordM :: HolIndexM m i => ProcessState i -> Text -> m Intermediate
 processCaseWordM s q = forAllContextsM wordCase (contexts s)
   where
   wordCase c = IDX.prefixCaseM (index s) c q >>= limitWordsM s >>= \r -> return $ I.fromList q c r
 
 -- | Process a phrase case-insensitive.
 
-processPhrase :: HolIndex i => ProcessState i -> String -> Intermediate
+processPhrase :: HolIndex i => ProcessState i -> Text -> Intermediate
 processPhrase s q = forAllContexts phraseNoCase (contexts s)
   where
   phraseNoCase c = processPhraseInternal (IDX.lookupNoCase (index s) c) c q
@@ -228,22 +230,22 @@ processPhrase s q = forAllContexts phraseNoCase (contexts s)
 
 -- | Process a phrase case-sensitive.
 
-processCasePhrase :: HolIndex i => ProcessState i -> String -> Intermediate
+processCasePhrase :: HolIndex i => ProcessState i -> Text -> Intermediate
 processCasePhrase s q = forAllContexts phraseCase (contexts s)
   where
   phraseCase c = processPhraseInternal (IDX.lookupCase (index s) c) c q
 
 -- | Process a phrase query by searching for every word of the phrase and comparing their positions.
 
-processPhraseInternal :: (String -> RawResult) -> Context -> String -> Intermediate
+processPhraseInternal :: (Text -> RawResult) -> Context -> Text -> Intermediate
 processPhraseInternal f c q = let
-  w = words q
+  w = T.words q
   m = mergeOccurrencesList $ map snd $ f (head w) in
   if nullDocIdMap m
   then I.emptyIntermediate
   else I.fromList q c [(q, processPhrase' (tail w) 1 m)]
   where
-  processPhrase' :: [String] -> Position -> Occurrences -> Occurrences
+  processPhrase' :: [Text] -> Position -> Occurrences -> Occurrences
   processPhrase' [] _ o = o
   processPhrase' (x:xs) p o = processPhrase' xs (p+1) (filterWithKeyDocIdMap (nextWord $ map snd $ f x) o)
     where
@@ -256,16 +258,16 @@ processPhraseInternal f c q = let
 
 -- | Process a single word and try some fuzzy alternatives if nothing was found.
 
-processFuzzyWord :: HolIndex i => ProcessState i -> String -> Intermediate
+processFuzzyWord :: HolIndex i => ProcessState i -> Text -> Intermediate
 processFuzzyWord s oq = processFuzzyWord' (F.toList $ F.fuzz (getFuzzyConfig s) oq) (processWord s oq)
   where
-  processFuzzyWord' :: [(String, FuzzyScore)] -> Intermediate -> Intermediate
+  processFuzzyWord' :: [(Text, FuzzyScore)] -> Intermediate -> Intermediate
   processFuzzyWord' []     r = r
   processFuzzyWord' (q:qs) r = if I.null r then processFuzzyWord' qs (processWord s (fst q)) else r
 
 -- | Monadic version of 'processFuzzyWord'.
 
-processFuzzyWordM :: HolIndexM m i => ProcessState i -> String -> m Intermediate
+processFuzzyWordM :: HolIndexM m i => ProcessState i -> Text -> m Intermediate
 processFuzzyWordM s oq = do
   sr <- processWordM s oq
   cfg <- getFuzzyConfigM s

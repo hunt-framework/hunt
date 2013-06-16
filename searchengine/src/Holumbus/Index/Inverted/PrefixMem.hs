@@ -44,6 +44,7 @@ import           Data.Map                       (Map)
 import qualified Data.Map                       as M
 import           Data.Maybe
 import           Data.Set                       (Set)
+import qualified Data.Text                      as T
 
 import qualified Holumbus.Data.PrefixTree       as PT
 
@@ -73,11 +74,11 @@ instance HolIndex Inverted where
   sizeWords                     = M.fold ((+) . PT.size) 0 . indexParts
   contexts                      = map fst . M.toList . indexParts
 
-  allWords i c                  = map (\(w, o) -> (w, inflateOcc o)) $ PT.toList $ getPart c i
-  prefixCase i c q              = map (\(w, o) -> (w, inflateOcc o)) $ PT.prefixFindWithKey q $ getPart c i
-  prefixNoCase i c q            = map (\(w, o) -> (w, inflateOcc o)) $ PT.prefixFindNoCaseWithKey q $ getPart c i
-  lookupCase i c q              = map (\    o  -> (q, inflateOcc o)) $ maybeToList (PT.lookup q $ getPart c i)
-  lookupNoCase i c q            = map (\(w, o) -> (w, inflateOcc o)) $ PT.lookupNoCase q $ getPart c i
+  allWords i c                  = map (T.pack *** inflateOcc)  $ PT.toList                                  $ getPart c i
+  prefixCase i c q              = map (T.pack *** inflateOcc)  $ PT.prefixFindWithKey (T.unpack q)          $ getPart c i
+  prefixNoCase i c q            = map (T.pack *** inflateOcc)  $ PT.prefixFindNoCaseWithKey (T.unpack q)    $ getPart c i
+  lookupCase i c q              = map ((,) q .  inflateOcc)    $ maybeToList . PT.lookup (T.unpack q)       $ getPart c i
+  lookupNoCase i c q            = map (T.pack *** inflateOcc)  $ PT.lookupNoCase (T.unpack q)               $ getPart c i
 
   mergeIndexes i1 i2            = Inverted (mergeParts (indexParts i1) (indexParts i2))
   substractIndexes i1 i2        = Inverted (substractParts (indexParts i1) (indexParts i2))
@@ -121,7 +122,7 @@ instance HolIndex Inverted where
     where
     updatePart c p              = PT.mapWithKey
                                   (\w o -> foldWithKeyDocIdMap (updateDocument c w) emptyDocIdMap o) p
-    updateDocument c w d p r    = insertWithDocIdMap mergePositions (f c w d) p r
+    updateDocument c w d p r    = insertWithDocIdMap mergePositions (f c (T.pack w) d) p r
       where
       mergePositions p1 p2      = deflatePos $ unionPos (inflatePos p1) (inflatePos p2)
 
@@ -133,7 +134,7 @@ instance HolIndex Inverted where
     updateId                    = insertDocIdMap . f
 
   toList i                      = concat $ map convertPart $ M.toList (indexParts i)
-    where convertPart (c,p)     = map (\(w, o) -> (c, w, inflateOcc o)) $
+    where convertPart (c,p)     = map (\(w, o) -> (c, T.pack w, inflateOcc o)) $
                                   PT.toList $
                                   p
 
@@ -149,22 +150,8 @@ instance NFData Inverted where
 -- ----------------------------------------------------------------------------
 
 instance XmlPickler Inverted where
-  xpickle                       =  xpElem "indexes" $
-                                   xpWrap (\p -> Inverted p, \(Inverted p) -> p) xpParts
+  xpickle = undefined 
 
--- | The XML pickler for the index parts.
-xpParts                         :: PU Parts
-xpParts                         = xpWrap (M.fromList, M.toList) (xpList xpContext)
-  where
-  xpContext                     = xpElem "part" (xpPair (xpAttr "id" xpText) xpPart)
-
--- | The XML pickler for a single part.
-xpPart                          :: PU Part
-xpPart                          = xpElem "index" (xpWrap (PT.fromList, PT.toList) (xpList xpWord))
-  where
-  xpWord                        = xpElem "word" $
-                                  xpPair (xpAttr "w" xpText)
-                                         (xpWrap (deflateOcc, inflateOcc) xpOccurrences)
 
 -- ----------------------------------------------------------------------------
 
@@ -182,8 +169,8 @@ emptyInverted                   :: Inverted
 emptyInverted                   = Inverted M.empty
 
 -- | Create an index with just one word in one context.
-singleton                       :: Context -> String -> Occurrences -> Inverted
-singleton c w o                 = Inverted (M.singleton c (PT.singleton w (deflateOcc o)))
+singleton                       :: Context -> T.Text -> Occurrences -> Inverted
+singleton c w o                 = Inverted (M.singleton c (PT.singleton (T.unpack w) (deflateOcc o)))
 
 -- | Merge two sets of index parts.
 mergeParts                      :: Parts -> Parts -> Parts

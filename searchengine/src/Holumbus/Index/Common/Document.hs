@@ -76,17 +76,18 @@ instance Binary Document where
     get                         = liftM2 Document get get
 
 
--- FIXME: implement
+-- FIXME: remove -> using json now
 instance XmlPickler Description where
     xpickle = undefined
 
-
+-- FIXME: remove -> using json now
 instance XmlPickler Document where
-    xpickle                     = xpWrap ( \ (t, d) -> Document t d
-                                         , \ (Document t d) -> (t, d)
-                                         ) (xpPair xpURI xpickle)
-        where
-        xpURI                   = xpAttr "href"  xpText0
+    xpickle = undefined
+--    xpickle                     = xpWrap ( \ (t, d) -> Document t d
+--                                         , \ (Document t d) -> (t, d)
+--                                         ) (xpPair xpURI xpickle)
+--        where
+--        xpURI                   = xpAttr "href"  xpText0
 
 
 instance NFData Document where

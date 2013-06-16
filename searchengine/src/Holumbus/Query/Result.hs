@@ -47,28 +47,20 @@ module Holumbus.Query.Result
   -- * Transform
   , setDocScore
   , setWordScore
-
-  -- * Picklers
-  , xpDocHits
-  , xpWordHits
   )
 where
 
-import Prelude                  hiding (null)
+import           Prelude                  hiding (null)
 
-import Control.DeepSeq
-import Control.Monad            ( liftM2 )
+import           Control.DeepSeq
+import           Control.Monad            ( liftM2 )
 
-import Data.Binary              ( Binary (..) )
-import Data.Function
-import Data.Map (Map)
-import qualified
-       Data.Map as M
-import qualified
-       Data.List as L
+import           Data.Binary              ( Binary (..) )
+import           Data.Map (Map)
+import qualified Data.Map                 as M
+import qualified Data.Text                as T
 
-import Holumbus.Utility
-import Holumbus.Index.Common
+import           Holumbus.Index.Common
 
 import Text.XML.HXT.Core
 
@@ -117,7 +109,7 @@ type WordDocHits        = Occurrences
 type Score              = Float
 
 -- | The original search terms entered by the user.
-type Terms              = [String]
+type Terms              = [T.Text]
 
 -- ----------------------------------------------------------------------------
 
@@ -143,78 +135,13 @@ instance NFData WordInfo where
   rnf (WordInfo t s)    = rnf t `seq` rnf s
 
 instance XmlPickler Result where
-  xpickle               = xpElem "result" $
-                          xpWrap ( \ (dh, wh) -> Result dh wh
-                                 , \ (Result dh wh) -> (dh, wh)
-                                 ) (xpPair xpDocHits xpWordHits)
+  xpickle               = undefined
 
 instance XmlPickler DocInfo where
-  xpickle               = xpWrap ( \ (d, s) -> DocInfo d s
-                                 , \ (DocInfo d s) -> (d, s)
-                                 ) xpDocInfo'
-    where
-    xpDocInfo'          = xpPair xpickle (xpAttr "score" xpPrim)
+  xpickle               = undefined
 
 instance XmlPickler WordInfo where
-  xpickle               = xpWrap ( \ (t, s) -> WordInfo t s
-                                 , \ (WordInfo t s) -> (t, s)
-                                 ) xpWordInfo
-    where
-    xpWordInfo          = xpPair (xpAttr "term" xpTerms)
-                                 (xpAttr "score" xpPrim)
-    xpTerms             = xpWrap (split ",", join ",") xpText0
-
--- ----------------------------------------------------------------------------
-
--- | The XML pickler for the document hits. Will be sorted by score.
-xpDocHits               :: PU DocHits
-xpDocHits               = xpElem "dochits" $
-                          xpWrap ( fromListDocIdMap
-                                 , toListSorted
-                                 ) (xpList xpDocHit)
-  where
-  toListSorted          = L.sortBy (compare `on` (docScore . fst . snd)) . toListDocIdMap -- Sort by score
-  xpDocHit              = xpElem "doc" $
-                          xpPair (xpAttr "idref" xpDocId)
-                                 (xpPair xpickle xpDocContextHits)
-
--- | The XML pickler for the contexts in which the documents were found.
-xpDocContextHits        :: PU DocContextHits
-xpDocContextHits        = xpWrap (M.fromList, M.toList) $
-                          xpList xpDocContextHit
-  where
-  xpDocContextHit       = xpElem "context" $
-                          xpPair (xpAttr "name" xpText) xpDocWordHits
-
--- | The XML pickler for the words and positions found in a document.
-xpDocWordHits           :: PU DocWordHits
-xpDocWordHits           = xpWrap (M.fromList, M.toList) (xpList xpDocWordHit)
-  where
-  xpDocWordHit          = xpElem "word" $
-                          xpPair (xpAttr "w" xpText) xpPositions
-
--- | The XML pickler for the word hits. Will be sorted alphabetically by the words.
-xpWordHits              :: PU WordHits
-xpWordHits              = xpElem "wordhits" $
-                          xpWrap (M.fromList, toListSorted) $
-                          xpList xpWordHit
-  where
-  toListSorted          = L.sortBy (compare `on` fst) . M.toList -- Sort by word
-  xpWordHit             = xpElem "word" $
-                          xpPair (xpAttr "w" xpText)
-                                 (xpPair xpickle xpWordContextHits)
-
--- | The XML pickler for the contexts in which the words were found.
-xpWordContextHits       :: PU WordContextHits
-xpWordContextHits       = xpWrap (M.fromList, M.toList) $
-                          xpList xpWordContextHit
-  where
-  xpWordContextHit      = xpElem "context" $
-                          xpPair (xpAttr "name" xpText) xpWordDocHits
-
--- | The XML pickler for the documents and positions where the word occurs (reusing existing pickler).
-xpWordDocHits           :: PU WordDocHits
-xpWordDocHits           = xpOccurrences
+  xpickle               = undefined
 
 -- ----------------------------------------------------------------------------
 

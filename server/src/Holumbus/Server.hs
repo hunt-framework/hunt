@@ -65,7 +65,7 @@ class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d where
   modifyDocTable ix         = modifyIndexer ix (index ix)
 
   -- index functions
-  searchPrefixNoCase        :: ix -> Context -> String -> RawResult
+  searchPrefixNoCase        :: ix -> Context -> Text -> RawResult
   searchPrefixNoCase        = Co.prefixNoCase . index
 
   allWords                  :: ix -> Context -> RawResult
@@ -200,7 +200,7 @@ start = scotty 3000 $ do
     queryStr <- param "query"
     res      <- withIx $ \ix -> do
                           case parseQuery queryStr of
-                            (Left err) -> return . JsonFailure $ T.pack err
+                            (Left err) -> return . JsonFailure $ err
                             (Right query) -> return . JsonSuccess
                               $ map (\(_,(DocInfo doc _,_)) -> doc)
                               $ Co.toListDocIdMap . docHits
@@ -212,7 +212,7 @@ start = scotty 3000 $ do
     queryStr <- param "query"
     res      <- withIx $ \ix -> do
                           case parseQuery queryStr of
-                            (Left err) -> return . JsonFailure $ T.pack err
+                            (Left err) -> return . JsonFailure $ err
                             (Right query) -> return . JsonSuccess
                               $ map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + Co.sizeDocIdMap m) 0 o))
                               $ M.toList. wordHits
@@ -234,7 +234,7 @@ start = scotty 3000 $ do
     context <- param "context"
     res <- withIx $ \i ->
             -- simple Text response
-            return . show $ allWords i context
+            return . show $ allWords i $ T.pack context
     json $ JsonSuccess res
 
 
@@ -287,7 +287,7 @@ start = scotty 3000 $ do
 
   get "/document/delete/:uri" $ do
     docUri <- param "uri"
-    modIx_ $ \ix -> return $ deleteDocByURI docUri ix
+    modIx_ $ \ix -> return $ deleteDocByURI (T.pack docUri) ix
     json (JsonSuccess "document deleted" :: JsonResponse Text)
 
 

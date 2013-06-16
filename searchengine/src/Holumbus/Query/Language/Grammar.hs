@@ -32,19 +32,18 @@ module Holumbus.Query.Language.Grammar
   )
 where
 
-import Data.Char
-import Data.List
+import           Data.Text ( Text )
+import qualified Data.Text as T
 import Data.Binary
 import Control.Monad
-
 import Holumbus.Index.Common (Context)
 
 -- | The query language.
-data Query = Word       String            -- ^ Single case-insensitive word.
-           | Phrase     String            -- ^ Single case-insensitive phrase.
-           | CaseWord   String            -- ^ Single case-sensitive word.
-           | CasePhrase String            -- ^ Single case-sensitive phrase.
-           | FuzzyWord  String            -- ^ Single fuzzy word.
+data Query = Word       Text            -- ^ Single case-insensitive word.
+           | Phrase     Text            -- ^ Single case-insensitive phrase.
+           | CaseWord   Text            -- ^ Single case-sensitive word.
+           | CasePhrase Text            -- ^ Single case-sensitive phrase.
+           | FuzzyWord  Text            -- ^ Single fuzzy word.
            | Specifier  [Context] Query   -- ^ Restrict query to a list of contexts.
            | Negation   Query             -- ^ Negate the query.
            | BinQuery   BinOp Query Query -- ^ Combine two queries through a binary operation.
@@ -95,20 +94,20 @@ instance Binary BinOp where
 optimize :: Query -> Query
 
 optimize q@(BinQuery And (Word q1) (Word q2)) = 
-  if (map toLower q1) `isPrefixOf` (map toLower q2) then Word q2 else
-    if (map toLower q2) `isPrefixOf` (map toLower q1) then Word q1 else q
+  if (T.toLower q1) `T.isPrefixOf` (T.toLower q2) then Word q2 else
+    if (T.toLower q2) `T.isPrefixOf` (T.toLower q1) then Word q1 else q
 
 optimize q@(BinQuery And (CaseWord q1) (CaseWord q2)) = 
-  if q1 `isPrefixOf` q2 then CaseWord q2 else
-    if q2 `isPrefixOf` q1 then CaseWord q1 else q
+  if q1 `T.isPrefixOf` q2 then CaseWord q2 else
+    if q2 `T.isPrefixOf` q1 then CaseWord q1 else q
 
 optimize q@(BinQuery Or (Word q1) (Word q2)) =
-  if (map toLower q1) `isPrefixOf` (map toLower q2) then Word q1 else
-    if (map toLower q2) `isPrefixOf` (map toLower q1) then Word q2 else q
+  if (T.toLower q1) `T.isPrefixOf` (T.toLower q2) then Word q1 else
+    if (T.toLower q2) `T.isPrefixOf` (T.toLower q1) then Word q2 else q
 
 optimize q@(BinQuery Or (CaseWord q1) (CaseWord q2)) =
-  if q1 `isPrefixOf` q2 then CaseWord q1 else
-    if q2 `isPrefixOf` q1 then CaseWord q2 else q
+  if q1 `T.isPrefixOf` q2 then CaseWord q1 else
+    if q2 `T.isPrefixOf` q1 then CaseWord q2 else q
 
 optimize (BinQuery And q1 (Negation q2)) = BinQuery But (optimize q1) (optimize q2)
 optimize (BinQuery And (Negation q1) q2) = BinQuery But (optimize q2) (optimize q1)
@@ -122,7 +121,7 @@ optimize (Specifier cs q) = Specifier cs (optimize q)
 optimize q = q
 
 -- | Check if the query arguments comply with some custom predicate.
-checkWith :: (String -> Bool) -> Query -> Bool
+checkWith :: (T.Text -> Bool) -> Query -> Bool
 checkWith f (Word s) = f s
 checkWith f (Phrase s) = f s
 checkWith f (CaseWord s) = f s
@@ -133,7 +132,7 @@ checkWith f (BinQuery _ q1 q2) = (checkWith f q1) && (checkWith f q2)
 checkWith f (Specifier _ q) = checkWith f q
 
 -- | Returns a list of all terms in the query.
-extractTerms :: Query -> [String]
+extractTerms :: Query -> [T.Text]
 extractTerms (Word s) = [s]
 extractTerms (CaseWord s) = [s]
 extractTerms (FuzzyWord s) = [s]

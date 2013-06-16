@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS_GHC  -fno-warn-unused-do-bind #-}
 
 -- ----------------------------------------------------------------------------
@@ -28,16 +29,17 @@ module Holumbus.Query.Language.Parser
   )
 where
 
-import Holumbus.Query.Language.Grammar
-import Text.ParserCombinators.Parsec
+import qualified Data.Text as T
+import           Holumbus.Query.Language.Grammar
+import           Text.ParserCombinators.Parsec
 
 -- ----------------------------------------------------------------------------
 
 -- | Parse a query using the default syntax provided by the Holumbus framework.
-parseQuery :: String -> Either String Query
+parseQuery :: String -> Either T.Text Query
 parseQuery = result . (parse query "")
   where
-  result (Left err) = Left (show err)
+  result (Left err) = Left (T.pack . show $ err)
   result (Right q)  = Right q
 
 -- | A query may always be surrounded by whitespace
@@ -73,12 +75,12 @@ notQuery = do notQuery' <|> contextQuery
 contextQuery :: Parser Query
 contextQuery = try contextQuery' <|> parQuery
   where
-  contextQuery' = do c <- contexts
+  contextQuery' = do cs <- contexts
                      spaces
                      char ':'
                      spaces
                      t <- parQuery
-                     return (Specifier c t)
+                     return (Specifier (map T.pack cs) t)
 
 -- | Parse a query surrounded by parentheses.
 parQuery :: Parser Query
@@ -108,14 +110,14 @@ fuzzyQuery = fuzzyQuery' <|> phraseQuery Phrase <|> wordQuery Word
                    wordQuery FuzzyWord
 
 -- | Parse a word query.
-wordQuery :: (String -> Query) -> Parser Query
+wordQuery :: (T.Text -> Query) -> Parser Query
 wordQuery c = do w <- word
-                 return (c w)
+                 return (c $ T.pack w)
 
 -- | Parse a phrase query.
-phraseQuery :: (String -> Query) -> Parser Query
+phraseQuery :: (T.Text -> Query) -> Parser Query
 phraseQuery c = do p <- phrase
-                   return (c p)
+                   return (c $ T.pack p)
 
 -- | Parse an and operator.
 andOp :: Parser ()

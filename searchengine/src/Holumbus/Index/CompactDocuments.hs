@@ -46,6 +46,7 @@ import qualified Data.Binary            as B
 import           Data.ByteString.Lazy   ( ByteString )
 import qualified Data.ByteString.Lazy   as BS
 import           Data.Maybe             ( fromJust )
+import qualified Data.Text              as T
 
 import qualified Holumbus.Data.PrefixTree as M
 import           Holumbus.Index.Common
@@ -130,7 +131,7 @@ instance HolDocuments Documents where
                                   . lookupDocIdMap i
                                   $ idToDoc d
   lookupByURI d u               = maybe (fail "") return
-                                  . M.lookup  u
+                                  . M.lookup  (T.unpack u)
                                   $ docToId d
 
   -- this is a sufficient test, but if the doc ids don't form an intervall
@@ -174,13 +175,13 @@ instance HolDocuments Documents where
                                   (newId, Documents newIdToDoc newDocToId newId)
       where
       newIdToDoc                = insertDocIdMap newId d' (idToDoc ds)
-      newDocToId                = M.insert (uri d) newId  (docToId ds)
+      newDocToId                = M.insert (T.unpack . uri $ d) newId (docToId ds)
       newId                     = incrDocId (lastDocId ds)
 
   updateDoc ds i d              = rnf d' `seq`                  -- force document compression
                                   ds
                                   { idToDoc = insertDocIdMap i d' (idToDoc ds)
-                                  , docToId = M.insert (uri d) i (docToId (removeById ds i))
+                                  , docToId = M.insert (T.unpack . uri $ d) i (docToId (removeById ds i))
                                   }
       where
         d'                      = fromDocument d
@@ -189,9 +190,9 @@ instance HolDocuments Documents where
     where
     reallyRemove (Document u _)
                                 = Documents
-                                  (deleteDocIdMap d (idToDoc ds))
-                                  (M.delete u (docToId ds))
-                                  (lastDocId ds)
+                                 (deleteDocIdMap d (idToDoc ds))
+                                 (M.delete (T.unpack u) (docToId ds))
+                                 (lastDocId ds)
 
   updateDocuments f d           = Documents updated (idToDoc2docToId updated) (lastId updated)
     where
@@ -290,7 +291,7 @@ singleton                       :: Document -> Documents
 singleton d                     = rnf d' `seq`
                                   Documents
                                   (singletonDocIdMap firstDocId d')
-                                  (M.singleton (uri d) firstDocId)
+                                  (M.singleton (T.unpack . uri $ d) firstDocId)
                                   firstDocId
     where
       d'                        = fromDocument d
@@ -311,7 +312,7 @@ simplify dt                     = Documents (simple (idToDoc dt)) (docToId dt) (
 
 idToDoc2docToId                 :: DocMap -> URIMap
 idToDoc2docToId                 = foldWithKeyDocIdMap
-                                  (\i d r -> M.insert (uri . toDocument $ d) i r)
+                                  (\i d r -> M.insert (T.unpack . uri . toDocument $ d) i r)
                                   M.empty
 
 -- | Query the 'idToDoc' part of the document table for the last id.

@@ -48,19 +48,19 @@ module Holumbus.Index.Common
   )
 where
 
-import Control.Monad                    ( foldM )
+import           Control.Monad                    ( foldM )
 
-import Data.Set                         ( Set )
--- import Data.Binary                   ( Binary (..) )
--- import Data.Maybe
+import           Data.Set                         ( Set )
+import qualified Data.Text                        as T
 
-import Holumbus.Index.Common.BasicTypes
-import Holumbus.Index.Common.Document
-import Holumbus.Index.Common.DocId
-import Holumbus.Index.Common.DocIdMap
-import Holumbus.Index.Common.Occurences
-import Holumbus.Index.Common.RawResult
-import Holumbus.Index.Common.LoadStore
+
+import           Holumbus.Index.Common.BasicTypes
+import           Holumbus.Index.Common.Document
+import           Holumbus.Index.Common.DocId
+import           Holumbus.Index.Common.DocIdMap
+import           Holumbus.Index.Common.Occurences
+import           Holumbus.Index.Common.RawResult
+import           Holumbus.Index.Common.LoadStore
 
 -- ------------------------------------------------------------
 
@@ -77,16 +77,16 @@ class HolIndex i where
   allWords                      :: i -> Context -> RawResult
 
   -- | Searches for words beginning with the prefix in a given context (case-sensitive).
-  prefixCase                    :: i -> Context -> String -> RawResult
+  prefixCase                    :: i -> Context -> T.Text -> RawResult
 
   -- | Searches for words beginning with the prefix in a given context (case-insensitive).
-  prefixNoCase                  :: i -> Context -> String -> RawResult
+  prefixNoCase                  :: i -> Context -> T.Text -> RawResult
 
   -- | Searches for and exact word in a given context (case-sensitive).
-  lookupCase                    :: i -> Context -> String -> RawResult
+  lookupCase                    :: i -> Context -> T.Text -> RawResult
 
   -- | Searches for and exact word in a given context (case-insensitive).
-  lookupNoCase                  :: i -> Context -> String -> RawResult
+  lookupNoCase                  :: i -> Context -> T.Text -> RawResult
 
   -- | Insert occurrences.
   insertOccurrences             :: Context -> Word -> Occurrences -> i -> i
@@ -155,16 +155,16 @@ class (Monad m) => HolIndexM m i where
   allWordsM                     :: i -> Context -> m RawResult
 
   -- | Searches for words beginning with the prefix in a given context (case-sensitive).
-  prefixCaseM                   :: i -> Context -> String -> m RawResult
+  prefixCaseM                   :: i -> Context -> T.Text -> m RawResult
 
   -- | Searches for words beginning with the prefix in a given context (case-insensitive).
-  prefixNoCaseM                 :: i -> Context -> String -> m RawResult
+  prefixNoCaseM                 :: i -> Context -> T.Text -> m RawResult
 
   -- | Searches for and exact word in a given context (case-sensitive).
-  lookupCaseM                   :: i -> Context -> String -> m RawResult
+  lookupCaseM                   :: i -> Context -> T.Text -> m RawResult
 
   -- | Searches for and exact word in a given context (case-insensitive).
-  lookupNoCaseM                 :: i -> Context -> String -> m RawResult
+  lookupNoCaseM                 :: i -> Context -> T.Text -> m RawResult
 
   -- | Insert occurrences.
   insertOccurrencesM            :: Context -> Word -> Occurrences -> i -> m i

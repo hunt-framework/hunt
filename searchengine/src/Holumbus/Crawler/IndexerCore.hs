@@ -31,7 +31,8 @@ import           Data.Function.Selector
 import           Data.Maybe
 import           Data.Map                       (Map)
 --import qualified Data.Map                       as M
-import Data.Text (Text)
+import           Data.Text                      ( Text )
+import qualified Data.Text                      as T
 
 import           Holumbus.Crawler
 
@@ -181,7 +182,7 @@ indexCrawlerConfig opts followRef getHrefF preDocF descF0 contextCs
     contextFs                   = catA . map contextF $ contextCs               -- collect all contexts
 
     contextF                    :: IndexContextConfig -> IOSArrow XmlTree RawContext
-    contextF ixc                = constA (ixc_name ixc)                         -- the name of the raw context
+    contextF ixc                = constA (T.pack $ ixc_name ixc)                         -- the name of the raw context
                                   &&&
                                   ( ixc_collectText ixc >. processText )        -- the list of words and positions of the collected text
         where                                                                   -- this arrow is deterministic, it always delivers a single pair
@@ -193,6 +194,8 @@ indexCrawlerConfig opts followRef getHrefF preDocF descF0 contextCs
                                   flip zip [1..]
                                   >>>
                                   filter (fst >>> ixc_boringWord ixc >>> not)
+			          >>>
+                                  map (first T.pack)
 
     defaultOpts                 = withRedirect yes
                                   >>>
@@ -258,7 +261,7 @@ insertRawDocM (rawUri, (rawContexts, rawDescription)) ixs
     nullContexts                = and . map (null . snd) $ rawContexts
     (did, newDocs)              = insertDoc (ixs_documents ixs) doc
     doc                         = Document
-                                  { uri     = rawUri
+                                  { uri     = T.pack rawUri
                                   , desc    = rawDescription -- XXX: insert title?
                                   }
 
