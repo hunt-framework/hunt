@@ -41,7 +41,7 @@ index =
     $("#btn-add").click(function(ev){
       ev.preventDefault();
       var json = $("#txt-document").val();
-      $.post( "/document/add"
+      $.post( "/document/insert"
             , json
             , function(data) {
                 if (data.code === 0) alert ("Document added to Index")

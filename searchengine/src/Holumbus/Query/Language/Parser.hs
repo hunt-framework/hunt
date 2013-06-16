@@ -18,6 +18,18 @@
   The parser implements a default syntax for the query grammar which exposes
   all possible query types and operators to the user.
 
+  ==========================
+  ==========================
+
+  Current Syntax:
+  
+  AND,OR,NOT          = combinate queries
+  BUT                 = AND NOT
+  !                   = case sensitive query/word f.e.:  !car or !Car
+  ~                   = fuzzy query word          f.e.:  ~car ... ~cra
+  ( .. )              = brakets
+  :                   = context sensitive queries f.e.:  (who:Rudi Völler)
+  ,                   = multi context queries     f.e.:  (content,who,title:Rudi Völler)
 -}
 
 -- ----------------------------------------------------------------------------
