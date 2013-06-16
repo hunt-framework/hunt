@@ -103,7 +103,7 @@ class HolIndex i where
   deletePosition c w d p i      = deleteOccurrences c w (singletonOccurrence d p) i
 
   -- | Delete documents completely (all occurrences).
-  deleteDocs                    :: Set DocId -> i -> i
+  deleteDocsById                :: Set DocId -> i -> i
 
   -- | Merges two indexes.
   mergeIndexes                  :: i -> i -> i

@@ -12,7 +12,6 @@ import           Control.Monad.IO.Class   (MonadIO, liftIO)
 import           Control.Concurrent.MVar
 
 import           Data.Maybe               (isJust, isNothing, fromJust, fromMaybe)
-import           Data.Map                 (Map,{- empty-})
 import qualified Data.Map                 as M
 import qualified Data.Set                 as S
 import           Data.Text                (Text)
@@ -83,10 +82,10 @@ class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d where
   deleteDocById docId ix    = fromMaybe ix doIt
     where
     doIt = do
-      -- might save deleting from the index (very expensive operation)
+      -- might avoid deleting from the index (very expensive operation)
       _              <- Co.lookupById (docTable ix) docId -- XXX: impl. elem function?
       let newDocTable = Co.removeById (docTable ix) docId
-      let newIndex    = Co.deleteDocs (S.singleton docId) (index ix)
+      let newIndex    = Co.deleteDocsById (S.singleton docId) (index ix)
       return $ modifyIndexer ix newIndex newDocTable
 
   deleteDocByURI            :: Co.URI -> ix -> ix
@@ -95,22 +94,20 @@ class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d where
   updateDoc                 :: DocId -> Document -> Words -> ix -> ix
   updateDoc docId doc w     = insertDoc doc w . deleteDocById docId
 
-  -- TODO: less qnd
   insertDoc                 :: Document -> Words -> ix -> ix
   insertDoc doc wrds ix     = modifyIndexer ix newIndex newDocTable
     where
     (dId, newDocTable) = Co.insertDoc (docTable ix) doc
-    newIndex           = foldr (\(c, w, ps) -> Co.insertOccurrences c w (mkOccs dId ps)) (index ix) $ flattenWords wrds
+    newIndex           = M.foldrWithKey (\c wl acc -> M.foldrWithKey (\w ps acc' -> Co.insertOccurrences c w (mkOccs dId ps) acc') acc wl) (index ix) wrds
 
     mkOccs :: DocId -> [Position] -> Occurrences
-    mkOccs did pl = insertOccs did pl emptyOccurrences
+    mkOccs did pl = insertPositions did pl emptyOccurrences
 
-    insertOccs :: DocId -> [Position] -> Occurrences -> Occurrences
-    insertOccs docId ws os = foldr (insertOccurrence docId) os ws
+    insertPositions :: DocId -> [Position] -> Occurrences -> Occurrences
+    insertPositions docId ws os = foldr (insertOccurrence docId) os ws
 
-    flattenWords :: Map t (Map t1 t2) -> [(t, t1, t2)]
-    flattenWords = concatMap (\(c, wl) -> map (\(w, ps)-> (c, w, ps)) $ M.toList wl) . M.toList
-
+    --flattenWords :: Map t (Map t1 t2) -> [(t, t1, t2)]
+    --flattenWords = M.foldrWithKey (\c wl acc -> M.foldrWithKey (\w ps acc' -> (c, w, ps):acc') acc wl) []
 
 -- generic indexer - combination of an index and a doc table
 data Indexer i d
@@ -245,8 +242,9 @@ start = scotty 3000 $ do
 
     -- res :: Maybe [Co.URI]  -- maybe the documents that already exist
     res <- modIx $ \ix -> do
+      -- intersection of new docs and docTable
       let failedDocUris = map fst $ checkApiDocUris isJust jss ix :: [Co.URI]
-
+      -- empty intersection of sets -> safe to insert
       return $ if Prelude.null failedDocUris
        then
           ( foldr (\(ApiDocument u d ws) ->
@@ -268,9 +266,10 @@ start = scotty 3000 $ do
 
     -- res :: Maybe [Co.URI]  -- maybe the documents/uris that do not exist
     res <- modIx $ \ix -> do
-      let allDocs    = checkApiDocUris (const True) jss ix :: [(Co.URI, Maybe DocId)]
+      let allDocs       = checkApiDocUris (const True) jss ix :: [(Co.URI, Maybe DocId)]
+      -- set of new docs minus docTable
       let failedDocUris = map fst . filter (isNothing . snd) $ allDocs
-
+      -- difference set is empty -> safe to update
       return $ if Prelude.null failedDocUris
        then
           ( foldr (\(docId, ApiDocument u d ws) ->

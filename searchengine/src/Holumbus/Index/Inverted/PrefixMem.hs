@@ -138,9 +138,9 @@ instance HolIndex Inverted where
                                   PT.toList $
                                   p
 
-  deleteDocs = deleteDocs'
+  deleteDocsById = deleteDocsById'
 
-  {-# INLINE deleteDocs #-}
+  {-# INLINE deleteDocsById #-}
 
 -- ----------------------------------------------------------------------------
 
@@ -150,7 +150,7 @@ instance NFData Inverted where
 -- ----------------------------------------------------------------------------
 
 instance XmlPickler Inverted where
-  xpickle = undefined 
+  xpickle = undefined
 
 
 -- ----------------------------------------------------------------------------
@@ -222,8 +222,8 @@ getPart c i                     = fromMaybe PT.empty (M.lookup c $ indexParts i)
 
 -- ----------------------------------------------------------------------------
 
-deleteDocs' :: Set DocId -> Inverted -> Inverted
-deleteDocs' docIds = liftInv $ M.mapMaybe deleteInParts
+deleteDocsById' :: Set DocId -> Inverted -> Inverted
+deleteDocsById' docIds = liftInv $ M.mapMaybe deleteInParts
   where
   deleteInParts :: Part -> Maybe Part
   deleteInParts p
