@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE FunctionalDependencies #-}
 
 module Holumbus.Server {-(start)-} where
 
@@ -11,9 +10,8 @@ import           Network.Wai.Middleware.RequestLogger
 import           Control.Monad.IO.Class   (MonadIO, liftIO)
 import           Control.Concurrent.MVar
 
-import           Data.Maybe               (isJust, isNothing, fromJust, fromMaybe)
+import           Data.Maybe               (isJust, isNothing, fromJust)
 import qualified Data.Map                 as M
-import qualified Data.Set                 as S
 import           Data.Text                (Text)
 import qualified Data.Text                as T
 {-
@@ -29,15 +27,11 @@ import           Data.Aeson.Encode.Pretty (encodePretty)
 import qualified Holumbus.Server.Template       as Tmpl
 import           Holumbus.Server.Common
 
-import           Holumbus.Index.Common          ( Position, Context
-                                              --  , Word, Description
-                                                , URI
+import           Holumbus.Index.Common          ( URI
                                                 , Document(..)
-                                                , RawResult, DocId(..)
+                                                , DocId(..)
                                                 , HolIndex, HolDocuments)
 import qualified Holumbus.Index.Common          as Co
-import           Holumbus.Index.Common.Occurences
---import           Holumbus.Index.Common.Document
 import           Holumbus.Index.Inverted.PrefixMem
 import           Holumbus.Index.HashedDocuments
 
@@ -47,79 +41,6 @@ import           Holumbus.Query.Processor
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Result
 
-
--- which ops should an indexer support? maybe already in crawler?
--- uses functional dependencies
-class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d where
-  -- insert a new document (and the corresponding words and occurrences) into the indexer
-  newIndexer                :: i -> d -> ix
-  index                     :: ix -> i
-  docTable                  :: ix -> d
-  modifyIndexer             :: ix -> i -> d -> ix
-  modifyIndex               :: ix -> i -> ix
-  modifyIndex ix i          = modifyIndexer ix i (docTable ix)
-  modifyDocTable            :: ix -> d -> ix
-  modifyDocTable ix         = modifyIndexer ix (index ix)
-
-  -- index functions
-  searchPrefixNoCase        :: ix -> Context -> Text -> RawResult
-  searchPrefixNoCase        = Co.prefixNoCase . index
-
-  allWords                  :: ix -> Context -> RawResult
-  allWords                  = Co.allWords . index
-
-  -- doctable functions
-  lookupById                :: Monad m => ix -> DocId -> m Document
-  lookupById                = Co.lookupById . docTable
-
-  lookupByURI               :: Monad m => ix -> URI -> m DocId
-  lookupByURI               = Co.lookupByURI . docTable
-
-  deleteDocById             :: DocId -> ix -> ix
-  deleteDocById docId ix    = fromMaybe ix doIt
-    where
-    doIt = do
-      -- might avoid deleting from the index (very expensive operation)
-      _              <- Co.lookupById (docTable ix) docId -- XXX: impl. elem function?
-      let newDocTable = Co.removeById (docTable ix) docId
-      let newIndex    = Co.deleteDocsById (S.singleton docId) (index ix)
-      return $ modifyIndexer ix newIndex newDocTable
-
-  deleteDocByURI            :: URI -> ix -> ix
-  deleteDocByURI u ix       = maybe ix (`deleteDocById` ix) $ Co.lookupByURI (docTable ix) u
-
-  updateDoc                 :: DocId -> Document -> Words -> ix -> ix
-  updateDoc docId doc w     = insertDoc doc w . deleteDocById docId
-
-  insertDoc                 :: Document -> Words -> ix -> ix
-  insertDoc doc wrds ix     = modifyIndexer ix newIndex newDocTable
-    where
-    (dId, newDocTable) = Co.insertDoc (docTable ix) doc
-    newIndex           = M.foldrWithKey (\c wl acc -> M.foldrWithKey (\w ps acc' -> Co.insertOccurrences c w (mkOccs dId ps) acc') acc wl) (index ix) wrds
-
-    mkOccs :: DocId -> [Position] -> Occurrences
-    mkOccs did pl = insertPositions did pl emptyOccurrences
-
-    insertPositions :: DocId -> [Position] -> Occurrences -> Occurrences
-    insertPositions docId ws os = foldr (insertOccurrence docId) os ws
-
-    --flattenWords :: Map t (Map t1 t2) -> [(t, t1, t2)]
-    --flattenWords = M.foldrWithKey (\c wl acc -> M.foldrWithKey (\w ps acc' -> (c, w, ps):acc') acc wl) []
-
--- generic indexer - combination of an index and a doc table
-data Indexer i d
-  = Indexer
-    { ixIndex    :: i
-    , ixDocTable :: d
-    }
-
-
--- type class for an indexer - combination of index and doctable
-instance (HolIndex i, HolDocuments d) => HolIndexer (Indexer i d) i d where
-  newIndexer                                    = Indexer
-  index               (Indexer i _)             = i
-  docTable            (Indexer _ d)             = d
-  modifyIndexer       ix i d                    = ix {ixIndex = i, ixDocTable = d}
 
 
 (.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
@@ -158,7 +79,6 @@ jsonPretty v = do
   header "Content-Type" "application/json"
   raw $ encodePretty v
 -}
-
 
 checkApiDocUris :: HolIndexer ix i d => (Maybe DocId -> Bool) -> [ApiDocument] -> ix -> [(URI, Maybe DocId)]
 checkApiDocUris filterDocIds apiDocs ix =
@@ -213,15 +133,6 @@ start = scotty 3000 $ do
                               $ runQuery (index ix) (docTable ix) query
     json res
 
-
-
-  -- list all indexed documents
---  get "/search/:context/:query" $ do
---    context <- param "context"
---    query   <- param "query"
---    res <- withIx $ \i ->
---            return . show . Co.resultByWord context $ searchPrefixNoCase i context query
---    json $ JsonSuccess res
 
   -- list all words
   get "/words/:context" $ do
