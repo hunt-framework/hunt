@@ -22,7 +22,7 @@
   ==========================
 
   Current Syntax:
-  
+
   AND,OR,NOT          = combinate queries
   BUT                 = AND NOT
   !                   = case sensitive query/word f.e.:  !car or !Car
@@ -41,14 +41,15 @@ module Holumbus.Query.Language.Parser
   )
 where
 
-import qualified Data.Text as T
+import           Data.Text                (Text)
+import qualified Data.Text                as T
 import           Holumbus.Query.Language.Grammar
 import           Text.ParserCombinators.Parsec
 
 -- ----------------------------------------------------------------------------
 
 -- | Parse a query using the default syntax provided by the Holumbus framework.
-parseQuery :: String -> Either T.Text Query
+parseQuery :: String -> Either Text Query
 parseQuery = result . (parse query "")
   where
   result (Left err) = Left (T.pack . show $ err)
@@ -122,12 +123,12 @@ fuzzyQuery = fuzzyQuery' <|> phraseQuery Phrase <|> wordQuery Word
                    wordQuery FuzzyWord
 
 -- | Parse a word query.
-wordQuery :: (T.Text -> Query) -> Parser Query
+wordQuery :: (Text -> Query) -> Parser Query
 wordQuery c = do w <- word
                  return (c $ T.pack w)
 
 -- | Parse a phrase query.
-phraseQuery :: (T.Text -> Query) -> Parser Query
+phraseQuery :: (Text -> Query) -> Parser Query
 phraseQuery c = do p <- phrase
                    return (c $ T.pack p)
 

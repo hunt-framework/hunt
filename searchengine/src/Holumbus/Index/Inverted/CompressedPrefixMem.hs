@@ -47,6 +47,7 @@ import qualified Data.Binary            as B
 import           Data.Function          ( on )
 
 import           Data.Int
+import           Data.Text              (Text)
 import qualified Data.Text              as T
 
 import           Data.List              ( foldl', sortBy )
@@ -235,7 +236,7 @@ instance Sizeof OccOSerialized where
 
 newtype Inverted occ    = Inverted
                           { unInverted :: Parts  occ    -- ^ The parts of the index, each representing one context.
-                          } 
+                          }
                           deriving (Show, Eq)
 
 -- | The index parts are identified by a name, which should denote the context of the words.
@@ -371,7 +372,7 @@ toListInverted                  = M.toList . unInverted
 
 -- | Create an index with just one word in one context.
 
-singletonInverted               :: (ComprOccurrences i) => Context -> T.Text -> Occurrences -> Inverted i
+singletonInverted               :: (ComprOccurrences i) => Context -> Text -> Occurrences -> Inverted i
 singletonInverted c w o         = Inverted . M.singleton c . PT.singleton (T.unpack w) . fromOccurrences $ o
 
 sizeofAttrsInverted             :: (Sizeof i) => Inverted i -> Int64
@@ -402,7 +403,7 @@ allocate f (x:xs) (y:ys)        = allocate f xs (sortBy (compare `on` fst) ((com
   where
   combine (s1, v1) (s2, v2)     = (s1 + s2, f v1 v2)
 
--- | Create empty buckets for allocating indexes.  
+-- | Create empty buckets for allocating indexes.
 createBuckets                   :: Int -> [(Int, Inverted i)]
 createBuckets n                 = (replicate n (0, emptyInverted))
 
@@ -412,7 +413,7 @@ createBuckets n                 = (replicate n (0, emptyInverted))
 
 -- | The pure inverted index implemented as a prefix tree without any space optimizations.
 -- This may be taken as a reference for space and time measurements for the other index structures
- 
+
 type Inverted0                  = Inverted Occ0
 
 -- | The inverted index with simple-9 encoding of the occurence sets

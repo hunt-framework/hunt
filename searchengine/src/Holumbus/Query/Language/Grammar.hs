@@ -10,9 +10,9 @@
   Portability: portable
   Version    : 0.2
 
-  The Holumbus query language definition. 
-  
-  The specific syntax of any query language can be designed independently 
+  The Holumbus query language definition.
+
+  The specific syntax of any query language can be designed independently
   by creating appropriate parsers. Also see "Holumbus.Query.Language.Parser".
 
 -}
@@ -75,7 +75,7 @@ instance Binary Query where
              5 -> liftM2 Specifier get get
              6 -> liftM Negation get
              7 -> liftM3 BinQuery get get get
-             _ -> fail "Error while decoding Query"   
+             _ -> fail "Error while decoding Query"
 
 instance Binary BinOp where
   put And = put (0 :: Word8)
@@ -93,11 +93,11 @@ instance Binary BinOp where
 -- @BinQuery Filter q1 q2@ or @BinQuery Filter q2 q1@ respectively.
 optimize :: Query -> Query
 
-optimize q@(BinQuery And (Word q1) (Word q2)) = 
+optimize q@(BinQuery And (Word q1) (Word q2)) =
   if (T.toLower q1) `T.isPrefixOf` (T.toLower q2) then Word q2 else
     if (T.toLower q2) `T.isPrefixOf` (T.toLower q1) then Word q1 else q
 
-optimize q@(BinQuery And (CaseWord q1) (CaseWord q2)) = 
+optimize q@(BinQuery And (CaseWord q1) (CaseWord q2)) =
   if q1 `T.isPrefixOf` q2 then CaseWord q2 else
     if q2 `T.isPrefixOf` q1 then CaseWord q1 else q
 
@@ -121,7 +121,7 @@ optimize (Specifier cs q) = Specifier cs (optimize q)
 optimize q = q
 
 -- | Check if the query arguments comply with some custom predicate.
-checkWith :: (T.Text -> Bool) -> Query -> Bool
+checkWith :: (Text -> Bool) -> Query -> Bool
 checkWith f (Word s) = f s
 checkWith f (Phrase s) = f s
 checkWith f (CaseWord s) = f s
@@ -132,7 +132,7 @@ checkWith f (BinQuery _ q1 q2) = (checkWith f q1) && (checkWith f q2)
 checkWith f (Specifier _ q) = checkWith f q
 
 -- | Returns a list of all terms in the query.
-extractTerms :: Query -> [T.Text]
+extractTerms :: Query -> [Text]
 extractTerms (Word s) = [s]
 extractTerms (CaseWord s) = [s]
 extractTerms (FuzzyWord s) = [s]

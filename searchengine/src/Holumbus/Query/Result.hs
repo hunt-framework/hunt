@@ -58,6 +58,7 @@ import           Control.Monad            ( liftM2 )
 import           Data.Binary              ( Binary (..) )
 import           Data.Map (Map)
 import qualified Data.Map                 as M
+import           Data.Text                ( Text )
 import qualified Data.Text                as T
 
 import           Holumbus.Index.Common
@@ -109,7 +110,7 @@ type WordDocHits        = Occurrences
 type Score              = Float
 
 -- | The original search terms entered by the user.
-type Terms              = [T.Text]
+type Terms              = [Text]
 
 -- ----------------------------------------------------------------------------
 

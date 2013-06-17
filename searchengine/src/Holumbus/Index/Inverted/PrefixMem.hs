@@ -44,6 +44,7 @@ import           Data.Map                       (Map)
 import qualified Data.Map                       as M
 import           Data.Maybe
 import           Data.Set                       (Set)
+import           Data.Text                      (Text)
 import qualified Data.Text                      as T
 
 import qualified Holumbus.Data.PrefixTree       as PT
@@ -169,7 +170,7 @@ emptyInverted                   :: Inverted
 emptyInverted                   = Inverted M.empty
 
 -- | Create an index with just one word in one context.
-singleton                       :: Context -> T.Text -> Occurrences -> Inverted
+singleton                       :: Context -> Text -> Occurrences -> Inverted
 singleton c w o                 = Inverted (M.singleton c (PT.singleton (T.unpack w) (deflateOcc o)))
 
 -- | Merge two sets of index parts.

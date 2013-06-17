@@ -23,7 +23,6 @@ import           Data.Aeson.Encode.Pretty (encodePretty)
 --import qualified Data.Text.Lazy.Encoding as TEL
 --import qualified Data.Text.Lazy as TL
 
-
 --import           Data.Aeson.Types         --((.:), (.:?), FromJSON, parseJSON, Parser, Value (Array, Object))
 --import qualified Data.Aeson as J
 
@@ -31,16 +30,15 @@ import qualified Holumbus.Server.Template       as Tmpl
 import           Holumbus.Server.Common
 
 import           Holumbus.Index.Common          ( Position, Context
-                                              --  , Word, URI Description
+                                              --  , Word, Description
+                                                , URI
                                                 , Document(..)
                                                 , RawResult, DocId(..)
                                                 , HolIndex, HolDocuments)
 import qualified Holumbus.Index.Common          as Co
 import           Holumbus.Index.Common.Occurences
---import Holumbus.Index.Common.Document
+--import           Holumbus.Index.Common.Document
 import           Holumbus.Index.Inverted.PrefixMem
---import           Holumbus.Index.Common.RawResult
---import           Holumbus.Index.CompactDocuments
 import           Holumbus.Index.HashedDocuments
 
 import           Holumbus.Query.Language.Grammar
@@ -74,8 +72,7 @@ class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d where
   lookupById                :: Monad m => ix -> DocId -> m Document
   lookupById                = Co.lookupById . docTable
 
-  -- TODO: Co.URI is a String - should be Text
-  lookupByURI               :: Monad m => ix -> Co.URI -> m DocId
+  lookupByURI               :: Monad m => ix -> URI -> m DocId
   lookupByURI               = Co.lookupByURI . docTable
 
   deleteDocById             :: DocId -> ix -> ix
@@ -88,7 +85,7 @@ class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d where
       let newIndex    = Co.deleteDocsById (S.singleton docId) (index ix)
       return $ modifyIndexer ix newIndex newDocTable
 
-  deleteDocByURI            :: Co.URI -> ix -> ix
+  deleteDocByURI            :: URI -> ix -> ix
   deleteDocByURI u ix       = maybe ix (`deleteDocById` ix) $ Co.lookupByURI (docTable ix) u
 
   updateDoc                 :: DocId -> Document -> Words -> ix -> ix
@@ -163,7 +160,7 @@ jsonPretty v = do
 -}
 
 
-checkApiDocUris :: HolIndexer ix i d => (Maybe DocId -> Bool) -> [ApiDocument] -> ix -> [(Co.URI, Maybe DocId)]
+checkApiDocUris :: HolIndexer ix i d => (Maybe DocId -> Bool) -> [ApiDocument] -> ix -> [(URI, Maybe DocId)]
 checkApiDocUris filterDocIds apiDocs ix =
   let apiDocsM
           = map (\apiDoc -> let docUri = apiDocUri apiDoc
@@ -240,10 +237,10 @@ start = scotty 3000 $ do
     -- Raises an exception if parse is unsuccessful
     jss <- jsonData :: ActionM [ApiDocument]
 
-    -- res :: Maybe [Co.URI]  -- maybe the documents that already exist
+    -- res :: Maybe [URI]  -- maybe the documents that already exist
     res <- modIx $ \ix -> do
       -- intersection of new docs and docTable
-      let failedDocUris = map fst $ checkApiDocUris isJust jss ix :: [Co.URI]
+      let failedDocUris = map fst $ checkApiDocUris isJust jss ix :: [URI]
       -- empty intersection of sets -> safe to insert
       return $ if Prelude.null failedDocUris
        then
@@ -264,9 +261,9 @@ start = scotty 3000 $ do
     -- Raises an exception if parse is unsuccessful
     jss <- jsonData :: ActionM [ApiDocument]
 
-    -- res :: Maybe [Co.URI]  -- maybe the documents/uris that do not exist
+    -- res :: Maybe [URI]  -- maybe the documents/uris that do not exist
     res <- modIx $ \ix -> do
-      let allDocs       = checkApiDocUris (const True) jss ix :: [(Co.URI, Maybe DocId)]
+      let allDocs       = checkApiDocUris (const True) jss ix :: [(URI, Maybe DocId)]
       -- set of new docs minus docTable
       let failedDocUris = map fst . filter (isNothing . snd) $ allDocs
       -- difference set is empty -> safe to update
