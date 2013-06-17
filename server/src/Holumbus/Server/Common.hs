@@ -16,7 +16,7 @@ type Words        = Map Context WordList
 type WordList     = Map Word [Position]
 
 -- | type the server receives to add/modify/delete? in indexi
--- @FIXME 
+-- @FIXME
 -- this is way too much work to do for the client implementation
 -- we should consider receiving something like an entity with
 -- some kind of meta information attached. then our implemented
@@ -75,7 +75,7 @@ instance FromJSON ApiDocument where
 type ApiDocuments = [ApiDocument]
 
 -- |  some sort of json response format
-data JsonResponse r = JsonSuccess r | JsonFailure Text
+data JsonResponse r = JsonSuccess r | JsonFailure [Text]
 
 instance (ToJSON r) => ToJSON (JsonResponse r) where
   toJSON (JsonSuccess msg) = object

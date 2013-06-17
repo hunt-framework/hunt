@@ -194,7 +194,7 @@ start = scotty 3000 $ do
     queryStr <- param "query"
     res      <- withIx $ \ix -> do
                           case parseQuery queryStr of
-                            (Left err) -> return . JsonFailure $ err
+                            (Left err) -> return . JsonFailure . return $ err
                             (Right query) -> return . JsonSuccess
                               $ map (\(_,(DocInfo doc _,_)) -> doc)
                               $ Co.toListDocIdMap . docHits
@@ -206,7 +206,7 @@ start = scotty 3000 $ do
     queryStr <- param "query"
     res      <- withIx $ \ix -> do
                           case parseQuery queryStr of
-                            (Left err) -> return . JsonFailure $ err
+                            (Left err) -> return . JsonFailure . return $ err
                             (Right query) -> return . JsonSuccess
                               $ map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + Co.sizeDocIdMap m) 0 o))
                               $ M.toList. wordHits
@@ -252,7 +252,7 @@ start = scotty 3000 $ do
 
     json $ maybe
             (          JsonSuccess "document(s) added" :: JsonResponse Text)
-            (\errL ->  JsonFailure . T.pack . show $ errL) -- TODO: adjust JsonReponse format
+            (\errL ->  JsonFailure errL)
             res
 
 
@@ -277,7 +277,7 @@ start = scotty 3000 $ do
 
     json $ maybe
             (          JsonSuccess "document(s) updated" :: JsonResponse Text)
-            (\errL ->  JsonFailure . T.pack . show $ errL) -- TODO: adjust JsonReponse format
+            (\errL ->  JsonFailure errL)
             res
 
 
