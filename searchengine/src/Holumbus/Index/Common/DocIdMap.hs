@@ -70,8 +70,8 @@ liftDIM                         :: (IM.EnumMap DocId v -> IM.EnumMap DocId r) ->
                                    (DocIdMap v -> DocIdMap r)
 liftDIM f                       = DIM . f . unDIM
 
-liftDIM2                        :: (IM.EnumMap DocId v -> IM.EnumMap DocId v -> IM.EnumMap DocId v) ->
-                                   (DocIdMap v -> DocIdMap v -> DocIdMap v)
+liftDIM2                        :: (IM.EnumMap DocId v -> IM.EnumMap DocId w -> IM.EnumMap DocId x) ->
+                                   (DocIdMap v -> DocIdMap w -> DocIdMap x)
 liftDIM2 f x y                  = DIM $ f (unDIM x) (unDIM y)
 
 emptyDocIdMap                   :: DocIdMap v
@@ -120,7 +120,7 @@ unionDocIdMap                   = liftDIM2 $ IM.union
 intersectionDocIdMap            :: DocIdMap v -> DocIdMap v -> DocIdMap v
 intersectionDocIdMap            = liftDIM2 $ IM.intersection
 
-differenceDocIdMap              :: DocIdMap v -> DocIdMap v -> DocIdMap v
+differenceDocIdMap              :: DocIdMap v -> DocIdMap w -> DocIdMap v
 differenceDocIdMap              = liftDIM2 $ IM.difference
 
 unionWithDocIdMap               :: (v -> v -> v) -> DocIdMap v -> DocIdMap v -> DocIdMap v
