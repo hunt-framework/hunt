@@ -45,6 +45,7 @@ module Holumbus.Index.Common.DocIdMap
     , foldDocIdMap
     , foldWithKeyDocIdMap
     , fromListDocIdMap
+    , fromAscListDocIdMap
     , toListDocIdMap
     , keysDocIdMap
     , elemsDocIdMap
@@ -154,6 +155,9 @@ foldWithKeyDocIdMap f u         = IM.foldWithKey f u . unDIM
 
 fromListDocIdMap                :: [(DocId, v)] -> DocIdMap v
 fromListDocIdMap                = DIM . IM.fromList
+
+fromAscListDocIdMap             :: [(DocId, v)] -> DocIdMap v
+fromAscListDocIdMap             = DIM . IM.fromAscList
 
 toListDocIdMap                  :: DocIdMap v -> [(DocId, v)]
 toListDocIdMap                  = IM.toList . unDIM
