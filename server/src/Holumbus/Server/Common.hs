@@ -4,7 +4,8 @@ module Holumbus.Server.Common where
 import           Control.Monad         (mzero)
 
 import           Data.Aeson
-import           Data.Maybe            (fromMaybe)
+import           Data.Maybe            (fromMaybe, fromJust)
+import Data.Set                        (Set)
 import qualified Data.Set              as S
 import           Data.Map              (Map ())
 import qualified Data.Map              as M
@@ -124,21 +125,19 @@ class (HolIndex i, HolDocuments d) => HolIndexer ix i d | ix -> i d where
   lookupByURI               :: Monad m => ix -> URI -> m DocId
   lookupByURI               = Co.lookupByURI . docTable
 
-  deleteDocById             :: DocId -> ix -> ix
-  deleteDocById docId ix    = fromMaybe ix doIt
+  deleteDocsById            :: Set DocId -> ix -> ix
+  deleteDocsById docIds ix  = modifyIndexer ix newIndex newDocTable
     where
-    doIt = do
-      -- might avoid deleting from the index (very expensive operation)
-      _              <- Co.lookupById (docTable ix) docId -- XXX: impl. elem function?
-      let newDocTable = Co.removeById (docTable ix) docId
-      let newIndex    = Co.deleteDocsById (S.singleton docId) (index ix)
-      return $ modifyIndexer ix newIndex newDocTable
+      newDocTable = Co.deleteById     docIds (docTable ix)
+      newIndex    = Co.deleteDocsById docIds (index    ix)
 
-  deleteDocByURI            :: URI -> ix -> ix
-  deleteDocByURI u ix       = maybe ix (`deleteDocById` ix) $ Co.lookupByURI (docTable ix) u
+  deleteDocsByURI           :: Set URI -> ix -> ix
+  deleteDocsByURI us ix     = deleteDocsById docIds ix
+    where
+    docIds = catMaybesSet . S.map (lookupByURI ix) $ us
 
   updateDoc                 :: DocId -> Document -> Words -> ix -> ix
-  updateDoc docId doc w     = insertDoc doc w . deleteDocById docId
+  updateDoc docId doc w     = insertDoc doc w . deleteDocsById (S.singleton docId)
 
   insertDoc                 :: Document -> Words -> ix -> ix
   insertDoc doc wrds ix     = modifyIndexer ix newIndex newDocTable
@@ -167,3 +166,9 @@ instance (HolIndex i, HolDocuments d) => HolIndexer (Indexer i d) i d where
   index               (Indexer i _)             = i
   docTable            (Indexer _ d)             = d
   modifyIndexer       ix i d                    = ix {ixIndex = i, ixDocTable = d}
+
+
+
+-- | Data.Maybe.catMaybes on a Set instead of a List.
+catMaybesSet :: Ord a => Set (Maybe a) -> Set a
+catMaybesSet = S.map fromJust . S.delete Nothing

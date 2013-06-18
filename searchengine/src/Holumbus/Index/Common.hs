@@ -51,7 +51,9 @@ where
 import           Control.Monad                    ( foldM )
 
 import           Data.Set                         ( Set )
+import qualified Data.Set                         as S
 import           Data.Text                        ( Text )
+import           Data.Maybe                       ( isJust, fromJust )
 
 
 import           Holumbus.Index.Common.BasicTypes
@@ -270,6 +272,17 @@ class HolDocuments d where
   removeByURI                   :: d -> URI -> d
   removeByURI ds u              = maybe ds (removeById ds) (lookupByURI ds u)
 
+  -- | Deletes a set of Docs by Id from the table.
+  deleteById                    :: Set DocId -> d -> d
+
+{-
+  -- | Deletes a set of Docs by Uri from the table. Uris that are not in the docTable are ignored.
+  deleteByUri                   :: Set URI -> d -> d
+  deleteByUri us ds             = deleteById idSet ds
+    where
+    idSet = catMaybesSet . S.map (lookupByURI ds) $ us
+-}
+
   -- | Update documents (through mapping over all documents).
   updateDocuments               :: (Document -> Document) -> d -> d
 
@@ -317,3 +330,7 @@ class (HolDocuments d, HolIndex i) => HolDocIndex d i where
     defragmentDocIndex          = (,)
 
 -- ------------------------------------------------------------
+
+-- Data.Maybe.catMaybes on a Set instead of a List.
+catMaybesSet :: Ord a => Set (Maybe a) -> Set a
+catMaybesSet = S.map fromJust . S.delete Nothing

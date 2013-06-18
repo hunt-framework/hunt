@@ -44,6 +44,8 @@ import qualified Codec.Compression.BZip as BZ
 
 import           Control.DeepSeq
 
+import qualified Data.Map               as M
+import qualified Data.Set               as S
 import           Data.Binary            ( Binary )
 import qualified Data.Binary            as B
 
@@ -168,6 +170,13 @@ instance HolDocuments Documents where
 
   removeById ds d
       = Documents {idToDoc = deleteDocIdMap d $ idToDoc ds}
+
+
+  -- XXX: EnumMap does not have a fromSet function so that you can use fromSet (const ()) and ignore the value
+  deleteById s ds
+      = Documents {idToDoc = idToDoc ds `differenceDocIdMap` (fromAscListDocIdMap . map mkKeyValueDummy . S.toList $ s)}
+      where
+      mkKeyValueDummy k = (k, undefined) -- XXX: strictness properties of EnumMap?
 
 
   updateDocuments f d

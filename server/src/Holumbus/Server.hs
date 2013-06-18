@@ -11,6 +11,7 @@ import           Control.Monad.IO.Class   (MonadIO, liftIO)
 import           Control.Concurrent.MVar
 
 import           Data.Maybe               (isJust, isNothing, fromJust)
+import qualified Data.Set as              S
 import qualified Data.Map                 as M
 import           Data.Text                (Text)
 import qualified Data.Text                as T
@@ -194,7 +195,7 @@ start = scotty 3000 $ do
 
   get "/document/delete/:uri" $ do
     docUri <- param "uri"
-    modIx_ $ \ix -> return $ deleteDocByURI (T.pack docUri) ix
+    modIx_ $ \ix -> return $ deleteDocsByURI (S.singleton . T.pack $ docUri) ix
     json (JsonSuccess "document deleted" :: JsonResponse Text)
 
 
