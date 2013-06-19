@@ -16,7 +16,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Query.Fuzzy 
+module Holumbus.Query.Fuzzy
   (
   -- * Fuzzy types
   FuzzySet
@@ -24,14 +24,14 @@ module Holumbus.Query.Fuzzy
   , Replacement
   , FuzzyScore
   , FuzzyConfig (..)
-  
+
   -- * Predefined replacements
   , englishReplacements
   , germanReplacements
-  
+
   -- * Generation
   , fuzz
-  
+
   -- * Conversion
   , toList
   )
@@ -66,14 +66,14 @@ type Replacements = [ Replacement ]
 
 type Replacement = ((Text,Text), FuzzyScore)
 
--- | The score indicating an amount of fuzziness. 
+-- | The score indicating an amount of fuzziness.
 
 type FuzzyScore = Float
 
 -- | The configuration of a fuzzy query.
 
 data FuzzyConfig
-    = FuzzyConfig 
+    = FuzzyConfig
       { applyReplacements  :: Bool         -- ^ Indicates whether the replacements should be applied.
       , applySwappings     :: Bool         -- ^ Indicates whether the swapping of adjacent characters should be applied.
       , maxFuzziness       :: FuzzyScore   -- ^ The maximum allowed fuzziness.
@@ -101,7 +101,7 @@ englishReplacements =
   , (("e", "ee"), 0.2)
   , (("o", "oo"), 0.2)
   , (("s", "ss"), 0.2)
-  
+
   , (("g", "ck"), 0.4)
   , (("k", "ck"), 0.4)
   , (("ea", "ee"), 0.4)
@@ -116,9 +116,8 @@ englishReplacements =
   ]
 
 -- | Some default replacements for the german language.
-
 germanReplacements :: Replacements
-germanReplacements = 
+germanReplacements =
   [ (("l", "ll"), 0.2)
   , (("t", "tt"), 0.2)
   , (("n", "nn"), 0.2)
@@ -141,9 +140,8 @@ germanReplacements =
   , (("ß", "ss"), 0.1)
   ]
 
--- | Continue fuzzing a string with the an explicitly specified list of replacements until 
+-- | Continue fuzzing a string with the an explicitly specified list of replacements until
 -- a given score threshold is reached.
-
 fuzz :: FuzzyConfig -> Text -> FuzzySet
 fuzz cfg s = M.delete s (fuzz' (fuzzLimit cfg 0.0 s))
   where
@@ -154,7 +152,6 @@ fuzz cfg s = M.delete s (fuzz' (fuzzLimit cfg 0.0 s))
     more = M.foldrWithKey (\sm sc res -> M.unionWith min res (fuzzLimit cfg (sc + sc) sm)) M.empty fs
 
 -- | Fuzz a string and limit the allowed score to a given threshold.
-
 fuzzLimit :: FuzzyConfig -> FuzzyScore -> Text -> FuzzySet
 fuzzLimit cfg sc s = if sc <= th then M.filter (\ns -> ns <= th) (fuzzInternal cfg sc s) else M.empty
   where
@@ -162,20 +159,18 @@ fuzzLimit cfg sc s = if sc <= th then M.filter (\ns -> ns <= th) (fuzzInternal c
 
 -- | Fuzz a string with an list of explicitly specified replacements and combine the scores
 -- with an initial score.
-
 fuzzInternal :: FuzzyConfig -> FuzzyScore -> Text -> FuzzySet
 fuzzInternal cfg sc s = M.unionWith min replaced swapped
   where
-  replaced = let rs = customReplacements cfg in if (applyReplacements cfg) 
+  replaced = let rs = customReplacements cfg in if (applyReplacements cfg)
              then foldr (\r res -> M.unionWith min res (applyFuzz (replace rs r) sc s)) M.empty rs
              else M.empty
-  swapped = if (applySwappings cfg) 
+  swapped = if (applySwappings cfg)
             then applyFuzz swap' sc s
             else M.empty
 
--- | Applies a fuzzy function to a string. An initial score is combined with the new score 
+-- | Applies a fuzzy function to a string. An initial score is combined with the new score
 -- for the replacement.
-
 applyFuzz :: (Text -> Text -> [(Text, FuzzyScore)]) -> FuzzyScore -> Text -> FuzzySet
 applyFuzz f sc s = apply (init $ T.inits s) (init $ T.tails s)
   where
@@ -185,18 +180,17 @@ applyFuzz f sc s = apply (init $ T.inits s) (init $ T.tails s)
   apply (pr:prs) (su:sus) = M.unionsWith min $ (apply prs sus):(map create $ (f pr su))
     where
     create (fuzzed, score) = M.singleton fuzzed (sc + score * (calcWeight (T.length pr) (T.length s)))
-                             
+
 -- | Apply a replacement in both directions to the suffix of a string and return the complete
 -- string with a score, calculated from the replacement itself and the list of replacements.
-
 replace :: Replacements -> Replacement -> Text -> Text -> [(Text, FuzzyScore)]
 replace rs ((r1, r2), s) prefix suffix = (replace' r1 r2) ++ (replace' r2 r1)
   where
   replace' tok sub = if replaced == suffix then [] else [(prefix `T.append` replaced, score)]
     where
-    replaced = replaceFirst' tok sub suffix
+    replaced = replaceFirst tok sub suffix
     score = s / (snd $ maximumBy (compare `on` snd) rs)
-    
+
 -- | Swap the first two characters of the suffix and return the complete string with a score or
 -- Nothing if there are not enough characters to swap.
 -- @FIXME: no idea how to swap efficientily without convertin to String
@@ -208,7 +202,6 @@ swap prefix (s1:s2:suffix) =  [(prefix `T.append` T.pack (s2:s1:suffix), 1.0)]
 swap _ _ = []
 
 -- | Calculate the weighting factor depending on the position in the string and it's total length.
-
 calcWeight :: Int -> Int -> FuzzyScore
 calcWeight pos len = (l - p) / l
   where
@@ -216,26 +209,19 @@ calcWeight pos len = (l - p) / l
   l = fromIntegral len
 
 -- | Searches a prefix and replaces it with a substitute in a list.
--- @FIXME: obviously not a good approach. not sure how to do this with text
-replaceFirst' x y z = T.pack $ replaceFirst (T.unpack x) (T.unpack y) (T.unpack z)
+replaceFirst :: Text -> Text -> Text -> Text
+replaceFirst xs' ys' zs'
+    = case () of
+      _ | T.null xs' -> ys' `T.append` zs'
+        | T.null zs' -> T.empty
+        | otherwise -> let (x, xs) = (T.head xs', T.tail xs')
+                           (y, ys) = (T.head ys', T.tail ys')
+                           (z, zs) = (T.head zs', T.tail zs')
+                       in if x == z && xs' `T.isPrefixOf` zs' then
+                            if T.null ys' then replaceFirst xs T.empty zs
+                            else y `T.cons` replaceFirst xs ys zs
+                          else zs'
 
-replaceFirst :: Eq a => [a] -> [a] -> [a] -> [a]
-replaceFirst []       ys zs       = ys ++ zs
-replaceFirst _        _ []       = []
-replaceFirst t@(x:xs) ys s@(z:zs) = if x == z && t `isPrefixOf` s then 
-                                      if null ys then replaceFirst xs [] zs 
-                                      else (head ys) : replaceFirst xs (tail ys) zs
-                                    else s
-{-
-replaceFirst :: Eq a => [a] -> [a] -> [a] -> [a]
-replaceFirst []       ys zs       = ys ++ zs
-replaceFirst _        _ []       = []
-replaceFirst t@(x:xs) ys s@(z:zs) = if x == z && t `isPrefixOf` s then 
-                                      if null ys then replaceFirst xs [] zs 
-                                      else (head ys) : replaceFirst xs (tail ys) zs
-                                    else s
--}
 -- | Transform a fuzzy set into a list (ordered by score).
-
 toList :: FuzzySet -> [ (Text, FuzzyScore) ]
 toList = sortBy (compare `on` snd) . M.toList
