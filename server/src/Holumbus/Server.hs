@@ -14,16 +14,13 @@ import           Data.Maybe               (isJust, isNothing, fromJust)
 import qualified Data.Set as              S
 import qualified Data.Map                 as M
 import           Data.Text                (Text)
-import qualified Data.Text                as T
+--import qualified Data.Text                as T
 {-
 import qualified Data.Aeson               as A
 import           Data.Aeson.Encode.Pretty (encodePretty)
 -}
 --import qualified Data.Text.Lazy.Encoding as TEL
 --import qualified Data.Text.Lazy as TL
-
---import           Data.Aeson.Types         --((.:), (.:?), FromJSON, parseJSON, Parser, Value (Array, Object))
---import qualified Data.Aeson as J
 
 import qualified Holumbus.Server.Template       as Tmpl
 import           Holumbus.Server.Common
@@ -135,15 +132,6 @@ start = scotty 3000 $ do
     json res
 
 
-  -- list all words
-  get "/words/:context" $ do
-    context <- param "context"
-    res <- withIx $ \i ->
-            -- simple Text response
-            return . show $ allWords i $ T.pack context
-    json $ JsonSuccess res
-
-
   -- insert a document (fails if a document (the uri) already exists)
   post "/document/insert" $ do
     -- Raises an exception if parse is unsuccessful
@@ -163,8 +151,8 @@ start = scotty 3000 $ do
        else (ix, return failedDocUris)
 
     json $ maybe
-            (          JsonSuccess "document(s) added" :: JsonResponse Text)
-            (\errL ->  JsonFailure errL)
+            (JsonSuccess "document(s) added" :: JsonResponse Text)
+            JsonFailure
             res
 
 
@@ -188,9 +176,10 @@ start = scotty 3000 $ do
        else (ix, return failedDocUris)
 
     json $ maybe
-            (          JsonSuccess "document(s) updated" :: JsonResponse Text)
-            (\errL ->  JsonFailure errL)
+            (JsonSuccess "document(s) updated" :: JsonResponse Text)
+            JsonFailure
             res
+
 
   -- delete a set of documents by URI
   post "/document/delete" $ do

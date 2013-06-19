@@ -4,7 +4,7 @@ module Holumbus.Server.Common where
 import           Control.Monad         (mzero)
 
 import           Data.Aeson
-import           Data.Maybe            (fromMaybe, fromJust)
+import           Data.Maybe            (fromJust)
 import Data.Set                        (Set)
 import qualified Data.Set              as S
 import           Data.Map              (Map ())

@@ -6,7 +6,8 @@ import qualified Data.Text.Lazy as LT
 
 import           Text.Hamlet
 import           Text.Julius
-import           Text.Blaze.Html.Renderer.Text (renderHtml)
+import           Text.Blaze.Html.Renderer.Text    (renderHtml)
+import           Text.Blaze                       (Markup, ToMarkup)
 
 -- | main page
 index :: LT.Text
@@ -85,9 +86,7 @@ index =
 
 
 -- | default layout
---defaultLayout :: forall a.
---                 Text.Blaze.ToMarkup a =>
---                 a -> Text.Blaze.Internal.MarkupM ()
+defaultLayout :: ToMarkup a => a -> Markup
 defaultLayout content = [xshamlet|
 <!DOCTYPE html>
 <html lang="en">
@@ -101,5 +100,3 @@ defaultLayout content = [xshamlet|
     <div .container>
       #{content}
 |]
-
-
