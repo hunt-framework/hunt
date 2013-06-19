@@ -37,6 +37,7 @@ module Holumbus.Query.Fuzzy
   )
 where
 
+import Data.Maybe                             (fromMaybe)
 import Data.Binary
 import Data.List
 import Data.Function
@@ -44,10 +45,10 @@ import Data.Function
 import Control.Monad
 import Control.Applicative
 
-import Data.Map (Map)
+import Data.Map                               (Map)
 import qualified Data.Map as M
 
-import           Data.Text ( Text )
+import           Data.Text                    (Text)
 import qualified Data.Text as T
 import           Data.Text.Encoding as TE
 
@@ -166,7 +167,7 @@ fuzzInternal cfg sc s = M.unionWith min replaced swapped
              then foldr (\r res -> M.unionWith min res (applyFuzz (replace rs r) sc s)) M.empty rs
              else M.empty
   swapped = if (applySwappings cfg)
-            then applyFuzz swap' sc s
+            then applyFuzz swap sc s
             else M.empty
 
 -- | Applies a fuzzy function to a string. An initial score is combined with the new score
@@ -193,13 +194,11 @@ replace rs ((r1, r2), s) prefix suffix = (replace' r1 r2) ++ (replace' r2 r1)
 
 -- | Swap the first two characters of the suffix and return the complete string with a score or
 -- Nothing if there are not enough characters to swap.
--- @FIXME: no idea how to swap efficientily without convertin to String
-swap' :: Text -> Text -> [(Text,FuzzyScore)]
-swap' p s = swap p (T.unpack s)
-
-swap :: Text -> String -> [(Text, FuzzyScore)]
-swap prefix (s1:s2:suffix) =  [(prefix `T.append` T.pack (s2:s1:suffix), 1.0)]
-swap _ _ = []
+swap :: Text -> Text -> [(Text, FuzzyScore)]
+swap prefix str = fromMaybe [] $ do
+  (s1, suffix0) <- T.uncons str
+  (s2, suffix)  <- T.uncons suffix0
+  return [(prefix `T.append` (s2 `T.cons` s1 `T.cons` suffix), 1.0)]
 
 -- | Calculate the weighting factor depending on the position in the string and it's total length.
 calcWeight :: Int -> Int -> FuzzyScore
