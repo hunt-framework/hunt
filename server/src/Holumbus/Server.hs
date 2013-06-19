@@ -192,11 +192,11 @@ start = scotty 3000 $ do
             (\errL ->  JsonFailure errL)
             res
 
-
-  get "/document/delete/:uri" $ do
-    docUri <- param "uri"
-    modIx_ $ \ix -> return $ deleteDocsByURI (S.singleton . T.pack $ docUri) ix
-    json (JsonSuccess "document deleted" :: JsonResponse Text)
+  -- delete a set of documents by URI
+  post "/document/delete" $ do
+    jss <- jsonData :: ActionM (S.Set URI)
+    modIx_ $ \ix -> return $ deleteDocsByURI jss ix
+    json (JsonSuccess "document(s) deleted" :: JsonResponse Text)
 
 
   notFound $ text "page not found"
