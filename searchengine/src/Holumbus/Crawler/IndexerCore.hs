@@ -194,7 +194,7 @@ indexCrawlerConfig opts followRef getHrefF preDocF descF0 contextCs
                                   flip zip [1..]
                                   >>>
                                   filter (fst >>> ixc_boringWord ixc >>> not)
-			          >>>
+                                  >>>
                                   map (first T.pack)
 
     defaultOpts                 = withRedirect yes

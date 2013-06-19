@@ -51,9 +51,7 @@ where
 import           Control.Monad                    ( foldM )
 
 import           Data.Set                         ( Set )
-import qualified Data.Set                         as S
 import           Data.Text                        ( Text )
-import           Data.Maybe                       ( isJust, fromJust )
 
 
 import           Holumbus.Index.Common.BasicTypes
@@ -330,7 +328,3 @@ class (HolDocuments d, HolIndex i) => HolDocIndex d i where
     defragmentDocIndex          = (,)
 
 -- ------------------------------------------------------------
-
--- Data.Maybe.catMaybes on a Set instead of a List.
-catMaybesSet :: Ord a => Set (Maybe a) -> Set a
-catMaybesSet = S.map fromJust . S.delete Nothing

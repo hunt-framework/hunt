@@ -44,7 +44,6 @@ import qualified Codec.Compression.BZip as BZ
 
 import           Control.DeepSeq
 
-import qualified Data.Map               as M
 import qualified Data.Set               as S
 import           Data.Binary            ( Binary )
 import qualified Data.Binary            as B

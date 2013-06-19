@@ -27,7 +27,8 @@
   BUT                 = AND NOT
   !                   = case sensitive query/word f.e.:  !car or !Car
   ~                   = fuzzy query word          f.e.:  ~car ... ~cra
-  ( .. )              = brakets
+  " .. "              = phrase query
+  ( .. )              = brackets
   :                   = context sensitive queries f.e.:  (who:Rudi Völler)
   ,                   = multi context queries     f.e.:  (content,who,title:Rudi Völler)
 -}
