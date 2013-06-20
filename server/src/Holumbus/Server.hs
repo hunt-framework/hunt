@@ -28,7 +28,8 @@ import           Holumbus.Server.Common
 import           Holumbus.Index.Common          ( URI
                                                 , Document(..)
                                                 , DocId(..)
-                                                , HolIndex, HolDocuments)
+                                                , HolDocuments --, HolIndex
+                                                , HolIndexM)
 import qualified Holumbus.Index.Common          as Co
 import           Holumbus.Index.Inverted.PrefixMem
 import           Holumbus.Index.HashedDocuments
@@ -63,8 +64,8 @@ indexer = newIndexer emptyInverted emptyDocuments
 queryConfig :: ProcessConfig
 queryConfig = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
-runQuery :: (HolIndex i, HolDocuments d) => i -> d -> Query -> Result
-runQuery = processQuery queryConfig
+runQueryM :: (HolIndexM m i, HolDocuments d) => i -> d -> Query -> m Result
+runQueryM = processQueryM queryConfig
 
 -- Replacement for the scotty json function for pretty JSON encoding.
 -- There should be a new release of scotty soon (end of the month?)
@@ -96,8 +97,8 @@ start = scotty 3000 $ do
   -- index
   ixM    <- liftIO $ newMVar indexer
   let withIx = withIndex' ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO b) -> m b
-  let modIx_ = modIndex_  ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents)) -> m ()
-  let modIx  = modIndex   ixM
+  let modIx_ = modIndex_  ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents))    -> m ()
+  let modIx  = modIndex   ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents, b)) -> m b
 
   -- request / response logging
   middleware logStdoutDev
@@ -113,10 +114,9 @@ start = scotty 3000 $ do
     res      <- withIx $ \ix -> do
                           case parseQuery queryStr of
                             (Left err) -> return . JsonFailure . return $ err
-                            (Right query) -> return . JsonSuccess
-                              $ map (\(_,(DocInfo doc _,_)) -> doc)
-                              $ Co.toListDocIdMap . docHits
-                              $ runQuery (index ix) (docTable ix) query
+                            (Right query) ->
+                              runQueryM (index ix) (docTable ix) query
+                              >>= return . JsonSuccess . map (\(_,(DocInfo doc _,_)) -> doc) . Co.toListDocIdMap . docHits
     json res
 
 
@@ -125,10 +125,9 @@ start = scotty 3000 $ do
     res      <- withIx $ \ix -> do
                           case parseQuery queryStr of
                             (Left err) -> return . JsonFailure . return $ err
-                            (Right query) -> return . JsonSuccess
-                              $ map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + Co.sizeDocIdMap m) 0 o))
-                              $ M.toList. wordHits
-                              $ runQuery (index ix) (docTable ix) query
+                            (Right query) ->
+                              runQueryM (index ix) (docTable ix) query
+                              >>= return . JsonSuccess . map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + Co.sizeDocIdMap m) 0 o)) . M.toList. wordHits
     json res
 
 
