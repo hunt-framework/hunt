@@ -43,7 +43,6 @@ module Holumbus.Index.Common
   , module Holumbus.Index.Common.DocIdMap
   , module Holumbus.Index.Common.Occurences
   , module Holumbus.Index.Common.RawResult
-  , module Holumbus.Index.Common.LoadStore
 
   )
 where
@@ -60,7 +59,6 @@ import           Holumbus.Index.Common.DocId
 import           Holumbus.Index.Common.DocIdMap
 import           Holumbus.Index.Common.Occurences
 import           Holumbus.Index.Common.RawResult
-import           Holumbus.Index.Common.LoadStore
 
 -- ------------------------------------------------------------
 

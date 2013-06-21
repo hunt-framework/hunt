@@ -36,6 +36,7 @@ module Holumbus.Index.Inverted.PrefixMem
 where
 
 import           Control.DeepSeq
+import           Control.Arrow
 
 import           Data.Binary                    hiding (Word)
 import           Data.Function
@@ -51,8 +52,6 @@ import qualified Holumbus.Data.PrefixTree       as PT
 
 import           Holumbus.Index.Common
 import           Holumbus.Index.Compression     as C
-
-import           Text.XML.HXT.Core
 
 -- ----------------------------------------------------------------------------
 
@@ -149,10 +148,6 @@ instance NFData Inverted where
     rnf                         = rnf . indexParts
 
 -- ----------------------------------------------------------------------------
-
-instance XmlPickler Inverted where
-  xpickle = undefined
-
 
 -- ----------------------------------------------------------------------------
 

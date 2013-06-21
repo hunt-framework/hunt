@@ -32,8 +32,6 @@ import Holumbus.Index.Common.BasicTypes
 import Holumbus.Index.Common.DocId
 import Holumbus.Index.Common.DocIdMap
 
-import Text.XML.HXT.Core
-
 -- ------------------------------------------------------------
 
 -- | The occurrences in a number of documents.
@@ -88,16 +86,6 @@ substractOccurrences    = differenceWithDocIdMap substractPositions
       where
       diffPos                   = IS.difference p1 p2
 
--- | The XML pickler for the occurrences of a word.
-
-xpOccurrences           :: PU Occurrences
-xpOccurrences           = xpWrap (fromListDocIdMap, toListDocIdMap)
-                                 (xpList xpOccurrence)
-  where
-  xpOccurrence          = xpElem "doc" $
-                          xpPair (xpAttr "idref" xpDocId)
-                                 xpPositions
-
 -- ------------------------------------------------------------
 
 -- | The positions of the word in the document.
@@ -128,11 +116,6 @@ foldPos                 :: (Position -> r -> r) -> r -> Positions -> r
 foldPos                 = IS.fold
 
 -- | The XML pickler for a set of positions.
-xpPositions             :: PU Positions
-xpPositions             = xpWrap ( IS.fromList . (map read) . words
-                                 , unwords . (map show) . IS.toList
-                                 ) xpText
-
 instance (NFData v, Enum v) => NFData (IS.EnumSet v) where
     rnf                   = rnf . IS.toList
 

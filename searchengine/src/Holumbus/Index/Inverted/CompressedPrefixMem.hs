@@ -40,6 +40,7 @@ where
 import qualified Codec.Compression.BZip as BZ
 
 import           Control.DeepSeq
+import           Control.Arrow
 
 import qualified Data.ByteString.Lazy   as BS
 import qualified Data.Binary            as B
@@ -58,8 +59,6 @@ import           Holumbus.Index.Common
 import           Holumbus.Index.Compression
 
 import qualified Holumbus.Data.PrefixTree       as PT
-
-import           Text.XML.HXT.Core
 
 -- ----------------------------------------------------------------------------
 
@@ -254,12 +253,6 @@ instance (NFData occ) => NFData (Inverted occ) where
     rnf         = rnf . unInverted
 
 -- ----------------------------------------------------------------------------
-
-instance (ComprOccurrences occ) => XmlPickler (Inverted occ) where
-    xpickle = undefined
---  xpickle               =  xpElem "indexes" $
---                           xpWrap (Inverted, unInverted) xpParts
-
 
 -- ----------------------------------------------------------------------------
 

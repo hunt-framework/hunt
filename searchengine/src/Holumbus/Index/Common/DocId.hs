@@ -27,8 +27,6 @@ import qualified
        Data.Binary              as B
 import Data.Int                ( Int64 )
 
-import Text.XML.HXT.Core
-
 -- ------------------------------------------------------------
 
 -- | The unique identifier of a document
@@ -65,8 +63,6 @@ firstDocId                      = DocId 1
 mkDocId                         :: Integer -> DocId
 mkDocId                         = DocId . fromIntegral
 
-xpDocId                         :: PU DocId
-xpDocId                         = xpWrap (DocId, theDocId) xpPrim
 
 {-# INLINE incrDocId #-}
 {-# INLINE addDocId #-}

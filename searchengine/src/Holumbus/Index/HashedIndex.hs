@@ -6,6 +6,7 @@ module Holumbus.Index.HashedIndex
     ( Document
     , Documents
     , SmallDocuments
+    , emptySmallDocuments
 
     , Inverted
     , emptyInverted
@@ -23,7 +24,6 @@ import           Holumbus.Index.Common          ( Document(..)
                                                 , Occurrences
                                                 , fromList
                                                 , toList
-                                                , unionDocs
                                                 )
 
 import           Holumbus.Index.HashedDocuments ( Documents(..)

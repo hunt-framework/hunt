@@ -27,12 +27,10 @@ import           Data.Map (Map)
 import           Data.Text (Text)
 import Data.Text.Encoding as TE
 import Data.Binary                      ( Binary (..) )
+import Data.Aeson
 
 import Holumbus.Index.Common.BasicTypes
 
-import Text.XML.HXT.Core
-
-import Data.Aeson
 -- ------------------------------------------------------------
 
 -- | A document consists of a title and its unique identifier (URI)
@@ -75,22 +73,6 @@ instance Binary Document where
     put (Document u d)          = put u >> put d
     get                         = liftM2 Document get get
 
-
--- FIXME: remove -> using json now
-instance XmlPickler Description where
-    xpickle = undefined
-
--- FIXME: remove -> using json now
-instance XmlPickler Document where
-    xpickle = undefined
---    xpickle                     = xpWrap ( \ (t, d) -> Document t d
---                                         , \ (Document t d) -> (t, d)
---                                         ) (xpPair xpURI xpickle)
---        where
---        xpURI                   = xpAttr "href"  xpText0
-
-
 instance NFData Document where
     rnf (Document t d)        = rnf t `seq` rnf d
 
--- ------------------------------------------------------------

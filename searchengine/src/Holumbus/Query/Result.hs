@@ -62,8 +62,6 @@ import           Data.Text                ( Text )
 
 import           Holumbus.Index.Common
 
-import Text.XML.HXT.Core
-
 -- ----------------------------------------------------------------------------
 
 -- | The combined result type for Holumbus queries.
@@ -133,15 +131,6 @@ instance NFData DocInfo where
 
 instance NFData WordInfo where
   rnf (WordInfo t s)    = rnf t `seq` rnf s
-
-instance XmlPickler Result where
-  xpickle               = undefined
-
-instance XmlPickler DocInfo where
-  xpickle               = undefined
-
-instance XmlPickler WordInfo where
-  xpickle               = undefined
 
 -- ----------------------------------------------------------------------------
 

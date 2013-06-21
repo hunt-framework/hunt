@@ -55,8 +55,6 @@ import           Data.Digest.Murmur64
 
 import           Holumbus.Index.Common
 
-import           Text.XML.HXT.Core
-
 -- ----------------------------------------------------------------------------
 
 -- | The table which is used to map a document to an artificial id and vice versa.
@@ -194,33 +192,11 @@ instance HolDocuments Documents where
 
 -- ----------------------------------------------------------------------------
 
-instance XmlPickler Documents where
-    xpickle
-        = xpElem "documents" $
-          xpWrap convertDoctable $
-          xpWrap (fromListDocIdMap, toListDocIdMap) $
-          xpList xpDocumentWithId
-        where
-        convertDoctable
-            = (Documents, idToDoc)
-        xpDocumentWithId
-            = xpElem "doc" $
-              xpPair (xpAttr "id" xpDocId) xpickle
-
--- ----------------------------------------------------------------------------
-
 instance Binary Documents where
     put = B.put . idToDoc
     get = fmap Documents B.get
 
 -- ------------------------------------------------------------
-
-instance XmlPickler CompressedDoc where
-    xpickle
-        = xpWrap (fromDocument , toDocument)
-          xpickle
-
--- ----------------------------------------------------------------------------
 
 instance Binary CompressedDoc where
     put = B.put . unCDoc

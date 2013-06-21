@@ -30,8 +30,6 @@ import           Numeric                ( showHex )
 
 import           System.IO
 
-import           Text.XML.HXT.Core
-
 -- ------------------------------------------------------------
 
 -- | Split a string into seperate strings at a specific character sequence.
@@ -109,22 +107,6 @@ escape (c:cs)
 -- | Compute the base of a webpage
 --   stolen from Uwe Schmidt, http:\/\/www.haskell.org\/haskellwiki\/HXT
 
-computeDocBase  :: ArrowXml a => a XmlTree String
-computeDocBase
-    = ( ( ( this
-            /> hasName "html"
-            /> hasName "head"
-            /> hasName "base"
-            >>> getAttrValue "href"
-          )
-          &&&
-          getAttrValue "transfer-URI"
-        )
-        >>> expandURI
-      )
-      `orElse`
-      getAttrValue "transfer-URI"  
-      
 traceOffset :: Int
 traceOffset = 3
 
@@ -135,34 +117,3 @@ trcMsg m         = hPutStrLn stderr ('-':"- (0) " ++ m)
 --
 -- simple and usefull access arrows
 
-getByPath       :: ArrowXml a => [String] -> a XmlTree XmlTree
-getByPath       = seqA . map (\ n -> getChildren >>> hasName n)
-
-robotsNo        :: String -> LA XmlTree XmlTree
-robotsNo what   = none
-                  `when`
-                  ( getByPath ["html", "head", "meta"]
-                    >>>
-                    hasAttrValue "name" ( map toUpper
-                                          >>>
-                                          (== "ROBOTS")
-                                        )
-                    >>>
-                    getAttrValue0 "content"
-                    >>>
-                    isA ( map (toUpper >>> (\ x -> if isLetter x then x else ' '))
-                          >>>
-                          words
-                          >>>
-                          (what `elem`)
-                        )
-                  )       
-
-robotsNoIndex   :: ArrowXml a => a XmlTree XmlTree
-robotsNoIndex   = fromLA $ robotsNo "NOINDEX"
-
-robotsNoFollow  :: ArrowXml a => a XmlTree XmlTree
-robotsNoFollow  = fromLA $ robotsNo "NOFOLLOW"
-
--- ------------------------------------------------------------
-                          
