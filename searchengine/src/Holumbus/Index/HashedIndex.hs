@@ -14,47 +14,21 @@ module Holumbus.Index.HashedIndex
     , CompactInverted
     , emptyCompactInverted
     , inverted2compactInverted
-
-    , HolumbusState
-    , HolumbusConfig
-    , emptyHolumbusState
-    , defragmentHolumbusState
-
-    , emptyIndexerState
+    
     , emptyDocuments
-
-    , mergeAndWritePartialRes'
-    , writeXml
-    , writeBin
-    , writeSearchBin
-    , writePartialIndex
     )
 where
-
-import           Control.Arrow
-import           Control.DeepSeq
-import           Control.Monad.Reader
-
-import           Data.Binary
-
-import           Holumbus.Crawler.Types
-import           Holumbus.Crawler.IndexerCore
-import           Holumbus.Crawler.Logger
 
 import           Holumbus.Index.Common          ( Document(..)
                                                 , Occurrences
                                                 , fromList
                                                 , toList
                                                 , unionDocs
-                                                , mergeIndexes
                                                 )
 
 import           Holumbus.Index.HashedDocuments ( Documents(..)
                                                 , emptyDocuments
                                                 )
-
-import           Text.XML.HXT.Core
-
 -- ------------------------------------------------------------
 
 {- .1: direct use of prefix tree with simple-9 encoded occurences
@@ -111,122 +85,8 @@ emptyCompactInverted            = PM.emptyInvertedOSerialized
 inverted2compactInverted        :: Inverted -> CompactInverted
 inverted2compactInverted        = fromList PM.emptyInvertedOSerialized . toList
 
--- -}
--- ------------------------------------------------------------
-
-type HolumbusState              = IndexerState       Inverted Documents
-type HolumbusConfig             = IndexCrawlerConfig Inverted Documents
-
-emptyHolumbusState              :: HolumbusState
-emptyHolumbusState              = emptyIndexerState emptyInverted emptyDocuments
-
 type SmallDocuments             = Documents
 
 emptySmallDocuments             :: SmallDocuments
 emptySmallDocuments             = emptyDocuments
 
--- ------------------------------------------------------------
-
-defragmentHolumbusState :: HolumbusState -> HolumbusState
-defragmentHolumbusState = id
-
--- ------------------------------------------------------------
-
-mergeAndWritePartialRes' :: (MonadIO m {-,NFData i, Binary i-}) =>
-                            (SmallDocuments -> SmallDocuments) -> [String] -> String -> m ()
-mergeAndWritePartialRes' id' pxs out
-    = do notice $ ["merge hashed partial doctables from"] ++ pxs
-         mdocs <- mergeSmallDocs $ map (++ ".doc") pxs
-         notice $ ["write merged hashed doctable to", out ++ ".doc"]
-         liftIO $ encodeFile (out ++ ".doc") (id' mdocs)
-         notice $ ["merge hashed partial indexes from"] ++ pxs
-         mixs  <- mergeCompactIxs $ map (++ ".idx") pxs
-         notice $ ["write merged hashed indexes to", out ++ ".idx"]
-         liftIO $ encodeFile (out ++ ".idx") mixs
-         notice $ ["merge partial hashed doctables and indexes done"]
-
-mergeSmallDocs :: MonadIO m => [String] -> m SmallDocuments
-mergeSmallDocs []
-    = return emptySmallDocuments
-mergeSmallDocs (x : xs)
-    = do docs <- mergeSmallDocs xs
-         notice ["merge hashed documents from file", x]
-         doc1 <- liftIO $ decodeFile x
-         rnf doc1 `seq`
-                 (return $ unionDocs docs doc1)
-
-mergeCompactIxs :: (MonadIO m) => [String] -> m CompactInverted
-mergeCompactIxs []
-    = return emptyCompactInverted
-mergeCompactIxs (x : xs)
-    = do ixs <- mergeCompactIxs xs
-         notice ["merge compact hashed index from file", x]
-         ix1 <- liftIO $ decodeFile x
-         rnf ix1 `seq`
-                 (return $ mergeIndexes ix1 ixs)
-
--- ------------------------------------------------------------
-
-writeXml :: (MonadIO m, XmlPickler a) => FilePath -> a -> m ()
-writeXml xf v
-    | xmlOut
-        = do notice ["writing into XML file", xmlFile]
-             liftIO $ runX (constA v
-                            >>> hxtSetTraceAndErrorLogger WARNING
-                            >>> xpickleDocument xpickle [withIndent yes] xmlFile
-                           )
-                        >> return ()
-             notice ["writing XML finished"]
-    | otherwise
-        = notice ["no XML output"]
-    where
-    (xmlOut, xmlFile)
-        | null xf               = (False, xf)
-        | xf == "-"             = (True,  "")
-        | otherwise             = (True,  xf)
-
-writeBin :: (MonadIO m, Binary a) => FilePath -> a -> m ()
-writeBin out v
-    | null out
-        = notice ["no binary output"]
-    | otherwise
-        = do notice ["writing into binary file", out]
-             liftIO $ encodeFile out v
-             notice ["writing binary data finished"]
-
-writeSearchBin :: MonadIO m => FilePath -> HolumbusState -> m ()
-writeSearchBin out state
-    | null out
-        = notice ["no search index written"]
-    | otherwise
-        = do notice ["writing hashed document table into binary file", docFile]
-             liftIO $ encodeFile docFile (ixs_documents state)
-             notice ["writing hashed compressed inverted index into binary file", idxFile]
-             liftIO $ encodeFile idxFile (inverted2compactInverted . ixs_index $ state)
-             notice ["writing hashed search index files finished"]
-    where
-      docFile = out ++ ".doc"
-      idxFile = out ++ ".idx"
-
--- ------------------------------------------------------------
-
-writePartialIndex :: Bool -> FilePath -> CrawlerAction a HolumbusState  ()
-writePartialIndex xout fn
-    = modifyStateIO
-      theResultAccu
-      (writePartialIndex' xout fn)
-
-writePartialIndex' :: Bool -> FilePath -> HolumbusState -> IO HolumbusState
-writePartialIndex' xout out ixs
-    = do writeSearchBin out ixs
-         if xout
-            then writeXml (out ++ ".xml") ixs
-            else return ()
-         return emptyHolumbusState
-
--- ------------------------------------------------------------
-
-notice :: MonadIO m => [String] -> m ()
-notice = noticeC "hashedIndex"
-
--- ------------------------------------------------------------

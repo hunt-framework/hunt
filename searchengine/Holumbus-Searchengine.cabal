@@ -54,20 +54,6 @@ library
     Control.Concurrent.MapFold
     Control.Monad.ReaderStateIO
     Control.Sequential.MapFoldBinary
-    Holumbus.Crawler.CacheCore
-    Holumbus.Crawler.Constants
-    Holumbus.Crawler.Core
-    Holumbus.Crawler
-    Holumbus.Crawler.Html
-    Holumbus.Crawler.IndexerCore
-    Holumbus.Crawler.Logger
-    Holumbus.Crawler.PdfToText
-    Holumbus.Crawler.Robots
-    Holumbus.Crawler.RobotTypes
-    Holumbus.Crawler.Types
-    Holumbus.Crawler.URIs
-    Holumbus.Crawler.Util
-    Holumbus.Crawler.XmlArrows
     Holumbus.Data.Crunch
     Holumbus.Data.PrefixTree.Core
     Holumbus.Data.PrefixTree.FuzzySearch
@@ -83,9 +69,9 @@ library
     Holumbus.Index.Common.LoadStore
     Holumbus.Index.Common.Occurences
     Holumbus.Index.Common.RawResult
-    Holumbus.Index.CompactDocuments
-    Holumbus.Index.CompactIndex
-    Holumbus.Index.CompactSmallDocuments
+--    Holumbus.Index.CompactDocuments
+--    Holumbus.Index.CompactIndex
+--    Holumbus.Index.CompactSmallDocuments
     Holumbus.Index.Compression
     Holumbus.Index.HashedDocuments
     Holumbus.Index.HashedIndex

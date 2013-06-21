@@ -39,9 +39,9 @@ import           Data.Binary
 
 import           Data.Function.Selector         ( (.&&&.) )
 
-import           Holumbus.Crawler.Types
-import           Holumbus.Crawler.IndexerCore
-import           Holumbus.Crawler.Logger
+--import           Holumbus.Crawler.Types
+--import           Holumbus.Crawler.IndexerCore
+--import           Holumbus.Crawler.Logger
 
 import           Holumbus.Index.Common          ( Document(..)
                                                 , Occurrences
