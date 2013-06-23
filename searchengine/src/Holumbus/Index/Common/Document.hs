@@ -20,31 +20,28 @@
 module Holumbus.Index.Common.Document
 where
 
-import Control.Monad                    ( liftM, liftM2, mzero )
-import Control.DeepSeq
+import           Control.Monad                    (liftM, liftM2, mzero)
+import           Control.DeepSeq
 
-import           Data.Map (Map)
-import           Data.Text (Text)
-import Data.Text.Encoding as TE
-import Data.Binary                      ( Binary (..) )
-import Data.Aeson
+import           Data.Map                         (Map)
+import           Data.Text                        (Text)
+import           Data.Text.Encoding               as TE
+import           Data.Binary                      (Binary (..))
+import           Data.Aeson
 
-import Holumbus.Index.Common.BasicTypes
+import           Holumbus.Index.Common.BasicTypes
 
 -- ------------------------------------------------------------
 
--- | A document consists of a title and its unique identifier (URI)
--- and a customizable component
-
--- FIXME: redundant/move?
-type Attribute    = Text
-type Description  = Map Attribute Text
+-- | The description of a document is a generic key value map.
+type Description  = Map Text Text
 
 -- XXX: move + UTF-8 serialization?
 instance Binary Text where
   put = put . encodeUtf8
   get = liftM decodeUtf8 get
 
+-- | A document consists of its unique identifier (URI).
 data Document                   = Document
                                   { uri   :: ! URI
                                   , desc  :: ! Description
