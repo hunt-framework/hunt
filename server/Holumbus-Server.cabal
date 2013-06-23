@@ -32,6 +32,7 @@ executable holumbusServer
                  , blaze-markup
                  , containers             >= 0.5
                  , deepseq                >= 1.2
+                 , dlist
                  , hamlet                 >= 1.1.7.1
                  , Holumbus-Searchengine  >= 2
                  , text

@@ -2,10 +2,10 @@
 
 module Holumbus.Server {-(start)-} where
 
-import           Network.Wai.Middleware.RequestLogger
-import           Web.Scotty
 import           Control.Concurrent.MVar
 import           Control.Monad.IO.Class               (MonadIO, liftIO)
+import           Network.Wai.Middleware.RequestLogger
+import           Web.Scotty
 
 import qualified Data.Map                             as M
 import           Data.Maybe                           (fromJust, isJust,
@@ -17,13 +17,8 @@ import qualified Data.Aeson               as A
 import           Data.Aeson.Encode.Pretty (encodePretty)
 -}
 
-import           Holumbus.Server.Common
-import qualified Holumbus.Server.Template             as Tmpl
-
-import           Holumbus.Index.Common                (DocId (..),
-                                                       Document (..),
-                                                       HolDocuments, HolIndexM,
-                                                       URI)
+import           Holumbus.Index.Common                (DocId (..), HolDocuments,
+                                                       HolIndexM, URI)
 import qualified Holumbus.Index.Common.DocIdMap       as DM
 import           Holumbus.Index.HashedDocuments
 import           Holumbus.Index.Inverted.PrefixMem
@@ -32,8 +27,9 @@ import           Holumbus.Query.Language.Grammar
 import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result
-
-
+import           Holumbus.Server.Analyzer
+import           Holumbus.Server.Common
+import qualified Holumbus.Server.Template             as Tmpl
 
 
 (.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
@@ -137,9 +133,7 @@ start = scotty 3000 $ do
       -- empty intersection of sets -> safe to insert
       return $ if Prelude.null failedDocUris
        then
-          ( foldr (\(ApiDocument u d ws) ->
-                      let doc = Document u d
-                      in insertDoc doc ws) ix jss
+          ( foldr (uncurry insertDoc . toDocAndWords) ix jss
           , Nothing)
        else (ix, return failedDocUris)
 
@@ -162,9 +156,8 @@ start = scotty 3000 $ do
       -- difference set is empty -> safe to update
       return $ if Prelude.null failedDocUris
        then
-          ( foldr (\(docId, ApiDocument u d ws) ->
-                      let doc = Document u d
-                      in updateDoc docId doc ws) ix (zip (map (fromJust . snd) allDocs) jss)
+          ( foldr (\(docId, apiDoc) ->
+                      uncurry (updateDoc docId) . toDocAndWords $ apiDoc) ix (zip (map (fromJust . snd) allDocs) jss)
           , Nothing)
        else (ix, return failedDocUris)
 

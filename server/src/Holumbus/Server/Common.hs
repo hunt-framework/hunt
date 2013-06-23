@@ -11,7 +11,7 @@ import           Data.Map              (Map ())
 import qualified Data.Map              as M
 import           Data.Text             (Text)
 
-import           Holumbus.Index.Common (Context, Word, URI, Description, RawResult
+import           Holumbus.Index.Common (Context, Word, URI, RawResult
                                        , Position, Occurrences, emptyOccurrences, insertOccurrence
                                        , DocId, Document
                                        , HolIndex, HolDocuments)
@@ -23,64 +23,90 @@ type Words        = Map Context WordList
 -- | map from word to a list of occurrences
 type WordList     = Map Word [Position]
 
--- | type the server receives to add/modify/delete? in indexi
--- @FIXME
--- this is way too much work to do for the client implementation
--- we should consider receiving something like an entity with
--- some kind of meta information attached. then our implemented
--- analyzer extracts the words and occurrences to build the index.
---
--- an indexed field would be stored as a context in the index
---
--- may look like this:
---
--- data ApiDocument = ApiDocument URI [Field]
---
--- data Field = Field {
---    name  :: Text
---    value :: Text
---    meta  :: FieldMeta
--- }
---
--- data FieldMeta = FieldMeta {
---    index = IndexType
---    ...
---    ...
--- }
---
--- data IndexType = NO_INDEX | ANALYZER1 | ANALYZER2
---
+-- | The raw content of a document.
+type ContentRaw   = Text
+
+-- | Multiple ApiDocuments.
+type ApiDocuments = [ApiDocument]
+
+-- | The document accepted via the API.
 data ApiDocument = ApiDocument
-  { apiDocUri   :: URI
-  , apiDocDesc  :: Description
-  , apiDocWords :: Words
-  } deriving Show
+  { apiDocUri       :: URI
+  , apiDocMapping   :: Map Context Content
+  }
+
+data Content = Content
+  { contentRaw      :: ContentRaw
+  , contentMetadata :: ContentMetadata
+  }
+
+-- | Information where the (Context -> Content) mapping is stored.
+data ContentMetadata = ContentMetadata
+  { indexField    :: Bool -- ^ Should the (Context -> ContentRaw) mapping be added to the index?
+  , docField      :: Bool -- ^ Should the (Context -> ContentRaw) mapping be part of the document description?
+  } deriving Eq
+
+-- | The default Attribute Matadata - only add the mapping to the index.
+defaultContentMetadata :: ContentMetadata
+defaultContentMetadata = ContentMetadata True False
 
 -- | empty document
 emptyApiDoc :: ApiDocument
-emptyApiDoc = ApiDocument "" M.empty M.empty
-
-instance ToJSON ApiDocument where
-  toJSON (ApiDocument u d ws) = object
-    [ "uri"   .= u
-    , "desc"  .= toJSON d
-    , "words" .= toJSON ws
-    ]
+emptyApiDoc = ApiDocument "" M.empty
 
 instance FromJSON ApiDocument where
   parseJSON (Object o) = do
-    parsedDesc      <- o    .: "desc"
-    parsedUri       <- o    .: "uri"
-    parsedWords     <- o    .: "words"
+    parsedUri         <- o    .: "uri"
+    mapping           <- o    .: "mapping"
     return ApiDocument
       { apiDocUri     = parsedUri
-      , apiDocDesc    = parsedDesc
-      , apiDocWords   = parsedWords
+      , apiDocMapping = mapping
       }
   parseJSON _ = mzero
 
 
-type ApiDocuments = [ApiDocument]
+instance FromJSON Content where
+  parseJSON (Object o) = do
+    parsedUri         <- o    .:  "content"
+    mapping           <- o    .:? "metadata" .!= defaultContentMetadata
+    return Content
+      { contentRaw      = parsedUri
+      , contentMetadata = mapping
+      }
+  parseJSON _ = mzero
+
+
+instance FromJSON ContentMetadata where
+  parseJSON (Object o) = do
+    parsedIndexField  <- o    .: "indexField"
+    parsedDocField    <- o    .: "docField"
+    return ContentMetadata
+      { indexField    = parsedIndexField
+      , docField      = parsedDocField
+      }
+  parseJSON _ = mzero
+
+
+instance ToJSON ApiDocument where
+  toJSON (ApiDocument u m) = object
+    [ "uri"         .= u
+    , "mapping"     .= m
+    ]
+
+
+instance ToJSON Content where
+  toJSON (Content c m) = object
+    [ "content"     .= c
+    , "metadata"    .= m
+    ]
+
+
+instance ToJSON ContentMetadata where
+  toJSON (ContentMetadata i d) = object
+    [ "indexField"  .= i
+    , "docField"    .= d
+    ]
+
 
 -- |  some sort of json response format
 data JsonResponse r = JsonSuccess r | JsonFailure [Text]
@@ -88,7 +114,7 @@ data JsonResponse r = JsonSuccess r | JsonFailure [Text]
 instance (ToJSON r) => ToJSON (JsonResponse r) where
   toJSON (JsonSuccess msg) = object
     [ "code"  .= (0 :: Int)
-    , "msg"   .= toJSON msg
+    , "msg"   .= msg
     ]
 
   toJSON (JsonFailure msg) = object

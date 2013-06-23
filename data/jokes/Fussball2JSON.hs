@@ -26,46 +26,92 @@ type Words        = Map Context WordList
 -- | map from word to a list of occurrences
 type WordList     = Map Word [Position]
 
-type Attribute    = Text
-type Description  = Map Attribute Text
+-- | The raw content of a document.
+type ContentRaw = Text
 
--- | type the server receives to add/modify/delete? in index
+-- | The document accepted via the API.
 data ApiDocument = ApiDocument
-  { apiDocUri   :: URI
-  , apiDocDesc  :: Description
-  , apiDocWords :: Words
-  } deriving Show
+  { apiDocUri       :: URI
+  , apiDocMapping   :: Map Context Content
+  }
+
+data Content = Content
+  { contentRaw      :: ContentRaw
+  , contentMetadata :: ContentMetadata
+  }
+
+-- | Information where the (Context -> Content) mapping is stored.
+data ContentMetadata = ContentMetadata
+  { indexField    :: Bool -- ^ Should the (Context -> Content) mapping be added to the index?
+  , docField      :: Bool -- ^ Should the (Context -> Content) mapping be part of the document description?
+  } deriving Eq
+
+-- | The default Attribute Matadata - only add the mapping to the index.
+defaultContentMetadata :: ContentMetadata
+defaultContentMetadata = ContentMetadata True False
+
+-- | empty document
+emptyApiDoc :: ApiDocument
+emptyApiDoc = ApiDocument "" M.empty
+
+instance ToJSON ApiDocument where
+  toJSON (ApiDocument u m) = object
+    [ "uri"         .= u
+    , "mapping"     .= m
+    ]
+
+instance ToJSON Content where
+  toJSON (Content c m) = object
+    [ "content"     .= c
+    , "metadata"    .= if m == defaultContentMetadata then Nothing else Just m
+    ]
+
+instance ToJSON ContentMetadata where
+  toJSON (ContentMetadata i d) = object
+    [ "indexField"  .= i
+    , "docField"    .= d
+    ]
 
 type ApiDocuments = [ApiDocument]
 
-instance ToJSON ApiDocument where
-  toJSON (ApiDocument u d ws) = object
-    [ "uri"   .= u
-    , "desc"  .= toJSON d
-    , "words" .= toJSON ws
+-- |  some sort of json response format
+data JsonResponse r = JsonSuccess r | JsonFailure [Text]
+
+instance (ToJSON r) => ToJSON (JsonResponse r) where
+  toJSON (JsonSuccess msg) = object
+    [ "code"  .= (0 :: Int)
+    , "msg"   .= msg
     ]
+
+  toJSON (JsonFailure msg) = object
+    [ "code"  .= (1 :: Int)
+    , "msg"   .= msg
+    ]
+
+indexMetadata   :: ContentMetadata
+indexMetadata   = ContentMetadata True False
+
+docMetadata     :: ContentMetadata
+docMetadata     = ContentMetadata False True
+
+bothMetadata    :: ContentMetadata
+bothMetadata    = ContentMetadata True True
+
 
 joke2Api :: Joke -> ApiDocument
 joke2Api (n, who, what, wher, grp)
     = ApiDocument
       { apiDocUri
           = T.pack . ("joke://joke" ++) . show $ n
-      , apiDocDesc
+      , apiDocMapping
           = M.fromList $
             (if null wher
             then []
-            else [("wo", T.pack wher)])
+            else [("wo", Content (T.pack wher) bothMetadata)])
             ++
-            [ ("wer",    T.pack who)
-            , ("was",    T.pack what)
-            , ("gruppe", T.pack grp)
-            ]
-      , apiDocWords
-          = M.fromList
-            [ ("wer",    toWL who)
-            , ("was",    toWL what)
-            , ("wo",     toWL wher)
-            , ("gruppe", toWL grp)
+            [ ("wer",    Content (T.pack who)  bothMetadata)
+            , ("was",    Content (T.pack what) bothMetadata)
+            , ("gruppe", Content (T.pack grp)  bothMetadata)
             ]
       }
 
