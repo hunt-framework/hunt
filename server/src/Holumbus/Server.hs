@@ -24,11 +24,12 @@ import           Data.Aeson.Encode.Pretty (encodePretty)
 
 import qualified Holumbus.Server.Template       as Tmpl
 import           Holumbus.Server.Common
+import           Holumbus.Server.Indexer
 
 import           Holumbus.Index.Common          ( URI
                                                 , Document(..)
                                                 , DocId(..)
-                                                , HolDocuments --, HolIndex
+                                                , HolDocuments, HolIndex
                                                 , HolIndexM)
 import qualified Holumbus.Index.Common          as Co
 import           Holumbus.Index.Inverted.PrefixMem
@@ -59,7 +60,7 @@ modIndex = liftIO .:: modifyMVar
 
 -- the indexer
 indexer :: Indexer Inverted Documents
-indexer = newIndexer emptyInverted emptyDocuments
+indexer = Indexer emptyInverted emptyDocuments
 
 queryConfig :: ProcessConfig
 queryConfig = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
@@ -79,7 +80,8 @@ jsonPretty v = do
   raw $ encodePretty v
 -}
 
-checkApiDocUris :: HolIndexer ix i d => (Maybe DocId -> Bool) -> [ApiDocument] -> ix -> [(URI, Maybe DocId)]
+checkApiDocUris :: (HolIndex i, HolDocuments d, Monad m)
+                => (m DocId -> Bool) -> [ApiDocument] -> Indexer i d -> [(URI, m DocId)]
 checkApiDocUris filterDocIds apiDocs ix =
   let apiDocsM
           = map (\apiDoc -> let docUri = apiDocUri apiDoc
@@ -115,7 +117,7 @@ start = scotty 3000 $ do
                           case parseQuery queryStr of
                             (Left err) -> return . JsonFailure . return $ err
                             (Right query) ->
-                              runQueryM (index ix) (docTable ix) query
+                              runQueryM (ixIndex ix) (ixDocTable ix) query
                               >>= return . JsonSuccess . map (\(_,(DocInfo doc _,_)) -> doc) . Co.toListDocIdMap . docHits
     json res
 
@@ -126,7 +128,7 @@ start = scotty 3000 $ do
                           case parseQuery queryStr of
                             (Left err) -> return . JsonFailure . return $ err
                             (Right query) ->
-                              runQueryM (index ix) (docTable ix) query
+                              runQueryM (ixIndex ix) (ixDocTable ix) query
                               >>= return . JsonSuccess . map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + Co.sizeDocIdMap m) 0 o)) . M.toList. wordHits
     json res
 
