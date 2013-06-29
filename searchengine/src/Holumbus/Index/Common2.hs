@@ -2,10 +2,12 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Holumbus.Index.Common2 where
 
 import           Control.Arrow             (first)
+import           Control.Monad.State
 
 import           Data.Text                 (Text)
 import qualified Data.Text                 as T
@@ -124,20 +126,26 @@ getContext c = fromMaybe PT.empty . M.lookup c . iix
  - combining documents and index:
  -
  - module Holumbus.Index.DocTable.Memory
+
+ -
+ - or ... not using typeclasses at all ?? just working on
+ - two arbitary datastructures put in a state?
  -}
-data DocTable docId = DocTable { 
-  docTable :: Map docId Document
-} 
-
-insert_ :: Document -> DocTable d -> DocTable d
-insert_ = undefined
- 
-update_ :: DocTable d -> [(d,dDocument)] -> DocTable d 
-update_ = undefined
-
-delete_ :: DocTable d -> [d] -> DocTable d 
-delete_ = undefined
 
 
+data Index_ = Index_ { ix :: Map Text [Int] }
+data Doc = Doc { dx :: Map Int Text }
 
+docs = Doc $ M.insert (1::Int) "document eins" $ M.empty
+index = Index_ $ M.fromList [("document",[1::Int]), ("eins",[1::Int])]
 
+emptyIndex = (index,docs)
+
+insertM_ :: State (Index_, Doc) ()
+insertM_ = do
+  (i,d) <- get
+  return ()
+  
+
+main :: IO ()
+main = print $ evalState insertM_ emptyIndex
