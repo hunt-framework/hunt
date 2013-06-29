@@ -1,17 +1,30 @@
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DataKinds #-}
 
 module Holumbus.Index.Common2 where
+
+import           Control.Arrow             (first)
 
 import           Data.Text                 (Text)
 import qualified Data.Text                 as T
 
 import           Data.Map                  (Map)
 import qualified Data.Map                  as M
+import           Data.IntMap               (IntMap)
+import qualified Data.IntMap               as IM
 
-import           Holumbus.Index.Common     hiding (Occurrences)
+import           Holumbus.Index.Common     hiding (Occurrences, RawResult, HolIndex, Positions, DocId)
+import qualified Holumbus.Index.Common     as Co
 import qualified Holumbus.Data.PrefixTree  as PT 
 
+import           Data.ByteString.Lazy      (ByteString)
+import qualified Data.ByteString.Lazy      as BS
+
+import           Holumbus.Data.PrefixTree  (PrefixTree)
+import           Data.EnumSet              (EnumSet)
+import           Data.Maybe
 
 {- |
   Module     : Holumbus.Index.Common
@@ -31,148 +44,99 @@ import qualified Holumbus.Data.PrefixTree  as PT
  - transparent to the api users. they should have
  - to deal with URI's only. Not sure how to
  - achive that though.
- -
- - having the occurrences defined by a typeclass 
- - makes sense as well. if our index implementation
- - uses a different data structure its likely the
- - occurrence will as well.
  -}
 
-class (IndexData o) => Index i o where
-  insert :: Context -> Word -> o -> i -> i 
-  delete :: DocId -> i -> i
-  update :: Context -> Word -> o -> i -> i
 
-
--- | example
-newtype Occurrences = DocIdMap Positions
-newtype Inverted = Inverted { invIndex :: M.Map Context (PT.PrefixTree Occurrences) }
-
-instance Index Inverted Occurrences where
-  insert c w o i = undefined
-  delete id i    = undefined
-  update c w o i = undefined
-
-
-{-
- - the occurrences in the current implementation should be 
- - defined by a typeclass. this allows us to exchange the
- - implementation to try out different compressions for example
- -
- - also it allows us to change the representation completlty if
- - our underlying index structure changes  
- -}
-
-class IndexData x where
-  toIndexData   :: x
-  fromIndexData :: x
-  -- | @TODO: what functions would we need here??
-
-instance IndexData Occurrences where
-  toIndexData = undefined
-  fromIndexData = undefined
+class Index i where
+  -- | internal represenation of document id
+  type DocId     i :: *
+  -- | internal representation of info the index hold for a document
+  type DocInfo   i :: *
+  -- | search key for the index. f.e.: text for text index
+  type SearchKey i :: *
  
+  -- | insert key (word) with generic docinfo (occurrences) into context
+  insert :: Context -> SearchKey i -> DocInfo i -> i -> i 
+  -- | update DocInfo for key (word) in context ..??
+  update :: Context -> SearchKey i -> (DocId i -> DocInfo i) -> i -> i 
+  -- | remove document from all contexts
+  delete :: DocId i -> i -> i
 
 
 
-{-
- - all kind of different search operations moved out
- - of the index typeclass into this datatype
+-- | example1 simple index storing dates serialized as number
+--   associated with URI
+type Date = Int
+data SampleIndex = SampleIndex { six :: IntMap [URI] }
+
+instance Index SampleIndex where
+  type DocId     SampleIndex = URI
+  type DocInfo   SampleIndex = [URI]
+  type SearchKey SampleIndex = Date
+
+  insert c d u i = SampleIndex $ IM.insert d u $ (six i) 
+  update c d f i = undefined
+  delete d i     = undefined
+
+-- | example2 - holumbus index like its currently defined
+type Occurrences        = Map Co.DocId Positions
+type Positions          = EnumSet Position
+data Inverted = Inverted { iix :: Map Context (PrefixTree Occurrences) }
+
+instance Index Inverted where
+  type DocId     Inverted = Co.DocId
+  type DocInfo   Inverted = Occurrences
+  type SearchKey Inverted = Word
+
+  insert = undefined
+  update = undefined
+  delete = undefined
+
+{--
+ - query api
  -
- - the available operations depend strongly on the
- - underlying datastructure - so it makes sense to
- - have the possibility to implements differnt kinds
- - of operations for different types of indexes
+ - since different index implementations most likely require
+ - diffrent search operations, we should be able to define
+ - them seperate from the general typeclass
  -
- - maybe someone implements some index that isn't able
- - to distinguish between upper and lower cased 
- - words. the old typeclass would anyhow force him to 
- - implement those operations 
+ - why does the tree return lists not maps?
  -}
+
 data Query i = Query {
-  process :: i -> Context -> Text -> RawResult
+  process :: (Index i) => i -> Context -> SearchKey i -> Map (SearchKey i) (DocInfo i)
 }
 
-prefixQuery :: Query Inverted
-prefixQuery = Query (\i c t -> undefined)
+-- | example1 - queries for the date index
+exactMatch :: Query SampleIndex
+exactMatch = Query {
+  process = \i c d -> M.singleton d $ concat $ maybeToList $ IM.lookup d $ six i
+}
 
+-- | example2 - query for current holumbus index
 prefixCaseQuery :: Query Inverted
-prefixCaseQuery = Query (\i c t -> undefined)
-
-lookupQuery :: Query Inverted
-lookupQuery = Query (\i c t -> undefined)
-
-lookupCaseQuery :: Query Inverted
-lookupCaseQuery = Query (\i c t -> undefined)
-
-{--
- - HolDocuments typeclass currently is a little big
- - and messy as well. maybe we find a way to redruce
- - complexity there.
- - 
- - I'm not so sure about this typeclass at all.
- - how much flexibility do we need here? 
- - i'm not sure how this makes sense right now
- -
- - our current doctable is a in memory map
- - whatelse implementations might be possible?
- - file storage? database? list?
- -}
-
-
-class DocumentTable d where
-  insert_ :: d
-  update_ :: d
-  delete_ :: d
-  lookup  :: DocId -> Document
-   
-newtype DocMap = DocMap { idToDoc :: DocIdMap ByteString }
-
-instance Document DocMap where
-  insert_ = undefined
-  update_ = undefined
-  delete_ = undefined
-
-
-{--
- - we thought about some kind of decorator helper to
- - be able to easily inject extra features into the 
- - index, without having to change the index itself
- -
- - we should be able to use this structure for ...
- - ... caching results
- - ... having different kind of compression
- - ... maybe being able to have multiple layers to
- -     implement efficient deletes with tmp tables
- -
- - default implementation for each operation should
- - be => do nothing. so each interceptor only needs
- - to implement the operation it actually needs
- -}
-
-class Interceptor x where 
-  -- | do something before operation
-  beforeInsert :: x
-  beforeUpdate :: x
-  beforeDelete :: x
-  beforeQuery  :: x
-  
-  -- | do something after operation
-  afterInsert  :: x
-  afterUpdate  :: x
-  afterDelete  :: x
-  afterQuery   :: x
-
-
-{--
- - to actually being able to use this framework we need some kind
- - of type or typeclass that combines the various index, document 
- - and interceptor implementations
- -}
-
-data Indexer i = Indexer {
+prefixCaseQuery = Query {
+  process = \i c d -> M.fromList $ fmap (first T.pack) $ PT.prefixFindWithKeyBF (T.unpack d) $ getContext c i
 }
+getContext c = fromMaybe PT.empty . M.lookup c . iix
 
+
+{--
+ - combining documents and index:
+ -
+ - module Holumbus.Index.DocTable.Memory
+ -}
+data DocTable docId = DocTable { 
+  docTable :: Map docId Document
+} 
+
+insert_ :: Document -> DocTable d -> DocTable d
+insert_ = undefined
+ 
+update_ :: DocTable d -> [(d,dDocument)] -> DocTable d 
+update_ = undefined
+
+delete_ :: DocTable d -> [d] -> DocTable d 
+delete_ = undefined
 
 
 
