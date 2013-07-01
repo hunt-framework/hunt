@@ -50,17 +50,18 @@ module Holumbus.Query.Result
   )
 where
 
-import           Prelude                  hiding (null)
+import           Prelude                        hiding (null)
 
 import           Control.DeepSeq
-import           Control.Monad            ( liftM2 )
+import           Control.Monad                  (liftM2)
 
-import           Data.Binary              ( Binary (..) )
-import           Data.Map (Map)
-import qualified Data.Map                 as M
-import           Data.Text                ( Text )
+import           Data.Binary                    (Binary (..))
+import           Data.Map                       (Map)
+import qualified Data.Map                       as M
+import           Data.Text                      (Text)
 
 import           Holumbus.Index.Common
+import qualified Holumbus.Index.Common.DocIdMap as DM
 
 -- ----------------------------------------------------------------------------
 
@@ -136,11 +137,11 @@ instance NFData WordInfo where
 
 -- | Create an empty result.
 emptyResult             :: Result
-emptyResult             = Result emptyDocIdMap M.empty
+emptyResult             = Result DM.empty M.empty
 
 -- | Query the number of documents in a result.
 sizeDocHits             :: Result -> Int
-sizeDocHits             = sizeDocIdMap . docHits
+sizeDocHits             = DM.size . docHits
 
 -- | Query the number of documents in a result.
 sizeWordHits            :: Result -> Int
@@ -148,15 +149,15 @@ sizeWordHits            = M.size . wordHits
 
 -- | Query the maximum score of the documents.
 maxScoreDocHits         :: Result -> Score
-maxScoreDocHits         = (foldDocIdMap (\(di, _) r -> max (docScore di) r) 0.0) . docHits
+maxScoreDocHits         = DM.fold (\(di, _) r -> max (docScore di) r) 0.0 . docHits
 
 -- | Query the maximum score of the words.
 maxScoreWordHits        :: Result -> Score
-maxScoreWordHits        = (M.fold (\(wi, _) r -> max (wordScore wi) r) 0.0) . wordHits
+maxScoreWordHits        = M.fold (\(wi, _) r -> max (wordScore wi) r) 0.0 . wordHits
 
 -- | Test if the result contains anything.
 null                    :: Result -> Bool
-null                    = nullDocIdMap . docHits
+null                    = DM.null . docHits
 
 -- | Set the score in a document info.
 setDocScore             :: Score -> DocInfo -> DocInfo
@@ -170,7 +171,7 @@ setWordScore s (WordInfo t _)
 
 -- | Extract all documents from a result
 getDocuments            :: Result -> [Document]
-getDocuments r          = map (document . fst . snd) $
-                          toListDocIdMap (docHits r)
+getDocuments r          = map (document . fst . snd) .
+                          DM.toList $ docHits r
 
 -- ----------------------------------------------------------------------------

@@ -37,13 +37,14 @@ module Holumbus.Index.Compression
   )
 where
 
-import           Data.Set (Set)
-import qualified Data.Set as S
+import           Data.Set                         (Set)
+import qualified Data.Set                         as S
 
-import Holumbus.Index.Common.DocIdMap
-import Holumbus.Index.Common.Occurences     hiding (delete)
-import Holumbus.Index.Common.DiffList
-import Holumbus.Index.Common.DocId                 (DocId)
+import           Holumbus.Index.Common.DiffList
+import           Holumbus.Index.Common.DocId      (DocId)
+import           Holumbus.Index.Common.DocIdMap   (DocIdMap)
+import qualified Holumbus.Index.Common.DocIdMap   as DM
+import           Holumbus.Index.Common.Occurences hiding (delete)
 
 -- ----------------------------------------------------------------------------
 
@@ -55,18 +56,18 @@ type CompressedPositions        = DiffList
 -- | Decompressing the occurrences by just decompressing all contained positions.
 
 inflateOcc :: CompressedOccurrences -> Occurrences
-inflateOcc = mapDocIdMap inflatePos
+inflateOcc = DM.map inflatePos
 
 -- | Compress the occurrences by just compressing all contained positions.
 
 deflateOcc :: Occurrences -> CompressedOccurrences
-deflateOcc = mapDocIdMap deflatePos
+deflateOcc = DM.map deflatePos
 
 -- XXX: Maybe unnecessary due to lazy evaluation
 -- | Delete without deflating and inflating.
 
 delete :: DocId -> CompressedOccurrences -> CompressedOccurrences
-delete = deleteDocIdMap
+delete = DM.delete
 
 
 -- | Difference without deflating and inflating.

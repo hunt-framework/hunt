@@ -40,20 +40,21 @@ module Holumbus.Index.HashedDocuments
     )
 where
 
-import qualified Codec.Compression.BZip as BZ
+import qualified Codec.Compression.BZip         as BZ
 
 import           Control.DeepSeq
 
-import qualified Data.Set               as S
-import           Data.Binary            ( Binary )
-import qualified Data.Binary            as B
+import           Data.Binary                    (Binary)
+import qualified Data.Binary                    as B
+import qualified Data.Set                       as S
 
-import           Data.ByteString.Lazy   ( ByteString )
-import qualified Data.ByteString.Lazy   as BS
+import           Data.ByteString.Lazy           (ByteString)
+import qualified Data.ByteString.Lazy           as BS
 
 import           Data.Digest.Murmur64
 
 import           Holumbus.Index.Common
+import qualified Holumbus.Index.Common.DocIdMap as DM
 
 -- ----------------------------------------------------------------------------
 
@@ -107,43 +108,43 @@ mapDocument                     :: (Document -> Document) -> CompressedDoc -> Co
 mapDocument f                   = fromDocument . f . toDocument
 
 toDocMap                        :: DocIdMap Document -> DocMap
-toDocMap                        = mapDocIdMap fromDocument
+toDocMap                        = DM.map fromDocument
 
 fromDocMap                      :: DocMap -> DocIdMap Document
-fromDocMap                      = mapDocIdMap toDocument
+fromDocMap                      = DM.map toDocument
 
 -- ----------------------------------------------------------------------------
 
 instance HolDocuments Documents where
   nullDocs
-      = nullDocIdMap . idToDoc
+      = DM.null . idToDoc
 
   sizeDocs
-      = sizeDocIdMap . idToDoc
+      = DM.size . idToDoc
 
   lookupById  d i
       = maybe (fail "") return
         . fmap toDocument
-        . lookupDocIdMap i
+        . DM.lookup i
         . idToDoc
         $ d
 
   lookupByURI d u
       = maybe (fail "") (const $ return i)
-        . lookupDocIdMap i
+        . DM.lookup i
         . idToDoc
         $ d
         where
           i = docToId u
 
   disjointDocs dt1 dt2
-      = nullDocIdMap $ intersectionDocIdMap (idToDoc dt1) (idToDoc dt2)
+      = DM.null $ DM.intersection (idToDoc dt1) (idToDoc dt2)
 
   unionDocs dt1 dt2
       | disjointDocs dt1 dt2
           = unionDocs' dt1 dt2
       | otherwise
-          = error $
+          = error
             "HashedDocuments.unionDocs: doctables are not disjoint"
 
   makeEmpty _
@@ -157,31 +158,31 @@ instance HolDocuments Documents where
           d'  = fromDocument d
           reallyInsert
               = rnf d' `seq`                    -- force document compression
-                (newId, Documents {idToDoc = insertDocIdMap newId d' $ idToDoc ds})
+                (newId, Documents {idToDoc = DM.insert newId d' $ idToDoc ds})
 
   updateDoc ds i d
       = rnf d' `seq`                    -- force document compression
-        Documents {idToDoc = insertDocIdMap i d' $ idToDoc ds}
+        Documents {idToDoc = DM.insert i d' $ idToDoc ds}
       where
         d'                      = fromDocument d
 
   removeById ds d
-      = Documents {idToDoc = deleteDocIdMap d $ idToDoc ds}
+      = Documents {idToDoc = DM.delete d $ idToDoc ds}
 
 
   -- XXX: EnumMap does not have a fromSet function so that you can use fromSet (const ()) and ignore the value
   deleteById s ds
-      = Documents {idToDoc = idToDoc ds `differenceDocIdMap` (fromAscListDocIdMap . map mkKeyValueDummy . S.toList $ s)}
+      = Documents {idToDoc = idToDoc ds `DM.difference` (DM.fromAscList . map mkKeyValueDummy . S.toList $ s)}
       where
       mkKeyValueDummy k = (k, undefined) -- XXX: strictness properties of EnumMap?
 
 
   updateDocuments f d
-      = Documents {idToDoc = mapDocIdMap (mapDocument f) (idToDoc d)}
+      = Documents {idToDoc = DM.map (mapDocument f) (idToDoc d)}
 
 
   filterDocuments p d
-      = Documents {idToDoc = filterDocIdMap (p . toDocument) (idToDoc d)}
+      = Documents {idToDoc = DM.filter (p . toDocument) (idToDoc d)}
 
 
   fromMap itd'
@@ -214,19 +215,19 @@ instance NFData CompressedDoc where
 
 emptyDocuments :: Documents
 emptyDocuments
-    = Documents emptyDocIdMap
+    = Documents DM.empty
 
 unionDocs' :: Documents -> Documents -> Documents
 unionDocs' dt1 dt2
     = Documents
-      { idToDoc = unionDocIdMap (idToDoc dt1) (idToDoc dt2) }
+      { idToDoc = idToDoc dt1 `DM.union` idToDoc dt2 }
 
 -- | Create a document table containing a single document.
 
 singleton :: Document -> Documents
 singleton d
     = rnf d' `seq`
-      Documents {idToDoc = singletonDocIdMap (docToId . uri $ d) d'}
+      Documents {idToDoc = DM.singleton (docToId . uri $ d) d'}
     where
       d' = fromDocument d
 

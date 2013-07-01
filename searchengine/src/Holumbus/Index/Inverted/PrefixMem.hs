@@ -52,6 +52,8 @@ import qualified Holumbus.Data.PrefixTree       as PT
 
 import           Holumbus.Index.Common
 import           Holumbus.Index.Compression     as C
+import qualified Holumbus.Index.Common.DocIdMap as DM
+
 
 -- ----------------------------------------------------------------------------
 
@@ -83,7 +85,7 @@ instance HolIndex Inverted where
   mergeIndexes i1 i2            = Inverted (mergeParts (indexParts i1) (indexParts i2))
   substractIndexes i1 i2        = Inverted (substractParts (indexParts i1) (indexParts i2))
 
-  insertOccurrences c w o i     = mergeIndexes (singleton c w o) i
+  insertOccurrences c w o       = mergeIndexes (singleton c w o)
   deleteOccurrences c w o i     = substractIndexes i (singleton c w o)
 
   splitByContexts (Inverted ps) = splitInternal (map (uncurry annotate) . M.toList $ ps)
@@ -94,8 +96,8 @@ instance HolIndex Inverted where
                                   (sizeWords i, i)
 
   splitByDocuments i            = splitInternal ( map convert $
-                                                  toListDocIdMap $
-                                                  unionsWithDocIdMap unionDocs' docResults
+                                                  DM.toList $
+                                                  DM.unionsWith unionDocs' docResults
                                                 )
     where
     unionDocs'                  = M.unionWith (M.unionWith unionPos)
@@ -104,7 +106,7 @@ instance HolIndex Inverted where
       where
       makeIndex r (c, ws)       = foldl' makeOcc r (M.toList ws)
         where
-        makeOcc (rs, ri) (w, p) = (sizePos p + rs , insertOccurrences c w (singletonDocIdMap d p) ri)
+        makeOcc (rs, ri) (w, p) = (sizePos p + rs , insertOccurrences c w (DM.singleton d p) ri)
 
   splitByWords i                = splitInternal indexes
     where
@@ -120,9 +122,9 @@ instance HolIndex Inverted where
   updateDocIds f (Inverted parts)
                                 = Inverted (M.mapWithKey updatePart parts)
     where
-    updatePart c p              = PT.mapWithKey
-                                  (\w o -> foldWithKeyDocIdMap (updateDocument c w) emptyDocIdMap o) p
-    updateDocument c w d p r    = insertWithDocIdMap mergePositions (f c (T.pack w) d) p r
+    updatePart c                = PT.mapWithKey
+                                  (\w o -> DM.foldWithKey (updateDocument c w) DM.empty o)
+    updateDocument c w d        = DM.insertWith mergePositions (f c (T.pack w) d)
       where
       mergePositions p1 p2      = deflatePos $ unionPos (inflatePos p1) (inflatePos p2)
 
@@ -130,13 +132,12 @@ instance HolIndex Inverted where
                                 = Inverted . M.map updatePart . indexParts
     where
     updatePart                  = PT.map updateOcc
-    updateOcc                   = foldWithKeyDocIdMap updateId emptyDocIdMap
-    updateId                    = insertDocIdMap . f
+    updateOcc                   = DM.foldWithKey updateId DM.empty
+    updateId                    = DM.insert . f
 
-  toList i                      = concat $ map convertPart $ M.toList (indexParts i)
-    where convertPart (c,p)     = map (\(w, o) -> (c, T.pack w, inflateOcc o)) $
-                                  PT.toList $
-                                  p
+  toList i                      = concatMap convertPart . M.toList $ indexParts i
+    where convertPart (c,p)     = map (\(w, o) -> (c, T.pack w, inflateOcc o)) .
+                                  PT.toList $ p
 
   deleteDocsById = deleteDocsById'
 
@@ -204,13 +205,13 @@ splitInternal inp n             = allocate mergeIndexes stack buckets
 allocate                        :: (a -> a -> a) -> [(Int, a)] -> [(Int, a)] -> [a]
 allocate _ _ []                 = []
 allocate _ [] ys                = map snd ys
-allocate f (x:xs) (y:ys)        = allocate f xs (sortBy (compare `on` fst) ((combine x y):ys))
+allocate f (x:xs) (y:ys)        = allocate f xs (sortBy (compare `on` fst) (combine x y : ys))
   where
   combine (s1, v1) (s2, v2)     = (s1 + s2, f v1 v2)
 
 -- | Create empty buckets for allocating indexes.
 createBuckets                   :: Int -> [(Int, Inverted)]
-createBuckets n                 = (replicate n (0, emptyInverted))
+createBuckets n                 = replicate n (0, emptyInverted)
 
 -- | Return a part of the index for a given context.
 getPart                         :: Context -> Inverted -> Part
@@ -230,6 +231,6 @@ deleteDocsById' docIds = liftInv $ M.mapMaybe deleteInParts
   deleteInPT :: CompressedOccurrences -> Maybe CompressedOccurrences
   deleteInPT occ
     = let occ' = C.differenceWithKeySet docIds occ
-      in if nullDocIdMap occ'
+      in if DM.null occ'
             then Nothing
             else return occ'

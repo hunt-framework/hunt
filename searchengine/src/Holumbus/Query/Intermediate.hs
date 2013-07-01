@@ -42,18 +42,19 @@ module Holumbus.Query.Intermediate
 )
 where
 
-import Prelude                  hiding (null)
+import           Prelude                        hiding (null)
 
-import Data.Maybe
+import           Data.Maybe
 
-import qualified Data.List      as L
+import qualified Data.List                      as L
 
-import Data.Map (Map)
-import qualified Data.Map       as M
+import           Data.Map                       (Map)
+import qualified Data.Map                       as M
 
-import Holumbus.Query.Result    hiding (null)
+import           Holumbus.Query.Result          hiding (null)
 
-import Holumbus.Index.Common    hiding (toList, fromList)
+import           Holumbus.Index.Common          hiding (fromList, toList)
+import qualified Holumbus.Index.Common.DocIdMap as DM
 
 -- ----------------------------------------------------------------------------
 
@@ -68,17 +69,17 @@ type IntermediateWords          = Map Word (WordInfo, Positions)
 -- | Create an empty intermediate result.
 
 emptyIntermediate               :: Intermediate
-emptyIntermediate               = emptyDocIdMap
+emptyIntermediate               = DM.empty
 
 -- | Check if the intermediate result is empty.
 
 null                            :: Intermediate -> Bool
-null                            = nullDocIdMap
+null                            = DM.null
 
 -- | Returns the number of documents in the intermediate result.
 
 sizeIntermediate                :: Intermediate -> Int
-sizeIntermediate                = sizeDocIdMap
+sizeIntermediate                = DM.size
 
 -- | Merges a bunch of intermediate results into one intermediate result by unioning them.
 
@@ -88,17 +89,17 @@ unions                          = L.foldl' union emptyIntermediate
 -- | Intersect two sets of intermediate results.
 
 intersection                    :: Intermediate -> Intermediate -> Intermediate
-intersection                    = intersectionWithDocIdMap combineContexts
+intersection                    = DM.intersectionWith combineContexts
 
 -- | Union two sets of intermediate results.
 
 union                           :: Intermediate -> Intermediate -> Intermediate
-union                           = unionWithDocIdMap combineContexts
+union                           = DM.unionWith combineContexts
 
 -- | Substract two sets of intermediate results.
 
 difference                      :: Intermediate -> Intermediate -> Intermediate
-difference                      = differenceDocIdMap
+difference                      = DM.difference
 
 -- | Create an intermediate result from a list of words and their occurrences.
 
@@ -106,11 +107,11 @@ fromList :: Word -> Context -> RawResult -> Intermediate
 -- Beware! This is extremly optimized and will not work for merging arbitrary intermediate results!
 -- Based on resultByDocument from Holumbus.Index.Common
 
-fromList t c os                 = mapDocIdMap transform $
-                                  unionsWithDocIdMap (flip $ (:) . head)
+fromList t c os                 = DM.map transform $
+                                  DM.unionsWith (flip $ (:) . head)
                                                      (map insertWords os)
   where
-  insertWords (w, o)            = mapDocIdMap (\p -> [(w, (WordInfo [t] 0.0 , p))]) o
+  insertWords (w, o)            = DM.map (\p -> [(w, (WordInfo [t] 0.0 , p))]) o
   transform w                   = M.singleton c (M.fromList w)
 
 -- | Convert to a @Result@ by generating the 'WordHits' structure.
@@ -121,15 +122,15 @@ toResult d im                   = Result (createDocHits d im) (createWordHits im
 -- | Create the doc hits structure from an intermediate result.
 
 createDocHits                   :: HolDocuments d => d -> Intermediate -> DocHits
-createDocHits d im              = mapWithKeyDocIdMap transformDocs im
+createDocHits d                 = DM.mapWithKey transformDocs
   where
   transformDocs did ic          = let doc = fromMaybe (Document "" M.empty) (lookupById d did) in
-                                  (DocInfo doc 0.0, M.map (M.map (\(_, p) -> p)) ic)
+                                  (DocInfo doc 0.0, M.map (M.map snd) ic)
 
 -- | Create the word hits structure from an intermediate result.
 
 createWordHits :: Intermediate -> WordHits
-createWordHits im               = foldWithKeyDocIdMap transformDoc M.empty im
+createWordHits                  = DM.foldWithKey transformDoc M.empty
   where
   transformDoc d ic wh          = M.foldrWithKey transformContext wh ic
     where
@@ -140,7 +141,7 @@ createWordHits im               = foldWithKeyDocIdMap transformDoc M.empty im
                                   then wh''
                                   else M.insertWith combineWordHits
                                            w
-                                           (wi, M.singleton c (singletonDocIdMap d pos))
+                                           (wi, M.singleton c (DM.singleton d pos))
                                            wh''
 
 -- | Combine two tuples with score and context hits.
@@ -149,7 +150,7 @@ combineWordHits                 :: (WordInfo, WordContextHits) ->
                                    (WordInfo, WordContextHits) -> (WordInfo, WordContextHits)
 combineWordHits (i1, c1) (i2, c2)
                                 = ( combineWordInfo i1 i2
-                                  , M.unionWith (unionWithDocIdMap unionPos) c1 c2
+                                  , M.unionWith (DM.unionWith unionPos) c1 c2
                                   )
 
 -- | Combine two tuples with score and context hits.

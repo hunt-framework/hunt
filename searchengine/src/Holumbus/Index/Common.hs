@@ -47,18 +47,20 @@ module Holumbus.Index.Common
   )
 where
 
-import           Control.Monad                    ( foldM )
+import           Control.Monad                    (foldM)
 
-import           Data.Set                         ( Set )
-import           Data.Text                        ( Text )
+import           Data.Set                         (Set)
+import           Data.Text                        (Text)
 
 
 import           Holumbus.Index.Common.BasicTypes
-import           Holumbus.Index.Common.Document
 import           Holumbus.Index.Common.DocId
-import           Holumbus.Index.Common.DocIdMap
+import           Holumbus.Index.Common.DocIdMap   (DocIdMap)
+import qualified Holumbus.Index.Common.DocIdMap   as DM
+import           Holumbus.Index.Common.Document
 import           Holumbus.Index.Common.Occurences
 import           Holumbus.Index.Common.RawResult
+
 
 -- ------------------------------------------------------------
 
@@ -241,7 +243,7 @@ class HolDocuments d where
   -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
 
   unionDocs                     :: d -> d -> d
-  unionDocs dt1                 = foldDocIdMap addDoc dt1 . toMap
+  unionDocs dt1                 = DM.fold addDoc dt1 . toMap
       where
       addDoc d dt               = snd . insertDoc dt $ d
 
@@ -292,7 +294,7 @@ class HolDocuments d where
 
   -- | Edit document ids
   editDocIds                    :: (DocId -> DocId) -> d -> d
-  editDocIds f                  = fromMap . foldWithKeyDocIdMap (insertDocIdMap . f) emptyDocIdMap . toMap
+  editDocIds f                  = fromMap . DM.foldWithKey (DM.insert . f) DM.empty . toMap
 
 -- ------------------------------------------------------------
 

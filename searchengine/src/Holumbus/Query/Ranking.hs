@@ -39,16 +39,17 @@ module Holumbus.Query.Ranking
   )
 where
 
-import Prelude hiding (foldr)
+import           Prelude                        hiding (foldr)
 
-import Data.Function
-import Data.Foldable
+import           Data.Foldable
+import           Data.Function
 
-import qualified Data.List as L
-import qualified Data.Map as M
+import qualified Data.List                      as L
+import qualified Data.Map                       as M
 
-import Holumbus.Query.Result
-import Holumbus.Index.Common
+import           Holumbus.Index.Common
+import qualified Holumbus.Index.Common.DocIdMap as DM
+import           Holumbus.Query.Result
 
 -- ----------------------------------------------------------------------------
 
@@ -72,7 +73,7 @@ rank                    :: RankConfig -> Result -> Result
 rank (RankConfig fd fw {-ld lw-}) r
                         = Result scoredDocHits scoredWordHits
   where
-  scoredDocHits         = mapWithKeyDocIdMap (\k (di, dch) -> (setDocScore (fd k di dch) di, dch)) $
+  scoredDocHits         = DM.mapWithKey (\k (di, dch) -> (setDocScore (fd k di dch) di, dch)) $
                           docHits r
   scoredWordHits        = M.mapWithKey (\k (wi, wch) -> (setWordScore (fw k wi wch) wi, wch)) $
                           wordHits r
@@ -81,31 +82,31 @@ rank (RankConfig fd fw {-ld lw-}) r
 
 docRankByCount          :: DocId -> DocInfo -> DocContextHits -> Score
 docRankByCount _ _ h    = fromIntegral $
-                          M.fold (\h1 r1 -> M.fold (\h2 r2 -> sizePos h2 + r2) r1 h1) 0 h
+                          M.fold (flip (M.fold (\h2 r2 -> sizePos h2 + r2))) 0 h
 
 -- | Rank words by count.
 
 wordRankByCount         :: Word -> WordInfo -> WordContextHits -> Score
-wordRankByCount _ _ h   = fromIntegral $ M.fold (\h1 r1 -> foldDocIdMap ((+) . sizePos) r1 h1) 0 h
+wordRankByCount _ _ h   = fromIntegral $ M.fold (flip (DM.fold ((+) . sizePos))) 0 h
 
 -- | Rank documents by context-weighted count. The weights will be normalized to a maximum of 1.0.
 -- Contexts with no weight (or a weight of zero) will be ignored.
 
 docRankWeightedByCount  :: [(Context, Score)] -> DocId -> DocInfo -> DocContextHits -> Score
-docRankWeightedByCount ws _ _ h
-                        =  M.foldrWithKey (calcWeightedScore ws) 0.0 h
+docRankWeightedByCount ws _ _
+                        =  M.foldrWithKey (calcWeightedScore ws) 0.0
 
 -- | Rank words by context-weighted count. The weights will be normalized to a maximum of 1.0.
 -- Contexts with no weight (or a weight of zero) will be ignored.
 
 wordRankWeightedByCount :: [(Context, Score)] -> Word -> WordInfo -> WordContextHits -> Score
-wordRankWeightedByCount ws _ _ h
-                        = M.foldrWithKey (calcWeightedScore ws) 0.0 h
+wordRankWeightedByCount ws _ _
+                        = M.foldrWithKey (calcWeightedScore ws) 0.0
 
 -- | Calculate the weighted score of occurrences of a word.
 
 calcWeightedScore       :: (Foldable f) =>
-                           [(Context, Score)] -> Context -> (f Positions) -> Score -> Score
+                           [(Context, Score)] -> Context -> f Positions -> Score -> Score
 calcWeightedScore ws c h r
                         = maybe r (\w -> r + ((w / mw) * count)) $
                           lookupWeight c ws

@@ -38,26 +38,25 @@ where
 import           Control.Monad
 import           Control.Parallel.Strategies
 
-import           Data.Binary                    ( Binary (..) )
+import           Data.Binary                     (Binary (..))
 import           Data.Function
-import qualified Data.List                      as L
-import           Data.Text                      ( Text )
-import qualified Data.Text                      as T
+import qualified Data.List                       as L
+import           Data.Text                       (Text)
+import qualified Data.Text                       as T
 
-import           Holumbus.Index.Common          hiding (contexts)
-import qualified Holumbus.Index.Common          as IDX
+import           Holumbus.Index.Common           hiding (contexts)
+import qualified Holumbus.Index.Common           as IDX
 
 import           Holumbus.Query.Language.Grammar
 
-import           Holumbus.Query.Fuzzy           ( FuzzyScore
-                                                , FuzzyConfig
-                                                )
-import qualified Holumbus.Query.Fuzzy           as F
+import           Holumbus.Query.Fuzzy            (FuzzyConfig, FuzzyScore)
+import qualified Holumbus.Query.Fuzzy            as F
 
-import           Holumbus.Query.Result          ( Result )
+import           Holumbus.Query.Result           (Result)
 
-import           Holumbus.Query.Intermediate    ( Intermediate )
-import qualified Holumbus.Query.Intermediate    as I
+import qualified Holumbus.Index.Common.DocIdMap  as DM
+import           Holumbus.Query.Intermediate     (Intermediate)
+import qualified Holumbus.Query.Intermediate     as I
 
 -- ----------------------------------------------------------------------------
 
@@ -111,7 +110,7 @@ setContextsM cs (ProcessState cfg _ i t) = return $ ProcessState cfg cs i t
 -- | Initialize the state of the processor.
 
 initState :: HolIndex i => ProcessConfig -> i -> Int -> ProcessState i
-initState cfg i t = ProcessState cfg (IDX.contexts i) i t
+initState cfg i = ProcessState cfg (IDX.contexts i) i
 
 -- | Monadic version of 'initState'.
 
@@ -147,7 +146,7 @@ processPartial cfg i t q = process (initState cfg i t) oq
 -- | Monadic version of 'processPartial'.
 
 processPartialM :: (HolIndexM m i) => ProcessConfig -> i -> Int -> Query -> m Intermediate
-processPartialM cfg i t q = initStateM cfg i t >>= (flip processM) oq
+processPartialM cfg i t q = initStateM cfg i t >>= flip processM oq
   where
   oq = if optimizeQuery cfg then optimize q else q
 
@@ -241,20 +240,20 @@ processPhraseInternal :: (Text -> RawResult) -> Context -> Text -> Intermediate
 processPhraseInternal f c q = let
   w = T.words q
   m = mergeOccurrencesList $ map snd $ f (head w) in
-  if nullDocIdMap m
+  if DM.null m
   then I.emptyIntermediate
   else I.fromList q c [(q, processPhrase' (tail w) 1 m)]
   where
   processPhrase' :: [Text] -> Position -> Occurrences -> Occurrences
   processPhrase' [] _ o = o
-  processPhrase' (x:xs) p o = processPhrase' xs (p+1) (filterWithKeyDocIdMap (nextWord $ map snd $ f x) o)
+  processPhrase' (x:xs) p o = processPhrase' xs (p+1) (DM.filterWithKey (nextWord $ map snd $ f x) o)
     where
       nextWord :: [Occurrences] -> DocId -> Positions -> Bool
       nextWord [] _ _  = False
-      nextWord no d np = maybe False hasSuccessor (lookupDocIdMap d (mergeOccurrencesList no))
+      nextWord no d np = maybe False hasSuccessor (DM.lookup d (mergeOccurrencesList no))
           where
             hasSuccessor :: Positions -> Bool
-            hasSuccessor w = foldPos (\cp r -> r || (memberPos (cp + p) w)) False np
+            hasSuccessor w = foldPos (\cp r -> r || memberPos (cp + p) w) False np
 
 -- | Process a single word and try some fuzzy alternatives if nothing was found.
 
@@ -281,7 +280,7 @@ processFuzzyWordM s oq = do
 -- | Process a negation by getting all documents and substracting the result of the negated query.
 
 processNegation :: HolIndex i => ProcessState i -> Intermediate -> Intermediate
-processNegation s r = I.difference (allDocuments s) r
+processNegation s = I.difference (allDocuments s)
 
 -- | Monadic version of 'processNegation'.
 
@@ -292,8 +291,8 @@ processNegationM s r1 = allDocumentsM s >>= \r2 -> return $ I.difference r2 r1
 
 processBin :: BinOp -> Intermediate -> Intermediate -> Intermediate
 processBin And r1 r2 = I.intersection r1 r2
-processBin Or r1 r2  = I.union r1 r2
-processBin But r1 r2 = I.difference r1 r2
+processBin Or r1 r2  = I.union        r1 r2
+processBin But r1 r2 = I.difference   r1 r2
 
 
 -- | Limit a 'RawResult' to a fixed amount of the best words.
@@ -329,7 +328,7 @@ limitWords s r          = cutW . cutD $ r
       | otherwise       = id
 
   calcScore             :: (Word, Occurrences) -> (Double, (Word, Occurrences))
-  calcScore w@(_, o)    = (log (fromIntegral (total s) / fromIntegral (sizeDocIdMap o)), w)
+  calcScore w@(_, o)    = (log (fromIntegral (total s) / fromIntegral (DM.size o)), w)
 
 -- ----------------------------------------------------------------------------
 
@@ -339,7 +338,7 @@ limitDocs               :: Int -> RawResult -> RawResult
 limitDocs _     []      = []
 limitDocs limit _
     | limit <= 0        = []
-limitDocs limit (x:xs)  = x : limitDocs (limit - sizeDocIdMap (snd x)) xs
+limitDocs limit (x:xs)  = x : limitDocs (limit - DM.size (snd x)) xs
 
 -- ----------------------------------------------------------------------------
 
@@ -349,6 +348,6 @@ limitWordsM s r         = return $ limitWords s r
 
 -- | Merge occurrences
 mergeOccurrencesList    :: [Occurrences] -> Occurrences
-mergeOccurrencesList    = unionsWithDocIdMap unionPos
+mergeOccurrencesList    = DM.unionsWith unionPos
 
 -- ----------------------------------------------------------------------------

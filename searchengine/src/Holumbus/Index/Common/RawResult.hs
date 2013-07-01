@@ -20,12 +20,13 @@
 module Holumbus.Index.Common.RawResult
 where
 
-import           Data.Map       (Map)
-import qualified Data.Map       as M
+import           Data.Map                         (Map)
+import qualified Data.Map                         as M
 
-import Holumbus.Index.Common.BasicTypes
-import Holumbus.Index.Common.DocIdMap
-import Holumbus.Index.Common.Occurences
+import           Holumbus.Index.Common.BasicTypes
+import           Holumbus.Index.Common.DocIdMap   (DocIdMap)
+import qualified Holumbus.Index.Common.DocIdMap   as DM
+import           Holumbus.Index.Common.Occurences
 
 -- ------------------------------------------------------------
 
@@ -43,10 +44,10 @@ resultByWord c
 
 resultByDocument :: Context -> RawResult -> DocIdMap (Map Context (Map Word Positions))
 resultByDocument c os
-    = mapDocIdMap transform $
-      unionsWithDocIdMap (flip $ (:) . head) (map insertWords os)
+    = DM.map transform $
+      DM.unionsWith (flip $ (:) . head) (map insertWords os)
     where
-      insertWords (w, o) = mapDocIdMap (\p -> [(w, p)]) o   
+      insertWords (w, o) = DM.map (\p -> [(w, p)]) o
       transform w        = M.singleton c (M.fromList w)
 
 -- ------------------------------------------------------------

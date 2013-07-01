@@ -20,17 +20,17 @@
 module Holumbus.Index.Common.Occurences
 where
 
-import Control.DeepSeq
+import           Control.DeepSeq
 
-import Data.Binary              ( Binary (..) )
-import qualified
-       Data.Binary              as B
+import           Data.Binary                      (Binary (..))
+import qualified Data.Binary                      as B
 
-import qualified Data.EnumSet   as IS
+import qualified Data.EnumSet                     as IS
 
-import Holumbus.Index.Common.BasicTypes
-import Holumbus.Index.Common.DocId
-import Holumbus.Index.Common.DocIdMap
+import           Holumbus.Index.Common.BasicTypes
+import           Holumbus.Index.Common.DocId
+import           Holumbus.Index.Common.DocIdMap   as DM
+
 
 -- ------------------------------------------------------------
 
@@ -41,43 +41,43 @@ type Occurrences        = DocIdMap Positions
 
 -- | Create an empty set of positions.
 emptyOccurrences        :: Occurrences
-emptyOccurrences        = emptyDocIdMap
+emptyOccurrences        = empty
 
 -- | Create an empty set of positions.
 singletonOccurrence     :: DocId -> Position -> Occurrences
-singletonOccurrence d p = insertOccurrence d p emptyDocIdMap
+singletonOccurrence d p = insertOccurrence d p empty
 
 -- | Test on empty set of positions.
 nullOccurrences         :: Occurrences -> Bool
-nullOccurrences         = nullDocIdMap
+nullOccurrences         = DM.null
 
 -- | Determine the number of positions in a set of occurrences.
 sizeOccurrences         :: Occurrences -> Int
-sizeOccurrences         = foldDocIdMap ((+) . IS.size) 0
+sizeOccurrences         = fold ((+) . IS.size) 0
 
 insertOccurrence        :: DocId -> Position -> Occurrences -> Occurrences
-insertOccurrence d p    = insertWithDocIdMap IS.union d (singletonPos p)
+insertOccurrence d p    = insertWith IS.union d (singletonPos p)
 
 deleteOccurrence        :: DocId -> Position -> Occurrences -> Occurrences
-deleteOccurrence d p    = substractOccurrences (singletonDocIdMap d (singletonPos p))
+deleteOccurrence d p    = substractOccurrences (singleton d (singletonPos p))
 
 delete                  :: DocId -> Occurrences -> Occurrences
-delete                  = deleteDocIdMap
+delete                  = DM.delete
 
 updateOccurrences       :: (DocId -> DocId) -> Occurrences -> Occurrences
-updateOccurrences f     = foldWithKeyDocIdMap
-                          (\ d ps res -> insertWithDocIdMap IS.union (f d) ps res) emptyOccurrences
+updateOccurrences f     = foldWithKey
+                          (\ d ps res -> insertWith IS.union (f d) ps res) emptyOccurrences
 
 -- | Merge two occurrences.
 mergeOccurrences        :: Occurrences -> Occurrences -> Occurrences
-mergeOccurrences        = unionWithDocIdMap IS.union
+mergeOccurrences        = unionWith IS.union
 
 diffOccurrences         :: Occurrences -> Occurrences -> Occurrences
-diffOccurrences          = differenceDocIdMap
+diffOccurrences          = difference
 
 -- | Substract occurrences from some other occurrences.
 substractOccurrences    :: Occurrences -> Occurrences -> Occurrences
-substractOccurrences    = differenceWithDocIdMap substractPositions
+substractOccurrences    = differenceWith substractPositions
   where
   substractPositions p1 p2
                         = if IS.null diffPos

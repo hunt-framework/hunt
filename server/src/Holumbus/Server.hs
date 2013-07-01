@@ -2,43 +2,37 @@
 
 module Holumbus.Server {-(start)-} where
 
-import           Web.Scotty
 import           Network.Wai.Middleware.RequestLogger
---import           Network.Wai.Middleware.Static
-
---import           Control.Monad            (mzero)
-import           Control.Monad.IO.Class   (MonadIO, liftIO)
+import           Web.Scotty
 import           Control.Concurrent.MVar
+import           Control.Monad.IO.Class               (MonadIO, liftIO)
 
-import           Data.Maybe               (isJust, isNothing, fromJust)
-import qualified Data.Set as              S
-import qualified Data.Map                 as M
-import           Data.Text                (Text)
---import qualified Data.Text                as T
+import qualified Data.Map                             as M
+import           Data.Maybe                           (fromJust, isJust,
+                                                       isNothing)
+import qualified Data.Set                             as S
+import           Data.Text                            (Text)
 {-
 import qualified Data.Aeson               as A
 import           Data.Aeson.Encode.Pretty (encodePretty)
 -}
---import qualified Data.Text.Lazy.Encoding as TEL
---import qualified Data.Text.Lazy as TL
 
-import qualified Holumbus.Server.Template       as Tmpl
 import           Holumbus.Server.Common
+import qualified Holumbus.Server.Template             as Tmpl
 
-import           Holumbus.Index.Common          ( URI
-                                                , Document(..)
-                                                , DocId(..)
-                                                , HolDocuments --, HolIndex
-                                                , HolIndexM)
-import qualified Holumbus.Index.Common          as Co
-import           Holumbus.Index.Inverted.PrefixMem
+import           Holumbus.Index.Common                (DocId (..),
+                                                       Document (..),
+                                                       HolDocuments, HolIndexM,
+                                                       URI)
+import qualified Holumbus.Index.Common.DocIdMap       as DM
 import           Holumbus.Index.HashedDocuments
-
+import           Holumbus.Index.Inverted.PrefixMem
+import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
 import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
-import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Result
+
 
 
 
@@ -116,7 +110,7 @@ start = scotty 3000 $ do
                             (Left err) -> return . JsonFailure . return $ err
                             (Right query) ->
                               runQueryM (index ix) (docTable ix) query
-                              >>= return . JsonSuccess . map (\(_,(DocInfo doc _,_)) -> doc) . Co.toListDocIdMap . docHits
+                              >>= return . JsonSuccess . map (\(_,(DocInfo doc _,_)) -> doc) . DM.toList . docHits
     json res
 
 
@@ -127,7 +121,7 @@ start = scotty 3000 $ do
                             (Left err) -> return . JsonFailure . return $ err
                             (Right query) ->
                               runQueryM (index ix) (docTable ix) query
-                              >>= return . JsonSuccess . map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + Co.sizeDocIdMap m) 0 o)) . M.toList. wordHits
+                              >>= return . JsonSuccess . map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + DM.size m) 0 o)) . M.toList. wordHits
     json res
 
 

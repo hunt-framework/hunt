@@ -37,28 +37,30 @@ module Holumbus.Index.Inverted.CompressedPrefixMem
     )
 where
 
-import qualified Codec.Compression.BZip as BZ
+import qualified Codec.Compression.BZip         as BZ
 
-import           Control.DeepSeq
 import           Control.Arrow
+import           Control.DeepSeq
 
-import qualified Data.ByteString.Lazy   as BS
-import qualified Data.Binary            as B
+import qualified Data.Binary                    as B
+import qualified Data.ByteString.Lazy           as BS
 
-import           Data.Function          ( on )
+import           Data.Function                  (on)
 
 import           Data.Int
-import           Data.Text              (Text)
-import qualified Data.Text              as T
+import           Data.Text                      (Text)
+import qualified Data.Text                      as T
 
-import           Data.List              ( foldl', sortBy )
-import qualified Data.Map               as M
+import           Data.List                      (foldl', sortBy)
+import qualified Data.Map                       as M
 import           Data.Maybe
 
 import           Holumbus.Index.Common
 import           Holumbus.Index.Compression
 
 import qualified Holumbus.Data.PrefixTree       as PT
+import qualified Holumbus.Index.Common.DocIdMap as DM
+
 
 -- ----------------------------------------------------------------------------
 
@@ -73,7 +75,7 @@ zipOcc                  :: (ComprOccurrences s) => (Occurrences -> Occurrences -
 zipOcc op x y           = fromOccurrences $ op (toOccurrences x)(toOccurrences y)
 
 emptyOcc                :: (ComprOccurrences s) => s
-emptyOcc                = fromOccurrences  $ emptyOccurrences
+emptyOcc                = fromOccurrences  emptyOccurrences
 
 theOcc                  :: (ComprOccurrences s) => s -> Occurrences
 theOcc                  = toOccurrences
@@ -273,14 +275,14 @@ instance (B.Binary occ, ComprOccurrences occ) => HolIndex (Inverted occ) where
   lookupNoCase i c q            = fmap (T.pack *** toOccurrences) . PT.lookupNoCase               (T.unpack q) . getPart c $ i
 
   mergeIndexes                  = zipInverted $ M.unionWith      $ PT.unionWith (zipOcc mergeOccurrences)
-  substractIndexes              = zipInverted $ M.differenceWith $ substractPart
+  substractIndexes              = zipInverted $ M.differenceWith substractPart
 
   insertOccurrences c w o i     = mergeIndexes     i (singletonInverted c w o)          -- see "http://holumbus.fh-wedel.de/hayoo/hayoo.html#0:unionWith%20module%3AData.Map"
   deleteOccurrences c w o i     = substractIndexes i (singletonInverted c w o)
 
   toList                        = concatMap (uncurry convertPart) . toListInverted
                                   where
-                                  convertPart c  = map (\(w, o) -> (c, (T.pack w), toOccurrences o)) . PT.toList
+                                  convertPart c  = map (\(w, o) -> (c, T.pack w, toOccurrences o)) . PT.toList
 
   splitByContexts               = splitInverted
                                   . map ( (\ i -> (sizeWords i, i))
@@ -290,8 +292,8 @@ instance (B.Binary occ, ComprOccurrences occ) => HolIndex (Inverted occ) where
                                   . toListInverted
 
   splitByDocuments i            = splitInverted ( map (uncurry convert) $
-                                                  toListDocIdMap $
-                                                  unionsWithDocIdMap (M.unionWith (M.unionWith unionPos)) docResults
+                                                  DM.toList $
+                                                  DM.unionsWith (M.unionWith (M.unionWith unionPos)) docResults
                                                 )
     where
     docResults                  = map (\c -> resultByDocument c (allWords i c)) (contexts i)
@@ -299,7 +301,7 @@ instance (B.Binary occ, ComprOccurrences occ) => HolIndex (Inverted occ) where
       where
       makeIndex r (c, ws)       = foldl' makeOcc r (M.toList ws)
         where
-        makeOcc (rs, ri) (w, p) = (sizePos p + rs, insertOccurrences c w (singletonDocIdMap d p) ri)
+        makeOcc (rs, ri) (w, p) = (sizePos p + rs, insertOccurrences c w (DM.singleton d p) ri)
 
   splitByWords i                = splitInverted ( map (uncurry convert) .
                                                   M.toList .
@@ -392,13 +394,13 @@ splitInverted inp n             = allocate mergeIndexes stack buckets
 allocate                        :: (a -> a -> a) -> [(Int, a)] -> [(Int, a)] -> [a]
 allocate _ _ []                 = []
 allocate _ [] ys                = map snd ys
-allocate f (x:xs) (y:ys)        = allocate f xs (sortBy (compare `on` fst) ((combine x y):ys))
+allocate f (x:xs) (y:ys)        = allocate f xs (sortBy (compare `on` fst) (combine x y : ys))
   where
   combine (s1, v1) (s2, v2)     = (s1 + s2, f v1 v2)
 
 -- | Create empty buckets for allocating indexes.
 createBuckets                   :: Int -> [(Int, Inverted i)]
-createBuckets n                 = (replicate n (0, emptyInverted))
+createBuckets n                 = replicate n (0, emptyInverted)
 
 -- ----------------------------------------------------------------------------
 --
