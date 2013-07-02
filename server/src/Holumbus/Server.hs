@@ -17,19 +17,22 @@ import qualified Data.Aeson               as A
 import           Data.Aeson.Encode.Pretty (encodePretty)
 -}
 
-import           Holumbus.Index.Common                (DocId (..), HolDocuments,
-                                                       HolIndexM, URI)
+import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap       as DM
 import           Holumbus.Index.HashedDocuments
 import           Holumbus.Index.Inverted.PrefixMem
+
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
 import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result
-import           Holumbus.Server.Analyzer
+
 import           Holumbus.Server.Common
+import           Holumbus.Server.Analyzer
+import           Holumbus.Server.Indexer              as Ix
 import qualified Holumbus.Server.Template             as Tmpl
+
 
 
 (.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
@@ -49,7 +52,7 @@ modIndex = liftIO .:: modifyMVar
 
 -- the indexer
 indexer :: Indexer Inverted Documents
-indexer = newIndexer emptyInverted emptyDocuments
+indexer = Indexer emptyInverted emptyDocuments
 
 queryConfig :: ProcessConfig
 queryConfig = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
@@ -69,11 +72,12 @@ jsonPretty v = do
   raw $ encodePretty v
 -}
 
-checkApiDocUris :: HolIndexer ix i d => (Maybe DocId -> Bool) -> [ApiDocument] -> ix -> [(URI, Maybe DocId)]
+checkApiDocUris :: (HolIndex i, HolDocuments d, Monad m)
+                => (m DocId -> Bool) -> [ApiDocument] -> Indexer i d -> [(URI, m DocId)]
 checkApiDocUris filterDocIds apiDocs ix =
   let apiDocsM
           = map (\apiDoc -> let docUri = apiDocUri apiDoc
-                            in (docUri, lookupByURI ix docUri)) apiDocs
+                            in (docUri, Ix.lookupByURI ix docUri)) apiDocs
   in filter (filterDocIds . snd) apiDocsM
 
 
@@ -105,7 +109,7 @@ start = scotty 3000 $ do
                           case parseQuery queryStr of
                             (Left err) -> return . JsonFailure . return $ err
                             (Right query) ->
-                              runQueryM (index ix) (docTable ix) query
+                              runQueryM (ixIndex ix) (ixDocTable ix) query
                               >>= return . JsonSuccess . map (\(_,(DocInfo doc _,_)) -> doc) . DM.toList . docHits
     json res
 
@@ -116,7 +120,7 @@ start = scotty 3000 $ do
                           case parseQuery queryStr of
                             (Left err) -> return . JsonFailure . return $ err
                             (Right query) ->
-                              runQueryM (index ix) (docTable ix) query
+                              runQueryM (ixIndex ix) (ixDocTable ix) query
                               >>= return . JsonSuccess . map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + DM.size m) 0 o)) . M.toList. wordHits
     json res
 
@@ -133,7 +137,7 @@ start = scotty 3000 $ do
       -- empty intersection of sets -> safe to insert
       return $ if Prelude.null failedDocUris
        then
-          ( foldr (uncurry insertDoc . toDocAndWords) ix jss
+          ( foldr (uncurry Ix.insertDoc . toDocAndWords) ix jss
           , Nothing)
        else (ix, return failedDocUris)
 
@@ -157,7 +161,7 @@ start = scotty 3000 $ do
       return $ if Prelude.null failedDocUris
        then
           ( foldr (\(docId, apiDoc) ->
-                      uncurry (updateDoc docId) . toDocAndWords $ apiDoc) ix (zip (map (fromJust . snd) allDocs) jss)
+                      uncurry (Ix.updateDoc docId) . toDocAndWords $ apiDoc) ix (zip (map (fromJust . snd) allDocs) jss)
           , Nothing)
        else (ix, return failedDocUris)
 
