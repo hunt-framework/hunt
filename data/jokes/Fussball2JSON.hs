@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module FussballToJSON where
+import           Control.Monad               (mzero)
+
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy     as B
@@ -17,62 +19,123 @@ import           System.IO
 
 type URI          = Text
 type Word         = Text
+type Content      = Text
 type Position     = Word32
 type Context      = Text
+type Description  = Map Text Text
 
--- | map from context to a list of words with occurrences
+-- | Positions of Words for each context.
 type Words        = Map Context WordList
 
--- | map from word to a list of occurrences
+-- | Positions of words in the document.
 type WordList     = Map Word [Position]
 
--- | The raw content of a document.
-type ContentRaw = Text
+-- | Multiple ApiDocuments.
+type ApiDocuments = [ApiDocument]
 
 -- | The document accepted via the API.
-data ApiDocument = ApiDocument
+data ApiDocument  = ApiDocument
   { apiDocUri       :: URI
-  , apiDocMapping   :: Map Context Content
+  , apiDocIndexMap  :: Map Context IndexData
+  , apiDocDescrMap  :: Description
   }
 
-data Content = Content
-  { contentRaw      :: ContentRaw
-  , contentMetadata :: ContentMetadata
+-- | Data necessary for adding documents to the index.
+data IndexData = IndexData
+  { idContent       :: Content
+  , idMetadata      :: IndexMetadata
   }
 
--- | Information where the (Context -> Content) mapping is stored.
-data ContentMetadata = ContentMetadata
-  { indexField    :: Bool -- ^ Should the (Context -> Content) mapping be added to the index?
-  , docField      :: Bool -- ^ Should the (Context -> Content) mapping be part of the document description?
+-- | Metadata for index processing
+data IndexMetadata = IndexMetadata
+  { imAnalyzer :: AnalyzerType
   } deriving Eq
 
--- | The default Attribute Matadata - only add the mapping to the index.
-defaultContentMetadata :: ContentMetadata
-defaultContentMetadata = ContentMetadata True False
+-- | Text analysis function
+type AnalyzerFunction = Text -> [(Position, Text)]
+
+-- | Types of analyzer
+data AnalyzerType
+  = DefaultAnalyzer
+  deriving Eq
+
+
+  -- | The default Matadata
+defaultIndexMetadata :: IndexMetadata
+defaultIndexMetadata = IndexMetadata
+  { imAnalyzer = DefaultAnalyzer
+  }
 
 -- | empty document
 emptyApiDoc :: ApiDocument
-emptyApiDoc = ApiDocument "" M.empty
+emptyApiDoc = ApiDocument "" M.empty M.empty
+
+instance FromJSON ApiDocument where
+  parseJSON (Object o) = do
+    parsedUri         <- o    .: "uri"
+    indexMap          <- o    .: "index"
+    descrMap          <- o    .: "description"
+    return ApiDocument
+      { apiDocUri       = parsedUri
+      , apiDocIndexMap  = indexMap
+      , apiDocDescrMap  = descrMap
+      }
+  parseJSON _ = mzero
+
+
+instance FromJSON IndexData where
+  parseJSON (Object o) = do
+    content           <- o    .:  "content"
+    metadata          <- o    .:? "metadata" .!= defaultIndexMetadata
+    return IndexData
+      { idContent       = content
+      , idMetadata      = metadata
+      }
+  parseJSON _ = mzero
+
+
+instance FromJSON IndexMetadata where
+  parseJSON (Object o) = do
+    analyzer <- o .: "analyzer" .!= DefaultAnalyzer
+    return IndexMetadata
+      { imAnalyzer = analyzer
+      }
+  parseJSON _ = mzero
+
+
+instance FromJSON AnalyzerType where
+  parseJSON (String s) =
+    case s of
+      "default" -> return DefaultAnalyzer
+      _         -> mzero
+  parseJSON _ = mzero
+
+
 
 instance ToJSON ApiDocument where
-  toJSON (ApiDocument u m) = object
+  toJSON (ApiDocument u im dm) = object
     [ "uri"         .= u
-    , "mapping"     .= m
+    , "index"       .= im
+    , "description" .= dm
     ]
 
-instance ToJSON Content where
-  toJSON (Content c m) = object
-    [ "content"     .= c
-    , "metadata"    .= if m == defaultContentMetadata then Nothing else Just m
+instance ToJSON IndexData where
+  toJSON (IndexData c m) = object $
+    "content"     .= c
+      : if m == defaultIndexMetadata
+        then []
+        else [ "metadata"    .= m]
+
+
+instance ToJSON IndexMetadata where
+  toJSON (IndexMetadata a) = object
+    [ "analyzer"    .= a
     ]
 
-instance ToJSON ContentMetadata where
-  toJSON (ContentMetadata i d) = object
-    [ "indexField"  .= i
-    , "docField"    .= d
-    ]
+instance ToJSON AnalyzerType where
+  toJSON (DefaultAnalyzer) =
+    "default"
 
-type ApiDocuments = [ApiDocument]
 
 -- |  some sort of json response format
 data JsonResponse r = JsonSuccess r | JsonFailure [Text]
@@ -88,32 +151,28 @@ instance (ToJSON r) => ToJSON (JsonResponse r) where
     , "msg"   .= msg
     ]
 
-indexMetadata   :: ContentMetadata
-indexMetadata   = ContentMetadata True False
-
-docMetadata     :: ContentMetadata
-docMetadata     = ContentMetadata False True
-
-bothMetadata    :: ContentMetadata
-bothMetadata    = ContentMetadata True True
-
 
 joke2Api :: Joke -> ApiDocument
 joke2Api (n, who, what, wher, grp)
     = ApiDocument
       { apiDocUri
           = T.pack . ("joke://joke" ++) . show $ n
-      , apiDocMapping
-          = M.fromList $
-            (if null wher
-            then []
-            else [("wo", Content (T.pack wher) bothMetadata)])
-            ++
-            [ ("wer",    Content (T.pack who)  bothMetadata)
-            , ("was",    Content (T.pack what) bothMetadata)
-            , ("gruppe", Content (T.pack grp)  bothMetadata)
-            ]
+      , apiDocDescrMap
+          = descrMap
+      , apiDocIndexMap = indexMap
       }
+    where
+    defaultMetadata = IndexMetadata DefaultAnalyzer
+    descrMap = M.fromList $
+      (if null wher
+      then []
+      else [("wo", T.pack wher)])
+      ++
+      [ ("wer",    T.pack who)
+      , ("was",    T.pack what)
+      , ("gruppe", T.pack grp)
+      ]
+    indexMap = M.map (\text -> IndexData text defaultMetadata) descrMap
 
 toWL :: String -> WordList
 toWL = foldr insert M.empty . scanText

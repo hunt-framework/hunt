@@ -5,107 +5,127 @@ import           Control.Monad         (mzero)
 
 import           Data.Aeson
 import           Data.Maybe            (fromJust)
-import Data.Set                        (Set)
+import           Data.Set              (Set)
 import qualified Data.Set              as S
 import           Data.Map              (Map ())
 import qualified Data.Map              as M
 import           Data.Text             (Text)
 
-import           Holumbus.Index.Common (Context, Word, URI, RawResult
+import           Holumbus.Index.Common (Context, Word, URI, RawResult, Description, Content
                                        , Position, Occurrences, emptyOccurrences, insertOccurrence
                                        , DocId, Document
                                        , HolIndex, HolDocuments)
 import qualified Holumbus.Index.Common as Co
 
--- | map from context to a list of words with occurrences
+-- | Positions of Words for each context.
 type Words        = Map Context WordList
 
--- | map from word to a list of occurrences
+-- | Positions of words in the document.
 type WordList     = Map Word [Position]
-
--- | The raw content of a document.
-type ContentRaw   = Text
 
 -- | Multiple ApiDocuments.
 type ApiDocuments = [ApiDocument]
 
 -- | The document accepted via the API.
-data ApiDocument = ApiDocument
+data ApiDocument  = ApiDocument
   { apiDocUri       :: URI
-  , apiDocMapping   :: Map Context Content
+  , apiDocIndexMap  :: Map Context IndexData
+  , apiDocDescrMap  :: Description
   }
 
-data Content = Content
-  { contentRaw      :: ContentRaw
-  , contentMetadata :: ContentMetadata
+-- | Data necessary for adding documents to the index.
+data IndexData = IndexData
+  { idContent       :: Content
+  , idMetadata      :: IndexMetadata
   }
 
--- | Information where the (Context -> Content) mapping is stored.
-data ContentMetadata = ContentMetadata
-  { indexField    :: Bool -- ^ Should the (Context -> ContentRaw) mapping be added to the index?
-  , docField      :: Bool -- ^ Should the (Context -> ContentRaw) mapping be part of the document description?
-  } deriving Eq
+-- | Metadata for index processing
+data IndexMetadata = IndexMetadata
+  { imAnalyzer :: AnalyzerType
+  }
 
--- | The default Attribute Matadata - only add the mapping to the index.
-defaultContentMetadata :: ContentMetadata
-defaultContentMetadata = ContentMetadata True False
+
+-- | Text analysis function
+type AnalyzerFunction = Text -> [(Position, Text)]
+
+-- | Types of analyzer
+data AnalyzerType
+  = DefaultAnalyzer
+
+  -- | The default Matadata
+defaultIndexMetadata :: IndexMetadata
+defaultIndexMetadata = IndexMetadata
+  { imAnalyzer = DefaultAnalyzer
+  }
 
 -- | empty document
 emptyApiDoc :: ApiDocument
-emptyApiDoc = ApiDocument "" M.empty
+emptyApiDoc = ApiDocument "" M.empty M.empty
 
 instance FromJSON ApiDocument where
   parseJSON (Object o) = do
     parsedUri         <- o    .: "uri"
-    mapping           <- o    .: "mapping"
+    indexMap          <- o    .: "index"
+    descrMap          <- o    .: "description"
     return ApiDocument
-      { apiDocUri     = parsedUri
-      , apiDocMapping = mapping
+      { apiDocUri       = parsedUri
+      , apiDocIndexMap  = indexMap
+      , apiDocDescrMap  = descrMap
       }
   parseJSON _ = mzero
 
 
-instance FromJSON Content where
+instance FromJSON IndexData where
   parseJSON (Object o) = do
-    parsedUri         <- o    .:  "content"
-    mapping           <- o    .:? "metadata" .!= defaultContentMetadata
-    return Content
-      { contentRaw      = parsedUri
-      , contentMetadata = mapping
+    content           <- o    .:  "content"
+    metadata          <- o    .:? "metadata" .!= defaultIndexMetadata
+    return IndexData
+      { idContent       = content
+      , idMetadata      = metadata
       }
   parseJSON _ = mzero
 
 
-instance FromJSON ContentMetadata where
+instance FromJSON IndexMetadata where
   parseJSON (Object o) = do
-    parsedIndexField  <- o    .: "indexField"
-    parsedDocField    <- o    .: "docField"
-    return ContentMetadata
-      { indexField    = parsedIndexField
-      , docField      = parsedDocField
+    analyzer <- o .: "analyzer" .!= DefaultAnalyzer
+    return IndexMetadata
+      { imAnalyzer = analyzer
       }
   parseJSON _ = mzero
+
+
+instance FromJSON AnalyzerType where
+  parseJSON (String s) =
+    case s of
+      "default" -> return DefaultAnalyzer
+      _         -> mzero
+  parseJSON _ = mzero
+
 
 
 instance ToJSON ApiDocument where
-  toJSON (ApiDocument u m) = object
+  toJSON (ApiDocument u im dm) = object
     [ "uri"         .= u
-    , "mapping"     .= m
+    , "index"       .= im
+    , "description" .= dm
     ]
 
-
-instance ToJSON Content where
-  toJSON (Content c m) = object
+instance ToJSON IndexData where
+  toJSON (IndexData c m) = object
     [ "content"     .= c
     , "metadata"    .= m
     ]
 
 
-instance ToJSON ContentMetadata where
-  toJSON (ContentMetadata i d) = object
-    [ "indexField"  .= i
-    , "docField"    .= d
+instance ToJSON IndexMetadata where
+  toJSON (IndexMetadata a) = object
+    [ "analyzer"    .= a
     ]
+
+instance ToJSON AnalyzerType where
+  toJSON (DefaultAnalyzer) =
+    "default"
 
 
 -- |  some sort of json response format
