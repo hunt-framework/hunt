@@ -5,8 +5,8 @@ import           Data.Set                       (Set)
 import           Data.Text                      (Text)
 
 import           Holumbus.Index.Common          (Context, DocId, Occurrences,
-                                                 Position, RawResult, Word)
-
+                                                 Position, RawResult, Word,
+                                                 singletonOccurrence)
 -- ----------------------------------------------------------------------------
 --
 -- external interface
@@ -48,13 +48,11 @@ deleteOccurrences     = \c w o i -> _deleteOccurrences i c w o
 
 -- | Insert a position for a single document.
 insertPosition        :: Context -> Word -> DocId -> Position -> Index i -> Index i
-insertPosition        = \c w d p i -> _insertPosition i c w d p
---insertPosition c w d p i      ,, insertOccurrences c w (singletonOccurrence d p) Index
+insertPosition        = \c w d p -> insertOccurrences c w (singletonOccurrence d p)
 
 -- | Delete a position for a single document.
 deletePosition        :: Context -> Word -> DocId -> Position -> Index i -> Index i
-deletePosition        = \c w d p i -> _deletePosition i c w d p
---deletePosition c w d p i      ,, deleteOccurrences c w (singletonOccurrence d p) Index
+deletePosition        = \c w d p -> deleteOccurrences c w (singletonOccurrence d p)
 
 -- | Delete documents completely (all occurrences).
 deleteDocsById        :: Set DocId -> Index i -> Index i
@@ -99,11 +97,12 @@ toList                = _toList
 impl                  :: Index i -> i
 impl                  = _impl
 
+-- default implementations
+
 -- | Create an Index from a list of context, word, occurrences triples.
 --   The first argument should be (a specific implementation of) an empty Index.
 fromList              :: Index i -> [(Context, Word, Occurrences)] -> Index i
 fromList e            = foldl (\i (c,w,o) -> insertOccurrences c w o i) e
-
 
 -- ----------------------------------------------------------------------------
 
@@ -136,14 +135,6 @@ data Index i = Ix
     -- | Delete occurrences.
     , _deleteOccurrences             :: Context -> Word -> Occurrences -> Index i
 
-    -- | Insert a position for a single document.
-    , _insertPosition                :: Context -> Word -> DocId -> Position -> Index i
-    --insertPosition c w d p i      = insertOccurrences c w (singletonOccurrence d p) Index
-
-    -- | Delete a position for a single document.
-    , _deletePosition                :: Context -> Word -> DocId -> Position -> Index i
-    --deletePosition c w d p i      = deleteOccurrences c w (singletonOccurrence d p) Index
-
     -- | Delete documents completely (all occurrences).
     , _deleteDocsById                :: Set DocId -> Index i
 
@@ -167,15 +158,10 @@ data Index i = Ix
     -- in the occurrences for a word in a specific context.
     , _updateDocIds                  :: (Context -> Word -> DocId -> DocId) -> Index i
 
-    -- Convert an Index to a list. Can be used for easy conversion between different index
+    -- | Convert an Index to a list. Can be used for easy conversion between different index
     -- implementations
     , _toList                        :: [(Context, Word, Occurrences)]
 
-    -- Create an Index from a list. Can be used for easy conversion between different index
-    -- implementations. Needs an empty index as first argument
-
-    --, _fromList                      :: [(Context, Word, Occurrences)] -> Index
-    --fromList e                    = foldl (\i (c,w,o) -> insertOccurrences c w o i) e
-
+    -- | The index implementation.
     , _impl                          :: i
     }

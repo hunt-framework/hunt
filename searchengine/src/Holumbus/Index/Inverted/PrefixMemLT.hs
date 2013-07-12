@@ -19,11 +19,10 @@ import qualified Data.Text                      as T
 import qualified Holumbus.Data.PrefixTree       as PT
 
 import           Holumbus.Index.Common          (Context, DocId, Occurrences,
-                                                 Position, RawResult, Word,
+                                                 RawResult, Word,
                                                  emptyOccurrences,
                                                  mergeOccurrences,
                                                  resultByDocument, resultByWord,
-                                                 singletonOccurrence,
                                                  sizeOccurrences, sizePos,
                                                  substractOccurrences, unionPos)
 import qualified Holumbus.Index.Common.DocIdMap as DM
@@ -72,14 +71,6 @@ newIndex i =
 
     -- | Delete occurrences.
     , _deleteOccurrences      = \c w o -> newIndex $ deleteOccurrences' c w o i
-
-    -- | Insert a position for a single document.
-    , _insertPosition         = \c w d p -> newIndex $ insertPosition' c w d p i
-    --insertPosition c w d p i      = insertOccurrences c w (singletonOccurrence d p) Index
-
-    -- | Delete a position for a single document.
-    , _deletePosition         = \c w d p -> newIndex $ deletePosition' c w d p i
-    --deletePosition c w d p i      = deleteOccurrences c w (singletonOccurrence d p) Index
 
     -- | Delete documents completely (all occurrences).
     , _deleteDocsById         = \ds -> newIndex $ deleteDocsById' ds i
@@ -294,10 +285,3 @@ deleteDocsById' docIds            = liftInv $ M.mapMaybe deleteInParts
       in if DM.null occ'
             then Nothing
             else return occ'
-
--- XXX: default implementations
-insertPosition'                   :: Context -> Word -> DocId -> Position -> Inverted -> Inverted
-insertPosition' c w d p           = insertOccurrences' c w (singletonOccurrence d p)
-
-deletePosition'                   :: Context -> Word -> DocId -> Position -> Inverted -> Inverted
-deletePosition' c w d p           = deleteOccurrences' c w (singletonOccurrence d p)
