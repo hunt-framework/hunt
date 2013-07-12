@@ -63,6 +63,7 @@ library
     Holumbus.Index.Compression
     Holumbus.Index.HashedDocuments
     Holumbus.Index.HashedIndex
+    Holumbus.Index.Index
     Holumbus.Index.Inverted.CompressedPrefixMem
     Holumbus.Index.Inverted.PrefixMem
     Holumbus.Query.Fuzzy
