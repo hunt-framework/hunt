@@ -105,8 +105,7 @@ updateDocIds          = \f i -> _updateDocIds i f
 
 -- | Update document id's with a simple injective editing function.
 updateDocIds'         :: (DocId -> DocId) -> Index i -> Index i
-updateDocIds'         = \f i -> _updateDocIds' i f
---updateDocIds' f               ,, updateDocIds (const . const $ f)
+updateDocIds'         = \f i -> _updateDocIds i (const . const $ f)
 
 -- | Convert an Index to a list. Can be used for easy conversion between different index
 -- implementations
@@ -123,6 +122,8 @@ impl                  = _impl
 fromList              :: [(Context, Word, Occurrences)] -> Index Inverted
 fromList              = newIndex . fromList'
 --fromList e                    ,, foldl (\i (c,w,o) -> insertOccurrences c w o i) e
+
+
 
 -- ----------------------------------------------------------------------------
 
@@ -185,10 +186,6 @@ data Index i = Ix
     -- to the same new id, the two sets of word positions will be merged if both old id's are present
     -- in the occurrences for a word in a specific context.
     , _updateDocIds                  :: (Context -> Word -> DocId -> DocId) -> Index i
-
-    -- | Update document id's with a simple injective editing function.
-    , _updateDocIds'                 :: (DocId -> DocId) -> Index i
-    --updateDocIds' f               = updateDocIds (const . const $ f)
 
     -- Convert an Index to a list. Can be used for easy conversion between different index
     -- implementations
@@ -264,10 +261,10 @@ newIndex i =
     , _deleteDocsById         = \ds -> newIndex $ deleteDocsById' ds i
 
     -- | Merges two indexes.
-    , _mergeIndexes           = \i2 -> newIndex $ mergeIndexes' i (_impl i2)
+    , _mergeIndexes           = newIndex . mergeIndexes' i . _impl
 
     -- | Subtract one index from another.
-    , _subtractIndexes       = \i2 -> newIndex $ subtractIndexes' i (_impl i2)
+    , _subtractIndexes        = newIndex . subtractIndexes' i . _impl
 
     -- | Splitting an index by its contexts.
     , _splitByContexts        = map newIndex . splitByContexts' i
@@ -281,11 +278,7 @@ newIndex i =
     -- | Update document id's (e.g. for renaming documents). If the function maps two different id's
     -- to the same new id, the two sets of word positions will be merged if both old id's are present
     -- in the occurrences for a word in a specific context.
-    , _updateDocIds           = undefined
-
-    -- | Update document id's with a simple injective editing function.
-    , _updateDocIds'          = undefined
-    --updateDocIds' f               = updateDocIds (const . const $ f)
+    , _updateDocIds           = \f -> newIndex $ updateDocIdsX f i
 
     -- Convert an Index to a list. Can be used for easy conversion between different index
     -- implementations
@@ -434,6 +427,7 @@ updateDocIdsX f (Inverted parts)
     where
     mergePositions p1 p2          = deflatePos $ unionPos (inflatePos p1) (inflatePos p2)
 
+-- XXX: unused atm
 updateDocIdsX'                    :: (DocId -> DocId) -> Inverted -> Inverted
 updateDocIdsX' f
                                   = Inverted . M.map updatePart . indexParts
