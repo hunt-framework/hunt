@@ -56,6 +56,9 @@ import           Holumbus.Query.Result          hiding (null)
 import           Holumbus.Index.Common          hiding (fromList, toList)
 import qualified Holumbus.Index.Common.DocIdMap as DM
 
+import           Holumbus.Index.DocTable        (DocTable)
+import qualified Holumbus.Index.DocTable        as Dt
+
 -- ----------------------------------------------------------------------------
 
 -- | The intermediate result used during query processing.
@@ -116,15 +119,15 @@ fromList t c os                 = DM.map transform $
 
 -- | Convert to a @Result@ by generating the 'WordHits' structure.
 
-toResult                        :: HolDocuments d => d -> Intermediate -> Result
+toResult                        :: DocTable d -> Intermediate -> Result
 toResult d im                   = Result (createDocHits d im) (createWordHits im)
 
 -- | Create the doc hits structure from an intermediate result.
 
-createDocHits                   :: HolDocuments d => d -> Intermediate -> DocHits
+createDocHits                   :: DocTable d -> Intermediate -> DocHits
 createDocHits d                 = DM.mapWithKey transformDocs
   where
-  transformDocs did ic          = let doc = fromMaybe (Document "" M.empty) (lookupById d did) in
+  transformDocs did ic          = let doc = fromMaybe (Document "" M.empty) (Dt.lookupById d did) in
                                   (DocInfo doc 0.0, M.map (M.map snd) ic)
 
 -- | Create the word hits structure from an intermediate result.

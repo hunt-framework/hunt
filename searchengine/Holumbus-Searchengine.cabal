@@ -61,12 +61,12 @@ library
     Holumbus.Index.Common.Occurences
     Holumbus.Index.Common.RawResult
     Holumbus.Index.Compression
+    Holumbus.Index.DocTable
     Holumbus.Index.HashedDocuments
-    Holumbus.Index.HashedIndex
+    --Holumbus.Index.HashedIndex
     Holumbus.Index.Index
-    Holumbus.Index.Inverted.CompressedPrefixMem
+    --Holumbus.Index.Inverted.CompressedPrefixMem
     Holumbus.Index.Inverted.PrefixMem
-    Holumbus.Index.Inverted.PrefixMemLT
     Holumbus.Query.Fuzzy
     Holumbus.Query.Intermediate
     Holumbus.Query.Language.Grammar

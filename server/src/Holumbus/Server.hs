@@ -16,9 +16,14 @@ import           Data.Text                            (Text)
 import qualified Data.Aeson               as A
 import           Data.Aeson.Encode.Pretty (encodePretty)
 -}
+import           Holumbus.Utility                     ((.::))
 
 import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap       as DM
+
+import           Holumbus.Index.Index
+import           Holumbus.Index.DocTable
+
 import           Holumbus.Index.HashedDocuments
 import           Holumbus.Index.Inverted.PrefixMem
 
@@ -34,10 +39,6 @@ import           Holumbus.Server.Indexer              as Ix
 import qualified Holumbus.Server.Template             as Tmpl
 
 
-
-(.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
-(.::) = (.).(.)
-
 -- do something with the index
 withIndex' :: MonadIO m => MVar a -> (a -> IO b) -> m b
 withIndex' im a = liftIO $ readMVar im >>= a
@@ -52,13 +53,13 @@ modIndex = liftIO .:: modifyMVar
 
 -- the indexer
 indexer :: Indexer Inverted Documents
-indexer = Indexer emptyInverted emptyDocuments
+indexer = Indexer emptyIndex emptyDocTable
 
 queryConfig :: ProcessConfig
 queryConfig = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
-runQueryM :: (HolIndexM m i, HolDocuments d) => i -> d -> Query -> m Result
-runQueryM = processQueryM queryConfig
+runQueryM :: Monad m => Index i -> DocTable d -> Query -> m Result
+runQueryM i d q = processQueryM queryConfig i d q
 
 -- Replacement for the scotty json function for pretty JSON encoding.
 -- There should be a new release of scotty soon (end of the month?)
@@ -72,7 +73,7 @@ jsonPretty v = do
   raw $ encodePretty v
 -}
 
-checkApiDocUris :: (HolIndex i, HolDocuments d, Monad m)
+checkApiDocUris :: Monad m
                 => (m DocId -> Bool) -> [ApiDocument] -> Indexer i d -> [(URI, m DocId)]
 checkApiDocUris filterDocIds apiDocs ix =
   let apiDocsM
