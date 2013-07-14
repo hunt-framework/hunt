@@ -53,7 +53,7 @@ import qualified Data.Map                       as M
 
 import           Holumbus.Query.Result          hiding (null)
 
-import           Holumbus.Index.Common          hiding (fromList, toList)
+import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap as DM
 
 import           Holumbus.Index.DocTable        (DocTable)
@@ -119,12 +119,12 @@ fromList t c os                 = DM.map transform $
 
 -- | Convert to a @Result@ by generating the 'WordHits' structure.
 
-toResult                        :: DocTable d -> Intermediate -> Result
+toResult                        :: DocTable d Document -> Intermediate -> Result
 toResult d im                   = Result (createDocHits d im) (createWordHits im)
 
 -- | Create the doc hits structure from an intermediate result.
 
-createDocHits                   :: DocTable d -> Intermediate -> DocHits
+createDocHits                   :: DocTable d Document -> Intermediate -> DocHits
 createDocHits d                 = DM.mapWithKey transformDocs
   where
   transformDocs did ic          = let doc = fromMaybe (Document "" M.empty) (Dt.lookupById d did) in

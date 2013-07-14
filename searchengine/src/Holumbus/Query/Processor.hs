@@ -55,6 +55,7 @@ import qualified Holumbus.Query.Fuzzy            as F
 
 import           Holumbus.Query.Result           (Result)
 
+import           Holumbus.Index.Common           (Document)
 import qualified Holumbus.Index.Common.DocIdMap  as DM
 import           Holumbus.Query.Intermediate     (Intermediate)
 import qualified Holumbus.Query.Intermediate     as I
@@ -149,11 +150,11 @@ processPartialM cfg i t q = initStateM cfg i t >>= flip processM oq
   oq = if optimizeQuery cfg then optimize q else q
 
 -- | Process a query on a specific index with regard to the configuration.
-processQuery :: ProcessConfig -> Index i -> DocTable d -> Query -> Result
+processQuery :: ProcessConfig -> Index i -> DocTable d Document -> Query -> Result
 processQuery cfg i d q = I.toResult d (processPartial cfg i (Dt.sizeDocs d) q)
 
 -- | Monadic version of 'processQuery'.
-processQueryM :: Monad m => ProcessConfig -> Index i -> DocTable d -> Query -> m Result
+processQueryM :: Monad m => ProcessConfig -> Index i -> DocTable d Document -> Query -> m Result
 processQueryM cfg i d q = processPartialM cfg i (Dt.sizeDocs d) q >>= \ir -> return $ I.toResult d ir
 
 -- | Continue processing a query by deciding what to do depending on the current query element.

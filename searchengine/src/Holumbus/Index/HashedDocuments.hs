@@ -55,7 +55,7 @@ import qualified Data.ByteString.Lazy           as BS
 
 import           Data.Digest.Murmur64
 
-import           Holumbus.Index.Common          hiding (fromMap)
+import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap as DM
 
 import           Holumbus.Index.DocTable
@@ -81,7 +81,7 @@ newtype Documents
 -- ----------------------------------------------------------------------------
 
 -- | An empty document table.
-emptyDocTable :: DocTable Documents
+emptyDocTable :: DocTable Documents Document
 emptyDocTable = newDocTable emptyDocuments
 
 
@@ -90,12 +90,12 @@ docToId :: URI -> DocId
 docToId = mkDocId . fromIntegral . asWord64 . hash64 . B.encode
 
 
-fromMap :: DocIdMap Document -> DocTable Documents
+fromMap :: DocIdMap Document -> DocTable Documents Document
 fromMap = newDocTable . fromMap'
 
 -- ----------------------------------------------------------------------------
 
-newDocTable :: Documents -> DocTable Documents
+newDocTable :: Documents -> DocTable Documents Document
 newDocTable i =
     Dt
     {

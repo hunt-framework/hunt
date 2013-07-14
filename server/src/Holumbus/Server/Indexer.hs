@@ -7,7 +7,7 @@ import           Data.Text                    (Text)
 
 import           Holumbus.Index.Common        (Context, URI, RawResult
                                               , Position, Occurrences, emptyOccurrences, insertOccurrence
-                                              , DocId, Document)
+                                              , DocId)
 
 import           Holumbus.Server.Common
 
@@ -20,42 +20,42 @@ import qualified Holumbus.Index.DocTable      as Dt
 
 
 -- generic indexer - combination of an index and a doc table
-data Indexer i d
+data Indexer i d de
   = Indexer
     { ixIndex    :: Index    i
-    , ixDocTable :: DocTable d
+    , ixDocTable :: DocTable d de
     }
 
 -- index functions
-searchPrefixNoCase        :: Indexer i d -> Context -> Text -> RawResult
+searchPrefixNoCase        :: Indexer i d de -> Context -> Text -> RawResult
 searchPrefixNoCase        = Ix.prefixNoCase . ixIndex
 
-allWords                  :: Indexer i d -> Context -> RawResult
+allWords                  :: Indexer i d de -> Context -> RawResult
 allWords                  = Ix.allWords . ixIndex
 
 -- doctable functions
-lookupById                :: Monad m => Indexer i d -> DocId -> m Document
+lookupById                :: (Monad m, Functor m) => Indexer i d de -> DocId -> m de
 lookupById                = Dt.lookupById . ixDocTable
 
-lookupByURI               :: Monad m => Indexer i d -> URI -> m DocId
+lookupByURI               :: (Monad m, Functor m) => Indexer i d de -> URI -> m DocId
 lookupByURI               = Dt.lookupByURI . ixDocTable
 
-deleteDocsById            :: Set DocId -> Indexer i d -> Indexer i d
+deleteDocsById            :: Set DocId -> Indexer i d de -> Indexer i d de
 deleteDocsById docIds ix  = Indexer { ixIndex  = newIndex
                                     , ixDocTable = newDocTable }
   where
     newDocTable = Dt.deleteById     docIds (ixDocTable ix)
     newIndex    = Ix.deleteDocsById docIds (ixIndex    ix)
 
-deleteDocsByURI           :: Set URI -> Indexer i d -> Indexer i d
+deleteDocsByURI           :: Set URI -> Indexer i d de -> Indexer i d de
 deleteDocsByURI us ix     = deleteDocsById docIds ix
   where
   docIds = catMaybesSet . S.map (lookupByURI ix) $ us
 
-updateDoc                 :: DocId -> Document -> Words -> Indexer i d -> Indexer i d
+updateDoc                 :: DocId -> de -> Words -> Indexer i d de -> Indexer i d de
 updateDoc docId doc w     = insertDoc doc w . deleteDocsById (S.singleton docId)
 
-insertDoc                 :: Document -> Words -> Indexer i d -> Indexer i d
+insertDoc                 :: de -> Words -> Indexer i d de -> Indexer i d de
 insertDoc doc wrds ix     = ix { ixIndex    = newIndex
                                , ixDocTable = newDocTable }
   where
