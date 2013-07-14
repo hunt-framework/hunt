@@ -3,28 +3,29 @@
 module Holumbus.Server {-(start)-} where
 
 import           Control.Concurrent.MVar
-import           Control.Monad.IO.Class               (MonadIO, liftIO)
+import           Control.Monad.IO.Class                (MonadIO, liftIO)
 import           Network.Wai.Middleware.RequestLogger
 import           Web.Scotty
 
-import qualified Data.Map                             as M
-import           Data.Maybe                           (fromJust, isJust,
-                                                       isNothing)
-import qualified Data.Set                             as S
-import           Data.Text                            (Text)
+import qualified Data.Map                              as M
+import           Data.Maybe                            (fromJust, isJust,
+                                                        isNothing)
+import qualified Data.Set                              as S
+import           Data.Text                             (Text)
 {-
 import qualified Data.Aeson               as A
 import           Data.Aeson.Encode.Pretty (encodePretty)
 -}
-import           Holumbus.Utility                     ((.::))
+import           Holumbus.Utility                      ((.::))
 
 import           Holumbus.Index.Common
-import qualified Holumbus.Index.Common.DocIdMap       as DM
+import qualified Holumbus.Index.Common.DocIdMap        as DM
 
-import           Holumbus.Index.Index
 import           Holumbus.Index.DocTable
+import           Holumbus.Index.Index
 
-import           Holumbus.Index.HashedDocuments
+import           Holumbus.Index.HashedCompactDocuments as HCD
+--import           Holumbus.Index.HashedDocuments        as HD
 import           Holumbus.Index.Inverted.PrefixMem
 
 import           Holumbus.Query.Fuzzy
@@ -33,10 +34,11 @@ import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result
 
-import           Holumbus.Server.Common
 import           Holumbus.Server.Analyzer
-import           Holumbus.Server.Indexer              as Ix
-import qualified Holumbus.Server.Template             as Tmpl
+import           Holumbus.Server.Common
+import           Holumbus.Server.Indexer               as Ix
+import qualified Holumbus.Server.Template              as Tmpl
+
 
 
 -- do something with the index
@@ -52,8 +54,11 @@ modIndex :: MonadIO m => MVar a -> (a -> IO (a,b)) -> m b
 modIndex = liftIO .:: modifyMVar
 
 -- the indexer
-indexer :: Indexer Inverted Documents Document
-indexer = Indexer emptyIndex emptyDocTable
+--indexer :: Indexer Inverted HD.Documents Document
+--indexer = Indexer emptyIndex HD.emptyDocTable
+
+indexer :: Indexer Inverted (DocTable HCD.Documents HCD.CompressedDoc) Document
+indexer = Indexer emptyIndex HCD.emptyDocTable
 
 queryConfig :: ProcessConfig
 queryConfig = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500

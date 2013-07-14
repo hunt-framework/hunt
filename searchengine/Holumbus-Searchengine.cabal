@@ -62,6 +62,7 @@ library
     Holumbus.Index.Common.RawResult
     Holumbus.Index.Compression
     Holumbus.Index.DocTable
+    Holumbus.Index.HashedCompactDocuments
     Holumbus.Index.HashedDocuments
     --Holumbus.Index.HashedIndex
     Holumbus.Index.Index
