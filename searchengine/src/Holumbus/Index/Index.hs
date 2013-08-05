@@ -106,6 +106,12 @@ fromList e            = foldl (\i (c,w,o) -> insertOccurrences c w o i) e
 
 -- ----------------------------------------------------------------------------
 
+data TextIndex = Case | NoCase | PrefixCase | PrefixNoCase
+
+class Searchable i where
+  type IndexType i :: *
+  lookup           :: IndexType i -> i -> Context -> Text -> RawResult
+
 data Index i = Ix
     {
     -- | Returns the number of unique words in the index.
@@ -116,6 +122,9 @@ data Index i = Ix
 
     -- | Returns the occurrences for every word. A potentially expensive operation.
     , _allWords                      :: Context -> RawResult
+
+    -- | general lookup 
+    , _lookup                        :: IndexType i -> i -> Context -> Text -> RawResult
 
     -- | Searches for words beginning with the prefix in a given context (case-sensitive).
     , _prefixCase                    :: Context -> Text -> RawResult

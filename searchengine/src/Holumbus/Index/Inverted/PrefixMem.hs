@@ -28,11 +28,18 @@ import           Holumbus.Index.Common          (Context, DocId, Occurrences,
 import qualified Holumbus.Index.Common.DocIdMap as DM
 import           Holumbus.Index.Compression     as C
 import           Holumbus.Index.Index           hiding (fromList)
-
+import qualified Holumbus.Index.Index           as Ix
 
 
 newtype Inverted        = Inverted { indexParts :: Parts }
                           deriving (Show, Eq)
+
+instance Ix.Searchable Inverted where 
+  type IndexType Inverted = TextIndex
+  lookup Case             = lookupCase'
+  lookup NoCase           = lookupNoCase'
+  lookup PrefixCase       = prefixCase'
+  lookup PrefixNoCase     = prefixNoCase' 
 
 -- | The index parts are identified by a name, which should denote the context of the words.
 type Parts              = Map Context Part
@@ -53,6 +60,8 @@ newIndex i =
 
     -- | Returns the occurrences for every word. A potentially expensive operation.
     , _allWords               = allWords' i
+
+    , _lookup                 = Ix.lookup
 
     -- | Searches for words beginning with the prefix in a given context (case-sensitive).
     , _prefixCase             = prefixCase' i
