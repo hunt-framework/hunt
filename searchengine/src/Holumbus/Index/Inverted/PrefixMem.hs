@@ -28,7 +28,6 @@ import           Holumbus.Index.Common          (Context, DocId, Occurrences,
 import qualified Holumbus.Index.Common.DocIdMap as DM
 import           Holumbus.Index.Compression     as C
 import           Holumbus.Index.Index           hiding (fromList)
-import qualified Holumbus.Index.Index           as Ix
 
 
 newtype Inverted        = Inverted { indexParts :: Parts }
@@ -276,6 +275,8 @@ deleteDocsById' docIds            = liftInv $ M.mapMaybe deleteInParts
             then Nothing
             else return occ'
 
+
+lookup' :: Inverted -> Textual -> Context -> Text -> [(Text, Occurrences)]
 lookup' i t c w = case t of
     -- | Searches for words beginning with the prefix in a given context (case-sensitive).
          PrefixCase   -> prefixCase' i c w
@@ -284,6 +285,6 @@ lookup' i t c w = case t of
     -- | Searches for and exact word in a given context (case-sensitive).
          Case         -> lookupCase' i c w
     -- | Searches for and exact word in a given context (case-insensitive).
-         NoCase       -> lookupNoCase' i c w 
+         NoCase       -> lookupNoCase' i c w
 
 

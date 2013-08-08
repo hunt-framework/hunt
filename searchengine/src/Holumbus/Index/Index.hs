@@ -112,7 +112,7 @@ data Index it i = Ix
     -- | Returns the occurrences for every word. A potentially expensive operation.
     , _allWords                      :: Context -> RawResult
 
-    -- | general lookup function 
+    -- | general lookup function
     , _lookup                        :: it -> Context -> Text -> RawResult
 
     -- | Insert occurrences.

@@ -60,7 +60,7 @@ import qualified Holumbus.Index.Common.DocIdMap  as DM
 import           Holumbus.Query.Intermediate     (Intermediate)
 import qualified Holumbus.Query.Intermediate     as I
 
-import           Holumbus.Index.Index            (Index, TextIndex)
+import           Holumbus.Index.Index            (TextIndex)
 import qualified Holumbus.Index.Index            as Ix
 import           Holumbus.Index.DocTable         (DocTable)
 import qualified Holumbus.Index.DocTable         as Dt

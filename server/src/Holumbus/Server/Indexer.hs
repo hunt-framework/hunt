@@ -28,7 +28,7 @@ data Indexer it i d de
 
 -- index functions
 searchPrefixNoCase        :: Indexer Ix.Textual i d de -> Context -> Text -> RawResult
-searchPrefixNoCase (Indexer ix dx) c w = Ix.lookup Ix.PrefixNoCase ix c w
+searchPrefixNoCase (Indexer ix _dx) c w = Ix.lookup Ix.PrefixNoCase ix c w
 
 allWords                  :: Indexer Ix.Textual i d de -> Context -> RawResult
 allWords                  = Ix.allWords . ixIndex
