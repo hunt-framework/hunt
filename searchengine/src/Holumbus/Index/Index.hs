@@ -11,108 +11,97 @@ import           Holumbus.Index.Common          (Context, DocId, Occurrences,
 --
 -- external interface
 
-sizeWords             :: Index i -> Int
+sizeWords             :: Index it i -> Int
 sizeWords             = _sizeWords
 
 -- | Returns a list of all contexts avaliable in the index.
-contexts              :: Index i -> [Context]
+contexts              :: Index it i -> [Context]
 contexts              = _contexts
 
 -- | Returns the occurrences for every word. A potentially expensive operation.
-allWords              :: Index i -> Context -> RawResult
+allWords              :: Index it i -> Context -> RawResult
 allWords              = _allWords
 
--- | Searches for words beginning with the prefix in a given context (case-sensitive).
-prefixCase            :: Index i -> Context -> Text -> RawResult
-prefixCase            = _prefixCase
-
--- | Searches for words beginning with the prefix in a given context (case-insensitive).
-prefixNoCase          :: Index i -> Context -> Text -> RawResult
-prefixNoCase          = _prefixNoCase
-
--- | Searches for and exact word in a given context (case-sensitive).
-lookupCase            :: Index i -> Context -> Text -> RawResult
-lookupCase            = _lookupCase
-
--- | Searches for and exact word in a given context (case-insensitive).
-lookupNoCase          :: Index i -> Context -> Text -> RawResult
-lookupNoCase          = _lookupNoCase
+lookup                :: it -> Index it i -> Context -> Word -> RawResult
+lookup it t c w       = _lookup t it c w
 
 -- | Insert occurrences.
-insertOccurrences     :: Context -> Word -> Occurrences -> Index i -> Index i
+insertOccurrences     :: Context -> Word -> Occurrences -> Index it i -> Index it i
 insertOccurrences     = \c w o i -> _insertOccurrences i c w o
 
 -- | Delete occurrences.
-deleteOccurrences     :: Context -> Word -> Occurrences -> Index i -> Index i
+deleteOccurrences     :: Context -> Word -> Occurrences -> Index it i -> Index it i
 deleteOccurrences     = \c w o i -> _deleteOccurrences i c w o
 
 -- | Insert a position for a single document.
-insertPosition        :: Context -> Word -> DocId -> Position -> Index i -> Index i
+insertPosition        :: Context -> Word -> DocId -> Position -> Index it i -> Index it i
 insertPosition        = \c w d p -> insertOccurrences c w (singletonOccurrence d p)
 
 -- | Delete a position for a single document.
-deletePosition        :: Context -> Word -> DocId -> Position -> Index i -> Index i
+deletePosition        :: Context -> Word -> DocId -> Position -> Index it i -> Index it i
 deletePosition        = \c w d p -> deleteOccurrences c w (singletonOccurrence d p)
 
 -- | Delete documents completely (all occurrences).
-deleteDocsById        :: Set DocId -> Index i -> Index i
+deleteDocsById        :: Set DocId -> Index it i -> Index it i
 deleteDocsById        = \ds i -> _deleteDocsById i ds
 
 -- | Merges two indexes.
-mergeIndexes          :: Index i -> Index i -> Index i
+mergeIndexes          :: Index it i -> Index it i -> Index it i
 mergeIndexes          = _mergeIndexes
 
 -- | Subtract one index from another.
-subtractIndexes       :: Index i -> Index i -> Index i
+subtractIndexes       :: Index it i -> Index it i -> Index it i
 subtractIndexes       = _subtractIndexes
 
 -- | Splitting an index by its contexts.
-splitByContexts       :: Index i -> Int -> [Index i]
+splitByContexts       :: Index it i -> Int -> [Index it i]
 splitByContexts       = _splitByContexts
 
 -- | Splitting an index by its documents.
-splitByDocuments      :: Index i -> Int -> [Index i]
+splitByDocuments      :: Index it i -> Int -> [Index it i]
 splitByDocuments      = _splitByDocuments
 
 -- | Splitting an index by its words.
-splitByWords          :: Index i -> Int -> [Index i]
+splitByWords          :: Index it i -> Int -> [Index it i]
 splitByWords          = _splitByWords
 
 -- | Update document id's (e.g. for renaming documents). If the function maps two different id's
 -- to the same new id, the two sets of word positions will be merged if both old id's are present
 -- in the occurrences for a word in a specific context.
-updateDocIds          :: (Context -> Word -> DocId -> DocId) -> Index i -> Index i
+updateDocIds          :: (Context -> Word -> DocId -> DocId) -> Index it i -> Index it i
 updateDocIds          = \f i -> _updateDocIds i f
 
 -- | Update document id's with a simple injective editing function.
-updateDocIds'         :: (DocId -> DocId) -> Index i -> Index i
+updateDocIds'         :: (DocId -> DocId) -> Index it i -> Index it i
 updateDocIds'         = \f i -> _updateDocIds i (const . const $ f)
 
 -- | Convert an Index to a list. Can be used for easy conversion between different index
 -- implementations
-toList                :: Index i -> [(Context, Word, Occurrences)]
+toList                :: Index it i -> [(Context, Word, Occurrences)]
 toList                = _toList
 
 -- | The index implementation
-impl                  :: Index i -> i
+impl                  :: Index it i -> i
 impl                  = _impl
 
 -- default implementations
 
 -- | Create an Index from a list of context, word, occurrences triples.
 --   The first argument should be (a specific implementation of) an empty Index.
-fromList              :: Index i -> [(Context, Word, Occurrences)] -> Index i
+fromList              :: Index it i -> [(Context, Word, Occurrences)] -> Index it i
 fromList e            = foldl (\i (c,w,o) -> insertOccurrences c w o i) e
 
 -- ----------------------------------------------------------------------------
 
-data TextIndex = Case | NoCase | PrefixCase | PrefixNoCase
+data Textual = Case | NoCase | PrefixCase | PrefixNoCase
+data Numerical = Match | Range
+data Geo = Position | Perimeter
 
-class Searchable i where
-  type IndexType i :: *
-  lookup           :: IndexType i -> i -> Context -> Text -> RawResult
+type TextIndex i = Index Textual i
+type NumericIndex i = Index Numerical i
+type GeoIndex i = Index Geo i
 
-data Index i = Ix
+data Index it i = Ix
     {
     -- | Returns the number of unique words in the index.
       _sizeWords                     :: Int
@@ -123,49 +112,37 @@ data Index i = Ix
     -- | Returns the occurrences for every word. A potentially expensive operation.
     , _allWords                      :: Context -> RawResult
 
-    -- | general lookup 
-    , _lookup                        :: IndexType i -> i -> Context -> Text -> RawResult
-
-    -- | Searches for words beginning with the prefix in a given context (case-sensitive).
-    , _prefixCase                    :: Context -> Text -> RawResult
-
-    -- | Searches for words beginning with the prefix in a given context (case-insensitive).
-    , _prefixNoCase                  :: Context -> Text -> RawResult
-
-    -- | Searches for and exact word in a given context (case-sensitive).
-    , _lookupCase                    :: Context -> Text -> RawResult
-
-    -- | Searches for and exact word in a given context (case-insensitive).
-    , _lookupNoCase                  :: Context -> Text -> RawResult
+    -- | general lookup function 
+    , _lookup                        :: it -> Context -> Text -> RawResult
 
     -- | Insert occurrences.
-    , _insertOccurrences             :: Context -> Word -> Occurrences -> Index i
+    , _insertOccurrences             :: Context -> Word -> Occurrences -> Index it i
 
     -- | Delete occurrences.
-    , _deleteOccurrences             :: Context -> Word -> Occurrences -> Index i
+    , _deleteOccurrences             :: Context -> Word -> Occurrences -> Index it i
 
     -- | Delete documents completely (all occurrences).
-    , _deleteDocsById                :: Set DocId -> Index i
+    , _deleteDocsById                :: Set DocId -> Index it i
 
     -- | Merges two indexes.
-    , _mergeIndexes                  :: Index i -> Index i
+    , _mergeIndexes                  :: Index it i -> Index it i
 
     -- | Subtract one index from another.
-    , _subtractIndexes               :: Index i -> Index i
+    , _subtractIndexes               :: Index it i -> Index it i
 
     -- | Splitting an index by its contexts.
-    , _splitByContexts               :: Int -> [Index i]
+    , _splitByContexts               :: Int -> [Index it i]
 
     -- | Splitting an index by its documents.
-    , _splitByDocuments              :: Int -> [Index i]
+    , _splitByDocuments              :: Int -> [Index it i]
 
     -- | Splitting an index by its words.
-    , _splitByWords                  :: Int -> [Index i]
+    , _splitByWords                  :: Int -> [Index it i]
 
     -- | Update document id's (e.g. for renaming documents). If the function maps two different id's
     -- to the same new id, the two sets of word positions will be merged if both old id's are present
     -- in the occurrences for a word in a specific context.
-    , _updateDocIds                  :: (Context -> Word -> DocId -> DocId) -> Index i
+    , _updateDocIds                  :: (Context -> Word -> DocId -> DocId) -> Index it i
 
     -- | Convert an Index to a list. Can be used for easy conversion between different index
     -- implementations

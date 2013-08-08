@@ -34,13 +34,6 @@ import qualified Holumbus.Index.Index           as Ix
 newtype Inverted        = Inverted { indexParts :: Parts }
                           deriving (Show, Eq)
 
-instance Ix.Searchable Inverted where 
-  type IndexType Inverted = TextIndex
-  lookup Case             = lookupCase'
-  lookup NoCase           = lookupNoCase'
-  lookup PrefixCase       = prefixCase'
-  lookup PrefixNoCase     = prefixNoCase' 
-
 -- | The index parts are identified by a name, which should denote the context of the words.
 type Parts              = Map Context Part
 
@@ -48,7 +41,7 @@ type Parts              = Map Context Part
 type Part               = PT.PrefixTree CompressedOccurrences
 
 
-newIndex :: Inverted -> Index Inverted
+newIndex :: Inverted -> TextIndex Inverted
 newIndex i =
     Ix
     {
@@ -61,19 +54,7 @@ newIndex i =
     -- | Returns the occurrences for every word. A potentially expensive operation.
     , _allWords               = allWords' i
 
-    , _lookup                 = Ix.lookup
-
-    -- | Searches for words beginning with the prefix in a given context (case-sensitive).
-    , _prefixCase             = prefixCase' i
-
-    -- | Searches for words beginning with the prefix in a given context (case-insensitive).
-    , _prefixNoCase           = prefixNoCase' i
-
-    -- | Searches for and exact word in a given context (case-sensitive).
-    , _lookupCase             = lookupCase' i
-
-    -- | Searches for and exact word in a given context (case-insensitive).
-    , _lookupNoCase           = lookupNoCase' i
+    , _lookup                 = lookup' i
 
     -- | Insert occurrences.
     , _insertOccurrences      = \c w o -> newIndex $ insertOccurrences' c w o i
@@ -113,13 +94,13 @@ newIndex i =
 }
 
 
-emptyIndex                        :: Index Inverted
+emptyIndex                        :: TextIndex Inverted
 emptyIndex                        = newIndex (Inverted M.empty)
 
 -- XXX: fromList is not in the index data type
 -- Create an Index from a list. Can be used for easy conversion between different index
 -- implementations. Needs an empty index as first argument
-fromList              :: [(Context, Word, Occurrences)] -> Index Inverted
+fromList              :: [(Context, Word, Occurrences)] -> TextIndex Inverted
 fromList              = newIndex . fromList'
 --fromList e                    ,, foldl (\i (c,w,o) -> insertOccurrences c w o i) e
 
@@ -294,3 +275,15 @@ deleteDocsById' docIds            = liftInv $ M.mapMaybe deleteInParts
       in if DM.null occ'
             then Nothing
             else return occ'
+
+lookup' i t c w = case t of
+    -- | Searches for words beginning with the prefix in a given context (case-sensitive).
+         PrefixCase   -> prefixCase' i c w
+    -- | Searches for words beginning with the prefix in a given context (case-insensitive).
+         PrefixNoCase -> prefixNoCase' i c w
+    -- | Searches for and exact word in a given context (case-sensitive).
+         Case         -> lookupCase' i c w
+    -- | Searches for and exact word in a given context (case-insensitive).
+         NoCase       -> lookupNoCase' i c w 
+
+
