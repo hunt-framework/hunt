@@ -64,7 +64,7 @@ insertDoc doc wrds ix     = ix { ixIndex    = newIndex
                                , ixDocTable = newDocTable }
   where
   (dId, newDocTable) = Dt.insertDoc (ixDocTable ix) doc
-  newIndex           = M.foldrWithKey (\c wl acc -> M.foldrWithKey (\w ps acc' -> Ix.insertOccurrences c w (mkOccs dId ps) acc') acc wl) (ixIndex ix) wrds
+  newIndex           = M.foldrWithKey (\c wl acc -> M.foldrWithKey (\w ps acc' -> Ix.insert c w (mkOccs dId ps) acc') acc wl) (ixIndex ix) wrds
 
   mkOccs :: DocId -> [Position] -> Occurrences
   mkOccs did pl = insertPositions did pl emptyOccurrences

@@ -56,19 +56,19 @@ newIndex i =
     , _lookup                 = lookup' i
 
     -- | Insert occurrences.
-    , _insertOccurrences      = \c w o -> newIndex $ insertOccurrences' c w o i
+    , _insert                 = \c w o -> newIndex $ insertOccurrences' c w o i
 
     -- | Delete occurrences.
-    , _deleteOccurrences      = \c w o -> newIndex $ deleteOccurrences' c w o i
+    , _delete                 = \c w o -> newIndex $ deleteOccurrences' c w o i
 
     -- | Delete documents completely (all occurrences).
     , _deleteDocsById         = \ds -> newIndex $ deleteDocsById' ds i
 
     -- | Merges two indexes.
-    , _mergeIndexes           = newIndex . mergeIndexes' i . _impl
+    , _merge                  = newIndex . mergeIndexes' i . _impl
 
     -- | Subtract one index from another.
-    , _subtractIndexes        = newIndex . subtractIndexes' i . _impl
+    , _subtract               = newIndex . subtractIndexes' i . _impl
 
     -- | Splitting an index by its contexts.
     , _splitByContexts        = map newIndex . splitByContexts' i

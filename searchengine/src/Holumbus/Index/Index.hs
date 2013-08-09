@@ -26,24 +26,24 @@ lookup                :: it -> Index it v i -> Context -> Word -> RawResult
 lookup it t c w       = _lookup t it c w
 
 -- | Insert occurrences.
-insertOccurrences     :: Context -> Word -> v -> Index it v i -> Index it v i
-insertOccurrences     = \c w o i -> _insertOccurrences i c w o
+insert                :: Context -> Word -> v -> Index it v i -> Index it v i
+insert                = \c w o i -> _insert i c w o
 
 -- | Delete occurrences.
-deleteOccurrences     :: Context -> Word -> v -> Index it v i -> Index it v i
-deleteOccurrences     = \c w o i -> _deleteOccurrences i c w o
+delete                :: Context -> Word -> v -> Index it v i -> Index it v i
+delete                = \c w o i -> _delete i c w o
 
 -- | Delete documents completely (all occurrences).
 deleteDocsById        :: Set DocId -> Index it v i -> Index it v i
 deleteDocsById        = \ds i -> _deleteDocsById i ds
 
 -- | Merges two indexes.
-mergeIndexes          :: Index it v i -> Index it v i -> Index it v i
-mergeIndexes          = _mergeIndexes
+merge                 :: Index it v i -> Index it v i -> Index it v i
+merge                 = _merge
 
 -- | Subtract one index from another.
-subtractIndexes       :: Index it v i -> Index it v i -> Index it v i
-subtractIndexes       = _subtractIndexes
+subtract              :: Index it v i -> Index it v i -> Index it v i
+subtract              = _subtract
 
 -- | Splitting an index by its contexts.
 splitByContexts       :: Index it v i -> Int -> [Index it v i]
@@ -81,19 +81,19 @@ impl                  = _impl
 -- | Create an Index from a list of context, word, occurrences triples.
 --   The first argument should be (a specific implementation of) an empty Index.
 fromList              :: Index it v i -> [(Context, Word, v)] -> Index it v i
-fromList e            = foldl (\i (c,w,o) -> insertOccurrences c w o i) e
+fromList e            = foldl (\i (c,w,o) -> insert c w o i) e
 
 
 -- TODO: move
--- Helper-functions specific to Indexes with Occurrences values
+-- Functions specific to Indexes with Occurrences values
 
 -- | Insert a position for a single document.
 insertPosition        :: Context -> Word -> DocId -> Position -> Index it Occurrences i -> Index it Occurrences i
-insertPosition        = \c w d p -> insertOccurrences c w (singletonOccurrence d p)
+insertPosition        = \c w d p -> insert c w (singletonOccurrence d p)
 
 -- | Delete a position for a single document.
 deletePosition        :: Context -> Word -> DocId -> Position -> Index it Occurrences i -> Index it Occurrences i
-deletePosition        = \c w d p -> deleteOccurrences c w (singletonOccurrence d p)
+deletePosition        = \c w d p -> delete c w (singletonOccurrence d p)
 
 -- ----------------------------------------------------------------------------
 
@@ -101,9 +101,9 @@ data Textual            = Case | NoCase | PrefixCase | PrefixNoCase
 data Numerical          = Match | Range
 data Geo                = Position | Perimeter
 
-type TextIndex v i        = Index Textual v i
-type NumericIndex v i     = Index Numerical v i
-type GeoIndex v i         = Index Geo v i
+type TextIndex v i      = Index Textual v i
+type NumericIndex v i   = Index Numerical v i
+type GeoIndex v i       = Index Geo v i
 
 data Index it v i = Ix
     {
@@ -120,19 +120,19 @@ data Index it v i = Ix
     , _lookup                        :: it -> Context -> Text -> RawResult
 
     -- | Insert occurrences.
-    , _insertOccurrences             :: Context -> Word -> v -> Index it v i
+    , _insert                        :: Context -> Word -> v -> Index it v i
 
     -- | Delete occurrences.
-    , _deleteOccurrences             :: Context -> Word -> v -> Index it v i
+    , _delete                        :: Context -> Word -> v -> Index it v i
 
     -- | Delete documents completely (all occurrences).
     , _deleteDocsById                :: Set DocId -> Index it v i
 
     -- | Merges two indexes.
-    , _mergeIndexes                  :: Index it v i -> Index it v i
+    , _merge                         :: Index it v i -> Index it v i
 
     -- | Subtract one index from another.
-    , _subtractIndexes               :: Index it v i -> Index it v i
+    , _subtract                      :: Index it v i -> Index it v i
 
     -- | Splitting an index by its contexts.
     , _splitByContexts               :: Int -> [Index it v i]
