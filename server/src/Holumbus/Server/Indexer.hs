@@ -1,13 +1,13 @@
 module Holumbus.Server.Indexer where
 
-import Data.Set                               (Set)
+import           Data.Set                     (Set)
 import qualified Data.Set                     as S
 import qualified Data.Map                     as M
 import           Data.Text                    (Text)
 
 import           Holumbus.Index.Common        (Context, URI, RawResult
                                               , Position, Occurrences, emptyOccurrences, insertOccurrence
-                                              , DocId)
+                                              , DocId, Document(..), Description)
 
 import           Holumbus.Server.Common
 
@@ -52,22 +52,52 @@ deleteDocsByURI us ix     = deleteDocsById docIds ix
   where
   docIds = catMaybesSet . S.map (lookupByURI ix) $ us
 
-
 -- TODO: move?
 -- Specific to Indexes with Occurrences values
 
-updateDoc                 :: DocId -> de -> Words -> Indexer it Occurrences iv d de -> Indexer it Occurrences iv d de
+updateDoc                 :: DocId -> de -> Words -> Indexer it Occurrences i d de -> Indexer it Occurrences i d de
 updateDoc docId doc w     = insertDoc doc w . deleteDocsById (S.singleton docId)
 
-insertDoc                 :: de -> Words -> Indexer it Occurrences iv d de -> Indexer it Occurrences iv d de
+insertDoc                 :: de -> Words -> Indexer it Occurrences i d de -> Indexer it Occurrences i d de
 insertDoc doc wrds ix     = ix { ixIndex    = newIndex
                                , ixDocTable = newDocTable }
   where
   (dId, newDocTable) = Dt.insert (ixDocTable ix) doc
-  newIndex           = M.foldrWithKey (\c wl acc -> M.foldrWithKey (\w ps acc' -> Ix.insert c w (mkOccs dId ps) acc') acc wl) (ixIndex ix) wrds
+  newIndex           = addWords wrds dId $ ixIndex ix
 
-  mkOccs :: DocId -> [Position] -> Occurrences
-  mkOccs did pl = insertPositions did pl emptyOccurrences
+modify                    :: (de -> de) -> Words -> DocId -> Indexer it Occurrences i d de -> Indexer it Occurrences i d de
+modify f wrds dId ix
+  = ix { ixIndex    = newIndex
+       , ixDocTable = newDocTable }
+  where
+  newDocTable = Dt.modify f dId   $ ixDocTable ix
+  newIndex    = addWords wrds dId $ ixIndex ix
 
-  insertPositions :: DocId -> [Position] -> Occurrences -> Occurrences
-  insertPositions docId ws os = foldr (insertOccurrence docId) os ws
+modifyWithDescription     :: Description -> Words -> DocId -> Indexer it Occurrences i d Document -> Indexer it Occurrences i d Document
+modifyWithDescription descr wrds dId ix
+  = ix { ixIndex    = newIndex
+       , ixDocTable = newDocTable }
+  where
+  newDocTable = Dt.modify mergeDescr dId   $ ixDocTable ix
+  newIndex    = addWords wrds dId $ ixIndex ix
+  mergeDescr doc = doc{ desc = M.union (desc doc) descr }
+
+-- Helper functions
+
+addWords                  :: Words -> DocId -> Index it Occurrences i -> Index it Occurrences i
+addWords wrds dId i = M.foldrWithKey (\c wl acc -> M.foldrWithKey (\w ps acc' -> Ix.insert c w (mkOccs dId ps) acc') acc wl) i wrds
+
+mkOccs                    :: DocId -> [Position] -> Occurrences
+mkOccs did pl = positionsIntoOccs did pl emptyOccurrences
+
+positionsIntoOccs         :: DocId -> [Position] -> Occurrences -> Occurrences
+positionsIntoOccs docId ws os = foldr (insertOccurrence docId) os ws
+
+-- Specific to Indexes with Document DocTable values
+{-
+addDocDescription         :: Description -> DocId -> Indexer it iv i d Document -> Indexer it iv i d Document
+addDocDescription descr did (Indexer i d)
+  = Indexer i (Dt.modify mergeDescr did d)
+  where
+  mergeDescr doc = doc{ desc = M.union (desc doc) descr }
+-}

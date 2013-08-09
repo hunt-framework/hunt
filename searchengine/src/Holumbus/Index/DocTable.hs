@@ -61,6 +61,14 @@ insert                        = _insert
 update                        :: DocTable i e -> DocId -> e -> DocTable i e
 update                        = _update
 
+-- | Modify a document.
+modify                        :: (e -> e) -> DocId -> DocTable i e -> DocTable i e
+modify f did d                = maybe d (update d did . f) $lookupById d did
+
+-- | Modify a document by URI.
+modifyByURI                   :: (e -> e) -> DocTable i e -> URI -> DocTable i e
+modifyByURI f d uri           = maybe d (flip (modify f) d) $ lookupByURI d uri
+
 -- XXX: reverse order of arguments?
 -- | Removes the document with the specified id from the table.
 removeById                    :: DocTable i e -> DocId -> DocTable i e

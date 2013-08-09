@@ -153,8 +153,8 @@ start = scotty 3000 $ do
             res
 
 
--- updated/replaces a document (fails if a document (the uri) does not exists)
-  post "/document/update" $ do
+  -- updated/replaces a document (fails if a document (the uri) does not exists)
+  post "/document/replace" $ do
     -- Raises an exception if parse is unsuccessful
     jss <- jsonData :: ActionM [ApiDocument]
 
@@ -173,6 +173,30 @@ start = scotty 3000 $ do
 
     json $ maybe
             (JsonSuccess "document(s) updated" :: JsonResponse Text)
+            JsonFailure
+            res
+
+
+  -- update/modify a document (fails if a document (the uri) does not exists)
+  post "/document/update" $ do
+    -- Raises an exception if parse is unsuccessful
+    jss <- jsonData :: ActionM [ApiDocument]
+
+    -- res :: Maybe [URI]  -- maybe the documents/uris that do not exist
+    res <- modIx $ \ix -> do
+      let allDocs       = checkApiDocUris (const True) jss ix :: [(URI, Maybe DocId)]
+      -- set of new docs minus docTable
+      let failedDocUris = map fst . filter (isNothing . snd) $ allDocs
+      -- difference set is empty -> safe to update
+      return $ if Prelude.null failedDocUris
+       then
+          ( foldr (\(docId, apiDoc) ->
+                      Ix.modifyWithDescription (apiDocDescrMap apiDoc) (snd . toDocAndWords $ apiDoc) docId) ix (zip (map (fromJust . snd) allDocs) jss)
+          , Nothing)
+       else (ix, return failedDocUris)
+
+    json $ maybe
+            (JsonSuccess "document description(s) updated" :: JsonResponse Text)
             JsonFailure
             res
 
