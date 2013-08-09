@@ -57,13 +57,13 @@ modIndex = liftIO .:: modifyMVar
 --indexer :: Indexer Inverted HD.Documents Document
 --indexer = Indexer emptyIndex HD.emptyDocTable
 
-indexer :: Indexer Textual Inverted (DocTable HCD.Documents HCD.CompressedDoc) Document
+indexer :: Indexer Textual Occurrences Inverted (DocTable HCD.Documents HCD.CompressedDoc) Document
 indexer = Indexer emptyIndex HCD.emptyDocTable
 
 queryConfig :: ProcessConfig
 queryConfig = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
-runQueryM :: Monad m => TextIndex i -> DocTable d Document -> Query -> m Result
+runQueryM :: Monad m => TextIndex v i -> DocTable d Document -> Query -> m Result
 runQueryM i d q = processQueryM queryConfig i d q
 
 -- Replacement for the scotty json function for pretty JSON encoding.
@@ -79,7 +79,7 @@ jsonPretty v = do
 -}
 
 checkApiDocUris :: (Monad m, Functor m)
-                => (m DocId -> Bool) -> [ApiDocument] -> Indexer it i d de -> [(URI, m DocId)]
+                => (m DocId -> Bool) -> [ApiDocument] -> Indexer it v i d de -> [(URI, m DocId)]
 checkApiDocUris filterDocIds apiDocs ix =
   let apiDocsM
           = map (\apiDoc -> let docUri = apiDocUri apiDoc
