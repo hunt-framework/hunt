@@ -151,11 +151,11 @@ processPartialM cfg i t q = initStateM cfg i t >>= flip processM oq
 
 -- | Process a query on a specific index with regard to the configuration.
 processQuery :: ProcessConfig -> TextIndex v i -> DocTable d Document -> Query -> Result
-processQuery cfg i d q = I.toResult d (processPartial cfg i (Dt.sizeDocs d) q)
+processQuery cfg i d q = I.toResult d (processPartial cfg i (Dt.size d) q)
 
 -- | Monadic version of 'processQuery'.
 processQueryM :: (Monad m) => ProcessConfig -> TextIndex v i -> DocTable d Document -> Query -> m Result
-processQueryM cfg i d q = processPartialM cfg i (Dt.sizeDocs d) q >>= \ir -> return $ I.toResult d ir
+processQueryM cfg i d q = processPartialM cfg i (Dt.size d) q >>= \ir -> return $ I.toResult d ir
 
 -- | Continue processing a query by deciding what to do depending on the current query element.
 process :: ProcessState v i -> Query -> Intermediate

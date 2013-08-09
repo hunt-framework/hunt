@@ -2,25 +2,27 @@
 module Holumbus.Index.DocTable
 where
 
+import           Prelude                          hiding (null)
 import           Control.Arrow                    (second)
 
 import           Data.Set                         (Set)
 
 import           Holumbus.Index.Common.BasicTypes
 import           Holumbus.Index.Common.DocId
-import           Holumbus.Index.Common.DocIdMap   as DM
+import           Holumbus.Index.Common.DocIdMap   (DocIdMap)
+import qualified Holumbus.Index.Common.DocIdMap   as DM
 
 
 -- ----------------------------------------------------------------------------
 --
 -- external interface
 
-nullDocs                      :: DocTable i e -> Bool
-nullDocs                      = _nullDocs
+null                          :: DocTable i e -> Bool
+null                          = _null
 
 -- | Returns the number of unique documents in the table.
-sizeDocs                      :: DocTable i e -> Int
-sizeDocs                      = _sizeDocs
+size                          :: DocTable i e -> Int
+size                          = _size
 
 -- | Lookup a document by its id.
 lookupById                    :: (Monad m, Functor m) => DocTable i e -> DocId -> m e
@@ -35,15 +37,15 @@ lookupByURI                   = _lookupByURI
 -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
 
 -- XXX: field or def. impl?
-unionDocs                     :: DocTable i e -> DocTable i e -> DocTable i e
-unionDocs                     = _unionDocs
+union                         :: DocTable i e -> DocTable i e -> DocTable i e
+union                         = _union
 --unionDocs dt1                 = DM.fold addDoc dt1 . toMap
 --   where
 --   addDoc d dt                = snd . insertDoc dt $ d
 
 -- | Test whether the doc ids of both tables are disjoint.
-disjointDocs                  :: DocTable i e -> DocTable i e -> Bool
-disjointDocs                  = _disjointDocs
+disjoint                      :: DocTable i e -> DocTable i e -> Bool
+disjoint                      = _disjoint
 
 -- | Return an empty document table.
 -- makeEmpty                     :: DocTable i e -> DocTable i e
@@ -52,12 +54,12 @@ disjointDocs                  = _disjointDocs
 -- | Insert a document into the table. Returns a tuple of the id for that document and the
 -- new table. If a document with the same URI is already present, its id will be returned
 -- and the table is returned unchanged.
-insertDoc                     :: DocTable i e -> e -> (DocId, DocTable i e)
-insertDoc                     = _insertDoc
+insert                        :: DocTable i e -> e -> (DocId, DocTable i e)
+insert                        = _insert
 
 -- | Update a document with a certain DocId.
-updateDoc                     :: DocTable i e -> DocId -> e -> DocTable i e
-updateDoc                     = _updateDoc
+update                        :: DocTable i e -> DocId -> e -> DocTable i e
+update                        = _update
 
 -- XXX: reverse order of arguments?
 -- | Removes the document with the specified id from the table.
@@ -109,11 +111,11 @@ impl                          = _impl
 
 data DocTable i e = Dt
     {
-        _nullDocs                      :: Bool
+        _null                        :: Bool
       -- nullDocs                      = (== 0) . sizeDocs
 
     -- | Returns the number of unique documents in the table.
-    , _sizeDocs                      :: Int
+    , _size                          :: Int
 
     -- | Lookup a document by its id.
     , _lookupById                    :: (Monad m, Functor m) => DocId -> m e
@@ -125,13 +127,13 @@ data DocTable i e = Dt
     -- of both indexes are disjoint. If only the sets of uris are disjoint, the DocIds can be made
     -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
 
-    , _unionDocs                     :: DocTable i e -> DocTable i e
+    , _union                         :: DocTable i e -> DocTable i e
     -- unionDocs dt1                 = DM.fold addDoc dt1 . toMap
     --    where
     --    addDoc d dt               = snd . insertDoc dt $ d
 
     -- | Test whether the doc ids of both tables are disjoint.
-    , _disjointDocs                  :: DocTable i e -> Bool
+    , _disjoint                      :: DocTable i e -> Bool
 
     -- | Return an empty document table.
     -- , _makeEmpty                     :: DocTable i
@@ -140,10 +142,10 @@ data DocTable i e = Dt
     -- new table. If a document with the same URI is already present, its id will be returned
     -- and the table is returned unchanged.
 
-    , _insertDoc                     :: e -> (DocId, DocTable i e)
+    , _insert                        :: e -> (DocId, DocTable i e)
 
     -- | Update a document with a certain DocId.
-    , _updateDoc                     :: DocId -> e -> DocTable i e
+    , _update                        :: DocId -> e -> DocTable i e
 
     -- XXX: reverse order of arguments?
     -- | Removes the document with the specified id from the table.
@@ -188,10 +190,10 @@ newConvValueDocTable :: (a -> v) -> (v -> a) -> DocTable i a -> DocTable (DocTab
 newConvValueDocTable from to i =
     Dt
     {
-      _nullDocs                      = nullDocs i
+      _null                          = null i
 
     -- | Returns the number of unique documents in the table.
-    , _sizeDocs                      = sizeDocs i
+    , _size                          = size i
 
     -- | Lookup a document by its id.
     , _lookupById                    = fmap from . lookupById i
@@ -203,13 +205,13 @@ newConvValueDocTable from to i =
     -- of both indexes are disjoint. If only the sets of uris are disjoint, the DocIds can be made
     -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
 
-    , _unionDocs                     = \dt2 -> cv $ unionDocs i (impl dt2)
+    , _union                         = \dt2 -> cv $ union i (impl dt2)
     -- unionDocs dt1                 = DM.fold addDoc dt1 . toMap
     --    where
     --    addDoc d dt               = snd . insertDoc dt $ d
 
     -- | Test whether the doc ids of both tables are disjoint.
-    , _disjointDocs                  = \dt2 -> disjointDocs i (impl dt2)
+    , _disjoint                      = \dt2 -> disjoint i (impl dt2)
 
     -- | Return an empty document table.
     -- , _makeEmpty                     = undefined
@@ -218,10 +220,10 @@ newConvValueDocTable from to i =
     -- new table. If a document with the same URI is already present, its id will be returned
     -- and the table is returned unchanged.
 
-    , _insertDoc                     = \e -> second cv $ insertDoc i (to e)
+    , _insert                        = \e -> second cv $ insert i (to e)
 
     -- | Update a document with a certain DocId.
-    , _updateDoc                     = \did e -> cv $ updateDoc i did (to e)
+    , _update                        = \did e -> cv $ update i did (to e)
 
     -- XXX: reverse order of arguments?
     -- | Removes the document with the specified id from the table.

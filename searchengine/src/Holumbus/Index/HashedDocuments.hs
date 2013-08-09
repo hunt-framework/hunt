@@ -99,13 +99,13 @@ newDocTable :: Documents -> DocTable Documents Document
 newDocTable i =
     Dt
     {
-      _nullDocs                      = nullDocs' i
+      _null                          = null' i
 
       -- XXX: default impl. - very inefficient...
       -- nullDocs                      = (== 0) . sizeDocs
 
     -- | Returns the number of unique documents in the table.
-    , _sizeDocs                      = sizeDocs' i
+    , _size                          = size' i
 
     -- | Lookup a document by its id.
     , _lookupById                    = lookupById' i
@@ -117,13 +117,13 @@ newDocTable i =
     -- of both indexes are disjoint. If only the sets of uris are disjoint, the DocIds can be made
     -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
 
-    , _unionDocs                     = newDocTable . unionDocs' i . _impl -- XXX: use non-underscore fct
+    , _union                         = newDocTable . unionDocs' i . _impl -- XXX: use non-underscore fct
     -- unionDocs dt1                 = DM.fold addDoc dt1 . toMap
     --    where
     --    addDoc d dt               = snd . insertDoc dt $ d
 
     -- | Test whether the doc ids of both tables are disjoint.
-    , _disjointDocs                  = disjointDocs' i . _impl -- XXX: use non-underscore fct
+    , _disjoint                      = disjointDocs' i . _impl -- XXX: use non-underscore fct
 
     -- | Return an empty document table.
     -- , _makeEmpty                     = undefined
@@ -132,11 +132,11 @@ newDocTable i =
     -- new table. If a document with the same URI is already present, its id will be returned
     -- and the table is returned unchanged.
 
-    , _insertDoc                     = second newDocTable . insertDoc' i
+    , _insert                        = second newDocTable . insertDoc' i
 
 
     -- | Update a document with a certain DocId.
-    , _updateDoc                     = newDocTable .:: updateDoc' i
+    , _update                        = newDocTable .:: updateDoc' i
 
     -- XXX: reverse order of arguments?
     -- | Removes the document with the specified id from the table.
@@ -195,12 +195,12 @@ fromDocMap                      = DM.map toDocument
 
 -- ----------------------------------------------------------------------------
 
-nullDocs' :: Documents -> Bool
-nullDocs'
+null' :: Documents -> Bool
+null'
     = DM.null . idToDoc
 
-sizeDocs' :: Documents -> Int
-sizeDocs'
+size' :: Documents -> Int
+size'
     = DM.size . idToDoc
 
 lookupById' :: Monad m => Documents -> DocId -> m Document
