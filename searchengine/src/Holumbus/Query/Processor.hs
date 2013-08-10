@@ -62,8 +62,8 @@ import qualified Holumbus.Query.Intermediate     as I
 
 import           Holumbus.Index.Index            (TextIndex)
 import qualified Holumbus.Index.Index            as Ix
-import           Holumbus.Index.DocTable         (DocTable)
-import qualified Holumbus.Index.DocTable         as Dt
+import           Holumbus.DocTable.DocTable         (DocTable)
+import qualified Holumbus.DocTable.DocTable         as Dt
 
 -- ----------------------------------------------------------------------------
 

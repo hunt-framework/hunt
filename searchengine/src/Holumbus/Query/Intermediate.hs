@@ -56,8 +56,8 @@ import           Holumbus.Query.Result          hiding (null)
 import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap as DM
 
-import           Holumbus.Index.DocTable        (DocTable)
-import qualified Holumbus.Index.DocTable        as Dt
+import           Holumbus.DocTable.DocTable        (DocTable)
+import qualified Holumbus.DocTable.DocTable        as Dt
 
 -- ----------------------------------------------------------------------------
 

@@ -1,5 +1,5 @@
 {-# LANGUAGE Rank2Types #-}
-module Holumbus.Index.DocTable
+module Holumbus.DocTable.DocTable
 where
 
 import           Prelude                          hiding (null)

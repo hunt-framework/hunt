@@ -16,7 +16,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.CompactDocuments
+module Holumbus.DocTable.CompactDocuments
 (
   -- * Documents type
   Documents (..)

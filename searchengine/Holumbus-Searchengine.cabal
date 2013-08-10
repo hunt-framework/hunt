@@ -61,9 +61,9 @@ library
     Holumbus.Index.Common.Occurences
     Holumbus.Index.Common.RawResult
     Holumbus.Index.Compression
-    Holumbus.Index.DocTable
-    Holumbus.Index.HashedCompactDocuments
-    Holumbus.Index.HashedDocuments
+    Holumbus.DocTable.DocTable
+    Holumbus.DocTable.HashedCompactDocuments
+    Holumbus.DocTable.HashedDocuments
     --Holumbus.Index.HashedIndex
     Holumbus.Index.Index
     --Holumbus.Index.Inverted.CompressedPrefixMem

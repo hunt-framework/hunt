@@ -21,10 +21,10 @@ import           Holumbus.Utility                      ((.::))
 import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap        as DM
 
-import           Holumbus.Index.DocTable
+import           Holumbus.DocTable.DocTable
 import           Holumbus.Index.Index
 
-import           Holumbus.Index.HashedCompactDocuments as HCD
+import           Holumbus.DocTable.HashedCompactDocuments as HCD
 --import           Holumbus.Index.HashedDocuments        as HD
 import           Holumbus.Index.Inverted.PrefixMem
 

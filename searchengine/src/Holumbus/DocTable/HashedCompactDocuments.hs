@@ -15,7 +15,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.HashedCompactDocuments
+module Holumbus.DocTable.HashedCompactDocuments
     (
       -- * Documents type
       Documents (..)
@@ -53,7 +53,7 @@ import           Data.Digest.Murmur64
 import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap as DM
 
-import           Holumbus.Index.DocTable
+import           Holumbus.DocTable.DocTable
 
 import           Holumbus.Utility               ((.::))
 

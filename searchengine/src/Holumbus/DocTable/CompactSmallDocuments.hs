@@ -20,7 +20,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.CompactSmallDocuments
+module Holumbus.DocTable.CompactSmallDocuments
 (
   -- * Documents type
   SmallDocuments (..)
