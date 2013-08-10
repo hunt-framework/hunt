@@ -51,5 +51,9 @@ type Words        = Map Context WordList
 -- | Positions of words in the document.
 type WordList     = Map Word [Position]
 
+data Textual            = Case | NoCase | PrefixCase | PrefixNoCase
+data Numerical          = Match | Range
+data Geo                = Position | Perimeter
+
 
 -- ------------------------------------------------------------

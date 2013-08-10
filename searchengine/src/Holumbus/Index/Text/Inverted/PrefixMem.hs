@@ -24,7 +24,7 @@ import           Holumbus.Index.Common          (Context, DocId, Occurrences,
                                                  mergeOccurrences,
                                                  resultByDocument, resultByWord,
                                                  sizeOccurrences, sizePos,
-                                                 substractOccurrences, unionPos)
+                                                 substractOccurrences, unionPos, Textual(..))
 import qualified Holumbus.Index.Common.DocIdMap as DM
 import           Holumbus.Index.Compression     as C
 import           Holumbus.Index.Index           hiding (fromList)

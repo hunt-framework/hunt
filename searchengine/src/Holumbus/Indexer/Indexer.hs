@@ -13,8 +13,8 @@ import           Holumbus.Utility             (catMaybesSet)
 
 import           Holumbus.Index.Index         (Index)
 import qualified Holumbus.Index.Index         as Ix
-import           Holumbus.DocTable.DocTable      (DocTable)
-import qualified Holumbus.DocTable.DocTable      as Dt
+import           Holumbus.DocTable.DocTable   (DocTable)
+import qualified Holumbus.DocTable.DocTable   as Dt
 
 
 -- generic indexer - combination of an index and a doc table
@@ -23,13 +23,6 @@ data Indexer it iv i d de
     { ixIndex    :: Index it iv i
     , ixDocTable :: DocTable d de
     }
-
--- index functions
-searchPrefixNoCase        :: Indexer Ix.Textual iv i d de -> Context -> Text -> RawResult
-searchPrefixNoCase (Indexer ix _dx) c w = Ix.lookup Ix.PrefixNoCase ix c w
-
-allWords                  :: Indexer Ix.Textual iv i d de -> Context -> RawResult
-allWords                  = Ix.allWords . ixIndex
 
 -- doctable functions
 lookupById                :: (Monad m, Functor m) => Indexer it iv i d de -> DocId -> m de

@@ -46,7 +46,7 @@ import           Holumbus.Utility                ((.::), (.:::))
 
 import           Holumbus.Index.Common           (Context, Word, RawResult, DocId,
                                                   Position, Positions, Occurrences,
-                                                  foldPos, memberPos, unionPos)
+                                                  foldPos, memberPos, unionPos, Textual(..))
 
 import           Holumbus.Query.Language.Grammar
 
@@ -186,7 +186,7 @@ processM s (BinQuery o q1 q2) = do
 processWord :: ProcessState v i -> Text -> Intermediate
 processWord s q = forAllContexts wordNoCase (contexts s)
   where
-  wordNoCase c = I.fromList q c $ limitWords s $ Ix.lookup Ix.PrefixNoCase (index s) c q
+  wordNoCase c = I.fromList q c $ limitWords s $ Ix.lookup PrefixNoCase (index s) c q
 
 -- | Monadic version of 'processWord'.
 processWordM :: Monad m => ProcessState v i -> Text -> m Intermediate
@@ -194,13 +194,13 @@ processWordM s q = forAllContextsM wordNoCase (contexts s)
   where
   wordNoCase c = prefixNoCaseM (index s) c q >>= limitWordsM s >>= \r -> return $ I.fromList q c r
   prefixNoCaseM :: Monad m => TextIndex v i -> Context -> Text -> m RawResult
-  prefixNoCaseM = return .::: Ix.lookup Ix.PrefixNoCase -- XXX: real monadic version
+  prefixNoCaseM = return .::: Ix.lookup PrefixNoCase -- XXX: real monadic version
 
 -- | Process a single, case-sensitive word by finding all documents which contain the word as prefix.
 processCaseWord :: ProcessState v i -> Text -> Intermediate
 processCaseWord s q = forAllContexts wordCase (contexts s)
   where
-  wordCase c = I.fromList q c $ limitWords s $ Ix.lookup Ix.PrefixCase (index s) c q
+  wordCase c = I.fromList q c $ limitWords s $ Ix.lookup PrefixCase (index s) c q
 
 -- | Monadic version of 'processCaseWord'.
 processCaseWordM :: Monad m => ProcessState v i -> Text -> m Intermediate
@@ -208,13 +208,13 @@ processCaseWordM s q = forAllContextsM wordCase (contexts s)
   where
   wordCase c = prefixCaseM (index s) c q >>= limitWordsM s >>= \r -> return $ I.fromList q c r
   prefixCaseM :: Monad m => TextIndex v i -> Context -> Text -> m RawResult
-  prefixCaseM = return .::: Ix.lookup Ix.PrefixCase -- XXX: real monadic version
+  prefixCaseM = return .::: Ix.lookup PrefixCase -- XXX: real monadic version
 
 -- | Process a phrase case-insensitive.
 processPhrase :: ProcessState v i -> Text -> Intermediate
 processPhrase s q = forAllContexts phraseNoCase (contexts s)
   where
-  phraseNoCase c = processPhraseInternal (Ix.lookup Ix.NoCase (index s) c) c q
+  phraseNoCase c = processPhraseInternal (Ix.lookup NoCase (index s) c) c q
 
 -- processPhraseM :: HolIndexM m i => ProcessState v i -> String -> m Intermediate
 -- processPhraseM s q = forAllContextsM phraseNoCase (contexts s)
@@ -225,7 +225,7 @@ processPhrase s q = forAllContexts phraseNoCase (contexts s)
 processCasePhrase :: ProcessState v i -> Text -> Intermediate
 processCasePhrase s q = forAllContexts phraseCase (contexts s)
   where
-  phraseCase c = processPhraseInternal (Ix.lookup Ix.Case (index s) c) c q
+  phraseCase c = processPhraseInternal (Ix.lookup Case (index s) c) c q
 
 -- | Process a phrase query by searching for every word of the phrase and comparing their positions.
 processPhraseInternal :: (Text -> RawResult) -> Context -> Text -> Intermediate

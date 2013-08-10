@@ -4,9 +4,10 @@ where
 import           Data.Set                       (Set)
 import           Data.Text                      (Text)
 
-import           Holumbus.Index.Common          (Context, DocId, Occurrences,
-                                                 Position, RawResult, Word,
-                                                 singletonOccurrence)
+import           Holumbus.Index.Common          (Textual, Geo, Numerical
+                                                ,Context, RawResult, Word
+                                                ,DocId, Occurrences, Position
+                                                ,singletonOccurrence )       
 -- ----------------------------------------------------------------------------
 --
 -- external interface
@@ -96,10 +97,6 @@ deletePosition        :: Context -> Word -> DocId -> Position -> Index it Occurr
 deletePosition        = \c w d p -> delete c w (singletonOccurrence d p)
 
 -- ----------------------------------------------------------------------------
-
-data Textual            = Case | NoCase | PrefixCase | PrefixNoCase
-data Numerical          = Match | Range
-data Geo                = Position | Perimeter
 
 type TextIndex v i      = Index Textual v i
 type NumericIndex v i   = Index Numerical v i
