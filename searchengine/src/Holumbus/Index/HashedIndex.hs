@@ -36,7 +36,7 @@ import           Holumbus.Index.HashedDocuments ( Documents(..)
    concerning efficiency this implementation is about the same as the 2. one,
    space and time are minimally better, the reason could be less code working with classes
 
-import           Holumbus.Index.Inverted.PrefixMem
+import           Holumbus.Index.Text.Inverted.PrefixMem
 
 -- -}
 -- ------------------------------------------------------------
@@ -67,7 +67,7 @@ emptyInverted                   = PM.emptyInvertedCompressed
    in runtime and are not worth to be considered
 -}
 
-import qualified Holumbus.Index.Inverted.CompressedPrefixMem    as PM
+import qualified Holumbus.Index.Text.Inverted.CompressedPrefixMem    as PM
 
 type Inverted                   = PM.Inverted0
 

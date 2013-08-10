@@ -1,6 +1,6 @@
 {-# OPTIONS #-}
 
-module Holumbus.Index.Inverted.CompressedPrefixMem
+module Holumbus.Index.Text.Inverted.CompressedPrefixMem
     ( Inverted(..)
     , Parts
     , Part

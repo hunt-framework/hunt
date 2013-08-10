@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Holumbus.Index.Inverted.PrefixMem
+module Holumbus.Index.Text.Inverted.PrefixMem
   ( Inverted
   , newIndex, emptyIndex
   , fromList)

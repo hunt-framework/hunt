@@ -26,7 +26,7 @@ import           Holumbus.Index.Index
 
 import           Holumbus.DocTable.HashedCompactDocuments as HCD
 --import           Holumbus.Index.HashedDocuments        as HD
-import           Holumbus.Index.Inverted.PrefixMem
+import           Holumbus.Index.Text.Inverted.PrefixMem
 
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
