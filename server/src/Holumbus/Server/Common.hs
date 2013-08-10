@@ -8,7 +8,7 @@ import qualified Data.Map              as M
 import           Data.Text             (Text)
 
 import           Holumbus.Index.Common (Content, Context, Description, Position,
-                                        URI, Word)
+                                        URI)
 
 -- | Multiple ApiDocuments.
 type ApiDocuments = [ApiDocument]

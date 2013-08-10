@@ -4,10 +4,7 @@ where
 import           Data.Set                       (Set)
 import           Data.Text                      (Text)
 
-import           Holumbus.Index.Common          (Textual, Geo, Numerical
-                                                ,Context, RawResult, Word
-                                                ,DocId, Occurrences, Position
-                                                ,singletonOccurrence )       
+import           Holumbus.Index.Common          (Context, RawResult, Word, DocId)       
 -- ----------------------------------------------------------------------------
 --
 -- external interface
@@ -70,7 +67,7 @@ updateDocIds'         = \f i -> _updateDocIds i (const . const $ f)
 
 -- | Convert an Index to a list. Can be used for easy conversion between different index
 -- implementations
-toList                :: Index it v i -> [(Context, Word, Occurrences)]
+toList                :: Index it v i -> [(Context, Word, v)]
 toList                = _toList
 
 -- | The index implementation
@@ -84,24 +81,7 @@ impl                  = _impl
 fromList              :: Index it v i -> [(Context, Word, v)] -> Index it v i
 fromList e            = foldl (\i (c,w,o) -> insert c w o i) e
 
-
--- TODO: move
--- Functions specific to Indexes with Occurrences values
-
--- | Insert a position for a single document.
-insertPosition        :: Context -> Word -> DocId -> Position -> Index it Occurrences i -> Index it Occurrences i
-insertPosition        = \c w d p -> insert c w (singletonOccurrence d p)
-
--- | Delete a position for a single document.
-deletePosition        :: Context -> Word -> DocId -> Position -> Index it Occurrences i -> Index it Occurrences i
-deletePosition        = \c w d p -> delete c w (singletonOccurrence d p)
-
 -- ----------------------------------------------------------------------------
-
-type TextIndex v i      = Index Textual v i
-type NumericIndex v i   = Index Numerical v i
-type GeoIndex v i       = Index Geo v i
-
 data Index it v i = Ix
     {
     -- | Returns the number of unique words in the index.
@@ -147,7 +127,7 @@ data Index it v i = Ix
 
     -- | Convert an Index to a list. Can be used for easy conversion between different index
     -- implementations
-    , _toList                        :: [(Context, Word, Occurrences)]
+    , _toList                        :: [(Context, Word, v)]
 
     -- | The index implementation.
     , _impl                          :: i

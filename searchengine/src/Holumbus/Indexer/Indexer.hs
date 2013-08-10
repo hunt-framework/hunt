@@ -3,9 +3,8 @@ module Holumbus.Indexer.Indexer where
 import           Data.Set                     (Set)
 import qualified Data.Set                     as S
 import qualified Data.Map                     as M
-import           Data.Text                    (Text)
 
-import           Holumbus.Index.Common        (Context, URI, RawResult, Words, WordList
+import           Holumbus.Index.Common        ( URI, Words
                                               , Position, Occurrences, emptyOccurrences, insertOccurrence
                                               , DocId, Document(..), Description)
 

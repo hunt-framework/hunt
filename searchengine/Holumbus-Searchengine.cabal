@@ -65,7 +65,9 @@ library
     Holumbus.DocTable.HashedCompactDocuments
     Holumbus.DocTable.HashedDocuments
     Holumbus.Index.Index
+    Holumbus.Index.TextIndex
     Holumbus.Indexer.Indexer
+    Holumbus.Indexer.TextIndexer
     Holumbus.Index.Text.Inverted.PrefixMem
     Holumbus.Query.Fuzzy
     Holumbus.Query.Intermediate

@@ -27,7 +27,7 @@ import           Holumbus.Index.Common          (Context, DocId, Occurrences,
                                                  substractOccurrences, unionPos, Textual(..))
 import qualified Holumbus.Index.Common.DocIdMap as DM
 import           Holumbus.Index.Compression     as C
-import           Holumbus.Index.Index           hiding (fromList)
+import           Holumbus.Index.TextIndex           hiding (fromList)
 
 
 newtype Inverted        = Inverted { indexParts :: Parts }
@@ -40,7 +40,7 @@ type Parts              = Map Context Part
 type Part               = PT.PrefixTree CompressedOccurrences
 
 
-newIndex :: Inverted -> TextIndex Occurrences Inverted
+newIndex :: Inverted -> TextIndex Inverted
 newIndex i =
     Ix
     {
@@ -93,13 +93,13 @@ newIndex i =
 }
 
 
-emptyIndex                        :: TextIndex Occurrences Inverted
+emptyIndex                        :: TextIndex Inverted
 emptyIndex                        = newIndex (Inverted M.empty)
 
 -- XXX: fromList is not in the index data type
 -- Create an Index from a list. Can be used for easy conversion between different index
 -- implementations. Needs an empty index as first argument
-fromList              :: [(Context, Word, Occurrences)] -> TextIndex Occurrences Inverted
+fromList              :: [(Context, Word, Occurrences)] -> TextIndex Inverted
 fromList              = newIndex . fromList'
 --fromList e                    ,, foldl (\i (c,w,o) -> insertOccurrences c w o i) e
 

@@ -22,7 +22,7 @@ import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap        as DM
 
 import           Holumbus.DocTable.DocTable
-import           Holumbus.Index.Index
+import           Holumbus.Index.TextIndex
 
 import           Holumbus.DocTable.HashedCompactDocuments as HCD
 --import           Holumbus.Index.HashedDocuments        as HD
@@ -63,7 +63,7 @@ indexer = Indexer emptyIndex HCD.emptyDocTable
 queryConfig :: ProcessConfig
 queryConfig = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
-runQueryM :: Monad m => TextIndex v i -> DocTable d Document -> Query -> m Result
+runQueryM :: Monad m => TextIndex i -> DocTable d Document -> Query -> m Result
 runQueryM i d q = processQueryM queryConfig i d q
 
 -- Replacement for the scotty json function for pretty JSON encoding.
