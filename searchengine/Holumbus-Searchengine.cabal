@@ -87,4 +87,3 @@ library
               GeneralizedNewtypeDeriving
               TypeSynonymInstances
               OverloadedStrings
-              TypeFamilies
