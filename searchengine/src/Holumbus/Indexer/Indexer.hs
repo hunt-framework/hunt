@@ -1,15 +1,13 @@
-module Holumbus.Server.Indexer where
+module Holumbus.Indexer.Indexer where
 
 import           Data.Set                     (Set)
 import qualified Data.Set                     as S
 import qualified Data.Map                     as M
 import           Data.Text                    (Text)
 
-import           Holumbus.Index.Common        (Context, URI, RawResult
+import           Holumbus.Index.Common        (Context, URI, RawResult, Words, WordList
                                               , Position, Occurrences, emptyOccurrences, insertOccurrence
                                               , DocId, Document(..), Description)
-
-import           Holumbus.Server.Common
 
 import           Holumbus.Utility             (catMaybesSet)
 

@@ -10,12 +10,6 @@ import           Data.Text             (Text)
 import           Holumbus.Index.Common (Content, Context, Description, Position,
                                         URI, Word)
 
--- | Positions of Words for each context.
-type Words        = Map Context WordList
-
--- | Positions of words in the document.
-type WordList     = Map Word [Position]
-
 -- | Multiple ApiDocuments.
 type ApiDocuments = [ApiDocument]
 

@@ -13,7 +13,7 @@ import           Data.Char                              (isAlphaNum)
 import           Data.DList                             (DList)
 import qualified Data.DList                             as DL
 
-import           Holumbus.Index.Common                  (Document(..), Word, Position)
+import           Holumbus.Index.Common                  (Document(..), Word, Words, WordList, Position)
 
 import           Holumbus.Server.Common
 

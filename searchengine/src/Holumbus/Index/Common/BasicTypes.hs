@@ -22,6 +22,7 @@ where
 
 import           Data.Word      ( Word32 )
 import           Data.Text
+import           Data.Map
 
 -- ------------------------------------------------------------
 
@@ -43,5 +44,12 @@ type Context                    = Text
 
 -- | A single word.
 type Word                       = Text
+
+-- | Positions of Words for each context.
+type Words        = Map Context WordList
+
+-- | Positions of words in the document.
+type WordList     = Map Word [Position]
+
 
 -- ------------------------------------------------------------

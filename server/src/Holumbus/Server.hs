@@ -36,7 +36,7 @@ import           Holumbus.Query.Result
 
 import           Holumbus.Server.Analyzer
 import           Holumbus.Server.Common
-import           Holumbus.Server.Indexer               as Ix
+import           Holumbus.Indexer.Indexer               as Ix
 import qualified Holumbus.Server.Template              as Tmpl
 
 
