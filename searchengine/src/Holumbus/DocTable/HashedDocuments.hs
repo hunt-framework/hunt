@@ -134,10 +134,6 @@ newDocTable i =
     -- | Removes the document with the specified id from the table.
     , _removeById                    = newDocTable . removeById' i
 
-    -- | Removes the document with the specified URI from the table.
-    , _removeByURI                   = newDocTable . removeByURI' i
-    -- removeByURI ds u              = maybe ds (removeById ds) (lookupByURI ds u)
-
     -- | Deletes a set of Docs by Id from the table.
     , _deleteById                    = \ids -> newDocTable $ deleteById' ids i
 

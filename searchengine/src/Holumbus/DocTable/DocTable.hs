@@ -140,9 +140,6 @@ data DocTable i e = Dt
     -- | Removes the document with the specified id from the table.
     , _removeById                    :: DocId -> DocTable i e
 
-    -- | Removes the document with the specified URI from the table.
-    , _removeByURI                   :: URI -> DocTable i e
-
     -- | Deletes a set of Docs by Id from the table.
     , _deleteById                    :: Set DocId -> DocTable i e
 
@@ -196,9 +193,6 @@ newConvValueDocTable from to i =
     -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
 
     , _union                         = \dt2 -> cv $ union i (impl dt2)
-    -- unionDocs dt1                 = DM.fold addDoc dt1 . toMap
-    --    where
-    --    addDoc d dt               = snd . insertDoc dt $ d
 
     -- | Test whether the doc ids of both tables are disjoint.
     , _disjoint                      = \dt2 -> disjoint i (impl dt2)
@@ -213,10 +207,6 @@ newConvValueDocTable from to i =
 
     -- | Removes the document with the specified id from the table.
     , _removeById                    = cv . removeById i
-
-    -- | Removes the document with the specified URI from the table.
-    , _removeByURI                   = cv . removeByURI i
-    -- removeByURI ds u              = maybe ds (removeById ds) (lookupByURI ds u)
 
     -- | Deletes a set of Docs by Id from the table.
     , _deleteById                    = cv . flip deleteById i
