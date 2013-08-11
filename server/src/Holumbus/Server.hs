@@ -105,6 +105,7 @@ start = scotty 3000 $ do
 
 
   get "/" $ html Tmpl.index
+  get "/add" $ html Tmpl.addDocs
 
 
   -- text "should get simple text query as param"
