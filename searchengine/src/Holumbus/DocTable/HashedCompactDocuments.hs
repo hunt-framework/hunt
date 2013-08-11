@@ -144,10 +144,6 @@ newDocTable i =
 
     , _filterDocuments               = \f -> newDocTable $ filterDocuments' f i
 
-    -- XXX: impl.
-    -- | Create a document table from a single map.
-    --, _fromMap                       = undefined
-
     -- | Convert document table to a single map
     , _toMap                         = toMap' i
 

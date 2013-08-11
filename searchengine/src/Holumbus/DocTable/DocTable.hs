@@ -88,10 +88,6 @@ updateDocuments               = flip _updateDocuments
 filterDocuments               :: (e -> Bool) -> DocTable i e -> DocTable i e
 filterDocuments               = flip _filterDocuments
 
--- XXX: impl.
--- | Create a document table from a single map.
---fromMap                       :: DocIdMap Document -> DocTable i e
-
 -- | Convert document table to a single map
 toMap                         :: DocTable i e -> DocIdMap e
 toMap                         = _toMap
@@ -155,10 +151,6 @@ data DocTable i e = Dt
     , _updateDocuments               :: (e -> e) -> DocTable i e
 
     , _filterDocuments               :: (e -> Bool) -> DocTable i e
-
-    -- XXX: impl.
-    -- | Create a document table from a single map.
-    --, _fromMap                       :: DocIdMap Document -> DocTable i
 
     -- | Convert document table to a single map
     , _toMap                         :: DocIdMap e

@@ -267,9 +267,6 @@ toMap'
 
 -- default implementations
 
-removeByURI' :: Documents -> URI -> Documents
-removeByURI' ds u              = maybe ds (removeById' ds) (lookupByURI' ds u)
-
 editDocIds' :: (DocId -> DocId) -> Documents -> Documents
 editDocIds' f                  = fromMap' . DM.foldWithKey (DM.insert . f) DM.empty . toMap'
 
