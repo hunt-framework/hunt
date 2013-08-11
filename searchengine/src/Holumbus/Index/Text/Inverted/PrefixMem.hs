@@ -167,7 +167,7 @@ getPart c i                       = fromMaybe PT.empty (M.lookup c $ indexParts 
 -- ----------------------------------------------------------------------------
 
 sizeWords'                        :: Inverted -> Int
-sizeWords'                        = M.fold ((+) . PT.size) 0 . indexParts
+sizeWords'                        = M.foldr ((+) . PT.size) 0 . indexParts
 
 contexts'                         :: Inverted -> [Context]
 contexts'                         = map fst . M.toList . indexParts
@@ -236,7 +236,7 @@ updateDocIdsX f (Inverted parts)
                                   = Inverted (M.mapWithKey updatePart parts)
   where
   updatePart c                    = PT.mapWithKey
-                                    (\w o -> DM.foldWithKey (updateDocument c w) DM.empty o)
+                                    (\w o -> DM.foldrWithKey (updateDocument c w) DM.empty o)
   updateDocument c w d            = DM.insertWith mergePositions (f c (T.pack w) d)
     where
     mergePositions p1 p2          = deflatePos $ unionPos (inflatePos p1) (inflatePos p2)

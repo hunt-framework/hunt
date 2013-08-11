@@ -256,7 +256,7 @@ toMap'
 -- default implementations
 
 editDocIds' :: (DocId -> DocId) -> Documents -> Documents
-editDocIds' f                  = fromMap' . DM.foldWithKey (DM.insert . f) DM.empty . toMap'
+editDocIds' f                  = fromMap' . DM.foldrWithKey (DM.insert . f) DM.empty . toMap'
 
 -- ----------------------------------------------------------------------------
 

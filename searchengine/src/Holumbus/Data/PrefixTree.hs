@@ -44,7 +44,7 @@ module Holumbus.Data.PrefixTree
     , mapM
     , mapWithKeyM
     , mapMaybe
-    , fold
+    , foldr
     , foldWithKey
     , union
     , unionWith
@@ -73,7 +73,7 @@ module Holumbus.Data.PrefixTree
     )
 where
 
-import Prelude hiding ( succ, lookup, map, mapM, null )
+import Prelude hiding ( succ, lookup, map, mapM, null, foldr )
 
 import Holumbus.Data.PrefixTree.Core
 import Holumbus.Data.PrefixTree.FuzzySearch

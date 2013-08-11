@@ -42,8 +42,8 @@ module Holumbus.Index.Common.DocIdMap
     , filter
     , filterWithKey
     , mapWithKey
-    , fold
-    , foldWithKey
+    , foldr
+    , foldrWithKey
     , fromList
     , fromAscList
     , toList
@@ -53,13 +53,13 @@ module Holumbus.Index.Common.DocIdMap
 where
 
 import           Control.DeepSeq
-import           Prelude                     hiding (map, null, filter, lookup)
+import           Prelude                     hiding (map, null, filter, lookup, foldr)
 import qualified Prelude                     as P
 
 import           Data.Binary                 (Binary (..))
 import qualified Data.Binary                 as B
 import qualified Data.EnumMap                as IM
-import           Data.Foldable               hiding (toList, fold)
+import           Data.Foldable               hiding (toList, fold, foldr)
 
 import           Holumbus.Index.Common.DocId
 
@@ -150,11 +150,11 @@ filterWithKey p         = liftDIM $ IM.filterWithKey p
 mapWithKey              :: (DocId -> v -> r) -> DocIdMap v -> DocIdMap r
 mapWithKey f            = liftDIM $ IM.mapWithKey f
 
-fold                    :: (v -> b -> b) -> b -> DocIdMap v -> b
-fold f u                = IM.fold f u . unDIM
+foldr                   :: (v -> b -> b) -> b -> DocIdMap v -> b
+foldr f u               = IM.fold f u . unDIM -- XXX: replace with foldr?
 
-foldWithKey             :: (DocId -> v -> b -> b) -> b -> DocIdMap v -> b
-foldWithKey f u         = IM.foldWithKey f u . unDIM
+foldrWithKey            :: (DocId -> v -> b -> b) -> b -> DocIdMap v -> b
+foldrWithKey f u        = IM.foldWithKey f u . unDIM -- XXX: replace with foldrwithkey?
 
 fromList                :: [(DocId, v)] -> DocIdMap v
 fromList                = DIM . IM.fromList
@@ -205,8 +205,8 @@ instance Binary v => Binary (DocIdMap v) where
 {-# INLINE filter #-}
 {-# INLINE filterWithKey #-}
 {-# INLINE mapWithKey #-}
-{-# INLINE fold #-}
-{-# INLINE foldWithKey #-}
+{-# INLINE foldr #-}
+{-# INLINE foldrWithKey #-}
 {-# INLINE fromList #-}
 {-# INLINE toList #-}
 {-# INLINE keys #-}

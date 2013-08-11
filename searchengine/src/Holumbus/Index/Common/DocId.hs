@@ -31,7 +31,6 @@ import Data.Int                ( Int64 )
 
 -- | The unique identifier of a document
 -- (created upon insertion into the document table).
-
 newtype DocId                   = DocId { theDocId :: Int64 }
                                   deriving (Eq, Ord, Enum, NFData)
 

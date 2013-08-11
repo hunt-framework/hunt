@@ -53,26 +53,21 @@ import qualified Data.Text as T
 import           Data.Text.Encoding as TE
 
 -- | A set of string which have been "fuzzed" with an associated score.
-
 type FuzzySet = Map Text FuzzyScore
 
 -- | Some replacements which can be applied to a string to generate a 'FuzzySet'. The scores of
 -- the replacements will be normalized to a maximum of 1.0.
-
 type Replacements = [ Replacement ]
 
 -- | A single replacements, where the first will be replaced by the second and vice versa in
 -- the target string. The score indicates the amount of fuzzines that one single application
 -- of this replacement in just one direction will cause on the target string.
-
 type Replacement = ((Text,Text), FuzzyScore)
 
 -- | The score indicating an amount of fuzziness.
-
 type FuzzyScore = Float
 
 -- | The configuration of a fuzzy query.
-
 data FuzzyConfig
     = FuzzyConfig
       { applyReplacements  :: Bool         -- ^ Indicates whether the replacements should be applied.

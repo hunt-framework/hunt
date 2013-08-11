@@ -149,11 +149,11 @@ sizeWordHits            = M.size . wordHits
 
 -- | Query the maximum score of the documents.
 maxScoreDocHits         :: Result -> Score
-maxScoreDocHits         = DM.fold (\(di, _) r -> max (docScore di) r) 0.0 . docHits
+maxScoreDocHits         = DM.foldr (\(di, _) r -> max (docScore di) r) 0.0 . docHits
 
 -- | Query the maximum score of the words.
 maxScoreWordHits        :: Result -> Score
-maxScoreWordHits        = M.fold (\(wi, _) r -> max (wordScore wi) r) 0.0 . wordHits
+maxScoreWordHits        = M.foldr (\(wi, _) r -> max (wordScore wi) r) 0.0 . wordHits
 
 -- | Test if the result contains anything.
 null                    :: Result -> Bool

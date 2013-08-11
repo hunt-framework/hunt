@@ -128,7 +128,7 @@ start = scotty 3000 $ do
                             (Left err) -> return . JsonFailure . return $ err
                             (Right query) ->
                               runQueryM (ixIndex ix) (ixDocTable ix) query
-                              >>= return . JsonSuccess . map (\ (c, (_, o)) -> (c, M.fold (\m r -> r + DM.size m) 0 o)) . M.toList. wordHits
+                              >>= return . JsonSuccess . map (\ (c, (_, o)) -> (c, M.foldr (\m r -> r + DM.size m) 0 o)) . M.toList. wordHits
     json res
 
 

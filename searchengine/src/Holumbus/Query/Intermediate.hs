@@ -56,8 +56,8 @@ import           Holumbus.Query.Result          hiding (null)
 import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap as DM
 
-import           Holumbus.DocTable.DocTable        (DocTable)
-import qualified Holumbus.DocTable.DocTable        as Dt
+import           Holumbus.DocTable.DocTable     (DocTable)
+import qualified Holumbus.DocTable.DocTable     as Dt
 
 -- ----------------------------------------------------------------------------
 
@@ -70,42 +70,34 @@ type IntermediateWords          = Map Word (WordInfo, Positions)
 -- ----------------------------------------------------------------------------
 
 -- | Create an empty intermediate result.
-
 emptyIntermediate               :: Intermediate
 emptyIntermediate               = DM.empty
 
 -- | Check if the intermediate result is empty.
-
 null                            :: Intermediate -> Bool
 null                            = DM.null
 
 -- | Returns the number of documents in the intermediate result.
-
 sizeIntermediate                :: Intermediate -> Int
 sizeIntermediate                = DM.size
 
 -- | Merges a bunch of intermediate results into one intermediate result by unioning them.
-
 unions                          :: [Intermediate] -> Intermediate
 unions                          = L.foldl' union emptyIntermediate
 
 -- | Intersect two sets of intermediate results.
-
 intersection                    :: Intermediate -> Intermediate -> Intermediate
 intersection                    = DM.intersectionWith combineContexts
 
 -- | Union two sets of intermediate results.
-
 union                           :: Intermediate -> Intermediate -> Intermediate
 union                           = DM.unionWith combineContexts
 
 -- | Substract two sets of intermediate results.
-
 difference                      :: Intermediate -> Intermediate -> Intermediate
 difference                      = DM.difference
 
 -- | Create an intermediate result from a list of words and their occurrences.
-
 fromList :: Word -> Context -> RawResult -> Intermediate
 -- Beware! This is extremly optimized and will not work for merging arbitrary intermediate results!
 -- Based on resultByDocument from Holumbus.Index.Common
@@ -118,12 +110,10 @@ fromList t c os                 = DM.map transform $
   transform w                   = M.singleton c (M.fromList w)
 
 -- | Convert to a @Result@ by generating the 'WordHits' structure.
-
 toResult                        :: DocTable d Document -> Intermediate -> Result
 toResult d im                   = Result (createDocHits d im) (createWordHits im)
 
 -- | Create the doc hits structure from an intermediate result.
-
 createDocHits                   :: DocTable d Document -> Intermediate -> DocHits
 createDocHits d                 = DM.mapWithKey transformDocs
   where
@@ -131,9 +121,8 @@ createDocHits d                 = DM.mapWithKey transformDocs
                                   (DocInfo doc 0.0, M.map (M.map snd) ic)
 
 -- | Create the word hits structure from an intermediate result.
-
 createWordHits :: Intermediate -> WordHits
-createWordHits                  = DM.foldWithKey transformDoc M.empty
+createWordHits                  = DM.foldrWithKey transformDoc M.empty
   where
   transformDoc d ic wh          = M.foldrWithKey transformContext wh ic
     where
@@ -148,7 +137,6 @@ createWordHits                  = DM.foldWithKey transformDoc M.empty
                                            wh''
 
 -- | Combine two tuples with score and context hits.
-
 combineWordHits                 :: (WordInfo, WordContextHits) ->
                                    (WordInfo, WordContextHits) -> (WordInfo, WordContextHits)
 combineWordHits (i1, c1) (i2, c2)
@@ -157,7 +145,6 @@ combineWordHits (i1, c1) (i2, c2)
                                   )
 
 -- | Combine two tuples with score and context hits.
-
 combineContexts                 :: IntermediateContexts -> IntermediateContexts -> IntermediateContexts
 combineContexts                 = M.unionWith (M.unionWith merge)
   where
@@ -166,13 +153,11 @@ combineContexts                 = M.unionWith (M.unionWith merge)
                                   )
 
 -- | Combine two word informations.
-
 combineWordInfo         :: WordInfo -> WordInfo -> WordInfo
 combineWordInfo (WordInfo t1 s1) (WordInfo t2 s2)
                         = WordInfo (t1 ++ t2) (combineScore s1 s2)
 
 -- | Combine two scores (just average between them).
-
 combineScore            :: Score -> Score -> Score
 combineScore s1 s2      = (s1 + s2) / 2.0
 

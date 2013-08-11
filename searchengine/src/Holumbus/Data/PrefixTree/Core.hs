@@ -41,7 +41,8 @@
 module Holumbus.Data.PrefixTree.Core
 where
 
-import           Prelude        hiding ( succ, lookup, map, mapM, null )
+import           Prelude        hiding ( succ, lookup, map, mapM, null, foldr )
+import qualified Prelude        as P
 
 import           Control.Arrow
 import           Control.DeepSeq
@@ -220,7 +221,7 @@ null _                  = False
 -- | /O(1)/ Create a map with a single element.
 
 singleton               :: Key -> a -> PrefixTree a
-singleton k v           = foldr (\ c r -> branch c r empty) (val v empty) $ k -- siseq k (val v empty)
+singleton k v           = P.foldr (\ c r -> branch c r empty) (val v empty) $ k -- siseq k (val v empty)
 
 {-# INLINE singleton #-}
 
@@ -758,10 +759,10 @@ foldWithKey f e                 = fold' f e id
 
 -- | /O(n)/ Fold over all values in the map.
 
-fold :: (a -> b -> b) -> b -> PrefixTree a -> b
-fold f = foldWithKey $ const f
+foldr :: (a -> b -> b) -> b -> PrefixTree a -> b
+foldr f = foldWithKey $ const f
 
-{-# INLINE fold #-}
+{-# INLINE foldr #-}
 
 {- not yet used
 
@@ -803,11 +804,11 @@ fromList                        = L.foldl' (\p (k, v) -> insert k v p) empty
 
 -- | /O(n)/ The number of elements.
 size                            :: PrefixTree a -> Int
-size                            = fold (const (+1)) 0
+size                            = foldr (const (+1)) 0
 
 -- | /O(n)/ Returns all values.
 elems                           :: PrefixTree a -> [a]
-elems                           = fold (:) []
+elems                           = foldr (:) []
 
 -- | /O(n)/ Returns all values.
 keys                            :: PrefixTree a -> [Key]
@@ -865,7 +866,7 @@ instance Functor PrefixTree where
   fmap = map
 
 instance Data.Foldable.Foldable PrefixTree where
-  foldr = fold
+  foldr = foldr
 
 {- for debugging not yet enabled
 

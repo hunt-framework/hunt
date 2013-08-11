@@ -265,7 +265,7 @@ instance (B.Binary occ) => B.Binary (Inverted occ) where
 -- ----------------------------------------------------------------------------
 
 instance (B.Binary occ, ComprOccurrences occ) => HolIndex (Inverted occ) where
-  sizeWords                     = M.fold ((+) . PT.size) 0 . unInverted
+  sizeWords                     = M.foldr ((+) . PT.size) 0 . unInverted
   contexts                      = fmap fst . M.toList . unInverted
 
   allWords     i c              = fmap (T.pack *** toOccurrences) . PT.toList                                  . getPart c $ i
@@ -371,7 +371,7 @@ singletonInverted               :: (ComprOccurrences i) => Context -> Text -> Oc
 singletonInverted c w o         = Inverted . M.singleton c . PT.singleton (T.unpack w) . fromOccurrences $ o
 
 sizeofAttrsInverted             :: (Sizeof i) => Inverted i -> Int64
-sizeofAttrsInverted             = M.fold ((+) . sizeofPT) 0 . unInverted
+sizeofAttrsInverted             = M.foldr ((+) . sizeofPT) 0 . unInverted
                                   where
                                   sizeofPT = PT.fold ((+) . sizeof) 0
 

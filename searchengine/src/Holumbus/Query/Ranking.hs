@@ -68,7 +68,6 @@ type WordRanking        = Word -> WordInfo -> WordContextHits -> Score
 -- ----------------------------------------------------------------------------
 
 -- | Rank the result with custom ranking functions.
-
 rank                    :: RankConfig -> Result -> Result
 rank (RankConfig fd fw {-ld lw-}) r
                         = Result scoredDocHits scoredWordHits
@@ -79,32 +78,27 @@ rank (RankConfig fd fw {-ld lw-}) r
                           wordHits r
 
 -- | Rank documents by count.
-
 docRankByCount          :: DocId -> DocInfo -> DocContextHits -> Score
 docRankByCount _ _ h    = fromIntegral $
-                          M.fold (flip (M.fold (\h2 r2 -> sizePos h2 + r2))) 0 h
+                          M.foldr (flip (M.foldr (\h2 r2 -> sizePos h2 + r2))) 0 h
 
 -- | Rank words by count.
-
 wordRankByCount         :: Word -> WordInfo -> WordContextHits -> Score
-wordRankByCount _ _ h   = fromIntegral $ M.fold (flip (DM.fold ((+) . sizePos))) 0 h
+wordRankByCount _ _ h   = fromIntegral $ M.foldr (flip (DM.foldr ((+) . sizePos))) 0 h
 
 -- | Rank documents by context-weighted count. The weights will be normalized to a maximum of 1.0.
 -- Contexts with no weight (or a weight of zero) will be ignored.
-
 docRankWeightedByCount  :: [(Context, Score)] -> DocId -> DocInfo -> DocContextHits -> Score
 docRankWeightedByCount ws _ _
                         =  M.foldrWithKey (calcWeightedScore ws) 0.0
 
 -- | Rank words by context-weighted count. The weights will be normalized to a maximum of 1.0.
 -- Contexts with no weight (or a weight of zero) will be ignored.
-
 wordRankWeightedByCount :: [(Context, Score)] -> Word -> WordInfo -> WordContextHits -> Score
 wordRankWeightedByCount ws _ _
                         = M.foldrWithKey (calcWeightedScore ws) 0.0
 
 -- | Calculate the weighted score of occurrences of a word.
-
 calcWeightedScore       :: (Foldable f) =>
                            [(Context, Score)] -> Context -> f Positions -> Score -> Score
 calcWeightedScore ws c h r
@@ -118,7 +112,6 @@ calcWeightedScore ws c h r
 
 -- | Find the weight of a context in a list of weights. If the context was not found or it's
 -- weight is equal to zero, 'Nothing' will be returned.
-
 lookupWeight            :: Context -> [(Context, Score)] -> Maybe Score
 lookupWeight _ []       = Nothing
 lookupWeight c (x:xs)   = if fst x == c
