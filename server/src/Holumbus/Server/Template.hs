@@ -21,7 +21,7 @@ index =
   (renderHtml . defaultLayout $ [xshamlet|
 <form>
   <div .input-append >
-    <input .input-xxlarge type=text #txt-search >
+    <input .input-xxlarge type=text #txt-search>
     <button .btn .btn-primary type=button #btn-search>Search
 <hr>
 <div  #result>
@@ -40,39 +40,25 @@ index =
       }
     });
 
+    $("#txt-search").typeahead({
+      source: function(query, callback) {
+        $.get("/completion/" + query, function(data) {
+          var result = [];
+          if (data.code === 0)
+          {
+            $(data.msg).each(function(i,e) {
+              result.push(e[0]);
+            });
+          }
+          callback(result);
+        }) 
+      }
+    });
+
     /* search button handler */
     $("#btn-search").click(function(e){
       search(e);
     });
-
-    $("#txt-search").keypress(function(e){
-      completion(e);
-    });
-
-    var completion = function(ev){
-      var query = $("#txt-search").val();
-
-      if (query === "") {
-         return false;
-      }
-
-      $.get("/completion/" + query, function(data) {
-        if (data.code === 0)
-        {
-          var docs = data.msg;
-          var res = '<table class="table table-bordered">';
-          $(docs).each(function(i,e) {
-             res += "<tr><td>" + e.uri + "</td><td>";
-             var desc = e.desc
-             for (var key in desc){
-               res += "<p>" + key + ":" + desc[key] + "</p>";
-             }
-             res += "</td></tr>";
-          });
-          res += "</table>";
-        }
-      });
-    };
 
     var search = function(ev){
       ev.preventDefault();
