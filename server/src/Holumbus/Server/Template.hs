@@ -4,15 +4,11 @@ module Holumbus.Server.Template
 ) where
 --import qualified Data.Text      as T
 import qualified Data.Text.Lazy as LT
-import qualified Data.Map       as M
-import           Data.Aeson     (toJSON)
 
 import           Text.Hamlet
 import           Text.Julius
 import           Text.Blaze.Html.Renderer.Text    (renderHtml)
 import           Text.Blaze                       (Markup, ToMarkup)
-
-import           Holumbus.Server.Common
 
 -- | main page
 index :: LT.Text

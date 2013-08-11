@@ -3,32 +3,33 @@
 -- ------------------------------------------------------------
 
 module Holumbus.Index.HashedIndex
-    ( Document
-    , Documents
-    , SmallDocuments
-    , emptySmallDocuments
+  ( Document
+  , Documents
+  , SmallDocuments
+  , emptySmallDocuments
 
-    , Inverted
-    , emptyInverted
-    , removeDocIdsInverted
+  , Inverted
+  , emptyInverted
+  , removeDocIdsInverted
 
-    , CompactInverted
-    , emptyCompactInverted
-    , inverted2compactInverted
-    
-    , emptyDocuments
-    )
+  , CompactInverted
+  , emptyCompactInverted
+  , inverted2compactInverted
+  
+  , emptyDocuments
+  )
 where
 
-import           Holumbus.Index.Common          ( Document(..)
-                                                , Occurrences
-                                                , fromList
-                                                , toList
-                                                )
+import           Holumbus.Index.Common                            (Document (..),
+                                                                   Occurrences,
+                                                                   fromList,
+                                                                   toList)
 
-import           Holumbus.Index.HashedDocuments ( Documents(..)
-                                                , emptyDocuments
-                                                )
+import           Holumbus.Index.HashedDocuments                   (Documents (..), emptyDocuments)
+
+import qualified Holumbus.Index.Text.Inverted.CompressedPrefixMem as PM
+
+
 -- ------------------------------------------------------------
 
 {- .1: direct use of prefix tree with simple-9 encoded occurences
@@ -67,7 +68,6 @@ emptyInverted                   = PM.emptyInvertedCompressed
    in runtime and are not worth to be considered
 -}
 
-import qualified Holumbus.Index.Text.Inverted.CompressedPrefixMem    as PM
 
 type Inverted                   = PM.Inverted0
 
@@ -89,4 +89,3 @@ type SmallDocuments             = Documents
 
 emptySmallDocuments             :: SmallDocuments
 emptySmallDocuments             = emptyDocuments
-

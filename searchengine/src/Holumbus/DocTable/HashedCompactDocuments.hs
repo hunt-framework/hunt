@@ -97,10 +97,8 @@ newDocTable :: Documents -> DocTable Documents CompressedDoc
 newDocTable i =
     Dt
     {
+      -- | Test whether the doc table is empty.
       _null                          = nullDocs' i
-
-      -- XXX: default impl. - very inefficient...
-      -- nullDocs                      = (== 0) . sizeDocs
 
     -- | Returns the number of unique documents in the table.
     , _size                          = sizeDocs' i
@@ -114,29 +112,19 @@ newDocTable i =
     -- | Union of two disjoint document tables. It is assumed, that the DocIds and the document uris
     -- of both indexes are disjoint. If only the sets of uris are disjoint, the DocIds can be made
     -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
-
-    , _union                         = newDocTable . unionDocs' i . _impl -- XXX: use non-underscore fct
-    -- unionDocs dt1                 = DM.fold addDoc dt1 . toMap
-    --    where
-    --    addDoc d dt               = snd . insertDoc dt $ d
+    , _union                         = newDocTable . unionDocs' i . impl
 
     -- | Test whether the doc ids of both tables are disjoint.
-    , _disjoint                      = disjointDocs' i . _impl -- XXX: use non-underscore fct
-
-    -- | Return an empty document table.
-    -- , _makeEmpty                     = undefined
+    , _disjoint                      = disjointDocs' i . impl
 
     -- | Insert a document into the table. Returns a tuple of the id for that document and the
     -- new table. If a document with the same URI is already present, its id will be returned
     -- and the table is returned unchanged.
-
     , _insert                        = second newDocTable . insert' i
-
 
     -- | Update a document with a certain DocId.
     , _update                        = newDocTable .:: updateDoc' i
 
-    -- XXX: reverse order of arguments?
     -- | Removes the document with the specified id from the table.
     , _removeById                    = newDocTable . removeById' i
 
@@ -160,6 +148,7 @@ newDocTable i =
 
     , _filterDocuments               = \f -> newDocTable $ filterDocuments' f i
 
+    -- XXX: impl.
     -- | Create a document table from a single map.
     --, _fromMap                       = undefined
 
@@ -168,7 +157,6 @@ newDocTable i =
 
     -- | Edit document ids
     , _editDocIds                    = \f -> newDocTable $ editDocIds' f i
-    -- editDocIds f                  = fromMap . DM.foldWithKey (DM.insert . f) DM.empty . toMap
 
     -- | The doctable implementation.
     , _impl                          = i
@@ -230,12 +218,6 @@ unionDocs' dt1 dt2
     | otherwise
         = error
           "HashedDocuments.unionDocs: doctables are not disjoint"
-
-{-
-makeEmpty' :: Documents -> Documents
-makeEmpty'
-    = const emptyDocuments
--}
 
 insert' :: Documents -> CompressedDoc -> (DocId, Documents)
 insert' ds d

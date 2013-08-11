@@ -5,36 +5,27 @@ module Holumbus.Indexer.TextIndexer
   , allWords
   , updateDoc
   , insertDoc
+  , modify
   , modifyWithDescription
   )
 where
 
 import           Data.Text                    (Text)
-import           Data.Set                     (Set)
 import qualified Data.Set                     as S
 import qualified Data.Map                     as M
 
-
-import           Holumbus.Index.Common        ( URI, Words
-                                              , Position, Occurrences, emptyOccurrences, insertOccurrence
-                                              , DocId, Document(..), Description)
-
-import           Holumbus.Utility             (catMaybesSet)
-
 import           Holumbus.Index.Index         (Index)
 import qualified Holumbus.Index.Index         as Ix
-import           Holumbus.DocTable.DocTable   (DocTable)
 import qualified Holumbus.DocTable.DocTable   as Dt
-
-
 
 import           Holumbus.Index.Common
 import           Holumbus.Indexer.Indexer
-import qualified Holumbus.Index.Index as Ix
+
 
 type TextIndexer i d de = Indexer Textual Occurrences i d de
 
 -- index functions
+
 searchPrefixNoCase        :: Indexer Textual iv i d de -> Context -> Text -> RawResult
 searchPrefixNoCase (Indexer ix _dx) c w = Ix.lookup PrefixNoCase ix c w
 

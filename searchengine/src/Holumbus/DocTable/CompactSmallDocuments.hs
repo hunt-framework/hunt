@@ -180,18 +180,15 @@ notImpl                         = error "operation not implemented for SmallDocu
 -- ------------------------------------------------------------
 
 -- | Create an empty table.
-
 emptyDocuments                  :: SmallDocuments
 emptyDocuments                  = SmallDocuments emptyDocIdMap
 
 -- | Create a document table containing a single document.
-
 singleton                       :: Document -> SmallDocuments
 singleton d                     = SmallDocuments (singletonDocIdMap firstDocId (CD.fromDocument d))
 
 -- | Convert a Compact document table into a small compact document table.
 -- Called at the end of building an index
-
 docTable2smallDocTable          :: CD.Documents -> SmallDocuments
 docTable2smallDocTable          =  SmallDocuments . CD.idToDoc
 

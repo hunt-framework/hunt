@@ -281,12 +281,10 @@ instance                        NFData CompressedDoc
 -- ------------------------------------------------------------
 
 -- | Create an empty table.
-
 emptyDocuments                  :: Documents
 emptyDocuments                  = Documents emptyDocIdMap M.empty nullDocId
 
 -- | Create a document table containing a single document.
-
 singleton                       :: Document -> Documents
 singleton d                     = rnf d' `seq`
                                   Documents
@@ -296,27 +294,13 @@ singleton d                     = rnf d' `seq`
     where
       d'                        = fromDocument d
 
--- TODO: can be deleted!?
--- | Simplify a document table by transforming the custom information into a string.
-{-
-simplify                        :: (Binary a, Show a) => Documents a -> Documents String
-simplify dt                     = Documents (simple (idToDoc dt)) (docToId dt) (lastDocId dt)
-  where
-  simple i2d                    = mapDocIdMap
-                                  ( fromDocument
-                                    . (\d -> Document (uri d) (maybe Nothing (Just . show)))
-                                    . toDocument
-                                  ) i2d
--}
 -- | Construct the inverse map from the original map.
-
 idToDoc2docToId                 :: DocMap -> URIMap
 idToDoc2docToId                 = foldWithKeyDocIdMap
                                   (\i d r -> M.insert (T.unpack . uri . toDocument $ d) i r)
                                   M.empty
 
 -- | Query the 'idToDoc' part of the document table for the last id.
-
 lastId                          :: DocMap -> DocId
 lastId                          = maxKeyDocIdMap
 

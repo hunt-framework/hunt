@@ -17,6 +17,7 @@ import qualified Holumbus.Index.Common.DocIdMap   as DM
 --
 -- external interface
 
+-- | Test whether the doc table is empty.
 null                          :: DocTable i e -> Bool
 null                          = _null
 
@@ -35,21 +36,12 @@ lookupByURI                   = _lookupByURI
 -- | Union of two disjoint document tables. It is assumed, that the DocIds and the document uris
 -- of both indexes are disjoint. If only the sets of uris are disjoint, the DocIds can be made
 -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
-
--- XXX: field or def. impl?
 union                         :: DocTable i e -> DocTable i e -> DocTable i e
 union                         = _union
---unionDocs dt1                 = DM.fold addDoc dt1 . toMap
---   where
---   addDoc d dt                = snd . insertDoc dt $ d
 
 -- | Test whether the doc ids of both tables are disjoint.
 disjoint                      :: DocTable i e -> DocTable i e -> Bool
 disjoint                      = _disjoint
-
--- | Return an empty document table.
--- makeEmpty                     :: DocTable i e -> DocTable i e
--- makeEmpty                     = _makeEmpty
 
 -- | Insert a document into the table. Returns a tuple of the id for that document and the
 -- new table. If a document with the same URI is already present, its id will be returned
@@ -69,16 +61,13 @@ modify f did d                = maybe d (update d did . f) $lookupById d did
 modifyByURI                   :: (e -> e) -> DocTable i e -> URI -> DocTable i e
 modifyByURI f d uri           = maybe d (flip (modify f) d) $ lookupByURI d uri
 
--- XXX: reverse order of arguments?
 -- | Removes the document with the specified id from the table.
 removeById                    :: DocTable i e -> DocId -> DocTable i e
 removeById                    = _removeById
 
--- XXX: field or def. impl?
 -- | Removes the document with the specified URI from the table.
 removeByURI                   :: DocTable i e -> URI -> DocTable i e
 removeByURI ds u              = maybe ds (removeById ds) (lookupByURI ds u)
---removeByURI                   = _removeByURI
 
 -- | Deletes a set of Docs by Id from the table.
 deleteById                    :: Set DocId -> DocTable i e -> DocTable i e
@@ -99,6 +88,7 @@ updateDocuments               = flip _updateDocuments
 filterDocuments               :: (e -> Bool) -> DocTable i e -> DocTable i e
 filterDocuments               = flip _filterDocuments
 
+-- XXX: impl.
 -- | Create a document table from a single map.
 --fromMap                       :: DocIdMap Document -> DocTable i e
 
@@ -119,8 +109,8 @@ impl                          = _impl
 
 data DocTable i e = Dt
     {
-        _null                        :: Bool
-      -- nullDocs                      = (== 0) . sizeDocs
+    -- | Test whether the doc table is empty.
+      _null                        :: Bool
 
     -- | Returns the number of unique documents in the table.
     , _size                          :: Int
@@ -134,34 +124,24 @@ data DocTable i e = Dt
     -- | Union of two disjoint document tables. It is assumed, that the DocIds and the document uris
     -- of both indexes are disjoint. If only the sets of uris are disjoint, the DocIds can be made
     -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
-
     , _union                         :: DocTable i e -> DocTable i e
-    -- unionDocs dt1                 = DM.fold addDoc dt1 . toMap
-    --    where
-    --    addDoc d dt               = snd . insertDoc dt $ d
 
     -- | Test whether the doc ids of both tables are disjoint.
     , _disjoint                      :: DocTable i e -> Bool
 
-    -- | Return an empty document table.
-    -- , _makeEmpty                     :: DocTable i
-
     -- | Insert a document into the table. Returns a tuple of the id for that document and the
     -- new table. If a document with the same URI is already present, its id will be returned
     -- and the table is returned unchanged.
-
     , _insert                        :: e -> (DocId, DocTable i e)
 
     -- | Update a document with a certain DocId.
     , _update                        :: DocId -> e -> DocTable i e
 
-    -- XXX: reverse order of arguments?
     -- | Removes the document with the specified id from the table.
     , _removeById                    :: DocId -> DocTable i e
 
     -- | Removes the document with the specified URI from the table.
     , _removeByURI                   :: URI -> DocTable i e
-    -- removeByURI ds u              = maybe ds (removeById ds) (lookupByURI ds u)
 
     -- | Deletes a set of Docs by Id from the table.
     , _deleteById                    :: Set DocId -> DocTable i e
@@ -179,6 +159,7 @@ data DocTable i e = Dt
 
     , _filterDocuments               :: (e -> Bool) -> DocTable i e
 
+    -- XXX: impl.
     -- | Create a document table from a single map.
     --, _fromMap                       :: DocIdMap Document -> DocTable i
 
@@ -198,6 +179,7 @@ newConvValueDocTable :: (a -> v) -> (v -> a) -> DocTable i a -> DocTable (DocTab
 newConvValueDocTable from to i =
     Dt
     {
+    -- | Test whether the doc table is empty.
       _null                          = null i
 
     -- | Returns the number of unique documents in the table.
@@ -221,19 +203,14 @@ newConvValueDocTable from to i =
     -- | Test whether the doc ids of both tables are disjoint.
     , _disjoint                      = \dt2 -> disjoint i (impl dt2)
 
-    -- | Return an empty document table.
-    -- , _makeEmpty                     = undefined
-
     -- | Insert a document into the table. Returns a tuple of the id for that document and the
     -- new table. If a document with the same URI is already present, its id will be returned
     -- and the table is returned unchanged.
-
     , _insert                        = \e -> second cv $ insert i (to e)
 
     -- | Update a document with a certain DocId.
     , _update                        = \did e -> cv $ update i did (to e)
 
-    -- XXX: reverse order of arguments?
     -- | Removes the document with the specified id from the table.
     , _removeById                    = cv . removeById i
 
@@ -265,7 +242,6 @@ newConvValueDocTable from to i =
 
     -- | Edit document ids
     , _editDocIds                    = \f -> cv $ editDocIds f i
-    -- editDocIds f                  = fromMap . DM.foldWithKey (DM.insert . f) DM.empty . toMap
 
     -- | The doctable implementation.
     , _impl                          = i

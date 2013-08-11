@@ -27,7 +27,7 @@ import           Holumbus.Index.Common          (Context, DocId, Occurrences,
                                                  substractOccurrences, unionPos, Textual(..))
 import qualified Holumbus.Index.Common.DocIdMap as DM
 import           Holumbus.Index.Compression     as C
-import           Holumbus.Index.TextIndex           hiding (fromList)
+import           Holumbus.Index.TextIndex       hiding (fromList)
 
 
 newtype Inverted        = Inverted { indexParts :: Parts }
@@ -286,5 +286,3 @@ lookup' i t c w = case t of
          Case         -> lookupCase' i c w
     -- | Searches for and exact word in a given context (case-insensitive).
          NoCase       -> lookupNoCase' i c w
-
-

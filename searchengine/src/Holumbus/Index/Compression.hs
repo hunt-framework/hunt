@@ -54,34 +54,28 @@ type CompressedPositions        = DiffList
 -- ----------------------------------------------------------------------------
 
 -- | Decompressing the occurrences by just decompressing all contained positions.
-
 inflateOcc :: CompressedOccurrences -> Occurrences
 inflateOcc = DM.map inflatePos
 
 -- | Compress the occurrences by just compressing all contained positions.
-
 deflateOcc :: Occurrences -> CompressedOccurrences
 deflateOcc = DM.map deflatePos
 
 -- XXX: Maybe unnecessary due to lazy evaluation
 -- | Delete without deflating and inflating.
-
 delete :: DocId -> CompressedOccurrences -> CompressedOccurrences
 delete = DM.delete
 
 
 -- | Difference without deflating and inflating.
-
 differenceWithKeySet :: Set DocId -> CompressedOccurrences -> CompressedOccurrences
 differenceWithKeySet = flip $ S.foldr delete
 
 -- | Convert the compressed differences back to a set of integers.
-
 inflatePos :: CompressedPositions -> Positions
 inflatePos = toPositions
 
 -- | Save some memory on the positions by just saving their differences and compressing these.
-
 deflatePos :: Positions -> CompressedPositions
 deflatePos = fromPositions
 
