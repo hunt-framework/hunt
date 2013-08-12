@@ -2,7 +2,7 @@
 module Holumbus.DocTable.DocTable
 where
 
-import           Prelude                          hiding (null, filter, map)
+import           Prelude                          hiding (null, filter, map, lookup)
 import           Control.Arrow                    (second)
 
 import           Data.Set                         (Set)
@@ -28,8 +28,8 @@ size                          :: DocTable i e -> Int
 size                          = _size
 
 -- | Lookup a document by its id.
-lookupById                    :: (Monad m, Functor m) => DocTable i e -> DocId -> m e
-lookupById                    = _lookupById
+lookup                        :: (Monad m, Functor m) => DocTable i e -> DocId -> m e
+lookup                        = _lookup
 
 -- | Lookup the id of a document by an URI.
 lookupByURI                   :: (Monad m, Functor m) => DocTable i e -> URI -> m DocId
@@ -57,27 +57,27 @@ update                        = _update
 
 -- | Update a document by 'DocId' with the result of the provided function.
 adjust                        :: (e -> e) -> DocId -> DocTable i e -> DocTable i e
-adjust f did d                = maybe d (update d did . f) $lookupById d did
+adjust f did d                = maybe d (update d did . f) $lookup d did
 
 -- | Update a document by 'URI' with the result of the provided function.
 adjustByURI                   :: (e -> e) ->  URI -> DocTable i e -> DocTable i e
 adjustByURI f uri d           = maybe d (flip (adjust f) d) $ lookupByURI d uri
 
 -- | Removes the document with the specified id from the table.
-deleteById                    :: DocTable i e -> DocId -> DocTable i e
-deleteById                    = _deleteById
+delete                        :: DocTable i e -> DocId -> DocTable i e
+delete                        = _delete
 
 -- | Removes the document with the specified URI from the table.
 deleteByURI                   :: DocTable i e -> URI -> DocTable i e
-deleteByURI ds u              = maybe ds (deleteById ds) (lookupByURI ds u)
+deleteByURI ds u              = maybe ds (delete ds) (lookupByURI ds u)
 
 -- | Deletes a set of Docs by Id from the table.
-differenceById                :: Set DocId -> DocTable i e -> DocTable i e
-differenceById                = flip _differenceById
+difference                    :: Set DocId -> DocTable i e -> DocTable i e
+difference                    = flip _difference
 
 -- | Deletes a set of Docs by URI from the table.
 differenceByURI               :: Set URI -> DocTable i e -> DocTable i e
-differenceByURI uris d        = differenceById ids d
+differenceByURI uris d        = difference ids d
     where
     ids = S.map (fromJust) . S.filter (isJust) .  S.map (lookupByURI d) $ uris
 
@@ -112,7 +112,7 @@ data DocTable i e = Dt
     , _size                          :: Int
 
     -- | Lookup a document by its id.
-    , _lookupById                    :: (Monad m, Functor m) => DocId -> m e
+    , _lookup                    :: (Monad m, Functor m) => DocId -> m e
 
     -- | Lookup the id of a document by an URI.
     , _lookupByURI                   :: (Monad m, Functor m) => URI -> m DocId
@@ -134,10 +134,10 @@ data DocTable i e = Dt
     , _update                        :: DocId -> e -> DocTable i e
 
     -- | Removes the document with the specified id from the table.
-    , _deleteById                    :: DocId -> DocTable i e
+    , _delete                        :: DocId -> DocTable i e
 
     -- | Deletes a set of Docs by Id from the table.
-    , _differenceById                :: Set DocId -> DocTable i e
+    , _difference                    :: Set DocId -> DocTable i e
 
     -- | Update documents (through mapping over all documents).
     , _map                           :: (e -> e) -> DocTable i e
@@ -162,14 +162,14 @@ newConvValueDocTable from to i =
     {
       _null                          = null i
     , _size                          = size i
-    , _lookupById                    = fmap from . lookupById i
+    , _lookup                        = fmap from . lookup i
     , _lookupByURI                   = lookupByURI i
     , _union                         = \dt2 -> cv $ union i (impl dt2)
     , _disjoint                      = \dt2 -> disjoint i (impl dt2)
     , _insert                        = \e -> second cv $ insert i (to e)
     , _update                        = \did e -> cv $ update i did (to e)
-    , _deleteById                    = cv . deleteById i
-    , _differenceById                = cv . flip differenceById i
+    , _delete                        = cv . delete i
+    , _difference                    = cv . flip difference i
     , _map                           = \f -> cv $ map (to . f . from) i
     , _filter                        = \f -> cv $ filter (f . from) i
     , _toMap                         = DM.map from (toMap i)

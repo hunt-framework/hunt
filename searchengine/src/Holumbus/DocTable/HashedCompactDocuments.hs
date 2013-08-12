@@ -104,7 +104,7 @@ newDocTable i =
     , _size                          = sizeDocs' i
 
     -- | Lookup a document by its id.
-    , _lookupById                    = lookupById' i
+    , _lookup                        = lookupById' i
 
     -- | Lookup the id of a document by an URI.
     , _lookupByURI                   = lookupByURI' i
@@ -126,10 +126,10 @@ newDocTable i =
     , _update                        = newDocTable .:: updateDoc' i
 
     -- | Removes the document with the specified id from the table.
-    , _deleteById                    = newDocTable . deleteById' i
+    , _delete                        = newDocTable . deleteById' i
 
     -- | Deletes a set of Docs by Id from the table.
-    , _differenceById                = \ids -> newDocTable $ differenceById' ids i
+    , _difference                    = \ids -> newDocTable $ differenceById' ids i
 
     {-
     -- | Deletes a set of Docs by Uri from the table. Uris that are not in the docTable are ignored.

@@ -48,7 +48,7 @@ modify f wrds dId ix
   = ix { ixIndex    = newIndex
        , ixDocTable = newDocTable }
   where
-  newDocTable = Dt.modify f dId   $ ixDocTable ix
+  newDocTable = Dt.adjust f dId   $ ixDocTable ix
   newIndex    = addWords wrds dId $ ixIndex ix
 
 modifyWithDescription     :: Description -> Words -> DocId -> Indexer it Occurrences i d Document -> Indexer it Occurrences i d Document
@@ -56,8 +56,8 @@ modifyWithDescription descr wrds dId ix
   = ix { ixIndex    = newIndex
        , ixDocTable = newDocTable }
   where
-  newDocTable = Dt.modify mergeDescr dId   $ ixDocTable ix
-  newIndex    = addWords wrds dId $ ixIndex ix
+  newDocTable    = Dt.adjust mergeDescr dId $ ixDocTable ix
+  newIndex       = addWords wrds dId $ ixIndex ix
   mergeDescr doc = doc{ desc = M.union (desc doc) descr }
 
 -- Helper functions

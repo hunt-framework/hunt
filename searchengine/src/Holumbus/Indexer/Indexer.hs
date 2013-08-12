@@ -21,7 +21,7 @@ data Indexer it iv i d de
 
 -- | Find a document by 'DocId'.
 lookupById                :: (Monad m, Functor m) => Indexer it iv i d de -> DocId -> m de
-lookupById                = Dt.lookupById . ixDocTable
+lookupById                = Dt.lookup . ixDocTable
 
 -- | Find a document by 'URI'.
 lookupByURI               :: (Monad m, Functor m) => Indexer it iv i d de -> URI -> m DocId
@@ -32,7 +32,7 @@ deleteDocsById            :: Set DocId -> Indexer it iv i d de -> Indexer it iv 
 deleteDocsById docIds ix  = Indexer { ixIndex  = newIndex
                                     , ixDocTable = newDocTable }
   where
-    newDocTable = Dt.differenceById docIds (ixDocTable ix)
+    newDocTable = Dt.difference docIds (ixDocTable ix)
     newIndex    = Ix.deleteDocsById docIds (ixIndex    ix)
 
 -- | Delete a set if documents by 'URI'.

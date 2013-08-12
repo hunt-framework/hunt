@@ -117,7 +117,7 @@ toResult d im                   = Result (createDocHits d im) (createWordHits im
 createDocHits                   :: DocTable d Document -> Intermediate -> DocHits
 createDocHits d                 = DM.mapWithKey transformDocs
   where
-  transformDocs did ic          = let doc = fromMaybe (Document "" M.empty) (Dt.lookupById d did) in
+  transformDocs did ic          = let doc = fromMaybe (Document "" M.empty) (Dt.lookup d did) in
                                   (DocInfo doc 0.0, M.map (M.map snd) ic)
 
 -- | Create the word hits structure from an intermediate result.
