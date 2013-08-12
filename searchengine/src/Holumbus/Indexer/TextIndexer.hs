@@ -34,7 +34,7 @@ allWords                  :: Indexer Textual iv i d de -> Context -> RawResult
 allWords                  = Ix.allWords . ixIndex
 
 updateDoc                 :: DocId -> de -> Words -> Indexer it Occurrences i d de -> Indexer it Occurrences i d de
-updateDoc docId doc w     = insertDoc doc w . deleteDocsById (S.singleton docId)
+updateDoc docId doc w     = insertDoc doc w . deleteDocs (S.singleton docId)
 
 insertDoc                 :: de -> Words -> Indexer it Occurrences i d de -> Indexer it Occurrences i d de
 insertDoc doc wrds ix     = ix { ixIndex    = newIndex
