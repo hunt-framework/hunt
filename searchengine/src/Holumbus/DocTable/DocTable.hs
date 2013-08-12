@@ -55,13 +55,13 @@ insert                        = _insert
 update                        :: DocTable i e -> DocId -> e -> DocTable i e
 update                        = _update
 
--- | Modify a document.
-modify                        :: (e -> e) -> DocId -> DocTable i e -> DocTable i e
-modify f did d                = maybe d (update d did . f) $lookupById d did
+-- | Update a document by 'DocId' with the result of the provided function.
+adjust                        :: (e -> e) -> DocId -> DocTable i e -> DocTable i e
+adjust f did d                = maybe d (update d did . f) $lookupById d did
 
--- | Modify a document by URI.
-modifyByURI                   :: (e -> e) -> DocTable i e -> URI -> DocTable i e
-modifyByURI f d uri           = maybe d (flip (modify f) d) $ lookupByURI d uri
+-- | Update a document by 'URI' with the result of the provided function.
+adjustByURI                   :: (e -> e) ->  URI -> DocTable i e -> DocTable i e
+adjustByURI f uri d           = maybe d (flip (adjust f) d) $ lookupByURI d uri
 
 -- | Removes the document with the specified id from the table.
 deleteById                    :: DocTable i e -> DocId -> DocTable i e
