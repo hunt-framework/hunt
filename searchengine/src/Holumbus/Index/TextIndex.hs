@@ -7,7 +7,7 @@ where
 
 import           Holumbus.Index.Common             (Context, DocId, Occurrences,
                                                     Position, Textual, Word)
-import           Holumbus.Index.Common.Occurences  (singleton)
+import           Holumbus.Index.Common.Occurrences (singleton)
 import           Holumbus.Index.Index
 
 type TextIndex i      = Index Textual Occurrences i

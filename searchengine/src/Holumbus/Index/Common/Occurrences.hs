@@ -17,7 +17,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.Occurences
+module Holumbus.Index.Common.Occurrences
 where
 
 import           Control.DeepSeq

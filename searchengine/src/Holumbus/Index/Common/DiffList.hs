@@ -36,17 +36,17 @@ module Holumbus.Index.Common.DiffList
 where
 
 import Data.List
-import Data.Word                        ( Word32
-                                        , Word64
-                                        )
+import Data.Word                         ( Word32
+                                         , Word64
+                                         )
 
 import Holumbus.Data.Crunch
 
-import Holumbus.Index.Common.BasicTypes ( Position )
-import Holumbus.Index.Common.Occurences ( Positions
-                                        , fromListPos
-                                        , toAscListPos
-                                        )
+import Holumbus.Index.Common.BasicTypes  ( Position )
+import Holumbus.Index.Common.Occurrences ( Positions
+                                         , fromListPos
+                                         , toAscListPos
+                                         )
 
 -- ----------------------------------------------------------------------------
 

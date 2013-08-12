@@ -37,14 +37,14 @@ module Holumbus.Index.Compression
   )
 where
 
-import           Data.Set                         (Set)
-import qualified Data.Set                         as S
+import           Data.Set                          (Set)
+import qualified Data.Set                          as S
 
 import           Holumbus.Index.Common.DiffList
-import           Holumbus.Index.Common.DocId      (DocId)
-import           Holumbus.Index.Common.DocIdMap   (DocIdMap)
-import qualified Holumbus.Index.Common.DocIdMap   as DM
-import           Holumbus.Index.Common.Occurences hiding (delete)
+import           Holumbus.Index.Common.DocId       (DocId)
+import           Holumbus.Index.Common.DocIdMap    (DocIdMap)
+import qualified Holumbus.Index.Common.DocIdMap    as DM
+import           Holumbus.Index.Common.Occurrences hiding (delete)
 
 -- ----------------------------------------------------------------------------
 

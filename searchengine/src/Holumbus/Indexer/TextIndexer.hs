@@ -10,16 +10,16 @@ module Holumbus.Indexer.TextIndexer
   )
 where
 
-import qualified Data.Map                         as M
-import qualified Data.Set                         as S
-import           Data.Text                        (Text)
+import qualified Data.Map                          as M
+import qualified Data.Set                          as S
+import           Data.Text                         (Text)
 
-import qualified Holumbus.DocTable.DocTable       as Dt
-import           Holumbus.Index.Index             (Index)
-import qualified Holumbus.Index.Index             as Ix
+import qualified Holumbus.DocTable.DocTable        as Dt
+import           Holumbus.Index.Index              (Index)
+import qualified Holumbus.Index.Index              as Ix
 
 import           Holumbus.Index.Common
-import           Holumbus.Index.Common.Occurences as Occ
+import           Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Indexer.Indexer
 
 

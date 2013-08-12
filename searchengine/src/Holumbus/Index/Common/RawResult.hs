@@ -20,13 +20,13 @@
 module Holumbus.Index.Common.RawResult
 where
 
-import           Data.Map                         (Map)
-import qualified Data.Map                         as M
+import           Data.Map                          (Map)
+import qualified Data.Map                          as M
 
 import           Holumbus.Index.Common.BasicTypes
-import           Holumbus.Index.Common.DocIdMap   (DocIdMap)
-import qualified Holumbus.Index.Common.DocIdMap   as DM
-import           Holumbus.Index.Common.Occurences
+import           Holumbus.Index.Common.DocIdMap    (DocIdMap)
+import qualified Holumbus.Index.Common.DocIdMap    as DM
+import           Holumbus.Index.Common.Occurrences
 
 -- ------------------------------------------------------------
 
