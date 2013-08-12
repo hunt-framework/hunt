@@ -3,29 +3,29 @@
 module Holumbus.Server {-(start)-} where
 
 import           Control.Concurrent.MVar
-import           Control.Monad.IO.Class                (MonadIO, liftIO)
+import           Control.Monad.IO.Class                   (MonadIO, liftIO)
 import           Network.Wai.Middleware.RequestLogger
 import           Web.Scotty
 
-import qualified Data.Map                              as M
-import           Data.Maybe                            (fromJust, isJust,
-                                                        isNothing)
-import qualified Data.Set                              as S
-import           Data.Text                             (Text)
+import qualified Data.Map                                 as M
+import           Data.Maybe                               (fromJust, isJust,
+                                                           isNothing)
+import qualified Data.Set                                 as S
+import           Data.Text                                (Text)
 {-
-import qualified Data.Aeson               as A
-import           Data.Aeson.Encode.Pretty (encodePretty)
+import qualified Data.Aeson                               as A
+import           Data.Aeson.Encode.Pretty                 (encodePretty)
 -}
-import           Holumbus.Utility                      ((.::))
+import           Holumbus.Utility                         ((.::))
 
 import           Holumbus.Index.Common
-import qualified Holumbus.Index.Common.DocIdMap        as DM
+import qualified Holumbus.Index.Common.DocIdMap           as DM
 
-import           Holumbus.DocTable.DocTable
+import           Holumbus.DocTable.DocTable               hiding (filter)
 import           Holumbus.Index.TextIndex
 
 import           Holumbus.DocTable.HashedCompactDocuments as HCD
---import           Holumbus.Index.HashedDocuments        as HD
+--import           Holumbus.DocTable.HashedDocuments        as HD
 import           Holumbus.Index.Text.Inverted.PrefixMem
 
 import           Holumbus.Query.Fuzzy
@@ -34,10 +34,11 @@ import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result
 
+import           Holumbus.Indexer.TextIndexer             as Ix
 import           Holumbus.Server.Analyzer
 import           Holumbus.Server.Common
-import           Holumbus.Indexer.TextIndexer               as Ix
-import qualified Holumbus.Server.Template              as Tmpl
+import qualified Holumbus.Server.Template                 as Tmpl
+
 
 
 

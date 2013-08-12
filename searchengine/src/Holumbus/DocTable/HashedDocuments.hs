@@ -148,7 +148,7 @@ newDocTable i =
     -- | Update documents (through mapping over all documents).
     , _updateDocuments               = \f -> newDocTable $ updateDocuments' f i
 
-    , _filterDocuments               = \f -> newDocTable $ filterDocuments' f i
+    , _filter                        = \f -> newDocTable $ filterDocuments' f i
 
     -- | Create a document table from a single map.
     --, _fromMap                       = undefined
