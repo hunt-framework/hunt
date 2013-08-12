@@ -70,21 +70,14 @@ deleteByURI                   :: DocTable i e -> URI -> DocTable i e
 deleteByURI ds u              = maybe ds (deleteById ds) (lookupByURI ds u)
 
 -- | Deletes a set of Docs by Id from the table.
-differenceById               :: Set DocId -> DocTable i e -> DocTable i e
-differenceById               = flip _differenceById
-
-{-
--- | Deletes a set of Docs by Uri from the table. Uris that are not in the docTable are ignored.
-deleteByUri                   :: Set URI -> d -> d
-deleteByUri us ds             = deleteById idSet ds
-  where
-  idSet = catMaybesSet . S.map (lookupByURI ds) $ us
--}
+differenceById                :: Set DocId -> DocTable i e -> DocTable i e
+differenceById                = flip _differenceById
 
 -- | Update documents (through mapping over all documents).
 map                           :: (e -> e) -> DocTable i e -> DocTable i e
 map                           = flip _map
 
+-- | Filters all documents that satisfy the predicate.
 filter                        :: (e -> Bool) -> DocTable i e -> DocTable i e
 filter                        = flip _filter
 
@@ -94,7 +87,6 @@ toMap                         = _toMap
 
 -- | Edit document ids
 editDocIds                    :: (DocId -> DocId) -> DocTable i e -> DocTable i e
--- editDocIds f                  = fromMap . DM.foldWithKey (DM.insert . f) DM.empty . toMap
 editDocIds                    = flip _editDocIds
 
 -- | The doctable implementation.
@@ -139,17 +131,10 @@ data DocTable i e = Dt
     -- | Deletes a set of Docs by Id from the table.
     , _differenceById                :: Set DocId -> DocTable i e
 
-    {-
-    -- | Deletes a set of Docs by Uri from the table. Uris that are not in the docTable are ignored.
-    deleteByUri                   :: Set URI -> d -> d
-    deleteByUri us ds             = deleteById idSet ds
-      where
-      idSet = catMaybesSet . S.map (lookupByURI ds) $ us
-    -}
-
     -- | Update documents (through mapping over all documents).
     , _map                           :: (e -> e) -> DocTable i e
 
+    -- | Filters all documents that satisfy the predicate.
     , _filter                        :: (e -> Bool) -> DocTable i e
 
     -- | Convert document table to a single map
@@ -157,7 +142,6 @@ data DocTable i e = Dt
 
     -- | Edit document ids
     , _editDocIds                    :: (DocId -> DocId) -> DocTable i e
-    -- editDocIds f                  = fromMap . DM.foldWithKey (DM.insert . f) DM.empty . toMap
 
     -- | The doctable implementation.
     , _impl                          :: i
@@ -168,64 +152,20 @@ newConvValueDocTable :: (a -> v) -> (v -> a) -> DocTable i a -> DocTable (DocTab
 newConvValueDocTable from to i =
     Dt
     {
-    -- | Test whether the doc table is empty.
       _null                          = null i
-
-    -- | Returns the number of unique documents in the table.
     , _size                          = size i
-
-    -- | Lookup a document by its id.
     , _lookupById                    = fmap from . lookupById i
-
-    -- | Lookup the id of a document by an URI.
     , _lookupByURI                   = lookupByURI i
-
-    -- | Union of two disjoint document tables. It is assumed, that the DocIds and the document uris
-    -- of both indexes are disjoint. If only the sets of uris are disjoint, the DocIds can be made
-    -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
-
     , _union                         = \dt2 -> cv $ union i (impl dt2)
-
-    -- | Test whether the doc ids of both tables are disjoint.
     , _disjoint                      = \dt2 -> disjoint i (impl dt2)
-
-    -- | Insert a document into the table. Returns a tuple of the id for that document and the
-    -- new table. If a document with the same URI is already present, its id will be returned
-    -- and the table is returned unchanged.
     , _insert                        = \e -> second cv $ insert i (to e)
-
-    -- | Update a document with a certain DocId.
     , _update                        = \did e -> cv $ update i did (to e)
-
-    -- | Removes the document with the specified id from the table.
     , _deleteById                    = cv . deleteById i
-
-    -- | Deletes a set of Docs by Id from the table.
     , _differenceById                = cv . flip differenceById i
-
-    {-
-    -- | Deletes a set of Docs by Uri from the table. Uris that are not in the docTable are ignored.
-    deleteByUri                   :: Set URI -> d -> d
-    deleteByUri us ds             = deleteById idSet ds
-      where
-      idSet = catMaybesSet . S.map (lookupByURI ds) $ us
-    -}
-
-    -- | Update documents (through mapping over all documents).
     , _map                           = \f -> cv $ map (to . f . from) i
-
     , _filter                        = \f -> cv $ filter (f . from) i
-
-    -- | Create a document table from a single map.
-    --, _fromMap                       :: DocIdMap Document -> DocTable i
-
-    -- | Convert document table to a single map
     , _toMap                         = DM.map from (toMap i)
-
-    -- | Edit document ids
     , _editDocIds                    = \f -> cv $ editDocIds f i
-
-    -- | The doctable implementation.
     , _impl                          = i
     }
     where
