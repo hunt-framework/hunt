@@ -57,7 +57,7 @@ update                        = _update
 
 -- | Update a document by 'DocId' with the result of the provided function.
 adjust                        :: (e -> e) -> DocId -> DocTable i e -> DocTable i e
-adjust f did d                = maybe d (update d did . f) $lookup d did
+adjust f did d                = maybe d (update d did . f) $ lookup d did
 
 -- | Update a document by 'URI' with the result of the provided function.
 adjustByURI                   :: (e -> e) ->  URI -> DocTable i e -> DocTable i e
@@ -94,8 +94,8 @@ toMap                         :: DocTable i e -> DocIdMap e
 toMap                         = _toMap
 
 -- | Edit document ids
-editDocIds                    :: (DocId -> DocId) -> DocTable i e -> DocTable i e
-editDocIds                    = flip _editDocIds
+mapKeys                       :: (DocId -> DocId) -> DocTable i e -> DocTable i e
+mapKeys                       = flip _mapKeys
 
 -- | The doctable implementation.
 impl                          :: DocTable i e -> i
@@ -149,7 +149,7 @@ data DocTable i e = Dt
     , _toMap                         :: DocIdMap e
 
     -- | Edit document ids
-    , _editDocIds                    :: (DocId -> DocId) -> DocTable i e
+    , _mapKeys                       :: (DocId -> DocId) -> DocTable i e
 
     -- | The doctable implementation.
     , _impl                          :: i
@@ -173,7 +173,7 @@ newConvValueDocTable from to i =
     , _map                           = \f -> cv $ map (to . f . from) i
     , _filter                        = \f -> cv $ filter (f . from) i
     , _toMap                         = DM.map from (toMap i)
-    , _editDocIds                    = \f -> cv $ editDocIds f i
+    , _mapKeys                       = \f -> cv $ mapKeys f i
     , _impl                          = i
     }
     where

@@ -157,8 +157,8 @@ newDocTable i =
     , _toMap                         = toMap' i
 
     -- | Edit document ids
-    , _editDocIds                    = \f -> newDocTable $ editDocIds' f i
-    -- editDocIds f                  = fromMap . DM.foldWithKey (DM.insert . f) DM.empty . toMap
+    , _mapKeys                       = \f -> newDocTable $ mapKeys' f i
+    -- mapKeys f                  = fromMap . DM.foldWithKey (DM.insert . f) DM.empty . toMap
 
     -- | The doctable implementation.
     , _impl                          = i
@@ -267,8 +267,8 @@ toMap'
 
 -- default implementations
 
-editDocIds' :: (DocId -> DocId) -> Documents -> Documents
-editDocIds' f                  = fromMap' . DM.foldrWithKey (DM.insert . f) DM.empty . toMap'
+mapKeys' :: (DocId -> DocId) -> Documents -> Documents
+mapKeys' f                  = fromMap' . DM.foldrWithKey (DM.insert . f) DM.empty . toMap'
 
 -- ----------------------------------------------------------------------------
 
