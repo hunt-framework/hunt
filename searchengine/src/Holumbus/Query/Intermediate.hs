@@ -24,11 +24,11 @@ module Holumbus.Query.Intermediate
   Intermediate
 
   -- * Construction
-  , emptyIntermediate
+  , empty
 
   -- * Query
   , null
-  , sizeIntermediate
+  , size
 
   -- * Combine
   , union
@@ -70,20 +70,20 @@ type IntermediateWords          = Map Word (WordInfo, Positions)
 -- ----------------------------------------------------------------------------
 
 -- | Create an empty intermediate result.
-emptyIntermediate               :: Intermediate
-emptyIntermediate               = DM.empty
+empty                           :: Intermediate
+empty                           = DM.empty
 
 -- | Check if the intermediate result is empty.
 null                            :: Intermediate -> Bool
 null                            = DM.null
 
 -- | Returns the number of documents in the intermediate result.
-sizeIntermediate                :: Intermediate -> Int
-sizeIntermediate                = DM.size
+size                            :: Intermediate -> Int
+size                            = DM.size
 
 -- | Merges a bunch of intermediate results into one intermediate result by unioning them.
 unions                          :: [Intermediate] -> Intermediate
-unions                          = L.foldl' union emptyIntermediate
+unions                          = L.foldl' union empty
 
 -- | Intersect two sets of intermediate results.
 intersection                    :: Intermediate -> Intermediate -> Intermediate
@@ -98,7 +98,7 @@ difference                      :: Intermediate -> Intermediate -> Intermediate
 difference                      = DM.difference
 
 -- | Create an intermediate result from a list of words and their occurrences.
-fromList :: Word -> Context -> RawResult -> Intermediate
+fromList                        :: Word -> Context -> RawResult -> Intermediate
 -- Beware! This is extremly optimized and will not work for merging arbitrary intermediate results!
 -- Based on resultByDocument from Holumbus.Index.Common
 
@@ -121,7 +121,7 @@ createDocHits d                 = DM.mapWithKey transformDocs
                                   (DocInfo doc 0.0, M.map (M.map snd) ic)
 
 -- | Create the word hits structure from an intermediate result.
-createWordHits :: Intermediate -> WordHits
+createWordHits                  :: Intermediate -> WordHits
 createWordHits                  = DM.foldrWithKey transformDoc M.empty
   where
   transformDoc d ic wh          = M.foldrWithKey transformContext wh ic
@@ -153,12 +153,12 @@ combineContexts                 = M.unionWith (M.unionWith merge)
                                   )
 
 -- | Combine two word informations.
-combineWordInfo         :: WordInfo -> WordInfo -> WordInfo
+combineWordInfo                 :: WordInfo -> WordInfo -> WordInfo
 combineWordInfo (WordInfo t1 s1) (WordInfo t2 s2)
-                        = WordInfo (t1 ++ t2) (combineScore s1 s2)
+                                = WordInfo (t1 ++ t2) (combineScore s1 s2)
 
 -- | Combine two scores (just average between them).
-combineScore            :: Score -> Score -> Score
-combineScore s1 s2      = (s1 + s2) / 2.0
+combineScore                    :: Score -> Score -> Score
+combineScore s1 s2              = (s1 + s2) / 2.0
 
 -- ----------------------------------------------------------------------------

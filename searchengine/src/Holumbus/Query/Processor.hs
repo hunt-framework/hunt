@@ -121,11 +121,11 @@ initStateM cfg i t = contextsM i >>= \cs -> return $ ProcessState cfg cs i t
 
 -- | Try to evaluate the query for all contexts in parallel.
 forAllContexts :: (Context -> Intermediate) -> [Context] -> Intermediate
-forAllContexts f cs = L.foldl' I.union I.emptyIntermediate $ parMap rdeepseq f cs
+forAllContexts f cs = L.foldl' I.union I.empty $ parMap rdeepseq f cs
 
 -- | Monadic version of 'forAllContexts'.
 forAllContextsM :: Monad m => (Context -> m Intermediate) -> [Context] -> m Intermediate
-forAllContextsM f cs = mapM f cs >>= \is -> return $ L.foldl' I.union I.emptyIntermediate is
+forAllContextsM f cs = mapM f cs >>= \is -> return $ L.foldl' I.union I.empty is
 
 -- | Just everything.
 allDocuments :: ProcessState i -> Intermediate
@@ -171,9 +171,9 @@ process s (BinQuery o q1 q2) = processBin o (process s q1) (process s q2)
 -- | Monadic version of 'process'.
 processM :: (Monad m) => ProcessState i -> Query -> m Intermediate
 processM s (Word w)           = processWordM s w
-processM _ (Phrase _)         = return I.emptyIntermediate -- processPhraseM s w
+processM _ (Phrase _)         = return I.empty -- processPhraseM s w
 processM s (CaseWord w)       = processCaseWordM s w
-processM _ (CasePhrase _)     = return I.emptyIntermediate -- processCasePhraseM s w
+processM _ (CasePhrase _)     = return I.empty -- processCasePhraseM s w
 processM s (FuzzyWord w)      = processFuzzyWordM s w
 processM s (Negation q)       = processM s q >>= processNegationM s
 processM s (Specifier c q)    = setContextsM c s >>= \ns -> processM ns q
@@ -182,7 +182,7 @@ processM s (BinQuery o q1 q2) = do
   ir2 <- processM s q2
   return $ processBin o ir1 ir2
 
--- | Process a single, case-insensitive word by finding all documents whreturn I.emptyIntermediate -- ich contain the word as prefix.
+-- | Process a single, case-insensitive word by finding all documents whreturn I.empty -- ich contain the word as prefix.
 processWord :: ProcessState i -> Text -> Intermediate
 processWord s q = forAllContexts wordNoCase (contexts s)
   where
@@ -233,7 +233,7 @@ processPhraseInternal f c q = let
   w = T.words q
   m = mergeOccurrencesList $ map snd $ f (head w) in
   if DM.null m
-  then I.emptyIntermediate
+  then I.empty
   else I.fromList q c [(q, processPhrase' (tail w) 1 m)]
   where
   processPhrase' :: [Text] -> Position -> Occurrences -> Occurrences
