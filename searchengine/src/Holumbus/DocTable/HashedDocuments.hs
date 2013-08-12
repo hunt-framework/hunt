@@ -84,12 +84,11 @@ newtype Documents
 emptyDocTable :: DocTable Documents Document
 emptyDocTable = newDocTable emptyDocuments
 
-
 -- | The hash function from URIs to DocIds
 docToId :: URI -> DocId
 docToId = mkDocId . fromIntegral . asWord64 . hash64 . B.encode
 
-
+-- | Build a 'DocTable' from a 'DocIdMap' (maps 'DocId's to 'Document's)
 fromMap :: DocIdMap Document -> DocTable Documents Document
 fromMap = newDocTable . fromMap'
 
@@ -114,14 +113,10 @@ newDocTable i =
     -- | Union of two disjoint document tables. It is assumed, that the DocIds and the document uris
     -- of both indexes are disjoint. If only the sets of uris are disjoint, the DocIds can be made
     -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
-
     , _union                         = newDocTable . unionDocs' i . impl
 
     -- | Test whether the doc ids of both tables are disjoint.
     , _disjoint                      = disjointDocs' i . impl
-
-    -- | Return an empty document table.
-    -- , _makeEmpty                     = undefined
 
     -- | Insert a document into the table. Returns a tuple of the id for that document and the
     -- new table. If a document with the same URI is already present, its id will be returned
@@ -137,28 +132,17 @@ newDocTable i =
     -- | Deletes a set of Docs by Id from the table.
     , _difference                    = \ids -> newDocTable $ differenceById' ids i
 
-    {-
-    -- | Deletes a set of Docs by Uri from the table. Uris that are not in the docTable are ignored.
-    deleteByUri                   :: Set URI -> d -> d
-    deleteByUri us ds             = deleteById idSet ds
-      where
-      idSet = catMaybesSet . S.map (lookupByURI ds) $ us
-    -}
-
     -- | Update documents (through mapping over all documents).
     , _map                           = \f -> newDocTable $ updateDocuments' f i
 
+    -- | Filters all documents that satisfy the predicate.
     , _filter                        = \f -> newDocTable $ filterDocuments' f i
-
-    -- | Create a document table from a single map.
-    --, _fromMap                       = undefined
 
     -- | Convert document table to a single map
     , _toMap                         = toMap' i
 
     -- | Edit document ids
     , _mapKeys                       = \f -> newDocTable $ mapKeys' f i
-    -- mapKeys f                  = fromMap . DM.foldWithKey (DM.insert . f) DM.empty . toMap
 
     -- | The doctable implementation.
     , _impl                          = i

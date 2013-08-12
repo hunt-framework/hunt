@@ -87,7 +87,7 @@ emptyDocTableCompressed = newDocTable emptyDocuments
 docToId :: URI -> DocId
 docToId = mkDocId . fromIntegral . asWord64 . hash64 . B.encode
 
-
+-- | Build a 'DocTable' from a 'DocIdMap' (maps 'DocId's to 'Document's/'CompressedDoc's)
 fromMap :: DocIdMap CompressedDoc -> DocTable Documents CompressedDoc
 fromMap = newDocTable . fromMap'
 
@@ -131,17 +131,10 @@ newDocTable i =
     -- | Deletes a set of Docs by Id from the table.
     , _difference                    = \ids -> newDocTable $ differenceById' ids i
 
-    {-
-    -- | Deletes a set of Docs by Uri from the table. Uris that are not in the docTable are ignored.
-    deleteByUri                   :: Set URI -> d -> d
-    deleteByUri us ds             = deleteById idSet ds
-      where
-      idSet = catMaybesSet . S.map (lookupByURI ds) $ us
-    -}
-
     -- | Update documents (through mapping over all documents).
     , _map                           = \f -> newDocTable $ updateDocuments' f i
 
+    -- | Filters all documents that satisfy the predicate.
     , _filter                        = \f -> newDocTable $ filterDocuments' f i
 
     -- | Convert document table to a single map
