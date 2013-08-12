@@ -2,7 +2,7 @@
 module Holumbus.DocTable.DocTable
 where
 
-import           Prelude                          hiding (null, filter)
+import           Prelude                          hiding (null, filter, map)
 import           Control.Arrow                    (second)
 
 import           Data.Set                         (Set)
@@ -82,8 +82,8 @@ deleteByUri us ds             = deleteById idSet ds
 -}
 
 -- | Update documents (through mapping over all documents).
-updateDocuments               :: (e -> e) -> DocTable i e -> DocTable i e
-updateDocuments               = flip _updateDocuments
+map                           :: (e -> e) -> DocTable i e -> DocTable i e
+map                           = flip _map
 
 filter                        :: (e -> Bool) -> DocTable i e -> DocTable i e
 filter                        = flip _filter
@@ -148,7 +148,7 @@ data DocTable i e = Dt
     -}
 
     -- | Update documents (through mapping over all documents).
-    , _updateDocuments               :: (e -> e) -> DocTable i e
+    , _map                           :: (e -> e) -> DocTable i e
 
     , _filter                        :: (e -> Bool) -> DocTable i e
 
@@ -212,7 +212,7 @@ newConvValueDocTable from to i =
     -}
 
     -- | Update documents (through mapping over all documents).
-    , _updateDocuments               = \f -> cv $ updateDocuments (to . f . from) i
+    , _map                           = \f -> cv $ map (to . f . from) i
 
     , _filter                        = \f -> cv $ filter (f . from) i
 

@@ -53,7 +53,7 @@ import           Data.Digest.Murmur64
 import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap as DM
 
-import           Holumbus.DocTable.DocTable
+import           Holumbus.DocTable.DocTable     hiding (map)
 
 import           Holumbus.Utility               ((.::))
 
@@ -140,7 +140,7 @@ newDocTable i =
     -}
 
     -- | Update documents (through mapping over all documents).
-    , _updateDocuments               = \f -> newDocTable $ updateDocuments' f i
+    , _map                           = \f -> newDocTable $ updateDocuments' f i
 
     , _filter                        = \f -> newDocTable $ filterDocuments' f i
 

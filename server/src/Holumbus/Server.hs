@@ -21,7 +21,7 @@ import           Holumbus.Utility                         ((.::))
 import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap           as DM
 
-import           Holumbus.DocTable.DocTable               hiding (filter)
+import           Holumbus.DocTable.DocTable               hiding (filter, map)
 import           Holumbus.Index.TextIndex
 
 import           Holumbus.DocTable.HashedCompactDocuments as HCD
