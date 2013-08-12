@@ -32,8 +32,8 @@ delete                :: Context -> Word -> v -> Index it v i -> Index it v i
 delete                = \c w o i -> _delete i c w o
 
 -- | Delete documents completely (all occurrences).
-deleteDocsById        :: Set DocId -> Index it v i -> Index it v i
-deleteDocsById        = \ds i -> _deleteDocsById i ds
+deleteDocs            :: Set DocId -> Index it v i -> Index it v i
+deleteDocs            = \ds i -> _deleteDocs i ds
 
 -- | Merges two indexes.
 merge                 :: Index it v i -> Index it v i -> Index it v i
@@ -58,12 +58,12 @@ splitByWords          = _splitByWords
 -- | Update document id's (e.g. for renaming documents). If the function maps two different id's
 -- to the same new id, the two sets of word positions will be merged if both old id's are present
 -- in the occurrences for a word in a specific context.
-updateDocIds          :: (Context -> Word -> DocId -> DocId) -> Index it v i -> Index it v i
-updateDocIds          = \f i -> _updateDocIds i f
+mapDocIds          :: (Context -> Word -> DocId -> DocId) -> Index it v i -> Index it v i
+mapDocIds          = \f i -> _mapDocIds i f
 
 -- | Update document id's with a simple injective editing function.
-updateDocIds'         :: (DocId -> DocId) -> Index it v i -> Index it v i
-updateDocIds'         = \f i -> _updateDocIds i (const . const $ f)
+mapDocIds'         :: (DocId -> DocId) -> Index it v i -> Index it v i
+mapDocIds'         = \f i -> _mapDocIds i (const . const $ f)
 
 -- | Convert an Index to a list. Can be used for easy conversion between different index
 -- implementations
@@ -103,7 +103,7 @@ data Index it v i = Ix
     , _delete                        :: Context -> Word -> v -> Index it v i
 
     -- | Delete documents completely (all occurrences).
-    , _deleteDocsById                :: Set DocId -> Index it v i
+    , _deleteDocs                    :: Set DocId -> Index it v i
 
     -- | Merges two indexes.
     , _merge                         :: Index it v i -> Index it v i
@@ -123,7 +123,7 @@ data Index it v i = Ix
     -- | Update document id's (e.g. for renaming documents). If the function maps two different id's
     -- to the same new id, the two sets of word positions will be merged if both old id's are present
     -- in the occurrences for a word in a specific context.
-    , _updateDocIds                  :: (Context -> Word -> DocId -> DocId) -> Index it v i
+    , _mapDocIds                     :: (Context -> Word -> DocId -> DocId) -> Index it v i
 
     -- | Convert an Index to a list. Can be used for easy conversion between different index
     -- implementations

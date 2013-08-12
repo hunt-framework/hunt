@@ -33,7 +33,7 @@ deleteDocs     docIds ix  = Indexer { ixIndex  = newIndex
                                     , ixDocTable = newDocTable }
   where
     newDocTable = Dt.difference docIds (ixDocTable ix)
-    newIndex    = Ix.deleteDocsById docIds (ixIndex    ix)
+    newIndex    = Ix.deleteDocs docIds (ixIndex    ix)
 
 -- | Delete a set if documents by 'URI'.
 deleteDocsByURI           :: Set URI -> Indexer it iv i d de -> Indexer it iv i d de

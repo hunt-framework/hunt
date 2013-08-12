@@ -63,7 +63,7 @@ newIndex i =
     , _delete                 = \c w o -> newIndex $ deleteOccurrences' c w o i
 
     -- | Delete documents completely (all occurrences).
-    , _deleteDocsById         = \ds -> newIndex $ deleteDocsById' ds i
+    , _deleteDocs             = \ds -> newIndex $ deleteDocsById' ds i
 
     -- | Merges two indexes.
     , _merge                  = newIndex . mergeIndexes' i . _impl
@@ -83,7 +83,7 @@ newIndex i =
     -- | Update document id's (e.g. for renaming documents). If the function maps two different id's
     -- to the same new id, the two sets of word positions will be merged if both old id's are present
     -- in the occurrences for a word in a specific context.
-    , _updateDocIds           = \f -> newIndex $ updateDocIdsX f i
+    , _mapDocIds                = \f -> newIndex $ updateDocIdsX f i
 
     -- Convert an Index to a list. Can be used for easy conversion between different index
     -- implementations.
