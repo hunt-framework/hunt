@@ -7,27 +7,28 @@ where
 
 
 import           Control.Arrow
-import           Data.Function                  (on)
-import           Data.List                      (foldl', sortBy)
-import           Data.Map                       (Map)
-import qualified Data.Map                       as M
+import           Data.Function                     (on)
+import           Data.List                         (foldl', sortBy)
+import           Data.Map                          (Map)
+import qualified Data.Map                          as M
 import           Data.Maybe
-import           Data.Set                       (Set)
-import           Data.Text                      (Text)
-import qualified Data.Text                      as T
+import           Data.Set                          (Set)
+import           Data.Text                         (Text)
+import qualified Data.Text                         as T
 
-import qualified Holumbus.Data.PrefixTree       as PT
+import qualified Holumbus.Data.PrefixTree          as PT
 
-import           Holumbus.Index.Common          (Context, DocId, Occurrences,
-                                                 RawResult, Word,
-                                                 emptyOccurrences,
-                                                 mergeOccurrences,
-                                                 resultByDocument, resultByWord,
-                                                 sizeOccurrences, sizePos,
-                                                 substractOccurrences, unionPos, Textual(..))
-import qualified Holumbus.Index.Common.DocIdMap as DM
-import           Holumbus.Index.Compression     as C
-import           Holumbus.Index.TextIndex       hiding (fromList)
+import           Holumbus.Index.Common             (Context, DocId, Occurrences,
+                                                    RawResult, Textual (..),
+                                                    Word,
+                                                    resultByDocument,
+                                                    resultByWord,
+                                                    sizePos,
+                                                    unionPos)
+import qualified Holumbus.Index.Common.Occurences  as Occ
+import qualified Holumbus.Index.Common.DocIdMap    as DM
+import           Holumbus.Index.Compression        as C
+import           Holumbus.Index.TextIndex          hiding (fromList)
 
 
 newtype Inverted        = Inverted { indexParts :: Parts }
@@ -125,7 +126,7 @@ mergePart                         :: Part -> Part -> Part
 mergePart                         = PT.unionWith mergeDiffLists
   where
   mergeDiffLists o1 o2            = deflateOcc $
-                                  mergeOccurrences (inflateOcc o1) (inflateOcc o2)
+                                  Occ.merge (inflateOcc o1) (inflateOcc o2)
 
 -- | Subtract a set of index parts from another.
 subtractParts                     :: Parts -> Parts -> Parts
@@ -137,9 +138,9 @@ subtractPart p1 p2                = if PT.null diffPart then Nothing else Just d
   where
   diffPart                        = PT.differenceWith subtractDiffLists p1 p2
     where
-    subtractDiffLists o1 o2      = if diffOcc == emptyOccurrences then Nothing else Just (deflateOcc diffOcc)
+    subtractDiffLists o1 o2      = if diffOcc == Occ.empty then Nothing else Just (deflateOcc diffOcc)
       where
-      diffOcc                     = substractOccurrences (inflateOcc o1) (inflateOcc o2)
+      diffOcc                     = Occ.substract (inflateOcc o1) (inflateOcc o2)
 
 -- | Internal split function used by the split functions from the HolIndex interface (above).
 splitInternal                     :: [(Int, Inverted)] -> Int -> [Inverted]
@@ -224,12 +225,12 @@ splitByWords' i                   = splitInternal indexes
   where
   indexes                         = map convert $
                                     M.toList $
-                                    M.unionsWith (M.unionWith mergeOccurrences) wordResults
+                                    M.unionsWith (M.unionWith Occ.merge) wordResults
     where
     wordResults                   = map (\c -> resultByWord c (allWords' i c)) (contexts' i)
     convert (w, cs)               = foldl' makeIndex (0, emptyInverted) (M.toList cs)
       where
-      makeIndex (rs, ri) (c, o)   = (rs + sizeOccurrences o, insertOccurrences' c w o ri)
+      makeIndex (rs, ri) (c, o)   = (rs + Occ.size o, insertOccurrences' c w o ri)
 
 updateDocIdsX                     :: (Context -> Text -> DocId -> DocId) -> Inverted -> Inverted
 updateDocIdsX f (Inverted parts)

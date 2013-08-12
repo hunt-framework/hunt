@@ -10,19 +10,20 @@ module Holumbus.Indexer.TextIndexer
   )
 where
 
-import           Data.Text                    (Text)
-import qualified Data.Set                     as S
-import qualified Data.Map                     as M
+import qualified Data.Map                         as M
+import qualified Data.Set                         as S
+import           Data.Text                        (Text)
 
-import           Holumbus.Index.Index         (Index)
-import qualified Holumbus.Index.Index         as Ix
-import qualified Holumbus.DocTable.DocTable   as Dt
+import qualified Holumbus.DocTable.DocTable       as Dt
+import           Holumbus.Index.Index             (Index)
+import qualified Holumbus.Index.Index             as Ix
 
 import           Holumbus.Index.Common
+import           Holumbus.Index.Common.Occurences as Occ
 import           Holumbus.Indexer.Indexer
 
 
-type TextIndexer i d de = Indexer Textual Occurrences i d de
+type TextIndexer i d de   = Indexer Textual Occurrences i d de
 
 -- index functions
 
@@ -65,10 +66,10 @@ addWords                  :: Words -> DocId -> Index it Occurrences i -> Index i
 addWords wrds dId i = M.foldrWithKey (\c wl acc -> M.foldrWithKey (\w ps acc' -> Ix.insert c w (mkOccs dId ps) acc') acc wl) i wrds
 
 mkOccs                    :: DocId -> [Position] -> Occurrences
-mkOccs did pl = positionsIntoOccs did pl emptyOccurrences
+mkOccs did pl = positionsIntoOccs did pl Occ.empty
 
 positionsIntoOccs         :: DocId -> [Position] -> Occurrences -> Occurrences
-positionsIntoOccs docId ws os = foldr (insertOccurrence docId) os ws
+positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws
 
 -- Specific to Indexes with Document DocTable values
 {-
