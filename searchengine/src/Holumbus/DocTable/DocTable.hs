@@ -6,6 +6,8 @@ import           Prelude                          hiding (null, filter, map)
 import           Control.Arrow                    (second)
 
 import           Data.Set                         (Set)
+import qualified Data.Set                         as S
+import           Data.Maybe                       (isJust, fromJust)
 
 import           Holumbus.Index.Common.BasicTypes
 import           Holumbus.Index.Common.DocId
@@ -72,6 +74,12 @@ deleteByURI ds u              = maybe ds (deleteById ds) (lookupByURI ds u)
 -- | Deletes a set of Docs by Id from the table.
 differenceById                :: Set DocId -> DocTable i e -> DocTable i e
 differenceById                = flip _differenceById
+
+-- | Deletes a set of Docs by URI from the table.
+differenceByURI               :: Set URI -> DocTable i e -> DocTable i e
+differenceByURI uris d        = differenceById ids d
+    where
+    ids = S.map (fromJust) . S.filter (isJust) .  S.map (lookupByURI d) $ uris
 
 -- | Update documents (through mapping over all documents).
 map                           :: (e -> e) -> DocTable i e -> DocTable i e
