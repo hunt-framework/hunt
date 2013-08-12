@@ -62,16 +62,16 @@ modifyByURI                   :: (e -> e) -> DocTable i e -> URI -> DocTable i e
 modifyByURI f d uri           = maybe d (flip (modify f) d) $ lookupByURI d uri
 
 -- | Removes the document with the specified id from the table.
-removeById                    :: DocTable i e -> DocId -> DocTable i e
-removeById                    = _removeById
+deleteById                    :: DocTable i e -> DocId -> DocTable i e
+deleteById                    = _deleteById
 
 -- | Removes the document with the specified URI from the table.
-removeByURI                   :: DocTable i e -> URI -> DocTable i e
-removeByURI ds u              = maybe ds (removeById ds) (lookupByURI ds u)
+deleteByURI                   :: DocTable i e -> URI -> DocTable i e
+deleteByURI ds u              = maybe ds (deleteById ds) (lookupByURI ds u)
 
 -- | Deletes a set of Docs by Id from the table.
-deleteById                    :: Set DocId -> DocTable i e -> DocTable i e
-deleteById                    = flip _deleteById
+differenceById               :: Set DocId -> DocTable i e -> DocTable i e
+differenceById               = flip _differenceById
 
 {-
 -- | Deletes a set of Docs by Uri from the table. Uris that are not in the docTable are ignored.
@@ -134,10 +134,10 @@ data DocTable i e = Dt
     , _update                        :: DocId -> e -> DocTable i e
 
     -- | Removes the document with the specified id from the table.
-    , _removeById                    :: DocId -> DocTable i e
+    , _deleteById                    :: DocId -> DocTable i e
 
     -- | Deletes a set of Docs by Id from the table.
-    , _deleteById                    :: Set DocId -> DocTable i e
+    , _differenceById                :: Set DocId -> DocTable i e
 
     {-
     -- | Deletes a set of Docs by Uri from the table. Uris that are not in the docTable are ignored.
@@ -198,10 +198,10 @@ newConvValueDocTable from to i =
     , _update                        = \did e -> cv $ update i did (to e)
 
     -- | Removes the document with the specified id from the table.
-    , _removeById                    = cv . removeById i
+    , _deleteById                    = cv . deleteById i
 
     -- | Deletes a set of Docs by Id from the table.
-    , _deleteById                    = cv . flip deleteById i
+    , _differenceById                = cv . flip differenceById i
 
     {-
     -- | Deletes a set of Docs by Uri from the table. Uris that are not in the docTable are ignored.

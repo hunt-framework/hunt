@@ -126,10 +126,10 @@ newDocTable i =
     , _update                        = newDocTable .:: updateDoc' i
 
     -- | Removes the document with the specified id from the table.
-    , _removeById                    = newDocTable . removeById' i
+    , _deleteById                    = newDocTable . deleteById' i
 
     -- | Deletes a set of Docs by Id from the table.
-    , _deleteById                    = \ids -> newDocTable $ deleteById' ids i
+    , _differenceById                = \ids -> newDocTable $ differenceById' ids i
 
     {-
     -- | Deletes a set of Docs by Uri from the table. Uris that are not in the docTable are ignored.
@@ -226,13 +226,13 @@ updateDoc' ds i d
     = rnf d `seq`                    -- force document compression
       Documents {idToDoc = DM.insert i d $ idToDoc ds}
 
-removeById' :: Documents -> DocId -> Documents
-removeById' ds d
+deleteById' :: Documents -> DocId -> Documents
+deleteById' ds d
     = Documents {idToDoc = DM.delete d $ idToDoc ds}
 
 -- XXX: EnumMap does not have a fromSet function so that you can use fromSet (const ()) and ignore the value
-deleteById' :: Set DocId -> Documents -> Documents
-deleteById' s ds
+differenceById' :: Set DocId -> Documents -> Documents
+differenceById' s ds
     = Documents {idToDoc = idToDoc ds `DM.difference` (DM.fromAscList . map mkKeyValueDummy . S.toList $ s)}
     where
     mkKeyValueDummy k = (k, undefined) -- XXX: strictness properties of EnumMap?
