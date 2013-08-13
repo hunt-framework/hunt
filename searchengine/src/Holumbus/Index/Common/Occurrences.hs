@@ -20,6 +20,8 @@
 module Holumbus.Index.Common.Occurrences
 where
 
+import Prelude                                    hiding (subtract)
+
 import           Control.DeepSeq
 
 import           Data.Binary                      (Binary (..))
@@ -29,6 +31,7 @@ import qualified Data.EnumSet                     as IS
 
 import           Holumbus.Index.Common.BasicTypes
 import           Holumbus.Index.Common.DocId
+import           Holumbus.Index.Common.DocIdMap   hiding (empty, insert)
 import qualified Holumbus.Index.Common.DocIdMap   as DM
 
 
@@ -36,15 +39,15 @@ import qualified Holumbus.Index.Common.DocIdMap   as DM
 
 -- | The occurrences in a number of documents.
 -- A mapping from document ids to the positions in the document.
-type Occurrences        = DM.DocIdMap Positions
+type Occurrences        = DocIdMap Positions
 
 -- | Create an empty set of positions.
 empty                   :: Occurrences
-empty                   = empty
+empty                   = DM.empty
 
 -- | Create an empty set of positions.
 singleton               :: DocId -> Position -> Occurrences
-singleton d p           = insert d p empty
+singleton d p           = insert d p DM.empty
 
 -- | Test on empty set of positions.
 null                    :: Occurrences -> Bool
@@ -56,32 +59,32 @@ size                    = DM.foldr ((+) . IS.size) 0
 
 -- | Add a position to occurrences.
 insert                  :: DocId -> Position -> Occurrences -> Occurrences
-insert d p              = DM.insertWith IS.union d (singletonPos p)
+insert d p              = insertWith IS.union d (singletonPos p)
 
 -- | Remove a position from occurrences.
-delete                  :: DocId -> Position -> Occurrences -> Occurrences
-delete d p              = substract (DM.singleton d (singletonPos p))
+deleteOccurrence        :: DocId -> Position -> Occurrences -> Occurrences
+deleteOccurrence d p    = subtract (DM.singleton d (singletonPos p))
 
 -- | Delete a document (by 'DocId') from occurrences.
-deleteDoc               :: DocId -> Occurrences -> Occurrences
-deleteDoc               = DM.delete
+delete                  :: DocId -> Occurrences -> Occurrences
+delete                  = DM.delete
 
 -- | Changes the DocIDs of the occurrences.
 update                  :: (DocId -> DocId) -> Occurrences -> Occurrences
-update f                = DM.foldrWithKey
-                          (\ d ps res -> DM.insertWith IS.union (f d) ps res) empty
+update f                = foldrWithKey
+                          (\ d ps res -> insertWith IS.union (f d) ps res) empty
 
 -- | Merge two occurrences.
 merge                   :: Occurrences -> Occurrences -> Occurrences
-merge                   = DM.unionWith IS.union
+merge                   = unionWith IS.union
 
 -- | Difference of occurrences.
-diff                    :: Occurrences -> Occurrences -> Occurrences
-diff                     = DM.difference
+difference              :: Occurrences -> Occurrences -> Occurrences
+difference              = DM.difference
 
 -- | Substract occurrences from some other occurrences.
-substract               :: Occurrences -> Occurrences -> Occurrences
-substract               = DM.differenceWith substractPositions
+subtract                :: Occurrences -> Occurrences -> Occurrences
+subtract                = differenceWith substractPositions
   where
   substractPositions p1 p2
                         = if IS.null diffPos

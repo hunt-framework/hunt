@@ -53,7 +53,7 @@ import qualified Data.Map                       as M
 
 import           Holumbus.Query.Result          hiding (null)
 
-import           Holumbus.Index.Common          hiding (empty, null, size)
+import           Holumbus.Index.Common          hiding (empty, null, size, difference)
 import qualified Holumbus.Index.Common.DocIdMap as DM
 
 import           Holumbus.DocTable.DocTable     (DocTable)
@@ -148,7 +148,7 @@ combineWordHits (i1, c1) (i2, c2)
 combineContexts                 :: IntermediateContexts -> IntermediateContexts -> IntermediateContexts
 combineContexts                 = M.unionWith (M.unionWith merge')
   where
-  merge' (i1, p1) (i2, p2)      = ( combineWordInfo i1 i2
+  merge' (i1, p1) (i2, p2)       = ( combineWordInfo i1 i2
                                   , unionPos p1 p2
                                   )
 

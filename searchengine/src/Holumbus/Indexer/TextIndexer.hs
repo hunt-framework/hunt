@@ -23,7 +23,7 @@ import           Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Indexer.Indexer
 
 
-type TextIndexer i d de   = Indexer Textual Occurrences i d de
+type TextIndexer i d de = Indexer Textual Occurrences i d de
 
 -- index functions
 

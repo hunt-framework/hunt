@@ -5,7 +5,6 @@ module Holumbus.Index.Text.Inverted.PrefixMem
   , fromList)
 where
 
-
 import           Control.Arrow
 import           Data.Function                     (on)
 import           Data.List                         (foldl', sortBy)
@@ -25,8 +24,8 @@ import           Holumbus.Index.Common             (Context, DocId, Occurrences,
                                                     resultByWord,
                                                     sizePos,
                                                     unionPos)
-import qualified Holumbus.Index.Common.Occurrences as Occ
 import qualified Holumbus.Index.Common.DocIdMap    as DM
+import qualified Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Index.Compression        as C
 import           Holumbus.Index.TextIndex          hiding (fromList)
 
@@ -140,7 +139,7 @@ subtractPart p1 p2                = if PT.null diffPart then Nothing else Just d
     where
     subtractDiffLists o1 o2      = if diffOcc == Occ.empty then Nothing else Just (deflateOcc diffOcc)
       where
-      diffOcc                     = Occ.substract (inflateOcc o1) (inflateOcc o2)
+      diffOcc                     = Occ.subtract (inflateOcc o1) (inflateOcc o2)
 
 -- | Internal split function used by the split functions from the HolIndex interface (above).
 splitInternal                     :: [(Int, Inverted)] -> Int -> [Inverted]
