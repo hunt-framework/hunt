@@ -129,12 +129,12 @@ forAllContextsM f cs = mapM f cs >>= \is -> return $ L.foldl' I.union I.empty is
 
 -- | Just everything.
 allDocuments :: ProcessState i -> Intermediate
-allDocuments s = forAllContexts (\c -> I.fromList "" c $ Ix.allWords (index s) c) (contexts s)
+allDocuments s = forAllContexts (\c -> I.fromList "" c $ Ix.size (index s) c) (contexts s)
 
 
 allDocumentsM :: Monad m => ProcessState i -> m Intermediate
 allDocumentsM s = forAllContextsM (\c -> allWordsM (index s) c >>= \r -> return $ I.fromList "" c r) (contexts s)
-  where allWordsM = return .:: Ix.allWords -- XXX: needs monadic Ix.allWords
+  where allWordsM = return .:: Ix.size -- XXX: needs monadic Ix.allWords
 
 -- | Process a query only partially in terms of a distributed index. Only the intermediate
 -- result will be returned.

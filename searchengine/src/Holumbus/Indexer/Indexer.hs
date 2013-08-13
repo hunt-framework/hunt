@@ -18,6 +18,14 @@ data Indexer it iv i d de
     { ixIndex    :: Index it iv i
     , ixDocTable :: DocTable d de
     }
+ 
+-- | Returns the number of unique words in the index.
+unique                    :: Indexer it iv i d de -> Int
+unique                    = Ix.unique . ixIndex
+
+-- | Returns a list of all contexts avaliable in the index.
+contexts                  :: Indexer it iv v d de -> [Context]
+contexts                  = Ix.contexts . ixIndex
 
 -- | Find a document by 'DocId'.
 lookup                    :: (Monad m, Functor m) => Indexer it iv i d de -> DocId -> m de

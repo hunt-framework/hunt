@@ -106,13 +106,13 @@ impl                          = _impl
 data DocTable i e = Dt
     {
     -- | Test whether the doc table is empty.
-      _null                        :: Bool
+      _null                          :: Bool
 
     -- | Returns the number of unique documents in the table.
     , _size                          :: Int
 
     -- | Lookup a document by its id.
-    , _lookup                    :: (Monad m, Functor m) => DocId -> m e
+    , _lookup                        :: (Monad m, Functor m) => DocId -> m e
 
     -- | Lookup the id of a document by an URI.
     , _lookupByURI                   :: (Monad m, Functor m) => URI -> m DocId

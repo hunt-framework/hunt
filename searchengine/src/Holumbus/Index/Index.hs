@@ -9,17 +9,19 @@ import           Holumbus.Index.Common          (Context, RawResult, Word, DocId
 --
 -- external interface
 
-sizeWords             :: Index it v i -> Int
-sizeWords             = _sizeWords
+-- | Returns the number of unique words in the index.
+unique                :: Index it v i -> Int
+unique                = _unique
 
 -- | Returns a list of all contexts avaliable in the index.
 contexts              :: Index it v i -> [Context]
 contexts              = _contexts
 
 -- | Returns the occurrences for every word. A potentially expensive operation.
-allWords              :: Index it v i -> Context -> RawResult
-allWords              = _allWords
+size                  :: Index it v i -> Context -> RawResult
+size                  = _size
 
+-- | Index-Type depending lookup function
 lookup                :: it -> Index it v i -> Context -> Word -> RawResult
 lookup it t c w       = _lookup t it c w
 
@@ -85,13 +87,13 @@ fromList e            = foldl (\i (c,w,o) -> insert c w o i) e
 data Index it v i = Ix
     {
     -- | Returns the number of unique words in the index.
-      _sizeWords                     :: Int
+      _unique                        :: Int
 
     -- | Returns a list of all contexts avaliable in the index.
     , _contexts                      :: [Context]
 
     -- | Returns the occurrences for every word. A potentially expensive operation.
-    , _allWords                      :: Context -> RawResult
+    , _size                          :: Context -> RawResult
 
     -- | general lookup function
     , _lookup                        :: it -> Context -> Text -> RawResult

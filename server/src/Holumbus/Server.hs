@@ -58,7 +58,7 @@ modIndex = liftIO .:: modifyMVar
 --indexer :: Indexer Inverted HD.Documents Document
 --indexer = Indexer emptyIndex HD.emptyDocTable
 
-indexer :: Indexer Textual Occurrences Inverted (DocTable HCD.Documents HCD.CompressedDoc) Document
+indexer :: TextIndexer Inverted (DocTable HCD.Documents HCD.CompressedDoc) Document
 indexer = Indexer emptyIndex HCD.emptyDocTable
 
 queryConfig :: ProcessConfig

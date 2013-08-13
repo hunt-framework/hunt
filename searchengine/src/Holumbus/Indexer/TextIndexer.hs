@@ -31,7 +31,7 @@ searchPrefixNoCase        :: Indexer Textual iv i d de -> Context -> Text -> Raw
 searchPrefixNoCase (Indexer ix _dx) c w = Ix.lookup PrefixNoCase ix c w
 
 allWords                  :: Indexer Textual iv i d de -> Context -> RawResult
-allWords                  = Ix.allWords . ixIndex
+allWords                  = Ix.size . ixIndex
 
 updateDoc                 :: DocId -> de -> Words -> Indexer it Occurrences i d de -> Indexer it Occurrences i d de
 updateDoc docId doc w     = insertDoc doc w . deleteDocs (S.singleton docId)

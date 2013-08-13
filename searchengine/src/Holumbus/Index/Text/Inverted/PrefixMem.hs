@@ -45,13 +45,13 @@ newIndex i =
     Ix
     {
     -- | Returns the number of unique words in the index.
-      _sizeWords              = sizeWords' i
+      _unique                 = sizeWords' i
 
     -- | Returns a list of all contexts avaliable in the index.
     , _contexts               = contexts' i
 
     -- | Returns the occurrences for every word. A potentially expensive operation.
-    , _allWords               = allWords' i
+    , _size                   = allWords' i
 
     , _lookup                 = lookup' i
 
