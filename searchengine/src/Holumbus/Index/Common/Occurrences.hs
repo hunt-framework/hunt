@@ -82,11 +82,11 @@ merge                   = unionWith IS.union
 difference              :: Occurrences -> Occurrences -> Occurrences
 difference              = DM.difference
 
--- | Substract occurrences from some other occurrences.
+-- | Subtract occurrences from some other occurrences.
 subtract                :: Occurrences -> Occurrences -> Occurrences
-subtract                = differenceWith substractPositions
+subtract                = differenceWith subtractPositions
   where
-  substractPositions p1 p2
+  subtractPositions p1 p2
                         = if IS.null diffPos
                           then Nothing
                           else Just diffPos

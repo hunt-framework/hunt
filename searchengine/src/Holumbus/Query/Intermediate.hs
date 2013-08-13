@@ -93,7 +93,7 @@ intersection                    = DM.intersectionWith combineContexts
 union                           :: Intermediate -> Intermediate -> Intermediate
 union                           = DM.unionWith combineContexts
 
--- | Substract two sets of intermediate results.
+-- | Subtract two sets of intermediate results.
 difference                      :: Intermediate -> Intermediate -> Intermediate
 difference                      = DM.difference
 

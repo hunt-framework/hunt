@@ -267,7 +267,7 @@ processFuzzyWordM s oq = do
                                   then processWordM s (fst q) >>= processFuzzyWordM' qs
                                   else return r
 
--- | Process a negation by getting all documents and substracting the result of the negated query.
+-- | Process a negation by getting all documents and subtracting the result of the negated query.
 processNegation :: ProcessState i -> Intermediate -> Intermediate
 processNegation s = I.difference (allDocuments s)
 
