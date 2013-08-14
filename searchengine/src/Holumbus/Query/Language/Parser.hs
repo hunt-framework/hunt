@@ -51,7 +51,7 @@ import           Text.ParserCombinators.Parsec
 
 -- | Parse a query using the default syntax provided by the Holumbus framework.
 parseQuery :: String -> Either Text Query
-parseQuery = result . (parse query "")
+parseQuery = result . parse query ""
   where
   result (Left err) = Left (T.pack . show $ err)
   result (Right q)  = Right q
@@ -79,7 +79,7 @@ orQuery = do t <- notQuery
 
 -- | Parse a negation.
 notQuery :: Parser Query
-notQuery = do notQuery' <|> contextQuery
+notQuery = notQuery' <|> contextQuery
   where
   notQuery' = do notOp
                  q <- contextQuery
@@ -113,7 +113,7 @@ caseQuery = caseQuery' <|> fuzzyQuery
   where
   caseQuery' = do char '!'
                   spaces
-                  (phraseQuery CasePhrase <|> wordQuery CaseWord)
+                  phraseQuery CasePhrase <|> wordQuery CaseWord
 
 -- | Parse a fuzzy query.
 fuzzyQuery :: Parser Query
@@ -135,7 +135,7 @@ phraseQuery c = do p <- phrase
 
 -- | Parse an and operator.
 andOp :: Parser ()
-andOp = (try andOp') <|> spaces1
+andOp = try andOp' <|> spaces1
   where
   andOp' = do spaces
               string "AND"
@@ -181,12 +181,12 @@ phraseChar = noneOf "\""
 
 -- | Parse a list of contexts.
 contexts :: Parser [String]
-contexts = context `sepBy1` (char ',')
+contexts = context `sepBy1` char ','
 
 -- | Parse a context.
 context :: Parser String
 context = do spaces
-             c <- (many1 alphaNum)
+             c <- many1 alphaNum
              spaces
              return c
 

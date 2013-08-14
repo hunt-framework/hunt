@@ -11,12 +11,12 @@ import qualified Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Index.Index
 
 
-type TextIndex i      = Index Textual Occurrences i
+type TextIndex i        = Index Textual Occurrences i
 
 -- | Insert a position for a single document.
-insertPosition        :: Context -> Word -> DocId -> Position -> TextIndex i -> TextIndex i
-insertPosition        = \c w d p -> insert c w (Occ.singleton d p)
+insertPosition          :: Context -> Word -> DocId -> Position -> TextIndex i -> TextIndex i
+insertPosition c w d p  = insert c w (Occ.singleton d p)
 
 -- | Delete a position for a single document.
-deletePosition        :: Context -> Word -> DocId -> Position -> TextIndex i -> TextIndex i
-deletePosition        = \c w d p -> delete c w (Occ.singleton d p)
+deletePosition          :: Context -> Word -> DocId -> Position -> TextIndex i -> TextIndex i
+deletePosition c w d p  = delete c w (Occ.singleton d p)

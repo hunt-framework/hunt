@@ -44,24 +44,21 @@ import qualified Data.Text                       as T
 
 import           Holumbus.Utility                ((.::), (.:::))
 
-import           Holumbus.Index.Common           (Context, Word, RawResult, DocId,
+import           Holumbus.Index.Common           (Context, Word, RawResult, Document, DocId,
                                                   Position, Positions, Occurrences,
                                                   foldPos, memberPos, unionPos, Textual(..))
-
-import           Holumbus.Query.Language.Grammar
-
-import           Holumbus.Query.Fuzzy            (FuzzyConfig, FuzzyScore)
-import qualified Holumbus.Query.Fuzzy            as F
-
-import           Holumbus.Query.Result           (Result)
-
-import           Holumbus.Index.Common           (Document)
 import qualified Holumbus.Index.Common.DocIdMap  as DM
-import           Holumbus.Query.Intermediate     (Intermediate)
-import qualified Holumbus.Query.Intermediate     as I
 
 import           Holumbus.Index.TextIndex        (TextIndex)
 import qualified Holumbus.Index.TextIndex        as Ix
+
+import           Holumbus.Query.Fuzzy            (FuzzyConfig, FuzzyScore)
+import qualified Holumbus.Query.Fuzzy            as F
+import           Holumbus.Query.Intermediate     (Intermediate)
+import qualified Holumbus.Query.Intermediate     as I
+import           Holumbus.Query.Language.Grammar
+import           Holumbus.Query.Result           (Result)
+
 import           Holumbus.DocTable.DocTable      (DocTable)
 import qualified Holumbus.DocTable.DocTable      as Dt
 

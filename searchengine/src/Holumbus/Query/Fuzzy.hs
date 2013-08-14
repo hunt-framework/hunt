@@ -149,7 +149,7 @@ fuzz cfg s = M.delete s (fuzz' (fuzzLimit cfg 0.0 s))
 
 -- | Fuzz a string and limit the allowed score to a given threshold.
 fuzzLimit :: FuzzyConfig -> FuzzyScore -> Text -> FuzzySet
-fuzzLimit cfg sc s = if sc <= th then M.filter (\ns -> ns <= th) (fuzzInternal cfg sc s) else M.empty
+fuzzLimit cfg sc s = if sc <= th then M.filter (<= th) (fuzzInternal cfg sc s) else M.empty
   where
   th = maxFuzziness cfg
 
@@ -158,10 +158,10 @@ fuzzLimit cfg sc s = if sc <= th then M.filter (\ns -> ns <= th) (fuzzInternal c
 fuzzInternal :: FuzzyConfig -> FuzzyScore -> Text -> FuzzySet
 fuzzInternal cfg sc s = M.unionWith min replaced swapped
   where
-  replaced = let rs = customReplacements cfg in if (applyReplacements cfg)
+  replaced = let rs = customReplacements cfg in if applyReplacements cfg
              then foldr (\r res -> M.unionWith min res (applyFuzz (replace rs r) sc s)) M.empty rs
              else M.empty
-  swapped = if (applySwappings cfg)
+  swapped = if applySwappings cfg
             then applyFuzz swap sc s
             else M.empty
 
@@ -173,14 +173,14 @@ applyFuzz f sc s = apply (init $ T.inits s) (init $ T.tails s)
   apply :: [Text] -> [Text] -> FuzzySet
   apply [] _ = M.empty
   apply _ [] = M.empty
-  apply (pr:prs) (su:sus) = M.unionsWith min $ (apply prs sus):(map create $ (f pr su))
+  apply (pr:prs) (su:sus) = M.unionsWith min $ apply prs sus:map create (f pr su)
     where
-    create (fuzzed, score) = M.singleton fuzzed (sc + score * (calcWeight (T.length pr) (T.length s)))
+    create (fuzzed, score) = M.singleton fuzzed (sc + score * calcWeight (T.length pr) (T.length s))
 
 -- | Apply a replacement in both directions to the suffix of a string and return the complete
 -- string with a score, calculated from the replacement itself and the list of replacements.
 replace :: Replacements -> Replacement -> Text -> Text -> [(Text, FuzzyScore)]
-replace rs ((r1, r2), s) prefix suffix = (replace' r1 r2) ++ (replace' r2 r1)
+replace rs ((r1, r2), s) prefix suffix = replace' r1 r2 ++ replace' r2 r1
   where
   replace' tok sub = if replaced == suffix then [] else [(prefix `T.append` replaced, score)]
     where

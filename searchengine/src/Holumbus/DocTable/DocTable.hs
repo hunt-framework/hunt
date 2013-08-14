@@ -79,7 +79,7 @@ difference                    = flip _difference
 differenceByURI               :: Set URI -> DocTable i e -> DocTable i e
 differenceByURI uris d        = difference ids d
     where
-    ids = S.map (fromJust) . S.filter (isJust) .  S.map (lookupByURI d) $ uris
+    ids = S.map fromJust . S.filter isJust .  S.map (lookupByURI d) $ uris
 
 -- | Update documents (through mapping over all documents).
 map                           :: (e -> e) -> DocTable i e -> DocTable i e
@@ -164,9 +164,9 @@ newConvValueDocTable from to i =
     , _size                          = size i
     , _lookup                        = fmap from . lookup i
     , _lookupByURI                   = lookupByURI i
-    , _union                         = \dt2 -> cv $ union i (impl dt2)
-    , _disjoint                      = \dt2 -> disjoint i (impl dt2)
-    , _insert                        = \e -> second cv $ insert i (to e)
+    , _union                         = cv . union i . impl
+    , _disjoint                      = disjoint i . impl
+    , _insert                        = second cv . insert i . to
     , _update                        = \did e -> cv $ update i did (to e)
     , _delete                        = cv . delete i
     , _difference                    = cv . flip difference i

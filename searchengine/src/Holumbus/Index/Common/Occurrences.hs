@@ -20,7 +20,7 @@
 module Holumbus.Index.Common.Occurrences
 where
 
-import Prelude                                    hiding (subtract)
+import           Prelude                          hiding (subtract)
 
 import           Control.DeepSeq
 

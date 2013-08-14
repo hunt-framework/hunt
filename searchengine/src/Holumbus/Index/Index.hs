@@ -23,19 +23,19 @@ size                  = _size
 
 -- | Index-Type depending lookup function
 lookup                :: it -> Index it v i -> Context -> Word -> RawResult
-lookup it t c w       = _lookup t it c w
+lookup it t           = _lookup t it
 
 -- | Insert occurrences.
 insert                :: Context -> Word -> v -> Index it v i -> Index it v i
-insert                = \c w o i -> _insert i c w o
+insert c w o i        = _insert i c w o
 
 -- | Delete occurrences.
 delete                :: Context -> Word -> v -> Index it v i -> Index it v i
-delete                = \c w o i -> _delete i c w o
+delete c w o i        = _delete i c w o
 
 -- | Delete documents completely (all occurrences).
 deleteDocs            :: Set DocId -> Index it v i -> Index it v i
-deleteDocs            = \ds i -> _deleteDocs i ds
+deleteDocs            = flip _deleteDocs
 
 -- | Merges two indexes.
 merge                 :: Index it v i -> Index it v i -> Index it v i
@@ -60,12 +60,12 @@ splitByWords          = _splitByWords
 -- | Update document id's (e.g. for renaming documents). If the function maps two different id's
 -- to the same new id, the two sets of word positions will be merged if both old id's are present
 -- in the occurrences for a word in a specific context.
-mapDocIds          :: (Context -> Word -> DocId -> DocId) -> Index it v i -> Index it v i
-mapDocIds          = \f i -> _mapDocIds i f
+mapDocIds             :: (Context -> Word -> DocId -> DocId) -> Index it v i -> Index it v i
+mapDocIds             = flip _mapDocIds
 
 -- | Update document id's with a simple injective editing function.
-mapDocIds'         :: (DocId -> DocId) -> Index it v i -> Index it v i
-mapDocIds'         = \f i -> _mapDocIds i (const . const $ f)
+mapDocIds'            :: (DocId -> DocId) -> Index it v i -> Index it v i
+mapDocIds' f i        = _mapDocIds i (const . const $ f)
 
 -- | Convert an Index to a list. Can be used for easy conversion between different index
 -- implementations
@@ -81,7 +81,7 @@ impl                  = _impl
 -- | Create an Index from a list of context, word, occurrences triples.
 --   The first argument should be (a specific implementation of) an empty Index.
 fromList              :: Index it v i -> [(Context, Word, v)] -> Index it v i
-fromList e            = foldl (\i (c,w,o) -> insert c w o i) e
+fromList              = foldl (\i (c,w,o) -> insert c w o i)
 
 -- ----------------------------------------------------------------------------
 data Index it v i = Ix

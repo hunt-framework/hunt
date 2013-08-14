@@ -70,11 +70,11 @@ newtype DocIdMap v      = DIM { unDIM :: IM.EnumMap DocId v }
                           deriving (Eq, Show, Foldable, Functor)
 
 liftDIM                 :: (IM.EnumMap DocId v -> IM.EnumMap DocId r) ->
-                           (DocIdMap v -> DocIdMap r)
+                           DocIdMap v -> DocIdMap r
 liftDIM f               = DIM . f . unDIM
 
 liftDIM2                :: (IM.EnumMap DocId v -> IM.EnumMap DocId w -> IM.EnumMap DocId x) ->
-                           (DocIdMap v -> DocIdMap w -> DocIdMap x)
+                           DocIdMap v -> DocIdMap w -> DocIdMap x
 liftDIM2 f x y          = DIM $ f (unDIM x) (unDIM y)
 
 empty                   :: DocIdMap v

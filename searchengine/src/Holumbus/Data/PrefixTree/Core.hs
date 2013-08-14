@@ -1,4 +1,4 @@
-{-# OPTIONS -XBangPatterns #-}
+{-# LANGUAGE BangPatterns #-}
 
 -- ----------------------------------------------------------------------------
 
@@ -270,7 +270,7 @@ findWithDefault v0 k            = fromMaybe v0 . lookup' k
 -- | /O(min(n,L))/ Is the key a member of the map?
 
 member                          :: Key -> PrefixTree a -> Bool
-member k                        = maybe False (const True) . lookup k
+member k                        = isJust . lookup k
 
 {-# INLINE member #-}
 

@@ -39,11 +39,11 @@ import Control.Monad
 import Holumbus.Index.Common (Context)
 
 -- | The query language.
-data Query = Word       Text            -- ^ Single case-insensitive word.
-           | Phrase     Text            -- ^ Single case-insensitive phrase.
-           | CaseWord   Text            -- ^ Single case-sensitive word.
-           | CasePhrase Text            -- ^ Single case-sensitive phrase.
-           | FuzzyWord  Text            -- ^ Single fuzzy word.
+data Query = Word       Text              -- ^ Single case-insensitive word.
+           | Phrase     Text              -- ^ Single case-insensitive phrase.
+           | CaseWord   Text              -- ^ Single case-sensitive word.
+           | CasePhrase Text              -- ^ Single case-sensitive phrase.
+           | FuzzyWord  Text              -- ^ Single fuzzy word.
            | Specifier  [Context] Query   -- ^ Restrict query to a list of contexts.
            | Negation   Query             -- ^ Negate the query.
            | BinQuery   BinOp Query Query -- ^ Combine two queries through a binary operation.
@@ -67,14 +67,14 @@ instance Binary Query where
 
   get = do tag <- getWord8
            case tag of
-             0 -> liftM Word get
-             1 -> liftM Phrase get
-             2 -> liftM CaseWord get
-             3 -> liftM CasePhrase get
-             4 -> liftM FuzzyWord get
-             5 -> liftM2 Specifier get get
-             6 -> liftM Negation get
-             7 -> liftM3 BinQuery get get get
+             0 -> liftM  Word       get
+             1 -> liftM  Phrase     get
+             2 -> liftM  CaseWord   get
+             3 -> liftM  CasePhrase get
+             4 -> liftM  FuzzyWord  get
+             5 -> liftM2 Specifier  get get
+             6 -> liftM  Negation   get
+             7 -> liftM3 BinQuery   get get get
              _ -> fail "Error while decoding Query"
 
 instance Binary BinOp where
@@ -93,51 +93,54 @@ instance Binary BinOp where
 -- @BinQuery Filter q1 q2@ or @BinQuery Filter q2 q1@ respectively.
 optimize :: Query -> Query
 
-optimize q@(BinQuery And (Word q1) (Word q2)) =
-  if (T.toLower q1) `T.isPrefixOf` (T.toLower q2) then Word q2 else
-    if (T.toLower q2) `T.isPrefixOf` (T.toLower q1) then Word q1 else q
+optimize q@(BinQuery And (Word q1) (Word q2))
+  | T.toLower q1 `T.isPrefixOf` T.toLower q2 = Word q2
+  | T.toLower q2 `T.isPrefixOf` T.toLower q1 = Word q1
+  | otherwise = q
 
-optimize q@(BinQuery And (CaseWord q1) (CaseWord q2)) =
-  if q1 `T.isPrefixOf` q2 then CaseWord q2 else
-    if q2 `T.isPrefixOf` q1 then CaseWord q1 else q
+optimize q@(BinQuery And (CaseWord q1) (CaseWord q2))
+  | q1 `T.isPrefixOf` q2 = CaseWord q2
+  | q2 `T.isPrefixOf` q1 = CaseWord q1
+  | otherwise = q
 
-optimize q@(BinQuery Or (Word q1) (Word q2)) =
-  if (T.toLower q1) `T.isPrefixOf` (T.toLower q2) then Word q1 else
-    if (T.toLower q2) `T.isPrefixOf` (T.toLower q1) then Word q2 else q
+optimize q@(BinQuery Or (Word q1) (Word q2))
+  | T.toLower q1 `T.isPrefixOf` T.toLower q2 = Word q1
+  | T.toLower q2 `T.isPrefixOf` T.toLower q1 = Word q2
+  | otherwise = q
 
-optimize q@(BinQuery Or (CaseWord q1) (CaseWord q2)) =
-  if q1 `T.isPrefixOf` q2 then CaseWord q1 else
-    if q2 `T.isPrefixOf` q1 then CaseWord q2 else q
+optimize q@(BinQuery Or (CaseWord q1) (CaseWord q2))
+  | q1 `T.isPrefixOf` q2 = CaseWord q1
+  | q2 `T.isPrefixOf` q1 = CaseWord q2
+  | otherwise = q
 
-optimize (BinQuery And q1 (Negation q2)) = BinQuery But (optimize q1) (optimize q2)
-optimize (BinQuery And (Negation q1) q2) = BinQuery But (optimize q2) (optimize q1)
+optimize (BinQuery And q1 (Negation q2))  = BinQuery But (optimize q1) (optimize q2)
+optimize (BinQuery And (Negation q1) q2)  = BinQuery But (optimize q2) (optimize q1)
 
-optimize (BinQuery And q1 q2) = BinQuery And (optimize q1) (optimize q2)
-optimize (BinQuery Or q1 q2) = BinQuery Or (optimize q1) (optimize q2)
-optimize (BinQuery But q1 q2) = BinQuery But (optimize q1) (optimize q2)
-optimize (Negation q) = Negation (optimize q)
-optimize (Specifier cs q) = Specifier cs (optimize q)
+optimize (BinQuery And q1 q2)             = BinQuery And (optimize q1) (optimize q2)
+optimize (BinQuery Or q1 q2)              = BinQuery Or (optimize q1) (optimize q2)
+optimize (BinQuery But q1 q2)             = BinQuery But (optimize q1) (optimize q2)
+optimize (Negation q)                     = Negation (optimize q)
+optimize (Specifier cs q)                 = Specifier cs (optimize q)
 
-optimize q = q
+optimize q                                = q
 
 -- | Check if the query arguments comply with some custom predicate.
-checkWith :: (Text -> Bool) -> Query -> Bool
-checkWith f (Word s) = f s
-checkWith f (Phrase s) = f s
-checkWith f (CaseWord s) = f s
-checkWith f (CasePhrase s) = f s
-checkWith f (FuzzyWord s) = f s
-checkWith f (Negation q) = checkWith f q
-checkWith f (BinQuery _ q1 q2) = (checkWith f q1) && (checkWith f q2)
-checkWith f (Specifier _ q) = checkWith f q
+checkWith                         :: (Text -> Bool) -> Query -> Bool
+checkWith f (Word s)              = f s
+checkWith f (Phrase s)            = f s
+checkWith f (CaseWord s)          = f s
+checkWith f (CasePhrase s)        = f s
+checkWith f (FuzzyWord s)         = f s
+checkWith f (Negation q)          = checkWith f q
+checkWith f (BinQuery _ q1 q2)    = checkWith f q1 && checkWith f q2
+checkWith f (Specifier _ q)       = checkWith f q
 
 -- | Returns a list of all terms in the query.
-extractTerms :: Query -> [Text]
-extractTerms (Word s) = [s]
-extractTerms (CaseWord s) = [s]
-extractTerms (FuzzyWord s) = [s]
-extractTerms (Specifier _ q) = extractTerms q
-extractTerms (Negation q) = extractTerms q
-extractTerms (BinQuery _ q1 q2) = (extractTerms q1) ++ (extractTerms q2)
-extractTerms _ = []
-
+extractTerms                      :: Query -> [Text]
+extractTerms (Word s)             = [s]
+extractTerms (CaseWord s)         = [s]
+extractTerms (FuzzyWord s)        = [s]
+extractTerms (Specifier _ q)      = extractTerms q
+extractTerms (Negation q)         = extractTerms q
+extractTerms (BinQuery _ q1 q2)   = extractTerms q1 ++ extractTerms q2
+extractTerms _                    = []

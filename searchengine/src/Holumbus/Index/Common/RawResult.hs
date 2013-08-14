@@ -31,18 +31,15 @@ import           Holumbus.Index.Common.Occurrences
 -- ------------------------------------------------------------
 
 -- | The raw result returned when searching the index.
-
-type RawResult                  = [(Word, Occurrences)]
+type RawResult    = [(Word, Occurrences)]
 
 -- | Transform the raw result into a tree structure ordered by word.
-
-resultByWord :: Context -> RawResult -> Map Word (Map Context Occurrences)
+resultByWord      :: Context -> RawResult -> Map Word (Map Context Occurrences)
 resultByWord c
     = M.fromList . map (\ (w, o) -> (w, M.singleton c o))
 
 -- | Transform the raw result into a tree structure ordered by document.
-
-resultByDocument :: Context -> RawResult -> DocIdMap (Map Context (Map Word Positions))
+resultByDocument  :: Context -> RawResult -> DocIdMap (Map Context (Map Word Positions))
 resultByDocument c os
     = DM.map transform $
       DM.unionsWith (flip $ (:) . head) (map insertWords os)

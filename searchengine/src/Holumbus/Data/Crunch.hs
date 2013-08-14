@@ -111,7 +111,7 @@ crunch64 s = crunch' s (count W01) W01 []
 crunch' :: [Word64] -> Int -> Width -> [Word64] -> [Word64]
 crunch' [] 0 m r = [encode m r]
 crunch' [] _ m r = crunch' r (count (succ m)) (succ m) []
-crunch' s 0 m r = (encode m r):(crunch' s (count W01) W01 [])
+crunch' s 0 m r = encode m r:crunch' s (count W01) W01 []
 crunch' s@(x:xs) n m r = if x <= value m then crunch' xs (n - 1) m (r ++ [x])
                          else crunch' (r ++ s) (count (succ m)) (succ m) []
 
@@ -126,35 +126,35 @@ encode w (x:xs) = rotateR (encode w xs .|. fromIntegral x) (width w)
 -- results have to be expected if calling this function on a list of arbitrary values.
 decrunch64 :: [Word64] -> [Word64]
 decrunch64 [] = []
-decrunch64 (x:xs) = (decode (width w) (count w) (value w) (rotateL x (width w))) ++ (decrunch64 xs)
+decrunch64 (x:xs) = decode (width w) (count w) (value w) (rotateL x (width w)) ++ decrunch64 xs
                    where
                      w = toEnum $ fromIntegral (x .&. 15)  -- Extract the 4 selector bits.
 
 -- Decode some numbers with a given width.
 decode :: Int -> Int -> Word64 -> Word64 -> [Word64]
 decode _ 0 _ _ = []
-decode w n m x = (x .&. m):(decode w (n - 1) m (rotateL x w))
+decode w n m x = (x .&. m):decode w (n - 1) m (rotateL x w)
 
 -- | Crunching 'Word8' values, defined in terms of 'crunch64'.
 crunch8 :: [Word8] -> [Word64]
-crunch8 = crunch64 . (map fromIntegral)
+crunch8 = crunch64 . map fromIntegral
 
 -- | Crunching 'Word16' values, defined in terms of 'crunch64'.
 crunch16 :: [Word16] -> [Word64]
-crunch16 = crunch64 . (map fromIntegral)
+crunch16 = crunch64 . map fromIntegral
 
 -- | Crunching 'Word32' values, defined in terms of 'crunch64'.
 crunch32 :: [Word32] -> [Word64]
-crunch32 = crunch64 . (map fromIntegral)
+crunch32 = crunch64 . map fromIntegral
 
 -- | Decrunching to 'Word8' values, defined in terms of 'decrunch64'.
 decrunch8 :: [Word64] -> [Word8]
-decrunch8 = (map fromIntegral) . decrunch64
+decrunch8 = map fromIntegral . decrunch64
 
 -- | Decrunching to 'Word16' values, defined in terms of 'decrunch64'.
 decrunch16 :: [Word64] -> [Word16]
-decrunch16 = (map fromIntegral) . decrunch64
+decrunch16 = map fromIntegral . decrunch64
 
 -- | Decrunching to 'Word32' values, defined in terms of 'decrunch64'.
 decrunch32 :: [Word64] -> [Word32]
-decrunch32 = (map fromIntegral) . decrunch64
+decrunch32 = map fromIntegral . decrunch64

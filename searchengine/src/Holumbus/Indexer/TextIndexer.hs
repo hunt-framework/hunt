@@ -23,12 +23,12 @@ import           Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Indexer.Indexer
 
 
-type TextIndexer i d de = Indexer Textual Occurrences i d de
+type TextIndexer i d de   = Indexer Textual Occurrences i d de
 
 -- index functions
 
 searchPrefixNoCase        :: Indexer Textual iv i d de -> Context -> Text -> RawResult
-searchPrefixNoCase (Indexer ix _dx) c w = Ix.lookup PrefixNoCase ix c w
+searchPrefixNoCase (Indexer ix _dx) = Ix.lookup PrefixNoCase ix
 
 allWords                  :: Indexer Textual iv i d de -> Context -> RawResult
 allWords                  = Ix.size . ixIndex
@@ -58,7 +58,7 @@ modifyWithDescription descr wrds dId ix
   where
   newDocTable    = Dt.adjust mergeDescr dId $ ixDocTable ix
   newIndex       = addWords wrds dId $ ixIndex ix
-  mergeDescr doc = doc{ desc = M.union (desc doc) descr }
+  mergeDescr doc = doc{ desc = desc doc `M.union` descr }
 
 -- Helper functions
 
