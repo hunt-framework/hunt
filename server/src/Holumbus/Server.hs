@@ -2,14 +2,15 @@
 
 module Holumbus.Server {-(start)-} where
 
+import           Prelude                                  as P
+
 import           Control.Concurrent.MVar
 import           Control.Monad.IO.Class                   (MonadIO, liftIO)
 import           Network.Wai.Middleware.RequestLogger
 import           Web.Scotty
 
 import qualified Data.Map                                 as M
-import           Data.Maybe                               (fromJust, isJust,
-                                                           isNothing)
+import           Data.Either                              (partitionEithers)
 import qualified Data.Set                                 as S
 import           Data.Text                                (Text)
 {-
@@ -79,14 +80,43 @@ jsonPretty v = do
   raw $ encodePretty v
 -}
 
-checkApiDocUris :: (Monad m, Functor m)
-                => (m DocId -> Bool) -> [ApiDocument] -> Indexer it v i d de -> [(URI, m DocId)]
-checkApiDocUris filterDocIds apiDocs ix =
-  let apiDocsM
-          = map (\apiDoc -> let docUri = apiDocUri apiDoc
-                            in (docUri, Ix.lookupByURI ix docUri)) apiDocs
-  in filter (filterDocIds . snd) apiDocsM
+-- Functions to check the existence/absence of documents (by URI) in the indexer.
 
+-- | Constructs a list of 'ApiDocument' 'URI's that already exist in the indexer and a
+--   ist of 'URI's and corresponding 'DocId's for 'ApiDocument's which are part of the indexer.
+checkApiDocUris :: [ApiDocument] -> Indexer it v i d de -> ([URI], [(URI, DocId)])
+checkApiDocUris apiDocs ix =
+  let apiDocsE
+          = map (\apiDoc -> let docUri = apiDocUri apiDoc
+                                idM    = Ix.lookupByURI ix docUri
+                            in maybe
+                                (          Left   docUri)
+                                (\docId -> Right (docUri, docId))
+                                idM)
+                apiDocs
+  in partitionEithers apiDocsE
+
+-- | Constructs a Right value using the second accessor function
+--   if the first accessor function is an empty list. Otherwise the non-empty list is returned.
+--   Used for 'checkApiDocUrisExistence' and 'checkApiDocUrisAbsence'
+checkApiDocUris' :: (([URI], [(URI, DocId)]) -> [a], ([URI], [(URI, DocId)]) -> b)
+                    -> [ApiDocument] -> Indexer it v i d de -> Either [a] b
+checkApiDocUris' (l,r) apiDocs ix =
+    let res = checkApiDocUris apiDocs ix 
+    in if P.null . l $ res then Right . r $ res else Left . l $ res
+
+-- | Checks whether the Documents with the URIs supplied by ApiDocuments are in the index,
+--   i.e. before an insert operation.
+--   Left is the failure case where there are URIs given that cannot be found in the index.
+checkApiDocUrisExistence :: [ApiDocument] -> Indexer it v i d de -> Either [URI] [(URI, DocId)]
+checkApiDocUrisExistence = checkApiDocUris' (fst, snd)
+
+-- XXX: maybe return Either [URI] [URI], since the DocIds will not be needed in the failure case
+-- | Checks whether there are no Documents with the URIs supplied by ApiDocuments in the index,
+--   i.e. before an update operation.
+--   Left is the failure case where there are already documents with those URIs in the index.
+checkApiDocUrisAbsence   :: [ApiDocument] -> Indexer it v i d de -> Either [(URI, DocId)] [URI]
+checkApiDocUrisAbsence   = checkApiDocUris' (snd, fst)
 
 -- server itself:
 --
@@ -141,14 +171,15 @@ start = scotty 3000 $ do
     -- res :: Maybe [URI]  -- maybe the documents that already exist
     res <- modIx $ \ix -> do
       -- intersection of new docs and docTable
-      let failedDocUris = map fst $ checkApiDocUris isJust jss ix :: [URI]
+      let uris = checkApiDocUrisAbsence jss ix :: Either [(URI, DocId)] [URI]
       -- empty intersection of sets -> safe to insert
-      return $ if Prelude.null failedDocUris
-       then
-          ( foldr (uncurry Ix.insertDoc . toDocAndWords) ix jss
-          , Nothing)
-       else (ix, return failedDocUris)
-
+      return $ either
+        (\existingUris ->
+            (ix, return . map fst $ existingUris))
+        (\_            ->
+            ( foldr (uncurry Ix.insertDoc . toDocAndWords) ix jss
+            , Nothing))
+        uris
     json $ maybe
             (JsonSuccess "document(s) added" :: JsonResponse Text)
             JsonFailure
@@ -162,19 +193,20 @@ start = scotty 3000 $ do
 
     -- res :: Maybe [URI]  -- maybe the documents/uris that do not exist
     res <- modIx $ \ix -> do
-      let allDocs       = checkApiDocUris (const True) jss ix :: [(URI, Maybe DocId)]
+      let uris = checkApiDocUrisExistence jss ix :: Either [URI] [(URI, DocId)]
       -- set of new docs minus docTable
-      let failedDocUris = map fst . filter (isNothing . snd) $ allDocs
       -- difference set is empty -> safe to update
-      return $ if Prelude.null failedDocUris
-       then
-          ( foldr (\(docId, apiDoc) ->
-                      uncurry (Ix.updateDoc docId) . toDocAndWords $ apiDoc) ix (zip (map (fromJust . snd) allDocs) jss)
-          , Nothing)
-       else (ix, return failedDocUris)
+      return $ either
+        (\nonexistentUris ->
+            (ix, return nonexistentUris))
+        (\existentDocs    -> 
+            ( foldr (\(docId, apiDoc) ->
+                uncurry (Ix.updateDoc docId) . toDocAndWords $ apiDoc) ix (flip zip jss . map snd $ existentDocs)
+            , Nothing))
+        uris
 
     json $ maybe
-            (JsonSuccess "document(s) updated" :: JsonResponse Text)
+            (JsonSuccess "document(s) replaced" :: JsonResponse Text)
             JsonFailure
             res
 
@@ -186,16 +218,17 @@ start = scotty 3000 $ do
 
     -- res :: Maybe [URI]  -- maybe the documents/uris that do not exist
     res <- modIx $ \ix -> do
-      let allDocs       = checkApiDocUris (const True) jss ix :: [(URI, Maybe DocId)]
+      let uris = checkApiDocUrisExistence jss ix :: Either [URI] [(URI, DocId)]
       -- set of new docs minus docTable
-      let failedDocUris = map fst . filter (isNothing . snd) $ allDocs
       -- difference set is empty -> safe to update
-      return $ if Prelude.null failedDocUris
-       then
-          ( foldr (\(docId, apiDoc) ->
-                      Ix.modifyWithDescription (apiDocDescrMap apiDoc) (snd . toDocAndWords $ apiDoc) docId) ix (zip (map (fromJust . snd) allDocs) jss)
-          , Nothing)
-       else (ix, return failedDocUris)
+      return $ either
+        (\nonexistentUris ->
+            (ix, return nonexistentUris))
+        (\existentDocs    -> 
+            ( foldr (\(docId, apiDoc) ->
+                Ix.modifyWithDescription (apiDocDescrMap apiDoc) (snd . toDocAndWords $ apiDoc) docId) ix (flip zip jss . map snd $ existentDocs)
+            , Nothing))
+        uris
 
     json $ maybe
             (JsonSuccess "document description(s) updated" :: JsonResponse Text)
