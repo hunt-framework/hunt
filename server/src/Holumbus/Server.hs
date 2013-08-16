@@ -24,9 +24,10 @@ import qualified Holumbus.Index.Common.DocIdMap           as DM
 
 import           Holumbus.Index.TextIndex
 import           Holumbus.Index.Text.Inverted.PrefixMem
+import qualified Holumbus.Index.Text.Inverted.PrefixMem  as Inv
 
 import           Holumbus.DocTable.DocTable               hiding (filter, map)
-import           Holumbus.DocTable.HashedDocuments        as Dx
+import           Holumbus.DocTable.HashedDocuments        as Dt
 
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
@@ -59,7 +60,7 @@ modIndex        = liftIO .:: modifyMVar
 --indexer = Indexer emptyIndex HD.emptyDocTable
 
 indexer         :: TextIndexer Inverted Documents Document
-indexer         = Indexer emptyIndex Dx.emptyDocTable
+indexer         = Indexer Inv.empty Dt.empty
 
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500

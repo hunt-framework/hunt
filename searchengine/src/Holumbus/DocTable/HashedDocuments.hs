@@ -25,10 +25,7 @@ module Holumbus.DocTable.HashedDocuments
     , DocMap
 
       -- * Construction
-    , emptyDocTable
-
-    --, emptyDocuments
-    --, singleton
+    , empty
 
       -- * Conversion
     , fromMap
@@ -55,7 +52,7 @@ import qualified Data.ByteString.Lazy           as BS
 
 import           Data.Digest.Murmur64
 
-import           Holumbus.Index.Common
+import           Holumbus.Index.Common          hiding (empty)
 import qualified Holumbus.Index.Common.DocIdMap as DM
 
 import           Holumbus.DocTable.DocTable     hiding (map)
@@ -82,8 +79,8 @@ newtype Documents
 -- ----------------------------------------------------------------------------
 
 -- | An empty document table.
-emptyDocTable :: DocTable Documents Document
-emptyDocTable = newDocTable emptyDocuments
+empty :: DocTable Documents Document
+empty = newDocTable emptyDocuments
 
 -- | The hash function from URIs to DocIds
 docToId :: URI -> DocId

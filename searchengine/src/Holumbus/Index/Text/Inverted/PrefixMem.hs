@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Holumbus.Index.Text.Inverted.PrefixMem
   ( Inverted
-  , newIndex, emptyIndex
+  , newIndex, empty
   , fromList)
 where
 
@@ -96,15 +96,12 @@ newIndex i =
 }
 
 -- | The empty 'Index'.
-emptyIndex                        :: TextIndex Inverted
-emptyIndex                        = newIndex (Inverted M.empty)
+empty                             :: TextIndex Inverted
+empty                             = newIndex (Inverted M.empty)
 
--- XXX: fromList is not in the index data type
 -- | Create an Index from a list. Can be used for easy conversion between different index
---   implementations. Needs an empty index as first argument
-fromList              :: [(Context, Word, Occurrences)] -> TextIndex Inverted
-fromList              = newIndex . fromList'
---fromList e                    ,, foldl (\i (c,w,o) -> insertOccurrences c w o i) e
+fromList                          :: [(Context, Word, Occurrences)] -> TextIndex Inverted
+fromList                          = newIndex . fromList'
 
 -- ----------------------------------------------------------------------------
 
