@@ -290,13 +290,3 @@ unionDocsX :: Documents -> Documents -> Documents
 unionDocsX dt1 dt2
     = Documents
       { idToDoc = idToDoc dt1 `DM.union` idToDoc dt2 }
-
-{-
--- | Create a document table containing a single document.
-singleton :: Document -> Documents
-singleton d
-    = rnf d' `seq`
-      Documents {idToDoc = DM.singleton (docToId . uri $ d) d'}
-    where
-      d' = fromDocument d
-      -}
