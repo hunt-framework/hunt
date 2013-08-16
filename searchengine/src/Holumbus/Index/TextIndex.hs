@@ -10,7 +10,9 @@ import           Holumbus.Index.Common             (Context, DocId, Occurrences,
 import qualified Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Index.Index
 
+-- ----------------------------------------------------------------------------
 
+-- | TextIndex with implementation type parameter. Uses 'Textual' and 'Occurrences' as index and value type.
 type TextIndex i        = Index Textual Occurrences i
 
 -- | Insert a position for a single document.

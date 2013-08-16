@@ -60,14 +60,15 @@ import           Holumbus.Utility               ((.::))
 -- ----------------------------------------------------------------------------
 
 -- | The table which is used to map a document to an artificial id and vice versa.
-
 type DocMap
     = DocIdMap CompressedDoc
 
+-- | The Document as a bzip-compressed bytestring.
 newtype CompressedDoc
     = CDoc { unCDoc :: ByteString }
       deriving (Eq, Show)
 
+-- | The 'DocTable' implementation. Maps 'DocId's to 'Document's.
 newtype Documents
     = Documents { idToDoc   :: DocMap }     -- ^ A mapping from a document id to
                                             --   the document itself.
@@ -75,11 +76,13 @@ newtype Documents
 
 -- ----------------------------------------------------------------------------
 
--- | An empty document table.
-
+-- | The empty compressed document table.
+--   This acts as a proxy with two conversion function (bijection)
+--   and "hides" the fact that it uses CompressedDoc in the implementation.
 emptyDocTable :: DocTable (DocTable Documents CompressedDoc) Document
 emptyDocTable = newConvValueDocTable toDocument fromDocument emptyDocTableCompressed
 
+-- | The raw empty compressed 'DocTable'.
 emptyDocTableCompressed :: DocTable Documents CompressedDoc
 emptyDocTableCompressed = newDocTable emptyDocuments
 
@@ -93,76 +96,82 @@ fromMap = newDocTable . fromMap'
 
 -- ----------------------------------------------------------------------------
 
+-- | The doc-table using the 'Documents' (uses 'CompressedDoc') implementation.
 newDocTable :: Documents -> DocTable Documents CompressedDoc
 newDocTable i =
     Dt
     {
-      -- | Test whether the doc table is empty.
+    -- Test whether the doc table is empty.
       _null                          = nullDocs' i
 
-    -- | Returns the number of unique documents in the table.
+    -- Returns the number of unique documents in the table.
     , _size                          = sizeDocs' i
 
-    -- | Lookup a document by its id.
+    -- Lookup a document by its id.
     , _lookup                        = lookupById' i
 
-    -- | Lookup the id of a document by an URI.
+    -- Lookup the id of a document by an URI.
     , _lookupByURI                   = lookupByURI' i
 
-    -- | Union of two disjoint document tables. It is assumed, that the DocIds and the document uris
+    -- Union of two disjoint document tables. It is assumed, that the DocIds and the document uris
     -- of both indexes are disjoint. If only the sets of uris are disjoint, the DocIds can be made
     -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
     , _union                         = newDocTable . unionDocs' i . impl
 
-    -- | Test whether the doc ids of both tables are disjoint.
+    -- Test whether the doc ids of both tables are disjoint.
     , _disjoint                      = disjointDocs' i . impl
 
-    -- | Insert a document into the table. Returns a tuple of the id for that document and the
+    -- Insert a document into the table. Returns a tuple of the id for that document and the
     -- new table. If a document with the same URI is already present, its id will be returned
     -- and the table is returned unchanged.
     , _insert                        = second newDocTable . insert' i
 
-    -- | Update a document with a certain DocId.
+    -- Update a document with a certain DocId.
     , _update                        = newDocTable .:: updateDoc' i
 
-    -- | Removes the document with the specified id from the table.
+    -- Removes the document with the specified id from the table.
     , _delete                        = newDocTable . deleteById' i
 
-    -- | Deletes a set of Docs by Id from the table.
+    -- Deletes a set of Docs by Id from the table.
     , _difference                    = \ids -> newDocTable $ differenceById' ids i
 
-    -- | Update documents (through mapping over all documents).
+    -- Update documents (through mapping over all documents).
     , _map                           = \f -> newDocTable $ updateDocuments' f i
 
-    -- | Filters all documents that satisfy the predicate.
+    -- Filters all documents that satisfy the predicate.
     , _filter                        = \f -> newDocTable $ filterDocuments' f i
 
-    -- | Convert document table to a single map
+    -- Convert document table to a single map
     , _toMap                         = toMap' i
 
-    -- | Edit document ids
+    -- Edit document ids
     , _mapKeys                       = \f -> newDocTable $ mapKeys' f i
 
-    -- | The doctable implementation.
+    -- The doctable implementation.
     , _impl                          = i
     }
 
 -- ----------------------------------------------------------------------------
 
+-- | 'CompressedDoc' to 'Document' conversion.
 toDocument                      :: CompressedDoc -> Document
 toDocument                      = B.decode . BZ.decompress . unCDoc
 
+-- | 'Document' to 'CompressedDoc' conversion.
 fromDocument                    :: Document -> CompressedDoc
 fromDocument                    = CDoc . BZ.compress . B.encode
 
 {-
+-- | Document functor.
 mapDocument                     :: (Document -> Document) -> CompressedDoc -> CompressedDoc
 mapDocument f                   = fromDocument . f . toDocument
 -}
 
+-- | Creates a 'DocIdMap' 'CompressedDoc' from a 'DocIdMap' 'Document'.
 toDocMap                        :: DocIdMap Document -> DocMap
 toDocMap                        = DM.map fromDocument
 
+-- | Creates a 'DocIdMap' 'Document' from a 'DocIdMap' 'CompressedDoc'.
 fromDocMap                      :: DocMap -> DocIdMap Document
 fromDocMap                      = DM.map toDocument
 
@@ -257,7 +266,7 @@ instance Binary Documents where
     put = B.put . idToDoc
     get = fmap Documents B.get
 
--- ------------------------------------------------------------
+-- ----------------------------------------------------------------------------
 
 instance Binary CompressedDoc where
     put = B.put . unCDoc
@@ -269,7 +278,7 @@ instance NFData CompressedDoc where
     rnf (CDoc s)
         = BS.length s `seq` ()
 
--- ------------------------------------------------------------
+-- ----------------------------------------------------------------------------
 
 -- | Create an empty table.
 emptyDocuments :: Documents

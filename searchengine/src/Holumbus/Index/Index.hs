@@ -2,9 +2,9 @@ module Holumbus.Index.Index
 where
 
 import           Data.Set                       (Set)
-import           Data.Text                      (Text)
 
-import           Holumbus.Index.Common          (Context, RawResult, Word, DocId)       
+import           Holumbus.Index.Common          (Context, RawResult, Word, DocId)
+
 -- ----------------------------------------------------------------------------
 --
 -- external interface
@@ -21,7 +21,7 @@ contexts              = _contexts
 size                  :: Index it v i -> Context -> RawResult
 size                  = _size
 
--- | Index-Type depending lookup function
+-- | General lookup function.
 lookup                :: it -> Index it v i -> Context -> Word -> RawResult
 lookup it t           = _lookup t it
 
@@ -57,13 +57,13 @@ splitByDocuments      = _splitByDocuments
 splitByWords          :: Index it v i -> Int -> [Index it v i]
 splitByWords          = _splitByWords
 
--- | Update document id's (e.g. for renaming documents). If the function maps two different id's
--- to the same new id, the two sets of word positions will be merged if both old id's are present
+-- | Update document 'DocId's (e.g. for renaming documents). If the function maps two different 'DocId's
+-- to the same new 'DocId', the two sets of word positions will be merged if both old 'DocId's are present
 -- in the occurrences for a word in a specific context.
 mapDocIds             :: (Context -> Word -> DocId -> DocId) -> Index it v i -> Index it v i
 mapDocIds             = flip _mapDocIds
 
--- | Update document id's with a simple injective editing function.
+-- | Update 'DocId's with a simple injective editing function.
 mapDocIds'            :: (DocId -> DocId) -> Index it v i -> Index it v i
 mapDocIds' f i        = _mapDocIds i (const . const $ f)
 
@@ -84,19 +84,28 @@ fromList              :: Index it v i -> [(Context, Word, v)] -> Index it v i
 fromList              = foldl (\i (c,w,o) -> insert c w o i)
 
 -- ----------------------------------------------------------------------------
+
+-- | The index data type which contains all functions used on the implementation.
+--   The type parameters are:
+--
+--   - @it@: the index type (text, geo, ...)
+--
+--   - @v@: the values stored (e.g. occurrences in documents)
+--
+--   - @i@: the implementation
 data Index it v i = Ix
     {
-    -- | Returns the number of unique words in the index.
+    -- | Number of unique words in the index.
       _unique                        :: Int
 
-    -- | Returns a list of all contexts avaliable in the index.
+    -- | List of all contexts avaliable in the index.
     , _contexts                      :: [Context]
 
-    -- | Returns the occurrences for every word. A potentially expensive operation.
+    -- | The occurrences for every word. A potentially expensive operation.
     , _size                          :: Context -> RawResult
 
-    -- | general lookup function
-    , _lookup                        :: it -> Context -> Text -> RawResult
+    -- | General lookup function.
+    , _lookup                        :: it -> Context -> Word -> RawResult
 
     -- | Insert occurrences.
     , _insert                        :: Context -> Word -> v -> Index it v i

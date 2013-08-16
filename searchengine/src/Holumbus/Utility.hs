@@ -36,7 +36,7 @@ import           System.IO
 (.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
 (.::) = (.).(.)
 
--- The Total Recall operator.
+-- | The Total Recall operator.
 (.:::) :: (d -> e) -> (a -> b -> c -> d) -> a -> b -> c -> e
 (.:::) = (.).(.).(.)
 
@@ -105,11 +105,3 @@ escape (c:cs)
       else '%' : showHex (fromEnum c) "" ++ escape cs
 
 -- ------------------------------------------------------------
--- | Compute the base of a webpage
---   stolen from Uwe Schmidt, http:\/\/www.haskell.org\/haskellwiki\/HXT
-
-traceOffset :: Int
-traceOffset = 3
-
-trcMsg          :: String -> IO ()
-trcMsg m         = hPutStrLn stderr ('-':"- (0) " ++ m)

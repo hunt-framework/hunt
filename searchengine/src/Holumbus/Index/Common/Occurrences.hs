@@ -106,7 +106,7 @@ emptyPos                = IS.empty
 singletonPos            :: Position -> Positions
 singletonPos            = IS.singleton
 
--- Whether the 'Position' is part of 'Positions'.
+-- | Whether the 'Position' is part of 'Positions'.
 memberPos               :: Position -> Positions -> Bool
 memberPos               = IS.member
 
@@ -134,9 +134,9 @@ foldPos                 = IS.fold
 instance (NFData v, Enum v) => NFData (IS.EnumSet v) where
     rnf                   = rnf . IS.toList
 
+-- | Binary serialisation for a set of positions.
 instance (Binary v, Enum v) => Binary (IS.EnumSet v) where
     put                   = B.put . IS.toList
     get                   = B.get >>= return . IS.fromList
 
 -- ------------------------------------------------------------
-

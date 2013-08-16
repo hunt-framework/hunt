@@ -30,6 +30,8 @@ import           Holumbus.Index.Compression        as C
 import           Holumbus.Index.TextIndex          hiding (fromList)
 
 
+-- | The Index implementation type.
+--   Mapping contexts to prefix-trees, which map to compressed occurrences (which map documents/ids to positions).
 newtype Inverted        = Inverted { indexParts :: Parts }
                           deriving (Show, Eq)
 
@@ -40,46 +42,47 @@ type Parts              = Map Context Part
 type Part               = PT.PrefixTree CompressedOccurrences
 
 
+-- | New 'Index' value using the 'Inverted' implementation.
 newIndex :: Inverted -> TextIndex Inverted
 newIndex i =
     Ix
     {
-    -- | Returns the number of unique words in the index.
+    -- Returns the number of unique words in the index.
       _unique                 = sizeWords' i
 
-    -- | Returns a list of all contexts avaliable in the index.
+    -- Returns a list of all contexts avaliable in the index.
     , _contexts               = contexts' i
 
-    -- | Returns the occurrences for every word. A potentially expensive operation.
+    -- Returns the occurrences for every word. A potentially expensive operation.
     , _size                   = allWords' i
 
     , _lookup                 = lookup' i
 
-    -- | Insert occurrences.
+    -- Insert occurrences.
     , _insert                 = \c w o -> newIndex $ insertOccurrences' c w o i
 
-    -- | Delete occurrences.
+    -- Delete occurrences.
     , _delete                 = \c w o -> newIndex $ deleteOccurrences' c w o i
 
-    -- | Delete documents completely (all occurrences).
+    -- Delete documents completely (all occurrences).
     , _deleteDocs             = \ds -> newIndex $ deleteDocsById' ds i
 
-    -- | Merges two indexes.
+    -- Merges two indexes.
     , _merge                  = newIndex . mergeIndexes' i . _impl
 
-    -- | Subtract one index from another.
+    -- Subtract one index from another.
     , _subtract               = newIndex . subtractIndexes' i . _impl
 
-    -- | Splitting an index by its contexts.
+    -- Splitting an index by its contexts.
     , _splitByContexts        = map newIndex . splitByContexts' i
 
-    -- | Splitting an index by its documents.
+    -- Splitting an index by its documents.
     , _splitByDocuments       = map newIndex . splitByDocuments' i
 
-    -- | Splitting an index by its words.
+    -- Splitting an index by its words.
     , _splitByWords           = map newIndex . splitByWords' i
 
-    -- | Update document id's (e.g. for renaming documents). If the function maps two different id's
+    -- Update document id's (e.g. for renaming documents). If the function maps two different id's
     -- to the same new id, the two sets of word positions will be merged if both old id's are present
     -- in the occurrences for a word in a specific context.
     , _mapDocIds                = \f -> newIndex $ updateDocIdsX f i
@@ -92,19 +95,20 @@ newIndex i =
     , _impl                   = i
 }
 
-
+-- | The empty 'Index'.
 emptyIndex                        :: TextIndex Inverted
 emptyIndex                        = newIndex (Inverted M.empty)
 
 -- XXX: fromList is not in the index data type
--- Create an Index from a list. Can be used for easy conversion between different index
--- implementations. Needs an empty index as first argument
+-- | Create an Index from a list. Can be used for easy conversion between different index
+--   implementations. Needs an empty index as first argument
 fromList              :: [(Context, Word, Occurrences)] -> TextIndex Inverted
 fromList              = newIndex . fromList'
 --fromList e                    ,, foldl (\i (c,w,o) -> insertOccurrences c w o i) e
 
 -- ----------------------------------------------------------------------------
 
+-- | Modify the index 'Parts'.
 liftInv                           :: (Parts -> Parts) -> Inverted -> Inverted
 liftInv f                         = Inverted . f . indexParts
 
@@ -278,11 +282,11 @@ deleteDocsById' docIds            = liftInv $ M.mapMaybe deleteInParts
 
 lookup' :: Inverted -> Textual -> Context -> Text -> [(Text, Occurrences)]
 lookup' i t c w = case t of
-    -- | Searches for words beginning with the prefix in a given context (case-sensitive).
+    -- Searches for words beginning with the prefix in a given context (case-sensitive).
          PrefixCase   -> prefixCase' i c w
-    -- | Searches for words beginning with the prefix in a given context (case-insensitive).
+    -- Searches for words beginning with the prefix in a given context (case-insensitive).
          PrefixNoCase -> prefixNoCase' i c w
-    -- | Searches for and exact word in a given context (case-sensitive).
+    -- Searches for and exact word in a given context (case-sensitive).
          Case         -> lookupCase' i c w
-    -- | Searches for and exact word in a given context (case-insensitive).
+    -- Searches for and exact word in a given context (case-insensitive).
          NoCase       -> lookupNoCase' i c w

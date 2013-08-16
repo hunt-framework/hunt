@@ -11,14 +11,17 @@ import qualified Holumbus.Index.Index         as Ix
 import           Holumbus.DocTable.DocTable   (DocTable)
 import qualified Holumbus.DocTable.DocTable   as Dt
 
+-- ----------------------------------------------------------------------------
 
--- | Generic indexer. A combination of index and doc table.
+-- | Generic indexer. A combination of 'Index' and 'DocTable'.
 data Indexer it iv i d de
   = Indexer
     { ixIndex    :: Index it iv i
     , ixDocTable :: DocTable d de
     }
  
+ -- ----------------------------------------------------------------------------
+
 -- | Returns the number of unique words in the index.
 unique                    :: Indexer it iv i d de -> Int
 unique                    = Ix.unique . ixIndex

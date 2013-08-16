@@ -48,7 +48,9 @@ import           Holumbus.Index.Common.Occurrences hiding (delete)
 
 -- ----------------------------------------------------------------------------
 
+-- | Compressed occurrences using a difference list implementation.
 type CompressedOccurrences      = DocIdMap CompressedPositions
+-- | Compressed positions using a difference list implementation.
 type CompressedPositions        = DiffList
 
 -- ----------------------------------------------------------------------------
