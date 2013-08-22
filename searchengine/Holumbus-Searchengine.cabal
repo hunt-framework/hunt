@@ -61,6 +61,7 @@ library
     Holumbus.Index.Common.Occurrences
     Holumbus.Index.Common.RawResult
     Holumbus.Index.Compression
+    Holumbus.Index.Proxy.CachedIndex
     Holumbus.DocTable.DocTable
     Holumbus.DocTable.HashedDocuments
     Holumbus.DocTable.Proxy.ValueConversionDocTable
