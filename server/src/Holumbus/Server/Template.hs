@@ -1,6 +1,6 @@
-module Holumbus.Server.Template 
+module Holumbus.Server.Template
 ( index
-, addDocs  
+, addDocs
 ) where
 --import qualified Data.Text      as T
 import qualified Data.Text.Lazy as LT
@@ -32,7 +32,7 @@ index =
     $(document).keypress(function(event) {
       if ( event.which == 13 ) {
          event.preventDefault();
-         search(event);   
+         search(event);
       }
     });
 
@@ -47,7 +47,7 @@ index =
             });
           }
           callback(result);
-        }) 
+        })
       }
     });
 
@@ -75,7 +75,7 @@ index =
             $("#result").html("<p>no results found :-(</p>");
             return false;
           }
-           
+
           var res = '<table class="table table-bordered">';
           $(docs).each(function(i,e) {
              res += "<tr><td>" + e.uri + "</td><td>";
@@ -99,11 +99,11 @@ index =
 |]
 
 addDocs :: LT.Text
-addDocs = 
+addDocs =
   -- generate html with hamlet
   (renderHtml . defaultLayout $ [xshamlet|
 <form>
-  <textarea .span6 name=document #txt-document style=height:100px> 
+  <textarea .span6 name=document #txt-document style=height:100px>
     [{
     "uri": "joke://joke1",
     "description": {
@@ -170,8 +170,6 @@ defaultLayout content = [xshamlet|
               <a href="/">Search
             <li>
               <a href="/add">Add Documents
-            <li>
-              <a href="/">Statistics
     <div .container style="margin-top:70px">
       #{content}
 |]
