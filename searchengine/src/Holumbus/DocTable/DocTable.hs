@@ -14,7 +14,6 @@ import           Holumbus.Index.Common.DocId
 import           Holumbus.Index.Common.DocIdMap   (DocIdMap)
 import qualified Holumbus.Index.Common.DocIdMap   as DM
 
-
 -- ----------------------------------------------------------------------------
 --
 -- external interface

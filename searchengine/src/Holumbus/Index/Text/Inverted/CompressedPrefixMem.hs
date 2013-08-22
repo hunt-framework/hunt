@@ -61,7 +61,6 @@ import           Holumbus.Index.Compression
 import qualified Holumbus.Data.PrefixTree       as PT
 import qualified Holumbus.Index.Common.DocIdMap as DM
 
-
 -- ----------------------------------------------------------------------------
 
 class ComprOccurrences s where

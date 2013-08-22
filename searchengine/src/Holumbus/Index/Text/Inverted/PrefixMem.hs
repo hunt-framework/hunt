@@ -29,6 +29,7 @@ import qualified Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Index.Compression        as C
 import           Holumbus.Index.TextIndex          hiding (fromList)
 
+-- ----------------------------------------------------------------------------
 
 -- | The Index implementation type.
 --   Mapping contexts to prefix-trees, which map to compressed occurrences (which map documents/ids to positions).
@@ -41,6 +42,7 @@ type Parts              = Map Context Part
 -- | The index part is the real inverted index. Words are mapped to their occurrences.
 type Part               = PT.PrefixTree CompressedOccurrences
 
+-- ----------------------------------------------------------------------------
 
 -- | New 'Index' value using the 'Inverted' implementation.
 newIndex :: Inverted -> TextIndex Inverted
@@ -94,6 +96,8 @@ newIndex i =
     -- The index implementation.
     , _impl                   = i
 }
+
+-- ----------------------------------------------------------------------------
 
 -- | The empty 'Index'.
 empty                             :: TextIndex Inverted
