@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -9,8 +10,7 @@
   Stability  : experimental
 
   Like Holumbus.Index.HashedDocuments but using CompressedDoc directly.
-  Conversion and exposing the Document interface is done by a proxy DocTable
-  with newConvValueDocTable.
+  Conversion and exposing the Document interface is done by a proxy DocTable.
 -}
 
 -- ----------------------------------------------------------------------------
@@ -23,7 +23,7 @@ module Holumbus.DocTable.HashedCompactDocuments
     , DocMap
 
       -- * Construction
-    , emptyDocTable
+    , empty
 
       -- * Conversion
     , fromMap
@@ -35,27 +35,28 @@ module Holumbus.DocTable.HashedCompactDocuments
     )
 where
 
-import qualified Codec.Compression.BZip         as BZ
+import qualified Codec.Compression.BZip                          as BZ
 
+import           Control.Arrow                                   (second)
 import           Control.DeepSeq
-import           Control.Arrow                  (second)
 
-import           Data.Binary                    (Binary)
-import qualified Data.Binary                    as B
-import           Data.Set                       (Set)
-import qualified Data.Set                       as S
+import           Data.Binary                                     (Binary)
+import qualified Data.Binary                                     as B
+import           Data.Set                                        (Set)
+import qualified Data.Set                                        as S
 
-import           Data.ByteString.Lazy           (ByteString)
-import qualified Data.ByteString.Lazy           as BS
+import           Data.ByteString.Lazy                            (ByteString)
+import qualified Data.ByteString.Lazy                            as BS
 
 import           Data.Digest.Murmur64
 
-import           Holumbus.Index.Common
-import qualified Holumbus.Index.Common.DocIdMap as DM
+import           Holumbus.Index.Common                           hiding (empty)
+import qualified Holumbus.Index.Common.DocIdMap                  as DM
 
-import           Holumbus.DocTable.DocTable     hiding (map)
+import           Holumbus.DocTable.DocTable                      hiding (map)
+import qualified Holumbus.DocTable.Proxy.ValueConversionDocTable as ValConvDt
 
-import           Holumbus.Utility               ((.::))
+import           Holumbus.Utility                                ((.::))
 
 -- ----------------------------------------------------------------------------
 
@@ -79,12 +80,12 @@ newtype Documents
 -- | The empty compressed document table.
 --   This acts as a proxy with two conversion function (bijection)
 --   and "hides" the fact that it uses CompressedDoc in the implementation.
-emptyDocTable :: DocTable (DocTable Documents CompressedDoc) Document
-emptyDocTable = newConvValueDocTable toDocument fromDocument emptyDocTableCompressed
+empty :: DocTable (DocTable Documents CompressedDoc) Document
+empty = ValConvDt.empty toDocument fromDocument emptyCompressed
 
 -- | The raw empty compressed 'DocTable'.
-emptyDocTableCompressed :: DocTable Documents CompressedDoc
-emptyDocTableCompressed = newDocTable emptyDocuments
+emptyCompressed :: DocTable Documents CompressedDoc
+emptyCompressed = newDocTable emptyDocuments
 
 -- | The hash function from URIs to DocIds
 docToId :: URI -> DocId
