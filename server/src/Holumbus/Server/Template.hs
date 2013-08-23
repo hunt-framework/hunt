@@ -15,13 +15,50 @@ index :: LT.Text
 index =
   -- generate html with hamlet
   (renderHtml . defaultLayout $ [xshamlet|
-<form>
-  <div .input-append >
-    <input .input-xxlarge type=text #txt-search>
-    <button .btn .btn-primary type=button #btn-search>Search
+<h1>
+  Holumbus Search
 <hr>
-<div .well  #result>
-  no results...
+<div .row>
+  <div .span8>
+    <form>
+      <div .input-append>
+        <input .input-xxlarge type=text #txt-search>
+        <button .btn .btn-primary type=button #btn-search>Search
+      <hr>
+      <table .table .table-bordered .table-striped .table-condensed>
+        <thead>
+          <tr>
+            <th>URI
+            <th colspan=2>Entity
+            <th>
+        <tbody #result-body>
+          <tr>
+            <td colspan=4>
+              no items found 
+  <div .span4>
+     <table .table .table-condensed .table-bordered .table-striped>
+       <tr>
+         <td>case-sensitive query
+         <td><strong>!</strong>chris<br /><strong>!</strong>Chris
+       <tr>
+         <td>fuzzy query
+         <td><strong>~</strong>chris <br /> <strong>~</strong>hcris
+       <tr>
+         <td>phrase query
+         <td><strong>"</strong>this is a phrase<strong>"</strong>
+       <tr>
+         <td>using brackets
+         <td><strong>(</strong>...<strong>)</strong>
+       <tr>
+         <td>context-sensitive query
+         <td>context<strong>:</strong>query<br />people<strong>:</strong>chris
+       <tr>
+         <td>mutli-context query
+         <td>developer<strong>,</strong>students<strong>,</strong>people:chris
+       <tr>
+         <td>query combinators
+         <td>AND, OR, NOT, BUT
+               
 |]) `LT.append`
   -- generate javascript
   renderJavascriptUrl (\_ _ -> "") [julius|
@@ -60,36 +97,47 @@ index =
       var query = $("#txt-search").val();
 
       if (query === "") {
-         $("#result").html("<p>empty search query ...</p>");
+         
+         $("#result-body").html("<tr><td colspan=\"4\">No items found.</td></tr>");
          return false;
       }
 
-      $("#result").html("<p>searching ...</p>");
       $.get("/search/" + query, function(data) {
         if (data.code === 0)
         {
           var docs = data.msg;
           if (docs.length === 0)
           {
-            $("#result").html("<p>no results found :-(</p>");
+            $("#result-body").html("<tr><td colspan=\"4\">No items found.</td></tr>");
             return false;
           }
-
-          var res = '<table class="table table-bordered">';
+ 
+          var res = "";
           $(docs).each(function(i,e) {
-             res += "<tr><td>" + e.uri + "</td><td>";
              var desc = e.desc
+             var first = true;
+             var props = Object.keys(desc).length;
              for (var key in desc){
-               res += "<p>" + key + ":" + desc[key] + "</p>";
+               res += "<tr>";
+               if (first)
+               {
+                 res += "<td rowspan=\"" + props +"\">" + e.uri + "</td>";
+               }
+               res += "<th>" + key + "</th><td>" + desc[key] + "</td>>";
+               if (first)
+               {
+                 res += "<td rowspan=\"" + props + "\">";
+                 res += "<button class\"btn btn-alert remove\">-</button></td>"
+               }
+               res += "</tr>";
+               first = false;
              }
-             res += "</td></tr>";
           });
-          res += "</table>";
-          $("#result").html(res);
+          $("#result-body").html(res);
         }
         else
         {
-          $("#result").html("<p>an error occured ...</p>");
+           alert("Error occurred - please check server!");
         }
       });
     };
@@ -101,9 +149,10 @@ addDocs :: LT.Text
 addDocs =
   -- generate html with hamlet
   (renderHtml . defaultLayout $ [xshamlet|
+<h1>
+  Add Documents
+<hr>
 <form>
-  <h1>
-    Add Documents
   <div .row>
     <div .span7>
       <table .table .table-condensed #entity>
