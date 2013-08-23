@@ -20,9 +20,8 @@ index =
     <input .input-xxlarge type=text #txt-search>
     <button .btn .btn-primary type=button #btn-search>Search
 <hr>
-<div  #result>
-  &nbsp;
-<hr>
+<div .well  #result>
+  no results...
 |]) `LT.append`
   -- generate javascript
   renderJavascriptUrl (\_ _ -> "") [julius|
@@ -103,37 +102,96 @@ addDocs =
   -- generate html with hamlet
   (renderHtml . defaultLayout $ [xshamlet|
 <form>
-  <textarea .span6 name=document #txt-document style=height:100px>
-    [{
-    "uri": "joke://joke1",
-    "description": {
-      "wer": "Adi Furler",
-      "was": "Schöne Bilder aus Bremen. Aber eins verstehe ich nicht: Wieso singen die eigentlich \"We want the cup\", die haben den Pokal doch schon?",
-      "wo": "im Sportstudio nach einem Bericht über eine Pokalsiegerfeier in Bremen, bei der Wynton Rufer und die Fans \"We won the cup!\" sangen",
-      "gruppe": "Reportersprüche"
-    },
-    "index": {
-      "wer": {
-        "content": "Adi Furler"
-      },
-      "was": {
-        "content": "Schöne Bilder aus Bremen. Aber eins verstehe ich nicht: Wieso singen die eigentlich \"We want the cup\", die haben den Pokal doch schon?"
-      },
-      "wo": {
-        "content": "im Sportstudio nach einem Bericht über eine Pokalsiegerfeier in Bremen, bei der Wynton Rufer und die Fans \"We won the cup!\" sangen"
-      },
-      "gruppe": {
-        "content": "Reportersprüche"
-      }
-    }
-    }]
-  <button .btn .btn-primary #btn-add>
-    Add Document
+  <h1>
+    Add Documents
+  <div .row>
+    <div .span7>
+      <table .table .table-condensed #entity>
+        <tr>
+          <th>URI
+          <td colspan=3>
+            <input type="text" .input-large #uri value="sampleId::1"/>
+        <tr>
+          <th>Entity
+          <th>Property Key
+          <th>Property Value
+          <th>
+            <button .btn .btn-success  #add-persistent>
+              +
+        <tr .persistent>
+          <th>
+          <td>
+            <input type="text" .persistent-key value="sample key" />
+          <td>
+            <textarea .persistent-value>
+              sample description
+          <td>
+        <tr>
+          <th>Index
+          <th>Context
+          <th>Information
+          <th>
+            <button .btn .btn-success #add-index>
+              +        
+        <tr .indexed>             
+          <th>
+          <td>
+            <input type="text" .indexed-key  value="sample context" />
+          <td>
+            <textarea .indexed-value>
+              sample information
+          <td>
+          
+    <div .span5>
+      <textarea name=document #txt-document style=height:400px;width:100%>
+      <button .btn .btn-primary #btn-add style=float:right>
+        Add Documents
 |]) `LT.append`
   -- generate javascript
   renderJavascriptUrl (\_ _ -> "") [julius|
 <script>
   $(document).ready(function() {
+
+    updateJson = function(ev) {
+      var apiDoc = {
+        "uri": $("#uri").val(),
+        "description" : {},
+        "index": {}
+      };
+
+      var values = $(".persistent-value");
+      $(".persistent-key").each(function(i,v) {
+        eval("apiDoc.description['"+$(v).val()+"'] ='"+$(values[i]).val()+"'"); 
+      });
+
+      values = $(".indexed-value");
+      $(".indexed-key").each(function(i,v) {
+        eval("apiDoc.index['"+$(v).val()+"'] = {'content':'"+$(values[i]).val()+"'}"); 
+      });
+    
+      var apiDocs = [apiDoc]; 
+      $("#txt-document").html(JSON.stringify(apiDocs));
+    };
+    updateJson();
+   
+    $(document).on("change", "#uri, .persistent-key, .persistent-value, .indexed-key, .indexed-value", updateJson);
+
+    $("#add-persistent").on("click", function(ev) {
+      ev.preventDefault();
+      $(".persistent").after("<tr><td></td>" + 
+        "<td><input class=\"persistent-key\" type=\"text\"/></td>" +
+        "<td><textarea class=\"persistent-value\"></textarea></td>" + 
+        "<td></td></tr>");
+    });
+
+    $("#add-index").on("click", function(ev) {
+      ev.preventDefault();
+      $(".indexed").after("<tr><td></td>" + 
+        "<td><input class=\"indexed-key\" type=\"text\"/></td>" +
+        "<td><textarea class=\"indexed-value\"></textarea></td>" + 
+        "<td></td></tr>");
+    });
+
     $("#btn-add").click(function(ev){
       ev.preventDefault();
       var json = $("#txt-document").val();
