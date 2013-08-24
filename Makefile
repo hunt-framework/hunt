@@ -10,16 +10,16 @@ install		: ; $(MAKE) target action=install
 target	        : searchengine server
 
 searchengine: 
-	( cd searchengine           && cabal clean && cabal $(action) )
+	( cd searchengine           && cabal $(action) )
 
 server:
-	( cd server                 && cabal clean && cabal $(action))
+	( cd server                 && cabal $(action))
 
 startServer: stopServer
 	( holumbusServer & )
 
 stopServer:
-	( killall holumbusServer )
+	-killall holumbusServer
  
 insertJokes: startServer
 	( cd data/jokes/ && curl -X POST -d @FussballerSprueche.js http://localhost:3000/document/insert)
