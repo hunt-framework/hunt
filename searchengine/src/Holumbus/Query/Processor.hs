@@ -168,9 +168,9 @@ process s (BinQuery o q1 q2) = processBin o (process s q1) (process s q2)
 -- | Monadic version of 'process'.
 processM :: (Monad m) => ProcessState i -> Query -> m Intermediate
 processM s (Word w)           = processWordM s w
-processM _ (Phrase _)         = return I.empty -- processPhraseM s w
+processM s (Phrase w)         = processPhraseM s w
 processM s (CaseWord w)       = processCaseWordM s w
-processM _ (CasePhrase _)     = return I.empty -- processCasePhraseM s w
+processM s (CasePhrase w)     = processCasePhraseM s w
 processM s (FuzzyWord w)      = processFuzzyWordM s w
 processM s (Negation q)       = processM s q >>= processNegationM s
 processM s (Specifier c q)    = setContextsM c s >>= \ns -> processM ns q
@@ -213,16 +213,23 @@ processPhrase s q = forAllContexts phraseNoCase (contexts s)
   where
   phraseNoCase c = processPhraseInternal (Ix.lookup NoCase (index s) c) c q
 
--- processPhraseM :: HolIndexM m i => ProcessState i -> String -> m Intermediate
--- processPhraseM s q = forAllContextsM phraseNoCase (contexts s)
---   where
---   phraseNoCase c =
+-- | Monadic version of 'processPhrase'.
+processPhraseM :: Monad m => ProcessState i -> Text -> m Intermediate
+processPhraseM s q = forAllContextsM phraseNoCase (contexts s)
+  where
+  phraseNoCase c = processPhraseInternalM (Ix.lookup NoCase (index s) c) c q
 
 -- | Process a phrase case-sensitive.
 processCasePhrase :: ProcessState i -> Text -> Intermediate
 processCasePhrase s q = forAllContexts phraseCase (contexts s)
   where
   phraseCase c = processPhraseInternal (Ix.lookup Case (index s) c) c q
+
+-- | Monadic version of 'processCasePhrase'.
+processCasePhraseM :: Monad m => ProcessState i -> Text -> m Intermediate
+processCasePhraseM s q = forAllContextsM phraseCase (contexts s)
+  where
+  phraseCase c = processPhraseInternalM (Ix.lookup Case (index s) c) c q
 
 -- | Process a phrase query by searching for every word of the phrase and comparing their positions.
 processPhraseInternal :: (Text -> RawResult) -> Context -> Text -> Intermediate
@@ -236,6 +243,28 @@ processPhraseInternal f c q = let
   processPhrase' :: [Text] -> Position -> Occurrences -> Occurrences
   processPhrase' [] _ o = o
   processPhrase' (x:xs) p o = processPhrase' xs (p+1) (DM.filterWithKey (nextWord $ map snd $ f x) o)
+    where
+      nextWord :: [Occurrences] -> DocId -> Positions -> Bool
+      nextWord [] _ _  = False
+      nextWord no d np = maybe False hasSuccessor (DM.lookup d (mergeOccurrencesList no))
+          where
+            hasSuccessor :: Positions -> Bool
+            hasSuccessor w = foldPos (\cp r -> r || memberPos (cp + p) w) False np
+
+-- | Monadic version of 'processPhraseInternal'.
+processPhraseInternalM :: Monad m => (Text -> RawResult) -> Context -> Text -> m Intermediate
+processPhraseInternalM f c q = let
+  w = T.words q
+  m = mergeOccurrencesList $ map snd $ f (head w) in
+  if DM.null m
+  then return I.empty
+  else do
+    pp <- processPhrase' (tail w) 1 m
+    return $ I.fromList q c [(q, pp)]
+  where
+  processPhrase' :: Monad m => [Text] -> Position -> Occurrences -> m Occurrences
+  processPhrase' [] _ o = return o
+  processPhrase' (x:xs) p o = processPhrase' xs (p+1) (DM.filterWithKey (nextWord . map snd $ f x) o)
     where
       nextWord :: [Occurrences] -> DocId -> Positions -> Bool
       nextWord [] _ _  = False
