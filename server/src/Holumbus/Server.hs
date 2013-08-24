@@ -41,8 +41,7 @@ import           Holumbus.Server.Analyzer
 import           Holumbus.Server.Common
 import qualified Holumbus.Server.Template                 as Tmpl
 
-
-
+-- ----------------------------------------------------------------------------
 
 -- do something with the index
 withIndex'      :: MonadIO m => MVar a -> (a -> IO b) -> m b
@@ -119,6 +118,8 @@ checkApiDocUrisExistence = checkApiDocUris' (fst, snd)
 checkApiDocUrisAbsence   :: [ApiDocument] -> Indexer it v i d de -> Either [(URI, DocId)] [URI]
 checkApiDocUrisAbsence   = checkApiDocUris' (snd, fst)
 
+-- ----------------------------------------------------------------------------
+
 -- server itself:
 --
 --  -> should get some kind of state from command line or config file
@@ -136,8 +137,9 @@ start = scotty 3000 $ do
   middleware logStdoutDev
 
 
-  get "/" $ html Tmpl.index
-  get "/add" $ html Tmpl.addDocs
+  get "/"         $ html Tmpl.index
+  get "/search"   $ html Tmpl.index
+  get "/add"      $ html Tmpl.addDocs
 
 
   -- text "should get simple text query as param"
