@@ -9,10 +9,10 @@ install		: ; $(MAKE) target action=install
 
 target	        : searchengine server
 
-searchengine: 
+searchengine:
 	( cd searchengine           && cabal $(action) )
 
-server:
+server: stopServer
 	( cd server                 && cabal $(action))
 
 startServer: stopServer
