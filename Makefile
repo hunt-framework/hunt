@@ -15,5 +15,13 @@ searchengine:
 server:
 	( cd server                 && cabal clean && cabal $(action))
 
+startServer: stopServer
+	( holumbusServer & )
 
-.PHONY	: target clean configure build install all searchengine server
+stopServer:
+	( killall holumbusServer )
+ 
+insertJokes: startServer
+	( cd data/jokes/ && curl -X POST -d @FussballerSprueche.js http://localhost:3000/document/insert)
+
+.PHONY	: target clean configure build install all searchengine server insertJokes startServer stopServer
