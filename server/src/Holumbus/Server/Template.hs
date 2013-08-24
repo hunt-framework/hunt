@@ -15,7 +15,7 @@ index =
   -- generate html with hamlet
   (renderHtml . defaultLayout $ [xshamlet|
 <h1>
-  Holumbus Search
+  Search Documents
 <hr>
 <div .row>
   <div .span8>
@@ -33,10 +33,10 @@ index =
         <tbody #result-body>
           <tr>
             <td colspan=4>
-              no items found 
+              No results.
   <div .span4>
      <h5>
-       help
+       Help
      <table .table .table-condensed .table-bordered .table-striped>
        <tr>
          <td>case-sensitive query
@@ -102,7 +102,7 @@ index =
 
       if (query === "") {
          
-         $("#result-body").html("<tr><td colspan=\"4\">No items found.</td></tr>");
+         $("#result-body").html("<tr><td colspan=\"4\">No results.</td></tr>");
          return false;
       }
 
@@ -112,7 +112,7 @@ index =
           var docs = data.msg;
           if (docs.length === 0)
           {
-            $("#result-body").html("<tr><td colspan=\"4\">No items found.</td></tr>");
+            $("#result-body").html("<tr><td colspan=\"4\">No results.</td></tr>");
             return false;
           }
  
@@ -196,7 +196,7 @@ addDocs =
     <div .span5>
       <textarea name=document #txt-document style=height:400px;width:100%>
       <button .btn .btn-primary #btn-add style=float:right>
-        Add Documents
+        Add
 |]) `LT.append`
   -- generate javascript
   renderJavascriptUrl (\_ _ -> "") [julius|
@@ -283,9 +283,9 @@ defaultLayout content = [xshamlet|
           <a .brand href="/">Holumbus Server
           <ul .nav .nav-tabs>
             <li>
-              <a href="/">Search
+              <a href="/search">Search
             <li>
-              <a href="/add">Add Documents
+              <a href="/add">Add
             <li>
               <a href="https://github.com/ulfs/holumbus" target="git" >Help
     <div .container style="margin-top:70px">
