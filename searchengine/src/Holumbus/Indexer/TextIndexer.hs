@@ -69,7 +69,8 @@ modifyWithDescription descr wrds dId ix
   where
   newDocTable    = Dt.adjust mergeDescr dId $ ixDocTable ix
   newIndex       = addWords wrds dId $ ixIndex ix
-  mergeDescr doc = doc{ desc = desc doc `M.union` descr }
+  -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
+  mergeDescr doc = doc{ desc = flip M.union (desc doc) descr }
 
 -- ----------------------------------------------------------------------------
 
