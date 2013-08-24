@@ -2,7 +2,6 @@ module Holumbus.Server.Template
 ( index
 , addDocs
 ) where
---import qualified Data.Text      as T
 import qualified Data.Text.Lazy as LT
 
 import           Text.Hamlet
@@ -36,6 +35,8 @@ index =
             <td colspan=4>
               no items found 
   <div .span4>
+     <h5>
+       help
      <table .table .table-condensed .table-bordered .table-striped>
        <tr>
          <td>case-sensitive query
@@ -72,6 +73,8 @@ index =
       }
     });
 
+    // auto completion for search box
+    // XXX should be improved or removed
     $("#txt-search").typeahead({
       source: function(query, callback) {
         $.get("/completion/" + query, function(data) {
@@ -87,11 +90,12 @@ index =
       }
     });
 
-    /* search button handler */
+    // search button handler
     $("#btn-search").click(function(e){
       search(e);
     });
 
+    // search handler posts query to api and handles results
     var search = function(ev){
       ev.preventDefault();
       var query = $("#txt-search").val();
@@ -155,7 +159,7 @@ addDocs =
 <form>
   <div .row>
     <div .span7>
-      <table .table .table-condensed #entity>
+      <table .table .table-condensed #entity-table>
         <tr>
           <th>URI
           <td colspan=3>
@@ -172,8 +176,7 @@ addDocs =
           <td>
             <input type="text" .persistent-key value="sample key" />
           <td>
-            <textarea .persistent-value>
-              sample description
+            <input type="text" .persistent-value value="sample description" />
           <td>
         <tr>
           <th>Index
@@ -187,8 +190,7 @@ addDocs =
           <td>
             <input type="text" .indexed-key  value="sample context" />
           <td>
-            <textarea .indexed-value>
-              sample information
+            <input type="text" .indexed-value value="sample index information" />
           <td>
           
     <div .span5>
@@ -201,46 +203,53 @@ addDocs =
 <script>
   $(document).ready(function() {
 
-    updateJson = function(ev) {
+    // updates the json representation of apiDoc
+    updateApiDoc = function(ev) {
+      // empty api Document
       var apiDoc = {
         "uri": $("#uri").val(),
         "description" : {},
         "index": {}
       };
 
+      // add entity properties to description
       var values = $(".persistent-value");
       $(".persistent-key").each(function(i,v) {
         eval("apiDoc.description['"+$(v).val()+"'] ='"+$(values[i]).val()+"'"); 
       });
 
+      // add indexed information to index
       values = $(".indexed-value");
       $(".indexed-key").each(function(i,v) {
         eval("apiDoc.index['"+$(v).val()+"'] = {'content':'"+$(values[i]).val()+"'}"); 
       });
     
+      // wrap doc into list and format as json
       var apiDocs = [apiDoc]; 
       $("#txt-document").html(JSON.stringify(apiDocs));
     };
-    updateJson();
-   
-    $(document).on("change", "#uri, .persistent-key, .persistent-value, .indexed-key, .indexed-value", updateJson);
+    updateApiDoc();
+    $(document).on("change", "#entity-table * input", updateApiDoc);
 
+    // add another entity property to editor
     $("#add-persistent").on("click", function(ev) {
       ev.preventDefault();
       $(".persistent").after("<tr><td></td>" + 
         "<td><input class=\"persistent-key\" type=\"text\"/></td>" +
-        "<td><textarea class=\"persistent-value\"></textarea></td>" + 
+        "<td><input class=\"persistent-value\" type=\"text\" /></td>" + 
         "<td></td></tr>");
     });
 
+    // add another context to indexed information
     $("#add-index").on("click", function(ev) {
       ev.preventDefault();
       $(".indexed").after("<tr><td></td>" + 
         "<td><input class=\"indexed-key\" type=\"text\"/></td>" +
-        "<td><textarea class=\"indexed-value\"></textarea></td>" + 
+        "<td><input class=\"indexed-value\" type=\"text\" /></td>" + 
         "<td></td></tr>");
     });
 
+    // add document handler posts apiDocs to api
     $("#btn-add").click(function(ev){
       ev.preventDefault();
       var json = $("#txt-document").val();
@@ -277,6 +286,8 @@ defaultLayout content = [xshamlet|
               <a href="/">Search
             <li>
               <a href="/add">Add Documents
+            <li>
+              <a href="https://github.com/ulfs/holumbus" target="git" >Help
     <div .container style="margin-top:70px">
       #{content}
 |]
