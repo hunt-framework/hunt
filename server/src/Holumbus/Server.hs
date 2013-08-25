@@ -132,28 +132,35 @@ start = scotty 3000 $ do
   let withIx = withIndex' ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO b) -> m b
   let modIx_ = modIndex_  ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents))    -> m ()
   let modIx  = modIndex   ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents, b)) -> m b
-
-  -- request / response logging
-  middleware logStdoutDev
-
-
-  get "/"         $ html Tmpl.index
-  get "/search"   $ html Tmpl.index
-  get "/add"      $ html Tmpl.addDocs
-
-
-  -- text "should get simple text query as param"
-  -- Note: route /search not handled here!
-  get "/search/:query" $ do
-    queryStr <- param "query"
-    res      <- withIx $ \ix -> do
+  let runQuery = \queryStr -> withIx $ \ix -> do
       case parseQuery queryStr of
         (Left err) -> return . JsonFailure . return $ err
         (Right query) ->
           runQueryM (ixIndex ix) (ixDocTable ix) query
           >>= return . JsonSuccess . map (\(_,(DocInfo doc _,_)) -> doc) . DM.toList . docHits
+ 
+  -- request / response logging
+  middleware logStdoutDev
+
+  get "/"         $ html Tmpl.index
+  get "/search"   $ html Tmpl.index
+  get "/add"      $ html Tmpl.addDocs
+
+  -- simple query
+  get "/search/:query" $ do
+    query    <- param "query"
+    res      <- runQuery query
     json res
 
+  -- simple query with paging
+  get "/search/:query/:page/:perPage" $ do
+    query    <- param "query"
+    p        <- param "page"
+    pp       <- param "perPage"
+    res      <- runQuery query
+    case res of
+      (JsonSuccess docs) -> json . JsonSuccess $ mkPagedResult docs p pp
+      _                  -> json res
 
   get "/completion/:query" $ do
     queryStr <- param "query"

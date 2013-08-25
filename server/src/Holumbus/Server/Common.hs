@@ -45,6 +45,35 @@ defaultIndexMetadata = IndexMetadata
   { imAnalyzer = DefaultAnalyzer
   }
 
+-- | paged api document result
+data PagedResult x = PagedResult
+  { result  :: [x]
+  , page    :: Int
+  , perPage :: Int
+  , count   :: Int
+  }
+
+mkPagedResult :: [x] -> Int -> Int -> PagedResult x
+mkPagedResult xs p pp = PagedResult
+  { result  = takePage
+  , page    = p
+  , perPage = pp
+  , count   = length xs
+  }
+  where 
+  takePage = take pp $ drop (pp * (p-1)) xs
+
+instance (ToJSON x) => ToJSON (PagedResult x) where
+   toJSON (PagedResult l p pp c) = object
+    [ "result"  .= l
+    , "page"    .= p
+    , "perPage" .= pp
+    , "count"   .= c
+    ]
+
+ 
+
+
 -- | empty document
 emptyApiDoc :: ApiDocument
 emptyApiDoc = ApiDocument "" M.empty M.empty

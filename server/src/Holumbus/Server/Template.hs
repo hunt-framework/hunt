@@ -24,16 +24,23 @@ index =
         <input .input-xxlarge type=text #txt-search>
         <button .btn .btn-primary type=button #btn-search>Search
       <hr>
+      <p #result-count>
       <table .table .table-bordered .table-striped .table-condensed>
         <thead>
           <tr>
             <th>URI
-            <th colspan=2>Entity
+            <th colspan=2>Document
             <th>
         <tbody #result-body>
           <tr>
             <td colspan=4>
               No results.
+      <div #paginator style="display:none;text-align:center">
+        <div .pagination>
+          <ul>
+            <li #pagination-prev><a href="#">Prev</a>
+            <li><a href="#" id="pagination-page">Page 1</a>
+            <li #pagination-next><a href="#">Next</a>
   <div .span4>
      <h5>
        Help
@@ -66,9 +73,15 @@ index =
 <script>
   $(document).ready(function() {
 
+    var globalPage = 1;
+    var globalPerPage = 5;
+    var globalPages = undefined;
+    var globalResults = undefined;
+
     $(document).keypress(function(event) {
       if ( event.which == 13 ) {
          event.preventDefault();
+         globalPage = 1;
          search(event);
       }
     });
@@ -92,21 +105,28 @@ index =
 
     // search button handler
     $("#btn-search").click(function(e){
+      globalPage = 1;
       search(e);
     });
-
-    // search handler posts query to api and handles results
-    var search = function(ev){
-      ev.preventDefault();
-      var query = $("#txt-search").val();
-
-      if (query === "") {
-         
-         $("#result-body").html("<tr><td colspan=\"4\">No results.</td></tr>");
-         return false;
+ 
+    $("#pagination-prev").click(function(e) {
+      if (globalPage > 1)
+      {
+         globalPage--;
+         search(e);
       }
+    });
 
-      $.get("/search/" + query, function(data) {
+    $("#pagination-next").click(function(e) {
+      if (globalPage < globalPages)
+      {
+         globalPage++;
+         search(e);
+      }
+    });
+
+    // handles simple search responses without paging
+    var simpleSearchCompletedHandler = function(data) {
         if (data.code === 0)
         {
           var docs = data.msg;
@@ -143,8 +163,51 @@ index =
         {
            alert("Error occurred - please check server!");
         }
-      });
+    };   
+
+    // handles search results with paging
+    var pagedSearchCompletedHandler = function(data) {
+        if (data.code === 0)
+        {
+          var pager = data.msg;
+          globalPage = pager.page;
+          globalPerPage = pager.perPage;
+          globalResults = pager.count;
+          globalPages = Math.ceil(pager.count / pager.perPage);
+          simpleSearchCompletedHandler({code:0, msg:pager.result});
+
+          $("#result-count").html(globalResults + " documents found");
+          $("#pagination-next").removeClass("disabled");
+          $("#pagination-prev").removeClass("disabled");
+          $("#pagination-page").text("Page " + globalPage + " of " + globalPages);
+          if (globalPage === 1)
+          {
+             $("#pagination-prev").addClass("disabled");
+          }
+          if (globalPage === globalPages)
+          {
+             $("#pagination-next").addClass("disabled");
+          }
+	  $("#paginator").show();
+        }
+        else
+        {
+           alert("Error occurred - please check server!");
+        }
     };
+
+
+    // search handler posts query to api and handles results
+    var search = function(ev){
+      ev.preventDefault();
+      var query = $("#txt-search").val();
+
+      if (query === "") {     
+         $("#result-body").html("<tr><td colspan=\"4\">No results.</td></tr>");
+         return false;
+      }
+      $.get("/search/" + query + "/" + globalPage + "/" + globalPerPage, pagedSearchCompletedHandler);
+     };
   });
 </script>
 |]
