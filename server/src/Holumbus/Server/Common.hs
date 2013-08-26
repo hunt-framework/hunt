@@ -1,6 +1,7 @@
 module Holumbus.Server.Common where
 
 import           Control.Monad         (mzero)
+import           Data.Monoid           (mappend)
 
 import           Data.Aeson
 import           Data.Map              (Map ())
@@ -8,7 +9,9 @@ import qualified Data.Map              as M
 import           Data.Text             (Text)
 
 import           Holumbus.Index.Common (Content, Context, Description, Position,
-                                        URI)
+                                        URI, WordList)
+
+-- ----------------------------------------------------------------------------
 
 -- | Multiple ApiDocuments.
 type ApiDocuments = [ApiDocument]
@@ -20,8 +23,15 @@ data ApiDocument  = ApiDocument
   , apiDocDescrMap  :: Description
   }
 
+-- XXX: proper names
+-- XXX: maybe as a real Either
+-- custom either for convenient json parsing
+data IndexData
+  = ProcessedIndexData  TextData
+  | RawIndexData        WordList
+
 -- | Data necessary for adding documents to the index.
-data IndexData = IndexData
+data TextData = TextData
   { idContent       :: Content
   , idMetadata      :: IndexMetadata
   }
@@ -60,7 +70,7 @@ mkPagedResult xs p pp = PagedResult
   , perPage = pp
   , count   = length xs
   }
-  where 
+  where
   takePage = take pp $ drop (pp * (p-1)) xs
 
 instance (ToJSON x) => ToJSON (PagedResult x) where
@@ -70,9 +80,6 @@ instance (ToJSON x) => ToJSON (PagedResult x) where
     , "perPage" .= pp
     , "count"   .= c
     ]
-
- 
-
 
 -- | empty document
 emptyApiDoc :: ApiDocument
@@ -90,12 +97,23 @@ instance FromJSON ApiDocument where
       }
   parseJSON _ = mzero
 
-
 instance FromJSON IndexData where
+  parseJSON o =
+    (do
+      a <- parseJSON o
+      return $ ProcessedIndexData a
+    )
+    `mappend`
+    (do
+      b <- parseJSON o
+      return $ RawIndexData b
+    )
+
+instance FromJSON TextData where
   parseJSON (Object o) = do
     content           <- o    .:  "content"
     metadata          <- o    .:? "metadata" .!= defaultIndexMetadata
-    return IndexData
+    return TextData
       { idContent       = content
       , idMetadata      = metadata
       }
@@ -128,7 +146,11 @@ instance ToJSON ApiDocument where
     ]
 
 instance ToJSON IndexData where
-  toJSON (IndexData c m) = object
+  toJSON (ProcessedIndexData a) = toJSON a
+  toJSON (RawIndexData       a) = toJSON a
+
+instance ToJSON TextData where
+  toJSON (TextData c m) = object
     [ "content"     .= c
     , "metadata"    .= m
     ]
@@ -157,3 +179,11 @@ instance (ToJSON r) => ToJSON (JsonResponse r) where
     [ "code"  .= (1 :: Int)
     , "msg"   .= msg
     ]
+
+-- ----------------------------------------------------------------------------
+
+-- | 'Prelude.either' function for IndexData.
+indexDataEither :: (WordList -> a) -> (TextData -> a) -> IndexData -> a
+indexDataEither f1 f2 d = case d of
+  RawIndexData       x -> f1 x
+  ProcessedIndexData x -> f2 x

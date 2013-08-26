@@ -33,9 +33,11 @@ toDocAndWords apiDoc = (doc, ws)
           { uri   = apiDocUri apiDoc
           , desc  = descrMap
           }
-  ws = M.map (\(IndexData content metadata)
+  ws = M.map (indexDataEither
+                id
+                (\(TextData content metadata)
                     -> let scanText = analyzerMapping . imAnalyzer $ metadata
-                       in toWordList scanText content) indexMap
+                       in toWordList scanText content)) indexMap
 
 -- | Construct a WordList from Text using the function f to split the text into words with their corresponding positions.
 toWordList :: (Text -> [(Position, Text)]) -> Text -> WordList
