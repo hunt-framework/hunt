@@ -19,16 +19,9 @@ type ApiDocuments = [ApiDocument]
 -- | The document accepted via the API.
 data ApiDocument  = ApiDocument
   { apiDocUri       :: URI
-  , apiDocIndexMap  :: Map Context IndexData
+  , apiDocIndexMap  :: Map Context (Either WordList TextData)
   , apiDocDescrMap  :: Description
   }
-
--- XXX: proper names
--- XXX: maybe as a real Either
--- custom either for convenient json parsing
-data IndexData
-  = ProcessedIndexData  TextData
-  | RawIndexData        WordList
 
 -- | Data necessary for adding documents to the index.
 data TextData = TextData
@@ -97,16 +90,17 @@ instance FromJSON ApiDocument where
       }
   parseJSON _ = mzero
 
-instance FromJSON IndexData where
+-- XXX: mh
+instance FromJSON (Either WordList TextData) where
   parseJSON o =
     (do
       a <- parseJSON o
-      return $ ProcessedIndexData a
+      return $ Left a
     )
     `mappend`
     (do
       b <- parseJSON o
-      return $ RawIndexData b
+      return $ Right b
     )
 
 instance FromJSON TextData where
@@ -145,9 +139,9 @@ instance ToJSON ApiDocument where
     , "description" .= dm
     ]
 
-instance ToJSON IndexData where
-  toJSON (ProcessedIndexData a) = toJSON a
-  toJSON (RawIndexData       a) = toJSON a
+-- XXX: mh
+instance ToJSON (Either WordList TextData) where
+  toJSON = either toJSON toJSON
 
 instance ToJSON TextData where
   toJSON (TextData c m) = object
@@ -179,11 +173,3 @@ instance (ToJSON r) => ToJSON (JsonResponse r) where
     [ "code"  .= (1 :: Int)
     , "msg"   .= msg
     ]
-
--- ----------------------------------------------------------------------------
-
--- | 'Prelude.either' function for IndexData.
-indexDataEither :: (WordList -> a) -> (TextData -> a) -> IndexData -> a
-indexDataEither f1 f2 d = case d of
-  RawIndexData       x -> f1 x
-  ProcessedIndexData x -> f2 x

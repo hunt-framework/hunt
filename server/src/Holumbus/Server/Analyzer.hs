@@ -33,7 +33,7 @@ toDocAndWords apiDoc = (doc, ws)
           { uri   = apiDocUri apiDoc
           , desc  = descrMap
           }
-  ws = M.map (indexDataEither
+  ws = M.map (either
                 id
                 (\(TextData content metadata)
                     -> let scanText = analyzerMapping . imAnalyzer $ metadata
