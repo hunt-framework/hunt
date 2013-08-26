@@ -46,17 +46,17 @@ type Context                    = Text
 type Word                       = Text
 
 -- | Positions of Words for each context.
-type Words        = Map Context WordList
+type Words                      = Map Context WordList
 
 -- | Positions of words in the document.
-type WordList     = Map Word [Position]
+type WordList                   = Map Word [Position]
 
 -- | Text index
-data Textual            = Case | NoCase | PrefixCase | PrefixNoCase
+data Textual                    = Case | NoCase | PrefixCase | PrefixNoCase
 
 -- XXX: delete?
-data Numerical          = Match | Range
+data Numerical                  = Match | Range
 
-data Geo                = Position | Perimeter
+data Geo                        = Position | Perimeter
 
 -- ------------------------------------------------------------

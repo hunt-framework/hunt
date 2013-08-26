@@ -3,7 +3,6 @@ module Holumbus.DocTable.DocTable
 where
 
 import           Prelude                          hiding (null, filter, map, lookup)
-import           Control.Arrow                    (second)
 
 import           Data.Set                         (Set)
 import qualified Data.Set                         as S
@@ -12,7 +11,6 @@ import           Data.Maybe                       (isJust, fromJust)
 import           Holumbus.Index.Common.BasicTypes
 import           Holumbus.Index.Common.DocId
 import           Holumbus.Index.Common.DocIdMap   (DocIdMap)
-import qualified Holumbus.Index.Common.DocIdMap   as DM
 
 -- ----------------------------------------------------------------------------
 --
