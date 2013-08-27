@@ -6,8 +6,6 @@ module Holumbus.Index.Text.Inverted.PrefixMem
 where
 
 import           Control.Arrow
-import           Data.Function                     (on)
-import           Data.List                         (foldl', sortBy)
 import           Data.Map                          (Map)
 import qualified Data.Map                          as M
 import           Data.Maybe
@@ -19,11 +17,7 @@ import qualified Holumbus.Data.PrefixTree          as PT
 
 import           Holumbus.Index.Common             (Context, DocId, Occurrences,
                                                     RawResult, Textual (..),
-                                                    Word,
-                                                    resultByDocument,
-                                                    resultByWord,
-                                                    sizePos,
-                                                    unionPos)
+                                                    Word)
 import qualified Holumbus.Index.Common.DocIdMap    as DM
 import qualified Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Index.Compression        as C
@@ -75,6 +69,7 @@ newIndex i =
     -- Subtract one index from another.
     , _subtract               = newIndex . subtractIndexes' i . _impl
 
+    {-
     -- Splitting an index by its contexts.
     , _splitByContexts        = map newIndex . splitByContexts' i
 
@@ -88,6 +83,7 @@ newIndex i =
     -- to the same new id, the two sets of word positions will be merged if both old id's are present
     -- in the occurrences for a word in a specific context.
     , _mapDocIds                = \f -> newIndex $ updateDocIdsX f i
+    -}
 
     -- Convert an Index to a list. Can be used for easy conversion between different index
     -- implementations.
@@ -146,6 +142,7 @@ subtractPart p1 p2                = if PT.null diffPart then Nothing else Just d
       where
       diffOcc                     = Occ.subtract (inflateOcc o1) (inflateOcc o2)
 
+{-
 -- | Internal split function used by the split functions from the HolIndex interface (above).
 splitInternal                     :: [(Int, Inverted)] -> Int -> [Inverted]
 splitInternal inp n               = allocate mergeIndexes' stack buckets
@@ -164,6 +161,7 @@ allocate f (x:xs) (y:ys)          = allocate f xs (sortBy (compare `on` fst) (co
 -- | Create empty buckets for allocating indexes.
 createBuckets                     :: Int -> [(Int, Inverted)]
 createBuckets n                   = replicate n (0, emptyInverted)
+-}
 
 -- | Return a part of the index for a given context.
 getPart                           :: Context -> Inverted -> Part
@@ -204,6 +202,7 @@ insertOccurrences' c w o          = mergeIndexes' (singleton c w o)
 deleteOccurrences'                :: Context -> Text -> Occurrences -> Inverted -> Inverted
 deleteOccurrences' c w o i        = subtractIndexes' i (singleton c w o)
 
+{-
 splitByContexts'                  :: Inverted -> Int -> [Inverted]
 splitByContexts' (Inverted ps)    = splitInternal (map (uncurry annotate) . M.toList $ ps)
   where
@@ -245,7 +244,7 @@ updateDocIdsX f (Inverted parts)
   updateDocument c w d            = DM.insertWith mergePositions (f c (T.pack w) d)
     where
     mergePositions p1 p2          = deflatePos $ unionPos (inflatePos p1) (inflatePos p2)
-
+-}
 {-
 updateDocIdsX'                    :: (DocId -> DocId) -> Inverted -> Inverted
 updateDocIdsX' f

@@ -45,6 +45,7 @@ merge                 = _merge
 subtract              :: Index it v i -> Index it v i -> Index it v i
 subtract              = _subtract
 
+{-
 -- | Splitting an index by its contexts.
 splitByContexts       :: Index it v i -> Int -> [Index it v i]
 splitByContexts       = _splitByContexts
@@ -66,6 +67,7 @@ mapDocIds             = flip _mapDocIds
 -- | Update 'DocId's with a simple injective editing function.
 mapDocIds'            :: (DocId -> DocId) -> Index it v i -> Index it v i
 mapDocIds' f i        = _mapDocIds i (const . const $ f)
+-}
 
 -- | Convert an Index to a list. Can be used for easy conversion between different index
 -- implementations
@@ -122,6 +124,7 @@ data Index it v i = Ix
     -- | Subtract one index from another.
     , _subtract                      :: Index it v i -> Index it v i
 
+    {-
     -- | Splitting an index by its contexts.
     , _splitByContexts               :: Int -> [Index it v i]
 
@@ -135,7 +138,8 @@ data Index it v i = Ix
     -- to the same new id, the two sets of word positions will be merged if both old id's are present
     -- in the occurrences for a word in a specific context.
     , _mapDocIds                     :: (Context -> Word -> DocId -> DocId) -> Index it v i
-
+    -}
+    
     -- | Convert an Index to a list. Can be used for easy conversion between different index
     -- implementations
     , _toList                        :: [(Context, Word, v)]

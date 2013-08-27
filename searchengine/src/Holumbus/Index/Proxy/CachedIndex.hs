@@ -33,10 +33,12 @@ newIndex keySet i =
     -- the following functions merge the keySet before doing anything
     , _merge                         = new . merge realIx
     , _subtract                      = new . subtract realIx
+    {-
     , _splitByContexts               = map new . splitByContexts realIx
     , _splitByDocuments              = map new . splitByDocuments realIx
     , _splitByWords                  = map new . splitByWords realIx
     , _mapDocIds                     = \f -> new $ mapDocIds f realIx
+    -}
     , _toList                        = toList realIx
     , _impl                          = impl realIx
     }
@@ -44,7 +46,7 @@ newIndex keySet i =
       realIx    = deleteDocs keySet i -- the doctable with docs deleted
       new       = newIndex keySet
 
-      deleteIds = S.fold (\did acc -> Occ.delete did acc)
+      deleteIds = S.fold Occ.delete
 
 -- | An index with an empty cache.
 empty :: Index it v i -> Index it v i
