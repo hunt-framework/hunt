@@ -1,0 +1,125 @@
+name:          hayooCrawler
+version:       0.0.0.0
+license:       MIT
+license-file:  LICENSE
+author:        Uwe Schmidt
+copyright:     Copyright (c) 2007 - 2013 Uwe Schmidt, Sebastian M. Gauck and Timo B. Kranz
+maintainer:    Uwe Schmidt <uwe@fh-wedel.de>
+stability:     experimental
+category:      Text, Data
+synopsis:      The Hayoo! crawler for indexing hackage documentation
+description:   The Hayoo! crawler for indexing hackage documentation
+               .
+               Initial version: Derived from holumbus repo
+cabal-version: >=1.10
+build-type:    Simple
+-- tested-with:  ghc-7.6
+
+-- ------------------------------------------------------------
+
+executable hayooCrawler
+  main-is:         HayooCrawler.hs
+
+  other-modules:   Control.Monad.ReaderStateIO
+                 , Control.Sequential.MapFoldBinary
+                 , Hayoo.FctIndexerCore
+                 , Hayoo.FunctionInfo
+                 , Hayoo.HackagePackage
+                 , Hayoo.Haddock   
+                 , Hayoo.IndexConfig
+                 , Hayoo.IndexTypes
+                 , Hayoo.PackageArchive
+                 , Hayoo.PackageInfo
+                 , Hayoo.PkgIndexerCore
+                 , Hayoo.PackageRank
+                 , Hayoo.Signature 
+                 , Hayoo.URIConfig 
+                 , Holumbus.Crawler
+                 , Holumbus.Crawler.CacheCore
+                 , Holumbus.Crawler.Constants
+                 , Holumbus.Crawler.Core
+                 , Holumbus.Crawler.Html
+                 , Holumbus.Crawler.IndexerCore
+                 , Holumbus.Crawler.Logger
+                 , Holumbus.Crawler.Robots
+                 , Holumbus.Crawler.RobotTypes
+                 , Holumbus.Crawler.Types
+                 , Holumbus.Crawler.URIs
+                 , Holumbus.Crawler.Util
+                 , Holumbus.Crawler.XmlArrows
+                 , Holumbus.Data.Crunch
+                 , Holumbus.Data.PrefixTree
+                 , Holumbus.Data.PrefixTree.Core
+                 , Holumbus.Data.PrefixTree.FuzzySearch
+                 , Holumbus.Data.PrefixTree.PrefixSet
+                 , Holumbus.Data.PrefixTree.Types
+                 , Holumbus.Index.Common
+                 , Holumbus.Index.Common.BasicTypes
+                 , Holumbus.Index.Common.DiffList
+                 , Holumbus.Index.Common.DocId
+                 , Holumbus.Index.Common.DocIdMap
+                 , Holumbus.Index.Common.Document
+                 , Holumbus.Index.Common.LoadStore
+                 , Holumbus.Index.Common.Occurences
+                 , Holumbus.Index.Common.RawResult
+                 , Holumbus.Index.CompactDocuments
+                 , Holumbus.Index.CompactIndex
+                 , Holumbus.Index.CompactSmallDocuments
+                 , Holumbus.Index.Compression
+                 , Holumbus.Index.Inverted.CompressedPrefixMem
+                 , Holumbus.Query.Result
+                 , Holumbus.Utility
+
+  build-depends:   base                   >= 4     && < 5
+                 , aeson                  >= 0.6
+                 , aeson-pretty           >= 0.7
+                 , binary                 >= 0.5
+                 , bytestring             >= 0.9
+                 , bzlib                  >= 0.4   && < 1
+                 , containers             >= 0.4.2
+                 , deepseq                >= 1.2
+                 , directory              >= 1.1
+                 , enummapset             >= 0     && < 1
+                 , filepath               >= 1     && < 2
+                 , hslogger               >= 1     && < 2
+                 -- , Holumbus-Searchengine  >= 2     && < 3
+                 , hxt                    >= 9.1   && < 10
+                 , hxt-cache              >= 9     && < 10
+                 , hxt-charproperties     >= 9     && < 10
+                 , hxt-curl               >= 9     && < 10
+                 , hxt-http               >= 9     && < 10
+                 , hxt-regex-xmlschema    >= 9     && < 10
+                 , hxt-unicode            >= 9     && < 10
+                 , hxt-xpath              >= 9.1   && < 10
+                 , mtl                    >= 1.1   && < 3
+                 , network                >= 2.1   && < 3
+                 , old-time               >= 1     && < 2
+                 , parsec                 >= 2.1   && < 4
+                 , parallel               >= 3.1   && < 4
+                 , process                >= 1     && < 2
+                 , tar                    >= 0.3   && < 1
+                 , text                   >= 0.11
+                 , zlib                   >= 0.5   && < 1 
+                 , SHA                    >= 1.4   && < 2
+                 , unix                   >= 2.3   && < 3
+                 , unordered-containers   >= 0.2
+
+  hs-source-dirs: src
+
+  ghc-options:   -threaded
+                 -Wall
+                 -funbox-strict-fields
+                 -rtsopts
+                 -fwarn-tabs
+
+  default-language: Haskell2010
+
+-- ------------------------------------------------------------
+
+source-repository head
+  type:     git
+  location: https://github.com/UlfS/holumbus.git
+
+-- ------------------------------------------------------------
+
+
