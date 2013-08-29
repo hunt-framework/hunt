@@ -4,6 +4,8 @@ module Holumbus.Server.Analyzer
   )
 where
 
+import           Control.Arrow                          (first)
+
 import           Data.Map                               (Map)
 import qualified Data.Map                               as M
 import           Data.Text                              (Text)
@@ -13,7 +15,7 @@ import           Data.Char                              (isAlphaNum)
 import           Data.DList                             (DList)
 import qualified Data.DList                             as DL
 
-import           Holumbus.Index.Common                  (Document(..), Word, Words, WordList, Position)
+import           Holumbus.Index.Common                  (DocumentRaw(..), DocumentWrapper(..), Word, Words, WordList, Position)
 
 import           Holumbus.Server.Common
 
@@ -23,13 +25,16 @@ analyzerMapping o = case o of
     DefaultAnalyzer -> scanTextDefault
 
 
+toDocAndWords :: (DocumentRaw -> DocumentWrapper) -> ApiDocument -> (DocumentWrapper, Words)
+toDocAndWords f = first f . toDocAndWords'
+
 -- | ApiDocument to Document and Words mapping.
-toDocAndWords :: ApiDocument -> (Document, Words)
-toDocAndWords apiDoc = (doc, ws)
+toDocAndWords' :: ApiDocument -> (DocumentRaw, Words)
+toDocAndWords' apiDoc = (doc, ws)
   where
   indexMap = apiDocIndexMap apiDoc
   descrMap = apiDocDescrMap apiDoc
-  doc = Document
+  doc = DocumentRaw
           { uri   = apiDocUri apiDoc
           , desc  = descrMap
           }

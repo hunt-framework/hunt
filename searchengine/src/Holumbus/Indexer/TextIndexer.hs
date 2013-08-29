@@ -42,14 +42,14 @@ allWords                  = Ix.size . ixIndex
 
 -- | Update a document - same as delete and insert.
 updateDoc                 :: DocId -> de -> Words -> Indexer it Occurrences i d de -> Indexer it Occurrences i d de
-updateDoc docId doc w     = insertDoc doc w . deleteDocs (S.singleton docId)
+updateDoc docId d w       = insertDoc d w . deleteDocs (S.singleton docId)
 
 -- | Insert a document.
 insertDoc                 :: de -> Words -> Indexer it Occurrences i d de -> Indexer it Occurrences i d de
-insertDoc doc wrds ix     = ix { ixIndex    = newIndex
+insertDoc d wrds ix       = ix { ixIndex    = newIndex
                                , ixDocTable = newDocTable }
   where
-  (dId, newDocTable) = Dt.insert (ixDocTable ix) doc
+  (dId, newDocTable) = Dt.insert (ixDocTable ix) d
   newIndex           = addWords wrds dId $ ixIndex ix
 
 -- | Modify a document and add words (occurrences for that document) to the index.
@@ -62,7 +62,7 @@ modify f wrds dId ix
   newIndex    = addWords wrds dId $ ixIndex ix
 
 -- | Modify the description of a document and add words (occurrences for that document) to the index.
-modifyWithDescription     :: Description -> Words -> DocId -> Indexer it Occurrences i d Document -> Indexer it Occurrences i d Document
+modifyWithDescription     :: Description -> Words -> DocId -> Indexer it Occurrences i d DocumentWrapper -> Indexer it Occurrences i d DocumentWrapper
 modifyWithDescription descr wrds dId ix
   = ix { ixIndex    = newIndex
        , ixDocTable = newDocTable }
@@ -70,7 +70,7 @@ modifyWithDescription descr wrds dId ix
   newDocTable    = Dt.adjust mergeDescr dId $ ixDocTable ix
   newIndex       = addWords wrds dId $ ixIndex ix
   -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
-  mergeDescr doc = doc{ desc = flip M.union (desc doc) descr }
+  mergeDescr = modDoc (\d' -> d'{ desc = flip M.union (desc d') descr })
 
 -- ----------------------------------------------------------------------------
 

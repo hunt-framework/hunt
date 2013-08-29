@@ -41,35 +41,58 @@ instance Binary Text where
   put = put . encodeUtf8
   get = liftM decodeUtf8 get
 
+
+
+doc :: DocumentWrapper -> DocumentRaw
+doc = _getDoc
+
+setDoc :: DocumentRaw -> DocumentWrapper -> DocumentWrapper
+setDoc = flip _setDoc
+
+modDoc :: (DocumentRaw -> DocumentRaw) -> DocumentWrapper -> DocumentWrapper
+modDoc f d = setDoc (f . doc $ d) d
+
+-- | A 'Document' wrapper with getter and setter.
+data DocumentWrapper = DocumentWrapper
+  { _getDoc  :: DocumentRaw
+  , _setDoc  :: DocumentRaw -> DocumentWrapper
+  }
+
+-- | A basic wrapper.
+wrapDoc   :: DocumentRaw -> DocumentWrapper
+wrapDoc d = DocumentWrapper
+  { _getDoc  = d
+  , _setDoc  = \d' -> wrapDoc d'
+  }
+
 -- | A document consists of its unique identifier (URI).
-data Document                   = Document
+data DocumentRaw                = DocumentRaw
                                   { uri   :: ! URI
                                   , desc  :: ! Description
                                   }
                                   deriving (Show, Eq, Ord)
 
-instance ToJSON Document where
-  toJSON (Document u d) = object
+instance ToJSON DocumentRaw where
+  toJSON (DocumentRaw u d) = object
     [ "uri"   .= u
     , "desc"  .= toJSON d
     ]
 
 
-instance FromJSON Document where
+instance FromJSON DocumentRaw where
   parseJSON (Object o) = do
     parsedDesc      <- o    .: "desc"
     parsedUri       <- o    .: "uri"
-    return Document
+    return DocumentRaw
       { uri     = parsedUri
       , desc    = parsedDesc
       }
   parseJSON _ = mzero
 
 
-instance Binary Document where
-    put (Document u d)          = put u >> put d
-    get                         = liftM2 Document get get
+instance Binary DocumentRaw where
+    put (DocumentRaw u d)          = put u >> put d
+    get                         = liftM2 DocumentRaw get get
 
-instance NFData Document where
-    rnf (Document t d)        = rnf t `seq` rnf d
-
+instance NFData DocumentRaw where
+    rnf (DocumentRaw t d)        = rnf t `seq` rnf d

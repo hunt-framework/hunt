@@ -21,7 +21,6 @@ module Holumbus.DocTable.HashedDocuments
     (
       -- * Documents type
       Documents (..)
-    , CompressedDoc(..)
     , DocMap
 
       -- * Construction
@@ -29,26 +28,14 @@ module Holumbus.DocTable.HashedDocuments
 
       -- * Conversion
     , fromMap
-
-    , toDocument
-    , fromDocument
-    , fromDocMap
-    , toDocMap
     )
 where
 
-import qualified Codec.Compression.BZip         as BZ
-
-import           Control.DeepSeq
 import           Control.Arrow                  (second)
 
-import           Data.Binary                    (Binary)
 import qualified Data.Binary                    as B
 import           Data.Set                       (Set)
 import qualified Data.Set                       as S
-
-import           Data.ByteString.Lazy           (ByteString)
-import qualified Data.ByteString.Lazy           as BS
 
 import           Data.Digest.Murmur64
 
@@ -63,23 +50,23 @@ import           Holumbus.Utility               ((.::))
 
 -- | The table which is used to map a document to an artificial id and vice versa.
 type DocMap
-    = DocIdMap CompressedDoc
-
+    = DocIdMap DocumentWrapper
+{-
 -- | The Document as a bzip-compressed bytestring.
 newtype CompressedDoc
     = CDoc { unCDoc :: ByteString }
       deriving (Eq, Show)
-
+-}
 -- | The 'DocTable' implementation. Maps 'DocId's to 'Document's.
 newtype Documents
     = Documents { idToDoc   :: DocMap }     -- ^ A mapping from a document id to
                                             --   the document itself.
-      deriving (Eq, Show, NFData)
+      --deriving (Eq, Show, NFData)
 
 -- ----------------------------------------------------------------------------
 
 -- | An empty document table.
-empty :: DocTable Documents Document
+empty :: DocTable Documents DocumentWrapper
 empty = newDocTable emptyDocuments
 
 -- | The hash function from URIs to DocIds
@@ -87,12 +74,12 @@ docToId :: URI -> DocId
 docToId = mkDocId . fromIntegral . asWord64 . hash64 . B.encode
 
 -- | Build a 'DocTable' from a 'DocIdMap' (maps 'DocId's to 'Document's)
-fromMap :: DocIdMap Document -> DocTable Documents Document
-fromMap = newDocTable . fromMap'
+fromMap :: (DocumentRaw -> DocumentWrapper) -> DocIdMap DocumentRaw -> DocTable Documents DocumentWrapper
+fromMap = newDocTable .:: fromMap'
 
 -- ----------------------------------------------------------------------------
 
-newDocTable :: Documents -> DocTable Documents Document
+newDocTable :: Documents -> DocTable Documents DocumentWrapper
 newDocTable i =
     Dt
     {
@@ -140,33 +127,11 @@ newDocTable i =
     , _toMap                         = toMap' i
 
     -- Edit document ids
-    , _mapKeys                       = \f -> newDocTable $ mapKeys' f i
+    , _mapKeys                       = error "hashed doctables cannot change ids"
 
     -- The doctable implementation.
     , _impl                          = i
     }
-
--- ----------------------------------------------------------------------------
-
--- | 'CompressedDoc' to 'Document' conversion.
-toDocument                      :: CompressedDoc -> Document
-toDocument                      = B.decode . BZ.decompress . unCDoc
-
--- | 'Document' to 'CompressedDoc' conversion.
-fromDocument                    :: Document -> CompressedDoc
-fromDocument                    = CDoc . BZ.compress . B.encode
-
--- | Document functor.
-mapDocument                     :: (Document -> Document) -> CompressedDoc -> CompressedDoc
-mapDocument f                   = fromDocument . f . toDocument
-
--- | Creates a 'DocIdMap' 'CompressedDoc' from a 'DocIdMap' 'Document'.
-toDocMap                        :: DocIdMap Document -> DocMap
-toDocMap                        = DM.map fromDocument
-
--- | Creates a 'DocIdMap' 'Document' from a 'DocIdMap' 'CompressedDoc'.
-fromDocMap                      :: DocMap -> DocIdMap Document
-fromDocMap                      = DM.map toDocument
 
 -- ----------------------------------------------------------------------------
 
@@ -178,10 +143,9 @@ size' :: Documents -> Int
 size'
     = DM.size . idToDoc
 
-lookupById' :: Monad m => Documents -> DocId -> m Document
+lookupById' :: Monad m => Documents -> DocId -> m DocumentWrapper
 lookupById'  d i
     = maybe (fail "") return
-      . fmap toDocument
       . DM.lookup i
       . idToDoc
       $ d
@@ -207,23 +171,19 @@ unionDocs' dt1 dt2
         = error
           "HashedDocuments.unionDocs: doctables are not disjoint"
 
-insertDoc' :: Documents -> Document -> (DocId, Documents)
+insertDoc' :: Documents -> DocumentWrapper -> (DocId, Documents)
 insertDoc' ds d
     = maybe reallyInsert (const (newId, ds)) (lookupById' ds newId)
       where
+        d'  = doc d
         newId
-            = docToId . uri $ d
-        d'  = fromDocument d
+            = docToId . uri $ d'
         reallyInsert
-            = rnf d' `seq`                    -- force document compression
-              (newId, Documents {idToDoc = DM.insert newId d' $ idToDoc ds})
+            = (newId, Documents {idToDoc = DM.insert newId d $ idToDoc ds})
 
-updateDoc' :: Documents -> DocId -> Document -> Documents
+updateDoc' :: Documents -> DocId -> DocumentWrapper -> Documents
 updateDoc' ds i d
-    = rnf d' `seq`                    -- force document compression
-      Documents {idToDoc = DM.insert i d' $ idToDoc ds}
-    where
-      d'                      = fromDocument d
+    = Documents {idToDoc = DM.insert i d $ idToDoc ds}
 
 deleteById' :: Documents -> DocId -> Documents
 deleteById' ds d
@@ -236,44 +196,21 @@ differenceById' s ds
     where
     mkKeyValueDummy k = (k, undefined) -- XXX: strictness properties of EnumMap?
 
-updateDocuments' :: (Document -> Document) -> Documents -> Documents
+updateDocuments' :: (DocumentWrapper -> DocumentWrapper) -> Documents -> Documents
 updateDocuments' f d
-    = Documents {idToDoc = DM.map (mapDocument f) (idToDoc d)}
+    = Documents {idToDoc = DM.map f (idToDoc d)}
 
-filterDocuments' :: (Document -> Bool) -> Documents -> Documents
+filterDocuments' :: (DocumentWrapper -> Bool) -> Documents -> Documents
 filterDocuments' p d
-    = Documents {idToDoc = DM.filter (p . toDocument) (idToDoc d)}
+    = Documents {idToDoc = DM.filter p (idToDoc d)}
 
-fromMap' :: DocIdMap Document -> Documents
-fromMap' itd'
-    = Documents {idToDoc = toDocMap itd'}
+fromMap' :: (DocumentRaw -> DocumentWrapper) -> DocIdMap DocumentRaw -> Documents
+fromMap' f itd
+    = Documents {idToDoc = DM.map f itd}
 
-toMap' :: Documents -> DocIdMap Document
+toMap' :: Documents -> DocIdMap DocumentWrapper
 toMap'
-    = fromDocMap . idToDoc
-
--- default implementations
-
-mapKeys' :: (DocId -> DocId) -> Documents -> Documents
-mapKeys' f                  = fromMap' . DM.foldrWithKey (DM.insert . f) DM.empty . toMap'
-
--- ----------------------------------------------------------------------------
-
-instance Binary Documents where
-    put = B.put . idToDoc
-    get = fmap Documents B.get
-
--- ------------------------------------------------------------
-
-instance Binary CompressedDoc where
-    put = B.put . unCDoc
-    get = B.get >>= return . CDoc
-
--- ----------------------------------------------------------------------------
-
-instance NFData CompressedDoc where
-    rnf (CDoc s)
-        = BS.length s `seq` ()
+    = idToDoc
 
 -- ------------------------------------------------------------
 

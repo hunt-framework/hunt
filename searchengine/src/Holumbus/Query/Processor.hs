@@ -44,7 +44,7 @@ import qualified Data.Text                       as T
 
 import           Holumbus.Utility                ((.::), (.:::))
 
-import           Holumbus.Index.Common           (Context, Word, RawResult, Document, DocId,
+import           Holumbus.Index.Common           (Context, Word, RawResult, DocumentWrapper, DocId,
                                                   Position, Positions, Occurrences,
                                                   foldPos, memberPos, unionPos, Textual(..))
 import qualified Holumbus.Index.Common.DocIdMap  as DM
@@ -116,9 +116,10 @@ initStateM :: Monad m => ProcessConfig -> TextIndex i -> Int -> m (ProcessState 
 initStateM cfg i t = contextsM i >>= \cs -> return $ ProcessState cfg cs i t
   where contextsM = return . Ix.contexts -- XXX: needs monadic Ix.contexts
 
+-- TODO: previously rdeepseq
 -- | Try to evaluate the query for all contexts in parallel.
 forAllContexts :: (Context -> Intermediate) -> [Context] -> Intermediate
-forAllContexts f cs = L.foldl' I.union I.empty $ parMap rdeepseq f cs
+forAllContexts f cs = L.foldl' I.union I.empty $ parMap rseq f cs
 
 -- | Monadic version of 'forAllContexts'.
 forAllContextsM :: Monad m => (Context -> m Intermediate) -> [Context] -> m Intermediate
@@ -147,11 +148,11 @@ processPartialM cfg i t q = initStateM cfg i t >>= flip processM oq
   oq = if optimizeQuery cfg then optimize q else q
 
 -- | Process a query on a specific index with regard to the configuration.
-processQuery :: ProcessConfig -> TextIndex i -> DocTable d Document -> Query -> Result
+processQuery :: ProcessConfig -> TextIndex i -> DocTable d DocumentWrapper -> Query -> Result
 processQuery cfg i d q = I.toResult d (processPartial cfg i (Dt.size d) q)
 
 -- | Monadic version of 'processQuery'.
-processQueryM :: (Monad m) => ProcessConfig -> TextIndex i -> DocTable d Document -> Query -> m Result
+processQueryM :: (Monad m) => ProcessConfig -> TextIndex i -> DocTable d DocumentWrapper -> Query -> m Result
 processQueryM cfg i d q = processPartialM cfg i (Dt.size d) q >>= \ir -> return $ I.toResult d ir
 
 -- | Continue processing a query by deciding what to do depending on the current query element.

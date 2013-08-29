@@ -58,6 +58,7 @@ library
     Holumbus.Index.Common.DocId
     Holumbus.Index.Common.DocIdMap
     Holumbus.Index.Common.Document
+    Holumbus.Index.Common.CompressedDocument
     Holumbus.Index.Common.Occurrences
     Holumbus.Index.Common.RawResult
     Holumbus.Index.Compression

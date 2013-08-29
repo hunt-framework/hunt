@@ -110,15 +110,16 @@ fromList t c os                 = DM.map transform $
   transform w                   = M.singleton c (M.fromList w)
 
 -- | Convert to a @Result@ by generating the 'WordHits' structure.
-toResult                        :: DocTable d Document -> Intermediate -> Result
+toResult                        :: DocTable d DocumentWrapper -> Intermediate -> Result
 toResult d im                   = Result (createDocHits d im) (createWordHits im)
 
 -- | Create the doc hits structure from an intermediate result.
-createDocHits                   :: DocTable d Document -> Intermediate -> DocHits
+createDocHits                   :: DocTable d DocumentWrapper -> Intermediate -> DocHits
 createDocHits d                 = DM.mapWithKey transformDocs
   where
-  transformDocs did ic          = let doc = fromMaybe (Document "" M.empty) (Dt.lookup d did) in
-                                  (DocInfo doc 0.0, M.map (M.map snd) ic)
+  transformDocs did ic          = let doc' = fromMaybe dummy (Dt.lookup d did) in
+                                  (DocInfo doc' 0.0, M.map (M.map snd) ic)
+  dummy = wrapDoc $ DocumentRaw "" M.empty
 
 -- | Create the word hits structure from an intermediate result.
 createWordHits                  :: Intermediate -> WordHits

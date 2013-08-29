@@ -22,6 +22,9 @@ import           Holumbus.Utility                         ((.::))
 import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap           as DM
 
+--import           Holumbus.Index.Common.Document           as Doc
+import           Holumbus.Index.Common.CompressedDocument as Doc
+
 import           Holumbus.Index.TextIndex
 import           Holumbus.Index.Text.Inverted.PrefixMem
 import qualified Holumbus.Index.Text.Inverted.PrefixMem  as Inv
@@ -59,13 +62,13 @@ modIndex        = liftIO .:: modifyMVar
 --indexer :: Indexer Inverted HD.Documents Document
 --indexer = Indexer emptyIndex HD.emptyDocTable
 
-indexer         :: TextIndexer Inverted Documents Document
+indexer         :: TextIndexer Inverted Documents DocumentWrapper
 indexer         = Indexer (IxCache.empty Inv.empty) Dt.empty
 
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
-runQueryM       :: Monad m => TextIndex i -> DocTable d Document -> Query -> m Result
+runQueryM       :: Monad m => TextIndex i -> DocTable d DocumentWrapper -> Query -> m Result
 runQueryM       = processQueryM queryConfig
 
 -- Replacement for the scotty json function for pretty JSON encoding.
@@ -137,7 +140,7 @@ start = scotty 3000 $ do
         (Left err) -> return . JsonFailure . return $ err
         (Right query) ->
           runQueryM (ixIndex ix) (ixDocTable ix) query
-          >>= return . JsonSuccess . map (\(_,(DocInfo doc _,_)) -> doc) . DM.toList . docHits
+          >>= return . JsonSuccess . map (\(_,(DocInfo d _,_)) -> doc d) . DM.toList . docHits
  
   -- request / response logging
   middleware logStdoutDev
@@ -187,7 +190,7 @@ start = scotty 3000 $ do
         (\existingUris ->
             (ix, return . map fst $ existingUris))
         (\_            ->
-            ( foldr (uncurry Ix.insertDoc . toDocAndWords) ix jss
+            ( foldr (uncurry Ix.insertDoc . toDocAndWords Doc.wrapDoc) ix jss
             , Nothing))
         uris
     json $ maybe
@@ -211,7 +214,7 @@ start = scotty 3000 $ do
             (ix, return nonexistentUris))
         (\existentDocs    -> 
             ( foldr (\(docId, apiDoc) ->
-                uncurry (Ix.updateDoc docId) . toDocAndWords $ apiDoc) ix (flip zip jss . map snd $ existentDocs)
+                uncurry (Ix.updateDoc docId) . toDocAndWords Doc.wrapDoc $ apiDoc) ix (flip zip jss . map snd $ existentDocs)
             , Nothing))
         uris
 
@@ -236,7 +239,7 @@ start = scotty 3000 $ do
             (ix, return nonexistentUris))
         (\existentDocs    -> 
             ( foldr (\(docId, apiDoc) ->
-                Ix.modifyWithDescription (apiDocDescrMap apiDoc) (snd . toDocAndWords $ apiDoc) docId) ix (flip zip jss . map snd $ existentDocs)
+                Ix.modifyWithDescription (apiDocDescrMap apiDoc) (snd . toDocAndWords Doc.wrapDoc $ apiDoc) docId) ix (flip zip jss . map snd $ existentDocs)
             , Nothing))
         uris
 

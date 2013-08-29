@@ -52,10 +52,6 @@ where
 
 import           Prelude                        hiding (null)
 
-import           Control.DeepSeq
-import           Control.Monad                  (liftM2)
-
-import           Data.Binary                    (Binary (..))
 import           Data.Map                       (Map)
 import qualified Data.Map                       as M
 import           Data.Text                      (Text)
@@ -70,14 +66,14 @@ data Result             = Result
                           { docHits  :: DocHits      -- ^ The documents matching the query.
                           , wordHits :: WordHits     -- ^ The words which are completions of the query terms.
                           }
-                          deriving (Eq, Show)
+                          --deriving (Eq, Show)
 
 -- | Information about an document.
 data DocInfo            = DocInfo
-                          { document :: Document     -- ^ The document itself.
-                          , docScore :: Score        -- ^ The score for the document (initial score for all documents is @0.0@).
+                          { document :: DocumentWrapper -- ^ The document itself.
+                          , docScore :: Score           -- ^ The score for the document (initial score for all documents is @0.0@).
                           }
-                          deriving (Eq, Show)
+                          --deriving (Eq, Show)
 
 -- | Information about a word.
 data WordInfo           = WordInfo
@@ -111,7 +107,7 @@ type Score              = Float
 type Terms              = [Text]
 
 -- ----------------------------------------------------------------------------
-
+{-
 instance Binary Result where
   put (Result dh wh)    = put dh >> put wh
   get                   = liftM2 Result get get
@@ -132,7 +128,7 @@ instance NFData DocInfo where
 
 instance NFData WordInfo where
   rnf (WordInfo t s)    = rnf t `seq` rnf s
-
+-}
 -- ----------------------------------------------------------------------------
 
 -- | Create an empty result.
@@ -170,7 +166,7 @@ setWordScore s (WordInfo t _)
                         = WordInfo t s
 
 -- | Extract all documents from a result
-getDocuments            :: Result -> [Document]
+getDocuments            :: Result -> [DocumentWrapper]
 getDocuments r          = map (document . fst . snd) .
                           DM.toList $ docHits r
 
