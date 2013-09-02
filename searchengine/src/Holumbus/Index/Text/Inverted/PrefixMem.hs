@@ -6,6 +6,8 @@ module Holumbus.Index.Text.Inverted.PrefixMem
 where
 
 import           Control.Arrow
+import           Control.DeepSeq
+
 import           Data.Map                          (Map)
 import qualified Data.Map                          as M
 import           Data.Maybe
@@ -35,6 +37,11 @@ type Parts              = Map Context Part
 
 -- | The index part is the real inverted index. Words are mapped to their occurrences.
 type Part               = PT.PrefixTree CompressedOccurrences
+
+-- ----------------------------------------------------------------------------
+
+instance NFData Inverted where
+  rnf = rnf . indexParts
 
 -- ----------------------------------------------------------------------------
 

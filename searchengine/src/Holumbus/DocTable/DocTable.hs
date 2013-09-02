@@ -4,6 +4,8 @@ where
 
 import           Prelude                          hiding (null, filter, map, lookup)
 
+import           Control.DeepSeq
+
 import           Data.Set                         (Set)
 import qualified Data.Set                         as S
 import           Data.Maybe                       (isJust, fromJust)
@@ -155,3 +157,8 @@ data DocTable i e = Dt
     -- | The doctable implementation.
     , _impl                          :: i
     }
+
+-- ----------------------------------------------------------------------------
+
+instance NFData (DocTable i e) where
+    rnf Dt{} = rnf _impl

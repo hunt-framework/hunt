@@ -1,5 +1,3 @@
-{-# OPTIONS #-}
-
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -57,6 +55,9 @@ data DocumentWrapper = DocumentWrapper
   { _getDoc  :: DocumentRaw
   , _setDoc  :: DocumentRaw -> DocumentWrapper
   }
+
+instance NFData DocumentWrapper where
+  rnf DocumentWrapper{} = ()
 
 -- | A basic wrapper.
 wrapDoc   :: DocumentRaw -> DocumentWrapper

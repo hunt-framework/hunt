@@ -1,6 +1,8 @@
 module Holumbus.Index.Index
 where
 
+import           Control.DeepSeq
+
 import           Data.Set                       (Set)
 
 import           Holumbus.Index.Common          (Context, RawResult, Word, DocId)
@@ -147,3 +149,8 @@ data Index it v i = Ix
     -- | The index implementation.
     , _impl                          :: i
     }
+
+-- ----------------------------------------------------------------------------
+
+instance NFData (Index it v i) where
+    rnf Ix{} = rnf _impl

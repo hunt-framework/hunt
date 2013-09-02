@@ -1,5 +1,7 @@
 module Holumbus.Indexer.Indexer where
 
+import           Control.DeepSeq
+
 import           Data.Set                     (Set)
 import qualified Data.Set                     as S
 
@@ -20,6 +22,11 @@ data Indexer it iv i d de
     , ixDocTable :: DocTable d de
     }
  
+ -- ----------------------------------------------------------------------------
+
+instance NFData (Indexer it iv i d de) where
+  rnf (Indexer ix dt) = rnf ix `seq` rnf dt
+
  -- ----------------------------------------------------------------------------
 
 -- | Returns the number of unique words in the index.
