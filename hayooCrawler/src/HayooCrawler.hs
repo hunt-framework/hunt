@@ -561,7 +561,7 @@ hayooFJIndexer
                     FJ.emptyFctState
     where
     config0 o
-        = FJ.indexCrawlerConfig
+        = FJ.indexCrawlerConfig -- flushToFile or flushToServer -- TODO
           (ao_crawlPar o)
           (hayooRefs True $ ao_packages o)
           Nothing

@@ -1,14 +1,16 @@
 name:          hayooCrawler
-version:       0.0.0.0
+version:       0.0.0.1
 license:       MIT
 license-file:  LICENSE
 author:        Uwe Schmidt
-copyright:     Copyright (c) 2007 - 2013 Uwe Schmidt, Sebastian M. Gauck and Timo B. Kranz
+copyright:     Copyright (c) 2007 - 2013 Uwe Schmidt
 maintainer:    Uwe Schmidt <uwe@fh-wedel.de>
 stability:     experimental
 category:      Text, Data
 synopsis:      The Hayoo! crawler for indexing hackage documentation
 description:   The Hayoo! crawler for indexing hackage documentation
+               .
+	       Version 0.0.0.1: Support for JSON output
                .
                Initial version: Derived from holumbus repo
 cabal-version: >=1.10

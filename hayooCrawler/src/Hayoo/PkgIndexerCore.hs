@@ -6,7 +6,7 @@
 module Hayoo.PkgIndexerCore
 where
 
-import           Control.DeepSeq
+-- import           Control.DeepSeq
 
 import           Data.Aeson
 import qualified Data.ByteString.Lazy         as LB
@@ -18,6 +18,9 @@ import           Hayoo.PackageInfo
 import           Holumbus.Crawler
 import           Holumbus.Crawler.IndexerCore
 import           Holumbus.Index.Common        hiding (URI)
+
+import           System.Directory
+import           System.FilePath
 
 import           Text.XML.HXT.Core
 
@@ -60,25 +63,41 @@ unionHayooPkgStatesM ixs1 ixs2
           s2                    = sizeDocs dt2
 
 
-insertHayooPkgM :: (URI, RawDoc PackageInfo) -> PkgIndexerState -> IO PkgIndexerState
-insertHayooPkgM rd@(rawUri, (rawContexts, rawTitle, rawCustom)) ixs
+insertHayooPkgM :: ((URI, RawDoc PackageInfo) -> IO ()) ->
+                   (URI, RawDoc PackageInfo) ->
+                   PkgIndexerState ->
+                   IO PkgIndexerState
+insertHayooPkgM flush rd@(rawUri, (rawContexts, rawTitle, rawCustom)) ixs
     | nullContexts              = return ixs    -- no words found in document,
                                                 -- so there are no refs in index
                                                 -- and document is thrown away
-    | otherwise                 = do flushPkgDoc
-                                     rnf newIxs `seq`
-                                         return newIxs
+    | otherwise                 = do flush rd
+                                     return $! newIxs
     where
     nullContexts                = and . map (null . snd) $ rawContexts
-    newIxs                      = ixs {ixs_documents = newDocs}
-    (_did, newDocs)             = insertDoc (ixs_documents ixs) doc
-    doc                         = Document
+    ! newIxs                    = ixs {ixs_documents = newDocs}
+    ! (_did, ! newDocs)         = insertDoc (ixs_documents ixs) doc
+    ! doc                       = Document
                                   { title       = rawTitle
                                   , uri         = rawUri
                                   , custom      = rawCustom
                                   }
-    path                        = "packages/" ++ rawTitle ++ ".json"
-    flushPkgDoc                 = flushRawCrawlerDoc (LB.writeFile path) (RCD rd)
+
+flushToFile :: (URI, RawDoc PackageInfo) -> IO ()
+flushToFile rd@(_rawUri, (_rawContexts, rawTitle, _rawCustom))
+    = do createDirectoryIfMissing True dirPath
+         flushRawCrawlerDoc (LB.writeFile filePath) (RCD rd)
+      where
+        dirPath  = "packages"
+        filePath = dirPath </> pn ++ ".json"
+        pn = rawTitle
+
+flushToServer :: (URI, RawDoc PackageInfo) -> IO ()
+flushToServer _rd
+    = error "flushToServer not yet implemented" -- TODO
+
+flushToDevNull :: (URI, RawDoc PackageInfo) -> IO ()
+flushToDevNull = const (return ())
 
 -- ------------------------------------------------------------
 
@@ -117,6 +136,6 @@ indexCrawlerConfig           :: SysConfig                                    -- 
                                 -> PkgCrawlerConfig                             -- ^ result is a crawler config
 
 indexCrawlerConfig
-    = indexCrawlerConfig' insertHayooPkgM unionHayooPkgStatesM
+    = indexCrawlerConfig' (insertHayooPkgM flushToFile) unionHayooPkgStatesM
 
 -- ------------------------------------------------------------

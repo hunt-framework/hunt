@@ -11,7 +11,7 @@ import           Control.DeepSeq
 import           Data.Binary                  (Binary)
 import qualified Data.Binary                  as B
 import qualified Data.ByteString.Lazy         as LB
--- import           Data.Maybe
+import           Data.Maybe
 
 import           Hayoo.FunctionInfo
 import           Hayoo.IndexTypes
@@ -19,6 +19,9 @@ import           Hayoo.IndexTypes
 import           Holumbus.Crawler
 import           Holumbus.Crawler.IndexerCore
 -- import           Holumbus.Index.Common        hiding (URI)
+
+import           System.Directory
+import           System.FilePath
 
 import           Text.XML.HXT.Core
 
@@ -49,32 +52,53 @@ unionHayooFctStatesM        :: FctIndexerState -> FctIndexerState -> IO FctIndex
 unionHayooFctStatesM _ixs1 _ixs2
     = return emptyFctState
 
-insertHayooFctM :: (URI, RawDoc FunctionInfo) -> FctIndexerState -> IO FctIndexerState
-insertHayooFctM rd@(_rawUri, (rawContexts, rawTitle, _rawCustom)) ixs
+insertHayooFctM :: ((URI, RawDoc FunctionInfo) -> IO ()) ->
+                   (URI, RawDoc FunctionInfo) ->
+                   FctIndexerState ->
+                   IO FctIndexerState
+insertHayooFctM flush rd@(_rawUri, (rawContexts, _rawTitle, _rawCustom)) ixs
     | nullContexts              = return ixs    -- no words found in document,
                                                 -- so there are no refs in index
                                                 -- and document is thrown away
-    | otherwise                 = do flushFctDoc
+    | otherwise                 = do flush rd
                                      return ixs
     where
     nullContexts                = and . map (null . snd) $ rawContexts
-    path                        = "functions/" ++ rawTitle ++ ".json"
-    flushFctDoc                 = flushRawCrawlerDoc (LB.writeFile path) (RCD rd)
+
+flushToFile :: (URI, RawDoc FunctionInfo) -> IO ()
+flushToFile rd@(_rawUri, (_rawContexts, rawTitle, rawCustom))
+    = do createDirectoryIfMissing True dirPath
+         flushRawCrawlerDoc (LB.writeFile filePath) (RCD rd)
+      where
+        dirPath  = "functions" </> pn
+        filePath = dirPath </> mn ++ "." ++ fn ++ ".json"
+        cs = fromJust rawCustom
+        pn = package cs
+        mn = moduleName cs
+        fn = map esc rawTitle
+             where
+               esc c
+                   | c `elem` "/\\" = '.'
+                   | otherwise      = c
+
+flushToServer :: (URI, RawDoc FunctionInfo) -> IO ()
+flushToServer _rd
+    = error "flushToServer not yet implemented" -- TODO
 
 -- ------------------------------------------------------------
 
 -- the pkgIndex crawler configuration
 
-indexCrawlerConfig           :: SysConfig                                    -- ^ document read options
-                                -> (URI -> Bool)                                -- ^ the filter for deciding, whether the URI shall be processed
-                                -> Maybe (IOSArrow XmlTree String)              -- ^ the document href collection filter, default is 'Holumbus.Crawler.Html.getHtmlReferences'
-                                -> Maybe (IOSArrow XmlTree XmlTree)             -- ^ the pre document filter, default is the this arrow
-                                -> Maybe (IOSArrow XmlTree String)              -- ^ the filter for computing the document title, default is empty string
-                                -> Maybe (IOSArrow XmlTree FunctionInfo)         -- ^ the filter for the cutomized doc info, default Nothing
-                                -> [IndexContextConfig]                         -- ^ the configuration of the various index parts
-                                -> FctCrawlerConfig                             -- ^ result is a crawler config
+indexCrawlerConfig :: SysConfig                                    -- ^ document read options
+                   -> (URI -> Bool)                                -- ^ the filter for deciding, whether the URI shall be processed
+                   -> Maybe (IOSArrow XmlTree String)              -- ^ the document href collection filter, default is 'Holumbus.Crawler.Html.getHtmlReferences'
+                   -> Maybe (IOSArrow XmlTree XmlTree)             -- ^ the pre document filter, default is the this arrow
+                   -> Maybe (IOSArrow XmlTree String)              -- ^ the filter for computing the document title, default is empty string
+                   -> Maybe (IOSArrow XmlTree FunctionInfo)        -- ^ the filter for the cutomized doc info, default Nothing
+                   -> [IndexContextConfig]                         -- ^ the configuration of the various index parts
+                   -> FctCrawlerConfig                             -- ^ result is a crawler config
 
-indexCrawlerConfig
-    = indexCrawlerConfig' insertHayooFctM unionHayooFctStatesM
+indexCrawlerConfig -- TODO flushTo
+    = indexCrawlerConfig' (insertHayooFctM flushToFile) unionHayooFctStatesM
 
 -- ------------------------------------------------------------
