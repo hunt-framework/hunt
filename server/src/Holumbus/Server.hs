@@ -31,6 +31,7 @@ import qualified Holumbus.Index.Text.Inverted.PrefixMem  as Inv
 import qualified Holumbus.Index.Proxy.CachedIndex        as IxCache
 
 import           Holumbus.DocTable.DocTable               hiding (filter, map)
+import qualified Holumbus.DocTable.DocTable               as Dtt
 import           Holumbus.DocTable.HashedDocuments        as Dt
 
 import           Holumbus.Query.Fuzzy
@@ -39,7 +40,8 @@ import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result
 
-import           Holumbus.Indexer.TextIndexer             as Ix
+import           Holumbus.Indexer.Indexer                 as Ix
+import           Holumbus.Indexer.TextIndexer             (TextIndexer, newTextIndexer, modifyWithDescription)
 import           Holumbus.Server.Analyzer
 import           Holumbus.Server.Common
 import qualified Holumbus.Server.Template                 as Tmpl
@@ -63,7 +65,7 @@ modIndex        = liftIO .:: modifyMVar
 --indexer = Indexer emptyIndex HD.emptyDocTable
 
 indexer         :: TextIndexer Inverted Documents DocumentWrapper
-indexer         = Indexer (IxCache.empty Inv.empty) Dt.empty
+indexer         = newTextIndexer (IxCache.empty Inv.empty) Dt.empty
 
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
@@ -87,7 +89,7 @@ jsonPretty v = do
 
 -- | Constructs a list of 'ApiDocument' 'URI's that already exist in the indexer and a
 --   ist of 'URI's and corresponding 'DocId's for 'ApiDocument's which are part of the indexer.
-checkApiDocUris :: [ApiDocument] -> Indexer it v i d de -> ([URI], [(URI, DocId)])
+checkApiDocUris :: [ApiDocument] -> Indexer elem it v i d de -> ([URI], [(URI, DocId)])
 checkApiDocUris apiDocs ix =
   let apiDocsE
           = map (\apiDoc -> let docUri = apiDocUri apiDoc
@@ -103,7 +105,7 @@ checkApiDocUris apiDocs ix =
 --   if the first accessor function is an empty list. Otherwise the non-empty list is returned.
 --   Used for 'checkApiDocUrisExistence' and 'checkApiDocUrisAbsence'
 checkApiDocUris' :: (([URI], [(URI, DocId)]) -> [a], ([URI], [(URI, DocId)]) -> b)
-                    -> [ApiDocument] -> Indexer it v i d de -> Either [a] b
+                    -> [ApiDocument] -> Indexer elem it v i d de -> Either [a] b
 checkApiDocUris' (l,r) apiDocs ix =
     let res = checkApiDocUris apiDocs ix 
     in if P.null . l $ res then Right . r $ res else Left . l $ res
@@ -111,15 +113,19 @@ checkApiDocUris' (l,r) apiDocs ix =
 -- | Checks whether the Documents with the URIs supplied by ApiDocuments are in the index,
 --   i.e. before an insert operation.
 --   Left is the failure case where there are URIs given that cannot be found in the index.
-checkApiDocUrisExistence :: [ApiDocument] -> Indexer it v i d de -> Either [URI] [(URI, DocId)]
+checkApiDocUrisExistence :: [ApiDocument] -> Indexer elem it v i d de -> Either [URI] [(URI, DocId)]
 checkApiDocUrisExistence = checkApiDocUris' (fst, snd)
 
 -- XXX: maybe return Either [URI] [URI], since the DocIds will not be needed in the failure case
 -- | Checks whether there are no Documents with the URIs supplied by ApiDocuments in the index,
 --   i.e. before an update operation.
 --   Left is the failure case where there are already documents with those URIs in the index.
-checkApiDocUrisAbsence   :: [ApiDocument] -> Indexer it v i d de -> Either [(URI, DocId)] [URI]
+checkApiDocUrisAbsence   :: [ApiDocument] -> Indexer elem it v i d de -> Either [(URI, DocId)] [URI]
 checkApiDocUrisAbsence   = checkApiDocUris' (snd, fst)
+
+
+toDocAndWords' :: ApiDocument -> (DocumentWrapper, Words)
+toDocAndWords' = toDocAndWords Doc.wrapDoc
 
 -- ----------------------------------------------------------------------------
 
@@ -145,8 +151,10 @@ start = scotty 3000 $ do
   -- request / response logging
   middleware logStdoutDev
 
-  get "/"         $ html Tmpl.index
-  get "/search"   $ html Tmpl.index
+  get "/"         $ redirect "/search"
+  get "/search"   $ do 
+    ds <- withIx $ return . Dtt.size . ixDocTable
+    html . Tmpl.index $ ds
   get "/add"      $ html Tmpl.addDocs
 
   -- simple query
@@ -190,7 +198,7 @@ start = scotty 3000 $ do
         (\existingUris ->
             (ix, return . map fst $ existingUris))
         (\_            ->
-            ( foldr (uncurry Ix.insertDoc . toDocAndWords Doc.wrapDoc) ix jss
+             ( foldr (\e ix_ -> uncurry (Ix.insert ix_) $ toDocAndWords' e) ix jss
             , Nothing))
         uris
     json $ maybe
@@ -213,8 +221,8 @@ start = scotty 3000 $ do
         (\nonexistentUris ->
             (ix, return nonexistentUris))
         (\existentDocs    -> 
-            ( foldr (\(docId, apiDoc) ->
-                uncurry (Ix.updateDoc docId) . toDocAndWords Doc.wrapDoc $ apiDoc) ix (flip zip jss . map snd $ existentDocs)
+            ( foldr (\(docId, apiDoc) ix_ -> uncurry (Ix.update ix_ docId) . toDocAndWords' $ apiDoc) 
+                    ix (flip zip jss . map snd $ existentDocs)
             , Nothing))
         uris
 
@@ -239,7 +247,7 @@ start = scotty 3000 $ do
             (ix, return nonexistentUris))
         (\existentDocs    -> 
             ( foldr (\(docId, apiDoc) ->
-                Ix.modifyWithDescription (apiDocDescrMap apiDoc) (snd . toDocAndWords Doc.wrapDoc $ apiDoc) docId) ix (flip zip jss . map snd $ existentDocs)
+                modifyWithDescription (apiDocDescrMap apiDoc) (snd . toDocAndWords' $ apiDoc) docId) ix (flip zip jss . map snd $ existentDocs)
             , Nothing))
         uris
 

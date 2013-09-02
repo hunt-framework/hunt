@@ -1,11 +1,9 @@
 module Holumbus.Indexer.TextIndexer 
   ( module Holumbus.Indexer.Indexer
   , TextIndexer
+  , newTextIndexer
   , searchPrefixNoCase
   , allWords
-  , updateDoc
-  , insertDoc
-  , modify
   , modifyWithDescription
   )
 where
@@ -14,6 +12,7 @@ import qualified Data.Map                          as M
 import qualified Data.Set                          as S
 import           Data.Text                         (Text)
 
+import           Holumbus.DocTable.DocTable        (DocTable)
 import qualified Holumbus.DocTable.DocTable        as Dt
 import           Holumbus.Index.Index              (Index)
 import qualified Holumbus.Index.Index              as Ix
@@ -21,26 +20,35 @@ import qualified Holumbus.Index.Index              as Ix
 import           Holumbus.Index.Common
 import           Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Indexer.Indexer
+import qualified Holumbus.Indexer.Indexer          as Ixx
 
 -- ----------------------------------------------------------------------------
 
 -- | TextIndexer with 'Index' implementation, 'DocTable' implementation and element type parameter.
 --   Uses 'Textual' and 'Occurrences' as index and value type.
-type TextIndexer i d de   = Indexer Textual Occurrences i d de
+type TextIndexer i d de   = Indexer Words Textual Occurrences i d de
 
+newTextIndexer :: Index Textual Occurrences i -> DocTable d de -> TextIndexer i d de
+newTextIndexer ix dt = (newIndexer ix dt) 
+  { _insert = \doc' ws -> insertDoc doc' ws ix dt
+  , _update = \docId doc' w -> updateDoc docId doc' w ix dt
+  , _modify = \f ws docId -> modify' f ws docId ix dt
+  } 
+ 
 -- ----------------------------------------------------------------------------
 
 -- index functions
 
 -- | See 'Ix.lookup'.
-searchPrefixNoCase        :: Indexer Textual iv i d de -> Context -> Text -> RawResult
-searchPrefixNoCase (Indexer ix _dx) = Ix.lookup PrefixNoCase ix
+searchPrefixNoCase        :: TextIndexer i d de -> Context -> Text -> RawResult
+searchPrefixNoCase (Indexer ix _dx _ _ _ _) = Ix.lookup PrefixNoCase ix
 
 -- | See 'Ix.size'.
-allWords                  :: Indexer Textual iv i d de -> Context -> RawResult
+allWords                  :: TextIndexer i d de -> Context -> RawResult
 allWords                  = Ix.size . ixIndex
 
 -- | Update a document - same as delete and insert.
+{-<<<<<<< HEAD
 updateDoc                 :: DocId -> de -> Words -> Indexer it Occurrences i d de -> Indexer it Occurrences i d de
 updateDoc docId d w       = insertDoc d w . deleteDocs (S.singleton docId)
 
@@ -51,21 +59,40 @@ insertDoc d wrds ix       = ix { ixIndex    = newIndex
   where
   (dId, newDocTable) = Dt.insert (ixDocTable ix) d
   newIndex           = addWords wrds dId $ ixIndex ix
+=======
+-}
+updateDoc                    :: DocId -> de -> Words 
+                             -> Index Textual Occurrences i -> DocTable d de
+                             -> TextIndexer i d de
+updateDoc docId doc' w ix dt  = insertDoc doc' w nIx nDt
+  where
+  (Indexer nIx nDt _ _ _ _ ) = Ixx.delete tIx (S.singleton docId)
+  tIx = newIndexer ix dt
+
+-- | Insert a document.
+insertDoc                 :: de -> Words 
+                          -> Index Textual Occurrences i -> DocTable d de
+                          -> TextIndexer i d de
+insertDoc doc' wrds ix dt  = newTextIndexer  newIndex newDocTable
+  where
+  (dId, newDocTable) = Dt.insert dt doc'
+  newIndex           = addWords wrds dId ix
+-- >>>>>>> 662caa314b3888d85d99fe2a82536f515e3c7d31
 
 -- | Modify a document and add words (occurrences for that document) to the index.
-modify                    :: (de -> de) -> Words -> DocId -> Indexer it Occurrences i d de -> Indexer it Occurrences i d de
-modify f wrds dId ix
-  = ix { ixIndex    = newIndex
-       , ixDocTable = newDocTable }
+modify'                   :: (de -> de) -> Words -> DocId 
+                          -> Index Textual Occurrences i -> DocTable d de
+                          -> TextIndexer i d de
+modify' f wrds dId ix dt = newTextIndexer newIndex newDocTable
   where
-  newDocTable = Dt.adjust f dId   $ ixDocTable ix
-  newIndex    = addWords wrds dId $ ixIndex ix
+  newDocTable = Dt.adjust f dId   $ dt
+  newIndex    = addWords wrds dId $ ix
 
 -- | Modify the description of a document and add words (occurrences for that document) to the index.
-modifyWithDescription     :: Description -> Words -> DocId -> Indexer it Occurrences i d DocumentWrapper -> Indexer it Occurrences i d DocumentWrapper
+modifyWithDescription     :: Description -> Words -> DocId -> TextIndexer i d DocumentWrapper -> TextIndexer i d DocumentWrapper
 modifyWithDescription descr wrds dId ix
-  = ix { ixIndex    = newIndex
-       , ixDocTable = newDocTable }
+  = ix { _ixIndex    = newIndex
+       , _ixDocTable = newDocTable }
   where
   newDocTable    = Dt.adjust mergeDescr dId $ ixDocTable ix
   newIndex       = addWords wrds dId $ ixIndex ix
