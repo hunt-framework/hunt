@@ -10,12 +10,12 @@ import           Text.Blaze.Html.Renderer.Text    (renderHtml)
 import           Text.Blaze                       (Markup, ToMarkup)
 
 -- | main page
-index :: LT.Text
-index =
+index :: Int -> LT.Text
+index docs =
   -- generate html with hamlet
   (renderHtml . defaultLayout $ [xshamlet|
 <h1>
-  Search Documents
+  Search Documents (#{docs})
 <hr>
 <div .row>
   <div .span8>
