@@ -9,7 +9,7 @@ where
 -- import           Control.DeepSeq
 
 import           Data.Aeson
-import qualified Data.ByteString.Lazy         as LB
+import qualified Data.ByteString.Lazy          as LB
 import           Data.Maybe
 
 import           Hayoo.IndexTypes
@@ -17,10 +17,12 @@ import           Hayoo.PackageInfo
 
 import           Holumbus.Crawler
 import           Holumbus.Crawler.IndexerCore
-import           Holumbus.Index.Common        hiding (URI)
+import           Holumbus.Crawler.PostToServer
+import           Holumbus.Index.Common         hiding (URI)
 
 import           System.Directory
 import           System.FilePath
+import           System.IO
 
 import           Text.XML.HXT.Core
 
@@ -89,12 +91,17 @@ flushToFile rd@(_rawUri, (_rawContexts, rawTitle, _rawCustom))
          flushRawCrawlerDoc (LB.writeFile filePath) (RCD rd)
       where
         dirPath  = "packages"
-        filePath = dirPath </> pn ++ ".json"
+        filePath = dirPath </> pn ++ ".js"
         pn = rawTitle
 
-flushToServer :: (URI, RawDoc PackageInfo) -> IO ()
-flushToServer _rd
-    = error "flushToServer not yet implemented" -- TODO
+flushToServer :: String -> (URI, RawDoc PackageInfo) -> IO ()
+flushToServer url rd
+    = flushRawCrawlerDoc flush [(RCD rd)]
+    where
+      flush bs
+          = do res <- postToServer $
+                      mkPostReq url "insert" bs
+               maybe (return ()) (\ e -> hPutStrLn stderr e) res
 
 flushToDevNull :: (URI, RawDoc PackageInfo) -> IO ()
 flushToDevNull = const (return ())
@@ -112,21 +119,31 @@ data ToRank = ToRank URI Score
 instance ToJSON ToRank where
     toJSON (ToRank u r)
         = object $
-          [ "uri" .= u
+          [ "uri"         .= u
           , "description" .= (object ["rank" .= r])
           ]
 
-flushRanks :: Documents PackageInfo -> IO ()
-flushRanks dt = flushRawCrawlerDoc (LB.writeFile path) (toRankDocs dt)
+flushRanksToFile :: Documents PackageInfo -> IO ()
+flushRanksToFile dt
+    = flushRawCrawlerDoc (LB.writeFile path) (toRankDocs dt)
     where
-      path = "packages/0000-ranks.json"
+      path = "packages/0000-ranks.js"
 
+flushRanksToServer :: String -> Documents PackageInfo -> IO ()
+flushRanksToServer url dt
+    = flushRawCrawlerDoc flush (toRankDocs dt)
+    where
+      flush bs
+          = do res <- postToServer $
+                      mkPostReq url "update" bs
+               maybe (return ()) (\ e -> hPutStrLn stderr e) res
 
 -- ------------------------------------------------------------
 
 -- the pkgIndex crawler configuration
 
-indexCrawlerConfig           :: SysConfig                                    -- ^ document read options
+indexCrawlerConfig           :: ((URI, RawDoc PackageInfo) -> IO ())
+                                -> SysConfig                                    -- ^ document read options
                                 -> (URI -> Bool)                                -- ^ the filter for deciding, whether the URI shall be processed
                                 -> Maybe (IOSArrow XmlTree String)              -- ^ the document href collection filter, default is 'Holumbus.Crawler.Html.getHtmlReferences'
                                 -> Maybe (IOSArrow XmlTree XmlTree)             -- ^ the pre document filter, default is the this arrow
@@ -135,7 +152,7 @@ indexCrawlerConfig           :: SysConfig                                    -- 
                                 -> [IndexContextConfig]                         -- ^ the configuration of the various index parts
                                 -> PkgCrawlerConfig                             -- ^ result is a crawler config
 
-indexCrawlerConfig
-    = indexCrawlerConfig' (insertHayooPkgM flushToFile) unionHayooPkgStatesM
+indexCrawlerConfig flush
+    = indexCrawlerConfig' (insertHayooPkgM flush) unionHayooPkgStatesM
 
 -- ------------------------------------------------------------

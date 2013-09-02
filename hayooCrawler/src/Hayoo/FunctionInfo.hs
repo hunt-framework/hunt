@@ -63,11 +63,11 @@ instance ToJSON FunctionInfo where
     toJSON (FunctionInfo mon sig pac sou fct)
         = object
           ( map (uncurry (.=)) . filter (not . null . snd)
-            $ [ ("module",    mon)
-              , ("signature", sig)
-              , ("package",   pac)
-              , ("source",    sou)
-              , ("descr",     fct)
+            $ [ ("fct-module",    mon)
+              , ("fct-signature", sig)
+              , ("fct-package",   pac)
+              , ("fct-source",    sou)
+              , ("fct-descr",     fct)
               ]
           )
 

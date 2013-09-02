@@ -43,6 +43,7 @@ executable hayooCrawler
                  , Holumbus.Crawler.Html
                  , Holumbus.Crawler.IndexerCore
                  , Holumbus.Crawler.Logger
+                 , Holumbus.Crawler.PostToServer
                  , Holumbus.Crawler.Robots
                  , Holumbus.Crawler.RobotTypes
                  , Holumbus.Crawler.Types
@@ -84,6 +85,7 @@ executable hayooCrawler
                  , enummapset             >= 0     && < 1
                  , filepath               >= 1     && < 2
                  , hslogger               >= 1     && < 2
+                 , HTTP                   >= 4000
                  -- , Holumbus-Searchengine  >= 2     && < 3
                  , hxt                    >= 9.1   && < 10
                  , hxt-cache              >= 9     && < 10

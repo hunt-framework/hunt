@@ -7,10 +7,9 @@ where
 
 import           Control.DeepSeq
 
--- import           Data.Aeson
-import           Data.Binary                  (Binary)
-import qualified Data.Binary                  as B
-import qualified Data.ByteString.Lazy         as LB
+import           Data.Binary                   (Binary)
+import qualified Data.Binary                   as B
+import qualified Data.ByteString.Lazy          as LB
 import           Data.Maybe
 
 import           Hayoo.FunctionInfo
@@ -18,10 +17,11 @@ import           Hayoo.IndexTypes
 
 import           Holumbus.Crawler
 import           Holumbus.Crawler.IndexerCore
--- import           Holumbus.Index.Common        hiding (URI)
+import           Holumbus.Crawler.PostToServer
 
 import           System.Directory
 import           System.FilePath
+import           System.IO
 
 import           Text.XML.HXT.Core
 
@@ -68,10 +68,10 @@ insertHayooFctM flush rd@(_rawUri, (rawContexts, _rawTitle, _rawCustom)) ixs
 flushToFile :: (URI, RawDoc FunctionInfo) -> IO ()
 flushToFile rd@(_rawUri, (_rawContexts, rawTitle, rawCustom))
     = do createDirectoryIfMissing True dirPath
-         flushRawCrawlerDoc (LB.writeFile filePath) (RCD rd)
+         flushRawCrawlerDoc (LB.writeFile filePath) [(RCD rd)]
       where
         dirPath  = "functions" </> pn
-        filePath = dirPath </> mn ++ "." ++ fn ++ ".json"
+        filePath = dirPath </> mn ++ "." ++ fn ++ ".js"
         cs = fromJust rawCustom
         pn = package cs
         mn = moduleName cs
@@ -81,24 +81,30 @@ flushToFile rd@(_rawUri, (_rawContexts, rawTitle, rawCustom))
                    | c `elem` "/\\" = '.'
                    | otherwise      = c
 
-flushToServer :: (URI, RawDoc FunctionInfo) -> IO ()
-flushToServer _rd
-    = error "flushToServer not yet implemented" -- TODO
+flushToServer :: String -> (URI, RawDoc FunctionInfo) -> IO ()
+flushToServer url rd
+    = flushRawCrawlerDoc flush [(RCD rd)]
+    where
+      flush bs
+          = do res <- postToServer $
+                      mkPostReq url "insert" bs
+               maybe (return ()) (\ e -> hPutStrLn stderr e) res
 
 -- ------------------------------------------------------------
 
 -- the pkgIndex crawler configuration
 
-indexCrawlerConfig :: SysConfig                                    -- ^ document read options
-                   -> (URI -> Bool)                                -- ^ the filter for deciding, whether the URI shall be processed
-                   -> Maybe (IOSArrow XmlTree String)              -- ^ the document href collection filter, default is 'Holumbus.Crawler.Html.getHtmlReferences'
-                   -> Maybe (IOSArrow XmlTree XmlTree)             -- ^ the pre document filter, default is the this arrow
-                   -> Maybe (IOSArrow XmlTree String)              -- ^ the filter for computing the document title, default is empty string
-                   -> Maybe (IOSArrow XmlTree FunctionInfo)        -- ^ the filter for the cutomized doc info, default Nothing
-                   -> [IndexContextConfig]                         -- ^ the configuration of the various index parts
-                   -> FctCrawlerConfig                             -- ^ result is a crawler config
+indexCrawlerConfig :: ((URI, RawDoc FunctionInfo) -> IO ())
+                      -> SysConfig                                    -- ^ document read options
+                      -> (URI -> Bool)                                -- ^ the filter for deciding, whether the URI shall be processed
+                      -> Maybe (IOSArrow XmlTree String)              -- ^ the document href collection filter, default is 'Holumbus.Crawler.Html.getHtmlReferences'
+                      -> Maybe (IOSArrow XmlTree XmlTree)             -- ^ the pre document filter, default is the this arrow
+                      -> Maybe (IOSArrow XmlTree String)              -- ^ the filter for computing the document title, default is empty string
+                      -> Maybe (IOSArrow XmlTree FunctionInfo)        -- ^ the filter for the cutomized doc info, default Nothing
+                      -> [IndexContextConfig]                         -- ^ the configuration of the various index parts
+                      -> FctCrawlerConfig                             -- ^ result is a crawler config
 
-indexCrawlerConfig -- TODO flushTo
-    = indexCrawlerConfig' (insertHayooFctM flushToFile) unionHayooFctStatesM
+indexCrawlerConfig flush
+    = indexCrawlerConfig' (insertHayooFctM flush) unionHayooFctStatesM
 
 -- ------------------------------------------------------------
