@@ -92,9 +92,9 @@ addPair :: Pair -> Value -> Value
 addPair (k, v) (Object m) = Object $ M.insert k v m
 addPair p      _          = object [p]
 
-flushRawCrawlerDoc :: (ToJSON c) => (LB.ByteString -> IO ()) -> c -> IO ()
-flushRawCrawlerDoc io d
-    = io $ encodePretty' encConfig d
+flushRawCrawlerDoc :: (ToJSON c) => Bool -> (LB.ByteString -> IO ()) -> c -> IO ()
+flushRawCrawlerDoc pretty io d
+    = io $ (if pretty then encodePretty' encConfig else encode) d
       where
         encConfig :: Config
         encConfig
@@ -236,15 +236,18 @@ stdIndexer                      :: ( Binary i
                                                                 --   stored in file
                                 -> [URI]                        -- ^ start indexing with this set of uris
                                 -> IndexerState i d c           -- ^ the initial empty indexer state
-                                -> IO (IndexCrawlerState i d c) -- ^ result is a state consisting of the index and the map of indexed documents
+                                -> IO (Either String (IndexCrawlerState i d c)) -- ^ result is a state consisting of the index and the map of indexed documents
 
 stdIndexer config resumeLoc startUris eis
-                                = execCrawler action config (initCrawlerState eis)
+                                = do res <- execCrawler action config (initCrawlerState eis)
+                                     either (\ e -> errC    "indexerCore" ["indexer failed:", e])
+                                            (\ _ -> noticeC "indexerCore" ["indexer finished"])
+                                            res
+                                     return res
     where
     action                      = do
                                   noticeC "indexerCore" ["indexer started"]
                                   res <- maybe (crawlDocs startUris) crawlerResume $ resumeLoc
-                                  noticeC "indexerCore" ["indexer finished"]
                                   return res
 
 -- ------------------------------------------------------------

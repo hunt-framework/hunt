@@ -22,7 +22,6 @@ import           Holumbus.Index.Common         hiding (URI)
 
 import           System.Directory
 import           System.FilePath
-import           System.IO
 
 import           Text.XML.HXT.Core
 
@@ -88,7 +87,7 @@ insertHayooPkgM flush rd@(rawUri, (rawContexts, rawTitle, rawCustom)) ixs
 flushToFile :: (URI, RawDoc PackageInfo) -> IO ()
 flushToFile rd@(_rawUri, (_rawContexts, rawTitle, _rawCustom))
     = do createDirectoryIfMissing True dirPath
-         flushRawCrawlerDoc (LB.writeFile filePath) (RCD rd)
+         flushRawCrawlerDoc True (LB.writeFile filePath) (RCD rd)
       where
         dirPath  = "packages"
         filePath = dirPath </> pn ++ ".js"
@@ -96,12 +95,10 @@ flushToFile rd@(_rawUri, (_rawContexts, rawTitle, _rawCustom))
 
 flushToServer :: String -> (URI, RawDoc PackageInfo) -> IO ()
 flushToServer url rd
-    = flushRawCrawlerDoc flush [(RCD rd)]
+    = flushRawCrawlerDoc False flush [(RCD rd)]
     where
       flush bs
-          = do res <- postToServer $
-                      mkPostReq url "insert" bs
-               maybe (return ()) (\ e -> hPutStrLn stderr e) res
+          = postToServer $ mkPostReq url "insert" bs
 
 flushToDevNull :: (URI, RawDoc PackageInfo) -> IO ()
 flushToDevNull = const (return ())
@@ -125,18 +122,16 @@ instance ToJSON ToRank where
 
 flushRanksToFile :: Documents PackageInfo -> IO ()
 flushRanksToFile dt
-    = flushRawCrawlerDoc (LB.writeFile path) (toRankDocs dt)
+    = flushRawCrawlerDoc True (LB.writeFile path) (toRankDocs dt)
     where
       path = "packages/0000-ranks.js"
 
 flushRanksToServer :: String -> Documents PackageInfo -> IO ()
 flushRanksToServer url dt
-    = flushRawCrawlerDoc flush (toRankDocs dt)
+    = flushRawCrawlerDoc False flush (toRankDocs dt)
     where
       flush bs
-          = do res <- postToServer $
-                      mkPostReq url "update" bs
-               maybe (return ()) (\ e -> hPutStrLn stderr e) res
+          = postToServer $ mkPostReq url "update" bs
 
 -- ------------------------------------------------------------
 

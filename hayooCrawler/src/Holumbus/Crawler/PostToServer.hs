@@ -10,6 +10,8 @@ import           Network.Browser
 import           Network.HTTP
 import           Network.URI
 
+-- ------------------------------------------------------------
+
 type Req = Request  Bytes
 type Res = Response Bytes
 
@@ -38,16 +40,15 @@ mkPostReq url action bs
 defaultServer :: String
 defaultServer = "http://localhost:3000/document"
 
-postToServer :: Req -> IO (Maybe String)
+postToServer :: Req -> IO ()
 postToServer req
     = do res <- snd `fmap`
                 (browse $ do setOutHandler (const $ return ()) -- disable trace output
                              request req
                 )
-         return $
-           case rspCode res of
-             (2,0,0) -> Nothing
-             _       -> Just $ show res
+         case rspCode res of
+           (2,0,0) -> return ()
+           _       -> ioError . userError . show $ res
 
 -- ------------------------------------------------------------
 

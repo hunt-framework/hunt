@@ -1,4 +1,4 @@
-{-# OPTIONS -XBangPatterns #-}
+{-# LANGUAGE BangPatterns #-}
 
 -- ------------------------------------------------------------
 
@@ -6,15 +6,16 @@ module Holumbus.Crawler.Core
 where
 
 -- import           Control.Concurrent.MapFold             ( mapFold )
-import           Control.Sequential.MapFoldBinary       ( mapFoldBinaryM )
 import           Control.DeepSeq
+import           Control.Sequential.MapFoldBinary (mapFoldBinaryM)
 
+import           Control.Monad.Error
 import           Control.Monad.Reader
+import           Control.Monad.ReaderStateIOError
 import           Control.Monad.State
-import           Control.Monad.ReaderStateIO
 
-import           Data.Binary                    ( Binary )
-import qualified Data.Binary                    as B    -- else naming conflict with put and get from Monad.State
+import           Data.Binary                      (Binary)
+import qualified Data.Binary                      as B
 
 import           Data.Function.Selector
 
@@ -22,32 +23,39 @@ import           Data.List
 
 import           Holumbus.Crawler.Constants
 import           Holumbus.Crawler.Logger
-import           Holumbus.Crawler.URIs
 import           Holumbus.Crawler.Robots
 import           Holumbus.Crawler.Types
-import           Holumbus.Crawler.Util          ( mkTmpFile )
+import           Holumbus.Crawler.URIs
+import           Holumbus.Crawler.Util            (mkTmpFile)
 import           Holumbus.Crawler.XmlArrows
 
-import           Text.XML.HXT.Core              hiding
-                                                ( when
-                                                , getState
-                                                )
+import           Text.XML.HXT.Core                hiding (getState, when)
+
+-- ------------------------------------------------------------
+-- error safe IO
+
+stdIOErrorHandler               :: IOError -> CrawlerAction a r ()
+stdIOErrorHandler e             = do errC "IO" [show e]
+
+-- perform an IO action and catch and issue IO errors
+
+liftIOE                         :: IO b -> CrawlerAction a r b
+liftIOE action                  = liftIO action `catchError`
+                                  (\ e -> errC "IO" [e] >> throwError e)
 
 -- ------------------------------------------------------------
 
 saveCrawlerState                :: (Binary r) => FilePath -> CrawlerAction a r ()
 saveCrawlerState fn             = do preSave
                                      s <- get
-                                     liftIO $ B.encodeFile  fn s
+                                     liftIOE $ B.encodeFile  fn s
     where
-      preSave                   = do  act <- getConf theSavePreAction
-                                      act fn
+      preSave                   = do act <- getConf theSavePreAction
+                                     act fn
 
 loadCrawlerState                :: (Binary r) => FilePath -> CrawlerAction a r ()
-loadCrawlerState fn             = do
-                                  s <- liftIO $ B.decodeFile fn
-                                  put s
-
+loadCrawlerState fn             = do s <- liftIOE $ B.decodeFile fn
+                                     put s
 
 uriProcessed                    :: URI -> CrawlerAction a r ()
 uriProcessed uri                = do
@@ -81,7 +89,7 @@ accumulateRes                   :: (NFData r) => (URI, a) -> CrawlerAction a r (
 accumulateRes res               = do
                                   combine <- getConf  theAccumulateOp
                                   acc0    <- getState theResultAccu
-                                  acc1    <- liftIO $ combine res acc0
+                                  acc1    <- liftIOE $ combine res acc0
                                   putState theResultAccu acc1
 
 -- ------------------------------------------------------------
@@ -157,7 +165,7 @@ crawlNextDocs mapf      = do
                           mp   <- getConf  theMaxParDocs
                           md   <- getConf theMaxNoOfDocs
 
-                          let n       = mp `min` (md - nd) 
+                          let n       = mp `min` (md - nd)
                           let urisTBP = nextURIs n uris
 
                           modifyState theNoOfDocs (+ (length urisTBP))
@@ -176,7 +184,7 @@ crawlNextDocs mapf      = do
                                ( ! urisMoved,
                                  ! urisNew,
                                  ! results
-                                 )      <- liftIO $
+                                 )      <- liftIOE $
                                            mapf (processCmd conf state') (combineDocResults' mergeOp) $
                                            urisAllowed
 
@@ -185,18 +193,22 @@ crawlNextDocs mapf      = do
                                urisProcessed     urisMoved
                                urisToBeProcessed urisNew
                                acc0     <- getState theResultAccu
-                               ! acc1   <- liftIO $ mergeOp results acc0
+                               acc1     <- liftIOE $ mergeOp results acc0
                                putState theResultAccu acc1
                                noticeC "crawlNextDocs" ["document results accumulated"]
 
     where
-    processCmd c s u    = do
-                          noticeC "processCmd"     ["processing document:", show u]
-                          ((m1, n1, rawRes), _) <- runCrawler (processDoc' u) c s
-                          r1 <- foldM (flip accOp) res0 rawRes
-                          rnf r1 `seq` rnf m1 `seq` rnf r1 `seq`
-                              noticeC "processCmd" ["document processed: ", show u]
-                          return (m1, n1, r1)
+      -- processCmd runs in the IO monad
+    processCmd c s u    = do noticeC "processCmd"     ["processing document:", show u]
+                             (res, _s') <- runCrawler (processDoc' u) c s
+                             either
+                               ( ioError . userError )
+                               ( \ (m1, n1, rawRes) ->
+                                 do r1 <- foldM (flip accOp) res0 rawRes
+                                    rnf r1 `seq` rnf m1 `seq` rnf r1 `seq`
+                                        noticeC "processCmd" ["document processed: ", show u]
+                                    return (m1, n1, r1)
+                               ) res
         where
         res0            = getS theResultInit   s
         accOp           = getS theAccumulateOp c
@@ -206,17 +218,17 @@ crawlNextDocs mapf      = do
 processDoc'             :: URIWithLevel -> CrawlerAction a r (URIs, URIsWithLevel, [(URI, a)])
 processDoc' (uri, lev)  = do
                           conf <- ask
-                          [(uri', (uris', docRes))] <- liftIO $ runX (processDocArrow conf uri)
+                          [(uri', (uris', docRes))] <- liftIOE $ runX (processDocArrow conf uri)
                           let toBeFollowed = getS theFollowRef conf
                           let maxLevel     = getS theClickLevel conf
-                          let ! lev1       = lev + 1 
+                          let ! lev1       = lev + 1
                           let movedUris    = if null uri'
                                              then emptyURIs
                                              else singletonURIs uri'
                           let newUris      = if lev >= maxLevel
                                              then emptyURIs
                                              else fromListURIs'
-                                                  . map (\ u -> (u, lev1)) 
+                                                  . map (\ u -> (u, lev1))
                                                   . filter toBeFollowed
                                                   $ uris'
                           return (movedUris, newUris, docRes)
@@ -269,7 +281,7 @@ processDoc (uri, lev)   = do
                           conf <- ask
                           let maxLevel = getS theClickLevel conf
                           let ! lev1   = lev + 1
-                          [(uri', (uris, res))] <- liftIO $ runX (processDocArrow conf uri)
+                          [(uri', (uris, res))] <- liftIOE $ runX (processDocArrow conf uri)
                           let newUris  = if lev >= maxLevel
                                          then []
                                          else map (\ u -> (u, lev1))
@@ -373,19 +385,21 @@ initCrawler                     :: CrawlerAction a r ()
 initCrawler                     = do
                                   conf <- ask
                                   setLogLevel "" (getS theTraceLevel conf)
-                                  
+
 
 runCrawler                      :: CrawlerAction a r x ->
                                    CrawlerConfig a r   ->
-                                   CrawlerState r      -> IO (x, CrawlerState r)
-runCrawler a                    =  runReaderStateIO (initCrawler >> a)
+                                   CrawlerState r      -> IO (Either String x, CrawlerState r)
+runCrawler a                    =  runReaderStateIOError (initCrawler >> a)
 
 -- run a crawler and deliver just the accumulated result value
 
 execCrawler                     :: CrawlerAction a r x ->
                                    CrawlerConfig a r   ->
-                                   CrawlerState r      -> IO (CrawlerState r)
+                                   CrawlerState r      -> IO (Either String (CrawlerState r))
 execCrawler cmd config initState
-                                = runCrawler cmd config initState >>= return . snd
+                                = do (r, s) <- runCrawler cmd config initState
+                                     return $ either Left (const $ Right s) r
+
 
 -- ------------------------------------------------------------

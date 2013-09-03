@@ -1,5 +1,3 @@
-{-# OPTIONS #-}
-
 -- ------------------------------------------------------------
 
 module Main (main)
@@ -103,7 +101,7 @@ initAppOpts
       , ao_pkgRank      = False
       , ao_pkgRankOnly  = False
       , ao_msg          = ""
-      , ao_crawlDoc     = (25000, 1024, 1)                                          -- max docs, max par docs, max threads: no parallel threads, but 1024 docs are indexed before results are inserted
+      , ao_crawlDoc     = (30000, 1024, 1)                                          -- max docs, max par docs, max threads: no parallel threads, but 1024 docs are indexed before results are inserted
       , ao_crawlSav     = 5000                                                      -- save intervall
       , ao_crawlSfn     = "./tmp/ix-"                                               -- save path
       , ao_crawlLog     = (DEBUG, NOTICE)                                           -- log cache and hxt
@@ -462,7 +460,7 @@ writeResults v
 hayooCacher :: HIO CacheCrawlerState
 hayooCacher
     = do o <- ask
-         liftIO $ stdCacher
+         liftIOC $ stdCacher
                     (ao_crawlDoc o)
                     (ao_crawlSav o, ao_crawlSfn o)
                     (ao_crawlLog o)
@@ -472,12 +470,16 @@ hayooCacher
                     hayooStart
                     (hayooRefs True [])
 
+liftIOC :: IO (Either String a) -> HIO a
+liftIOC action
+    = liftIO (action >>= either (const exitFailure) return)
+
 -- ------------------------------------------------------------
 
 hayooPackageUpdate :: [String] -> HIO CacheCrawlerState
 hayooPackageUpdate pkgs
     = do o <- ask
-         liftIO $ stdCacher
+         liftIOC $ stdCacher
                     (ao_crawlDoc o)
                     (ao_crawlSav o, ao_crawlSfn o)
                     (ao_crawlLog o)
@@ -493,7 +495,7 @@ hayooPackageUpdate pkgs
 hayooPkgIndexer :: HIO HayooPkgIndexerCrawlerState
 hayooPkgIndexer
     = do o <- ask
-         liftIO $ stdIndexer
+         liftIOC $ stdIndexer
                     (config o)
                     (ao_resume o)
                     hackageStart
@@ -528,7 +530,7 @@ hayooPkgIndexer
 hayooPJIndexer :: HIO PJ.PkgCrawlerState
 hayooPJIndexer
     = do o <- ask
-         liftIO $ stdIndexer
+         liftIOC $ stdIndexer
                     (config o)
                     (ao_resume o)
                     hackageStart
@@ -570,7 +572,7 @@ hayooPJIndexer
 hayooFJIndexer :: HIO FJ.FctCrawlerState
 hayooFJIndexer
     = do o <- ask
-         liftIO $ stdIndexer
+         liftIOC $ stdIndexer
                     (config o)
                     (ao_resume o)
                     hayooStart
@@ -610,7 +612,7 @@ hayooFJIndexer
 hayooIndexer :: HIO HayooIndexerCrawlerState
 hayooIndexer
     = do o <- ask
-         liftIO $ stdIndexer
+         liftIOC $ stdIndexer
                     (config o)
                     (ao_resume o)
                     hayooStart

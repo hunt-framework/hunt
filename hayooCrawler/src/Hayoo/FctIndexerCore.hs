@@ -21,7 +21,6 @@ import           Holumbus.Crawler.PostToServer
 
 import           System.Directory
 import           System.FilePath
-import           System.IO
 
 import           Text.XML.HXT.Core
 
@@ -68,7 +67,7 @@ insertHayooFctM flush rd@(_rawUri, (rawContexts, _rawTitle, _rawCustom)) ixs
 flushToFile :: (URI, RawDoc FunctionInfo) -> IO ()
 flushToFile rd@(_rawUri, (_rawContexts, rawTitle, rawCustom))
     = do createDirectoryIfMissing True dirPath
-         flushRawCrawlerDoc (LB.writeFile filePath) [(RCD rd)]
+         flushRawCrawlerDoc True (LB.writeFile filePath) [(RCD rd)]
       where
         dirPath  = "functions" </> pn
         filePath = dirPath </> mn ++ "." ++ fn ++ ".js"
@@ -83,12 +82,10 @@ flushToFile rd@(_rawUri, (_rawContexts, rawTitle, rawCustom))
 
 flushToServer :: String -> (URI, RawDoc FunctionInfo) -> IO ()
 flushToServer url rd
-    = flushRawCrawlerDoc flush [(RCD rd)]
+    = flushRawCrawlerDoc False flush [(RCD rd)]
     where
       flush bs
-          = do res <- postToServer $
-                      mkPostReq url "insert" bs
-               maybe (return ()) (\ e -> hPutStrLn stderr e) res
+          = postToServer $ mkPostReq url "insert" bs
 
 -- ------------------------------------------------------------
 

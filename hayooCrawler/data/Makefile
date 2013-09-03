@@ -1,10 +1,17 @@
+OPTS		=
+OPTSERVER	= --json-server=$(SERVER)
+# OPTRANKING	= --ranking # not yet complete
+OPTRANKING	=
+SERVER		=  http://localhost:3000/document
+
 # load and parse all hackage pages
 # and store them in binary format in
 # dir cache. Usefull for test runs
 # reduces web trafic.
 
 cache	:
-	hayooCrawler --cache
+	[ -d tmp ]      || mkdir tmp
+	hayooCrawler --cache $(OPTS)
 
 # crawl all packages and store .js data per package in subdir packages
 # 0000-ranks.js contains the json data for updating the packages
@@ -14,7 +21,7 @@ cache	:
 pkg	:
 	[ -d tmp ]      || mkdir tmp
 	[ -d packages ] || mkdir packages
-	hayooCrawler --pkg-index -j --ranking
+	hayooCrawler --pkg-index --json-output $(OPTRANKING) $(OPTS)
 
 # crawl all haddock pages and store .js data per function in subdir
 # functions/<package>/<module>.<function>.js
@@ -22,7 +29,16 @@ pkg	:
 fct	:
 	[ -d tmp ]       || mkdir tmp
 	[ -d functions ] || mkdir functions
-	hayooCrawler --fct-index -j --ranking
+	hayooCrawler --fct-index --json-output $(OPTRANKING) $(OPTS)
+
+
+# targets for direct input into search server
+
+pkg.srv	:
+	$(MAKE) pkg OPTS="$(OPTSERVER)"
+
+fct.srv	:
+	$(MAKE) fct OPTS="$(OPTSERVER)"
 
 # save and compress the package files
 
