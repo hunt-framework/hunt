@@ -6,11 +6,13 @@ import           Prelude                                  as P
 
 import           Control.Concurrent.MVar
 import           Control.Monad.IO.Class                   (MonadIO, liftIO)
+
 import           Network.Wai.Middleware.RequestLogger
+
 import           Web.Scotty
 
-import qualified Data.Map                                 as M
 import           Data.Either                              (partitionEithers)
+import qualified Data.Map                                 as M
 import qualified Data.Set                                 as S
 import           Data.Text                                (Text)
 {-
@@ -25,10 +27,10 @@ import qualified Holumbus.Index.Common.DocIdMap           as DM
 --import           Holumbus.Index.Common.Document           as Doc
 import           Holumbus.Index.Common.CompressedDocument as Doc
 
-import           Holumbus.Index.TextIndex
+import qualified Holumbus.Index.Proxy.CachedIndex         as IxCache
 import           Holumbus.Index.Text.Inverted.PrefixMem
-import qualified Holumbus.Index.Text.Inverted.PrefixMem  as Inv
-import qualified Holumbus.Index.Proxy.CachedIndex        as IxCache
+import qualified Holumbus.Index.Text.Inverted.PrefixMem   as Inv
+import           Holumbus.Index.TextIndex
 
 import           Holumbus.DocTable.DocTable               hiding (filter, map)
 import qualified Holumbus.DocTable.DocTable               as Dtt
@@ -41,7 +43,8 @@ import           Holumbus.Query.Processor
 import           Holumbus.Query.Result
 
 import           Holumbus.Indexer.Indexer                 as Ix
-import           Holumbus.Indexer.TextIndexer             (TextIndexer, newTextIndexer, modifyWithDescription)
+import           Holumbus.Indexer.TextIndexer             (TextIndexer, modifyWithDescription,
+                                                           newTextIndexer)
 import           Holumbus.Server.Analyzer
 import           Holumbus.Server.Common
 import qualified Holumbus.Server.Template                 as Tmpl
@@ -107,7 +110,7 @@ checkApiDocUris apiDocs ix =
 checkApiDocUris' :: (([URI], [(URI, DocId)]) -> [a], ([URI], [(URI, DocId)]) -> b)
                     -> [ApiDocument] -> Indexer elem it v i d de -> Either [a] b
 checkApiDocUris' (l,r) apiDocs ix =
-    let res = checkApiDocUris apiDocs ix 
+    let res = checkApiDocUris apiDocs ix
     in if P.null . l $ res then Right . r $ res else Left . l $ res
 
 -- | Checks whether the Documents with the URIs supplied by ApiDocuments are in the index,
@@ -147,12 +150,12 @@ start = scotty 3000 $ do
         (Right query) ->
           runQueryM (ixIndex ix) (ixDocTable ix) query
           >>= return . JsonSuccess . map (\(_,(DocInfo d _,_)) -> doc d) . DM.toList . docHits
- 
+
   -- request / response logging
   middleware logStdoutDev
 
   get "/"         $ redirect "/search"
-  get "/search"   $ do 
+  get "/search"   $ do
     ds <- withIx $ return . Dtt.size . ixDocTable
     html . Tmpl.index $ ds
   get "/add"      $ html Tmpl.addDocs
@@ -220,8 +223,8 @@ start = scotty 3000 $ do
       return $ either
         (\nonexistentUris ->
             (ix, return nonexistentUris))
-        (\existentDocs    -> 
-            ( foldr (\(docId, apiDoc) ix_ -> uncurry (Ix.update ix_ docId) . toDocAndWords' $ apiDoc) 
+        (\existentDocs    ->
+            ( foldr (\(docId, apiDoc) ix_ -> uncurry (Ix.update ix_ docId) . toDocAndWords' $ apiDoc)
                     ix (flip zip jss . map snd $ existentDocs)
             , Nothing))
         uris
@@ -245,7 +248,7 @@ start = scotty 3000 $ do
       return $ either
         (\nonexistentUris ->
             (ix, return nonexistentUris))
-        (\existentDocs    -> 
+        (\existentDocs    ->
             ( foldr (\(docId, apiDoc) ->
                 modifyWithDescription (apiDocDescrMap apiDoc) (snd . toDocAndWords' $ apiDoc) docId) ix (flip zip jss . map snd $ existentDocs)
             , Nothing))

@@ -18,15 +18,15 @@ type ApiDocuments = [ApiDocument]
 
 -- | The document accepted via the API.
 data ApiDocument  = ApiDocument
-  { apiDocUri       :: URI
-  , apiDocIndexMap  :: Map Context (Either WordList TextData)
-  , apiDocDescrMap  :: Description
+  { apiDocUri      :: URI
+  , apiDocIndexMap :: Map Context (Either WordList TextData)
+  , apiDocDescrMap :: Description
   }
 
 -- | Data necessary for adding documents to the index.
 data TextData = TextData
-  { idContent       :: Content
-  , idMetadata      :: IndexMetadata
+  { idContent  :: Content
+  , idMetadata :: IndexMetadata
   }
 
 -- | Metadata for index processing
@@ -75,14 +75,20 @@ instance (ToJSON x) => ToJSON (PagedResult x) where
     ]
 
 -- | empty document
+emptyApiDocIndexMap :: Map Context (Either WordList TextData)
+emptyApiDocIndexMap = M.empty
+
+emptyApiDocDescrMap :: Description
+emptyApiDocDescrMap = M.empty
+
 emptyApiDoc :: ApiDocument
-emptyApiDoc = ApiDocument "" M.empty M.empty
+emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescrMap
 
 instance FromJSON ApiDocument where
   parseJSON (Object o) = do
     parsedUri         <- o    .: "uri"
-    indexMap          <- o    .: "index"
-    descrMap          <- o    .: "description"
+    indexMap          <- o    .:? "index"       .!= emptyApiDocIndexMap
+    descrMap          <- o    .:? "description" .!= emptyApiDocDescrMap
     return ApiDocument
       { apiDocUri       = parsedUri
       , apiDocIndexMap  = indexMap
@@ -93,15 +99,9 @@ instance FromJSON ApiDocument where
 -- XXX: mh
 instance FromJSON (Either WordList TextData) where
   parseJSON o =
-    (do
-      a <- parseJSON o
-      return $ Left a
-    )
+    ( parseJSON o >>= return . Left )
     `mappend`
-    (do
-      b <- parseJSON o
-      return $ Right b
-    )
+    ( parseJSON o >>= return . Right )
 
 instance FromJSON TextData where
   parseJSON (Object o) = do
