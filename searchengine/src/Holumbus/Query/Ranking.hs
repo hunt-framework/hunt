@@ -54,13 +54,13 @@ import           Holumbus.Query.Result
 -- ----------------------------------------------------------------------------
 
 -- | The configuration of the ranking mechanism.
-data RankConfig         = RankConfig
-                          { docRanking :: DocRanking    -- ^ A function to determine the score of a document.
+data RankConfig e       = RankConfig
+                          { docRanking :: DocRanking e   -- ^ A function to determine the score of a document.
                           , wordRanking :: WordRanking  -- ^ A funciton to determine the score of a word.
                           }
 
 -- | The signature of a function to determine the score of a document.
-type DocRanking         = DocId -> DocInfo -> DocContextHits -> Score
+type DocRanking e       = DocId -> DocInfo e -> DocContextHits -> Score
 
 -- | The signature of a function to determine the score of a word.
 type WordRanking        = Word -> WordInfo -> WordContextHits -> Score
@@ -68,7 +68,7 @@ type WordRanking        = Word -> WordInfo -> WordContextHits -> Score
 -- ----------------------------------------------------------------------------
 
 -- | Rank the result with custom ranking functions.
-rank                    :: RankConfig -> Result -> Result
+rank                    :: RankConfig e -> Result e -> Result e
 rank (RankConfig fd fw {-ld lw-}) r
                         = Result scoredDocHits scoredWordHits
   where
@@ -78,7 +78,7 @@ rank (RankConfig fd fw {-ld lw-}) r
                           wordHits r
 
 -- | Rank documents by count.
-docRankByCount          :: DocId -> DocInfo -> DocContextHits -> Score
+docRankByCount          :: DocId -> DocInfo e -> DocContextHits -> Score
 docRankByCount _ _ h    = fromIntegral $
                           M.foldr (flip (M.foldr (\h2 r2 -> sizePos h2 + r2))) 0 h
 
@@ -88,7 +88,7 @@ wordRankByCount _ _ h   = fromIntegral $ M.foldr (flip (DM.foldr ((+) . sizePos)
 
 -- | Rank documents by context-weighted count. The weights will be normalized to a maximum of 1.0.
 -- Contexts with no weight (or a weight of zero) will be ignored.
-docRankWeightedByCount  :: [(Context, Score)] -> DocId -> DocInfo -> DocContextHits -> Score
+docRankWeightedByCount  :: [(Context, Score)] -> DocId -> DocInfo e -> DocContextHits -> Score
 docRankWeightedByCount ws _ _
                         =  M.foldrWithKey (calcWeightedScore ws) 0.0
 

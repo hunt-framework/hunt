@@ -47,20 +47,6 @@ searchPrefixNoCase (Indexer ix _dx _ _ _ _) = Ix.lookup PrefixNoCase ix
 allWords                  :: TextIndexer i d de -> Context -> RawResult
 allWords                  = Ix.size . ixIndex
 
--- | Update a document - same as delete and insert.
-{-<<<<<<< HEAD
-updateDoc                 :: DocId -> de -> Words -> Indexer it Occurrences i d de -> Indexer it Occurrences i d de
-updateDoc docId d w       = insertDoc d w . deleteDocs (S.singleton docId)
-
--- | Insert a document.
-insertDoc                 :: de -> Words -> Indexer it Occurrences i d de -> Indexer it Occurrences i d de
-insertDoc d wrds ix       = ix { ixIndex    = newIndex
-                               , ixDocTable = newDocTable }
-  where
-  (dId, newDocTable) = Dt.insert (ixDocTable ix) d
-  newIndex           = addWords wrds dId $ ixIndex ix
-=======
--}
 updateDoc                    :: DocId -> de -> Words 
                              -> Index Textual Occurrences i -> DocTable d de
                              -> TextIndexer i d de
@@ -77,7 +63,6 @@ insertDoc doc' wrds ix dt  = newTextIndexer  newIndex newDocTable
   where
   (dId, newDocTable) = Dt.insert dt doc'
   newIndex           = addWords wrds dId ix
--- >>>>>>> 662caa314b3888d85d99fe2a82536f515e3c7d31
 
 -- | Modify a document and add words (occurrences for that document) to the index.
 modify'                   :: (de -> de) -> Words -> DocId 
@@ -89,7 +74,7 @@ modify' f wrds dId ix dt = newTextIndexer newIndex newDocTable
   newIndex    = addWords wrds dId $ ix
 
 -- | Modify the description of a document and add words (occurrences for that document) to the index.
-modifyWithDescription     :: Description -> Words -> DocId -> TextIndexer i d DocumentWrapper -> TextIndexer i d DocumentWrapper
+modifyWithDescription     :: Description -> Words -> DocId -> TextIndexer i d (DocumentWrapper e) -> TextIndexer i d (DocumentWrapper e)
 modifyWithDescription descr wrds dId ix
   = ix { _ixIndex    = newIndex
        , _ixDocTable = newDocTable }

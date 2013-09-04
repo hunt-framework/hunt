@@ -8,6 +8,7 @@ where
 import           Control.Arrow
 import           Control.DeepSeq
 
+import           Data.Binary                       (Binary, put, get)
 import           Data.Map                          (Map)
 import qualified Data.Map                          as M
 import           Data.Maybe
@@ -42,6 +43,14 @@ type Part               = PT.PrefixTree CompressedOccurrences
 
 instance NFData Inverted where
   rnf = rnf . indexParts
+
+instance Binary Inverted where
+  put = put . indexParts
+  get = get >>= return . Inverted
+
+instance Binary (TextIndex Inverted) where
+    put = put . _impl
+    get = get >>= return . newIndex
 
 -- ----------------------------------------------------------------------------
 

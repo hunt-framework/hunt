@@ -148,11 +148,11 @@ processPartialM cfg i t q = initStateM cfg i t >>= flip processM oq
   oq = if optimizeQuery cfg then optimize q else q
 
 -- | Process a query on a specific index with regard to the configuration.
-processQuery :: ProcessConfig -> TextIndex i -> DocTable d DocumentWrapper -> Query -> Result
+processQuery :: ProcessConfig -> TextIndex i -> DocTable d (DocumentWrapper e) -> Query -> Result e
 processQuery cfg i d q = I.toResult d (processPartial cfg i (Dt.size d) q)
 
 -- | Monadic version of 'processQuery'.
-processQueryM :: (Monad m) => ProcessConfig -> TextIndex i -> DocTable d DocumentWrapper -> Query -> m Result
+processQueryM :: (Monad m) => ProcessConfig -> TextIndex i -> DocTable d (DocumentWrapper e) -> Query -> m (Result e)
 processQueryM cfg i d q = processPartialM cfg i (Dt.size d) q >>= \ir -> return $ I.toResult d ir
 
 -- | Continue processing a query by deciding what to do depending on the current query element.

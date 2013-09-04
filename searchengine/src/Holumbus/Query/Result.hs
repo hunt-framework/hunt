@@ -62,16 +62,16 @@ import qualified Holumbus.Index.Common.DocIdMap as DM
 -- ----------------------------------------------------------------------------
 
 -- | The combined result type for Holumbus queries.
-data Result             = Result
-                          { docHits  :: DocHits      -- ^ The documents matching the query.
+data Result e            = Result
+                          { docHits  :: DocHits e    -- ^ The documents matching the query.
                           , wordHits :: WordHits     -- ^ The words which are completions of the query terms.
                           }
                           --deriving (Eq, Show)
 
 -- | Information about an document.
-data DocInfo            = DocInfo
-                          { document :: DocumentWrapper -- ^ The document itself.
-                          , docScore :: Score           -- ^ The score for the document (initial score for all documents is @0.0@).
+data DocInfo e           = DocInfo
+                          { document :: DocumentWrapper e -- ^ The document itself.
+                          , docScore :: Score             -- ^ The score for the document (initial score for all documents is @0.0@).
                           }
                           --deriving (Eq, Show)
 
@@ -83,7 +83,7 @@ data WordInfo           = WordInfo
                           deriving (Eq, Show)
 
 -- | A mapping from a document to it's score and the contexts where it was found.
-type DocHits            = DocIdMap (DocInfo, DocContextHits)
+type DocHits e           = DocIdMap (DocInfo e, DocContextHits)
 
 -- | A mapping from a context to the words of the document that were found in this context.
 type DocContextHits     = Map Context DocWordHits
@@ -132,31 +132,31 @@ instance NFData WordInfo where
 -- ----------------------------------------------------------------------------
 
 -- | Create an empty result.
-emptyResult             :: Result
+emptyResult             :: Result e
 emptyResult             = Result DM.empty M.empty
 
 -- | Query the number of documents in a result.
-sizeDocHits             :: Result -> Int
+sizeDocHits             :: Result e -> Int
 sizeDocHits             = DM.size . docHits
 
 -- | Query the number of documents in a result.
-sizeWordHits            :: Result -> Int
+sizeWordHits            :: Result e -> Int
 sizeWordHits            = M.size . wordHits
 
 -- | Query the maximum score of the documents.
-maxScoreDocHits         :: Result -> Score
+maxScoreDocHits         :: Result e -> Score
 maxScoreDocHits         = DM.foldr (\(di, _) r -> max (docScore di) r) 0.0 . docHits
 
 -- | Query the maximum score of the words.
-maxScoreWordHits        :: Result -> Score
+maxScoreWordHits        :: Result e -> Score
 maxScoreWordHits        = M.foldr (\(wi, _) r -> max (wordScore wi) r) 0.0 . wordHits
 
 -- | Test if the result contains anything.
-null                    :: Result -> Bool
+null                    :: Result e -> Bool
 null                    = DM.null . docHits
 
 -- | Set the score in a document info.
-setDocScore             :: Score -> DocInfo -> DocInfo
+setDocScore             :: Score -> DocInfo e -> DocInfo e
 setDocScore s (DocInfo d _)
                         = DocInfo d s
 
@@ -166,7 +166,7 @@ setWordScore s (WordInfo t _)
                         = WordInfo t s
 
 -- | Extract all documents from a result
-getDocuments            :: Result -> [DocumentWrapper]
+getDocuments            :: Result e -> [DocumentWrapper e]
 getDocuments r          = map (document . fst . snd) .
                           DM.toList $ docHits r
 

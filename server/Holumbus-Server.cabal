@@ -26,6 +26,7 @@ executable holumbusServer
   other-modules:   
 
   build-depends:   base                   >= 4
+                 , binary
                  , aeson
                  , aeson-pretty
                  , blaze-html

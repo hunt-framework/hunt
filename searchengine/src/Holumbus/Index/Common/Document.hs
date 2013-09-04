@@ -41,29 +41,36 @@ instance Binary Text where
 
 
 
-doc :: DocumentWrapper -> DocumentRaw
+doc :: DocumentWrapper e -> DocumentRaw
 doc = _getDoc
 
-setDoc :: DocumentRaw -> DocumentWrapper -> DocumentWrapper
+setDoc :: DocumentRaw -> DocumentWrapper e -> DocumentWrapper e
 setDoc = flip _setDoc
 
-modDoc :: (DocumentRaw -> DocumentRaw) -> DocumentWrapper -> DocumentWrapper
+modDoc :: (DocumentRaw -> DocumentRaw) -> DocumentWrapper e -> DocumentWrapper e
 modDoc f d = setDoc (f . doc $ d) d
 
 -- | A 'Document' wrapper with getter and setter.
-data DocumentWrapper = DocumentWrapper
+data DocumentWrapper e = DocumentWrapper
   { _getDoc  :: DocumentRaw
-  , _setDoc  :: DocumentRaw -> DocumentWrapper
+  , _setDoc  :: DocumentRaw -> DocumentWrapper e
+  , _impl    :: e
   }
 
-instance NFData DocumentWrapper where
-  rnf DocumentWrapper{} = ()
+instance NFData e => NFData (DocumentWrapper e) where
+  rnf = rnf . _impl
+
+instance Binary (DocumentWrapper DocumentRaw) where
+  put = put . _impl
+  get = get >>= return . wrapDoc
+
 
 -- | A basic wrapper.
-wrapDoc   :: DocumentRaw -> DocumentWrapper
+wrapDoc   :: DocumentRaw -> DocumentWrapper DocumentRaw
 wrapDoc d = DocumentWrapper
-  { _getDoc  = d
-  , _setDoc  = \d' -> wrapDoc d'
+  { _getDoc = d
+  , _setDoc = wrapDoc
+  , _impl   = d
   }
 
 -- | A document consists of its unique identifier (URI).

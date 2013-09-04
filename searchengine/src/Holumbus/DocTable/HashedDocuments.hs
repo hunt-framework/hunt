@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -33,24 +34,26 @@ where
 
 import           Control.Arrow                  (second)
 
+import           Data.Binary                    (Binary, put, get)
 import qualified Data.Binary                    as B
 import           Data.Set                       (Set)
 import qualified Data.Set                       as S
 
 import           Data.Digest.Murmur64
 
-import           Holumbus.Index.Common          hiding (empty)
+import           Holumbus.Index.Common          hiding (empty,_impl)
 import qualified Holumbus.Index.Common.DocIdMap as DM
 
 import           Holumbus.DocTable.DocTable     hiding (map)
+--import qualified Holumbus.DocTable.DocTable     as Dt
 
 import           Holumbus.Utility               ((.::))
 
 -- ----------------------------------------------------------------------------
 
 -- | The table which is used to map a document to an artificial id and vice versa.
-type DocMap
-    = DocIdMap DocumentWrapper
+type DocMap e
+    = DocIdMap (DocumentWrapper e)
 {-
 -- | The Document as a bzip-compressed bytestring.
 newtype CompressedDoc
@@ -58,15 +61,27 @@ newtype CompressedDoc
       deriving (Eq, Show)
 -}
 -- | The 'DocTable' implementation. Maps 'DocId's to 'Document's.
-newtype Documents
-    = Documents { idToDoc   :: DocMap }     -- ^ A mapping from a document id to
+newtype Documents e
+    = Documents { idToDoc   :: DocMap e }     -- ^ A mapping from a document id to
                                             --   the document itself.
       --deriving (Eq, Show, NFData)
 
 -- ----------------------------------------------------------------------------
 
+-- XXX: requires UndecidableInstances extension
+instance Binary (DocumentWrapper e) => Binary (Documents e) where
+  put = put . idToDoc
+  get = get >>= return . Documents
+
+
+instance Binary (DocumentWrapper e) => Binary (DocTable (Documents e) (DocumentWrapper e)) where
+    put = put . _impl
+    get = get >>= return . newDocTable
+
+-- ----------------------------------------------------------------------------
+
 -- | An empty document table.
-empty :: DocTable Documents DocumentWrapper
+empty :: DocTable (Documents e) (DocumentWrapper e)
 empty = newDocTable emptyDocuments
 
 -- | The hash function from URIs to DocIds
@@ -74,12 +89,12 @@ docToId :: URI -> DocId
 docToId = mkDocId . fromIntegral . asWord64 . hash64 . B.encode
 
 -- | Build a 'DocTable' from a 'DocIdMap' (maps 'DocId's to 'Document's)
-fromMap :: (DocumentRaw -> DocumentWrapper) -> DocIdMap DocumentRaw -> DocTable Documents DocumentWrapper
+fromMap :: (DocumentRaw -> DocumentWrapper e) -> DocIdMap DocumentRaw -> DocTable (Documents e) (DocumentWrapper e)
 fromMap = newDocTable .:: fromMap'
 
 -- ----------------------------------------------------------------------------
 
-newDocTable :: Documents -> DocTable Documents DocumentWrapper
+newDocTable :: Documents e -> DocTable (Documents e) (DocumentWrapper e)
 newDocTable i =
     Dt
     {
@@ -135,22 +150,22 @@ newDocTable i =
 
 -- ----------------------------------------------------------------------------
 
-null' :: Documents -> Bool
+null' :: Documents e -> Bool
 null'
     = DM.null . idToDoc
 
-size' :: Documents -> Int
+size' :: Documents e -> Int
 size'
     = DM.size . idToDoc
 
-lookupById' :: Monad m => Documents -> DocId -> m DocumentWrapper
+lookupById' :: Monad m => Documents e -> DocId -> m (DocumentWrapper e)
 lookupById'  d i
     = maybe (fail "") return
       . DM.lookup i
       . idToDoc
       $ d
 
-lookupByURI' :: Monad m => Documents -> URI -> m DocId
+lookupByURI' :: Monad m => Documents e -> URI -> m DocId
 lookupByURI' d u
     = maybe (fail "") (const $ return i)
       . DM.lookup i
@@ -159,11 +174,11 @@ lookupByURI' d u
       where
         i = docToId u
 
-disjointDocs' :: Documents -> Documents -> Bool
+disjointDocs' :: Documents e -> Documents e -> Bool
 disjointDocs' dt1 dt2
     = DM.null $ DM.intersection (idToDoc dt1) (idToDoc dt2)
 
-unionDocs' :: Documents -> Documents -> Documents
+unionDocs' :: Documents e -> Documents e -> Documents e
 unionDocs' dt1 dt2
     | disjointDocs' dt1 dt2
         = unionDocsX dt1 dt2
@@ -171,7 +186,7 @@ unionDocs' dt1 dt2
         = error
           "HashedDocuments.unionDocs: doctables are not disjoint"
 
-insertDoc' :: Documents -> DocumentWrapper -> (DocId, Documents)
+insertDoc' :: Documents e -> DocumentWrapper e -> (DocId, Documents e)
 insertDoc' ds d
     = maybe reallyInsert (const (newId, ds)) (lookupById' ds newId)
       where
@@ -181,46 +196,46 @@ insertDoc' ds d
         reallyInsert
             = (newId, Documents {idToDoc = DM.insert newId d $ idToDoc ds})
 
-updateDoc' :: Documents -> DocId -> DocumentWrapper -> Documents
+updateDoc' :: Documents e -> DocId -> DocumentWrapper e -> Documents e
 updateDoc' ds i d
     = Documents {idToDoc = DM.insert i d $ idToDoc ds}
 
-deleteById' :: Documents -> DocId -> Documents
+deleteById' :: Documents e -> DocId -> Documents e
 deleteById' ds d
     = Documents {idToDoc = DM.delete d $ idToDoc ds}
 
 -- XXX: EnumMap does not have a fromSet function so that you can use fromSet (const ()) and ignore the value
-differenceById' :: Set DocId -> Documents -> Documents
+differenceById' :: Set DocId -> Documents e -> Documents e
 differenceById' s ds
     = Documents {idToDoc = idToDoc ds `DM.difference` (DM.fromAscList . map mkKeyValueDummy . S.toList $ s)}
     where
     mkKeyValueDummy k = (k, undefined) -- XXX: strictness properties of EnumMap?
 
-updateDocuments' :: (DocumentWrapper -> DocumentWrapper) -> Documents -> Documents
+updateDocuments' :: (DocumentWrapper e -> DocumentWrapper e) -> Documents e -> Documents e
 updateDocuments' f d
     = Documents {idToDoc = DM.map f (idToDoc d)}
 
-filterDocuments' :: (DocumentWrapper -> Bool) -> Documents -> Documents
+filterDocuments' :: (DocumentWrapper e -> Bool) -> Documents e -> Documents e
 filterDocuments' p d
     = Documents {idToDoc = DM.filter p (idToDoc d)}
 
-fromMap' :: (DocumentRaw -> DocumentWrapper) -> DocIdMap DocumentRaw -> Documents
+fromMap' :: (DocumentRaw -> DocumentWrapper e) -> DocIdMap DocumentRaw -> Documents e
 fromMap' f itd
     = Documents {idToDoc = DM.map f itd}
 
-toMap' :: Documents -> DocIdMap DocumentWrapper
+toMap' :: Documents e -> DocIdMap (DocumentWrapper e)
 toMap'
     = idToDoc
 
 -- ------------------------------------------------------------
 
 -- | Create an empty table.
-emptyDocuments :: Documents
+emptyDocuments :: Documents e
 emptyDocuments
     = Documents DM.empty
 
 
-unionDocsX :: Documents -> Documents -> Documents
+unionDocsX :: Documents e -> Documents e -> Documents e
 unionDocsX dt1 dt2
     = Documents
       { idToDoc = idToDoc dt1 `DM.union` idToDoc dt2 }

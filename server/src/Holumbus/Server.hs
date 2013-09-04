@@ -11,6 +11,7 @@ import           Network.Wai.Middleware.RequestLogger
 
 import           Web.Scotty
 
+import qualified Data.Binary                              as Bin
 import           Data.Either                              (partitionEithers)
 import qualified Data.Map                                 as M
 import qualified Data.Set                                 as S
@@ -67,13 +68,16 @@ modIndex        = liftIO .:: modifyMVar
 --indexer :: Indexer Inverted HD.Documents Document
 --indexer = Indexer emptyIndex HD.emptyDocTable
 
-indexer         :: TextIndexer Inverted Documents DocumentWrapper
-indexer         = newTextIndexer (IxCache.empty Inv.empty) Dt.empty
+newTextIndexer' :: TextIndex i -> DocTable d de -> TextIndexer i d de
+newTextIndexer' i = newTextIndexer (IxCache.empty i)
+
+indexer         :: TextIndexer Inverted (Documents e) (DocumentWrapper e)
+indexer         = newTextIndexer' Inv.empty Dt.empty
 
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
-runQueryM       :: Monad m => TextIndex i -> DocTable d DocumentWrapper -> Query -> m Result
+runQueryM       :: Monad m => TextIndex i -> DocTable d (DocumentWrapper e) -> Query -> m (Result e)
 runQueryM       = processQueryM queryConfig
 
 -- Replacement for the scotty json function for pretty JSON encoding.
@@ -127,7 +131,7 @@ checkApiDocUrisAbsence   :: [ApiDocument] -> Indexer elem it v i d de -> Either 
 checkApiDocUrisAbsence   = checkApiDocUris' (snd, fst)
 
 
-toDocAndWords' :: ApiDocument -> (DocumentWrapper, Words)
+toDocAndWords' :: ApiDocument -> (DocumentWrapper CompressedDoc, Words)
 toDocAndWords' = toDocAndWords Doc.wrapDoc
 
 -- ----------------------------------------------------------------------------
@@ -144,12 +148,12 @@ start = scotty 3000 $ do
   let withIx = withIndex' ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO b) -> m b
   let modIx_ = modIndex_  ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents))    -> m ()
   let modIx  = modIndex   ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents, b)) -> m b
-  let runQuery = \queryStr -> withIx $ \ix -> do
-      case parseQuery queryStr of
-        (Left err) -> return . JsonFailure . return $ err
-        (Right query) ->
-          runQueryM (ixIndex ix) (ixDocTable ix) query
-          >>= return . JsonSuccess . map (\(_,(DocInfo d _,_)) -> doc d) . DM.toList . docHits
+  let runQuery queryStr = withIx $ \ix ->
+        case parseQuery queryStr of
+          (Left err) -> return . JsonFailure . return $ err
+          (Right query) ->
+            runQueryM (ixIndex ix) (ixDocTable ix) query
+            >>= return . JsonSuccess . map (\(_,(DocInfo d _,_)) -> doc d) . DM.toList . docHits
 
   -- request / response logging
   middleware logStdoutDev
@@ -265,6 +269,30 @@ start = scotty 3000 $ do
     jss <- jsonData :: ActionM (S.Set URI)
     modIx_ $ \ix -> return $ deleteDocsByURI jss ix
     json (JsonSuccess "document(s) deleted" :: JsonResponse Text)
+
+
+  -- TODO: proper load/save, routes, get/post/.., filenames, exception handling etc.
+
+  let mkIndexPath    = (++ ".ix")
+  let mkDocTablePath = (++ ".dt")
+
+  -- write the indexer to disk
+  get "/binary/save/:filename" $ do
+    filename  <- param "filename"
+    withIx $ \ix -> do
+      Bin.encodeFile (mkIndexPath    filename) $ ixIndex    ix
+      Bin.encodeFile (mkDocTablePath filename) $ ixDocTable ix
+    json (JsonSuccess "index saved" :: JsonResponse Text)
+
+
+  -- load indexer from disk
+  get "/binary/load/:filename" $ do
+    filename  <- param "filename"
+    modIx_ $ \_ -> do
+      i <- Bin.decodeFile $ mkIndexPath    filename
+      d <- Bin.decodeFile $ mkDocTablePath filename
+      return $ newTextIndexer i d
+    json (JsonSuccess "index loaded" :: JsonResponse Text)
 
 
   notFound $ text "page not found"

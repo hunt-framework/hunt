@@ -25,7 +25,7 @@ analyzerMapping o = case o of
     DefaultAnalyzer -> scanTextDefault
 
 
-toDocAndWords :: (DocumentRaw -> DocumentWrapper) -> ApiDocument -> (DocumentWrapper, Words)
+toDocAndWords :: (DocumentRaw -> DocumentWrapper e) -> ApiDocument -> (DocumentWrapper e, Words)
 toDocAndWords f = first f . toDocAndWords'
 
 -- | ApiDocument to Document and Words mapping.
