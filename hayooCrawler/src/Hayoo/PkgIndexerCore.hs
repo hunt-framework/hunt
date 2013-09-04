@@ -117,7 +117,7 @@ instance ToJSON ToRank where
     toJSON (ToRank u r)
         = object $
           [ "uri"         .= u
-          , "description" .= (object ["rank" .= r])
+          , "description" .= (object ["pkg-rank" .= r])
           ]
 
 flushRanksToFile :: Documents PackageInfo -> IO ()

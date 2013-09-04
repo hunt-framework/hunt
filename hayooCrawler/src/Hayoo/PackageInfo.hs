@@ -122,7 +122,7 @@ instance ToJSON PackageInfo where
             )
             ++ ( if ran == defPackageRank
                  then []
-                 else ["rank" .= ran]
+                 else ["pkg-rank" .= ran]
                )
           )
 

@@ -7,6 +7,7 @@ import           Codec.Compression.BZip        (compress, decompress)
 
 import           Control.DeepSeq
 -- import           Control.Monad
+import           Control.Monad.Error
 import           Control.Monad.Reader
 
 import qualified Data.Binary                   as B
@@ -159,13 +160,14 @@ withCache' sec
 
 -- ------------------------------------------------------------
 
-type HIO = ReaderT AppOpts IO
+type HIO = ReaderT AppOpts (ErrorT String IO)
 
 main :: IO ()
 main
     = do pn   <- getProgName
          args <- getArgs
-         runReaderT main2 (evalOptions pn args)
+         res  <- runErrorT $ runReaderT main2 (evalOptions pn args)
+         either (const exitFailure) (const exitSuccess) res
 
 -- ------------------------------------------------------------
 
@@ -175,9 +177,9 @@ main2
          if h
             then do msg <- asks ao_msg
                     liftIO $ do hPutStrLn stderr (msg ++ "\n" ++ usageInfo pn hayooOptDescr)
-                                if null msg
-                                   then exitSuccess
-                                   else exitFailure
+                    if null msg
+                       then return ()
+                       else throwError "wrong option"
             else do asks (snd . ao_crawlLog) >>= setLogLevel ""
                     a <- asks ao_action
                     case a of
@@ -187,7 +189,6 @@ main2
                                        if p
                                           then mainHackage
                                           else mainHaddock
-                    liftIO $ exitSuccess
 
 -- ------------------------------------------------------------
 
@@ -472,7 +473,7 @@ hayooCacher
 
 liftIOC :: IO (Either String a) -> HIO a
 liftIOC action
-    = liftIO (action >>= either (const exitFailure) return)
+    = liftIO action >>= either throwError return
 
 -- ------------------------------------------------------------
 
