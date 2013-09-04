@@ -23,6 +23,10 @@ pkg	:
 	[ -d packages ] || mkdir packages
 	hayooCrawler --pkg-index --json-output $(OPTRANKING) $(OPTS)
 
+
+rnk	:
+	$(MAKE) pkg OPTRANKING=--only-ranking
+
 # crawl all haddock pages and store .js data per function in subdir
 # functions/<package>/<module>.<function>.js
 
@@ -36,6 +40,9 @@ fct	:
 
 pkg.srv	:
 	$(MAKE) pkg OPTS="$(OPTSERVER)"
+
+rnk.srv	:
+	$(MAKE) rnk OPTS="$(OPTSERVER)"
 
 fct.srv	:
 	$(MAKE) fct OPTS="$(OPTSERVER)"

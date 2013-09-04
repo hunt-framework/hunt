@@ -1,3 +1,16 @@
+# the -A option is important for garbage collection performance,
+# a good value is about the size of the L2 cache of the cpu
+# the default is set to 8M
+
+N       = 1
+H       = 500
+A       = 8
+K       = 200
+RUNOPTS = +RTS -N$(N) -s -K$(K)M -A$(A)M -H$(H)M -RTS
+
+
+
+
 action		= install
 
 all		: install
@@ -16,7 +29,7 @@ server: stopServer
 	( cd server                 && cabal $(action))
 
 startServer: stopServer
-	( holumbusServer & )
+	( holumbusServer $(RUNOPTS) & )
 
 stopServer:
 	-killall holumbusServer

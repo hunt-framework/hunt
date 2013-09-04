@@ -851,7 +851,9 @@ hayooOptDescr
 
       , Option "" ["only-ranking"]
         ( NoArg $
-          \   x -> x { ao_pkgRankOnly = True }
+          \   x -> x { ao_pkgRank     = True
+                     , ao_pkgRankOnly = True
+                     }
         )
         "when processing package index for JSON, only compute package rank, no descriptions"
       ]
