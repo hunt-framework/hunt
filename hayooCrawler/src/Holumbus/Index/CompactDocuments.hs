@@ -43,8 +43,9 @@ import           Control.DeepSeq
 
 import           Data.Binary            ( Binary )
 import qualified Data.Binary            as B
-import           Data.ByteString.Lazy   ( ByteString )
-import qualified Data.ByteString.Lazy   as BS
+import qualified Data.ByteString.Lazy   as LS
+import qualified Data.ByteString        as BS
+
 import           Data.Maybe             ( fromJust )
 
 import qualified Holumbus.Data.PrefixTree as M
@@ -59,7 +60,7 @@ import           Text.XML.HXT.Core
 type URIMap                     = M.PrefixTree DocId
 type DocMap a                   = DocIdMap (CompressedDoc a)
 
-newtype CompressedDoc a         = CDoc { unCDoc :: ByteString }
+newtype CompressedDoc a         = CDoc { unCDoc :: BS.ByteString }
                                   deriving (Eq, Show)
 
 data Documents a                = Documents
@@ -104,10 +105,10 @@ instance (Binary a, HolIndex i) => HolDocIndex Documents a i where
 -- ----------------------------------------------------------------------------
 
 toDocument                      :: (Binary a) => CompressedDoc a -> Document a
-toDocument                      = B.decode . BZ.decompress . unCDoc
+toDocument                      = B.decode . BZ.decompress . LS.fromStrict . unCDoc
 
 fromDocument                    :: (Binary a) => Document a -> CompressedDoc a
-fromDocument                    = CDoc . BZ.compress . B.encode
+fromDocument                    = CDoc . LS.toStrict . BZ.compress . B.encode
 
 mapDocument                     :: (Binary a) => (Document a -> Document a) -> CompressedDoc a -> CompressedDoc a
 mapDocument f                   = fromDocument . f . toDocument

@@ -1,9 +1,18 @@
+{-# LANGUAGE BangPatterns #-}
+
 module Index
 where
 
 import           Control.Arrow (first, second)
-import           Data.Map      (Map)
-import qualified Data.Map      as Map
+import           Control.DeepSeq
+
+import           GHC.AssertNF
+
+import           Data.Map.Strict      (Map)
+import qualified Data.Map.Strict      as Map
+
+import qualified Holumbus.Data.PrefixTree as PT
+
 import           Data.Maybe
 import           Data.Text     (Text)
 import qualified Data.Text     as Text
@@ -14,7 +23,7 @@ data Index ix k v = Ix
     , _merge  :: Index ix k v -> Index ix k v
     , _search :: k      -> Maybe v
     , _toList :: [(k, v)]
-    , _impl   :: ix
+    , _impl   :: ! ix
     }
 
 -- ----------------------------------------
@@ -57,6 +66,25 @@ newMapIndex m =
 
 emptyMapIndex :: Ord k => Index (Map k v) k v
 emptyMapIndex = newMapIndex Map.empty
+
+-- ----------------------------------------
+
+newPTIndex :: PT.PrefixTree v -> Index (PT.PrefixTree v) String v
+newPTIndex m =
+    Ix
+    { _insert = \ k v -> newPTIndex $
+                         PT.insert k v m
+    , _delete = \ k   -> newPTIndex $
+                         PT.delete k m
+    , _merge  = \ ix2 -> newPTIndex $
+                         PT.union (_impl ix2) m
+    , _search = \ k   -> PT.lookup k m
+    , _toList = PT.toList m
+    , _impl   = m
+    }
+
+emptyPTIndex :: Index (PT.PrefixTree v) String v
+emptyPTIndex = newPTIndex PT.empty
 
 -- ----------------------------------------
 
@@ -148,6 +176,7 @@ type MapIndex                 k v = Index (Map k v) k v
 type AssocListIndex           k v = Index (AssocList k v) k v
 type ConvValMapIndex       v1 k v = Index (MapIndex k v1) k v
 type ConvKeyValMapIndex k1 v1 k v = Index (ConvValMapIndex v1 k1 v) k v
+type PTIndex                    v = Index (PT.PrefixTree v) String v
 
 -- signature computed with ghci
 type ContextWordIndex' v = Index (Index (Map Char (Index (AssocList String v) String v)) Char (Index (AssocList String v) String v)) (Char, String) v
@@ -171,19 +200,32 @@ cx = foldr (uncurry insert) emptyContextWordIndex $ l2
 l1 :: [(String, Integer)]
 l1 = [("aaa", 111), ("abc",123), ("xxx", 777), ("xyz", 789), ("mmm", 444), ("mno", 456)]
 
-ix1 :: MapIndex String Integer
--- ix1 :: Index (Map String Integer) String Integer
-ix1 = newMapIndex $ Map.fromList l1
+l1' :: [(String, String)]
+l1' = map (second show) l1
 
-ix2 :: AssocListIndex String Integer
--- ix2 :: Index (AssocList String Integer) String Integer
-ix2 = newListIndex $ AL l1
+x1 :: MapIndex String Integer
+-- x1 :: Index (Map String Integer) String Integer
+x1 = newMapIndex $! Map.fromList l1
 
-ix3 :: ConvValMapIndex Integer String String
--- ix3 :: Index (Index (Map String Integer) String Integer) String String
-ix3 = newConvValueIndex show read ix1
+x2 :: AssocListIndex String Integer
+-- x2 :: Index (AssocList String Integer) String Integer
+x2 = newListIndex $ AL l1
 
-ix4 :: ConvKeyValMapIndex String Integer Text String
--- ix4 :: Index (Index (Index (Map String Integer) String Integer) String String) Text String
-ix4 = newConvKeyIndex Text.pack Text.unpack ix3
+x3 :: ConvValMapIndex Integer String String
+-- x3 :: Index (Index (Map String Integer) String Integer) String String
+x3 = newConvValueIndex show read x1
 
+x4 :: ConvKeyValMapIndex String Integer Text String
+-- x4 :: Index (Index (Index (Map String Integer) String Integer) String String) Text String
+x4 = newConvKeyIndex Text.pack Text.unpack x3
+
+x5 :: PTIndex Integer
+x5 = newPTIndex $ PT.fromList l1
+
+x6 :: PTIndex String
+x6 = foldr (uncurry insert') emptyPTIndex $ l1'
+    where
+      insert' x y = insert x $!! y
+
+t1 :: Index a k v -> IO ()
+t1 x = (return $! _impl x) >>= assertNF

@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BangPatterns #-}
 
 -- ------------------------------------------------------------
 
@@ -35,7 +36,7 @@ data PackageInfo
       , p_homepage     :: String               -- ^ The home page
       , p_synopsis     :: String               -- ^ The synopsis
       , p_description  :: String               -- ^ The description of the package
-      , p_rank         :: Score                -- ^ The ranking
+      , p_rank         :: ! Score              -- ^ The ranking
       }
     deriving (Show, Eq)
 
@@ -46,10 +47,10 @@ defPackageRank :: Score
 defPackageRank = 1.0
 
 setPackageRank                  :: Score -> PackageInfo -> PackageInfo
-setPackageRank r p              = r `seq` p { p_rank = r }
+setPackageRank r p              = p { p_rank = r }
 
 getPackageName                  :: PackageInfo -> String
-getPackageName                  =  p_name
+getPackageName                  = p_name
 
 getPackageDependencies          :: PackageInfo -> [String]
 getPackageDependencies          = words . p_dependencies

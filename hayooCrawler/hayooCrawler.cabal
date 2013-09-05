@@ -86,6 +86,7 @@ executable hayooCrawler
                  , directory              >= 1.1
                  , enummapset             >= 0     && < 1
                  , filepath               >= 1     && < 2
+                 , ghc-heap-view          >= 0.5
                  , hslogger               >= 1     && < 2
                  , HTTP                   >= 4000
                  -- , Holumbus-Searchengine  >= 2     && < 3

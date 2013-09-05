@@ -55,21 +55,21 @@ import           Control.DeepSeq
 
 import           Data.Binary              ( Binary (..) )
 import qualified Data.Binary              as B
-import qualified Data.EnumMap             as IM
+import qualified Data.IntMap.Strict       as IM
 import           Data.Foldable
 
 import           Holumbus.Index.Common.DocId
 
 -- ------------------------------------------------------------
 
-newtype DocIdMap v              = DIM { unDIM :: IM.EnumMap DocId v }
+newtype DocIdMap v              = DIM { unDIM :: IM.IntMap v }
                                   deriving (Eq, Show, Foldable)
 
-liftDIM                         :: (IM.EnumMap DocId v -> IM.EnumMap DocId r) ->
+liftDIM                         :: (IM.IntMap v -> IM.IntMap r) ->
                                    (DocIdMap v -> DocIdMap r)
 liftDIM f                       = DIM . f . unDIM
 
-liftDIM2                        :: (IM.EnumMap DocId v -> IM.EnumMap DocId v -> IM.EnumMap DocId v) ->
+liftDIM2                        :: (IM.IntMap v -> IM.IntMap v -> IM.IntMap v) ->
                                    (DocIdMap v -> DocIdMap v -> DocIdMap v)
 liftDIM2 f x y                  = DIM $ f (unDIM x) (unDIM y)
 
@@ -109,7 +109,7 @@ maxKeyDocIdMap                  = maybe nullDocId (fst . fst) . IM.maxViewWithKe
 isIntervallDocIdMap             :: DocIdMap v -> Bool
 isIntervallDocIdMap m           = nullDocIdMap m
                                   ||
-                                  ( fromEnum (theDocId (maxKeyDocIdMap m)) - fromEnum (theDocId (minKeyDocIdMap m))
+                                  ( maxKeyDocIdMap m - minKeyDocIdMap m
                                     == sizeDocIdMap m - 1
                                   )
 
@@ -147,10 +147,10 @@ mapWithKeyDocIdMap              :: (DocId -> v -> r) -> DocIdMap v -> DocIdMap r
 mapWithKeyDocIdMap f            = liftDIM $ IM.mapWithKey f
 
 foldDocIdMap                    :: (v -> b -> b) -> b -> DocIdMap v -> b
-foldDocIdMap f u                = IM.fold f u . unDIM
+foldDocIdMap f u                = IM.foldr f u . unDIM
 
 foldWithKeyDocIdMap             :: (DocId -> v -> b -> b) -> b -> DocIdMap v -> b
-foldWithKeyDocIdMap f u         = IM.foldWithKey f u . unDIM
+foldWithKeyDocIdMap f u         = IM.foldrWithKey f u . unDIM
 
 fromListDocIdMap                :: [(DocId, v)] -> DocIdMap v
 fromListDocIdMap                = DIM . IM.fromList
