@@ -1,4 +1,7 @@
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE UndecidableInstances #-}
+
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -34,14 +37,12 @@ where
 
 import           Control.Arrow                  (second)
 
-import           Data.Binary                    (Binary, put, get)
+import           Data.Binary                    (Binary, get, put)
 import qualified Data.Binary                    as B
-import           Data.Set                       (Set)
-import qualified Data.Set                       as S
 
 import           Data.Digest.Murmur64
 
-import           Holumbus.Index.Common          hiding (empty,_impl)
+import           Holumbus.Index.Common          hiding (empty, _impl)
 import qualified Holumbus.Index.Common.DocIdMap as DM
 
 import           Holumbus.DocTable.DocTable     hiding (map)
@@ -62,7 +63,7 @@ newtype CompressedDoc
 -}
 -- | The 'DocTable' implementation. Maps 'DocId's to 'Document's.
 newtype Documents e
-    = Documents { idToDoc   :: DocMap e }     -- ^ A mapping from a document id to
+    = Documents { idToDoc :: DocMap e }     -- ^ A mapping from a document id to
                                             --   the document itself.
       --deriving (Eq, Show, NFData)
 
@@ -190,9 +191,8 @@ insertDoc' :: Documents e -> DocumentWrapper e -> (DocId, Documents e)
 insertDoc' ds d
     = maybe reallyInsert (const (newId, ds)) (lookupById' ds newId)
       where
-        d'  = doc d
         newId
-            = docToId . uri $ d'
+            = docToId . _uriDoc $ d
         reallyInsert
             = (newId, Documents {idToDoc = DM.insert newId d $ idToDoc ds})
 
@@ -204,12 +204,9 @@ deleteById' :: Documents e -> DocId -> Documents e
 deleteById' ds d
     = Documents {idToDoc = DM.delete d $ idToDoc ds}
 
--- XXX: EnumMap does not have a fromSet function so that you can use fromSet (const ()) and ignore the value
-differenceById' :: Set DocId -> Documents e -> Documents e
+differenceById' :: DM.DocIdSet -> Documents e -> Documents e
 differenceById' s ds
-    = Documents {idToDoc = idToDoc ds `DM.difference` (DM.fromAscList . map mkKeyValueDummy . S.toList $ s)}
-    where
-    mkKeyValueDummy k = (k, undefined) -- XXX: strictness properties of EnumMap?
+    = Documents {idToDoc = idToDoc ds `DM.diffWithSet` s}
 
 updateDocuments' :: (DocumentWrapper e -> DocumentWrapper e) -> Documents e -> Documents e
 updateDocuments' f d

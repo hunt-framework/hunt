@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -37,20 +39,22 @@ module Holumbus.Query.Fuzzy
   )
 where
 
-import Data.Maybe                             (fromMaybe)
-import Data.Binary
-import Data.List
-import Data.Function
+import           Data.Binary
+import           Data.Function
+import           Data.List
+import           Data.Maybe       (fromMaybe)
 
-import Control.Monad
-import Control.Applicative
+-- import           Control.Applicative
+import           Control.Monad
 
-import Data.Map                               (Map)
-import qualified Data.Map as M
+import           Data.Map         (Map)
+import qualified Data.Map         as M
 
-import           Data.Text                    (Text)
-import qualified Data.Text as T
-import           Data.Text.Encoding as TE
+import           Data.Text        (Text)
+import qualified Data.Text        as T
+import           Data.Text.Binary ()
+
+-- ----------------------------------------------------------------------------
 
 -- | A set of string which have been "fuzzed" with an associated score.
 type FuzzySet = Map Text FuzzyScore
@@ -77,16 +81,13 @@ data FuzzyConfig
       }
     deriving (Show)
 
--- @FIXME
-instance Binary Text where
-    put = put . TE.encodeUtf8
-    get = TE.decodeUtf8 <$> get
-
 instance Binary FuzzyConfig where
   put (FuzzyConfig r s m f)
       = put r >> put s >> put m >> put f
   get
       = liftM4 FuzzyConfig get get get get
+
+-- ----------------------------------------------------------------------------
 
 -- | Some default replacements for the english language.
 englishReplacements :: Replacements
@@ -219,3 +220,5 @@ replaceFirst xs' ys' zs'
 -- | Transform a fuzzy set into a list (ordered by score).
 toList :: FuzzySet -> [ (Text, FuzzyScore) ]
 toList = sortBy (compare `on` snd) . M.toList
+
+-- ----------------------------------------------------------------------------

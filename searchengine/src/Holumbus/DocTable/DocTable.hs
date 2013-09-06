@@ -2,17 +2,20 @@
 module Holumbus.DocTable.DocTable
 where
 
-import           Prelude                          hiding (null, filter, map, lookup)
+import           Prelude                          hiding (filter, lookup, map,
+                                                   null)
+import qualified Prelude                          as P
 
 import           Control.DeepSeq
 
+import           Data.Maybe                       (fromJust, isJust)
 import           Data.Set                         (Set)
 import qualified Data.Set                         as S
-import           Data.Maybe                       (isJust, fromJust)
 
 import           Holumbus.Index.Common.BasicTypes
 import           Holumbus.Index.Common.DocId
-import           Holumbus.Index.Common.DocIdMap   (DocIdMap)
+import           Holumbus.Index.Common.DocIdMap   (DocIdMap (..), DocIdSet,
+                                                   toDocIdSet)
 
 -- ----------------------------------------------------------------------------
 --
@@ -70,14 +73,14 @@ deleteByURI                   :: DocTable i e -> URI -> DocTable i e
 deleteByURI ds u              = maybe ds (delete ds) (lookupByURI ds u)
 
 -- | Deletes a set of documentss by 'DocId' from the table.
-difference                    :: Set DocId -> DocTable i e -> DocTable i e
+difference                    :: DocIdSet -> DocTable i e -> DocTable i e
 difference                    = flip _difference
 
 -- | Deletes a set of documents by 'URI' from the table.
 differenceByURI               :: Set URI -> DocTable i e -> DocTable i e
 differenceByURI uris d        = difference ids d
     where
-    ids = S.map fromJust . S.filter isJust .  S.map (lookupByURI d) $ uris
+    ids = toDocIdSet .  P.map fromJust . P.filter isJust . S.toList . S.map (lookupByURI d) $ uris
 
 -- | Update documents (through mapping over all documents).
 map                           :: (e -> e) -> DocTable i e -> DocTable i e
@@ -110,52 +113,52 @@ impl                          = _impl
 data DocTable i e = Dt
     {
     -- | Test whether the doc table is empty.
-      _null                          :: Bool
+      _null        :: Bool
 
     -- | Number of unique documents in the table.
-    , _size                          :: Int
+    , _size        :: Int
 
     -- | Lookup a document by its 'DocId'.
-    , _lookup                        :: (Monad m, Functor m) => DocId -> m e
+    , _lookup      :: (Monad m, Functor m) => DocId -> m e
 
     -- | Lookup the 'DocId' of a document by an 'URI'.
-    , _lookupByURI                   :: (Monad m, Functor m) => URI -> m DocId
+    , _lookupByURI :: (Monad m, Functor m) => URI -> m DocId
 
     -- | Union of two disjoint document tables. It is assumed, that the 'DocId's and the document 'URI's
     -- of both indexes are disjoint.
-    , _union                         :: DocTable i e -> DocTable i e
+    , _union       :: DocTable i e -> DocTable i e
 
     -- | Test whether the 'DocId's of both tables are disjoint.
-    , _disjoint                      :: DocTable i e -> Bool
+    , _disjoint    :: DocTable i e -> Bool
 
     -- | Insert a document into the table. Returns a tuple of the 'DocId' for that document and the
     -- new table. If a document with the same 'URI' is already present, its 'DocId' will be returned
     -- and the table is returned unchanged.
-    , _insert                        :: e -> (DocId, DocTable i e)
+    , _insert      :: e -> (DocId, DocTable i e)
 
     -- | Update a document with a certain 'DocId'.
-    , _update                        :: DocId -> e -> DocTable i e
+    , _update      :: DocId -> e -> DocTable i e
 
     -- | Removes the document with the specified 'DocId' from the table.
-    , _delete                        :: DocId -> DocTable i e
+    , _delete      :: DocId -> DocTable i e
 
     -- | Deletes a set of documentss by 'DocId' from the table.
-    , _difference                    :: Set DocId -> DocTable i e
+    , _difference  :: DocIdSet -> DocTable i e
 
     -- | Update documents (through mapping over all documents).
-    , _map                           :: (e -> e) -> DocTable i e
+    , _map         :: (e -> e) -> DocTable i e
 
     -- | Filters all documents that satisfy the predicate.
-    , _filter                        :: (e -> Bool) -> DocTable i e
+    , _filter      :: (e -> Bool) -> DocTable i e
 
     -- | Convert document table to a single map
-    , _toMap                         :: DocIdMap e
+    , _toMap       :: DocIdMap e
 
     -- | Edit document 'DocIds's
-    , _mapKeys                       :: (DocId -> DocId) -> DocTable i e
+    , _mapKeys     :: (DocId -> DocId) -> DocTable i e
 
     -- | The doctable implementation.
-    , _impl                          :: i
+    , _impl        :: i
     }
 
 -- ----------------------------------------------------------------------------

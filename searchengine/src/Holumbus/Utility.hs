@@ -19,14 +19,14 @@
 module Holumbus.Utility where
 
 import           Data.Binary
-import qualified Data.ByteString.Lazy   as B
+import qualified Data.ByteString.Lazy as B
 import           Data.Char
-import qualified Data.List              as L
-import           Data.Set               (Set)
-import qualified Data.Set               as S
-import           Data.Maybe             (fromJust)
+import qualified Data.List            as L
+import           Data.Maybe           (fromJust)
+import           Data.Set             (Set)
+import qualified Data.Set             as S
 
-import           Numeric                (showHex)
+import           Numeric              (showHex)
 
 import           System.IO
 
@@ -41,8 +41,8 @@ import           System.IO
 (.:::) = (.).(.).(.)
 
 -- | Data.Maybe.catMaybes on a Set instead of a List.
-catMaybesSet :: Ord a => Set (Maybe a) -> Set a
-catMaybesSet = S.map fromJust . S.delete Nothing
+catMaybesSet :: Ord a => Set (Maybe a) -> [a]
+catMaybesSet = S.toList . S.map fromJust . S.delete Nothing
 
 -- | Split a string into seperate strings at a specific character sequence.
 split :: Eq a => [a] -> [a] -> [[a]]

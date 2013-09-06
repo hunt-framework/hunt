@@ -84,7 +84,6 @@ executable hayooCrawler
                  , containers             >= 0.4.2
                  , deepseq                >= 1.2
                  , directory              >= 1.1
-                 , enummapset             >= 0     && < 1
                  , filepath               >= 1     && < 2
                  , ghc-heap-view          >= 0.5
                  , hslogger               >= 1     && < 2

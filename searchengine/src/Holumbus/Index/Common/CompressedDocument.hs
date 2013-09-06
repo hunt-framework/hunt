@@ -1,3 +1,8 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+
+-- ----------------------------------------------------------------------------
+
 module Holumbus.Index.Common.CompressedDocument
 where
 
@@ -6,7 +11,7 @@ import qualified Codec.Compression.BZip         as BZ
 import           Data.ByteString.Lazy           (ByteString)
 import qualified Data.ByteString.Lazy           as BS
 
-import           Data.Binary                    (Binary, put, get)
+import           Data.Binary                    (Binary, get, put)
 import qualified Data.Binary                    as B
 
 import           Control.DeepSeq
@@ -22,13 +27,6 @@ newtype CompressedDoc
 instance Binary CompressedDoc where
     put = B.put . unCDoc
     get = B.get >>= return . CDoc
-
-{-
--- uncompressed!
-instance Binary (DocumentWrapper CompressedDoc) where
-  put = put . doc
-  get = get >>= return . wrapDoc
--}
 
 instance Binary (DocumentWrapper CompressedDoc) where
   put = put . _impl
@@ -54,5 +52,8 @@ newDocument' :: CompressedDoc -> (DocumentWrapper CompressedDoc)
 newDocument' d = DocumentWrapper
   { _getDoc  = decompress d
   , _setDoc  = newDocument' . compress
+  , _uriDoc  = uri . decompress $ d
   , _impl    = d
   }
+
+-- ----------------------------------------------------------------------------

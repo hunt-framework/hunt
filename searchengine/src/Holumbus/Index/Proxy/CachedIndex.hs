@@ -6,10 +6,9 @@ import qualified Prelude                           as P
 
 import           Control.Arrow                     (second)
 
-import           Data.Set                          (Set)
-import qualified Data.Set                          as S
+import qualified Data.IntSet                       as IS
 
-import           Holumbus.Index.Common             (DocId)
+import           Holumbus.Index.Common.DocIdMap    (DocIdSet)
 import qualified Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Index.Index
 
@@ -20,7 +19,7 @@ import           Holumbus.Index.Index
 --   The deleted items are removed from the results of lookups.
 --   Trade-off between lookup (every time) and delete (once) performance.
 --   The set of deleted items should be merged before it gets too big.
-newIndex :: Set DocId -> Index it v i -> Index it v i
+newIndex :: DocIdSet -> Index it v i -> Index it v i
 newIndex keySet i =
     Ix {
       _unique                        = unique i   -- XXX: inaccurate
@@ -29,7 +28,7 @@ newIndex keySet i =
     , _lookup                        = \it c w -> map (second (flip deleteIds keySet)) $ lookup it i c w
     , _insert                        = \c w o -> new $ insert c w o i
     , _delete                        = \c w o -> new $ delete c w o i
-    , _deleteDocs                    = \s -> newIndex (S.union keySet s) i
+    , _deleteDocs                    = \s -> newIndex (IS.union keySet s) i
     -- the following functions merge the keySet before doing anything
     , _merge                         = new . merge realIx
     , _subtract                      = new . subtract realIx
@@ -46,8 +45,8 @@ newIndex keySet i =
       realIx    = deleteDocs keySet i -- the doctable with docs deleted
       new       = newIndex keySet
 
-      deleteIds = S.fold Occ.delete
+      deleteIds = IS.fold Occ.delete
 
 -- | An index with an empty cache.
 empty :: Index it v i -> Index it v i
-empty = newIndex S.empty
+empty = newIndex IS.empty

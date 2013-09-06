@@ -37,8 +37,7 @@ module Holumbus.Index.Compression
   )
 where
 
-import           Data.Set                          (Set)
-import qualified Data.Set                          as S
+import qualified Data.IntSet                       as IS
 
 import           Holumbus.Index.Common.DiffList
 import           Holumbus.Index.Common.DocId       (DocId)
@@ -70,8 +69,8 @@ delete = DM.delete
 
 
 -- | Difference without deflating and inflating.
-differenceWithKeySet :: Set DocId -> CompressedOccurrences -> CompressedOccurrences
-differenceWithKeySet = flip $ S.foldr delete
+differenceWithKeySet :: DM.DocIdSet -> CompressedOccurrences -> CompressedOccurrences
+differenceWithKeySet = flip $ IS.foldr delete
 
 -- | Convert the compressed differences back to a set of integers.
 inflatePos :: CompressedPositions -> Positions

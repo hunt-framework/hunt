@@ -1,4 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
+
+-- ----------------------------------------------------------------------------
+
 module Holumbus.Index.Text.Inverted.PrefixMem
   ( Inverted
   , newIndex, empty
@@ -8,17 +11,16 @@ where
 import           Control.Arrow
 import           Control.DeepSeq
 
-import           Data.Binary                       (Binary, put, get)
+import           Data.Binary                       (Binary, get, put)
 import           Data.Map                          (Map)
 import qualified Data.Map                          as M
 import           Data.Maybe
-import           Data.Set                          (Set)
 import           Data.Text                         (Text)
 import qualified Data.Text                         as T
 
 import qualified Holumbus.Data.PrefixTree          as PT
 
-import           Holumbus.Index.Common             (Context, DocId, Occurrences,
+import           Holumbus.Index.Common             (Context, Occurrences,
                                                     RawResult, Textual (..),
                                                     Word)
 import qualified Holumbus.Index.Common.DocIdMap    as DM
@@ -29,7 +31,9 @@ import           Holumbus.Index.TextIndex          hiding (fromList)
 -- ----------------------------------------------------------------------------
 
 -- | The Index implementation type.
---   Mapping contexts to prefix-trees, which map to compressed occurrences (which map documents/ids to positions).
+--   Mapping contexts to prefix-trees, which map
+--   to compressed occurrences (which map documents/ids to positions).
+
 newtype Inverted        = Inverted { indexParts :: Parts }
                           deriving (Show, Eq)
 
@@ -279,7 +283,7 @@ toList' i                         = concatMap convertPart . M.toList $ indexPart
 fromList'                         :: [(Context, Text, Occurrences)] -> Inverted
 fromList'                         = foldl (\i (c,w,o) -> insertOccurrences' c w o i) emptyInverted
 
-deleteDocsById'                   :: Set DocId -> Inverted -> Inverted
+deleteDocsById'                   :: DM.DocIdSet -> Inverted -> Inverted
 deleteDocsById' docIds            = liftInv $ M.mapMaybe deleteInParts
   where
   deleteInParts :: Part -> Maybe Part

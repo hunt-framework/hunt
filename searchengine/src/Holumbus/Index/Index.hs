@@ -3,9 +3,8 @@ where
 
 import           Control.DeepSeq
 
-import           Data.Set                       (Set)
-
-import           Holumbus.Index.Common          (Context, RawResult, Word, DocId)
+import           Holumbus.Index.Common          (Context, RawResult, Word)
+import           Holumbus.Index.Common.DocIdMap (DocIdSet)
 
 -- ----------------------------------------------------------------------------
 --
@@ -36,7 +35,7 @@ delete                :: Context -> Word -> v -> Index it v i -> Index it v i
 delete c w o i        = _delete i c w o
 
 -- | Delete documents completely (all occurrences).
-deleteDocs            :: Set DocId -> Index it v i -> Index it v i
+deleteDocs            :: DocIdSet -> Index it v i -> Index it v i
 deleteDocs            = flip _deleteDocs
 
 -- | Merges two indexes.
@@ -100,31 +99,31 @@ fromList              = foldl (\i (c,w,o) -> insert c w o i)
 data Index it v i = Ix
     {
     -- | Number of unique words in the index.
-      _unique                        :: Int
+      _unique     :: Int
 
     -- | List of all contexts avaliable in the index.
-    , _contexts                      :: [Context]
+    , _contexts   :: [Context]
 
     -- | The occurrences for every word. A potentially expensive operation.
-    , _size                          :: Context -> RawResult
+    , _size       :: Context -> RawResult
 
     -- | General lookup function.
-    , _lookup                        :: it -> Context -> Word -> RawResult
+    , _lookup     :: it -> Context -> Word -> RawResult
 
     -- | Insert occurrences.
-    , _insert                        :: Context -> Word -> v -> Index it v i
+    , _insert     :: Context -> Word -> v -> Index it v i
 
     -- | Delete occurrences.
-    , _delete                        :: Context -> Word -> v -> Index it v i
+    , _delete     :: Context -> Word -> v -> Index it v i
 
     -- | Delete documents completely (all occurrences).
-    , _deleteDocs                    :: Set DocId -> Index it v i
+    , _deleteDocs :: DocIdSet -> Index it v i
 
     -- | Merges two indexes.
-    , _merge                         :: Index it v i -> Index it v i
+    , _merge      :: Index it v i -> Index it v i
 
     -- | Subtract one index from another.
-    , _subtract                      :: Index it v i -> Index it v i
+    , _subtract   :: Index it v i -> Index it v i
 
     {-
     -- | Splitting an index by its contexts.
@@ -141,13 +140,13 @@ data Index it v i = Ix
     -- in the occurrences for a word in a specific context.
     , _mapDocIds                     :: (Context -> Word -> DocId -> DocId) -> Index it v i
     -}
-    
+
     -- | Convert an Index to a list. Can be used for easy conversion between different index
     -- implementations
-    , _toList                        :: [(Context, Word, v)]
+    , _toList     :: [(Context, Word, v)]
 
     -- | The index implementation.
-    , _impl                          :: i
+    , _impl       :: i
     }
 
 -- ----------------------------------------------------------------------------

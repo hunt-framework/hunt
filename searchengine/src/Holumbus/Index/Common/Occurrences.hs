@@ -22,18 +22,12 @@ where
 
 import           Prelude                          hiding (subtract)
 
-import           Control.DeepSeq
-
-import           Data.Binary                      (Binary (..))
-import qualified Data.Binary                      as B
-
-import qualified Data.EnumSet                     as IS
+import qualified Data.IntSet                      as IS
 
 import           Holumbus.Index.Common.BasicTypes
 import           Holumbus.Index.Common.DocId
-import           Holumbus.Index.Common.DocIdMap   hiding (empty, insert)
+import           Holumbus.Index.Common.DocIdMap   (DocIdMap)
 import qualified Holumbus.Index.Common.DocIdMap   as DM
-
 
 -- ------------------------------------------------------------
 
@@ -59,7 +53,7 @@ size                    = DM.foldr ((+) . IS.size) 0
 
 -- | Add a position to occurrences.
 insert                  :: DocId -> Position -> Occurrences -> Occurrences
-insert d p              = insertWith IS.union d (singletonPos p)
+insert d p              = DM.insertWith IS.union d (singletonPos p)
 
 -- | Remove a position from occurrences.
 deleteOccurrence        :: DocId -> Position -> Occurrences -> Occurrences
@@ -71,12 +65,12 @@ delete                  = DM.delete
 
 -- | Changes the DocIDs of the occurrences.
 update                  :: (DocId -> DocId) -> Occurrences -> Occurrences
-update f                = foldrWithKey
-                          (\ d ps res -> insertWith IS.union (f d) ps res) empty
+update f                = DM.foldrWithKey
+                          (\ d ps res -> DM.insertWith IS.union (f d) ps res) empty
 
 -- | Merge two occurrences.
 merge                   :: Occurrences -> Occurrences -> Occurrences
-merge                   = unionWith IS.union
+merge                   = DM.unionWith IS.union
 
 -- | Difference of occurrences.
 difference              :: Occurrences -> Occurrences -> Occurrences
@@ -84,7 +78,7 @@ difference              = DM.difference
 
 -- | Subtract occurrences from some other occurrences.
 subtract                :: Occurrences -> Occurrences -> Occurrences
-subtract                = differenceWith subtractPositions
+subtract                = DM.differenceWith subtractPositions
   where
   subtractPositions p1 p2
                         = if IS.null diffPos
@@ -96,7 +90,7 @@ subtract                = differenceWith subtractPositions
 -- ------------------------------------------------------------
 
 -- | The positions of the word in the document.
-type Positions                  = IS.EnumSet Position
+type Positions                  = IS.IntSet
 
 -- | Empty positions.
 emptyPos                :: Positions
@@ -129,14 +123,5 @@ unionPos                = IS.union
 -- | A fold over Positions
 foldPos                 :: (Position -> r -> r) -> r -> Positions -> r
 foldPos                 = IS.fold
-
--- | The XML pickler for a set of positions.
-instance (NFData v, Enum v) => NFData (IS.EnumSet v) where
-    rnf                   = rnf . IS.toList
-
--- | Binary serialisation for a set of positions.
-instance (Binary v, Enum v) => Binary (IS.EnumSet v) where
-    put                   = B.put . IS.toList
-    get                   = B.get >>= return . IS.fromList
 
 -- ------------------------------------------------------------

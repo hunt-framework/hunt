@@ -1,3 +1,6 @@
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -18,28 +21,22 @@
 module Holumbus.Index.Common.Document
 where
 
-import           Control.Monad                    (liftM, liftM2, mzero)
 import           Control.DeepSeq
+import           Control.Monad                    (liftM2, mzero)
 
+import           Data.Aeson
+import           Data.Binary                      (Binary (..))
 import           Data.Map                         (Map)
 import           Data.Text                        (Text)
-import           Data.Text.Encoding               as TE
-import           Data.Binary                      (Binary (..))
-import           Data.Aeson
+import           Data.Text.Binary                 ()
 
 import           Holumbus.Index.Common.BasicTypes
 
 -- ------------------------------------------------------------
 
 -- | The description of a document is a generic key value map.
+
 type Description  = Map Text Text
-
--- XXX: move + UTF-8 serialization?
-instance Binary Text where
-  put = put . encodeUtf8
-  get = liftM decodeUtf8 get
-
-
 
 doc :: DocumentWrapper e -> DocumentRaw
 doc = _getDoc
@@ -52,9 +49,10 @@ modDoc f d = setDoc (f . doc $ d) d
 
 -- | A 'Document' wrapper with getter and setter.
 data DocumentWrapper e = DocumentWrapper
-  { _getDoc  :: DocumentRaw
-  , _setDoc  :: DocumentRaw -> DocumentWrapper e
-  , _impl    :: e
+  { _getDoc :: DocumentRaw
+  , _setDoc :: DocumentRaw -> DocumentWrapper e
+  , _uriDoc :: URI
+  , _impl   :: ! e
   }
 
 instance NFData e => NFData (DocumentWrapper e) where
@@ -70,13 +68,14 @@ wrapDoc   :: DocumentRaw -> DocumentWrapper DocumentRaw
 wrapDoc d = DocumentWrapper
   { _getDoc = d
   , _setDoc = wrapDoc
+  , _uriDoc = uri d
   , _impl   = d
   }
 
 -- | A document consists of its unique identifier (URI).
 data DocumentRaw                = DocumentRaw
-                                  { uri   :: ! URI
-                                  , desc  :: ! Description
+                                  { uri  :: ! URI
+                                  , desc :: ! Description
                                   }
                                   deriving (Show, Eq, Ord)
 

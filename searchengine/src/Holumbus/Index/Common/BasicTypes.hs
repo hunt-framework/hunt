@@ -20,9 +20,8 @@
 module Holumbus.Index.Common.BasicTypes
 where
 
-import           Data.Word      ( Word32 )
-import           Data.Text
 import           Data.Map
+import           Data.Text
 
 -- ------------------------------------------------------------
 
@@ -36,8 +35,7 @@ type Title                      = Text
 type Content                    = Text
 
 -- | The position of a word in the document.
---type Position                 = Int
-type Position                   = Word32
+type Position                 = Int
 
 -- | The name of a context.
 type Context                    = Text

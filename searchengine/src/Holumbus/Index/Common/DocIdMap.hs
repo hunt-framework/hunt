@@ -18,7 +18,8 @@
 -- ----------------------------------------------------------------------------
 
 module Holumbus.Index.Common.DocIdMap
-    ( DocIdMap
+    ( DocIdMap(..)
+    , DocIdSet
     , empty
     , singleton
     , null
@@ -34,6 +35,7 @@ module Holumbus.Index.Common.DocIdMap
     , union
     , intersection
     , difference
+    , diffWithSet
     , unionWith
     , intersectionWith
     , differenceWith
@@ -49,31 +51,40 @@ module Holumbus.Index.Common.DocIdMap
     , toList
     , keys
     , elems
+    , toDocIdSet
     )
 where
 
 import           Control.DeepSeq
-import           Prelude                     hiding (map, null, filter, lookup, foldr)
+import           Prelude                     hiding (filter, foldr, lookup, map,
+                                              null)
 import qualified Prelude                     as P
 
 import           Data.Binary                 (Binary (..))
 import qualified Data.Binary                 as B
-import qualified Data.EnumMap                as IM
-import           Data.Foldable               hiding (toList, fold, foldr)
+import           Data.Foldable               hiding (fold, foldr, toList)
+import qualified Data.IntMap                 as IM
+import qualified Data.IntSet                 as S
 
 import           Holumbus.Index.Common.DocId
 
 
 -- ------------------------------------------------------------
 
-newtype DocIdMap v      = DIM { unDIM :: IM.EnumMap DocId v }
-                          deriving (Eq, Show, Foldable, Functor)
+type DocIdSet           = S.IntSet
 
-liftDIM                 :: (IM.EnumMap DocId v -> IM.EnumMap DocId r) ->
+toDocIdSet              :: [DocId] -> DocIdSet
+toDocIdSet              = S.fromList
+
+newtype DocIdMap v      = DIM { unDIM :: IM.IntMap v }
+                          deriving
+                          (Eq, Show, Foldable, Functor, NFData)
+
+liftDIM                 :: (IM.IntMap v -> IM.IntMap r) ->
                            DocIdMap v -> DocIdMap r
 liftDIM f               = DIM . f . unDIM
 
-liftDIM2                :: (IM.EnumMap DocId v -> IM.EnumMap DocId w -> IM.EnumMap DocId x) ->
+liftDIM2                :: (IM.IntMap v -> IM.IntMap w -> IM.IntMap x) ->
                            DocIdMap v -> DocIdMap w -> DocIdMap x
 liftDIM2 f x y          = DIM $ f (unDIM x) (unDIM y)
 
@@ -113,7 +124,7 @@ maxKey                  = maybe nullDocId (fst . fst) . IM.maxViewWithKey . unDI
 isIntervall             :: DocIdMap v -> Bool
 isIntervall m           = null m
                                   ||
-                                  ( fromEnum (theDocId (maxKey m)) - fromEnum (theDocId (minKey m))
+                                  ( maxKey m - minKey m
                                     == size m - 1
                                   )
 
@@ -125,6 +136,9 @@ intersection            = liftDIM2 $ IM.intersection
 
 difference              :: DocIdMap v -> DocIdMap w -> DocIdMap v
 difference              = liftDIM2 $ IM.difference
+
+diffWithSet             :: DocIdMap v -> DocIdSet -> DocIdMap v
+diffWithSet m s         = m `difference` (DIM $ IM.fromSet (const ()) s)
 
 unionWith               :: (v -> v -> v) -> DocIdMap v -> DocIdMap v -> DocIdMap v
 unionWith f             = liftDIM2 $ IM.unionWith f
@@ -151,10 +165,10 @@ mapWithKey              :: (DocId -> v -> r) -> DocIdMap v -> DocIdMap r
 mapWithKey f            = liftDIM $ IM.mapWithKey f
 
 foldr                   :: (v -> b -> b) -> b -> DocIdMap v -> b
-foldr f u               = IM.fold f u . unDIM -- XXX: replace with foldr?
+foldr f u               = IM.foldr f u . unDIM
 
 foldrWithKey            :: (DocId -> v -> b -> b) -> b -> DocIdMap v -> b
-foldrWithKey f u        = IM.foldWithKey f u . unDIM -- XXX: replace with foldrwithkey?
+foldrWithKey f u        = IM.foldrWithKey f u . unDIM
 
 fromList                :: [(DocId, v)] -> DocIdMap v
 fromList                = DIM . IM.fromList
@@ -170,9 +184,6 @@ keys                    = IM.keys . unDIM
 
 elems                   :: DocIdMap v -> [v]
 elems                   = IM.elems . unDIM
-
-instance NFData v => NFData (DocIdMap v) where
-    rnf                 = rnf . toList
 
 instance Binary v => Binary (DocIdMap v) where
     put                 = B.put . toList
