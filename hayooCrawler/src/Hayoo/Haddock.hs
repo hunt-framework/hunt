@@ -10,25 +10,23 @@ module Hayoo.Haddock
     )
 where
 
-import Data.List
-import Data.Maybe
+import           Data.List
+import           Data.Maybe
 
-import Hayoo.URIConfig
-import Hayoo.FunctionInfo
-import Hayoo.Signature
+import           Hayoo.FunctionInfo
+import           Hayoo.Signature
+import           Hayoo.URIConfig
 
-import Holumbus.Crawler.Html
-import Holumbus.Utility
+import           Holumbus.Crawler.Html
+import           Holumbus.Utility
 
-import Network.URI                      ( unEscapeString )
+import           Network.URI                 (unEscapeString)
 
-import Text.Regex.XMLSchema.String      ( match
-                                        , tokenize
-                                        )
+import           Text.Regex.XMLSchema.String (match, tokenize)
 
-import Text.XML.HXT.Core     
-import Text.XML.HXT.Arrow.XmlRegex
-import Text.XML.HXT.XPath
+import           Text.XML.HXT.Arrow.XmlRegex
+import           Text.XML.HXT.Core
+import           Text.XML.HXT.XPath
 
 -- ------------------------------------------------------------
 
@@ -51,7 +49,7 @@ hayooGetFctInfo                 = fromLA $
                                     )
                                   )
                                   >>^
-                                  (\ (m, (s, (p, (r, d)))) -> mkFunctionInfo m s p r d)
+                                  (\ (m, (s, (p, (r, d)))) -> mkFunctionInfo m s p r (stringTrim d))
 
 hayooGetTitle                   :: IOSArrow XmlTree String
 hayooGetTitle                   = fromLA $
@@ -236,7 +234,7 @@ mkVirtualDoc28 rt               = (getModule <+> getDecls)
                                   >>> first ( unlistA
                                               >>> aWithClass (== "def")
                                               >>> hasAttr "name"
-                                            ) 
+                                            )
                                   >>> arr (uncurry (:))
 
     processTypeDecl             = this +=  attr "type" theType
@@ -265,7 +263,7 @@ mkVirtualDoc28 rt               = (getModule <+> getDecls)
                                   />
                                   hasName "dl"
                                   >>>
-                                  scanRegexA 
+                                  scanRegexA
                                       ( mkSeq (mkPrimA $ hasName "dt") (mkPrimA $ hasName "dd"))
                                       getChildren
                                   >>>
@@ -372,7 +370,7 @@ mkVirtualDoc28 rt               = (getModule <+> getDecls)
                                   tdWithClass (== "src")
                                   >>>
                                   getChildren
-                                  
+
     theSourceURI                = ( first_p_src
                                     >>>
                                     firstChildWithClass "a" "link"
@@ -487,7 +485,7 @@ mkVirtualDoc26 rt               = getDecls
     theURI                      = constA rt >>> getAttrValue transferURI
 
 -- ------------------------------------------------------------
- 
+
 -- | Transform classes so that the methods are wrapped into the same html as normal functions
 
 processClasses                  :: LA XmlTree XmlTree
@@ -498,35 +496,35 @@ processClasses                  = processTopDown
                                       /> hasText (== "Methods")
                                     )
                                   )
-    where   
+    where
     processClassMethods         = getClassPart "body"
                                   /> hasName "table"
                                   /> hasName "tr"
-                                -- getXPathTrees "/tr/td[@class='body']/table/tr/td[@class='body']/table/tr" 
+                                -- getXPathTrees "/tr/td[@class='body']/table/tr/td[@class='body']/table/tr"
 
 -- ------------------------------------------------------------
 
--- | Removes Source Links from the XmlTree. A Source Link can be identified by the text of an "a" 
+-- | Removes Source Links from the XmlTree. A Source Link can be identified by the text of an "a"
 --   node but to be more precise it is also checked whether the href-attribute starts with "src".
---   During the tree transformation it might happen, that source links with empty href attributes 
+--   During the tree transformation it might happen, that source links with empty href attributes
 --   are constructed so empty href attributes are also searched and removed if the text of the "a"
 --   node is "Source"
 
 removeSourceLinks               :: LA XmlTree XmlTree
 removeSourceLinks               = processTopDown
                                   ( none
-                                    `when` 
+                                    `when`
                                     ( aWithHref (\a -> null a || "src/" `isPrefixOf` a)
                                       />
                                       hasText (== "Source")
                                     )
-                                  )      
+                                  )
 
 -- ------------------------------------------------------------
 
 -- | As Haddock can generate Documentation pages with links to source files and without these links
 --   there are two different types of declaration table datas. To make the indexing easier, the
---   table datas with source links are transformed to look like those without (they differ 
+--   table datas with source links are transformed to look like those without (they differ
 --   in the css class of the table data and the ones with the source links contain another table).
 
 topdeclToDecl                   :: LA XmlTree XmlTree
@@ -540,12 +538,12 @@ topdeclToDecl                   = processTopDownUntil
                                   ( tdWithClass (== "topdecl")
                                     `guards`
                                     mkelem "td" [ sattr "class" "decl"] [ getChildren ]
-                                  ) 
+                                  )
 
 -- ------------------------------------------------------------
 
 removeDataDocumentation         :: LA XmlTree XmlTree
-removeDataDocumentation         = processTopDown 
+removeDataDocumentation         = processTopDown
                                   ( none
                                     `when`
                                     ( getClassPart "section4"
@@ -558,11 +556,11 @@ removeDataDocumentation         = processTopDown
 -- ------------------------------------------------------------
 
 processDataTypeAndNewtypeDeclarations :: LA XmlTree XmlTree
-processDataTypeAndNewtypeDeclarations 
+processDataTypeAndNewtypeDeclarations
                                 = processTopDownUntil
                                   ( (    tdWithClass   (=="decl")
                                       /> spanWithClass (=="keyword")
-                                      /> hasText (`elem` ["data", "type", "newtype", "class"]) 
+                                      /> hasText (`elem` ["data", "type", "newtype", "class"])
                                     )
                                     `guards`
                                     ( mkTheElem $<<<< (     getTheName
@@ -570,7 +568,7 @@ processDataTypeAndNewtypeDeclarations
                                                         &&& getTheRef
                                                         &&& getTheSrc
                                                       )
-                                    ) 
+                                    )
                                   )
     where
     getTheName                  = xshow $
@@ -616,15 +614,15 @@ processCrazySignatures          = processTopDown
                                   ( processDocumentRootElement groupDeclSig declAndDocAndSignatureChildren )
 
 preProcessCrazySignature        :: LA XmlTree XmlTree
-preProcessCrazySignature        = ( selem "tr" 
+preProcessCrazySignature        = ( selem "tr"
                                     [ mkelem "td" [ sattr "class" "signature" ]
                                                   [ deep (tdWithClass (== "arg"))
                                                     >>>
                                                     getChildren
-                                                  ]  
-                                    ] 
-                                    &&&   
-                                    selem "tr" 
+                                                  ]
+                                    ]
+                                    &&&
+                                    selem "tr"
                                     [ mkelem "td" [ sattr "class" "doc" ]
                                                   [ deep (tdWithClass (== "rdoc"))
                                                     >>>
@@ -633,7 +631,7 @@ preProcessCrazySignature        = ( selem "tr"
                                     ]
                                   )
                                   >>> mergeA (<+>)
-         
+
 processDocumentRootElement      :: (LA XmlTree XmlTree -> LA XmlTree XmlTree)
                                 ->  LA XmlTree XmlTree
                                 ->  LA XmlTree XmlTree
@@ -645,7 +643,7 @@ processDocumentRootElement theGrouper interestingChildren
                                       ( processTableRows theGrouper (getChildren >>> interestingChildren) )
                                     )
                                   )
-           
+
 declAndDocAndSignatureChildren :: LA XmlTree XmlTree
 declAndDocAndSignatureChildren = (isDecl <+> isSig <+> isDoc) `guards` this
 
@@ -656,7 +654,7 @@ isDecl                          = trtdWithClass (== "decl")
 
 isDoc                           :: LA XmlTree XmlTree
 isDoc                           = trtdWithClass (== "doc")
-      
+
 isSig                           :: LA XmlTree XmlTree
 isSig                           = trtdWithClass (== "signature")
 
@@ -688,22 +686,22 @@ remLeadingDocElems ts           = (splitRegexA leadingDoc ts >>^ snd) >>> unlist
 -- throw the old "tr" s away
 
 groupDeclSig                    :: LA XmlTree XmlTree -> LA XmlTree XmlTree
-groupDeclSig ts                 = scanRegexA declSig ts 
+groupDeclSig ts                 = scanRegexA declSig ts
                                   >>>
                                   mkelem  "tr"
                                   [ sattr "class" "decl"
                                   , attr "id" (unlistA >>> getDeclName >>> mkText)
-                                  ] 
-                                  [ mkelem "td" [sattr "class" "decl"] 
+                                  ]
+                                  [ mkelem "td" [sattr "class" "decl"]
                                                 [unlistA
                                                  >>> getXPathTrees "//td[@class='decl' or @class='signature']"
                                                  >>> getChildren
-                                                ] 
+                                                ]
                                   , mkelem "td" [sattr "class" "doc" ]
                                                 [unlistA
                                                  >>> getXPathTrees "//td[@class='doc']"
                                                  >>> getChildren
-                                                ] 
+                                                ]
                                   ]
 
 -- ------------------------------------------------------------
@@ -716,7 +714,7 @@ getTitle                        = xshow
 
 getPackage                      :: LA XmlTree String
 getPackage                      = getAttrValue transferURI
-                                  >>^   
+                                  >>^
                                   hayooGetPackage
 
 addPackageAttr                  :: LA XmlTree XmlTree
@@ -756,7 +754,7 @@ firstChildWithClass e c         = firstChild (isElemWithAttr e "class" (== c))
 
 first_p_src                     :: LA XmlTree XmlTree
 first_p_src                     = firstChildWithClass "p" "src"
- 
+
 divWithClass                    :: (String -> Bool) -> LA XmlTree XmlTree
 divWithClass                    = isElemWithAttr "div" "class"
 
@@ -819,7 +817,7 @@ processFunctionSig          = mkSingleFct $< splitMultiFct
                               >>> first ( unlistA
                                           >>> aWithClass (== "def")
                                           >>> hasAttr "name"
-                                        ) 
+                                        )
                               >>> arr (uncurry (:))
 
 processFunctionDiv         :: LA XmlTree XmlTree
