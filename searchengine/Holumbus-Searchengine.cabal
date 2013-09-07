@@ -16,8 +16,8 @@ cabal-version: >=1.6
 build-type:    Simple
 -- tested-with:   ghc-7.0.3
 
-extra-source-files:
-    README
+-- extra-source-files:
+--     README
 
 source-repository head
   type:        git

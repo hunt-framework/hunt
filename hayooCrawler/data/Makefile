@@ -2,7 +2,8 @@ OPTS		=
 OPTSERVER	= --json-server=$(SERVER)
 # OPTRANKING	= --ranking # not yet complete
 OPTRANKING	=
-SERVER		=  http://localhost:3000/document
+SERVER		= http://localhost:3000/document
+EXE			= $(shell [ -d "../../.cabal-sandbox" ] && echo "../../.cabal-sandbox/bin/hayooCrawler" || echo "hayooCrawler")
 
 # load and parse all hackage pages
 # and store them in binary format in
@@ -11,7 +12,7 @@ SERVER		=  http://localhost:3000/document
 
 cache	:
 	[ -d tmp ]      || mkdir tmp
-	hayooCrawler --cache $(OPTS)
+	$(EXE) --cache $(OPTS)
 
 # crawl all packages and store .js data per package in subdir packages
 # 0000-ranks.js contains the json data for updating the packages
@@ -21,7 +22,7 @@ cache	:
 pkg	:
 	[ -d tmp ]      || mkdir tmp
 	[ -d packages ] || mkdir packages
-	hayooCrawler --pkg-index --json-output $(OPTRANKING) $(OPTS)
+	$(EXE) --pkg-index --json-output $(OPTRANKING) $(OPTS)
 
 
 rnk	:
@@ -33,7 +34,7 @@ rnk	:
 fct	:
 	[ -d tmp ]       || mkdir tmp
 	[ -d functions ] || mkdir functions
-	hayooCrawler --fct-index --json-output $(OPTRANKING) $(OPTS)
+	$(EXE) --fct-index --json-output $(OPTRANKING) $(OPTS)
 
 
 # targets for direct input into search server
@@ -66,4 +67,3 @@ pkg.tgz	:
 
 fct.tgz	:
 	tar cvzf fct.tgz functions
-
