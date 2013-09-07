@@ -51,7 +51,6 @@ modDoc f d = setDoc (f . doc $ d) d
 data DocumentWrapper e = DocumentWrapper
   { _getDoc :: DocumentRaw
   , _setDoc :: DocumentRaw -> DocumentWrapper e
-  , _uriDoc :: URI
   , _impl   :: ! e
   }
 
@@ -68,7 +67,6 @@ wrapDoc   :: DocumentRaw -> DocumentWrapper DocumentRaw
 wrapDoc d = DocumentWrapper
   { _getDoc = d
   , _setDoc = wrapDoc
-  , _uriDoc = uri d
   , _impl   = d
   }
 

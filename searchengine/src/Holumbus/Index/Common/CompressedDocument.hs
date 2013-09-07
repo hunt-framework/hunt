@@ -52,7 +52,6 @@ newDocument' :: CompressedDoc -> (DocumentWrapper CompressedDoc)
 newDocument' d = DocumentWrapper
   { _getDoc  = decompress d
   , _setDoc  = newDocument' . compress
-  , _uriDoc  = uri . decompress $ d
   , _impl    = d
   }
 

@@ -192,7 +192,7 @@ insertDoc' ds d
     = maybe reallyInsert (const (newId, ds)) (lookupById' ds newId)
       where
         newId
-            = docToId . _uriDoc $ d
+            = docToId . uri . doc $ d
         reallyInsert
             = (newId, Documents {idToDoc = DM.insert newId d $ idToDoc ds})
 
