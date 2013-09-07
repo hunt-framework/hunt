@@ -39,15 +39,15 @@ data InsOpts
       deriving (Show)
 
 data Command
-    = Search     { _theQuery :: Query }
-    | Completion { _thePrefix :: String }
-    | Insert     { _theRawDoc  :: RawDocument
-                 , _theInsOpts :: InsOpts
+    = Search     { _theQuery    :: Query }
+    | Completion { _thePrefix   :: String }
+    | Insert     { _theRawDoc   :: RawDocument
+                 , _theInsOpts  :: InsOpts
                  }
-    | Delete     { _theDocUri :: URI }
-    | LoadIx     { _thePath :: FilePath }
-    | StoreIx    { _thePath :: FilePath }
-    | Sequence   { _theCmdSeq :: [Command] }
+    | Delete     { _theDocUri   :: URI }
+    | LoadIx     { _thePath     :: FilePath }
+    | StoreIx    { _thePath     :: FilePath }
+    | Sequence   { _theCmdSeq   :: [Command] }
     | NOOP
     | MoreCommands
       deriving (Show)
@@ -56,7 +56,7 @@ data CmdRes
     = ResError { _theErr    :: Int
                , _theReason :: String
                }
-    | ResCompl { _theWords :: [String] }
+    | ResCompl { _theWords  :: [String] }
     | ResOK
     | MoreResults
       deriving (Show)
@@ -153,11 +153,11 @@ execCmd c
 -- ----------------------------------------------------------------------------
 
 execCompletion :: String -> Index -> CM CmdRes
-execCompletion px ix
+execCompletion px _ix
     = return $ ResError 007 ("looking for completions for " ++ show px)
 
 execSearch :: Query -> Index -> CM CmdRes
-execSearch q ix
+execSearch q _ix
     = return $ ResError 007 ("searching for: " ++ show q)
 
 execSequence :: [Command] -> CM CmdRes
@@ -166,7 +166,6 @@ execSequence [c]      = execCmd c
 execSequence (c : cs) = execCmd c >> execSequence cs
 
 -- ----------------------------------------------------------------------------
-
 
 main1 :: Command -> IO ()
 main1 c

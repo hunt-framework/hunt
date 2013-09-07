@@ -37,7 +37,7 @@ where
 
 import           Control.Arrow                  (second)
 
-import           Data.Binary                    (Binary, get, put)
+import           Data.Binary                    (Binary(..))
 import qualified Data.Binary                    as B
 
 import           Data.Digest.Murmur64

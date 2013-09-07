@@ -1,4 +1,4 @@
-module Holumbus.Index.TextIndex 
+module Holumbus.Index.TextIndex
 ( module Holumbus.Index.Index
 , TextIndex
 , insertPosition

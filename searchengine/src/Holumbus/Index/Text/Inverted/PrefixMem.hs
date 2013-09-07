@@ -11,7 +11,7 @@ where
 import           Control.Arrow
 import           Control.DeepSeq
 
-import           Data.Binary                       (Binary, get, put)
+import           Data.Binary                       (Binary(..))
 import           Data.Map                          (Map)
 import qualified Data.Map                          as M
 import           Data.Maybe

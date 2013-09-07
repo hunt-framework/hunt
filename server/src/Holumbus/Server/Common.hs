@@ -48,6 +48,9 @@ defaultIndexMetadata = IndexMetadata
   { imAnalyzer = DefaultAnalyzer
   }
 
+-- |  some sort of json response format
+data JsonResponse r = JsonSuccess r | JsonFailure [Text]
+
 -- | paged api document result
 data PagedResult x = PagedResult
   { result  :: [x]
@@ -66,14 +69,6 @@ mkPagedResult xs p pp = PagedResult
   where
   takePage = take pp $ drop (pp * (p-1)) xs
 
-instance (ToJSON x) => ToJSON (PagedResult x) where
-   toJSON (PagedResult l p pp c) = object
-    [ "result"  .= l
-    , "page"    .= p
-    , "perPage" .= pp
-    , "count"   .= c
-    ]
-
 -- | empty document
 emptyApiDocIndexMap :: Map Context (Either WordList TextData)
 emptyApiDocIndexMap = M.empty
@@ -83,6 +78,16 @@ emptyApiDocDescrMap = M.empty
 
 emptyApiDoc :: ApiDocument
 emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescrMap
+
+-- ----------------------------------------------------------------------------
+
+instance (ToJSON x) => ToJSON (PagedResult x) where
+   toJSON (PagedResult l p pp c) = object
+    [ "result"  .= l
+    , "page"    .= p
+    , "perPage" .= pp
+    , "count"   .= c
+    ]
 
 instance FromJSON ApiDocument where
   parseJSON (Object o) = do
@@ -96,12 +101,11 @@ instance FromJSON ApiDocument where
       }
   parseJSON _ = mzero
 
--- XXX: mh
 instance FromJSON (Either WordList TextData) where
   parseJSON o =
-    ( parseJSON o >>= return . Left )
+    (parseJSON o >>= return . Left)
     `mappend`
-    ( parseJSON o >>= return . Right )
+    (parseJSON o >>= return . Right)
 
 instance FromJSON TextData where
   parseJSON (Object o) = do
@@ -113,7 +117,6 @@ instance FromJSON TextData where
       }
   parseJSON _ = mzero
 
-
 instance FromJSON IndexMetadata where
   parseJSON (Object o) = do
     analyzer <- o .: "analyzer" .!= DefaultAnalyzer
@@ -122,15 +125,12 @@ instance FromJSON IndexMetadata where
       }
   parseJSON _ = mzero
 
-
 instance FromJSON AnalyzerType where
   parseJSON (String s) =
     case s of
       "default" -> return DefaultAnalyzer
       _         -> mzero
   parseJSON _ = mzero
-
-
 
 instance ToJSON ApiDocument where
   toJSON (ApiDocument u im dm) = object
@@ -139,7 +139,6 @@ instance ToJSON ApiDocument where
     , "description" .= dm
     ]
 
--- XXX: mh
 instance ToJSON (Either WordList TextData) where
   toJSON = either toJSON toJSON
 
@@ -149,7 +148,6 @@ instance ToJSON TextData where
     , "metadata"    .= m
     ]
 
-
 instance ToJSON IndexMetadata where
   toJSON (IndexMetadata a) = object
     [ "analyzer"    .= a
@@ -158,10 +156,6 @@ instance ToJSON IndexMetadata where
 instance ToJSON AnalyzerType where
   toJSON (DefaultAnalyzer) =
     "default"
-
-
--- |  some sort of json response format
-data JsonResponse r = JsonSuccess r | JsonFailure [Text]
 
 instance (ToJSON r) => ToJSON (JsonResponse r) where
   toJSON (JsonSuccess msg) = object

@@ -8,7 +8,7 @@ import qualified Prelude                          as P
 
 import           Control.DeepSeq
 
-import           Data.Maybe                       (fromJust, isJust)
+import           Data.Maybe                       (catMaybes)
 import           Data.Set                         (Set)
 import qualified Data.Set                         as S
 
@@ -80,7 +80,7 @@ difference                    = flip _difference
 differenceByURI               :: Set URI -> DocTable i e -> DocTable i e
 differenceByURI uris d        = difference ids d
     where
-    ids = toDocIdSet .  P.map fromJust . P.filter isJust . S.toList . S.map (lookupByURI d) $ uris
+    ids = toDocIdSet .  catMaybes . S.toList . S.map (lookupByURI d) $ uris
 
 -- | Update documents (through mapping over all documents).
 map                           :: (e -> e) -> DocTable i e -> DocTable i e

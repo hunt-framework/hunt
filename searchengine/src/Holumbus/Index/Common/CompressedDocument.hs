@@ -11,7 +11,7 @@ import qualified Codec.Compression.BZip         as BZ
 import           Data.ByteString.Lazy           (ByteString)
 import qualified Data.ByteString.Lazy           as BS
 
-import           Data.Binary                    (Binary, get, put)
+import           Data.Binary                    (Binary(..))
 import qualified Data.Binary                    as B
 
 import           Control.DeepSeq

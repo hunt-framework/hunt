@@ -93,5 +93,3 @@ newIndexer ix dt = Indexer
   , _modify      = undefined
   , _delete      = \ids -> newIndexer (Ix.deleteDocs ids ix) (Dt.difference ids dt)
   }
-
-
