@@ -3,9 +3,11 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Holumbus.Index.Common2 where
 
+import           Prelude                   hiding (lookup)
 import           Control.Arrow             (first)
 import           Control.Monad.State
 
@@ -17,8 +19,8 @@ import qualified Data.Map                  as M
 import           Data.IntMap               (IntMap)
 import qualified Data.IntMap               as IM
 
-import           Holumbus.Index.Common     hiding (Occurrences, RawResult, HolIndex, Positions, DocId)
-import qualified Holumbus.Index.Common     as Co
+import           Holumbus.Index.Common     hiding (Occurrences, RawResult, HolIndex, Positions, DocId, insert, lookup)
+import qualified Holumbus.Index.Common     as CO
 import qualified Holumbus.Data.PrefixTree  as PT 
 
 import           Data.ByteString.Lazy      (ByteString)
@@ -47,41 +49,51 @@ import           Data.Maybe
  - to deal with URI's only. Not sure how to
  - achive that though.
  -}
-
-
 class Index i where
-  -- | internal represenation of document id
-  type DocId     i :: *
-  -- | internal representation of info the index hold for a document
-  type DocInfo   i :: *
-  -- | search key for the index. f.e.: text for text index
-  type SearchKey i :: *
- 
-  -- | insert key (word) with generic docinfo (occurrences) into context
-  insert :: Context -> SearchKey i -> DocInfo i -> i -> i 
-  -- | update DocInfo for key (word) in context ..??
-  update :: Context -> SearchKey i -> (DocId i -> DocInfo i) -> i -> i 
-  -- | remove document from all contexts
-  delete :: DocId i -> i -> i
+  -- | Internal representation of Key
+  type IKey      i :: *
+  -- | Representation of data within Index
+  type IValue    i :: *
+  -- | Result type for lookup operations
+  type IResult   i :: *
+  -- | Search Operations associated with this index implementation 
+  data ISearchOp i :: *
+   
+  -- | Insert Key (f.e.: word) with DocInfo (f.e.: Occurrences) for a context
+  insert :: Context -> IKey i -> IValue i -> i -> i 
+  -- | Remove DocInfo for DocId from all Contexts
+  delete :: IKey i -> i -> i
+  -- | Lookup for DocInfo in Index
+  lookup :: Context -> ISearchOp i -> i -> IResult i
 
 
+type MyMap = Map Int String
 
--- | example1 simple index storing dates serialized as number
---   associated with URI
-type Date = Int
-data SampleIndex = SampleIndex { six :: IntMap [URI] }
+-- | Simple example for Map ignoring Contexts
+instance Index MyMap where
+  type IKey MyMap      = Int
+  type IValue MyMap    = String
+  type IResult MyMap   = Maybe String
+  data ISearchOp MyMap = SimpleLookup (IKey MyMap)
 
-instance Index SampleIndex where
-  type DocId     SampleIndex = URI
-  type DocInfo   SampleIndex = [URI]
-  type SearchKey SampleIndex = Date
+  insert _ k v ix              = M.insert k v ix
+  delete k ix                  = M.delete k ix
+  lookup _ (SimpleLookup k) ix = M.lookup k ix
 
-  insert c d u i = SampleIndex $ IM.insert d u $ (six i) 
-  update c d f i = undefined
-  delete d i     = undefined
+
+emptyMyMap :: MyMap
+emptyMyMap = M.empty
+
+test :: IO ()
+test = do
+  let key = 1::Int
+  let x1 = insert "" key "eins" emptyMyMap
+  let mr = lookup "" (SimpleLookup key) x1
+  print mr
 
 -- | example2 - holumbus index like its currently defined
-type Occurrences        = Map Co.DocId Positions
+{--
+ - type Occurrences        = Map Co.DocId Positions
 type Positions          = EnumSet Position
 data Inverted = Inverted { iix :: Map Context (PrefixTree Occurrences) }
 
@@ -93,34 +105,7 @@ instance Index Inverted where
   insert = undefined
   update = undefined
   delete = undefined
-
-{--
- - query api
- -
- - since different index implementations most likely require
- - diffrent search operations, we should be able to define
- - them seperate from the general typeclass
- -
- - why does the tree return lists not maps?
- -}
-
-data Query i = Query {
-  process :: (Index i) => i -> Context -> SearchKey i -> Map (SearchKey i) (DocInfo i)
-}
-
--- | example1 - queries for the date index
-exactMatch :: Query SampleIndex
-exactMatch = Query {
-  process = \i c d -> M.singleton d $ concat $ maybeToList $ IM.lookup d $ six i
-}
-
--- | example2 - query for current holumbus index
-prefixCaseQuery :: Query Inverted
-prefixCaseQuery = Query {
-  process = \i c d -> M.fromList $ fmap (first T.pack) $ PT.prefixFindWithKeyBF (T.unpack d) $ getContext c i
-}
-getContext c = fromMaybe PT.empty . M.lookup c . iix
-
+--}
 
 {--
  - combining documents and index:
@@ -132,7 +117,7 @@ getContext c = fromMaybe PT.empty . M.lookup c . iix
  - two arbitary datastructures put in a state?
  -}
 
-
+{-
 data Index_ = Index_ { ix :: Map Text [Int] }
 data Doc = Doc { dx :: Map Int Text }
 
@@ -149,3 +134,4 @@ insertM_ = do
 
 main :: IO ()
 main = print $ evalState insertM_ emptyIndex
+--}
