@@ -47,8 +47,9 @@ import           Holumbus.Indexer.Indexer                 as Ix
 import           Holumbus.Indexer.TextIndexer             (TextIndexer, modifyWithDescription,
                                                            newTextIndexer)
 import           Holumbus.Server.Analyzer
-import           Holumbus.Server.Common
+import           Holumbus.Server.Common                   hiding (Query)
 import qualified Holumbus.Server.Template                 as Tmpl
+import qualified Holumbus.Server.Interpreter              as Ip
 
 -- ----------------------------------------------------------------------------
 
@@ -143,8 +144,12 @@ toDocAndWords' = toDocAndWords Doc.wrapDoc
 start :: IO ()
 start = scotty 3000 $ do
 
+  -- interpreter
+  env <- liftIO $ Ip.initEnv indexer (Ip.CMOptions (toDocAndWords Doc.wrapDoc))
+  let runCmd = Ip.runCmd env
+
   -- index
-  ixM    <- liftIO $ newMVar indexer
+  let ixM    = Ip.cevIndexer env
   let withIx = withIndex' ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO b) -> m b
   let modIx_ = modIndex_  ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents))    -> m ()
   let modIx  = modIndex   ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents, b)) -> m b
@@ -294,5 +299,11 @@ start = scotty 3000 $ do
       return $ newTextIndexer i d
     json (JsonSuccess "index loaded" :: JsonResponse Text)
 
+  -- interpreter route
+  post "/exec" $ do
+    -- Raises an exception if parse is unsuccessful
+    cmd  <- jsonData :: ActionM Command
+    iRes <- liftIO $ runCmd cmd
+    either json json iRes
 
   notFound $ text "page not found"
