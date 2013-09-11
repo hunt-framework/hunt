@@ -1,15 +1,18 @@
 module Holumbus.Server.Common where
 
 import           Control.Monad         (mzero)
+import           Control.Monad.Error   (Error(..))
+
 import           Data.Monoid           (mappend)
 
 import           Data.Aeson
 import           Data.Map              (Map ())
 import qualified Data.Map              as M
 import           Data.Text             (Text)
+import qualified Data.Text             as T
 
 import           Holumbus.Index.Common (Content, Context, Description, Position,
-                                        URI, WordList)
+                                        URI, WordList, DocumentRaw)
 
 -- ----------------------------------------------------------------------------
 
@@ -170,3 +173,142 @@ instance (ToJSON r) => ToJSON (JsonResponse r) where
     [ "code"  .= (1 :: Int)
     , "msg"   .= msg
     ]
+
+-- ----------------------------------------------------------------------------
+-- Interpreter
+-- ----------------------------------------------------------------------------
+
+-- simple for now - query stuff needs work...
+data Query
+  = QWord    Text
+  | QPrefix  Text
+  | QAnd     Query Query
+    deriving (Show)
+
+data InsertOption
+  = New | Replace | Modify
+    deriving (Show)
+
+data Command
+  = Search     { icQuery    :: Query }
+  | Completion { icPrefix   :: Text }
+  | Insert     { icDoc      :: ApiDocument
+               , icInsOpt  :: InsertOption
+               }
+  | Delete     { icUri      :: URI }
+  | LoadIx     { icPath     :: FilePath }
+  | StoreIx    { icPath     :: FilePath }
+  | Sequence   { icCmdSeq   :: [Command] }
+  | NOOP
+  deriving (Show)
+
+data CmdResult
+  = ResOK
+  | ResSearch       { crRes   :: [DocumentRaw] }
+  | ResCompletion   { crWords :: [Text] }
+  deriving (Show)
+
+data CmdError
+  = ResError
+    { ceCode :: Int
+    , ceMsg  :: Text
+    } deriving (Show)
+
+-- ----------------------------------------------------------------------------
+
+instance ToJSON Query where
+  toJSON o = case o of
+    QWord s     -> object [ "word"     .= s ]
+    QPrefix s   -> object [ "prefix"   .= s ]
+    QAnd q1 q2  -> object
+      [ "q1" .= q1
+      , "q2" .= q2 ]
+
+instance FromJSON Query where
+  parseJSON (Object o) = do
+    t <- o .: "type"
+    case (t :: Text) of
+      "word"    -> o .: "text" >>= return . QWord
+      "prefix"  -> o .: "text" >>= return . QPrefix
+      "and" -> do
+        q1 <- o .: "q1"
+        q2 <- o .: "q2"
+        return $ QAnd q1 q2
+      _         -> mzero
+  parseJSON _ = mzero
+
+instance FromJSON InsertOption where
+  parseJSON (String s)
+    = case s of
+      "new"     -> return New
+      "replace" -> return Replace
+      "modify"  -> return Modify
+      _         -> mzero
+  parseJSON _ = mzero
+
+instance ToJSON InsertOption where
+  toJSON o = case o of
+    New     -> "new"
+    Replace -> "replace"
+    Modify  -> "modify"
+
+instance ToJSON Command where
+  toJSON o = case o of
+    Search q      -> object . cmd "search"      $ [ "query" .= q ]
+    Completion s  -> object . cmd "completion"  $ [ "text"  .= s ]
+    Insert d op   -> object . cmd "insert"      $
+      [ "option"    .= op
+      , "document"  .= d
+      ]
+    Delete u      -> object . cmd "delete"      $ [ "uri"   .= u ]
+    LoadIx  f     -> object . cmd "load"        $ [ "path"  .= f ]
+    StoreIx f     -> object . cmd "store"       $ [ "path"  .= f ]
+    NOOP          -> object . cmd "noop"        $ []
+    Sequence cs   -> toJSON cs
+    where
+    cmd c = (:) ("cmd" .= (c :: Text))
+
+instance FromJSON Command where
+  parseJSON (Object o) = do
+    c <- o .: "cmd"
+    case (c :: Text) of
+      "search"      -> o .: "query" >>= return . Search
+      "completion"  -> o .: "text"  >>= return . Completion
+      "insert"      -> do
+        op <- o .: "option"
+        d  <- o .: "document"
+        return $ Insert d op
+      "delete"      -> o .: "uri"   >>= return . Delete
+      "load"        -> o .: "path"  >>= return . LoadIx
+      "store"       -> o .: "path"  >>= return . StoreIx
+      "noop"        ->                  return NOOP
+      _             -> mzero
+  parseJSON o       = parseJSON o   >>= return . Sequence
+
+instance ToJSON CmdResult where
+  toJSON o = case o of
+    ResOK -> object . code 0 $ []
+    ResSearch r -> object . code 0 $
+      [ "res" .= r ]
+    ResCompletion w -> object . code 0 $
+      [ "res" .= w ]
+    where
+    code i = (:) ("code" .= (i :: Int))
+
+-- XXX: FromJSON for a result needed?
+
+instance Error CmdError where
+  strMsg s = ResError 500 . T.pack $ "internal server error: " ++ s
+
+instance ToJSON CmdError where
+  toJSON (ResError c m) = object
+    [ "code" .= c
+    , "msg"  .= m
+    ]
+
+instance FromJSON CmdError where
+  parseJSON (Object o) = do
+    c <- o .: "code"
+    m <- o .: "msg"
+    return $ ResError c m
+  parseJSON _ = mzero
