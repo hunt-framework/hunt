@@ -193,7 +193,7 @@ data Command
   = Search     { icQuery    :: Query }
   | Completion { icPrefix   :: Text }
   | Insert     { icDoc      :: ApiDocument
-               , icInsOpt  :: InsertOption
+               , icInsOpt   :: InsertOption
                }
   | Delete     { icUri      :: URI }
   | LoadIx     { icPath     :: FilePath }

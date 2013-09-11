@@ -36,6 +36,7 @@ executable holumbusServer
                  , dlist
                  , hamlet                 >= 1.1.7.1
                  , Holumbus-Searchengine  >= 2
+                 , mtl                    >= 1.1 && < 3
                  , text
                  , transformers
                  , scotty
