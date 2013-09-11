@@ -22,18 +22,20 @@ data ApiDocument  = ApiDocument
   , apiDocIndexMap :: Map Context (Either WordList TextData)
   , apiDocDescrMap :: Description
   }
+  deriving (Show)
 
 -- | Data necessary for adding documents to the index.
 data TextData = TextData
   { idContent  :: Content
   , idMetadata :: IndexMetadata
   }
+  deriving (Show)
 
 -- | Metadata for index processing
 data IndexMetadata = IndexMetadata
   { imAnalyzer :: AnalyzerType
   }
-
+  deriving (Show)
 
 -- | Text analysis function
 type AnalyzerFunction = Text -> [(Position, Text)]
@@ -41,6 +43,7 @@ type AnalyzerFunction = Text -> [(Position, Text)]
 -- | Types of analyzer
 data AnalyzerType
   = DefaultAnalyzer
+  deriving (Show)
 
   -- | The default Matadata
 defaultIndexMetadata :: IndexMetadata

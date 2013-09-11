@@ -61,6 +61,8 @@ instance Binary (DocumentWrapper DocumentRaw) where
   put = put . _impl
   get = get >>= return . wrapDoc
 
+instance (Show e) => Show (DocumentWrapper e) where
+  show (DocumentWrapper _ _ e) = show e
 
 -- | A basic wrapper.
 wrapDoc   :: DocumentRaw -> DocumentWrapper DocumentRaw
