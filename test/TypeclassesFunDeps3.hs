@@ -84,6 +84,8 @@ instance (Index ii Occs, DocTable di de) => Indexer (SimpleIndexer ii di) ii di 
   insertIx    = insertIx'
   lookupIx    = lookupIx'
 
+-- ----------------------------------------------------------------------------
+
 -- works for any indexer with occs
 insertIx' :: (Index ii Occs, DocTable di de, Indexer ix ii di Occs de) =>
           WordList -> de -> ix -> ix
@@ -94,8 +96,7 @@ insertIx' wl de ix = mkIndexer ii' di'
     (did, di') = insertD di de
     ii' = foldr (\(w, ps) -> insertI w [(did, ps)]) ii wl
 
--- works for any indexer with occs
-lookupIx' :: (Index ii Occs, DocTable di de, Indexer ix ii di Occs de) =>
+lookupIx' :: (Index ii iv, DocTable di de, Indexer ix ii di iv de) =>
              ix -> Word -> [de]
 lookupIx' ix w = maybe [] (mapMaybe (flip lookupD di . fst)) $ lookupI w ii
   where
@@ -123,4 +124,4 @@ ixx' :: SimpleIndexer [(Word, Occs)] [(DocId, Document)]
 ixx' = foldr (uncurry insertIx) ixx docs
 
 search :: Word -> [Document]
-search = lookupIx ixx
+search = lookupIx ixx'

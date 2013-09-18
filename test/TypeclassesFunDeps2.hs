@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, FunctionalDependencies , FlexibleInstances, FlexibleContexts #-}
-module TypeclassesFunDeps where
+module TypeclassesFunDeps2 where
 
 {-
   An experiment using a structure which resembles the current structure more closely.
@@ -98,4 +98,4 @@ ixx' :: SimpleIndexer [(Word, Occs)] [(DocId, Document)]
 ixx' = foldr (uncurry insertIx) ixx docs
 
 search :: Word -> [Document]
-search = lookupIx ixx
+search = lookupIx ixx'
