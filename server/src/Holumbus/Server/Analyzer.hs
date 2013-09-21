@@ -4,37 +4,39 @@ module Holumbus.Server.Analyzer
   )
 where
 
-import           Control.Arrow                          (first)
+import           Control.Arrow          (first)
 
-import           Data.Map                               (Map)
-import qualified Data.Map                               as M
-import           Data.Text                              (Text)
-import qualified Data.Text                              as T
-import           Data.Char                              (isAlphaNum)
+import           Data.Char              (isAlphaNum)
+import           Data.Map               (Map)
+import qualified Data.Map               as M
+import           Data.Text              (Text)
+import qualified Data.Text              as T
 
-import           Data.DList                             (DList)
-import qualified Data.DList                             as DL
+import           Data.DList             (DList)
+import qualified Data.DList             as DL
 
-import           Holumbus.Index.Common                  (DocumentRaw(..), DocumentWrapper(..), Word, Words, WordList, Position)
+import           Holumbus.Index.Common (Document (..), DocumentWrapper (..),
+                                        Position, Word, WordList, Words)
 
 import           Holumbus.Server.Common
 
+-- ----------------------------------------------------------------------------
 
 analyzerMapping :: AnalyzerType -> Text -> [(Position, Text)]
 analyzerMapping o = case o of
     DefaultAnalyzer -> scanTextDefault
 
 
-toDocAndWords :: (DocumentRaw -> DocumentWrapper e) -> ApiDocument -> (DocumentWrapper e, Words)
-toDocAndWords f = first f . toDocAndWords'
+toDocAndWords :: DocumentWrapper e => ApiDocument -> (e, Words)
+toDocAndWords = first wrap . toDocAndWords'
 
 -- | ApiDocument to Document and Words mapping.
-toDocAndWords' :: ApiDocument -> (DocumentRaw, Words)
+toDocAndWords' :: ApiDocument -> (Document, Words)
 toDocAndWords' apiDoc = (doc, ws)
   where
   indexMap = apiDocIndexMap apiDoc
   descrMap = apiDocDescrMap apiDoc
-  doc = DocumentRaw
+  doc = Document
           { uri   = apiDocUri apiDoc
           , desc  = descrMap
           }
@@ -44,7 +46,8 @@ toDocAndWords' apiDoc = (doc, ws)
                     -> let scanText = analyzerMapping . imAnalyzer $ metadata
                        in toWordList scanText content)) indexMap
 
--- | Construct a WordList from Text using the function f to split the text into words with their corresponding positions.
+-- | Construct a WordList from Text using the function f to split
+--   the text into words with their corresponding positions.
 toWordList :: (Text -> [(Position, Text)]) -> Text -> WordList
 toWordList f = M.map DL.toList . foldr insert M.empty . f
   where

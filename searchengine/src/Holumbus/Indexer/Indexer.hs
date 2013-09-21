@@ -1,6 +1,8 @@
-module Holumbus.Indexer.Indexer where
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies      #-}
 
-import           Control.DeepSeq
+module Holumbus.Indexer.Indexer where
 
 import           Data.Set                       (Set)
 import qualified Data.Set                       as S
@@ -16,80 +18,80 @@ import qualified Holumbus.Index.Index           as Ix
 
 -- ----------------------------------------------------------------------------
 
--- | Access 'index' directly
-ixIndex :: Indexer elem it iv i d de -> Index it iv i
-ixIndex = _ixIndex
+class (Index (IxIndex i), DocTable (IxDocTable i)) =>
+      Indexer i where
+    type IxIndex    i :: *
+    type IxDocTable i :: *
+    type IxElem     i :: * -- FIXME: meh
+                           -- maybe a class ToWords a where toWords :: a -> Words?
 
--- | Access 'DocTable' directly
-ixDocTable :: Indexer elem it iv i d de -> DocTable d de
-ixDocTable = _ixDocTable
+    -- | Access 'Index' directly
+    ixIndex     :: i -> IxIndex i
 
--- | Insert elements to 'Index' and 'DocTable'
-insert :: Indexer elem it iv i d de -> de -> elem -> Indexer elem it iv i d de
-insert = _insert
+    -- | Access 'DocTable' directly
+    ixDocTable  :: i -> IxDocTable i
 
--- | Update elements
-update :: Indexer elem it iv i d de -> DocId -> de -> elem -> Indexer elem it iv i d de
-update = _update
+    -- | Insert elements to 'Index' and 'DocTable'
+    insert      :: Dt.DValue (IxDocTable i) -> IxElem i -> i -> i
 
--- | Modify elements
-modify :: Indexer elem it iv i d de -> (de -> de) -> elem -> DocId -> Indexer elem it iv i d de
-modify = _modify
+    -- | Update elements
+    update      :: DocId -> Dt.DValue (IxDocTable i) -> IxElem i -> i -> i
 
--- | Delete a set of documents by 'DocId'
-delete :: Indexer elem it iv i d de -> DocIdSet -> Indexer elem it iv i d de
-delete = _delete
+    -- | Modify elements
+    modify      :: (Dt.DValue (IxDocTable i) -> Dt.DValue (IxDocTable i))
+                   -> IxElem i -> DocId -> i -> i
 
--- | Delete a set if documents by 'URI'.
-deleteDocsByURI           :: Set URI -> Indexer elem it iv i d de -> Indexer elem it iv i d de
-deleteDocsByURI us ix     = _delete ix docIds
-  where
-  docIds = toDocIdSet . catMaybesSet . S.map (lookupByURI ix) $ us
+    -- | Delete a set of documents by 'DocId'
+    delete      :: i -> DocIdSet -> i
+    delete i dIds
+      = modIndexer newIndex newDocTable i
+      where
+      newIndex    = Ix.deleteDocs dIds $ ixIndex    i
+      newDocTable = Dt.difference dIds $ ixDocTable i
 
-instance NFData (Indexer elem it iv i d de) where
-  rnf Indexer{} = rnf _ixIndex `seq` rnf ixDocTable
+    -- | Delete a set if documents by 'URI'.
+    deleteDocsByURI       :: Set URI -> i -> i
+    deleteDocsByURI us ix
+      = delete ix docIds
+      where
+      docIds = toDocIdSet . catMaybesSet . S.map (lookupByURI ix) $ us
 
- -- ----------------------------------------------------------------------------
+    -- | Returns the number of unique words in the index.
+    unique      :: i -> Int
+    unique
+      = Ix.unique . ixIndex
 
--- | Returns the number of unique words in the index.
-unique                    :: Indexer elem it iv i d de -> Int
-unique                    = Ix.unique . ixIndex
+    -- | Returns a list of all contexts avaliable in the index.
+    contexts    :: i -> [Context]
+    contexts
+      = Ix.contexts . ixIndex
 
--- | Returns a list of all contexts avaliable in the index.
-contexts                  :: Indexer elem it iv v d de -> [Context]
-contexts                  = Ix.contexts . ixIndex
+    -- | Find a document by 'DocId'.
+    lookup      :: (Monad m, Functor m) => i -> DocId -> m (Dt.DValue (IxDocTable i))
+    lookup
+      = Dt.lookup . ixDocTable
 
--- | Find a document by 'DocId'.
-lookup                    :: (Monad m, Functor m) => Indexer elem it iv i d de -> DocId -> m de
-lookup                    = Dt.lookup . ixDocTable
+    -- | Find a document by 'URI'.
+    lookupByURI :: (Monad m, Functor m) => i -> URI -> m DocId
+    lookupByURI
+      = Dt.lookupByURI . ixDocTable
 
--- | Find a document by 'URI'.
-lookupByURI               :: (Monad m, Functor m) => Indexer elem it iv i d de -> URI -> m DocId
-lookupByURI               = Dt.lookupByURI . ixDocTable
+    -- | Number of documents.
+    size        :: i -> Int
+    size
+      = Dt.size . ixDocTable
+
+    -- Functions to enable writing default implementations like 'delete'
+
+    -- | Replace the 'Index' .
+    modIndex    :: IxIndex i    -> i -> i
+
+    -- | Replace the  'DocTable'.
+    modDocTable :: IxDocTable i -> i -> i
+
+    -- | Replace the 'Index' and 'DocTable'.
+    modIndexer  :: IxIndex i -> IxDocTable i -> i -> i
+    modIndexer ii di ix
+      = modDocTable di . modIndex ii $ ix
 
 -- ----------------------------------------------------------------------------
-
--- | Generic indexer. A combination of 'Index' and 'DocTable'.
-data Indexer elem it iv i d de
-  = Indexer
-    { _ixIndex    :: Index it iv i
-    , _ixDocTable :: DocTable d de
-    , _insert     :: de -> elem -> Indexer elem it iv i d de
-    , _update     :: DocId -> de -> elem -> Indexer elem it iv i d de
-    , _modify     :: (de -> de) -> elem -> DocId -> Indexer elem it iv i d de
-    , _delete     :: DocIdSet -> Indexer elem it iv i d de
-    }
-
--- ----------------------------------------------------------------------------
-
-newIndexer :: Index it0 iv0 i0
-           -> DocTable d0 de0
-           -> Indexer elem0 it0 iv0 i0 d0 de0
-newIndexer ix dt = Indexer
-  { _ixIndex     = ix
-  , _ixDocTable  = dt
-  , _insert      = undefined -- XXX add default impl here
-  , _update      = undefined
-  , _modify      = undefined
-  , _delete      = \ids -> newIndexer (Ix.deleteDocs ids ix) (Dt.difference ids dt)
-  }

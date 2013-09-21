@@ -1,5 +1,3 @@
-{-# OPTIONS -fno-warn-orphans #-}
-
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -33,15 +31,15 @@ module Holumbus.Index.Common
   , module Holumbus.Index.Common.DocIdMap
   , module Holumbus.Index.Common.Occurrences
   , module Holumbus.Index.Common.RawResult
-
   )
 where
 
 import           Holumbus.Index.Common.BasicTypes
 import           Holumbus.Index.Common.DocId
-import           Holumbus.Index.Common.DocIdMap   (DocIdMap)
-import           Holumbus.Index.Common.Document
-import           Holumbus.Index.Common.Occurrences
+import           Holumbus.Index.Common.DocIdMap    (DocIdMap)
+import           Holumbus.Index.Common.Document    (Description, Document (..),
+                                                    DocumentWrapper (wrap, unwrap))
+import           Holumbus.Index.Common.Occurrences (Occurrences, Positions)
 import           Holumbus.Index.Common.RawResult
 
 -- ------------------------------------------------------------

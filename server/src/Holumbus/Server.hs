@@ -1,4 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE NoMonoLocalBinds  #-}
 
 module Holumbus.Server {-(start)-} where
 
@@ -26,16 +31,14 @@ import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap           as DM
 
 --import           Holumbus.Index.Common.Document           as Doc
-import           Holumbus.Index.Common.CompressedDocument as Doc
+import           Holumbus.Index.Common.CompressedDocument
 
-import qualified Holumbus.Index.Proxy.CachedIndex         as IxCache
-import           Holumbus.Index.Text.Inverted.PrefixMem
-import qualified Holumbus.Index.Text.Inverted.PrefixMem   as Inv
+--import qualified Holumbus.Index.Proxy.CachedIndex         as IxCache
+import qualified Holumbus.Index.Text.Inverted.PrefixMem as Inv
 import           Holumbus.Index.TextIndex
 
-import           Holumbus.DocTable.DocTable               hiding (filter, map)
-import qualified Holumbus.DocTable.DocTable               as Dtt
-import           Holumbus.DocTable.HashedDocuments        as Dt
+import           Holumbus.DocTable.DocTable             hiding (filter, map)
+import qualified Holumbus.DocTable.HashedDocuments      as Dt
 
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
@@ -43,13 +46,14 @@ import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result
 
-import           Holumbus.Indexer.Indexer                 as Ix
-import           Holumbus.Indexer.TextIndexer             (TextIndexer, modifyWithDescription,
-                                                           newTextIndexer)
+import           Holumbus.Indexer.Indexer                 hiding (modIndex)
+import qualified Holumbus.Indexer.Indexer                 as Ixx
+import           Holumbus.Indexer.SimpleIndexer
+import           Holumbus.Indexer.TextIndexer             (modifyWithDescription)
 import           Holumbus.Server.Analyzer
 import           Holumbus.Server.Common                   hiding (Query)
 import qualified Holumbus.Server.Template                 as Tmpl
-import qualified Holumbus.Server.Interpreter              as Ip
+--import qualified Holumbus.Server.Interpreter              as Ip
 
 -- ----------------------------------------------------------------------------
 
@@ -66,19 +70,19 @@ modIndex        :: MonadIO m => MVar a -> (a -> IO (a,b)) -> m b
 modIndex        = liftIO .:: modifyMVar
 
 -- the indexer
---indexer :: Indexer Inverted HD.Documents Document
---indexer = Indexer emptyIndex HD.emptyDocTable
-
+{-
 newTextIndexer' :: TextIndex i -> DocTable d de -> TextIndexer i d de
 newTextIndexer' i = newTextIndexer (IxCache.empty i)
+-}
 
-indexer         :: TextIndexer Inverted (Documents e) (DocumentWrapper e)
-indexer         = newTextIndexer' Inv.empty Dt.empty
+indexer         :: SimpleIndexer Inv.Inverted (Dt.Documents CompressedDoc)
+indexer         = SimpleIndexer Inv.empty Dt.empty
 
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
-runQueryM       :: Monad m => TextIndex i -> DocTable d (DocumentWrapper e) -> Query -> m (Result e)
+runQueryM       :: (Monad m, TextIndex i, DocTable d, e ~ DValue d) =>
+                   i -> d -> Query -> m (Result e)
 runQueryM       = processQueryM queryConfig
 
 -- Replacement for the scotty json function for pretty JSON encoding.
@@ -97,11 +101,11 @@ jsonPretty v = do
 
 -- | Constructs a list of 'ApiDocument' 'URI's that already exist in the indexer and a
 --   ist of 'URI's and corresponding 'DocId's for 'ApiDocument's which are part of the indexer.
-checkApiDocUris :: [ApiDocument] -> Indexer elem it v i d de -> ([URI], [(URI, DocId)])
+checkApiDocUris :: Indexer ix => [ApiDocument] -> ix -> ([URI], [(URI, DocId)])
 checkApiDocUris apiDocs ix =
   let apiDocsE
           = map (\apiDoc -> let docUri = apiDocUri apiDoc
-                                idM    = Ix.lookupByURI ix docUri
+                                idM    = Ixx.lookupByURI ix docUri
                             in maybe
                                 (          Left   docUri)
                                 (\docId -> Right (docUri, docId))
@@ -112,28 +116,29 @@ checkApiDocUris apiDocs ix =
 -- | Constructs a Right value using the second accessor function
 --   if the first accessor function is an empty list. Otherwise the non-empty list is returned.
 --   Used for 'checkApiDocUrisExistence' and 'checkApiDocUrisAbsence'
-checkApiDocUris' :: (([URI], [(URI, DocId)]) -> [a], ([URI], [(URI, DocId)]) -> b)
-                    -> [ApiDocument] -> Indexer elem it v i d de -> Either [a] b
+checkApiDocUris' :: Indexer ix =>
+                    (([URI], [(URI, DocId)]) -> [a], ([URI], [(URI, DocId)]) -> b)
+                    -> [ApiDocument] -> ix -> Either [a] b
 checkApiDocUris' (l,r) apiDocs ix =
     let res = checkApiDocUris apiDocs ix
-    in if P.null . l $ res then Right . r $ res else Left . l $ res
+    in (if P.null . l $ res then Right . r else Left . l) res
 
 -- | Checks whether the Documents with the URIs supplied by ApiDocuments are in the index,
 --   i.e. before an insert operation.
 --   Left is the failure case where there are URIs given that cannot be found in the index.
-checkApiDocUrisExistence :: [ApiDocument] -> Indexer elem it v i d de -> Either [URI] [(URI, DocId)]
+checkApiDocUrisExistence :: Indexer ix => [ApiDocument] -> ix -> Either [URI] [(URI, DocId)]
 checkApiDocUrisExistence = checkApiDocUris' (fst, snd)
 
 -- XXX: maybe return Either [URI] [URI], since the DocIds will not be needed in the failure case
 -- | Checks whether there are no Documents with the URIs supplied by ApiDocuments in the index,
 --   i.e. before an update operation.
 --   Left is the failure case where there are already documents with those URIs in the index.
-checkApiDocUrisAbsence   :: [ApiDocument] -> Indexer elem it v i d de -> Either [(URI, DocId)] [URI]
+checkApiDocUrisAbsence   :: Indexer ix => [ApiDocument] -> ix -> Either [(URI, DocId)] [URI]
 checkApiDocUrisAbsence   = checkApiDocUris' (snd, fst)
 
-
-toDocAndWords' :: ApiDocument -> (DocumentWrapper CompressedDoc, Words)
-toDocAndWords' = toDocAndWords Doc.wrapDoc
+-- | This is just used to specify the exact type of @e@ in @('DocumentWrapper' e)@
+toDocAndWords' :: (DocumentWrapper e, e ~ CompressedDoc) => ApiDocument -> (e, Words)
+toDocAndWords' = toDocAndWords
 
 -- ----------------------------------------------------------------------------
 
@@ -145,27 +150,32 @@ start :: IO ()
 start = scotty 3000 $ do
 
   -- interpreter
-  env <- liftIO $ Ip.initEnv indexer (Ip.CMOptions (toDocAndWords Doc.wrapDoc))
-  let runCmd = Ip.runCmd env
+  -- env <- liftIO $ Ip.initEnv indexer (Ip.CMOptions (toDocAndWords Doc.wrapDoc))
+  -- let runCmd = Ip.runCmd env
 
   -- index
-  let ixM    = Ip.cevIndexer env
-  let withIx = withIndex' ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO b) -> m b
-  let modIx_ = modIndex_  ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents))    -> m ()
-  let modIx  = modIndex   ixM -- :: MonadIO m => (Indexer Inverted Documents -> IO (Indexer Inverted Documents, b)) -> m b
+  --let ixM    = Ip.cevIndexer env
+  ixM    <- liftIO $ newMVar indexer
+  -- {-# LANGUAGE NoMonoLocalBinds #-} needed
+  -- -> http://ghc.haskell.org/trac/ghc/blog/LetGeneralisationInGhc7
+  let withIx = withIndex' ixM -- :: MonadIO m => (Ixx ... -> IO b)            -> m b
+  let modIx_ = modIndex_  ixM -- :: MonadIO m => (Ixx ... -> IO (Ixx ...))    -> m ()
+  let modIx  = modIndex   ixM -- :: MonadIO m => (Ixx ... -> IO (Ixx ..., b)) -> m b
   let runQuery queryStr = withIx $ \ix ->
         case parseQuery queryStr of
           (Left err) -> return . JsonFailure . return $ err
           (Right query) ->
             runQueryM (ixIndex ix) (ixDocTable ix) query
-            >>= return . JsonSuccess . map (\(_,(DocInfo d _,_)) -> doc d) . DM.toList . docHits
+            >>= return . JsonSuccess
+                . map (\(_,(DocInfo d _,_)) -> unwrap d)
+                . DM.toList . docHits
 
   -- request / response logging
   middleware logStdoutDev
 
   get "/"         $ redirect "/search"
   get "/search"   $ do
-    ds <- withIx $ return . Dtt.size . ixDocTable
+    ds <- withIx $ return . Ixx.size
     html . Tmpl.index $ ds
   get "/add"      $ html Tmpl.addDocs
 
@@ -192,7 +202,9 @@ start = scotty 3000 $ do
         (Left err) -> return . JsonFailure . return $ err
         (Right query) ->
           runQueryM (ixIndex ix) (ixDocTable ix) query
-          >>= return . JsonSuccess . map (\ (c, (_, o)) -> (c, M.foldr (\m r -> r + DM.size m) 0 o)) . M.toList. wordHits
+          >>= return . JsonSuccess
+              . map (\ (c, (_, o)) -> (c, M.foldr (\m r -> r + DM.size m) 0 o))
+              . M.toList. wordHits
     json res
 
 
@@ -210,7 +222,7 @@ start = scotty 3000 $ do
         (\existingUris ->
             (ix, return . map fst $ existingUris))
         (\_            ->
-             ( foldr (\e ix_ -> uncurry (Ix.insert ix_) $ toDocAndWords' e) ix jss
+             ( foldr (uncurry Ixx.insert . toDocAndWords') ix jss
             , Nothing))
         uris
     json $ maybe
@@ -233,8 +245,10 @@ start = scotty 3000 $ do
         (\nonexistentUris ->
             (ix, return nonexistentUris))
         (\existentDocs    ->
-            ( foldr (\(docId, apiDoc) ix_ -> uncurry (Ix.update ix_ docId) . toDocAndWords' $ apiDoc)
-                    ix (flip zip jss . map snd $ existentDocs)
+            ( foldr (\(docId, apiDoc) ->
+                      uncurry (Ixx.update docId) . toDocAndWords' $ apiDoc)
+                    ix
+                    (flip zip jss . map snd $ existentDocs)
             , Nothing))
         uris
 
@@ -258,8 +272,14 @@ start = scotty 3000 $ do
         (\nonexistentUris ->
             (ix, return nonexistentUris))
         (\existentDocs    ->
-            ( foldr (\(docId, apiDoc) ->
-                modifyWithDescription (apiDocDescrMap apiDoc) (snd . toDocAndWords' $ apiDoc) docId) ix (flip zip jss . map snd $ existentDocs)
+            ( foldr
+                (\(docId, apiDoc) ->
+                  modifyWithDescription
+                  (apiDocDescrMap apiDoc)
+                  (snd . toDocAndWords' $ apiDoc)
+                  docId)
+                ix
+                (flip zip jss . map snd $ existentDocs)
             , Nothing))
         uris
 
@@ -278,32 +298,28 @@ start = scotty 3000 $ do
 
   -- TODO: proper load/save, routes, get/post/.., filenames, exception handling etc.
 
-  let mkIndexPath    = (++ ".ix")
-  let mkDocTablePath = (++ ".dt")
+  let mkIndexerPath = (++ ".ixx")
 
   -- write the indexer to disk
   get "/binary/save/:filename" $ do
     filename  <- param "filename"
-    withIx $ \ix -> do
-      Bin.encodeFile (mkIndexPath    filename) $ ixIndex    ix
-      Bin.encodeFile (mkDocTablePath filename) $ ixDocTable ix
+    withIx $ Bin.encodeFile $ mkIndexerPath filename
     json (JsonSuccess "index saved" :: JsonResponse Text)
 
 
   -- load indexer from disk
   get "/binary/load/:filename" $ do
     filename  <- param "filename"
-    modIx_ $ \_ -> do
-      i <- Bin.decodeFile $ mkIndexPath    filename
-      d <- Bin.decodeFile $ mkDocTablePath filename
-      return $ newTextIndexer i d
+    modIx_ $ \_ -> Bin.decodeFile $ mkIndexerPath filename
     json (JsonSuccess "index loaded" :: JsonResponse Text)
 
+{-
   -- interpreter route
   post "/exec" $ do
     -- Raises an exception if parse is unsuccessful
     cmd  <- jsonData :: ActionM Command
     iRes <- liftIO $ runCmd cmd
     either json json iRes
+-}
 
   notFound $ text "page not found"

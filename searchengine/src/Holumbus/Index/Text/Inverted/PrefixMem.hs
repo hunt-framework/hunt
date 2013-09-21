@@ -1,17 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE ConstraintKinds   #-}
 
 -- ----------------------------------------------------------------------------
 
 module Holumbus.Index.Text.Inverted.PrefixMem
   ( Inverted
-  , newIndex, empty
+  , empty
   , fromList)
 where
 
 import           Control.Arrow
 import           Control.DeepSeq
 
-import           Data.Binary                       (Binary(..))
+import           Data.Binary                       (Binary (..))
 import           Data.Map                          (Map)
 import qualified Data.Map                          as M
 import           Data.Maybe
@@ -26,7 +30,7 @@ import           Holumbus.Index.Common             (Context, Occurrences,
 import qualified Holumbus.Index.Common.DocIdMap    as DM
 import qualified Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Index.Compression        as C
-import           Holumbus.Index.TextIndex          hiding (fromList)
+import           Holumbus.Index.TextIndex
 
 -- ----------------------------------------------------------------------------
 
@@ -52,76 +56,69 @@ instance Binary Inverted where
   put = put . indexParts
   get = get >>= return . Inverted
 
-instance Binary (TextIndex Inverted) where
-    put = put . _impl
-    get = get >>= return . newIndex
-
 -- ----------------------------------------------------------------------------
 
 -- | New 'Index' value using the 'Inverted' implementation.
-newIndex :: Inverted -> TextIndex Inverted
-newIndex i =
-    Ix
-    {
+instance Index Inverted where
+    type IValue Inverted = Occurrences
+    type IType  Inverted = Textual
+
     -- Returns the number of unique words in the index.
-      _unique                 = sizeWords' i
+    unique                 = sizeWords'
 
     -- Returns a list of all contexts avaliable in the index.
-    , _contexts               = contexts' i
+    contexts               = contexts'
 
     -- Returns the occurrences for every word. A potentially expensive operation.
-    , _size                   = allWords' i
+    size                   = allWords'
 
-    , _lookup                 = lookup' i
+    -- TODO: flip?
+    lookup                 = flip lookup'
 
     -- Insert occurrences.
-    , _insert                 = \c w o -> newIndex $ insertOccurrences' c w o i
+    insert                 = insertOccurrences'
 
     -- Delete occurrences.
-    , _delete                 = \c w o -> newIndex $ deleteOccurrences' c w o i
+    delete                 = deleteOccurrences'
 
     -- Delete documents completely (all occurrences).
-    , _deleteDocs             = \ds -> newIndex $ deleteDocsById' ds i
+    deleteDocs             = deleteDocsById'
 
     -- Merges two indexes.
-    , _merge                  = newIndex . mergeIndexes' i . _impl
+    merge                  = mergeIndexes'
 
     -- Subtract one index from another.
-    , _subtract               = newIndex . subtractIndexes' i . _impl
+    subtract               = subtractIndexes'
 
     {-
     -- Splitting an index by its contexts.
-    , _splitByContexts        = map newIndex . splitByContexts' i
+    splitByContexts        = map newIndex . splitByContexts' i
 
     -- Splitting an index by its documents.
-    , _splitByDocuments       = map newIndex . splitByDocuments' i
+    splitByDocuments       = map newIndex . splitByDocuments' i
 
     -- Splitting an index by its words.
-    , _splitByWords           = map newIndex . splitByWords' i
+    splitByWords           = map newIndex . splitByWords' i
 
     -- Update document id's (e.g. for renaming documents). If the function maps two different id's
     -- to the same new id, the two sets of word positions will be merged if both old id's are present
     -- in the occurrences for a word in a specific context.
-    , _mapDocIds                = \f -> newIndex $ updateDocIdsX f i
+    mapDocIds                = \f -> newIndex $ updateDocIdsX f i
     -}
 
     -- Convert an Index to a list. Can be used for easy conversion between different index
     -- implementations.
-    , _toList                 = toList' i
-
-    -- The index implementation.
-    , _impl                   = i
-}
+    toList                 = toList'
 
 -- ----------------------------------------------------------------------------
 
 -- | The empty 'Index'.
-empty                             :: TextIndex Inverted
-empty                             = newIndex (Inverted M.empty)
+empty                             :: TextIndex Inverted => Inverted
+empty                             = Inverted M.empty
 
 -- | Create an Index from a list. Can be used for easy conversion between different index
-fromList                          :: [(Context, Word, Occurrences)] -> TextIndex Inverted
-fromList                          = newIndex . fromList'
+fromList                          :: TextIndex Inverted => [(Context, Word, Occurrences)] -> Inverted
+fromList                          = fromList'
 
 -- ----------------------------------------------------------------------------
 
@@ -301,12 +298,12 @@ deleteDocsById' docIds            = liftInv $ M.mapMaybe deleteInParts
 
 
 lookup' :: Inverted -> Textual -> Context -> Text -> [(Text, Occurrences)]
-lookup' i t c w = case t of
+lookup' i t = case t of
     -- Searches for words beginning with the prefix in a given context (case-sensitive).
-         PrefixCase   -> prefixCase' i c w
+         PrefixCase   -> prefixCase' i
     -- Searches for words beginning with the prefix in a given context (case-insensitive).
-         PrefixNoCase -> prefixNoCase' i c w
+         PrefixNoCase -> prefixNoCase' i
     -- Searches for and exact word in a given context (case-sensitive).
-         Case         -> lookupCase' i c w
+         Case         -> lookupCase' i
     -- Searches for and exact word in a given context (case-insensitive).
-         NoCase       -> lookupNoCase' i c w
+         NoCase       -> lookupNoCase' i

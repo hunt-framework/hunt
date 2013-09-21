@@ -1,5 +1,3 @@
-{-# OPTIONS -fno-warn-orphans #-}
-
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -81,11 +79,11 @@ subtract                :: Occurrences -> Occurrences -> Occurrences
 subtract                = DM.differenceWith subtractPositions
   where
   subtractPositions p1 p2
-                        = if IS.null diffPos
-                          then Nothing
-                          else Just diffPos
-      where
-      diffPos                   = IS.difference p1 p2
+    = if IS.null diffPos
+        then Nothing
+        else Just diffPos
+    where
+    diffPos = IS.difference p1 p2
 
 -- ------------------------------------------------------------
 

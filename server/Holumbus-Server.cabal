@@ -63,3 +63,6 @@ executable holumbusServer
               TemplateHaskell
               QuasiQuotes
               RankNTypes
+              TypeFamilies
+              ConstraintKinds
+              NoMonoLocalBinds

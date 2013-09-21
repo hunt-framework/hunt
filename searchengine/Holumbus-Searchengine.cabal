@@ -63,13 +63,14 @@ library
     Holumbus.Index.Common.Occurrences
     Holumbus.Index.Common.RawResult
     Holumbus.Index.Compression
-    Holumbus.Index.Proxy.CachedIndex
+    --Holumbus.Index.Proxy.CachedIndex
     Holumbus.DocTable.DocTable
     Holumbus.DocTable.HashedDocuments
-    Holumbus.DocTable.Proxy.ValueConversionDocTable
+    --Holumbus.DocTable.Proxy.ValueConversionDocTable
     Holumbus.Index.Index
     Holumbus.Index.TextIndex
     Holumbus.Indexer.Indexer
+    Holumbus.Indexer.SimpleIndexer
     Holumbus.Indexer.TextIndexer
     Holumbus.Index.Text.Inverted.PrefixMem
     Holumbus.Query.Fuzzy
@@ -88,6 +89,9 @@ library
   extensions: MultiParamTypeClasses
               FlexibleContexts
               FlexibleInstances
+              UndecidableInstances
               GeneralizedNewtypeDeriving
               TypeSynonymInstances
               OverloadedStrings
+              TypeFamilies
+              ConstraintKinds

@@ -1,3 +1,7 @@
+{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts  #-}
+
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -15,8 +19,6 @@
 -}
 
 -- ----------------------------------------------------------------------------
-
-{-# OPTIONS #-}
 
 module Holumbus.Query.Intermediate
 (
@@ -42,22 +44,23 @@ module Holumbus.Query.Intermediate
 )
 where
 
-import           Prelude                        hiding (null)
+import           Prelude                           hiding (null)
 
 import           Data.Maybe
 
-import qualified Data.List                      as L
+import qualified Data.List                         as L
 
-import           Data.Map                       (Map)
-import qualified Data.Map                       as M
+import           Data.Map                          (Map)
+import qualified Data.Map                          as M
 
-import           Holumbus.Query.Result          hiding (null)
+import           Holumbus.Query.Result             hiding (null)
 
-import           Holumbus.Index.Common          hiding (empty, null, size, difference)
-import qualified Holumbus.Index.Common.DocIdMap as DM
+import           Holumbus.Index.Common
+import qualified Holumbus.Index.Common.DocIdMap    as DM
+import qualified Holumbus.Index.Common.Occurrences as Occ
 
-import           Holumbus.DocTable.DocTable     (DocTable)
-import qualified Holumbus.DocTable.DocTable     as Dt
+import           Holumbus.DocTable.DocTable        (DocTable)
+import qualified Holumbus.DocTable.DocTable        as Dt
 
 -- ----------------------------------------------------------------------------
 
@@ -110,16 +113,18 @@ fromList t c os                 = DM.map transform $
   transform w                   = M.singleton c (M.fromList w)
 
 -- | Convert to a @Result@ by generating the 'WordHits' structure.
-toResult                        :: DocTable d (DocumentWrapper e) -> Intermediate -> Result e
+toResult                        :: (DocTable d, e ~ Dt.DValue d) =>
+                                   d -> Intermediate -> Result e
 toResult d im                   = Result (createDocHits d im) (createWordHits im)
 
 
 -- | Create the doc hits structure from an intermediate result.
-createDocHits                   :: DocTable d (DocumentWrapper e) -> Intermediate -> DocHits e
+createDocHits                   :: (DocTable d, e ~ Dt.DValue d) =>
+                                   d -> Intermediate -> DocHits e
 createDocHits d                 = DM.mapWithKey transformDocs
   where
   transformDocs did ic          = let doc'  = fromMaybe dummy (Dt.lookup d did)
-                                      dummy = setDoc (DocumentRaw "" M.empty) doc'
+                                      dummy = wrap (Document "" M.empty)
                                   in (DocInfo doc' 0.0, M.map (M.map snd) ic)
 
 -- | Create the word hits structure from an intermediate result.
@@ -143,7 +148,7 @@ combineWordHits                 :: (WordInfo, WordContextHits) ->
                                    (WordInfo, WordContextHits) -> (WordInfo, WordContextHits)
 combineWordHits (i1, c1) (i2, c2)
                                 = ( combineWordInfo i1 i2
-                                  , M.unionWith (DM.unionWith unionPos) c1 c2
+                                  , M.unionWith (DM.unionWith Occ.unionPos) c1 c2
                                   )
 
 -- | Combine two tuples with score and context hits.
@@ -151,7 +156,7 @@ combineContexts                 :: IntermediateContexts -> IntermediateContexts 
 combineContexts                 = M.unionWith (M.unionWith merge')
   where
   merge' (i1, p1) (i2, p2)       = ( combineWordInfo i1 i2
-                                  , unionPos p1 p2
+                                  , Occ.unionPos p1 p2
                                   )
 
 -- | Combine two word informations.

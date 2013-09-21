@@ -56,7 +56,7 @@ import           Data.Map                       (Map)
 import qualified Data.Map                       as M
 import           Data.Text                      (Text)
 
-import           Holumbus.Index.Common          hiding (null)
+import           Holumbus.Index.Common
 import qualified Holumbus.Index.Common.DocIdMap as DM
 
 -- ----------------------------------------------------------------------------
@@ -70,8 +70,8 @@ data Result e            = Result
 
 -- | Information about an document.
 data DocInfo e           = DocInfo
-                          { document :: DocumentWrapper e -- ^ The document itself.
-                          , docScore :: Score             -- ^ The score for the document (initial score for all documents is @0.0@).
+                          { document :: e            -- ^ The document itself.
+                          , docScore :: Score        -- ^ The score for the document (initial score for all documents is @0.0@).
                           }
                           --deriving (Eq, Show)
 
@@ -166,7 +166,7 @@ setWordScore s (WordInfo t _)
                         = WordInfo t s
 
 -- | Extract all documents from a result
-getDocuments            :: Result e -> [DocumentWrapper e]
+getDocuments            :: Result e -> [e]
 getDocuments r          = map (document . fst . snd) .
                           DM.toList $ docHits r
 

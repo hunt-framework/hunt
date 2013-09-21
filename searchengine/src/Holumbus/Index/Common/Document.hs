@@ -38,68 +38,48 @@ import           Holumbus.Index.Common.BasicTypes
 
 type Description  = Map Text Text
 
-doc :: DocumentWrapper e -> DocumentRaw
-doc = _getDoc
-
-setDoc :: DocumentRaw -> DocumentWrapper e -> DocumentWrapper e
-setDoc = flip _setDoc
-
-modDoc :: (DocumentRaw -> DocumentRaw) -> DocumentWrapper e -> DocumentWrapper e
-modDoc f d = setDoc (f . doc $ d) d
-
--- | A 'Document' wrapper with getter and setter.
-data DocumentWrapper e = DocumentWrapper
-  { _getDoc :: DocumentRaw
-  , _setDoc :: DocumentRaw -> DocumentWrapper e
-  , _impl   :: ! e
-  }
-
-instance NFData e => NFData (DocumentWrapper e) where
-  rnf = rnf . _impl
-
-instance Binary (DocumentWrapper DocumentRaw) where
-  put = put . _impl
-  get = get >>= return . wrapDoc
-
-instance (Show e) => Show (DocumentWrapper e) where
-  show (DocumentWrapper _ _ e) = show e
-
--- | A basic wrapper.
-wrapDoc   :: DocumentRaw -> DocumentWrapper DocumentRaw
-wrapDoc d = DocumentWrapper
-  { _getDoc = d
-  , _setDoc = wrapDoc
-  , _impl   = d
-  }
-
 -- | A document consists of its unique identifier (URI).
-data DocumentRaw                = DocumentRaw
-                                  { uri  :: ! URI
-                                  , desc :: ! Description
-                                  }
-                                  deriving (Show, Eq, Ord)
+data Document = Document
+    { uri  :: ! URI
+    , desc :: ! Description
+    }
+    deriving (Show, Eq, Ord)
 
-instance ToJSON DocumentRaw where
-  toJSON (DocumentRaw u d) = object
+-- ------------------------------------------------------------
+
+class DocumentWrapper e where
+  unwrap :: e -> Document
+  wrap   :: Document -> e
+  update :: (Document -> Document) -> e -> e
+  update f = wrap . f . unwrap
+
+instance DocumentWrapper Document where
+  unwrap = id
+  wrap   = id
+
+-- ------------------------------------------------------------
+
+instance ToJSON Document where
+  toJSON (Document u d) = object
     [ "uri"   .= u
     , "desc"  .= toJSON d
     ]
 
-
-instance FromJSON DocumentRaw where
+instance FromJSON Document where
   parseJSON (Object o) = do
     parsedDesc      <- o    .: "desc"
     parsedUri       <- o    .: "uri"
-    return DocumentRaw
+    return Document
       { uri     = parsedUri
       , desc    = parsedDesc
       }
   parseJSON _ = mzero
 
+-- ------------------------------------------------------------
 
-instance Binary DocumentRaw where
-    put (DocumentRaw u d)          = put u >> put d
-    get                         = liftM2 DocumentRaw get get
+instance Binary Document where
+    put (Document u d) = put u >> put d
+    get                   = liftM2 Document get get
 
-instance NFData DocumentRaw where
-    rnf (DocumentRaw t d)        = rnf t `seq` rnf d
+instance NFData Document where
+    rnf (Document t d) = rnf t `seq` rnf d

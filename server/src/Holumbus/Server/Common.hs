@@ -1,7 +1,7 @@
 module Holumbus.Server.Common where
 
 import           Control.Monad         (mzero)
-import           Control.Monad.Error   (Error(..))
+import           Control.Monad.Error   (Error (..))
 
 import           Data.Monoid           (mappend)
 
@@ -11,8 +11,8 @@ import qualified Data.Map              as M
 import           Data.Text             (Text)
 import qualified Data.Text             as T
 
-import           Holumbus.Index.Common (Content, Context, Description, Position,
-                                        URI, WordList, DocumentRaw)
+import           Holumbus.Index.Common (Content, Context, Description, Document,
+                                        Position, URI, WordList)
 
 -- ----------------------------------------------------------------------------
 
@@ -204,7 +204,7 @@ data Command
 
 data CmdResult
   = ResOK
-  | ResSearch       { crRes   :: [DocumentRaw] }
+  | ResSearch       { crRes   :: [Document] }
   | ResCompletion   { crWords :: [Text] }
   deriving (Show)
 

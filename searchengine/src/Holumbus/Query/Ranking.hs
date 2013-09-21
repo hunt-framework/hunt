@@ -39,16 +39,17 @@ module Holumbus.Query.Ranking
   )
 where
 
-import           Prelude                        hiding (foldr)
+import           Prelude                           hiding (foldr)
 
 import           Data.Foldable
 import           Data.Function
 
-import qualified Data.List                      as L
-import qualified Data.Map                       as M
+import qualified Data.List                         as L
+import qualified Data.Map                          as M
 
 import           Holumbus.Index.Common
-import qualified Holumbus.Index.Common.DocIdMap as DM
+import qualified Holumbus.Index.Common.DocIdMap    as DM
+import           Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Query.Result
 
 -- ----------------------------------------------------------------------------
