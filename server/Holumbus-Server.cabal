@@ -39,7 +39,7 @@ executable holumbusServer
                  , mtl                    >= 1.1 && < 3
                  , text
                  , transformers
-                 , scotty
+                 , scotty                 >= 0.5
                  , shakespeare-js         >= 1.1.4
                  , wai-extra
                  , wai-middleware-static  >= 0.3.2

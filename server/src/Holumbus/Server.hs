@@ -21,10 +21,10 @@ import           Data.Either                              (partitionEithers)
 import qualified Data.Map                                 as M
 import qualified Data.Set                                 as S
 import           Data.Text                                (Text)
-{-
+
 import qualified Data.Aeson                               as A
 import           Data.Aeson.Encode.Pretty                 (encodePretty)
--}
+
 import           Holumbus.Utility                         ((.::))
 
 import           Holumbus.Index.Common
@@ -85,17 +85,12 @@ runQueryM       :: (Monad m, TextIndex i, DocTable d, e ~ DValue d) =>
                    i -> d -> Query -> m (Result e)
 runQueryM       = processQueryM queryConfig
 
--- Replacement for the scotty json function for pretty JSON encoding.
--- There should be a new release of scotty soon (end of the month?)
--- which will most likely contain the 'raw' function which is introduced
--- with the yet to be merged pull request:
--- https://github.com/xich/scotty/pull/33
-{-
+-- | Like Web'.Scotty.json', but pretty.
 jsonPretty :: (A.ToJSON a) => a -> ActionM ()
 jsonPretty v = do
-  header "Content-Type" "application/json"
+  setHeader "Content-Type" "application/json"
   raw $ encodePretty v
--}
+
 
 -- Functions to check the existence/absence of documents (by URI) in the indexer.
 
