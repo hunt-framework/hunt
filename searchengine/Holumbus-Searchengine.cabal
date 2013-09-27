@@ -53,6 +53,7 @@ library
     Holumbus.Data.PrefixTree
     Holumbus.Data.PrefixTree.PrefixSet
     Holumbus.Data.PrefixTree.Types
+    
     Holumbus.Index.Common
     Holumbus.Index.Common.BasicTypes
     Holumbus.Index.Common.DiffList
@@ -62,17 +63,20 @@ library
     Holumbus.Index.Common.CompressedDocument
     Holumbus.Index.Common.Occurrences
     Holumbus.Index.Common.RawResult
-    Holumbus.Index.Compression
-    --Holumbus.Index.Proxy.CachedIndex
+    Holumbus.Index.Common.Compression
+    Holumbus.Index.Index
+    Holumbus.Index.InvertedIndex
+    Holumbus.Index.Proxy.ContextIndex
+    Holumbus.Index.Proxy.CompressedIndex
+    Holumbus.Index.Proxy.CachedIndex
+
     Holumbus.DocTable.DocTable
     Holumbus.DocTable.HashedDocuments
-    --Holumbus.DocTable.Proxy.ValueConversionDocTable
-    Holumbus.Index.Index
-    Holumbus.Index.TextIndex
+ 
     Holumbus.Indexer.Indexer
     Holumbus.Indexer.SimpleIndexer
     Holumbus.Indexer.TextIndexer
-    Holumbus.Index.Text.Inverted.PrefixMem
+
     Holumbus.Query.Fuzzy
     Holumbus.Query.Intermediate
     Holumbus.Query.Language.Grammar
@@ -95,3 +99,5 @@ library
               OverloadedStrings
               TypeFamilies
               ConstraintKinds
+              KindSignatures
+              OverlappingInstances
