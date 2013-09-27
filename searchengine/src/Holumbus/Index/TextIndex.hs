@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE Rank2Types        #-}
 
 module Holumbus.Index.TextIndex
 ( module Holumbus.Index.Index
@@ -14,17 +15,18 @@ import           Holumbus.Index.Common             (Context, DocId, Occurrences,
                                                     Position, Textual, Word)
 import qualified Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Index.Index
+import           Holumbus.Index.Proxy.ContextIndex
+import           Holumbus.Index.InvertedIndex
 
 -- ----------------------------------------------------------------------------
 
 -- Requires 'ConstraintKinds' extension
-type TextIndex i        = (Index i, IValue i ~ Occurrences, IType i ~ Textual)
+type TextIndex i = ContextInvertedIndex
+                   
+-- -- | Insert a position for a single document.
+insertPosition c w d p i 
+  = insert (Just c, Just w) (Occ.singleton d p) i
 
--- requires 'FunctionalDependencies' in index type
--- | Insert a position for a single document.
-insertPosition          :: TextIndex i => Context -> Word -> DocId -> Position -> i -> i
-insertPosition c w d p  = insert c w (Occ.singleton d p)
-
--- | Delete a position for a single document.
-deletePosition          :: TextIndex i => Context -> Word -> DocId -> Position -> i -> i
-deletePosition c w d p  = delete c w (Occ.singleton d p)
+-- | xxx TODO implement delete
+deletePosition c w d p i 
+  = undefined

@@ -29,7 +29,7 @@ import           Holumbus.Index.Common             (Context, Occurrences,
                                                     Word)
 import qualified Holumbus.Index.Common.DocIdMap    as DM
 import qualified Holumbus.Index.Common.Occurrences as Occ
-import           Holumbus.Index.Compression        as C
+import           Holumbus.Index.Common.Compression as C
 import           Holumbus.Index.TextIndex
 
 -- ----------------------------------------------------------------------------

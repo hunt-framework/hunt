@@ -18,11 +18,12 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Compression
+module Holumbus.Index.Common.Compression
   (
   -- * Compression types
   CompressedOccurrences
   , CompressedPositions
+  , Compression(..)
 
   -- * Compress
   , deflateOcc
@@ -34,6 +35,7 @@ module Holumbus.Index.Compression
   -- * Efficiency
   , delete
   , differenceWithKeySet
+  , differenceWithKeyList
   )
 where
 
@@ -53,6 +55,9 @@ type CompressedOccurrences      = DocIdMap CompressedPositions
 type CompressedPositions        = DiffList
 
 -- ----------------------------------------------------------------------------
+class Compression v cv where
+    compress   :: v -> cv
+    decompress :: cv -> v
 
 -- | Decompressing the occurrences by just decompressing all contained positions.
 inflateOcc :: CompressedOccurrences -> Occurrences
@@ -67,6 +72,8 @@ deflateOcc = DM.map deflatePos
 delete :: DocId -> CompressedOccurrences -> CompressedOccurrences
 delete = DM.delete
 
+differenceWithKeyList :: [DocId] -> CompressedOccurrences -> CompressedOccurrences
+differenceWithKeyList = differenceWithKeySet . IS.fromList
 
 -- | Difference without deflating and inflating.
 differenceWithKeySet :: DM.DocIdSet -> CompressedOccurrences -> CompressedOccurrences
