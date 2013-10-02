@@ -5,9 +5,9 @@
 module Holumbus.Index.Index
 where
 
-import           Holumbus.Index.Common          (Textual,DocId,DocIdMap)
+import           Holumbus.Index.Common          (Textual,DocId)
 import           Holumbus.Index.Common.DocIdMap (DocIdSet)
-import qualified Data.IntSet                    as IS 
+import qualified Data.IntSet                    as IS
 import           GHC.Exts                       (Constraint)
 
 -- ----------------------------------------------------------------------------
@@ -17,13 +17,13 @@ class Index i where
 
     type IVal    i v :: *
     type IVal    i v = v
-    
+
     type IToL    i v :: *
     type IToL    i v = [(IKey i v, IVal i v)]
 
     type IType   i v :: *
     type IType   i v = Textual
- 
+
     type ICon    i v :: Constraint
     type ICon    i v =  ()
 
@@ -32,7 +32,7 @@ class Index i where
 
     -- | General lookup function.
     search       :: ICon i v => IType i v -> IKey i v -> i v -> IToL i v
-    
+
     -- | xxx TODO remove this later
     lookup       :: ICon i v => IType i v -> IKey i v -> i v -> IToL i v
     lookup       = search
@@ -54,15 +54,18 @@ class Index i where
     -- implementations
     toList       :: ICon i v => i v -> IToL i v
 
-    -- | Make index from list 
+    -- | Make index from list
     fromList     :: ICon i v => IToL i v -> i v
 
     -- | Support for index value transformations
-    unionWith    :: ICon i v 
+    unionWith    :: ICon i v
                  => (IVal i v -> IVal i v -> IVal i v)
                  -> i v -> i v -> i v
 
-
+    -- TODO: non-rigid map
+    map          :: ICon i v
+                 => (IVal i v -> IVal i v)
+                 -> i v -> i v
 
 -- ----------------------------------------------------------------------------
 {-
@@ -75,7 +78,7 @@ fromList              = foldl (\i (c,w,o) -> insert c w o i)
 -}
 
 {------------------------------------------
- - functions from old type class impl. 
+ - functions from old type class impl.
  - not sure if we still need them
  - moved them here to keep the actual used code clearer
  -}
