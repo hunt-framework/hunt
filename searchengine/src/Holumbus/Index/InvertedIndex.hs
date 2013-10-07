@@ -18,7 +18,7 @@ import           Holumbus.Index.Index              as Ix
 import           Holumbus.Index.Proxy.ContextIndex
 
 ------------------------------------------------------------------------
--- index implementation for simple prefixtree
+-- index implementation for simple 'DocIdMap' based 'PrefixTree'
 -- TODO: functor/cfunctor instances
 
 newtype DmPrefixTree v = DmPT (PrefixTree (DocIdMap v))
@@ -55,9 +55,9 @@ instance Index DmPrefixTree where
         = DmPT $ PT.map f pt
 
 -------------------------------------------------------------------------
--- setting compressed prefixtree ontop of simple prefixtree index
+-- using the PrefixTree index implementation to build an index
+-- that stores Occurrences of different compressed formats
 
--- ghc is unable to infer the right kind for v
 newtype ComprOccPrefixTree cv = ComprPT { comprPT :: DmPrefixTree cv}
     deriving Show
 
@@ -91,8 +91,9 @@ instance Index ComprOccPrefixTree where
         = ComprPT $ Ix.map (compress . f . decompress) i
 
 -------------------------------------------------------------------------
--- setting inverted index with enforced val ~ Occurrences ontop of
--- compr prefixtree
+-- using the ComprOccPrefixTree to build an inverted index implementation.
+-- Also using the generic ContextIndex implmenetation to add contexts to
+-- the inverted index without having to change the implementation itself
 
 type ContextInvertedIndex = ContextIndex InvertedIndex Occurrences
 
@@ -105,7 +106,7 @@ instance Index InvertedIndex where
     type IVal InvertedIndex v = Occurrences
 
     insert w o
-        = unionWith Occ.merge (singleton w o)
+        = unionWith Occ.merge (InvIx $ insert (unpack w) o empty)
 
     batchDelete docIds (InvIx (ComprPT pt))
         = InvIx $ ComprPT $ Ix.map (differenceWithKeySet docIds) pt
@@ -127,7 +128,3 @@ instance Index InvertedIndex where
 
     map f (InvIx i)
         = InvIx $ Ix.map f i
-
--- | Single word InvertedIndex
-singleton :: Word -> Occurrences -> InvertedIndex v
-singleton w o = InvIx $ (insert (unpack w) o empty)
