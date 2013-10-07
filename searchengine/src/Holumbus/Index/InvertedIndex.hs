@@ -21,13 +21,12 @@ import           Holumbus.Index.Proxy.ContextIndex
 -- index implementation for simple prefixtree
 -- TODO: functor/cfunctor instances
 
-newtype DmPrefixTree v w = DmPT (PrefixTree (v w))
+newtype DmPrefixTree v = DmPT (PrefixTree (DocIdMap v))
     deriving Show
 
-instance Index (DmPrefixTree v) where
-    type IKey (DmPrefixTree v) w = PT.Key
-    type IVal (DmPrefixTree v) w = DocIdMap w
-    type ICon (DmPrefixTree v) w = (v ~ DocIdMap)
+instance Index DmPrefixTree where
+    type IKey DmPrefixTree v = PT.Key
+    type IVal DmPrefixTree v = DocIdMap v
 
     insert k v (DmPT pt)
         = DmPT $ PT.insert k v pt
@@ -59,13 +58,13 @@ instance Index (DmPrefixTree v) where
 -- setting compressed prefixtree ontop of simple prefixtree index
 
 -- ghc is unable to infer the right kind for v
-newtype ComprPrefixTree (v :: * -> *) w cv cw = ComprPT { comprPT :: DmPrefixTree cv cw}
+newtype ComprOccPrefixTree cv = ComprPT { comprPT :: DmPrefixTree cv}
     deriving Show
 
-instance Index (ComprPrefixTree v w cv) where
-    type IKey (ComprPrefixTree v w cv) cw = PT.Key
-    type IVal (ComprPrefixTree v w cv) cw = v w
-    type ICon (ComprPrefixTree v w cv) cw = (Compression (v w) (cv cw), cv ~ DocIdMap)
+instance Index ComprOccPrefixTree where
+    type IKey ComprOccPrefixTree v = PT.Key
+    type IVal ComprOccPrefixTree v = Occurrences
+    type ICon ComprOccPrefixTree v = (OccCompression (DocIdMap v))
 
     insert k v (ComprPT i)
         = ComprPT $ insert k (compress v) i
@@ -98,18 +97,12 @@ instance Index (ComprPrefixTree v w cv) where
 type ContextInvertedIndex = ContextIndex InvertedIndex Occurrences
 
 newtype InvertedIndex v
-    = InvIx { invIx :: ComprPrefixTree DocIdMap Positions DocIdMap CompressedPositions }
-  deriving Show
-
-instance Compression Occurrences CompressedOccurrences where
-    compress   = deflateOcc
-    decompress = inflateOcc
+    = InvIx { invIx :: ComprOccPrefixTree CompressedPositions }
+    deriving Show
 
 instance Index InvertedIndex where
     type IKey InvertedIndex v = Word
     type IVal InvertedIndex v = Occurrences
-    -- XXX: constraint unnecessary?
-    -- type ICon InvertedIndex v = (v ~ Positions)
 
     insert w o
         = unionWith Occ.merge (singleton w o)

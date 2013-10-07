@@ -23,7 +23,7 @@ module Holumbus.Index.Common.Compression
   -- * Compression types
   CompressedOccurrences
   , CompressedPositions
-  , Compression(..)
+  , OccCompression(..)
 
   -- * Compress
   , deflateOcc
@@ -55,9 +55,13 @@ type CompressedOccurrences      = DocIdMap CompressedPositions
 type CompressedPositions        = DiffList
 
 -- ----------------------------------------------------------------------------
-class Compression v cv where
-    compress   :: v -> cv
-    decompress :: cv -> v
+class OccCompression cv where
+    compress   :: Occurrences -> cv
+    decompress :: cv -> Occurrences
+
+instance OccCompression CompressedOccurrences where
+    compress = deflateOcc
+    decompress = inflateOcc
 
 -- | Decompressing the occurrences by just decompressing all contained positions.
 inflateOcc :: CompressedOccurrences -> Occurrences
