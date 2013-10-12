@@ -53,7 +53,7 @@ library
     Holumbus.Data.PrefixTree
     Holumbus.Data.PrefixTree.PrefixSet
     Holumbus.Data.PrefixTree.Types
-    
+
     Holumbus.Index.Common
     Holumbus.Index.Common.BasicTypes
     Holumbus.Index.Common.DiffList
@@ -72,7 +72,7 @@ library
 
     Holumbus.DocTable.DocTable
     Holumbus.DocTable.HashedDocuments
- 
+
 --    Holumbus.Indexer.Indexer
 --    Holumbus.Indexer.SimpleIndexer
     Holumbus.Indexer.TextIndexer

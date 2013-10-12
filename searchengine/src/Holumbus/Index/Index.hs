@@ -1,14 +1,12 @@
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies      #-}
-
 module Holumbus.Index.Index
 where
 
-import           Holumbus.Index.Common          (Textual,DocId)
-import           Holumbus.Index.Common.DocIdMap (DocIdSet)
-import qualified Data.IntSet                    as IS
 import           GHC.Exts                       (Constraint)
+
+import qualified Data.IntSet                    as IS
+
+import           Holumbus.Index.Common          (DocId, Textual)
+import           Holumbus.Index.Common.DocIdMap (DocIdSet)
 
 -- ----------------------------------------------------------------------------
 
@@ -36,7 +34,7 @@ class Index i where
     -- | General lookup function.
     search       :: ICon i v => IType i v -> IKey i v -> i v -> IToL i v
 
-    -- | xxx TODO remove this later
+    -- TODO: remove this later
     lookup       :: ICon i v => IType i v -> IKey i v -> i v -> IToL i v
     lookup       = search
 
@@ -104,5 +102,3 @@ fromList              = foldl (\i (c,w,o) -> insert c w o i)
     -- in the occurrences for a word in a specific context.
     , _mapDocIds                     :: (Context -> Word -> DocId -> DocId) -> Index it v i
     -}
-
-

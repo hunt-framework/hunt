@@ -45,7 +45,7 @@ import qualified Data.List                         as L
 import           Data.Text                         (Text)
 import qualified Data.Text                         as T
 
-import           Holumbus.Utility                  ((.::), (.:::))
+--import           Holumbus.Utility                  ((.::), (.:::))
 
 import           Holumbus.Index.Common             (Context, DocId, Position,
                                                     RawResult, Textual (..),

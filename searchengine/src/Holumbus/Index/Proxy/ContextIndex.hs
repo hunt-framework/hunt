@@ -10,14 +10,14 @@ newtype ContextIndex impl v = ContextIx (Map Context (impl v))
     deriving (Show)
 
 instance Index (ContextIndex impl) where
-    type IKey (ContextIndex impl)   v = (Maybe Context, Maybe (IKey impl v))
-    type IToL (ContextIndex impl)   v = [(Context, IToL impl v)]
-    type ICon (ContextIndex impl)   v = ( Index impl
-                                        , IVal (ContextIndex impl) v ~ IVal impl v
-                                        , IType (ContextIndex impl) v ~ IType impl v
-                                        , ICon impl v
-                                        )
+    type IKey  (ContextIndex impl) v = (Maybe Context, Maybe (IKey impl v))
     type IKeys (ContextIndex impl) v = [Context] -- TODO: ([Context], [v]) if necessary
+    type IToL  (ContextIndex impl) v = [(Context, IToL impl v)]
+    type ICon  (ContextIndex impl) v = ( Index impl
+                                       , IVal  (ContextIndex impl) v ~ IVal  impl v
+                                       , IType (ContextIndex impl) v ~ IType impl v
+                                       , ICon impl v
+                                       )
 
     insert k v (ContextIx m)
         = case k of
@@ -68,6 +68,6 @@ instance Index (ContextIndex impl) where
     keys (ContextIx m)
         = M.keys m
 
-    -- | xxx TODO implement function
+    -- | TODO: implement function
     unionWith --op (ContextIx i1) (ContextIx i2)
         = undefined
