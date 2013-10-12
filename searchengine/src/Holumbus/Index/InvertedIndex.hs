@@ -54,6 +54,9 @@ instance Index DmPrefixTree where
     map f (DmPT pt)
         = DmPT $ PT.map f pt
 
+    keys (DmPT pt)
+        = PT.keys pt
+
 -------------------------------------------------------------------------
 -- using the PrefixTree index implementation to build an index
 -- that stores Occurrences of different compressed formats
@@ -89,6 +92,9 @@ instance Index ComprOccPrefixTree where
 
     map f (ComprPT i)
         = ComprPT $ Ix.map (compress . f . decompress) i
+
+    keys (ComprPT i)
+        = keys i
 
 -------------------------------------------------------------------------
 -- using the ComprOccPrefixTree to build an inverted index implementation.
@@ -128,3 +134,6 @@ instance Index InvertedIndex where
 
     map f (InvIx i)
         = InvIx $ Ix.map f i
+
+    keys (InvIx i)
+        = P.map pack $ keys i -- XXX: pack unnecessary, maybe change IKeys

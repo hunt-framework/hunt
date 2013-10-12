@@ -17,6 +17,7 @@ instance Index (ContextIndex impl) where
                                         , IType (ContextIndex impl) v ~ IType impl v
                                         , ICon impl v
                                         )
+    type IKeys (ContextIndex impl) v = [Context] -- TODO: ([Context], [v]) if necessary
 
     insert k v (ContextIx m)
         = case k of
@@ -63,6 +64,9 @@ instance Index (ContextIndex impl) where
 
     map f (ContextIx m)
         = ContextIx $ M.map (Ix.map f) m
+
+    keys (ContextIx m)
+        = M.keys m
 
     -- | xxx TODO implement function
     unionWith --op (ContextIx i1) (ContextIx i2)

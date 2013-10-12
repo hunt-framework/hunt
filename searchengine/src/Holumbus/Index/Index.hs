@@ -18,6 +18,9 @@ class Index i where
     type IVal    i v :: *
     type IVal    i v = v
 
+    type IKeys   i v :: *
+    type IKeys   i v = [IKey i v]
+
     type IToL    i v :: *
     type IToL    i v = [(IKey i v, IVal i v)]
 
@@ -66,6 +69,10 @@ class Index i where
     map          :: ICon i v
                  => (IVal i v -> IVal i v)
                  -> i v -> i v
+
+    -- XXX: maybe less generic with just list?
+    keys         :: ICon i v
+                 => i v -> IKeys i v
 
 -- ----------------------------------------------------------------------------
 {-
