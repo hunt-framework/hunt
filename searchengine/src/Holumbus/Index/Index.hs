@@ -48,7 +48,7 @@ class Index i where
 
     -- | Delete occurrences.
     delete       :: ICon i v => DocId -> i v -> i v
-    delete k i   = batchDelete (IS.fromList [k]) i
+    delete k i   = batchDelete (IS.singleton k) i
 
     -- | Empty Index
     empty        :: ICon i v => i v
