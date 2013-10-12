@@ -21,8 +21,15 @@ import           Holumbus.Index.InvertedIndex
 -- ----------------------------------------------------------------------------
 
 -- Requires 'ConstraintKinds' extension
-type TextIndex i = ContextInvertedIndex
-                   
+type TextIndex i v
+  = ( Index i
+    , ICon i v
+    , v ~ IVal i v
+    , v ~ Occurrences
+    , IKey  i v ~ Word
+    , IType i v ~ Textual
+    , IToL  i v ~ [(Word, Occurrences)])
+
 -- -- | Insert a position for a single document.
 insertPosition c w d p i 
   = insert (Just c, Just w) (Occ.singleton d p) i
