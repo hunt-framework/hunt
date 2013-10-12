@@ -1,54 +1,75 @@
-{-# LANGUAGE ConstraintKinds      #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE Rank2Types        #-}
 
-module Holumbus.Indexer.TextIndexer
-  ( module Holumbus.Indexer.Indexer
-  , TextIndexer
-  , searchPrefixNoCase
-  , allWords
-  , modifyWithDescription
-  , update
-  , insert
-  , modify
-  )
-where
+module Holumbus.Indexer.TextIndexer where
 
-import qualified Data.IntSet                       as IS
-import qualified Data.Map                          as M
+import           Data.Set                       (Set)
+import qualified Data.Set                       as S
 
+import           Holumbus.Utility               (catMaybesSet)
+
+import           Holumbus.DocTable.DocTable     (DocTable)
+import qualified Holumbus.DocTable.DocTable     as Dt
+import qualified Holumbus.DocTable.HashedDocuments as Hdt
 import           Holumbus.Index.Common
-import qualified Holumbus.Index.Common.Document    as Doc
-import qualified Holumbus.Index.Common.Occurrences as Occ
+import           Holumbus.Index.Common.DocIdMap (DocIdSet, toDocIdSet)
+import           Holumbus.Index.Index           (Index)
+import qualified Holumbus.Index.Index           as Ix
+import           Holumbus.Index.InvertedIndex
+import           Holumbus.Index.Proxy.ContextIndex
+-- ----------------------------------------------------------------------------
 
-import qualified Holumbus.DocTable.DocTable        as Dt
+data TextIndexer i dt = TextIndexer 
+  { ixx :: (Index i) => ContextIndex i Occurrences
+  , dtx :: (Dt.DocTable dt) => dt
+  }
 
-import qualified Holumbus.Index.Index              as Ix
-import           Holumbus.Index.TextIndex          (TextIndex)
+emptyInvertedIndexer :: TextIndexer InvertedIndex (Hdt.Documents Document)
+emptyInvertedIndexer = TextIndexer 
+  { ixx = Ix.empty
+  , dtx = Hdt.empty
+  }
 
-import           Holumbus.Indexer.Indexer          hiding (insert, modify,
-                                                    update)
-import qualified Holumbus.Indexer.Indexer          as Ixx
+
+insert :: (Dt.DValue dt) -> Occurrences -> TextIndexer i dt -> TextIndexer i dt
+insert = undefined
+
+-- | Update elements
+update :: DocId -> Dt.DValue dt -> Occurrences -> TextIndexer i dt -> TextIndexer i dt
+update = undefined
+
+-- | Modify elements
+modify :: (Dt.DValue dt -> Dt.DValue dt)
+       -> Occurrences -> DocId -> TextIndexer i dt -> TextIndexer i dt
+modify = undefined
+
+-- | Delete a set of documents by 'DocId'
+delete :: TextIndexer i dt -> DocIdSet -> TextIndexer i dt
+delete = undefined
+{--delete i dIds
+  = modIndexer newIndex newDocTable i
+    where
+    newIndex    = Ix.deleteDocs dIds $ ixIndex    i
+    newDocTable = Dt.difference dIds $ ixDocTable i
+--}
+
+-- | Delete a set if documents by 'URI'.
+deleteDocsByURI :: Set URI -> TextIndexer i dt -> TextIndexer i dt
+deleteDocsByURI = undefined
+{--
+    deleteDocsByURI us ix
+      = delete ix docIds
+      where
+      docIds = toDocIdSet . catMaybesSet . S.map (lookupByURI ix) $ us
+--}
 
 -- ----------------------------------------------------------------------------
 
--- TODO: remove Words constraint
--- | TextIndexer with 'Index' implementation, 'DocTable' implementation and element type parameter.
---   Uses 'Textual' and 'Occurrences' as index and value type.
---   Uses 'Words' as elem type.
-type TextIndexer i = (Indexer i, TextIndex (IxIndex i), IxElem i ~ Words)
-
--- ----------------------------------------------------------------------------
-
--- index functions
-
--- TODO: lonely text function?
 -- | See 'Ix.lookup'.
-searchPrefixNoCase    :: TextIndexer i => i -> Context -> Word -> RawResult
-searchPrefixNoCase
-  = Ix.lookup PrefixNoCase . ixIndex
+searchPrefixNoCase :: TextIndexer i dt -> Context -> Word -> RawResult
+searchPrefixNoCase ti c w = Ix.lookup PrefixNoCase (c,w) (ixx ti) 
 
 -- | See 'Ix.size'.
 allWords              :: TextIndexer i => i -> Context -> RawResult
@@ -130,3 +151,4 @@ addDocDescription descr did (Indexer i d)
   where
   mergeDescr doc = doc{ desc = M.union (desc doc) descr }
 -}
+----------------------------------------------------------------------------

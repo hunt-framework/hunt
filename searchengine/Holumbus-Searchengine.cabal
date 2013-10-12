@@ -73,8 +73,8 @@ library
     Holumbus.DocTable.DocTable
     Holumbus.DocTable.HashedDocuments
  
-    Holumbus.Indexer.Indexer
-    Holumbus.Indexer.SimpleIndexer
+--    Holumbus.Indexer.Indexer
+--    Holumbus.Indexer.SimpleIndexer
     Holumbus.Indexer.TextIndexer
 
     Holumbus.Query.Fuzzy
