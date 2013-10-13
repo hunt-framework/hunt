@@ -10,7 +10,7 @@ import qualified Data.Set                          as S
 import qualified Data.IntSet                       as IS
 import qualified Data.Map                          as M
 
-import qualified Holumbus.Index.Common.Occurrences as Occ
+--import qualified Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Utility                  (catMaybesSet)
 
 import           Holumbus.DocTable.DocTable        (DocTable)
@@ -18,11 +18,13 @@ import qualified Holumbus.DocTable.DocTable        as Dt
 import qualified Holumbus.DocTable.HashedDocuments as Hdt
 import           Holumbus.Index.Common
 import           Holumbus.Index.Common.DocIdMap    (DocIdSet, toDocIdSet)
-import           Holumbus.Index.Index              (Index)
+--import           Holumbus.Index.Index              (Index)
 import qualified Holumbus.Index.Index              as Ix
 import qualified Holumbus.Index.TextIndex          as TIx
 import           Holumbus.Index.InvertedIndex
 import           Holumbus.Index.Proxy.ContextIndex
+import qualified Holumbus.Index.Common.Document    as Doc
+
 -- ----------------------------------------------------------------------------
 
 type TextIndexer i dt = (TIx.TextIndex i Occurrences, DocTable dt)
@@ -32,8 +34,8 @@ data Indexer i dt = Indexer
   , ixDocTable :: dt
   }
 
-emptyInvertedIndexer :: Indexer InvertedIndex (Hdt.Documents Document)
-emptyInvertedIndexer = Indexer 
+newInvertedIndexer :: Indexer InvertedIndex (Hdt.Documents Document)
+newInvertedIndexer = Indexer 
   { ixIndex    = Ix.empty
   , ixDocTable = Hdt.empty
   }
@@ -101,13 +103,13 @@ modIndexer ii di ix
  -- ----------------------------------------------------------------------------
 
 -- | See 'Ix.lookup'.
---searchPrefixNoCase :: TextIndexer i dt -> Context -> Word -> RawResult
+searchPrefixNoCase :: TextIndexer i dt => Indexer i dt -> Context -> Word -> [(Context,RawResult)]
 searchPrefixNoCase ti c w = Ix.lookup PrefixNoCase (Just c,Just w) (ixIndex ti) 
 
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
-{--modifyWithDescription :: (TextIndexer i {-, DocumentWrapper (Dt.DValue (IxDocTable i))-}) =>
-                         Description -> Words -> DocId -> i -> i
+modifyWithDescription :: (TextIndexer i dt) => 
+                         Description -> Words -> DocId -> Indexer i dt -> Indexer i dt
 modifyWithDescription descr wrds dId ix
   = modIndexer newIndex newDocTable ix
   where
@@ -123,7 +125,8 @@ modifyWithDescription descr wrds dId ix
 -- | Add words for a document to the 'Index'.
 addWords :: TIx.TextIndex i Occurrences
          => Words -> DocId -> ContextIndex i Occurrences -> ContextIndex i Occurrences
-addWords wrds dId i = undefined
+addWords = undefined
+--addWords wrds dId i = undefined
 {-  = M.foldrWithKey (\c wl acc ->
       M.foldrWithKey (\w ps acc' ->
         Ix.insert (Just c, Just w) (mkOccs dId ps) acc')
