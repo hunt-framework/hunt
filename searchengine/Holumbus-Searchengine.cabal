@@ -65,6 +65,7 @@ library
     Holumbus.Index.Common.RawResult
     Holumbus.Index.Common.Compression
     Holumbus.Index.Index
+    Holumbus.Index.TextIndex
     Holumbus.Index.InvertedIndex
     Holumbus.Index.Proxy.ContextIndex
     Holumbus.Index.Proxy.CompressedIndex

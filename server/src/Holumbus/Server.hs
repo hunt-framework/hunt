@@ -34,9 +34,11 @@ import qualified Holumbus.Index.Common.DocIdMap           as DM
 import           Holumbus.Index.Common.CompressedDocument
 
 --import qualified Holumbus.Index.Proxy.CachedIndex         as IxCache
-import qualified Holumbus.Index.Text.Inverted.PrefixMem as Inv
-import           Holumbus.Index.TextIndex
-
+--import qualified Holumbus.Index.Text.Inverted.PrefixMem as Inv
+import           Holumbus.Index.TextIndex               (TextIndex)
+import qualified Holumbus.Index.TextIndex               as TIx
+import           Holumbus.Index.InvertedIndex           as Inv
+import qualified Holumbus.DocTable.DocTable             as Dt
 import           Holumbus.DocTable.DocTable             hiding (filter, map)
 import qualified Holumbus.DocTable.HashedDocuments      as Dt
 
@@ -46,10 +48,8 @@ import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result
 
-import           Holumbus.Indexer.Indexer                 hiding (modIndex)
-import qualified Holumbus.Indexer.Indexer                 as Ixx
-import           Holumbus.Indexer.SimpleIndexer
-import           Holumbus.Indexer.TextIndexer             (modifyWithDescription)
+import           Holumbus.Indexer.TextIndexer           (Indexer, TextIndexer)
+import qualified Holumbus.Indexer.TextIndexer           as Ixx
 import           Holumbus.Server.Analyzer
 import           Holumbus.Server.Common                   hiding (Query)
 import qualified Holumbus.Server.Template                 as Tmpl
@@ -75,8 +75,8 @@ newTextIndexer' :: TextIndex i -> DocTable d de -> TextIndexer i d de
 newTextIndexer' i = newTextIndexer (IxCache.empty i)
 -}
 
-indexer         :: SimpleIndexer Inv.Inverted (Dt.Documents CompressedDoc)
-indexer         = SimpleIndexer Inv.empty Dt.empty
+indexer         :: Indexer Inv.InvertedIndex (Dt.Documents CompressedDoc)
+indexer         = Ixx.newInvertedIndexer
 
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
@@ -96,11 +96,11 @@ jsonPretty v = do
 
 -- | Constructs a list of 'ApiDocument' 'URI's that already exist in the indexer and a
 --   ist of 'URI's and corresponding 'DocId's for 'ApiDocument's which are part of the indexer.
-checkApiDocUris :: Indexer ix => [ApiDocument] -> ix -> ([URI], [(URI, DocId)])
+checkApiDocUris :: [ApiDocument] -> ix -> ([URI], [(URI, DocId)])
 checkApiDocUris apiDocs ix =
   let apiDocsE
           = map (\apiDoc -> let docUri = apiDocUri apiDoc
-                                idM    = Ixx.lookupByURI ix docUri
+                                idM    = Dt.lookupByURI (Ixx.ixDocTable ix) docUri
                             in maybe
                                 (          Left   docUri)
                                 (\docId -> Right (docUri, docId))
@@ -111,8 +111,7 @@ checkApiDocUris apiDocs ix =
 -- | Constructs a Right value using the second accessor function
 --   if the first accessor function is an empty list. Otherwise the non-empty list is returned.
 --   Used for 'checkApiDocUrisExistence' and 'checkApiDocUrisAbsence'
-checkApiDocUris' :: Indexer ix =>
-                    (([URI], [(URI, DocId)]) -> [a], ([URI], [(URI, DocId)]) -> b)
+checkApiDocUris' :: (([URI], [(URI, DocId)]) -> [a], ([URI], [(URI, DocId)]) -> b)
                     -> [ApiDocument] -> ix -> Either [a] b
 checkApiDocUris' (l,r) apiDocs ix =
     let res = checkApiDocUris apiDocs ix
@@ -121,14 +120,14 @@ checkApiDocUris' (l,r) apiDocs ix =
 -- | Checks whether the Documents with the URIs supplied by ApiDocuments are in the index,
 --   i.e. before an insert operation.
 --   Left is the failure case where there are URIs given that cannot be found in the index.
-checkApiDocUrisExistence :: Indexer ix => [ApiDocument] -> ix -> Either [URI] [(URI, DocId)]
+checkApiDocUrisExistence :: [ApiDocument] -> ix -> Either [URI] [(URI, DocId)]
 checkApiDocUrisExistence = checkApiDocUris' (fst, snd)
 
 -- XXX: maybe return Either [URI] [URI], since the DocIds will not be needed in the failure case
 -- | Checks whether there are no Documents with the URIs supplied by ApiDocuments in the index,
 --   i.e. before an update operation.
 --   Left is the failure case where there are already documents with those URIs in the index.
-checkApiDocUrisAbsence   :: Indexer ix => [ApiDocument] -> ix -> Either [(URI, DocId)] [URI]
+checkApiDocUrisAbsence   :: [ApiDocument] -> ix -> Either [(URI, DocId)] [URI]
 checkApiDocUrisAbsence   = checkApiDocUris' (snd, fst)
 
 -- | This is just used to specify the exact type of @e@ in @('DocumentWrapper' e)@
@@ -160,7 +159,7 @@ start = scotty 3000 $ do
         case parseQuery queryStr of
           (Left err) -> return . JsonFailure . return $ err
           (Right query) ->
-            runQueryM (ixIndex ix) (ixDocTable ix) query
+            runQueryM (Ixx.ixIndex ix) (Ixx.ixDocTable ix) query
             >>= return . JsonSuccess
                 . map (\(_,(DocInfo d _,_)) -> unwrap d)
                 . DM.toList . docHits
@@ -170,7 +169,7 @@ start = scotty 3000 $ do
 
   get "/"         $ redirect "/search"
   get "/search"   $ do
-    ds <- withIx $ return . Ixx.size
+    ds <- withIx $ return . Dt.size . Ixx.ixDocTable
     html . Tmpl.index $ ds
   get "/add"      $ html Tmpl.addDocs
 
@@ -196,7 +195,7 @@ start = scotty 3000 $ do
       case parseQuery queryStr of
         (Left err) -> return . JsonFailure . return $ err
         (Right query) ->
-          runQueryM (ixIndex ix) (ixDocTable ix) query
+          runQueryM (Ixx.ixIndex ix) (Ixx.ixDocTable ix) query
           >>= return . JsonSuccess
               . map (\ (c, (_, o)) -> (c, M.foldr (\m r -> r + DM.size m) 0 o))
               . M.toList. wordHits
@@ -269,7 +268,7 @@ start = scotty 3000 $ do
         (\existentDocs    ->
             ( foldr
                 (\(docId, apiDoc) ->
-                  modifyWithDescription
+                  Ixx.modifyWithDescription
                   (apiDocDescrMap apiDoc)
                   (snd . toDocAndWords' $ apiDoc)
                   docId)
@@ -287,7 +286,7 @@ start = scotty 3000 $ do
   -- delete a set of documents by URI
   post "/document/delete" $ do
     jss <- jsonData :: ActionM (S.Set URI)
-    modIx_ $ \ix -> return $ deleteDocsByURI jss ix
+    modIx_ $ \ix -> return $ Ixx.deleteDocsByURI jss ix
     json (JsonSuccess "document(s) deleted" :: JsonResponse Text)
 
 
