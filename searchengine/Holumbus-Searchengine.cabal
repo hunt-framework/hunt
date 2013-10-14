@@ -93,12 +93,12 @@ library
 
   extensions: MultiParamTypeClasses
               FlexibleContexts
-              FlexibleInstances
-              UndecidableInstances
-              GeneralizedNewtypeDeriving
-              TypeSynonymInstances
+--              FlexibleInstances
+--              UndecidableInstances
+--              GeneralizedNewtypeDeriving
+--              TypeSynonymInstances
               OverloadedStrings
               TypeFamilies
               ConstraintKinds
               KindSignatures
-              OverlappingInstances
+--              OverlappingInstances

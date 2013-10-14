@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeSynonymInstances #-} 
+{-# LANGUAGE FlexibleInstances #-}
 -- ----------------------------------------------------------------------------
 
 {- |

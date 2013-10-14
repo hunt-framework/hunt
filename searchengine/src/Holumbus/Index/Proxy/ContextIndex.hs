@@ -1,3 +1,10 @@
+{-# LANGUAGE UndecidableInstances #-}
+
+{--
+ - this file somehow causes ghc to deadlock when not
+ - compiled without cabal clean
+ -}
+
 module Holumbus.Index.Proxy.ContextIndex where
 
 import           Holumbus.Index.Common   (Context)
