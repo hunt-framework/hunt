@@ -3,7 +3,7 @@ OPTSERVER	= --json-server=$(SERVER)
 # OPTRANKING	= --ranking # not yet complete
 OPTRANKING	=
 SERVER		= http://localhost:3000/document
-EXE			= $(shell [ -d "../../.cabal-sandbox" ] && echo "../../.cabal-sandbox/bin/hayooCrawler" || echo "hayooCrawler")
+EXE		= $(shell [ -d "../../.cabal-sandbox" ] && echo "../../.cabal-sandbox/bin/hayooCrawler" || echo "hayooCrawler")
 
 # load and parse all hackage pages
 # and store them in binary format in

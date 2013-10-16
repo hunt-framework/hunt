@@ -1,5 +1,5 @@
 name:          hayooCrawler
-version:       0.0.0.2
+version:       0.0.0.3
 license:       MIT
 license-file:  LICENSE
 author:        Uwe Schmidt
@@ -9,6 +9,8 @@ stability:     experimental
 category:      Text, Data
 synopsis:      The Hayoo! crawler for indexing hackage documentation
 description:   The Hayoo! crawler for indexing hackage documentation
+               .
+               Version 0.0.0.3: Hackage2 changes
                .
                Version 0.0.0.2: Error handling in crawler added
                .

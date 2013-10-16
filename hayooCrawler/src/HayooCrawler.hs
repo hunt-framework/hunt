@@ -115,7 +115,7 @@ initAppOpts
       , ao_pkgRank      = False
       , ao_pkgRankOnly  = False
       , ao_msg          = ""
-      , ao_crawlDoc     = (30000, 1024, 1)                                          -- max docs, max par docs, max threads: no parallel threads, but 1024 docs are indexed before results are inserted
+      , ao_crawlDoc     = (50000, 1024, 1)                                          -- max docs, max par docs, max threads: no parallel threads, but 1024 docs are indexed before results are inserted
       , ao_crawlSav     = 5000                                                      -- save intervall
       , ao_crawlSfn     = "./tmp/ix-"                                               -- save path
       , ao_crawlLog     = (DEBUG, NOTICE)                                           -- log cache and hxt

@@ -40,16 +40,28 @@ hayooGetFctInfo                 = fromLA $
                                     &&&
                                     getAttrValue "source"
                                     &&&
-                                    xshow
-                                    ( hayooGetDescr
-                                      >>>
-                                      getChildren
-                                      >>>
-                                      editDescrMarkup
+                                    ( xshow
+                                      ( hayooGetDescr
+                                        >>>
+                                        getChildren
+                                        >>>
+                                        editDescrMarkup
+                                      )
+                                      >>^ escapeNoneAscii
                                     )
                                   )
                                   >>^
-                                  (\ (m, (s, (p, (r, d)))) -> mkFunctionInfo m s p r (stringTrim d))
+                                  (\ (m, (s, (p, (r, d)))) -> mkFunctionInfo m s p r d)
+    where
+      -- escape the serialized XML, such that it's a 7-bit ASCII string
+      -- else serialization into binary format does not work properly
+      escapeNoneAscii           = concatMap esc
+          where
+            esc c
+                | i < 128       = [c]
+                | otherwise     = "&#" ++ show i ++ ";"
+                where
+                  i = fromEnum c
 
 hayooGetTitle                   :: IOSArrow XmlTree String
 hayooGetTitle                   = fromLA $
