@@ -43,14 +43,14 @@ import           Text.XML.HXT.HTTP             ()
 
 -- ------------------------------------------------------------
 
--- import           GHC.AssertNF                  ( assertNFNamed )
+import           GHC.AssertNF                  ( assertNFNamed )
 
-checkNF :: MonadIO m => String -> a -> m a
-checkNF _msg x
---  = liftIO (assertNFNamed _msg x) >> return x
-    = return x           -- disable NF check for production, assertNF becomes too slow for complex values
-
-{-# INLINE checkNF #-}
+toNF :: MonadIO m => String -> m a -> m a
+toNF _msg action
+    = do ! res <- action
+         liftIO (assertNFNamed _msg res)
+         return res
+{-# INLINE toNF #-}
 
 -- ------------------------------------------------------------
 
@@ -272,9 +272,9 @@ mainHackage
       removePkg :: [String] -> HIO HayooPkgIndexerState
       removePkg ps
           = do notice $ "removing packages from hackage package index: " : ps
-               ! res <- removePackagesPkg
+               res <- toNF "removePkg" $ removePackagesPkg
                notice $ "packages removed from hackage package index : " : ps
-               checkNF "removePkg" res
+               return res
 
       updatePkg :: [String] -> HIO HayooPkgIndexerState
       updatePkg ps
@@ -284,16 +284,15 @@ mainHackage
                                               }
                               ) (indexPkg ps)
                oldix <- removePkg ps
-               ! res <- mergePkg newix oldix
-               checkNF "updatePkg" res
+               toNF "updatePkg" $ mergePkg newix oldix
 
       indexPkg :: [String] -> HIO HayooPkgIndexerState
       indexPkg ps
           = do notice $ if null ps
                           then ["indexing all packages from hackage package index"]
                           else "indexing hackage package descriptions for packages:" : ps
-               !res <- (getS theResultAccu `fmap` hayooPkgIndexer)
-               checkNF "indexPkg" res >>= rankPkg
+               toNF "indexPkg" $ (getS theResultAccu `fmap` hayooPkgIndexer)
+                        >>= rankPkg
 
       indexPkgJSON :: [String] -> HIO () -- HayooPkgIndexerState
       indexPkgJSON ps
@@ -306,9 +305,9 @@ mainHackage
           = do rank <- asks ao_pkgRank
                if rank
                   then do notice ["computing package ranks"]
-                          let ! res = packageRanking ix
+                          res <- toNF "rankPkg" $ return $ packageRanking ix
                           notice ["package rank computation finished"]
-                          checkNF "rankPkg" res
+                          return res
                   else do notice ["no package ranks computed"]
                           return ix
 
@@ -357,8 +356,7 @@ mainHaddock
 
       removePkg ps
           = do notice $ "deleting packages" : ps ++ ["from haddock index"]
-               ! res <- removePackagesIx
-               -- OLD rnf res `seq`
+               res <- toNF "removePkg" removePackagesIx
                notice $ "packages " : ps ++ ["deleted from haddock index"]
                return res
 
@@ -369,7 +367,7 @@ mainHaddock
                                               }
                               ) (fst `fmap` indexPkg ps)
                oldix <- removePkg ps
-               mergePkg newix oldix
+               toNF "updatePkg" $ mergePkg newix oldix
 
       loadPartialIx :: HIO [Int]
       loadPartialIx
@@ -382,7 +380,10 @@ mainHaddock
           = do notice $ if null ps
                           then ["indexing all haddock pages"]
                           else "indexing haddock for packages:" : ps
-               (getS (theResultAccu .&&&. theListOfDocsSaved) `fmap` hayooIndexer)
+               res <- hayooIndexer
+               ix  <- toNF "indexPkg: ix" $ return $ getS theResultAccu      res
+               ds  <- toNF "indexPkg: ds" $ return $ getS theListOfDocsSaved res
+               return (ix, ds)
 
       indexPkgJSON :: [String] -> HIO ()
       indexPkgJSON ps
