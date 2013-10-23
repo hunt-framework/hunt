@@ -77,7 +77,7 @@ library
 --    Holumbus.Indexer.Indexer
 --    Holumbus.Indexer.SimpleIndexer
     Holumbus.Indexer.TextIndexer
-
+    Holumbus.Interpreter.Interpreter
     Holumbus.Query.Fuzzy
     Holumbus.Query.Intermediate
     Holumbus.Query.Language.Grammar
