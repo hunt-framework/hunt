@@ -6,9 +6,11 @@ import           Control.Monad.Error
 import           Control.Monad.Reader
 
 import           Data.Aeson
+import qualified Data.Map as M
+
 import           Holumbus.Index.InvertedIndex
 import           Holumbus.DocTable.HashedDocuments
-import           Holumbus.Index.Common (Words, URI, Description, Document, Occurrences)
+import           Holumbus.Index.Common (Position, DocId, Words, URI, Description, Document, Occurrences)
 import           Holumbus.Index.Proxy.ContextIndex
 import qualified Holumbus.Index.Index as Ix
 import qualified Holumbus.Index.Common.DocIdMap           as DM
@@ -21,8 +23,8 @@ import           Holumbus.Query.Result
 import           Holumbus.Index.Common.Document (unwrap)
 
 import           Holumbus.DocTable.DocTable (DValue)
-import           Holumbus.Indexer.TextIndexer (addWords)
 import qualified Holumbus.DocTable.DocTable as Dt
+import qualified Holumbus.Index.Common.Occurrences as Occ
 -- ----------------------------------------------------------------------------
 
 data Dummy
@@ -128,22 +130,27 @@ askIx
     = do ref <- asks _theIndex
          liftIO $ readMVar ref
 
---localIx2 :: (Indexer -> Indexer) -> CM ()
---localIx2 f
---    = local (\e -> liftIO $ modifyMVar (_theIndex e) f >>= e)
+-- FIXME: io exception-safe?
+modIx :: (Indexer -> CM (Indexer, a)) -> CM a
+modIx f
+    = do ref <- asks _theIndex
+         ix <- liftIO $ takeMVar ref
+         (i',a) <- f ix `catchError` putBack ref ix
+         liftIO $ putMVar ref i'
+         return a
+    where
+    putBack ref i e = do
+        liftIO $ putMVar ref i
+        throwError e
+
+modIx_ :: (Indexer -> CM Indexer) -> CM () 
+modIx_ f = modIx f'
+    where f' i = f i >>= \r -> return (r, ())
 
 
 withIx :: (Indexer -> CM a) -> CM a
 withIx f
     = askIx >>= f
-
---localIx :: (Indexer -> Indexer) -> CM a -> CM a
-localIx f x = local modEnv x
-  where 
-  modEnv e = do
-    (Env mix dt) <- e
-    liftIO $ modifyMVar_ mix f 
-    return $ Env mix dt
 
 throwResError :: Int -> String -> CM a
 throwResError n msg
@@ -163,10 +170,12 @@ execCmd (Sequence cs)
 
 execCmd NOOP
     = return ResOK  -- keep alive test
-{--
+
 execCmd (Insert doc ws)
-    = execInsert doc ws
---}
+    = do
+      modIx $ execInsert doc ws
+      withIx (\ix -> throwResError 333 $ show ix)
+
 execCmd c
     = throwResError 501 $ "command not yet implemented: " ++ show c
 
@@ -179,7 +188,7 @@ execCompletion px _ix
 execSearch :: String -> Indexer -> CM CmdRes
 execSearch q (ix,dt)
       =  case parseQuery q of
-          (Left err) -> return $ undefined
+          (Left err) -> throwResError 502 "not implemented"
           (Right query) -> do
             res <- runQueryM ix dt query
             return $ ResSearch $ map (\(_,(DocInfo d _,_)) -> unwrap d) . DM.toList . docHits $ res
@@ -189,17 +198,11 @@ execSequence []       = execCmd NOOP
 execSequence [c]      = execCmd c
 execSequence (c : cs) = execCmd c >> execSequence cs
 
-{-- 
-execInsert :: Document -> Words ->  CM CmdRes
-execInsert doc wrds = do 
-    localIx (insertIx doc wrds)
-    return ResOK
---}
-insertIx :: Document -> Words -> Indexer -> Indexer
-insertIx doc wrds (ix,dt) = (newIndex, newDocTable)
+execInsert :: Document -> Words -> Indexer -> CM (Indexer,CmdRes)
+execInsert doc wrds (ix,dt) = return ((newIndex, newDocTable),ResOK)
   where
   (did, newDocTable) = Dt.insert dt doc
-  newIndex           = addWords wrds did ix
+  newIndex           = addWords wrds did ix 
 
 -- ----------------------------------------------------------------------------
 queryConfig     :: ProcessConfig
@@ -212,4 +215,21 @@ runQueryM       :: ContextIndex InvertedIndex Occurrences
 runQueryM       = processQueryM queryConfig
 
 
+-- | Add words for a document to the 'Index'.
+addWords :: Words -> DocId -> ContextIndex InvertedIndex Occurrences -> ContextIndex InvertedIndex Occurrences
+addWords wrds dId i 
+  = M.foldrWithKey (\c wl acc ->
+      M.foldrWithKey (\w ps acc' ->
+        Ix.insert (Just c, Just w) (mkOccs dId ps) acc')
+      acc wl)
+      i wrds
+  where
+  mkOccs            :: DocId -> [Position] -> Occurrences
+  mkOccs did pl     = positionsIntoOccs did pl Occ.empty
 
+  positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
+  positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws
+
+
+
+test1 ws id = addWords ws id Ix.empty  

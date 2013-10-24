@@ -24,7 +24,7 @@ import           Data.Text                                (Text)
 
 import qualified Data.Aeson                               as A
 import           Data.Aeson.Encode.Pretty                 (encodePretty)
-
+{--
 import           Holumbus.Utility                         ((.::))
 
 import           Holumbus.Index.Common
@@ -54,9 +54,22 @@ import           Holumbus.Server.Analyzer
 import           Holumbus.Server.Common                   hiding (Query)
 import qualified Holumbus.Server.Template                 as Tmpl
 --import qualified Holumbus.Server.Interpreter              as Ip
-
+--}
+import           Holumbus.Interpreter.Interpreter
 -- ----------------------------------------------------------------------------
 
+start :: IO ()
+start = main1 $ Search "test"
+
+main1 :: Command -> IO ()
+main1 c
+    = do env0 <- initEnv emptyIndexer emptyOptions
+         let eval = runCmd env0
+         eval c >>= print
+         return ()
+
+
+{--
 -- do something with the index
 withIndex'      :: MonadIO m => MVar a -> (a -> IO b) -> m b
 withIndex' im a = liftIO $ readMVar im >>= a
@@ -313,3 +326,4 @@ start = scotty 3000 $ do
     either json json iRes
 --}
   notFound $ text "page not found"
+--}

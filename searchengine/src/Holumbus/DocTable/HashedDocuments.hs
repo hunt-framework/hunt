@@ -56,7 +56,7 @@ type DocMap e
 newtype Documents e
     = Documents { idToDoc :: DocMap e }     -- ^ A mapping from a document id to
                                             --   the document itself.
-      --deriving (Eq, Show, NFData)
+      deriving (Eq, Show)
 
 -- ----------------------------------------------------------------------------
 

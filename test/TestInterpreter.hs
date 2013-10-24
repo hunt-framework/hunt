@@ -1,6 +1,13 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds #-}
 module Main where
 
 import Holumbus.Interpreter.Interpreter
+import qualified Data.Map as M
+import Data.Text (Text)
+import Data.Map (Map)
+import Holumbus.Index.Common.Document
+import qualified Holumbus.Index.Proxy.ContextIndex as Ix
 
 main1 :: Command -> IO ()
 main1 c
@@ -16,3 +23,37 @@ c2 = Search ("abc")
 c3 = LoadIx  "ix1"
 c4 = StoreIx "ix2"
 c5 = Sequence [c1,c2,c3,c4]
+
+-- -----------------------------------------------------------------------------
+--
+type Position = Int
+type Context = Text
+type Word = Text
+--
+-- -- | Positions of Words for each context.
+type Words = Map Context WordList
+--
+-- -- | Positions of words in the document.
+type WordList = Map Word [Position]
+
+mkWordList :: WordList
+mkWordList = M.fromList $ [("hallo", [1,5,10])]
+
+mkWords :: Words
+mkWords = M.fromList $ [("default", mkWordList)]
+
+mkDoc :: Document
+mkDoc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")])
+
+insertCmd = Insert mkDoc mkWords
+searchCmd = Search "d"
+batchCmd = Sequence [insertCmd,searchCmd] 
+
+
+-- --------------------------------------------------------------------------------
+-- test add words
+
+--test2 = test1 mkWords 1
+
+--test1 :: Words -> Int -> ContextIndex InvertedIndex Occurrences -> ContextIndex InvertedIndex Occurrences
+--test1 = addWords mkWords 1 Ix.empty  
