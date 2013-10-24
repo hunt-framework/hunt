@@ -12,7 +12,7 @@ homepage:      http://holumbus.fh-wedel.de
 description:   The Holumbus-Searchengine library provides a document indexer
                and crawler to build indexes over document collections
                as well as a sophisticated query interface for these indexes.
-cabal-version: >=1.6
+cabal-version: >=1.8
 build-type:    Simple
 -- tested-with:   ghc-7.0.3
 
@@ -74,9 +74,6 @@ library
     Holumbus.DocTable.DocTable
     Holumbus.DocTable.HashedDocuments
 
---    Holumbus.Indexer.Indexer
---    Holumbus.Indexer.SimpleIndexer
-    Holumbus.Indexer.TextIndexer
     Holumbus.Interpreter.Interpreter
     Holumbus.Query.Fuzzy
     Holumbus.Query.Intermediate
@@ -93,12 +90,28 @@ library
 
   extensions: MultiParamTypeClasses
               FlexibleContexts
---              FlexibleInstances
---              UndecidableInstances
---              GeneralizedNewtypeDeriving
---              TypeSynonymInstances
               OverloadedStrings
               TypeFamilies
               ConstraintKinds
               KindSignatures
 --              OverlappingInstances
+--              FlexibleInstances
+--              UndecidableInstances
+--              GeneralizedNewtypeDeriving
+--              TypeSynonymInstances
+
+Test-suite Holumbus
+  Hs-Source-Dirs:       test
+  Main-Is:              Index.hs
+  Type:                 exitcode-stdio-1.0
+  Ghc-Options:          -Wall
+  Extensions:           OverloadedStrings
+
+  Build-Depends: base                       >= 4.6 && < 5
+               , containers
+               , HUnit
+               , QuickCheck
+               , test-framework
+               , test-framework-hunit
+               , test-framework-quickcheck2
+               , Holumbus-Searchengine   
