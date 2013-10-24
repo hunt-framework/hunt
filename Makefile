@@ -28,7 +28,7 @@ all:		install
 clean: 		; $(MAKE) target action=clean
 configure: 	; $(MAKE) target action=configure
 build:		; $(MAKE) target action=build
-install:	; $(MAKE) target action=install
+install:	; $(MAKE) target action="install --enable-tests"
 
 target: searchengine server
 
