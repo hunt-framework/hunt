@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 -- ----------------------------------------------------------------------------
 
@@ -18,7 +17,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.Document
+module Holumbus.Common.Document
 where
 
 import           Control.DeepSeq
@@ -30,7 +29,7 @@ import           Data.Map                         (Map)
 import           Data.Text                        (Text)
 import           Data.Text.Binary                 ()
 
-import           Holumbus.Index.Common.BasicTypes
+import           Holumbus.Common.BasicTypes
 
 -- ------------------------------------------------------------
 

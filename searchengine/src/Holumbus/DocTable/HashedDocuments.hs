@@ -40,8 +40,8 @@ import qualified Data.Binary                    as B
 
 import           Data.Digest.Murmur64
 
-import           Holumbus.Index.Common
-import qualified Holumbus.Index.Common.DocIdMap as DM
+import           Holumbus.DocTable.Common
+import qualified Holumbus.Common.DocIdMap as DM
 
 import           Holumbus.DocTable.DocTable
 

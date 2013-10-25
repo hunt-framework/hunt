@@ -6,7 +6,7 @@ import Test.HUnit
 --import Test.QuickCheck
 import Holumbus.Index.Index
 import Holumbus.Index.Proxy.ContextIndex
-
+--import Holumbus.Index.InvertedIndex (TestIndex)
 
 main :: IO ()
 main = defaultMainWithOpts

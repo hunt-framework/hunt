@@ -47,14 +47,14 @@ import qualified Data.Text                         as T
 
 --import           Holumbus.Utility                  ((.::), (.:::))
 
-import           Holumbus.Index.Common             (Context, DocId, Position,
+import           Holumbus.Common             (Context, DocId, Position,
                                                     RawResult, Textual (..),
                                                     Word)
-import qualified Holumbus.Index.Common.DocIdMap    as DM
-import           Holumbus.Index.Common.Occurrences as Occ
+import qualified Holumbus.Common.DocIdMap    as DM
+import           Holumbus.Common.Occurrences as Occ
 
 import           Holumbus.Index.TextIndex          (TextIndex)
-import qualified Holumbus.Index.TextIndex          as Ix
+import qualified Holumbus.Index.Index              as Ix
 
 import           Holumbus.Index.Proxy.ContextIndex
 

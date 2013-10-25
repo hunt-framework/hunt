@@ -20,7 +20,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.Compression
+module Holumbus.Common.Compression
   (
   -- * Compression types
   CompressedOccurrences
@@ -43,11 +43,11 @@ where
 
 import qualified Data.IntSet                       as IS
 
-import           Holumbus.Index.Common.DiffList
-import           Holumbus.Index.Common.DocId       (DocId)
-import           Holumbus.Index.Common.DocIdMap    (DocIdMap)
-import qualified Holumbus.Index.Common.DocIdMap    as DM
-import           Holumbus.Index.Common.Occurrences hiding (delete)
+import           Holumbus.Common.DiffList
+import           Holumbus.Common.DocId       (DocId)
+import           Holumbus.Common.DocIdMap    (DocIdMap)
+import qualified Holumbus.Common.DocIdMap    as DM
+import           Holumbus.Common.Occurrences hiding (delete)
 
 -- ----------------------------------------------------------------------------
 

@@ -13,11 +13,12 @@ import           Data.Maybe                       (catMaybes)
 import           Data.Set                         (Set)
 import qualified Data.Set                         as S
 
-import           Holumbus.Index.Common.BasicTypes
-import           Holumbus.Index.Common.DocId
-import           Holumbus.Index.Common.DocIdMap   (DocIdMap (..), DocIdSet,
-                                                   toDocIdSet)
-import           Holumbus.Index.Common.Document   (DocumentWrapper)
+import           Holumbus.Common.DocId            (DocId)
+import           Holumbus.Common.BasicTypes       (URI)
+import           Holumbus.Common.Document         (DocumentWrapper)
+import           Holumbus.Common.DocIdMap         (DocIdMap (..), DocIdSet, toDocIdSet)
+
+
 
 -- ----------------------------------------------------------------------------
 

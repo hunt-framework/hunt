@@ -3,7 +3,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.CompressedDocument
+module Holumbus.Common.CompressedDocument
 where
 
 import qualified Codec.Compression.BZip         as BZ
@@ -16,7 +16,7 @@ import qualified Data.ByteString.Lazy           as BS
 import           Data.Binary                    (Binary(..))
 import qualified Data.Binary                    as B
 
-import           Holumbus.Index.Common.Document
+import           Holumbus.Common.Document
 
 -- ----------------------------------------------------------------------------
 

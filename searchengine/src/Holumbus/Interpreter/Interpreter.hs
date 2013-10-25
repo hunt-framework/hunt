@@ -13,18 +13,20 @@ import           Holumbus.DocTable.HashedDocuments
 import           Holumbus.Index.Common (Position, DocId, Words, URI, Description, Document, Occurrences)
 import           Holumbus.Index.Proxy.ContextIndex
 import qualified Holumbus.Index.Index as Ix
-import qualified Holumbus.Index.Common.DocIdMap           as DM
+import qualified Holumbus.Common.DocIdMap           as DM
 
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
 import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result
-import           Holumbus.Index.Common.Document (unwrap)
+
+import           Holumbus.Common.Document (unwrap)
 
 import           Holumbus.DocTable.DocTable (DValue)
 import qualified Holumbus.DocTable.DocTable as Dt
-import qualified Holumbus.Index.Common.Occurrences as Occ
+
+import qualified Holumbus.Common.Occurrences as Occ
 -- ----------------------------------------------------------------------------
 
 data Dummy

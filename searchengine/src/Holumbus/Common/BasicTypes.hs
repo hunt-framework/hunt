@@ -17,7 +17,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.BasicTypes
+module Holumbus.Common.BasicTypes
 where
 
 import           Data.Map
@@ -51,10 +51,5 @@ type WordList                   = Map Word [Position]
 
 -- | Text index
 data Textual                    = Case | NoCase | PrefixCase | PrefixNoCase
-
--- XXX: delete?
-data Numerical                  = Match | Range
-
-data Geo                        = Position | Perimeter
 
 -- ------------------------------------------------------------

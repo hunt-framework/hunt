@@ -17,7 +17,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.DocIdMap
+module Holumbus.Common.DocIdMap
     ( DocIdMap(..)
     , DocIdSet
     , empty
@@ -66,7 +66,7 @@ import           Data.Foldable               hiding (fold, foldr, toList)
 import qualified Data.IntMap                 as IM
 import qualified Data.IntSet                 as S
 
-import           Holumbus.Index.Common.DocId
+import           Holumbus.Common.DocId
 
 
 -- ------------------------------------------------------------
