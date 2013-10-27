@@ -22,8 +22,8 @@ class Index i where
     type IToL    i v :: *
     type IToL    i v = [(IKey i v, IVal i v)]
 
-    type IType   i v :: *
-    type IType   i v = Textual
+--    type IType   i v :: *
+--    type IType   i v = Textual
 
     type ICon    i v :: Constraint
     type ICon    i v =  ()
@@ -32,10 +32,10 @@ class Index i where
     -- size       :: i -> Context -> RawResult
 
     -- | General lookup function.
-    search       :: ICon i v => IType i v -> IKey i v -> i v -> IToL i v
+    search       :: ICon i v => Textual -> IKey i v -> i v -> IToL i v
 
     -- TODO: remove this later
-    lookup       :: ICon i v => IType i v -> IKey i v -> i v -> IToL i v
+    lookup       :: ICon i v => Textual -> IKey i v -> i v -> IToL i v
     lookup       = search
 
     -- | Insert occurrences.

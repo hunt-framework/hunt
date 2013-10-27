@@ -22,7 +22,7 @@ instance Index (ContextIndex impl) where
     type IToL  (ContextIndex impl) v = [(Context, IToL impl v)]
     type ICon  (ContextIndex impl) v = ( Index impl
                                        , IVal  (ContextIndex impl) v ~ IVal  impl v
-                                       , IType (ContextIndex impl) v ~ IType impl v
+--                                       , IType (ContextIndex impl) v ~ IType impl v
                                        , ICon impl v
                                        )
 
@@ -72,8 +72,9 @@ instance Index (ContextIndex impl) where
     map f (ContextIx m)
         = ContextIx $ M.map (Ix.map f) m
 
+    -- | TODO implemnet function
     keys (ContextIx m)
-        = M.keys m
+        = undefined --M.keys m
 
     -- | TODO: implement function
     unionWith --op (ContextIx i1) (ContextIx i2)

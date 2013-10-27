@@ -19,5 +19,5 @@ type TextIndex i v
     , v ~ IVal i v
     , v ~ Occurrences
     , IKey  i v ~ Word
-    , IType i v ~ Textual
+--    , IType i v ~ Textual
     , IToL  i v ~ [(Word, Occurrences)])

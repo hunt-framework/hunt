@@ -1,5 +1,6 @@
 module Holumbus.Index.InvertedIndex 
-(InvertedIndex(..))
+( InvertedIndex(..)
+)
 where
 
 import           Prelude                           as P
@@ -7,11 +8,11 @@ import           Prelude                           as P
 import           Control.Applicative               ((<$>))
 import           Control.Arrow                     (first)
 
-import           Data.Text                         (Text, pack, unpack)
+import           Data.Text                         (pack, unpack)
 
 import           Holumbus.Index.Common
 import           Holumbus.Common.Compression hiding (delete)
-import           Holumbus.Common.Occurrences       (Occurrences)
+--import           Holumbus.Common.Occurrences       (Occurrences)
 import qualified Holumbus.Common.Occurrences as Occ
 
 import           Holumbus.Index.Index

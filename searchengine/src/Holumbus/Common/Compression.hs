@@ -58,12 +58,12 @@ type CompressedPositions        = DiffList
 
 -- ----------------------------------------------------------------------------
 class OccCompression cv where
-    compress   :: Occurrences -> cv
-    decompress :: cv -> Occurrences
+    compressOcc   :: Occurrences -> cv
+    decompressOcc :: cv -> Occurrences
 
 instance OccCompression CompressedOccurrences where
-    compress = deflateOcc
-    decompress = inflateOcc
+    compressOcc   = deflateOcc
+    decompressOcc = inflateOcc
 
 -- | Decompressing the occurrences by just decompressing all contained positions.
 inflateOcc :: CompressedOccurrences -> Occurrences

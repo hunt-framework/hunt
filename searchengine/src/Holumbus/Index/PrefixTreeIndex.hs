@@ -1,5 +1,6 @@
 module Holumbus.Index.PrefixTreeIndex
-(DmPrefixTree(..))
+( DmPrefixTree(..) 
+)
 where
 
 import           Holumbus.Data.PrefixTree          (PrefixTree)

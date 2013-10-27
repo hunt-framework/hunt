@@ -1,5 +1,6 @@
 module Holumbus.Index.ComprPrefixTreeIndex
-(ComprOccPrefixTree(..))
+( ComprOccPrefixTree(..)
+)
 where
 
 import           Prelude                           as P
@@ -28,7 +29,7 @@ instance Index ComprOccPrefixTree where
     type ICon ComprOccPrefixTree v = (OccCompression (DocIdMap v))
 
     insert k v (ComprPT i)
-        = ComprPT $ insert k (compress v) i
+        = ComprPT $ insert k (compressOcc v) i
 
     batchDelete ks (ComprPT i)
         = ComprPT $ batchDelete ks i
@@ -37,19 +38,19 @@ instance Index ComprOccPrefixTree where
         = ComprPT $ empty
 
     fromList l
-        = ComprPT . fromList $ P.map (second compress) l
+        = ComprPT . fromList $ P.map (second compressOcc) l
 
     toList (ComprPT i)
-        = second decompress <$> toList i
+        = second decompressOcc <$> toList i
 
     search t k (ComprPT i)
-        = second decompress <$> search t k i
+        = second decompressOcc <$> search t k i
 
     unionWith op (ComprPT i1) (ComprPT i2)
-        = ComprPT $ unionWith (\o1 o2 -> compress $ op (decompress o1) (decompress o2)) i1 i2
+        = ComprPT $ unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
 
     map f (ComprPT i)
-        = ComprPT $ Ix.map (compress . f . decompress) i
+        = ComprPT $ Ix.map (compressOcc . f . decompressOcc) i
 
     keys (ComprPT i)
         = keys i
