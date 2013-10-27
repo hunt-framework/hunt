@@ -8,7 +8,7 @@ import qualified Holumbus.Index.Index                as Ix
 import qualified Holumbus.Index.PrefixTreeIndex      as PIx
 import qualified Holumbus.Index.ComprPrefixTreeIndex as CPIx
 import qualified Holumbus.Index.InvertedIndex        as InvIx
---import qualified Holumbus.Index.Proxy.ContextIndex   as ConIx
+import qualified Holumbus.Index.Proxy.ContextIndex   as ConIx
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Occurrences         (Occurrences, singleton, Positions)
 import           Holumbus.Common.Compression
@@ -18,8 +18,10 @@ import qualified Data.Map                            as M
 
 main :: IO ()
 main = defaultMainWithOpts
-       [ testCase "index.DmPrefixTree:         func: insert" insertTestPIx
-       , testCase "index.InvertedIndex:        func: insert" insertTestInvIx
+       [ testCase "DmPrefixTree:            insert" insertTestPIx
+       , testCase "InvertedIndex:           insert" insertTestInvIx
+       , testCase "ComprOccPrefixTree:      insert" insertTestCPIx
+       , testCase "ContextIndex Inverted:   insert" insertTestContextIx
        ] mempty
 
 {--
@@ -29,7 +31,7 @@ main = defaultMainWithOpts
 -- | general check function
 insertTest emptyIndex k v = v == nv
   where
-  [(nk,nv)] = (Ix.search PrefixNoCase k $ Ix.insert k v emptyIndex)
+  [(_,nv)] = (Ix.search PrefixNoCase k $ Ix.insert k v emptyIndex)
 
 -- | check DmPrefixTree
 insertTestPIx :: Assertion
@@ -40,13 +42,13 @@ insertTestPIx
     (singleton 1 1)
 
 -- | check ComprOccPrefixTree
-{--insertTestCPIx :: Assertion
+insertTestCPIx :: Assertion
 insertTestCPIx 
   = True @?= insertTest 
     (Ix.empty::(CPIx.ComprOccPrefixTree CompressedPositions)) 
     "test" 
-    (deflateOcc $ singleton 1 1)
---}
+    (singleton 1 1)
+
 --
 -- | check InvertedIndex
 insertTestInvIx :: Assertion
@@ -57,8 +59,15 @@ insertTestInvIx
     (singleton 1 1)
 
 -- | check ContextIndex
--- TODO
-
+insertTestContextIx :: Assertion
+insertTestContextIx
+  = True @?= newElem == insertedElem
+  where
+  newElem = singleton 1 1
+  [(_,[(_, insertedElem)])] = (ConIx.lookup PrefixNoCase key $ ConIx.insert key newElem emptyIndex)
+  key = (Just "context", Just "word")
+  emptyIndex :: ConIx.ContextIndex InvIx.InvertedIndex Occurrences
+  emptyIndex = ConIx.empty
 
 
 

@@ -32,8 +32,10 @@ insert k v (ContextIx m)
             -- Creates new empty Context, if Context does not exist
             (Just c,  Nothing) -> ContextIx $ M.insertWith (const id) c Ix.empty m
             -- Inserts new pair into index of given context
-            (Just c,  Just w)  -> ContextIx $ M.adjust (Ix.insert w v) c m
-            -- noop
+            (Just c,  Just w)  -> case M.lookup c m of
+                                    (Just _) -> ContextIx $ M.adjust (Ix.insert w v) c m
+                                    _        -> ContextIx $ M.insertWith (const id) c (Ix.insert w v Ix.empty) m 
+            -- noop                 
             (Nothing, Nothing) -> ContextIx m
             -- Wort in alle Kontexte einfuegen
             (Nothing, Just w)  -> ContextIx $ M.map (Ix.insert w v) m
