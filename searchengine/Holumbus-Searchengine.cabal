@@ -105,7 +105,7 @@ library
 --              GeneralizedNewtypeDeriving
 --              TypeSynonymInstances
 
-Test-suite Holumbus
+Test-suite Holumbus-Index
   Hs-Source-Dirs:       test
   Main-Is:              Index.hs
   Type:                 exitcode-stdio-1.0
@@ -119,4 +119,20 @@ Test-suite Holumbus
                , test-framework
                , test-framework-hunit
                , test-framework-quickcheck2
-               , Holumbus-Searchengine   
+               , Holumbus-Searchengine 
+
+Test-suite Holumbus-Interpreter
+  Hs-Source-Dirs:       test
+  Main-Is:              Interpreter.hs
+  Type:                 exitcode-stdio-1.0
+  Ghc-Options:          -Wall
+  Extensions:           OverloadedStrings
+
+  Build-Depends: base                       >= 4.6 && < 5
+               , containers
+               , HUnit
+               , QuickCheck
+               , test-framework
+               , test-framework-hunit
+               , test-framework-quickcheck2
+               , Holumbus-Searchengine    

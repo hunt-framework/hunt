@@ -174,9 +174,7 @@ execCmd NOOP
     = return ResOK  -- keep alive test
 
 execCmd (Insert doc ws)
-    = do
-      _ <- modIx $ execInsert doc ws
-      withIx (\ix -> throwResError 333 $ show ix)
+    = modIx $ execInsert doc ws
 
 execCmd c
     = throwResError 501 $ "command not yet implemented: " ++ show c
