@@ -23,7 +23,7 @@ where
 import           Control.DeepSeq
 import           Control.Monad                    (liftM2, mzero)
 
---import           Data.Aeson
+import           Data.Aeson
 import           Data.Binary                      (Binary (..))
 import           Data.Map                         (Map)
 import           Data.Text                        (Text)
@@ -57,7 +57,6 @@ instance DocumentWrapper Document where
   wrap   = id
 
 -- ------------------------------------------------------------
-{--
 instance ToJSON Document where
   toJSON (Document u d) = object
     [ "uri"   .= u
@@ -73,7 +72,6 @@ instance FromJSON Document where
       , desc    = parsedDesc
       }
   parseJSON _ = mzero
---}
 -- ------------------------------------------------------------
 
 instance Binary Document where

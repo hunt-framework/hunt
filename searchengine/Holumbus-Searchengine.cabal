@@ -70,11 +70,10 @@ library
     Holumbus.Index.PrefixTreeIndex
     Holumbus.Index.ComprPrefixTreeIndex
     Holumbus.Index.InvertedIndex
-    Holumbus.Index.Test
 
     Holumbus.Index.Proxy.ContextIndex
-    Holumbus.Index.Proxy.CompressedIndex
-    Holumbus.Index.Proxy.CachedIndex
+--    Holumbus.Index.Proxy.CompressedIndex
+--    Holumbus.Index.Proxy.CachedIndex
 
     Holumbus.DocTable.Common
     Holumbus.DocTable.DocTable

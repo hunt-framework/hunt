@@ -10,9 +10,9 @@ import qualified Data.Map as M
 
 import           Holumbus.Index.InvertedIndex
 import           Holumbus.DocTable.HashedDocuments
-import           Holumbus.Index.Common (Position, DocId, Words, URI, Description, Document, Occurrences)
-import           Holumbus.Index.Proxy.ContextIndex
-import qualified Holumbus.Index.Index as Ix
+import           Holumbus.Index.Common (Position, DocId, Words, URI, Document, Occurrences)
+import           Holumbus.Index.Proxy.ContextIndex  (ContextIndex)
+import qualified Holumbus.Index.Proxy.ContextIndex  as CIx
 import qualified Holumbus.Common.DocIdMap           as DM
 
 import           Holumbus.Query.Fuzzy
@@ -101,13 +101,13 @@ data Env = Env
     }
 
 emptyIndexer    :: Indexer
-emptyIndexer    = (Ix.empty, empty)
+emptyIndexer    = (CIx.empty, empty)
 
 emptyOptions    :: Options
 emptyOptions    = Dummy
 
 initEnv :: Indexer -> Options -> IO Env
-initEnv ixx@(ix,dt) opt
+initEnv ixx opt
     = do ixref <- newMVar ixx
          return $ Env ixref opt
 
@@ -175,7 +175,7 @@ execCmd NOOP
 
 execCmd (Insert doc ws)
     = do
-      modIx $ execInsert doc ws
+      _ <- modIx $ execInsert doc ws
       withIx (\ix -> throwResError 333 $ show ix)
 
 execCmd c
@@ -190,7 +190,7 @@ execCompletion px _ix
 execSearch :: String -> Indexer -> CM CmdRes
 execSearch q (ix,dt)
       =  case parseQuery q of
-          (Left err) -> throwResError 502 "not implemented"
+          (Left _) -> throwResError 502 "not implemented"
           (Right query) -> do
             res <- runQueryM ix dt query
             return $ ResSearch $ map (\(_,(DocInfo d _,_)) -> unwrap d) . DM.toList . docHits $ res
@@ -222,7 +222,7 @@ addWords :: Words -> DocId -> ContextIndex InvertedIndex Occurrences -> ContextI
 addWords wrds dId i 
   = M.foldrWithKey (\c wl acc ->
       M.foldrWithKey (\w ps acc' ->
-        Ix.insert (Just c, Just w) (mkOccs dId ps) acc')
+        CIx.insert (Just c, Just w) (mkOccs dId ps) acc')
       acc wl)
       i wrds
   where
@@ -231,7 +231,3 @@ addWords wrds dId i
 
   positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
   positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws
-
-
-
-test1 ws id = addWords ws id Ix.empty  
