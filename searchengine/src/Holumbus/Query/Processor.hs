@@ -35,7 +35,7 @@ module Holumbus.Query.Processor
   , processPartialM
 
   -- * ?
-  , getFuzzyConfigM  
+  , getFuzzyConfigM
   , setContextsM
   , initStateM
   , forAllContextsM
@@ -60,7 +60,7 @@ import           Holumbus.Common             (Context, DocId, Position,
 import qualified Holumbus.Common.DocIdMap    as DM
 import           Holumbus.Common.Occurrences as Occ
 
-import           Holumbus.Index.TextIndex          
+import           Holumbus.Index.TextIndex
 
 import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx

@@ -42,7 +42,7 @@ insertTest :: (Ix.Index i, Eq (Ix.IVal i v), (Ix.ICon i v)) =>
               i v -> Ix.IKey i v -> Ix.IVal i v -> Bool
 insertTest emptyIndex k v = v == nv
   where
-  [(_,nv)] = (Ix.search PrefixNoCase k $ Ix.insert k v emptyIndex)
+  [(_,nv)] = Ix.search PrefixNoCase k $ Ix.insert k v emptyIndex
 
 -- | check DmPrefixTree
 insertTestPIx :: Assertion
@@ -65,7 +65,7 @@ insertTestCPIx
 insertTestInvIx :: Assertion
 insertTestInvIx
   = True @?= insertTest
-    (Ix.empty::(InvIx.InvertedIndex Occurrences))
+    (Ix.empty::(InvIx.InvertedIndex Occurrences)) -- the Occurrences type is a dummy in this case
     "test"
     (singleton 1 1)
 
@@ -77,7 +77,7 @@ insertTestContextIx
     "context" @?= c
   where
   newElem = singleton 1 1
-  [(c,[(_, insertedElem)])] = (ConIx.lookup PrefixNoCase key $ ConIx.insert key newElem emptyIndex)
+  [(c,[(_, insertedElem)])] = ConIx.lookup PrefixNoCase key $ ConIx.insert key newElem emptyIndex
   key = (Just "context", Just "word")
   emptyIndex :: ConIx.ContextIndex InvIx.InvertedIndex Occurrences
   emptyIndex = ConIx.empty
@@ -96,8 +96,8 @@ insertTestContext = "test" @?= insertedContext
 addWordsTest :: Assertion
 addWordsTest = True @?= length resList == 1
   where
-  [(_,resList)] = (ConIx.lookup PrefixNoCase (Just "default", Just "word") $ resIx)
-  resIx = addWords (mkWords "default") 1 emptyIndex
+  [(_,resList)] = ConIx.lookup PrefixNoCase (Just "default", Just "word") $ resIx
+  resIx = addWords (wrds "default") 1 emptyIndex
   emptyIndex :: ConIx.ContextIndex InvIx.InvertedIndex Occurrences
   emptyIndex =  ConIx.empty
 
@@ -105,11 +105,11 @@ addWordsTest = True @?= length resList == 1
 -- helper
 -- ----------------------------------------------------------------------------
 
-mkWordList :: WordList
-mkWordList = M.fromList $ [("word", [1,5,10])]
+wordList :: WordList
+wordList = M.fromList $ [("word", [1,5,10])]
 
-mkWords :: Word -> Words
-mkWords w = M.fromList $ [(w, mkWordList)]
+wrds :: Word -> Words
+wrds w = M.fromList $ [(w, wordList)]
 
-mkDoc :: Document
-mkDoc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")])
+doc :: Document
+doc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")])

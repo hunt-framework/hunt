@@ -19,13 +19,12 @@ import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
 import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
-import           Holumbus.Query.Result
+import           Holumbus.Query.Result             as QRes
 
 import qualified Holumbus.Common.DocIdMap          as DM
 import           Holumbus.Common.Document          (unwrap)
 import qualified Holumbus.Common.Occurrences       as Occ
 
-import           Holumbus.DocTable.DocTable        (DValue)
 import qualified Holumbus.DocTable.DocTable        as Dt
 import           Holumbus.DocTable.HashedDocuments
 
@@ -94,12 +93,14 @@ instance ToJSON CmdError      where toJSON = undefined
 -- with a MVar for storing the index
 -- so the MVar acts as a global state (within IO)
 
-type Indexer    = (ContextIndex InvertedIndex Occurrences, Documents Document)
-type Options    = Dummy
+type Indexer
+    = (ContextIndex InvertedIndex Occurrences, Documents Document)
+
+type Options = Dummy
 
 data Env = Env
-    { _theIndex      :: MVar Indexer
-    , _theOptions    :: Options
+    { evIndexer  :: MVar Indexer
+    , evOptions  :: Options
     }
 
 emptyIndexer    :: Indexer
@@ -132,13 +133,13 @@ runCmd env cmd
 
 askIx :: CM Indexer
 askIx
-    = do ref <- asks _theIndex
+    = do ref <- asks evIndexer
          liftIO $ readMVar ref
 
 -- FIXME: io exception-safe?
 modIx :: (Indexer -> CM (Indexer, a)) -> CM a
 modIx f
-    = do ref <- asks _theIndex
+    = do ref <- asks evIndexer
          ix <- liftIO $ takeMVar ref
          (i',a) <- f ix `catchError` putBack ref ix
          liftIO $ putMVar ref i'
@@ -151,7 +152,6 @@ modIx f
 modIx_ :: (Indexer -> CM Indexer) -> CM ()
 modIx_ f = modIx f'
     where f' i = f i >>= \r -> return (r, ())
-
 
 withIx :: (Indexer -> CM a) -> CM a
 withIx f
@@ -185,24 +185,25 @@ execCmd c
 -- ----------------------------------------------------------------------------
 
 execCompletion :: String -> Indexer -> CM CmdRes
-execCompletion px _ix
+execCompletion px _ix -- TODO: impl
     = return $ ResCompl [px, px++"0"]
 
 execSearch :: String -> Indexer -> CM CmdRes
-execSearch q (ix,dt)
+execSearch q (ix, dt)
       =  case parseQuery q of
           (Left _) -> throwResError 502 "not implemented"
           (Right query) -> do
             res <- runQueryM ix dt query
-            return $ ResSearch $ map (\(_,(DocInfo d _,_)) -> unwrap d) . DM.toList . docHits $ res
+            return $ ResSearch $ map (\(_, (DocInfo d _, _)) -> unwrap d) . DM.toList . docHits $ res
 
 execSequence :: [Command] -> CM CmdRes
 execSequence []       = execCmd NOOP
 execSequence [c]      = execCmd c
 execSequence (c : cs) = execCmd c >> execSequence cs
 
-execInsert :: Document -> Words -> Indexer -> CM (Indexer,CmdRes)
-execInsert doc wrds (ix,dt) = return ((newIndex, newDocTable),ResOK)
+execInsert :: Document -> Words -> Indexer -> CM (Indexer, CmdRes)
+execInsert doc wrds (ix,dt) -- TODO: impl
+  = return ((newIndex, newDocTable), ResOK)
   where
   (did, newDocTable) = Dt.insert dt doc
   cix                = CIx.insertContext "default" ix -- remove this line later
@@ -217,5 +218,5 @@ queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) T
 runQueryM       :: ContextIndex InvertedIndex Occurrences
                 -> Documents Document
                 -> Query
-                -> CM (Holumbus.Query.Result.Result (Holumbus.DocTable.DocTable.DValue (Documents Document)))
+                -> CM (QRes.Result (Dt.DValue (Documents Document)))
 runQueryM       = processQueryM queryConfig

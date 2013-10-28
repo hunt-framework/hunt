@@ -20,12 +20,14 @@ import qualified Holumbus.Index.Index    as Ix
 
 -- ----------------------------------------------------------------------------
 
-newtype ContextIndex impl v = ContextIx (Map Context (impl v))
+newtype ContextIndex impl v
+    = ContextIx (Map Context (impl v))
     deriving (Show)
 
-type ContextIxCon impl v = ( Ix.Index impl
-                           , Ix.ICon impl v
-                           )
+type ContextIxCon impl v
+    = ( Ix.Index impl
+      , Ix.ICon impl v
+      )
 
 -- ----------------------------------------------------------------------------
 
@@ -38,9 +40,9 @@ insert :: ContextIxCon impl v =>
 insert k v (ContextIx m)
     = case k of
         -- Creates new empty Context, if Context does not exist
-        (Just c,  Nothing) -> ContextIx $ M.insertWith (const id) c Ix.empty m
+        (Just c, Nothing) -> ContextIx $ M.insertWith (const id) c Ix.empty m
         -- Inserts new pair into index of given context
-        (Just c,  Just w)  -> case M.lookup c m of
+        (Just c, Just w)  -> case M.lookup c m of
             (Just _) -> ContextIx $ M.adjust (Ix.insert w v) c m
             _        -> ContextIx $ M.insertWith (const id) c (Ix.insert w v Ix.empty) m
         -- noop
@@ -59,8 +61,8 @@ lookup :: ContextIxCon i v =>
 lookup t k (ContextIx m)
     = case k of
         (Just c,  Just w)  -> case M.lookup c m of
-                                  (Just cm) -> [(c, Ix.search t w cm)]
-                                  _         -> []
+            (Just cm) -> [(c, Ix.search t w cm)]
+            _         -> []
         (Nothing, Just w)  -> M.toList $ M.map (Ix.search t w) m
         _                  -> []
 

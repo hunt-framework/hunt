@@ -20,7 +20,8 @@ import qualified Holumbus.Data.PrefixTree       as PT
 
 -- ----------------------------------------------------------------------------
 
-newtype ComprOccPrefixTree cv = ComprPT { comprPT :: DmPrefixTree cv}
+newtype ComprOccPrefixTree cv
+    = ComprPT { comprPT :: DmPrefixTree cv}
     deriving Show
 
 -- ----------------------------------------------------------------------------

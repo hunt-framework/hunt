@@ -20,7 +20,7 @@ import           Holumbus.Index.Index                as Ix
 
 -- ----------------------------------------------------------------------------
 
-newtype InvertedIndex v
+newtype InvertedIndex _v
     = InvIx { invIx :: ComprOccPrefixTree CompressedPositions }
     deriving Show
 

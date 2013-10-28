@@ -9,7 +9,8 @@ import           Test.HUnit
 import qualified Data.Map                            as M
 import           Holumbus.Common
 import           Holumbus.Interpreter.Interpreter
-import           Data.Either                         (rights)
+
+import           Holumbus.Utility                    (isRight)
 
 -- ----------------------------------------------------------------------------
 
@@ -23,11 +24,7 @@ main = defaultMainWithOpts
 insertTestEmpty :: Assertion
 insertTestEmpty = do
   (res, _env) <- testRunCmd batchCmd
-  True @?= eitherIsRight res
-  --True @?= notEmpty res
-  where
-  eitherIsRight res = 1 == (length $ rights [res])
-  --notEmpty res = 1 == (length . _theDocs . head $ rights [res])
+  True @?= isRight res
 
 testRunCmd :: Command -> IO (Either CmdError CmdRes, Env)
 testRunCmd cmd = do
@@ -35,16 +32,16 @@ testRunCmd cmd = do
   res <- runCmd env cmd
   return (res, env)
 
-mkWordList :: WordList
-mkWordList = M.fromList $ [("hallo", [1,5,10])]
+wordList :: WordList
+wordList = M.fromList $ [("hallo", [1,5,10])]
 
-mkWords :: Words
-mkWords = M.fromList $ [("default", mkWordList)]
+wrds :: Words
+wrds = M.fromList $ [("default", wordList)]
 
-mkDoc :: Document
-mkDoc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")])
+doc :: Document
+doc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")])
 
 insertCmd, searchCmd, batchCmd :: Command
-insertCmd = Insert mkDoc mkWords
+insertCmd = Insert doc wrds
 searchCmd = Search "d"
-batchCmd = Sequence [insertCmd,searchCmd]
+batchCmd  = Sequence [insertCmd, searchCmd]

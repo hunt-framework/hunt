@@ -11,7 +11,8 @@ import           Holumbus.Index.Index
 
 -- ----------------------------------------------------------------------------
 
-newtype DmPrefixTree v = DmPT (PrefixTree (DocIdMap v))
+newtype DmPrefixTree v
+    = DmPT (PrefixTree (DocIdMap v))
     deriving Show
 
 -- ----------------------------------------------------------------------------
