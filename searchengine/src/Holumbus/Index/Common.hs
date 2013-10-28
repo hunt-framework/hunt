@@ -38,7 +38,7 @@ import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.DocId
 import           Holumbus.Common.DocIdMap    (DocIdMap, DocIdSet)
 import           Holumbus.Common.Document    (Description, Document (..),
-                                                    DocumentWrapper (wrap, unwrap))
+                                              DocumentWrapper (wrap, unwrap))
 import           Holumbus.Common.Occurrences (Occurrences, Positions)
 import           Holumbus.Common.RawResult
 

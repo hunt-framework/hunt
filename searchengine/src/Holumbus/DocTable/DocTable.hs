@@ -5,20 +5,18 @@
 module Holumbus.DocTable.DocTable
 where
 
-import           Prelude                          hiding (filter, lookup, map,
-                                                   null)
-import qualified Prelude                          as P
+import           Prelude                    hiding (filter, lookup, map, null)
+import qualified Prelude                    as P
 
-import           Data.Maybe                       (catMaybes)
-import           Data.Set                         (Set)
-import qualified Data.Set                         as S
+import           Data.Maybe                 (catMaybes)
+import           Data.Set                   (Set)
+import qualified Data.Set                   as S
 
-import           Holumbus.Common.DocId            (DocId)
-import           Holumbus.Common.BasicTypes       (URI)
-import           Holumbus.Common.Document         (DocumentWrapper)
-import           Holumbus.Common.DocIdMap         (DocIdMap (..), DocIdSet, toDocIdSet)
-
-
+import           Holumbus.Common.BasicTypes (URI)
+import           Holumbus.Common.DocId      (DocId)
+import           Holumbus.Common.DocIdMap   (DocIdMap (..), DocIdSet,
+                                             toDocIdSet)
+import           Holumbus.Common.Document   (DocumentWrapper)
 
 -- ----------------------------------------------------------------------------
 

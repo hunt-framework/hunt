@@ -185,7 +185,7 @@ start = scotty 3000 $ do
     ds <- withIx $ return . Dt.size . Ixx.ixDocTable
     html . Tmpl.index $ ds
   get "/add"      $ html Tmpl.addDocs
-  
+
   -- simple query
   get "/search/:query" $ do
     query    <- param "query"

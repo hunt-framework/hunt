@@ -1,8 +1,8 @@
 {-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE Rank2Types        #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module Holumbus.Index.TextIndex
 ( TextIndex
@@ -11,13 +11,14 @@ module Holumbus.Index.TextIndex
 )
 where
 
-import qualified Data.Map                            as M
+import qualified Data.Map                          as M
+
+import qualified Holumbus.Common.Occurrences       as Occ
 
 import           Holumbus.Index.Common
 import           Holumbus.Index.Index
-import           Holumbus.Index.Proxy.ContextIndex   (ContextIxCon, ContextIndex)
-import qualified Holumbus.Index.Proxy.ContextIndex   as CIx
-import qualified Holumbus.Common.Occurrences         as Occ
+import           Holumbus.Index.Proxy.ContextIndex (ContextIndex, ContextIxCon)
+import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 
 -- ----------------------------------------------------------------------------
 
@@ -30,18 +31,21 @@ type TextIndex i v
     , IKey i v ~ Word
     )
 
-type ContextTextIndex i v = ( ContextIxCon i v
-                            , Index i
-                            , ICon i Occurrences
-                            , IKey i Occurrences ~ Word
-                            , TextIndex i v
-                            )
+type ContextTextIndex i v
+  = ( ContextIxCon i v
+    , Index i
+    , ICon i Occurrences
+    , IKey i Occurrences ~ Word
+    , TextIndex i v
+    )
+
+-- ----------------------------------------------------------------------------
 
 -- | Add words for a document to the 'Index'.
 -- | Note: adds words to every >existing< Context
-addWords :: TextIndex i Occurrences 
+addWords :: TextIndex i Occurrences
          => Words -> DocId -> ContextIndex i Occurrences -> ContextIndex i Occurrences
-addWords wrds dId i 
+addWords wrds dId i
   = M.foldrWithKey (\c wl acc ->
       M.foldrWithKey (\w ps acc' ->
         CIx.insert (Just c, Just w) (mkOccs dId ps) acc')
@@ -53,4 +57,3 @@ addWords wrds dId i
 
   positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
   positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws
-

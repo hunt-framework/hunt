@@ -1,27 +1,30 @@
-module Holumbus.Index.InvertedIndex 
+module Holumbus.Index.InvertedIndex
 ( InvertedIndex(..)
 )
 where
 
-import           Prelude                           as P
+import           Prelude                             as P
 
-import           Control.Applicative               ((<$>))
-import           Control.Arrow                     (first)
+import           Control.Applicative                 ((<$>))
+import           Control.Arrow                       (first)
 
-import           Data.Text                         (pack, unpack)
+import           Data.Text                           (pack, unpack)
 
+import           Holumbus.Common.Compression         hiding (delete)
 import           Holumbus.Index.Common
-import           Holumbus.Common.Compression hiding (delete)
 --import           Holumbus.Common.Occurrences       (Occurrences)
-import qualified Holumbus.Common.Occurrences as Occ
+import qualified Holumbus.Common.Occurrences         as Occ
 
-import           Holumbus.Index.Index
-import qualified Holumbus.Index.Index        as Ix
 import           Holumbus.Index.ComprPrefixTreeIndex
+import           Holumbus.Index.Index                as Ix
+
+-- ----------------------------------------------------------------------------
 
 newtype InvertedIndex v
     = InvIx { invIx :: ComprOccPrefixTree CompressedPositions }
     deriving Show
+
+-- ----------------------------------------------------------------------------
 
 instance Index InvertedIndex where
     type IKey InvertedIndex v = Word

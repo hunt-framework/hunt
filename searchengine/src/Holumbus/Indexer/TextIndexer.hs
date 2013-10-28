@@ -29,19 +29,22 @@ import qualified Holumbus.Index.Common.Document    as Doc
 
 type TextIndexer i dt = (TIx.TextIndex i Occurrences, DocTable dt)
 
-data Indexer i dt = Indexer 
+data Indexer i dt = Indexer
   { ixIndex    :: ContextIndex i Occurrences
   , ixDocTable :: dt
   }
 
+-- ----------------------------------------------------------------------------
+
 newInvertedIndexer :: Indexer InvertedIndex (Hdt.Documents Document)
-newInvertedIndexer = Indexer 
+newInvertedIndexer = Indexer
   { ixIndex    = Ix.empty
   , ixDocTable = Hdt.empty
   }
 
+-- ----------------------------------------------------------------------------
 
-insert :: TextIndexer i dt 
+insert :: TextIndexer i dt
        => (Dt.DValue dt) -> Words -> Indexer i dt -> Indexer i dt
 insert doc' wrds ix
   = modIndexer newIndex newDocTable ix
@@ -61,7 +64,7 @@ update docId doc' w ix
 
 
 -- | Modify elements
-modify :: (TextIndexer i dt) 
+modify :: (TextIndexer i dt)
        => (Dt.DValue dt -> Dt.DValue dt)
        -> Words -> DocId -> Indexer i dt -> Indexer i dt
 modify f wrds dId ix
@@ -99,16 +102,16 @@ modIndexer  :: TextIndexer i dt
             => ContextIndex i Occurrences -> dt -> Indexer i dt -> Indexer i dt
 modIndexer ii di ix
   = modDocTable di . modIndex ii $ ix
- 
+
  -- ----------------------------------------------------------------------------
 
 -- | See 'Ix.lookup'.
 searchPrefixNoCase :: TextIndexer i dt => Indexer i dt -> Context -> Word -> [(Context,RawResult)]
-searchPrefixNoCase ti c w = Ix.lookup PrefixNoCase (Just c,Just w) (ixIndex ti) 
+searchPrefixNoCase ti c w = Ix.lookup PrefixNoCase (Just c,Just w) (ixIndex ti)
 
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
-modifyWithDescription :: (TextIndexer i dt) => 
+modifyWithDescription :: (TextIndexer i dt) =>
                          Description -> Words -> DocId -> Indexer i dt -> Indexer i dt
 modifyWithDescription descr wrds dId ix
   = modIndexer newIndex newDocTable ix

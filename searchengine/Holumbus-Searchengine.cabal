@@ -2,9 +2,9 @@ name:          Holumbus-Searchengine
 version:       2.0.0.0
 license:       MIT
 license-file:  LICENSE
-author:        
-copyright:     
-maintainer:    
+author:
+copyright:
+maintainer:
 stability:     experimental
 category:      Text, Data
 synopsis:      A search and indexing engine.
@@ -63,7 +63,7 @@ library
     Holumbus.Common.Occurrences
     Holumbus.Common.RawResult
     Holumbus.Common.Compression
-  
+
     Holumbus.Index.Common
     Holumbus.Index.Index
     Holumbus.Index.TextIndex
@@ -105,34 +105,34 @@ library
 --              GeneralizedNewtypeDeriving
 --              TypeSynonymInstances
 
-Test-suite Holumbus-Index
-  Hs-Source-Dirs:       test
-  Main-Is:              Index.hs
-  Type:                 exitcode-stdio-1.0
-  Ghc-Options:          -Wall
-  Extensions:           OverloadedStrings
+test-suite Holumbus-Index
+  hs-source-dirs:       test
+  main-is:              Index.hs
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -Wall
+  extensions:           OverloadedStrings
 
-  Build-Depends: base                       >= 4.6 && < 5
+  build-depends: base                       >= 4.6 && < 5
                , containers
                , HUnit
                , QuickCheck
                , test-framework
                , test-framework-hunit
                , test-framework-quickcheck2
-               , Holumbus-Searchengine 
+               , Holumbus-Searchengine
 
 Test-suite Holumbus-Interpreter
-  Hs-Source-Dirs:       test
-  Main-Is:              Interpreter.hs
-  Type:                 exitcode-stdio-1.0
-  Ghc-Options:          -Wall
-  Extensions:           OverloadedStrings
+  hs-source-dirs:       test
+  main-is:              Interpreter.hs
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -Wall
+  extensions:           OverloadedStrings
 
-  Build-Depends: base                       >= 4.6 && < 5
+  build-depends: base                       >= 4.6 && < 5
                , containers
                , HUnit
                , QuickCheck
                , test-framework
                , test-framework-hunit
                , test-framework-quickcheck2
-               , Holumbus-Searchengine    
+               , Holumbus-Searchengine

@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Holumbus.Interpreter.Interpreter where
 
 import           Control.Concurrent.MVar
@@ -6,16 +7,13 @@ import           Control.Monad.Error
 import           Control.Monad.Reader
 
 import           Data.Aeson
-import qualified Data.Map as M
 
+import           Holumbus.Index.Common             (Document, Occurrences, URI,
+                                                    Words)
 import           Holumbus.Index.InvertedIndex
-import           Holumbus.DocTable.HashedDocuments
-import           Holumbus.Index.Common (Position, DocId, Words, URI, Document, Occurrences)
-import           Holumbus.Index.Proxy.ContextIndex  (ContextIndex)
-import qualified Holumbus.Index.Proxy.ContextIndex  as CIx
-import           Holumbus.Index.TextIndex
-
-import qualified Holumbus.Common.DocIdMap           as DM
+import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
+import qualified Holumbus.Index.Proxy.ContextIndex as CIx
+--import           Holumbus.Index.TextIndex
 
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
@@ -23,11 +21,14 @@ import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result
 
-import           Holumbus.Common.Document               (unwrap)
+import qualified Holumbus.Common.DocIdMap          as DM
+import           Holumbus.Common.Document          (unwrap)
+import qualified Holumbus.Common.Occurrences       as Occ
 
-import           Holumbus.DocTable.DocTable             (DValue)
-import qualified Holumbus.DocTable.DocTable             as Dt
-import qualified Holumbus.Common.Occurrences            as Occ
+import           Holumbus.DocTable.DocTable        (DValue)
+import qualified Holumbus.DocTable.DocTable        as Dt
+import           Holumbus.DocTable.HashedDocuments
+
 -- ----------------------------------------------------------------------------
 
 data Dummy
@@ -113,9 +114,8 @@ initEnv ixx opt
          return $ Env ixref opt
 
 -- ----------------------------------------------------------------------------
---
 -- the command evaluation monad
-
+-- ----------------------------------------------------------------------------
 newtype CMT m a = CMT { runCMT :: ReaderT Env (ErrorT CmdError m) a }
   deriving (Monad, MonadIO, Functor, MonadReader Env, MonadError CmdError)
 
@@ -123,6 +123,8 @@ instance MonadTrans CMT where
   lift = CMT . lift . lift
 
 type CM = CMT IO
+
+-- ----------------------------------------------------------------------------
 
 runCmd :: Env -> Command -> IO (Either CmdError CmdRes)
 runCmd env cmd
@@ -146,7 +148,7 @@ modIx f
         liftIO $ putMVar ref i
         throwError e
 
-modIx_ :: (Indexer -> CM Indexer) -> CM () 
+modIx_ :: (Indexer -> CM Indexer) -> CM ()
 modIx_ f = modIx f'
     where f' i = f i >>= \r -> return (r, ())
 
@@ -202,20 +204,18 @@ execSequence (c : cs) = execCmd c >> execSequence cs
 execInsert :: Document -> Words -> Indexer -> CM (Indexer,CmdRes)
 execInsert doc wrds (ix,dt) = return ((newIndex, newDocTable),ResOK)
   where
-  (did, newDocTable) = Dt.insert dt doc  
+  (did, newDocTable) = Dt.insert dt doc
   cix                = CIx.insertContext "default" ix -- remove this line later
   newIndex           = CIx.insert (Just "default", Just "word") (Occ.singleton 1 1) cix
---  newIndex           = addWords wrds did cix   
+--  newIndex           = addWords wrds did cix
 
 -- ----------------------------------------------------------------------------
+
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
 runQueryM       :: ContextIndex InvertedIndex Occurrences
                 -> Documents Document
                 -> Query
-                -> CMT IO (Holumbus.Query.Result.Result (Holumbus.DocTable.DocTable.DValue (Documents Document)))
+                -> CM (Holumbus.Query.Result.Result (Holumbus.DocTable.DocTable.DValue (Documents Document)))
 runQueryM       = processQueryM queryConfig
-
-
-

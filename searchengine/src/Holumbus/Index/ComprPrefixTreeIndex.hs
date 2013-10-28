@@ -3,25 +3,27 @@ module Holumbus.Index.ComprPrefixTreeIndex
 )
 where
 
-import           Prelude                           as P
+import           Prelude                        as P
 
 import           Holumbus.Index.Index
-import qualified Holumbus.Index.Index              as Ix
+import qualified Holumbus.Index.Index           as Ix
 import           Holumbus.Index.PrefixTreeIndex
 
-import           Holumbus.Common.Occurrences       (Occurrences)
-import           Holumbus.Common.DocIdMap          (DocIdMap)
-import           Holumbus.Common.Compression       hiding (delete)
+import           Holumbus.Common.Compression    hiding (delete)
+import           Holumbus.Common.DocIdMap       (DocIdMap)
+import           Holumbus.Common.Occurrences    (Occurrences)
 
-import           Control.Applicative               ((<$>))
-import           Control.Arrow                     (second)
+import           Control.Applicative            ((<$>))
+import           Control.Arrow                  (second)
 
-import qualified Holumbus.Data.PrefixTree          as PT
+import qualified Holumbus.Data.PrefixTree       as PT
 
-
+-- ----------------------------------------------------------------------------
 
 newtype ComprOccPrefixTree cv = ComprPT { comprPT :: DmPrefixTree cv}
     deriving Show
+
+-- ----------------------------------------------------------------------------
 
 instance Index ComprOccPrefixTree where
     type IKey ComprOccPrefixTree v = PT.Key
@@ -54,5 +56,3 @@ instance Index ComprOccPrefixTree where
 
     keys (ComprPT i)
         = keys i
-
-

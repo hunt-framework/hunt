@@ -11,18 +11,6 @@ module Holumbus.Index.Proxy.CompressedIndex where
  -}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 {--
 import           Data.ByteString          (ByteString)
 import           Holumbus.Data.PrefixTree (PrefixTree)
@@ -45,8 +33,8 @@ instance Index (CompressedIndex impl) where
                                          , Compression v
                                          , IVal impl v ~ ByteString
                                          , IVal impl ByteString ~ ByteString
-                                         , IKey impl v ~ IKey impl ByteString 
-                                         , ICon impl v                                       
+                                         , IKey impl v ~ IKey impl ByteString
+                                         , ICon impl v
                                          , ICon impl (IVal impl v)
                                          , IType (CompressedIndex impl) v ~ IType impl v
                                          )

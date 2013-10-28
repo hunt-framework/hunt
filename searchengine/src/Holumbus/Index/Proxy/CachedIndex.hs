@@ -14,22 +14,23 @@ import qualified Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Index.Index
 
 -- ------------------------------------------------------------
-newtype CachedIndex impl = CachedIx (DocIdSet, impl) 
+
+newtype CachedIndex impl = CachedIx (DocIdSet, impl)
 
 instance Index CachedIndex where
     type IKey PrefixTree v = PT.Key
- 
-    insert k v (CachedIx (c,i)                 
+
+    insert k v (CachedIx (c,i)
       = CachedIx (c, insert k v i)
 
     batchDelete ks pt      = foldr (\k i -> delete k i) pt ks
-    delete                 = 
+    delete                 =
 
     empty                  = PT.empty
     fromList               = PT.fromList
     toList                 = PT.toList
     search _               = PT.prefixFindWithKey
-    unionWith              = PT.unionWith 
+    unionWith              = PT.unionWith
 
 
 realIx    = deleteDocs keySet i -- the doctable with docs deleted

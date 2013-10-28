@@ -1,5 +1,5 @@
 module Holumbus.Index.PrefixTreeIndex
-( DmPrefixTree(..) 
+( DmPrefixTree(..)
 )
 where
 
@@ -9,8 +9,12 @@ import qualified Holumbus.Data.PrefixTree          as PT
 import           Holumbus.Common.DocIdMap          as DM
 import           Holumbus.Index.Index
 
+-- ----------------------------------------------------------------------------
+
 newtype DmPrefixTree v = DmPT (PrefixTree (DocIdMap v))
     deriving Show
+
+-- ----------------------------------------------------------------------------
 
 instance Index DmPrefixTree where
     type IKey DmPrefixTree v = PT.Key

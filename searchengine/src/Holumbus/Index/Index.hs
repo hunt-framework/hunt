@@ -1,11 +1,10 @@
-{-# LANGUAGE UndecidableInstances #-}
-
 module Holumbus.Index.Index
 where
 
 import           GHC.Exts                       (Constraint)
 
 import qualified Data.IntSet                    as IS
+
 import           Holumbus.Index.Common          (DocId, Textual, DocIdSet)
 
 -- ----------------------------------------------------------------------------

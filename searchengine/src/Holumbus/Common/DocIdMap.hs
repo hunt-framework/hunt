@@ -68,7 +68,6 @@ import qualified Data.IntSet                 as S
 
 import           Holumbus.Common.DocId
 
-
 -- ------------------------------------------------------------
 
 type DocIdSet           = S.IntSet
@@ -188,7 +187,6 @@ elems                   = IM.elems . unDIM
 instance Binary v => Binary (DocIdMap v) where
     put                 = B.put . toList
     get                 = B.get >>= return . fromList
-
 
 -- ------------------------------------------------------------
 

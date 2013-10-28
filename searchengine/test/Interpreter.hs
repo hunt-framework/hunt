@@ -1,3 +1,5 @@
+module Main where
+
 import           Data.Monoid
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -9,6 +11,8 @@ import           Holumbus.Common
 import           Holumbus.Interpreter.Interpreter
 import           Data.Either                         (rights)
 
+-- ----------------------------------------------------------------------------
+
 main :: IO ()
 main = defaultMainWithOpts
        [ testCase "Interpreter:            insert" insertTestEmpty
@@ -18,18 +22,18 @@ main = defaultMainWithOpts
 -- | check DmPrefixTree
 insertTestEmpty :: Assertion
 insertTestEmpty = do
-  (res, env) <- testRunCmd batchCmd
+  (res, _env) <- testRunCmd batchCmd
   True @?= eitherIsRight res
- -- True @?= notEmpty res
+  --True @?= notEmpty res
   where
   eitherIsRight res = 1 == (length $ rights [res])
-  notEmpty res = 1 == (length . _theDocs . head $ rights [res])
-           
+  --notEmpty res = 1 == (length . _theDocs . head $ rights [res])
+
 testRunCmd :: Command -> IO (Either CmdError CmdRes, Env)
 testRunCmd cmd = do
   env <- initEnv emptyIndexer emptyOptions
   res <- runCmd env cmd
-  return (res, env) 
+  return (res, env)
 
 mkWordList :: WordList
 mkWordList = M.fromList $ [("hallo", [1,5,10])]
@@ -43,4 +47,4 @@ mkDoc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")])
 insertCmd, searchCmd, batchCmd :: Command
 insertCmd = Insert mkDoc mkWords
 searchCmd = Search "d"
-batchCmd = Sequence [insertCmd,searchCmd] 
+batchCmd = Sequence [insertCmd,searchCmd]

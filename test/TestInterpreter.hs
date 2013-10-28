@@ -1,13 +1,16 @@
+{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DataKinds #-}
+
 module Main where
 
-import Holumbus.Interpreter.Interpreter
-import qualified Data.Map as M
-import Data.Text (Text)
-import Data.Map (Map)
-import Holumbus.Common.Document
+import           Data.Map                          (Map)
+import qualified Data.Map                          as M
+import           Data.Text                         (Text)
+import           Holumbus.Common.Document
 import qualified Holumbus.Index.Proxy.ContextIndex as Ix
+import           Holumbus.Interpreter.Interpreter
+
+-- ----------------------------------------------------------------------------
 
 main1 :: Command -> IO ()
 main1 c
@@ -47,7 +50,7 @@ mkDoc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")])
 
 insertCmd = Insert mkDoc mkWords
 searchCmd = Search "w"
-batchCmd = Sequence [insertCmd,searchCmd] 
+batchCmd = Sequence [insertCmd,searchCmd]
 
 
 -- --------------------------------------------------------------------------------
@@ -56,4 +59,4 @@ batchCmd = Sequence [insertCmd,searchCmd]
 --test2 = test1 mkWords 1
 
 --test1 :: Words -> Int -> ContextIndex InvertedIndex Occurrences -> ContextIndex InvertedIndex Occurrences
---test1 = addWords mkWords 1 Ix.empty  
+--test1 = addWords mkWords 1 Ix.empty
