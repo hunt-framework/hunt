@@ -157,6 +157,10 @@ withIx :: (Indexer -> CM a) -> CM a
 withIx f
     = askIx >>= f
 
+askOpts :: CM Options
+askOpts
+    = asks evOptions
+
 throwResError :: Int -> String -> CM a
 throwResError n msg
     = throwError $ ResError n msg
