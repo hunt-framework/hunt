@@ -24,6 +24,9 @@ type ContextIxCon impl v = ( Ix.Index impl
                            , Ix.ICon impl v
                            )
 
+insertContext :: ContextIxCon i v => Context -> ContextIndex i v -> ContextIndex i v
+insertContext c (ContextIx m) = ContextIx $ M.insertWith (const id) c Ix.empty m
+
 insert :: ContextIxCon impl v => 
           (Maybe Context, Maybe (Ix.IKey impl v)) -> 
           Ix.IVal impl v -> ContextIndex impl v -> ContextIndex impl v

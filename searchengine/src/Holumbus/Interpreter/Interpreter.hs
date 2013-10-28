@@ -13,6 +13,8 @@ import           Holumbus.DocTable.HashedDocuments
 import           Holumbus.Index.Common (Position, DocId, Words, URI, Document, Occurrences)
 import           Holumbus.Index.Proxy.ContextIndex  (ContextIndex)
 import qualified Holumbus.Index.Proxy.ContextIndex  as CIx
+import           Holumbus.Index.TextIndex
+
 import qualified Holumbus.Common.DocIdMap           as DM
 
 import           Holumbus.Query.Fuzzy
@@ -21,12 +23,11 @@ import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result
 
-import           Holumbus.Common.Document (unwrap)
+import           Holumbus.Common.Document               (unwrap)
 
-import           Holumbus.DocTable.DocTable (DValue)
-import qualified Holumbus.DocTable.DocTable as Dt
-
-import qualified Holumbus.Common.Occurrences as Occ
+import           Holumbus.DocTable.DocTable             (DValue)
+import qualified Holumbus.DocTable.DocTable             as Dt
+import qualified Holumbus.Common.Occurrences            as Occ
 -- ----------------------------------------------------------------------------
 
 data Dummy
@@ -201,8 +202,10 @@ execSequence (c : cs) = execCmd c >> execSequence cs
 execInsert :: Document -> Words -> Indexer -> CM (Indexer,CmdRes)
 execInsert doc wrds (ix,dt) = return ((newIndex, newDocTable),ResOK)
   where
-  (did, newDocTable) = Dt.insert dt doc
-  newIndex           = addWords wrds did ix 
+  (did, newDocTable) = Dt.insert dt doc  
+  cix                = CIx.insertContext "default" ix -- remove this line later
+  newIndex           = CIx.insert (Just "default", Just "word") (Occ.singleton 1 1) cix
+--  newIndex           = addWords wrds did cix   
 
 -- ----------------------------------------------------------------------------
 queryConfig     :: ProcessConfig
@@ -215,17 +218,4 @@ runQueryM       :: ContextIndex InvertedIndex Occurrences
 runQueryM       = processQueryM queryConfig
 
 
--- | Add words for a document to the 'Index'.
-addWords :: Words -> DocId -> ContextIndex InvertedIndex Occurrences -> ContextIndex InvertedIndex Occurrences
-addWords wrds dId i 
-  = M.foldrWithKey (\c wl acc ->
-      M.foldrWithKey (\w ps acc' ->
-        CIx.insert (Just c, Just w) (mkOccs dId ps) acc')
-      acc wl)
-      i wrds
-  where
-  mkOccs            :: DocId -> [Position] -> Occurrences
-  mkOccs did pl     = positionsIntoOccs did pl Occ.empty
 
-  positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
-  positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws

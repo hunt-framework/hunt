@@ -4,6 +4,7 @@ import          Test.Framework.Providers.HUnit
 --import          Test.Framework.Providers.QuickCheck2
 import          Test.HUnit
 --import          Test.QuickCheck
+import           Holumbus.Index.TextIndex
 import qualified Holumbus.Index.Index                as Ix
 import qualified Holumbus.Index.PrefixTreeIndex      as PIx
 import qualified Holumbus.Index.ComprPrefixTreeIndex as CPIx
@@ -18,10 +19,12 @@ import qualified Data.Map                            as M
 
 main :: IO ()
 main = defaultMainWithOpts
-       [ testCase "DmPrefixTree:            insert" insertTestPIx
-       , testCase "InvertedIndex:           insert" insertTestInvIx
-       , testCase "ComprOccPrefixTree:      insert" insertTestCPIx
-       , testCase "ContextIndex Inverted:   insert" insertTestContextIx
+       [ testCase "DmPrefixTree:            insert"        insertTestPIx
+       , testCase "InvertedIndex:           insert"        insertTestInvIx
+       , testCase "ComprOccPrefixTree:      insert"        insertTestCPIx
+       , testCase "ContextIndex Inverted:   insert"        insertTestContextIx
+       , testCase "ContextIndex Inverted:   insertContext" insertTestContext
+       , testCase "TextIndex:               addWords"      addWordsTest
        ] mempty
 
 {--
@@ -61,25 +64,46 @@ insertTestInvIx
 -- | check ContextIndex
 insertTestContextIx :: Assertion
 insertTestContextIx
-  = True @?= newElem == insertedElem
+  = do
+    True @?= newElem == insertedElem
+    "context" @?= c
   where
   newElem = singleton 1 1
-  [(_,[(_, insertedElem)])] = (ConIx.lookup PrefixNoCase key $ ConIx.insert key newElem emptyIndex)
+  [(c,[(_, insertedElem)])] = (ConIx.lookup PrefixNoCase key $ ConIx.insert key newElem emptyIndex)
   key = (Just "context", Just "word")
   emptyIndex :: ConIx.ContextIndex InvIx.InvertedIndex Occurrences
   emptyIndex = ConIx.empty
 
+insertTestContext :: Assertion
+insertTestContext = "test" @?= insertedContext
+  where
+  [insertedContext] = ConIx.keys ix
+  ix :: ConIx.ContextIndex InvIx.InvertedIndex Occurrences
+  ix = ConIx.insertContext "test" ConIx.empty
+
+{--
+ - check helper functions
+ -}
+
+addWordsTest :: Assertion
+addWordsTest = True @?= length resList == 1
+  where
+  [(_,resList)] = (ConIx.lookup PrefixNoCase (Just "default", Just "word") $ resIx)
+  resIx = addWords (mkWords "default") 1 emptyIndex 
+  emptyIndex :: ConIx.ContextIndex InvIx.InvertedIndex Occurrences
+  emptyIndex =  ConIx.empty
 
 
+--
 --------------------------------------------------------------------------------------
 -- helper
 --
 
 mkWordList :: WordList
-mkWordList = M.fromList $ [("hallo", [1,5,10])]
+mkWordList = M.fromList $ [("word", [1,5,10])]
 
-mkWords :: Words
-mkWords = M.fromList $ [("default", mkWordList)]
+mkWords :: Word -> Words
+mkWords w = M.fromList $ [(w, mkWordList)]
 
 mkDoc :: Document
 mkDoc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")])

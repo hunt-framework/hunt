@@ -6,7 +6,7 @@ import Holumbus.Interpreter.Interpreter
 import qualified Data.Map as M
 import Data.Text (Text)
 import Data.Map (Map)
-import Holumbus.Index.Common.Document
+import Holumbus.Common.Document
 import qualified Holumbus.Index.Proxy.ContextIndex as Ix
 
 main1 :: Command -> IO ()
@@ -37,16 +37,16 @@ type Words = Map Context WordList
 type WordList = Map Word [Position]
 
 mkWordList :: WordList
-mkWordList = M.fromList $ [("hallo", [1,5,10])]
+mkWordList = M.fromList $ [("word", [1,5,10])]
 
 mkWords :: Words
-mkWords = M.fromList $ [("default", mkWordList)]
+mkWords = M.fromList $ [("context", mkWordList)]
 
 mkDoc :: Document
 mkDoc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")])
 
 insertCmd = Insert mkDoc mkWords
-searchCmd = Search "d"
+searchCmd = Search "w"
 batchCmd = Sequence [insertCmd,searchCmd] 
 
 
