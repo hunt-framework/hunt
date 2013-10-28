@@ -17,16 +17,16 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.RawResult
+module Holumbus.Common.RawResult
 where
 
 import           Data.Map                          (Map)
 import qualified Data.Map                          as M
 
-import           Holumbus.Index.Common.BasicTypes
-import           Holumbus.Index.Common.DocIdMap    (DocIdMap)
-import qualified Holumbus.Index.Common.DocIdMap    as DM
-import           Holumbus.Index.Common.Occurrences
+import           Holumbus.Common.BasicTypes
+import           Holumbus.Common.DocIdMap    (DocIdMap)
+import qualified Holumbus.Common.DocIdMap    as DM
+import           Holumbus.Common.Occurrences
 
 -- ------------------------------------------------------------
 

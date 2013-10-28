@@ -15,17 +15,17 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.Occurrences
+module Holumbus.Common.Occurrences
 where
 
 import           Prelude                          hiding (subtract)
 
 import qualified Data.IntSet                      as IS
 
-import           Holumbus.Index.Common.BasicTypes
-import           Holumbus.Index.Common.DocId
-import           Holumbus.Index.Common.DocIdMap   (DocIdMap)
-import qualified Holumbus.Index.Common.DocIdMap   as DM
+import           Holumbus.Common.BasicTypes
+import           Holumbus.Common.DocId
+import           Holumbus.Common.DocIdMap   (DocIdMap)
+import qualified Holumbus.Common.DocIdMap   as DM
 
 -- ------------------------------------------------------------
 

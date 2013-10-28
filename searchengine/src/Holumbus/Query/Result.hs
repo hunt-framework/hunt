@@ -56,8 +56,8 @@ import           Data.Map                       (Map)
 import qualified Data.Map                       as M
 import           Data.Text                      (Text)
 
-import           Holumbus.Index.Common
-import qualified Holumbus.Index.Common.DocIdMap as DM
+import           Holumbus.Common
+import qualified Holumbus.Common.DocIdMap as DM
 
 -- ----------------------------------------------------------------------------
 

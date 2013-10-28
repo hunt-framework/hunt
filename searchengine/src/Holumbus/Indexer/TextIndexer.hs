@@ -1,75 +1,51 @@
-{-# LANGUAGE ConstraintKinds      #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE Rank2Types        #-}
 
-module Holumbus.Indexer.TextIndexer
-  ( module Holumbus.Indexer.Indexer
-  , TextIndexer
-  , searchPrefixNoCase
-  , allWords
-  , modifyWithDescription
-  , update
-  , insert
-  , modify
-  )
-where
+module Holumbus.Indexer.TextIndexer where
 
+import           Data.Set                          (Set)
+import qualified Data.Set                          as S
 import qualified Data.IntSet                       as IS
 import qualified Data.Map                          as M
 
-import           Holumbus.Index.Common
-import qualified Holumbus.Index.Common.Document    as Doc
-import qualified Holumbus.Index.Common.Occurrences as Occ
+--import qualified Holumbus.Index.Common.Occurrences as Occ
+import           Holumbus.Utility                  (catMaybesSet)
 
+import           Holumbus.DocTable.DocTable        (DocTable)
 import qualified Holumbus.DocTable.DocTable        as Dt
-
+import qualified Holumbus.DocTable.HashedDocuments as Hdt
+import           Holumbus.Index.Common
+import           Holumbus.Index.Common.DocIdMap    (DocIdSet, toDocIdSet)
+--import           Holumbus.Index.Index              (Index)
 import qualified Holumbus.Index.Index              as Ix
-import           Holumbus.Index.TextIndex          (TextIndex)
-
-import           Holumbus.Indexer.Indexer          hiding (insert, modify,
-                                                    update)
-import qualified Holumbus.Indexer.Indexer          as Ixx
-
--- ----------------------------------------------------------------------------
-
--- TODO: remove Words constraint
--- | TextIndexer with 'Index' implementation, 'DocTable' implementation and element type parameter.
---   Uses 'Textual' and 'Occurrences' as index and value type.
---   Uses 'Words' as elem type.
-type TextIndexer i = (Indexer i, TextIndex (IxIndex i), IxElem i ~ Words)
+import qualified Holumbus.Index.TextIndex          as TIx
+import           Holumbus.Index.InvertedIndex
+import           Holumbus.Index.Proxy.ContextIndex
+import qualified Holumbus.Index.Common.Document    as Doc
 
 -- ----------------------------------------------------------------------------
 
--- index functions
+type TextIndexer i dt = (TIx.TextIndex i Occurrences, DocTable dt)
 
--- TODO: lonely text function?
--- | See 'Ix.lookup'.
-searchPrefixNoCase    :: TextIndexer i => i -> Context -> Word -> RawResult
-searchPrefixNoCase
-  = Ix.lookup PrefixNoCase . ixIndex
+data Indexer i dt = Indexer
+  { ixIndex    :: ContextIndex i Occurrences
+  , ixDocTable :: dt
+  }
 
--- | See 'Ix.size'.
-allWords              :: TextIndexer i => i -> Context -> RawResult
-allWords
-  = Ix.size . ixIndex
+-- ----------------------------------------------------------------------------
 
--- | Updates a document by 'DocId'.
-update                :: (TextIndexer i, de ~ Dt.DValue (IxDocTable i)) =>
-                         DocId -> de -> Words
-                         -> i
-                         -> i
-update docId doc' w ix
-  = insert doc' w ix'
-  where
-  ix' = Ixx.delete ix (IS.singleton docId)
+newInvertedIndexer :: Indexer InvertedIndex (Hdt.Documents Document)
+newInvertedIndexer = Indexer
+  { ixIndex    = Ix.empty
+  , ixDocTable = Hdt.empty
+  }
 
--- | Insert a document.
-insert                :: (TextIndexer ix, de ~ Dt.DValue (IxDocTable ix)) =>
-                         de -> Words
-                         -> ix
-                         -> ix
+-- ----------------------------------------------------------------------------
+
+insert :: TextIndexer i dt
+       => (Dt.DValue dt) -> Words -> Indexer i dt -> Indexer i dt
 insert doc' wrds ix
   = modIndexer newIndex newDocTable ix
   where
@@ -78,12 +54,19 @@ insert doc' wrds ix
   (did, newDocTable) = Dt.insert di doc'
   newIndex           = addWords wrds did ii
 
+-- | Update elements
+update :: TextIndexer i dt => DocId -> Dt.DValue dt -> Words -> Indexer i dt -> Indexer i dt
+update docId doc' w ix
+  = insert doc' w ix'
+  where
+  ix' = delete ix (IS.singleton docId)
 
--- | Modify a document and add words (occurrences for that document) to the index.
-modify                :: (TextIndexer i, de ~ Dt.DValue (IxDocTable i)) =>
-                         (de -> de) -> Words -> DocId
-                         -> i
-                         -> i
+
+
+-- | Modify elements
+modify :: (TextIndexer i dt)
+       => (Dt.DValue dt -> Dt.DValue dt)
+       -> Words -> DocId -> Indexer i dt -> Indexer i dt
 modify f wrds dId ix
   = modIndexer newIndex newDocTable ix
   where
@@ -91,10 +74,45 @@ modify f wrds dId ix
   newIndex    = addWords wrds dId (ixIndex ix)
 
 
+-- | Delete a set of documents by 'DocId'
+delete :: TextIndexer i dt => Indexer i dt -> DocIdSet -> Indexer i dt
+delete i dIds
+  = modIndexer newIndex newDocTable i
+    where
+    newIndex    = Ix.batchDelete dIds $ ixIndex    i
+    newDocTable = Dt.difference dIds  $ ixDocTable i
+
+-- | Delete a set if documents by 'URI'.
+deleteDocsByURI :: TextIndexer i dt  => Set URI -> Indexer i dt -> Indexer i dt
+deleteDocsByURI us ix
+      = delete ix docIds
+      where
+      docIds = toDocIdSet . catMaybesSet . S.map (Dt.lookupByURI (ixDocTable ix)) $ us
+
+-- | Replace the 'Index' .
+modIndex    :: TextIndexer i dt => ContextIndex i Occurrences -> Indexer i dt -> Indexer i dt
+modIndex = undefined
+
+-- | Replace the  'DocTable'.
+modDocTable :: TextIndexer i dt => dt -> Indexer i dt  -> Indexer i dt
+modDocTable = undefined
+
+-- | Replace the 'Index' and 'DocTable'.
+modIndexer  :: TextIndexer i dt
+            => ContextIndex i Occurrences -> dt -> Indexer i dt -> Indexer i dt
+modIndexer ii di ix
+  = modDocTable di . modIndex ii $ ix
+
+ -- ----------------------------------------------------------------------------
+
+-- | See 'Ix.lookup'.
+searchPrefixNoCase :: TextIndexer i dt => Indexer i dt -> Context -> Word -> [(Context,RawResult)]
+searchPrefixNoCase ti c w = Ix.lookup PrefixNoCase (Just c,Just w) (ixIndex ti)
+
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
-modifyWithDescription :: (TextIndexer i {-, DocumentWrapper (Dt.DValue (IxDocTable i))-}) =>
-                         Description -> Words -> DocId -> i -> i
+modifyWithDescription :: (TextIndexer i dt) =>
+                         Description -> Words -> DocId -> Indexer i dt -> Indexer i dt
 modifyWithDescription descr wrds dId ix
   = modIndexer newIndex newDocTable ix
   where
@@ -102,17 +120,19 @@ modifyWithDescription descr wrds dId ix
   newIndex    = addWords wrds dId $ ixIndex ix
   -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
   mergeDescr  = Doc.update (\d' -> d'{ desc = flip M.union (desc d') descr })
-
+--}
 -- ----------------------------------------------------------------------------
 
 -- Helper functions
 
 -- | Add words for a document to the 'Index'.
-addWords              :: TextIndex i => Words -> DocId -> i -> i
-addWords wrds dId i
-  = M.foldrWithKey (\c wl acc ->
+addWords :: TIx.TextIndex i Occurrences
+         => Words -> DocId -> ContextIndex i Occurrences -> ContextIndex i Occurrences
+addWords = undefined
+--addWords wrds dId i = undefined
+{-  = M.foldrWithKey (\c wl acc ->
       M.foldrWithKey (\w ps acc' ->
-        Ix.insert c w (mkOccs dId ps) acc')
+        Ix.insert (Just c, Just w) (mkOccs dId ps) acc')
       acc wl)
       i wrds
   where
@@ -121,6 +141,7 @@ addWords wrds dId i
 
   positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
   positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws
+-}
 
 -- Specific to Indexes with Document DocTable values
 {-
@@ -130,3 +151,4 @@ addDocDescription descr did (Indexer i d)
   where
   mergeDescr doc = doc{ desc = M.union (desc doc) descr }
 -}
+----------------------------------------------------------------------------

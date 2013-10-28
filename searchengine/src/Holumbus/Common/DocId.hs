@@ -15,10 +15,8 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.DocId
+module Holumbus.Common.DocId
 where
-
-import Text.XML.HXT.Core
 
 -- ------------------------------------------------------------
 
@@ -44,9 +42,6 @@ firstDocId                      = 1
 
 mkDocId                         :: Integer -> DocId
 mkDocId                         = fromIntegral
-
-xpDocId                         :: PU DocId
-xpDocId                         = xpPrim
 
 {-# INLINE incrDocId #-}
 {-# INLINE addDocId #-}

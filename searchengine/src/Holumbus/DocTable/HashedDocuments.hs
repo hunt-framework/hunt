@@ -40,8 +40,8 @@ import qualified Data.Binary                    as B
 
 import           Data.Digest.Murmur64
 
-import           Holumbus.Index.Common
-import qualified Holumbus.Index.Common.DocIdMap as DM
+import           Holumbus.DocTable.Common
+import qualified Holumbus.Common.DocIdMap as DM
 
 import           Holumbus.DocTable.DocTable
 
@@ -56,7 +56,7 @@ type DocMap e
 newtype Documents e
     = Documents { idToDoc :: DocMap e }     -- ^ A mapping from a document id to
                                             --   the document itself.
-      --deriving (Eq, Show, NFData)
+      deriving (Eq, Show)
 
 -- ----------------------------------------------------------------------------
 

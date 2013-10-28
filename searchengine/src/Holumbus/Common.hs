@@ -1,11 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TypeSynonymInstances #-}
-
--- ----------------------------------------------------------------------------
-
 {- |
   Module     : Holumbus.Index.Common
   Copyright  : Copyright (C) 2007-2012 Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
@@ -23,23 +15,25 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common
+module Holumbus.Common
   (
     module Holumbus.Common.BasicTypes
-  , module Holumbus.Common.Document
+  , module Holumbus.Common.Compression
   , module Holumbus.Common.DocId
   , module Holumbus.Common.DocIdMap
+  , module Holumbus.Common.Document
   , module Holumbus.Common.Occurrences
   , module Holumbus.Common.RawResult
   )
 where
 
 import           Holumbus.Common.BasicTypes
+
+import           Holumbus.Common.Compression
+
 import           Holumbus.Common.DocId
 import           Holumbus.Common.DocIdMap    (DocIdMap, DocIdSet)
 import           Holumbus.Common.Document    (Description, Document (..),
-                                              DocumentWrapper (wrap, unwrap))
+                                                    DocumentWrapper (wrap, unwrap))
 import           Holumbus.Common.Occurrences (Occurrences, Positions)
 import           Holumbus.Common.RawResult
-
--- ------------------------------------------------------------

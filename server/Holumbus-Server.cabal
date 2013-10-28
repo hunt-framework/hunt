@@ -2,9 +2,9 @@ name:          Holumbus-Server
 version:       2
 license:       MIT
 license-file:  LICENSE
-author:        
-copyright:     
-maintainer:    
+author:
+copyright:
+maintainer:
 stability:     experimental
 category:      Text, Data
 synopsis:      A search and indexing engine.
@@ -23,7 +23,7 @@ source-repository head
 executable holumbusServer
   main-is:      Server.hs
 
-  other-modules:   
+  other-modules:
 
   build-depends:   base                   >= 4
                  , binary
@@ -53,7 +53,7 @@ executable holumbusServer
   if impl( ghc >= 7 )
     ghc-options: -rtsopts
                  -fwarn-tabs
-  
+
   extensions: MultiParamTypeClasses
               FlexibleContexts
               FlexibleInstances

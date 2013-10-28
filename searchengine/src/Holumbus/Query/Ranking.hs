@@ -47,9 +47,9 @@ import           Data.Function
 import qualified Data.List                         as L
 import qualified Data.Map                          as M
 
-import           Holumbus.Index.Common
-import qualified Holumbus.Index.Common.DocIdMap    as DM
-import           Holumbus.Index.Common.Occurrences as Occ
+import           Holumbus.Common
+import qualified Holumbus.Common.DocIdMap    as DM
+import           Holumbus.Common.Occurrences as Occ
 import           Holumbus.Query.Result
 
 -- ----------------------------------------------------------------------------

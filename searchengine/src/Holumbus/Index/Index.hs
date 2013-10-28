@@ -1,72 +1,60 @@
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies      #-}
-
 module Holumbus.Index.Index
 where
 
-import           Holumbus.Index.Common          (Context, RawResult, Word)
-import           Holumbus.Index.Common.DocIdMap (DocIdSet)
+import           GHC.Exts                       (Constraint)
+
+import qualified Data.IntSet                    as IS
+
+import           Holumbus.Index.Common          (DocId, Textual, DocIdSet)
 
 -- ----------------------------------------------------------------------------
 
 class Index i where
-    type IValue  i :: *
-    type IType   i :: *
+    type IKey    i v :: *
 
-    unique     :: i -> Int
+    type IVal    i v :: *
+    type IVal    i v = v
 
-    -- | List of all contexts avaliable in the index.
-    contexts   :: i -> [Context]
+    type ICon    i v :: Constraint
+    type ICon    i v =  ()
 
-    -- | The occurrences for every word. A potentially expensive operation.
-    size       :: i -> Context -> RawResult
-
-    -- XXX: argument order?
     -- | General lookup function.
-    lookup     :: IType i -> i -> Context -> Word -> RawResult
+    search       :: ICon i v => Textual -> IKey i v -> i v -> [(IKey i v, IVal i v)]
+
+    -- TODO: remove this later
+    lookup       :: ICon i v => Textual -> IKey i v -> i v -> [(IKey i v, IVal i v)]
+    lookup       = search
 
     -- | Insert occurrences.
-    insert     :: Context -> Word -> IValue i -> i -> i
+    insert       :: ICon i v => IKey i v -> IVal i v -> i v -> i v
+
+    -- | Delete as batch job
+    batchDelete  :: ICon i v => DocIdSet -> i v -> i v
 
     -- | Delete occurrences.
-    delete     :: Context -> Word -> IValue i -> i -> i
+    delete       :: ICon i v => DocId -> i v -> i v
+    delete k i   = batchDelete (IS.singleton k) i
 
-    -- | Delete documents completely (all occurrences).
-    deleteDocs :: DocIdSet -> i -> i
-
-    -- | Merges two indexes.
-    merge      :: i -> i -> i
-
-    -- | Subtract one index from another.
-    subtract   :: i -> i -> i
-
-    {-
-    -- | Splitting an index by its contexts.
-    , _splitByContexts               :: Int -> [Index it v i]
-
-    -- | Splitting an index by its documents.
-    , _splitByDocuments              :: Int -> [Index it v i]
-
-    -- | Splitting an index by its words.
-    , _splitByWords                  :: Int -> [Index it v i]
-
-    -- | Update document id's (e.g. for renaming documents). If the function maps two different id's
-    -- to the same new id, the two sets of word positions will be merged if both old id's are present
-    -- in the occurrences for a word in a specific context.
-    , _mapDocIds                     :: (Context -> Word -> DocId -> DocId) -> Index it v i
-    -}
+    -- | Empty Index
+    empty        :: ICon i v => i v
 
     -- | Convert an Index to a list. Can be used for easy conversion between different index
     -- implementations
-    toList     :: i -> [(Context, Word, IValue i)]
+    toList       :: ICon i v => i v -> [(IKey i v, IVal i v)]
 
--- ----------------------------------------------------------------------------
-{-
--- | Create an Index from a list of context, word, occurrences triples.
---   The first argument should be (a specific implementation of) an empty Index.
-fromList              :: Index it v i -> [(Context, Word, v)] -> Index it v i
-fromList              = foldl (\i (c,w,o) -> insert c w o i)
+    -- | Make index from list
+    fromList     :: ICon i v => [(IKey i v, IVal i v)] -> i v
 
--- ----------------------------------------------------------------------------
--}
+    -- | Support for index value transformations
+    unionWith    :: ICon i v
+                 => (IVal i v -> IVal i v -> IVal i v)
+                 -> i v -> i v -> i v
+
+    -- TODO: non-rigid map
+    map          :: ICon i v
+                 => (IVal i v -> IVal i v)
+                 -> i v -> i v
+
+    -- XXX: maybe less generic with just list?
+    keys         :: ICon i v
+                 => i v -> [IKey i v]

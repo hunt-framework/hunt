@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeSynonymInstances #-} 
+{-# LANGUAGE FlexibleInstances #-}
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -18,11 +20,12 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Compression
+module Holumbus.Common.Compression
   (
   -- * Compression types
   CompressedOccurrences
   , CompressedPositions
+  , OccCompression(..)
 
   -- * Compress
   , deflateOcc
@@ -34,16 +37,17 @@ module Holumbus.Index.Compression
   -- * Efficiency
   , delete
   , differenceWithKeySet
+  , differenceWithKeyList
   )
 where
 
 import qualified Data.IntSet                       as IS
 
-import           Holumbus.Index.Common.DiffList
-import           Holumbus.Index.Common.DocId       (DocId)
-import           Holumbus.Index.Common.DocIdMap    (DocIdMap)
-import qualified Holumbus.Index.Common.DocIdMap    as DM
-import           Holumbus.Index.Common.Occurrences hiding (delete)
+import           Holumbus.Common.DiffList
+import           Holumbus.Common.DocId       (DocId)
+import           Holumbus.Common.DocIdMap    (DocIdMap)
+import qualified Holumbus.Common.DocIdMap    as DM
+import           Holumbus.Common.Occurrences hiding (delete)
 
 -- ----------------------------------------------------------------------------
 
@@ -53,6 +57,13 @@ type CompressedOccurrences      = DocIdMap CompressedPositions
 type CompressedPositions        = DiffList
 
 -- ----------------------------------------------------------------------------
+class OccCompression cv where
+    compressOcc   :: Occurrences -> cv
+    decompressOcc :: cv -> Occurrences
+
+instance OccCompression CompressedOccurrences where
+    compressOcc   = deflateOcc
+    decompressOcc = inflateOcc
 
 -- | Decompressing the occurrences by just decompressing all contained positions.
 inflateOcc :: CompressedOccurrences -> Occurrences
@@ -67,6 +78,8 @@ deflateOcc = DM.map deflatePos
 delete :: DocId -> CompressedOccurrences -> CompressedOccurrences
 delete = DM.delete
 
+differenceWithKeyList :: [DocId] -> CompressedOccurrences -> CompressedOccurrences
+differenceWithKeyList = differenceWithKeySet . IS.fromList
 
 -- | Difference without deflating and inflating.
 differenceWithKeySet :: DM.DocIdSet -> CompressedOccurrences -> CompressedOccurrences

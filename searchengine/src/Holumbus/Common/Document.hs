@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 -- ----------------------------------------------------------------------------
 
@@ -18,7 +17,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.Document
+module Holumbus.Common.Document
 where
 
 import           Control.DeepSeq
@@ -30,7 +29,7 @@ import           Data.Map                         (Map)
 import           Data.Text                        (Text)
 import           Data.Text.Binary                 ()
 
-import           Holumbus.Index.Common.BasicTypes
+import           Holumbus.Common.BasicTypes
 
 -- ------------------------------------------------------------
 
@@ -58,7 +57,6 @@ instance DocumentWrapper Document where
   wrap   = id
 
 -- ------------------------------------------------------------
-
 instance ToJSON Document where
   toJSON (Document u d) = object
     [ "uri"   .= u
@@ -74,7 +72,6 @@ instance FromJSON Document where
       , desc    = parsedDesc
       }
   parseJSON _ = mzero
-
 -- ------------------------------------------------------------
 
 instance Binary Document where

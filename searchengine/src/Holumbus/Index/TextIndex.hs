@@ -1,30 +1,59 @@
 {-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE Rank2Types        #-}
 {-# LANGUAGE TypeFamilies      #-}
 
 module Holumbus.Index.TextIndex
-( module Holumbus.Index.Index
-, TextIndex
-, insertPosition
-, deletePosition)
+( TextIndex
+, ContextTextIndex
+, addWords
+)
 where
 
-import           Holumbus.Index.Common             (Context, DocId, Occurrences,
-                                                    Position, Textual, Word)
-import qualified Holumbus.Index.Common.Occurrences as Occ
+import qualified Data.Map                          as M
+
+import qualified Holumbus.Common.Occurrences       as Occ
+
+import           Holumbus.Index.Common
 import           Holumbus.Index.Index
+import           Holumbus.Index.Proxy.ContextIndex (ContextIndex, ContextIxCon)
+import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 
 -- ----------------------------------------------------------------------------
 
 -- Requires 'ConstraintKinds' extension
-type TextIndex i        = (Index i, IValue i ~ Occurrences, IType i ~ Textual)
+type TextIndex i v
+  = ( Index i
+    , ICon i v
+    , v ~ IVal i v
+    , v ~ Occurrences
+    , IKey i v ~ Word
+    )
 
--- requires 'FunctionalDependencies' in index type
--- | Insert a position for a single document.
-insertPosition          :: TextIndex i => Context -> Word -> DocId -> Position -> i -> i
-insertPosition c w d p  = insert c w (Occ.singleton d p)
+type ContextTextIndex i v
+  = ( ContextIxCon i v
+    , Index i
+    , ICon i Occurrences
+    , IKey i Occurrences ~ Word
+    , TextIndex i v
+    )
 
--- | Delete a position for a single document.
-deletePosition          :: TextIndex i => Context -> Word -> DocId -> Position -> i -> i
-deletePosition c w d p  = delete c w (Occ.singleton d p)
+-- ----------------------------------------------------------------------------
+
+-- | Add words for a document to the 'Index'.
+-- | Note: adds words to every >existing< Context
+addWords :: TextIndex i Occurrences
+         => Words -> DocId -> ContextIndex i Occurrences -> ContextIndex i Occurrences
+addWords wrds dId i
+  = M.foldrWithKey (\c wl acc ->
+      M.foldrWithKey (\w ps acc' ->
+        CIx.insert (Just c, Just w) (mkOccs dId ps) acc')
+      acc wl)
+      i wrds
+  where
+  mkOccs            :: DocId -> [Position] -> Occurrences
+  mkOccs did pl     = positionsIntoOccs did pl Occ.empty
+
+  positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
+  positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws

@@ -19,7 +19,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.DiffList
+module Holumbus.Common.DiffList
   (
   -- * DiffList types
   DiffList
@@ -40,8 +40,8 @@ import           Data.Word                         (Word32, Word64)
 
 import           Holumbus.Data.Crunch
 
-import           Holumbus.Index.Common.BasicTypes  (Position)
-import           Holumbus.Index.Common.Occurrences (Positions, fromListPos,
+import           Holumbus.Common.BasicTypes  (Position)
+import           Holumbus.Common.Occurrences (Positions, fromListPos,
                                                     toAscListPos)
 
 -- ----------------------------------------------------------------------------

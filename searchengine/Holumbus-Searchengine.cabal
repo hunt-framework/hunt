@@ -2,9 +2,9 @@ name:          Holumbus-Searchengine
 version:       2.0.0.0
 license:       MIT
 license-file:  LICENSE
-author:        
-copyright:     
-maintainer:    
+author:
+copyright:
+maintainer:
 stability:     experimental
 category:      Text, Data
 synopsis:      A search and indexing engine.
@@ -12,7 +12,7 @@ homepage:      http://holumbus.fh-wedel.de
 description:   The Holumbus-Searchengine library provides a document indexer
                and crawler to build indexes over document collections
                as well as a sophisticated query interface for these indexes.
-cabal-version: >=1.6
+cabal-version: >=1.8
 build-type:    Simple
 -- tested-with:   ghc-7.0.3
 
@@ -34,7 +34,6 @@ library
                , directory              >= 1   && < 2
                , filepath               >= 1   && < 2
                , hslogger               >= 1   && < 2
-               , hxt                    >= 9.3
                , mtl                    >= 1.1 && < 3
                , murmur-hash
                , network                >= 2.1 && < 3
@@ -53,26 +52,34 @@ library
     Holumbus.Data.PrefixTree
     Holumbus.Data.PrefixTree.PrefixSet
     Holumbus.Data.PrefixTree.Types
+
+    Holumbus.Common
+    Holumbus.Common.BasicTypes
+    Holumbus.Common.DiffList
+    Holumbus.Common.DocId
+    Holumbus.Common.DocIdMap
+    Holumbus.Common.Document
+    Holumbus.Common.CompressedDocument
+    Holumbus.Common.Occurrences
+    Holumbus.Common.RawResult
+    Holumbus.Common.Compression
+
     Holumbus.Index.Common
-    Holumbus.Index.Common.BasicTypes
-    Holumbus.Index.Common.DiffList
-    Holumbus.Index.Common.DocId
-    Holumbus.Index.Common.DocIdMap
-    Holumbus.Index.Common.Document
-    Holumbus.Index.Common.CompressedDocument
-    Holumbus.Index.Common.Occurrences
-    Holumbus.Index.Common.RawResult
-    Holumbus.Index.Compression
-    --Holumbus.Index.Proxy.CachedIndex
-    Holumbus.DocTable.DocTable
-    Holumbus.DocTable.HashedDocuments
-    --Holumbus.DocTable.Proxy.ValueConversionDocTable
     Holumbus.Index.Index
     Holumbus.Index.TextIndex
-    Holumbus.Indexer.Indexer
-    Holumbus.Indexer.SimpleIndexer
-    Holumbus.Indexer.TextIndexer
-    Holumbus.Index.Text.Inverted.PrefixMem
+    Holumbus.Index.PrefixTreeIndex
+    Holumbus.Index.ComprPrefixTreeIndex
+    Holumbus.Index.InvertedIndex
+
+    Holumbus.Index.Proxy.ContextIndex
+--    Holumbus.Index.Proxy.CompressedIndex
+--    Holumbus.Index.Proxy.CachedIndex
+
+    Holumbus.DocTable.Common
+    Holumbus.DocTable.DocTable
+    Holumbus.DocTable.HashedDocuments
+
+    Holumbus.Interpreter.Interpreter
     Holumbus.Query.Fuzzy
     Holumbus.Query.Intermediate
     Holumbus.Query.Language.Grammar
@@ -88,10 +95,44 @@ library
 
   extensions: MultiParamTypeClasses
               FlexibleContexts
-              FlexibleInstances
-              UndecidableInstances
-              GeneralizedNewtypeDeriving
-              TypeSynonymInstances
               OverloadedStrings
               TypeFamilies
               ConstraintKinds
+              KindSignatures
+--              OverlappingInstances
+--              FlexibleInstances
+--              UndecidableInstances
+--              GeneralizedNewtypeDeriving
+--              TypeSynonymInstances
+
+test-suite Holumbus-Index
+  hs-source-dirs:       test
+  main-is:              Index.hs
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -Wall
+  extensions:           OverloadedStrings
+
+  build-depends: base                       >= 4.6 && < 5
+               , containers
+               , HUnit
+               , QuickCheck
+               , test-framework
+               , test-framework-hunit
+               , test-framework-quickcheck2
+               , Holumbus-Searchengine
+
+Test-suite Holumbus-Interpreter
+  hs-source-dirs:       test
+  main-is:              Interpreter.hs
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -Wall
+  extensions:           OverloadedStrings
+
+  build-depends: base                       >= 4.6 && < 5
+               , containers
+               , HUnit
+               , QuickCheck
+               , test-framework
+               , test-framework-hunit
+               , test-framework-quickcheck2
+               , Holumbus-Searchengine

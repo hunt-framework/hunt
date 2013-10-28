@@ -1,6 +1,7 @@
 module Holumbus.Index.Proxy.CachedIndex
 where
 
+{--
 import           Prelude                           hiding (lookup, subtract)
 import qualified Prelude                           as P
 
@@ -13,6 +14,33 @@ import qualified Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Index.Index
 
 -- ------------------------------------------------------------
+
+newtype CachedIndex impl = CachedIx (DocIdSet, impl)
+
+instance Index CachedIndex where
+    type IKey PrefixTree v = PT.Key
+
+    insert k v (CachedIx (c,i)
+      = CachedIx (c, insert k v i)
+
+    batchDelete ks pt      = foldr (\k i -> delete k i) pt ks
+    delete                 =
+
+    empty                  = PT.empty
+    fromList               = PT.fromList
+    toList                 = PT.toList
+    search _               = PT.prefixFindWithKey
+    unionWith              = PT.unionWith
+
+
+realIx    = deleteDocs keySet i -- the doctable with docs deleted
+new       = newIndex keySet
+deleteIds = IS.fold Occ.delete
+
+-- | An index with an empty cache.
+empty :: Index it v i -> Index it v i
+empty = newIndex IS.empty
+
 
 -- | A cached Index. Documents are not deleted right away but stored in a separate set.
 --   This way we do not have to walk the whole index.
@@ -42,11 +70,4 @@ newIndex keySet i =
     , _impl                          = impl realIx
     }
     where
-      realIx    = deleteDocs keySet i -- the doctable with docs deleted
-      new       = newIndex keySet
-
-      deleteIds = IS.fold Occ.delete
-
--- | An index with an empty cache.
-empty :: Index it v i -> Index it v i
-empty = newIndex IS.empty
+-}
