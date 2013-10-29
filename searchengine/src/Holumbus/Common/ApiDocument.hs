@@ -10,11 +10,8 @@ import           Data.Aeson
 import           Data.Map                        (Map ())
 import qualified Data.Map                        as M
 import           Data.Text                       (Text)
-import qualified Data.Text                       as T
 
 import           Holumbus.Common.BasicTypes
-import           Holumbus.Common.Document        (Document)
-
 
 -- ----------------------------------------------------------------------------
 

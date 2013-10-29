@@ -80,6 +80,9 @@ library
     Holumbus.DocTable.DocTable
     Holumbus.DocTable.HashedDocuments
 
+    Holumbus.Indexer.Indexer
+    Holumbus.Indexer.TextIndexer
+
     Holumbus.Interpreter.Interpreter
     Holumbus.Interpreter.Command
  
