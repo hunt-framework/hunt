@@ -23,17 +23,16 @@ module Holumbus.Common
   , module Holumbus.Common.DocIdMap
   , module Holumbus.Common.Document
   , module Holumbus.Common.Occurrences
+  , module Holumbus.Common.Positions
   , module Holumbus.Common.RawResult
   )
 where
 
 import           Holumbus.Common.BasicTypes
-
 import           Holumbus.Common.Compression
-
 import           Holumbus.Common.DocId
 import           Holumbus.Common.DocIdMap    (DocIdMap, DocIdSet)
-import           Holumbus.Common.Document    (Description, Document (..),
-                                                    DocumentWrapper (wrap, unwrap))
-import           Holumbus.Common.Occurrences (Occurrences, Positions)
+import           Holumbus.Common.Document    (Document (..), DocumentWrapper (..))
+import           Holumbus.Common.Occurrences (Occurrences)
+import           Holumbus.Common.Positions   (Positions)
 import           Holumbus.Common.RawResult

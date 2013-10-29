@@ -48,6 +48,7 @@ import           Holumbus.Common.DocId       (DocId)
 import           Holumbus.Common.DocIdMap    (DocIdMap)
 import qualified Holumbus.Common.DocIdMap    as DM
 import           Holumbus.Common.Occurrences hiding (delete)
+import           Holumbus.Common.Positions    (Positions)
 
 -- ----------------------------------------------------------------------------
 

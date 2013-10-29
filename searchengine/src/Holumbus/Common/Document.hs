@@ -25,17 +25,11 @@ import           Control.Monad                    (liftM2, mzero)
 
 import           Data.Aeson
 import           Data.Binary                      (Binary (..))
-import           Data.Map                         (Map)
-import           Data.Text                        (Text)
 import           Data.Text.Binary                 ()
 
 import           Holumbus.Common.BasicTypes
 
 -- ------------------------------------------------------------
-
--- | The description of a document is a generic key value map.
-
-type Description  = Map Text Text
 
 -- | A document consists of its unique identifier (URI).
 data Document = Document

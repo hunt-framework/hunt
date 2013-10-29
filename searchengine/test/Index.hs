@@ -11,11 +11,9 @@ import           Test.Framework.Providers.HUnit
 import           Test.HUnit
 --import          Test.QuickCheck
 import qualified Data.Map                            as M
-import           Holumbus.Common.BasicTypes
-import           Holumbus.Common.Compression
-import           Holumbus.Common.Document            (Document (..))
-import           Holumbus.Common.Occurrences         (Occurrences, Positions,
-                                                      singleton)
+import           Holumbus.Common
+import           Holumbus.Common.Occurrences         (singleton)
+
 import qualified Holumbus.Index.ComprPrefixTreeIndex as CPIx
 import qualified Holumbus.Index.Index                as Ix
 import qualified Holumbus.Index.InvertedIndex        as InvIx

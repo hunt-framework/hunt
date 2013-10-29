@@ -26,6 +26,9 @@ import           Data.Text
 -- | The URI describing the location of the original document.
 type URI          = Text
 
+-- | The description of a document is a generic key value map.
+type Description  = Map Text Text
+
 -- | The title of a document.
 type Title        = Text
 

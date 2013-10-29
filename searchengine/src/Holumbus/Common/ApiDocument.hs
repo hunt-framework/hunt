@@ -14,7 +14,7 @@ import           Data.Text                       (Text)
 import qualified Data.Text                       as T
 
 import           Holumbus.Common.BasicTypes
-import           Holumbus.Common.Document        (Document, Description)
+import           Holumbus.Common.Document        (Document)
 
 import           Holumbus.Query.Language.Grammar (Query (..))
 

@@ -27,7 +27,7 @@ import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.DocIdMap    (DocIdMap)
 import qualified Holumbus.Common.DocIdMap    as DM
 import           Holumbus.Common.Occurrences
-
+import           Holumbus.Common.Positions
 -- ------------------------------------------------------------
 
 -- | The raw result returned when searching the index.
