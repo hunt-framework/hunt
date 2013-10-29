@@ -16,7 +16,7 @@ import           Holumbus.Common.Occurrences    (Occurrences)
 import           Control.Applicative            ((<$>))
 import           Control.Arrow                  (second)
 
-import qualified Holumbus.Data.PrefixTree       as PT
+import qualified Data.StringMap                 as SM
 
 -- ----------------------------------------------------------------------------
 
@@ -26,7 +26,7 @@ newtype ComprOccPrefixTree cv = ComprPT { comprPT :: DmPrefixTree cv}
 -- ----------------------------------------------------------------------------
 
 instance Index ComprOccPrefixTree where
-    type IKey ComprOccPrefixTree v = PT.Key
+    type IKey ComprOccPrefixTree v = SM.Key
     type IVal ComprOccPrefixTree v = Occurrences
     type ICon ComprOccPrefixTree v = (OccCompression (DocIdMap v))
 

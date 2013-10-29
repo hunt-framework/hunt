@@ -12,7 +12,7 @@ module Common3 where
 import           Control.Applicative      ((<$>))
 import           Control.Arrow            (first, second)
 import           GHC.Exts                 (Constraint)
-import qualified Holumbus.Data.PrefixTree as PT
+import qualified Data.StringMap           as SM
 import           AssocTypes2              (Index(..), ContextWordMap, Compression(..), ByteString)        
 -- ----------------------------------------
 -- type aliases
@@ -27,18 +27,18 @@ type WordList   = [(Word, Positions)]
 type Positions  = [Int]
 
 --------------------------------------------
--- prefixtree as index ... simple
-instance Index PT.PrefixTree where
-    type IKey PT.PrefixTree v = Word
-    type IVal PT.PrefixTree v = v
-    type IToL PT.PrefixTree v = [(Word,v)]
+-- StringMap as index ... simple
+instance Index SM.StringMap where
+    type IKey SM.StringMap v = Word
+    type IVal SM.StringMap v = v
+    type IToL SM.StringMap v = [(Word,v)]
     
-    insert = PT.insert 
-    delete = PT.delete
-    empty  = PT.empty
-    fromList = PT.fromList
-    toList = PT.toList
-    search = PT.prefixFindWithKey
+    insert = SM.insert
+    delete = SM.delete
+    empty  = SM.empty
+    fromList = SM.fromList
+    toList = SM.toList
+    search = SM.prefixFindWithKey
 --------------------------------------------
 -- how to integrate enum for different search operations?
 -- 
@@ -46,11 +46,11 @@ instance Index PT.PrefixTree where
 --
 -- type IOp i v :: *
 -- search :: (ICon i v) => IOp i v -> ...
--- type IOp PT.PrefixTree v = TextIndex
+-- type IOp SM.StringMap v = TextIndex
 --
 -- or with another composed key, like this:
 
-newtype PTText v = PTText (PT.PrefixTree v)
+newtype PTText v = PTText (SM.StringMap v)
 data TextIndex = Case | NoCase -- | .. | .. | ..
 
 instance Index PTText where
@@ -58,13 +58,13 @@ instance Index PTText where
    type IVal PTText v = v
    type IToL PTText v = [(Word, v)]
 
-   insert (_,k) v    (PTText i) = PTText $ PT.insert k v i
-   delete (_,k)      (PTText i) = PTText $ PT.delete k i
-   empty                        = PTText $ PT.empty
-   fromList l                   = PTText $ PT.fromList l
-   toList            (PTText i) = PT.toList i  
-   search (Case,k)   (PTText i) = PT.prefixFindWithKey k i
-   search (NoCase,k) (PTText i) = PT.prefixFindWithKeyBF k i
+   insert (_,k) v    (PTText i) = PTText $ SM.insert k v i
+   delete (_,k)      (PTText i) = PTText $ SM.delete k i
+   empty                        = PTText $ SM.empty
+   fromList l                   = PTText $ SM.fromList l
+   toList            (PTText i) = SM.toList i
+   search (Case,k)   (PTText i) = SM.prefixFindWithKey k i
+   search (NoCase,k) (PTText i) = SM.prefixFindWithKeyBF k i
   
 occs :: Occs
 occs = [(1, [1,2,6,8,44,77,32])]
@@ -73,7 +73,7 @@ xs1, xs2 :: [(String, Occs)]
 xs1 = [("word1", [(1, [1,5,7])])]
 xs2 = [("word2", [(4, [3,5,7])])]
 
-type Inverted = ContextWordMap PT.PrefixTree Occs
+type Inverted = ContextWordMap SM.StringMap Occs
 cx1, cx2, cx3, cx4, cx5, cx6, cx7, cx8 :: Inverted
 
 cx1 = fromList [("A",xs1),("B",xs2)]

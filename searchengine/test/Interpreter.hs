@@ -7,6 +7,7 @@ import           Test.Framework.Providers.HUnit
 import           Test.HUnit
 --import           Test.QuickCheck
 import qualified Data.Map                            as M
+import qualified Data.Text                           as T
 import           Holumbus.Common
 import           Holumbus.Interpreter.Interpreter
 import           Data.Either                         (rights)
@@ -36,13 +37,13 @@ testRunCmd cmd = do
   return (res, env)
 
 mkWordList :: WordList
-mkWordList = M.fromList $ [("hallo", [1,5,10])]
+mkWordList = M.fromList $ [(T.pack "hallo", [1,5,10])]
 
 mkWords :: Words
-mkWords = M.fromList $ [("default", mkWordList)]
+mkWords = M.fromList $ [(T.pack "default", mkWordList)]
 
 mkDoc :: Document
-mkDoc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")])
+mkDoc = Document (T.pack "id::1") (M.fromList [(T.pack "name", T.pack "Chris"), (T.pack "alter", T.pack "30")])
 
 insertCmd, searchCmd, batchCmd :: Command
 insertCmd = Insert mkDoc mkWords

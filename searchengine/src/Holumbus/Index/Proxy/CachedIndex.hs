@@ -18,7 +18,7 @@ import           Holumbus.Index.Index
 newtype CachedIndex impl = CachedIx (DocIdSet, impl)
 
 instance Index CachedIndex where
-    type IKey PrefixTree v = PT.Key
+    type IKey StringMap v = PT.Key
 
     insert k v (CachedIx (c,i)
       = CachedIx (c, insert k v i)

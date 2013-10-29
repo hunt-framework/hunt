@@ -11,6 +11,7 @@ import           Test.Framework.Providers.HUnit
 import           Test.HUnit
 --import          Test.QuickCheck
 import qualified Data.Map                            as M
+import qualified Data.Text                           as T
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Compression
 import           Holumbus.Common.Document            (Document (..))
@@ -66,7 +67,7 @@ insertTestInvIx :: Assertion
 insertTestInvIx
   = True @?= insertTest
     (Ix.empty::(InvIx.InvertedIndex Occurrences))
-    "test"
+    (T.pack "test")
     (singleton 1 1)
 
 -- | check ContextIndex
@@ -74,20 +75,20 @@ insertTestContextIx :: Assertion
 insertTestContextIx
   = do
     True @?= newElem == insertedElem
-    "context" @?= c
+    (T.pack "context") @?= c
   where
   newElem = singleton 1 1
   [(c,[(_, insertedElem)])] = (ConIx.lookup PrefixNoCase key $ ConIx.insert key newElem emptyIndex)
-  key = (Just "context", Just "word")
+  key = (Just (T.pack "context"), Just (T.pack "word"))
   emptyIndex :: ConIx.ContextIndex InvIx.InvertedIndex Occurrences
   emptyIndex = ConIx.empty
 
 insertTestContext :: Assertion
-insertTestContext = "test" @?= insertedContext
+insertTestContext = (T.pack "test") @?= insertedContext
   where
   [insertedContext] = ConIx.keys ix
   ix :: ConIx.ContextIndex InvIx.InvertedIndex Occurrences
-  ix = ConIx.insertContext "test" ConIx.empty
+  ix = ConIx.insertContext (T.pack "test") ConIx.empty
 
 -- ----------------------------------------------------------------------------
 -- check helper functions
@@ -96,8 +97,8 @@ insertTestContext = "test" @?= insertedContext
 addWordsTest :: Assertion
 addWordsTest = True @?= length resList == 1
   where
-  [(_,resList)] = (ConIx.lookup PrefixNoCase (Just "default", Just "word") $ resIx)
-  resIx = addWords (mkWords "default") 1 emptyIndex
+  [(_,resList)] = (ConIx.lookup PrefixNoCase (Just (T.pack "default"), Just (T.pack "word")) $ resIx)
+  resIx = addWords (mkWords (T.pack "default")) 1 emptyIndex
   emptyIndex :: ConIx.ContextIndex InvIx.InvertedIndex Occurrences
   emptyIndex =  ConIx.empty
 
@@ -106,10 +107,10 @@ addWordsTest = True @?= length resList == 1
 -- ----------------------------------------------------------------------------
 
 mkWordList :: WordList
-mkWordList = M.fromList $ [("word", [1,5,10])]
+mkWordList = M.fromList $ [(T.pack "word", [1,5,10])]
 
 mkWords :: Word -> Words
 mkWords w = M.fromList $ [(w, mkWordList)]
 
 mkDoc :: Document
-mkDoc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")])
+mkDoc = Document (T.pack "id::1") (M.fromList [(T.pack "name", T.pack "Chris"), (T.pack "alter", T.pack "30")])

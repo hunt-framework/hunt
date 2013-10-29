@@ -48,7 +48,7 @@ import qualified Data.ByteString        as BS
 
 import           Data.Maybe             ( fromJust )
 
-import qualified Holumbus.Data.PrefixTree as M
+import qualified Data.StringMap         as SM
 import           Holumbus.Index.Common
 
 import           Text.XML.HXT.Core
@@ -57,7 +57,7 @@ import           Text.XML.HXT.Core
 
 -- | The table which is used to map a document to an artificial id and vice versa.
 
-type URIMap                     = M.PrefixTree DocId
+type URIMap                     = SM.StringMap DocId
 type DocMap a                   = DocIdMap (CompressedDoc a)
 
 newtype CompressedDoc a         = CDoc { unCDoc :: BS.ByteString }
@@ -129,7 +129,7 @@ instance Binary a => HolDocuments Documents a where
                                   . lookupDocIdMap i
                                   $ idToDoc d
   lookupByURI d u               = maybe (fail "") return
-                                  . M.lookup  u
+                                  . SM.lookup  u
                                   $ docToId d
 
   -- this is a sufficient test, but if the doc ids don't form an intervall
@@ -153,7 +153,7 @@ instance Binary a => HolDocuments Documents a where
   unionDocs dt1 dt2
       | disjointDocs dt1 dt2    = Documents
                                   { idToDoc     = unionDocIdMap (idToDoc dt1) (idToDoc dt2)
-                                  , docToId     = M.union  (docToId dt1) (docToId dt2)
+                                  , docToId     = SM.union  (docToId dt1) (docToId dt2)
                                   , lastDocId   = lastDocId dt1 `max` lastDocId dt2
                                   }
       | otherwise               = error $
@@ -173,13 +173,13 @@ instance Binary a => HolDocuments Documents a where
                                   (newId, Documents newIdToDoc newDocToId newId)
       where
       newIdToDoc                = insertDocIdMap newId d' (idToDoc ds)
-      newDocToId                = M.insert (uri d) newId  (docToId ds)
+      newDocToId                = SM.insert (uri d) newId  (docToId ds)
       newId                     = incrDocId (lastDocId ds)
 
   updateDoc ds i d              = rnf d' `seq`                  -- force document compression
                                   ds 
                                   { idToDoc = insertDocIdMap i d' (idToDoc ds)
-                                  , docToId = M.insert (uri d) i (docToId (removeById ds i))
+                                  , docToId = SM.insert (uri d) i (docToId (removeById ds i))
                                   }
       where
         d'                      = fromDocument d
@@ -189,7 +189,7 @@ instance Binary a => HolDocuments Documents a where
     reallyRemove (Document _ u _)
                                 = Documents
                                   (deleteDocIdMap d (idToDoc ds))
-                                  (M.delete u (docToId ds))
+                                  (SM.delete u (docToId ds))
                                   (lastDocId ds)
 
   updateDocuments f d           = Documents updated (idToDoc2docToId updated) (lastId updated)
@@ -208,7 +208,7 @@ instance Binary a => HolDocuments Documents a where
 
   editDocIds f d                = Documents
                                   { idToDoc     = newIdToDoc
-                                  , docToId     = M.map f $ docToId d
+                                  , docToId     = SM.map f $ docToId d
                                   , lastDocId   = lastId newIdToDoc
                                   }
     where
@@ -283,7 +283,7 @@ instance                        NFData (CompressedDoc a)
 -- | Create an empty table.
 
 emptyDocuments                  :: Documents a
-emptyDocuments                  = Documents emptyDocIdMap M.empty nullDocId
+emptyDocuments                  = Documents emptyDocIdMap SM.empty nullDocId
 
 -- | Create a document table containing a single document.
 
@@ -291,7 +291,7 @@ singleton                       :: (Binary a) => Document a -> Documents a
 singleton d                     = rnf d' `seq`
                                   Documents
                                   (singletonDocIdMap firstDocId d')
-                                  (M.singleton (uri d) firstDocId)
+                                  (SM.singleton (uri d) firstDocId)
                                   firstDocId
     where
       d'                        = fromDocument d
@@ -311,8 +311,8 @@ simplify dt                     = Documents (simple (idToDoc dt)) (docToId dt) (
 
 idToDoc2docToId                 :: Binary a => DocMap a -> URIMap
 idToDoc2docToId                 = foldWithKeyDocIdMap
-                                  (\i d r -> M.insert (uri . toDocument $ d) i r)
-                                  M.empty
+                                  (\i d r -> SM.insert (uri . toDocument $ d) i r)
+                                  SM.empty
 
 -- | Query the 'idToDoc' part of the document table for the last id.
 

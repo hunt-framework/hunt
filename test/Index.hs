@@ -11,7 +11,7 @@ import           GHC.AssertNF
 import           Data.Map.Strict      (Map)
 import qualified Data.Map.Strict      as Map
 
-import qualified Holumbus.Data.PrefixTree as PT
+import qualified Data.StringMap       as SM
 
 import           Data.Maybe
 import           Data.Text     (Text)
@@ -69,22 +69,22 @@ emptyMapIndex = newMapIndex Map.empty
 
 -- ----------------------------------------
 
-newPTIndex :: PT.PrefixTree v -> Index (PT.PrefixTree v) String v
+newPTIndex :: SM.StringMap v -> Index (SM.StringMap v) String v
 newPTIndex m =
     Ix
     { _insert = \ k v -> newPTIndex $
-                         PT.insert k v m
+                         SM.insert k v m
     , _delete = \ k   -> newPTIndex $
-                         PT.delete k m
+                         SM.delete k m
     , _merge  = \ ix2 -> newPTIndex $
-                         PT.union (_impl ix2) m
-    , _search = \ k   -> PT.lookup k m
-    , _toList = PT.toList m
+                         SM.union (_impl ix2) m
+    , _search = \ k   -> SM.lookup k m
+    , _toList = SM.toList m
     , _impl   = m
     }
 
-emptyPTIndex :: Index (PT.PrefixTree v) String v
-emptyPTIndex = newPTIndex PT.empty
+emptyPTIndex :: Index (SM.StringMap v) String v
+emptyPTIndex = newPTIndex SM.empty
 
 -- ----------------------------------------
 
@@ -176,7 +176,7 @@ type MapIndex                 k v = Index (Map k v) k v
 type AssocListIndex           k v = Index (AssocList k v) k v
 type ConvValMapIndex       v1 k v = Index (MapIndex k v1) k v
 type ConvKeyValMapIndex k1 v1 k v = Index (ConvValMapIndex v1 k1 v) k v
-type PTIndex                    v = Index (PT.PrefixTree v) String v
+type PTIndex                    v = Index (SM.StringMap v) String v
 
 -- signature computed with ghci
 type ContextWordIndex' v = Index (Index (Map Char (Index (AssocList String v) String v)) Char (Index (AssocList String v) String v)) (Char, String) v
@@ -220,7 +220,7 @@ x4 :: ConvKeyValMapIndex String Integer Text String
 x4 = newConvKeyIndex Text.pack Text.unpack x3
 
 x5 :: PTIndex Integer
-x5 = newPTIndex $ PT.fromList l1
+x5 = newPTIndex $ SM.fromList l1
 
 x6 :: PTIndex String
 x6 = foldr (uncurry insert') emptyPTIndex $ l1'

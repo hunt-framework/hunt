@@ -13,8 +13,7 @@ module Holumbus.Index.Proxy.CompressedIndex where
 
 {--
 import           Data.ByteString          (ByteString)
-import           Holumbus.Data.PrefixTree (PrefixTree)
-import qualified Holumbus.Data.PrefixTree as PT
+import qualified Data.StringMap as SM
 import           Holumbus.Index.Index
 
 import           Control.Applicative ((<$>))

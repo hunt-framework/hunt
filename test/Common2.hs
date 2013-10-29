@@ -21,12 +21,11 @@ import qualified Data.IntMap               as IM
 
 import           Holumbus.Index.Common     hiding (Occurrences, RawResult, HolIndex, Positions, DocId, insert, lookup)
 import qualified Holumbus.Index.Common     as CO
-import qualified Holumbus.Data.PrefixTree  as PT 
+import qualified Data.StringMap            as SM
 
 import           Data.ByteString.Lazy      (ByteString)
 import qualified Data.ByteString.Lazy      as BS
 
-import           Holumbus.Data.PrefixTree  (PrefixTree)
 import           Data.EnumSet              (EnumSet)
 import           Data.Maybe
 
@@ -95,7 +94,7 @@ test = do
 {--
  - type Occurrences        = Map Co.DocId Positions
 type Positions          = EnumSet Position
-data Inverted = Inverted { iix :: Map Context (PrefixTree Occurrences) }
+data Inverted = Inverted { iix :: Map Context (SM.StringMap Occurrences) }
 
 instance Index Inverted where
   type DocId     Inverted = Co.DocId

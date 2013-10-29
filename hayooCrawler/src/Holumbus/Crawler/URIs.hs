@@ -5,7 +5,7 @@
 module Holumbus.Crawler.URIs
 where
 
-import qualified Holumbus.Data.PrefixTree       as S
+import qualified Data.StringMap as SM
 
 -- ------------------------------------------------------------
 
@@ -19,27 +19,27 @@ type URIWithLevel               = (URI, Int)
 type URIs                       = URIs' ()
 type URIsWithLevel              = URIs' Int     -- URIs with a priority or clicklevel
 
-type URIs' a                    = S.PrefixTree a
+type URIs' a                    = SM.StringMap a
 
 -- ------------------------------------------------------------
 
 emptyURIs               :: URIs' a
-emptyURIs               = S.empty
+emptyURIs               = SM.empty
 
 singletonURIs           :: URI -> URIs
-singletonURIs           = flip S.singleton ()
+singletonURIs           = flip SM.singleton ()
 
 singletonURIs'          :: URI -> a -> URIs' a
-singletonURIs'          = S.singleton
+singletonURIs'          = SM.singleton
 
 nullURIs                :: URIs' a -> Bool
-nullURIs                = S.null
+nullURIs                = SM.null
 
 memberURIs              :: URI -> URIs' a -> Bool
-memberURIs              = S.member
+memberURIs              = SM.member
 
 cardURIs                :: URIs' a -> Int
-cardURIs                = S.size
+cardURIs                = SM.size
 
 nextURI                 :: URIs' a -> (URI, a)
 nextURI                 = head . toListURIs'
@@ -48,43 +48,43 @@ nextURIs                :: Int -> URIs' a -> [(URI, a)]
 nextURIs n              = take n . toListURIs'
 
 insertURI               :: URI -> URIs  -> URIs
-insertURI               = flip S.insert ()
+insertURI               = flip SM.insert ()
 
 insertURI'              :: URI -> a -> URIs' a -> URIs' a
-insertURI'              = S.insert
+insertURI'              = SM.insert
 
 deleteURI               :: URI -> URIs' a -> URIs' a
-deleteURI               = S.delete
+deleteURI               = SM.delete
 
 deleteURIs              :: URIs' b -> URIs' a -> URIs' a
-deleteURIs              = flip S.difference
+deleteURIs              = flip SM.difference
 
 unionURIs               :: URIs -> URIs -> URIs
-unionURIs               = S.union
+unionURIs               = SM.union
 
 unionURIs'              :: (a -> a -> a) -> URIs' a -> URIs' a -> URIs' a
-unionURIs'              = S.unionWith
+unionURIs'              = SM.unionWith
 
 diffURIs                :: URIs' a -> URIs' a -> URIs' a
-diffURIs                = S.difference
+diffURIs                = SM.difference
 
 fromListURIs            :: [URI] -> URIs
-fromListURIs            = S.fromList . map (\ x -> (x, ()))
+fromListURIs            = SM.fromList . map (\ x -> (x, ()))
 
 fromListURIs'           :: [(URI, a)] -> URIs' a
-fromListURIs'           = S.fromList
+fromListURIs'           = SM.fromList
 
 toListURIs              :: URIs' a -> [URI]
-toListURIs              = S.keys                -- map fst . S.toList
+toListURIs              = SM.keys                -- map fst . SM.toList
 
 toListURIs'             :: URIs' a -> [(URI, a)]
-toListURIs'             = S.toList
+toListURIs'             = SM.toList
 
 foldURIs                :: (URI -> b -> b) -> b -> URIs -> b
-foldURIs f              = S.foldWithKey (\ x _ r -> f x r)
+foldURIs f              = SM.foldWithKey (\ x _ r -> f x r)
 
 foldURIs'               :: (URI -> a -> b -> b) -> b -> URIs' a -> b
-foldURIs'               = S.foldWithKey
+foldURIs'               = SM.foldWithKey
 
 -- ------------------------------------------------------------
 

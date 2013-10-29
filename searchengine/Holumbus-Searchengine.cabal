@@ -30,6 +30,7 @@ library
                , bytestring             >= 0.9 && < 1
                , bzlib                  >= 0.4 && < 1
                , containers             >= 0.5
+               , data-stringmap         >= 0.9.1 && < 2
                , deepseq                >= 1.2
                , directory              >= 1   && < 2
                , filepath               >= 1   && < 2
@@ -47,11 +48,6 @@ library
   exposed-modules:
     Data.Text.Binary
     Holumbus.Data.Crunch
-    Holumbus.Data.PrefixTree.Core
-    Holumbus.Data.PrefixTree.FuzzySearch
-    Holumbus.Data.PrefixTree
-    Holumbus.Data.PrefixTree.PrefixSet
-    Holumbus.Data.PrefixTree.Types
 
     Holumbus.Common
     Holumbus.Common.BasicTypes

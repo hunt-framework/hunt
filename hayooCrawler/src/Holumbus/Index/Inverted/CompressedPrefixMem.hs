@@ -56,7 +56,7 @@ import           Data.Maybe
 import           Holumbus.Index.Common
 import           Holumbus.Index.Compression
 
-import qualified Holumbus.Data.PrefixTree       as PT
+import qualified Data.StringMap         as SM
 
 import           Text.XML.HXT.Core      ( PU
                                         , XmlPickler
@@ -256,7 +256,7 @@ type Parts occ          = M.Map Context (Part occ)
 -- | The index part is the real inverted index. Words are mapped to their occurrences.
 -- The part is implemented as a prefix tree
 
-type Part occ           = PT.PrefixTree occ
+type Part occ           = SM.StringMap occ
 
 -- ----------------------------------------------------------------------------
 
@@ -275,7 +275,7 @@ xpParts                 = xpWrap (M.fromList, M.toList) (xpList xpContext)
   xpContext             = xpElem "part" (xpPair (xpAttr "id" xpText) xpPart)
 
 xpPart                  :: (ComprOccurrences occ) => PU (Part occ)
-xpPart                  = xpElem "index" (xpWrap (PT.fromList, PT.toList) (xpList xpWord))
+xpPart                  = xpElem "index" (xpWrap (SM.fromList, SM.toList) (xpList xpWord))
   where
   xpWord                = xpElem "word" $
                           xpPair (xpAttr "w" xpText)
@@ -290,16 +290,16 @@ instance (B.Binary occ) => B.Binary (Inverted occ) where
 -- ----------------------------------------------------------------------------
 
 instance (B.Binary occ, ComprOccurrences occ) => HolIndex (Inverted occ) where
-  sizeWords                     = M.fold ((+) . PT.size) 0 . unInverted
+  sizeWords                     = M.fold ((+) . SM.size) 0 . unInverted
   contexts                      = fmap fst . M.toList . unInverted
 
-  allWords     i c              = fmap (second  toOccurrences) . PT.toList                      . getPart c $ i
-  prefixCase   i c q            = fmap (second  toOccurrences) . PT.prefixFindWithKeyBF       q . getPart c $ i
-  prefixNoCase i c q            = fmap (second  toOccurrences) . PT.prefixFindNoCaseWithKeyBF q . getPart c $ i
-  lookupCase   i c q            = fmap ((,) q . toOccurrences) . maybeToList . PT.lookup      q . getPart c $ i
-  lookupNoCase i c q            = fmap (second  toOccurrences) . PT.lookupNoCase              q . getPart c $ i
+  allWords     i c              = fmap (second  toOccurrences) . SM.toList                      . getPart c $ i
+  prefixCase   i c q            = fmap (second  toOccurrences) . SM.prefixFindWithKeyBF       q . getPart c $ i
+  prefixNoCase i c q            = fmap (second  toOccurrences) . SM.prefixFindNoCaseWithKeyBF q . getPart c $ i
+  lookupCase   i c q            = fmap ((,) q . toOccurrences) . maybeToList . SM.lookup      q . getPart c $ i
+  lookupNoCase i c q            = fmap (second  toOccurrences) . SM.lookupNoCase              q . getPart c $ i
 
-  mergeIndexes                  = zipInverted $ M.unionWith      $ PT.unionWith (zipOcc mergeOccurrences)
+  mergeIndexes                  = zipInverted $ M.unionWith      $ SM.unionWith (zipOcc mergeOccurrences)
   substractIndexes              = zipInverted $ M.differenceWith $ substractPart
 
   insertOccurrences c w o i     = mergeIndexes     i (singletonInverted c w o)          -- see "http://holumbus.fh-wedel.de/hayoo/hayoo.html#0:unionWith%20module%3AData.Map"
@@ -307,7 +307,7 @@ instance (B.Binary occ, ComprOccurrences occ) => HolIndex (Inverted occ) where
 
   toList                        = concatMap (uncurry convertPart) . toListInverted
                                   where
-                                  convertPart c  = map (\(w, o) -> (c, w, toOccurrences o)) . PT.toList
+                                  convertPart c  = map (\(w, o) -> (c, w, toOccurrences o)) . SM.toList
 
   splitByContexts               = splitInverted
                                   . map ( (\ i -> (sizeWords i, i))
@@ -340,7 +340,7 @@ instance (B.Binary occ, ComprOccurrences occ) => HolIndex (Inverted occ) where
 
   updateDocIds f                = mapInverted (M.mapWithKey updatePart)
     where
-    updatePart c                = PT.mapWithKey (updateOcc (f c))
+    updatePart c                = SM.mapWithKey (updateOcc (f c))
     updateOcc f' w              = mapOcc $ updateOccurrences (f' w)
 
 -- ----------------------------------------------------------------------------
@@ -348,18 +348,18 @@ instance (B.Binary occ, ComprOccurrences occ) => HolIndex (Inverted occ) where
 -- | Return a part of the index for a given context.
 
 getPart                         :: Context -> Inverted i -> Part i
-getPart c                       = fromMaybe PT.empty . M.lookup c . unInverted
+getPart c                       = fromMaybe SM.empty . M.lookup c . unInverted
 
 -- | Substract one index part from another.
 substractPart                   :: (ComprOccurrences i) => Part i -> Part i -> Maybe (Part i)
 substractPart p1 p2
-    | PT.null res               = Nothing
+    | SM.null res               = Nothing
     | otherwise                 = Just res
     where
     res                         = diffPart p1 p2
 
 diffPart                        :: (ComprOccurrences i) => Part i -> Part i -> Part i
-diffPart                        = PT.differenceWith subtractDiffLists
+diffPart                        = SM.differenceWith subtractDiffLists
     where
     subtractDiffLists o1 o2
         | nullOcc res           = Nothing
@@ -368,11 +368,11 @@ diffPart                        = PT.differenceWith subtractDiffLists
         res                     = zipOcc substractOccurrences o1 o2
 
 removeDocIdsPart                :: (ComprOccurrences i) => Occurrences -> Part i -> Part i
-removeDocIdsPart ids            = PT.foldWithKey removeDocIds PT.empty
+removeDocIdsPart ids            = SM.foldWithKey removeDocIds SM.empty
     where
     removeDocIds k occ acc
         | nullOcc occ'          = acc
-        | otherwise             = PT.insert k occ' acc
+        | otherwise             = SM.insert k occ' acc
         where
         occ'                    = deleteDocIds ids occ
 
@@ -393,12 +393,12 @@ toListInverted                  = M.toList . unInverted
 -- | Create an index with just one word in one context.
 
 singletonInverted               :: (ComprOccurrences i) => Context -> String -> Occurrences -> Inverted i
-singletonInverted c w o         = Inverted . M.singleton c . PT.singleton w . fromOccurrences $ o
+singletonInverted c w o         = Inverted . M.singleton c . SM.singleton w . fromOccurrences $ o
 
 sizeofAttrsInverted             :: (Sizeof i) => Inverted i -> Int64
 sizeofAttrsInverted             = M.fold ((+) . sizeofPT) 0 . unInverted
                                   where
-                                  sizeofPT = PT.fold ((+) . sizeof) 0
+                                  sizeofPT = SM.fold ((+) . sizeof) 0
 
 -- | Remove DocIds from index
 

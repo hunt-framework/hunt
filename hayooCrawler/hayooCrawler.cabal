@@ -55,11 +55,6 @@ executable hayooCrawler
                  , Holumbus.Crawler.Util
                  , Holumbus.Crawler.XmlArrows
                  , Holumbus.Data.Crunch
-                 , Holumbus.Data.PrefixTree
-                 , Holumbus.Data.PrefixTree.Core
-                 , Holumbus.Data.PrefixTree.FuzzySearch
-                 , Holumbus.Data.PrefixTree.PrefixSet
-                 , Holumbus.Data.PrefixTree.Types
                  , Holumbus.Index.Common
                  , Holumbus.Index.Common.BasicTypes
                  , Holumbus.Index.Common.DiffList
@@ -109,6 +104,7 @@ executable hayooCrawler
                  , text                   >= 0.11
                  , zlib                   >= 0.5   && < 1 
                  , SHA                    >= 1.4   && < 2
+                 , data-stringmap         >= 0.9.1 && < 2
                  , unix                   >= 2.3   && < 3
                  , unordered-containers   >= 0.2
 
