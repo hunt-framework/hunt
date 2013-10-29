@@ -1,5 +1,8 @@
 module Holumbus.Server.Common where
 
+import Data.Aeson
+import Data.Text as Text
+
 -- |  some sort of json response format
 data JsonResponse r = JsonSuccess r | JsonFailure [Text]
 

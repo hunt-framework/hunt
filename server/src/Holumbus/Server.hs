@@ -24,14 +24,13 @@ import           Data.Text                                (Text)
 
 import qualified Data.Aeson                               as A
 import           Data.Aeson.Encode.Pretty                 (encodePretty)
-{--
 import           Holumbus.Utility                         ((.::))
 
-import           Holumbus.Index.Common
-import qualified Holumbus.Index.Common.DocIdMap           as DM
+import           Holumbus.Common
+import qualified Holumbus.Common.DocIdMap           as DM
 
 --import           Holumbus.Index.Common.Document           as Doc
-import           Holumbus.Index.Common.CompressedDocument
+--import           Holumbus.Index.Common.CompressedDocument
 
 --import qualified Holumbus.Index.Proxy.CachedIndex         as IxCache
 --import qualified Holumbus.Index.Text.Inverted.PrefixMem as Inv
@@ -48,58 +47,18 @@ import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result
 
-import           Holumbus.Indexer.TextIndexer           (Indexer, TextIndexer)
 import qualified Holumbus.Indexer.TextIndexer           as Ixx
-import           Holumbus.Server.Analyzer
+--import           Holumbus.Server.Analyzer
 import           Holumbus.Server.Common                   hiding (Query)
 import qualified Holumbus.Server.Template                 as Tmpl
 --import qualified Holumbus.Server.Interpreter              as Ip
 --}
 import           Holumbus.Interpreter.Interpreter
 import           Holumbus.Interpreter.Command
+
 import           Holumbus.Common.ApiDocument
 import           Holumbus.Query.Language.Grammar
 -- ----------------------------------------------------------------------------
-
-start :: IO ()
-start = main1 $ Search (Word "test")
-
-main1 :: Command -> IO ()
-main1 c
-    = do env0 <- initEnv emptyIndexer emptyOptions
-         let eval = runCmd env0
-         eval c >>= print
-         return ()
-
-
-{--
--- do something with the index
-withIndex'      :: MonadIO m => MVar a -> (a -> IO b) -> m b
-withIndex' im a = liftIO $ readMVar im >>= a
-
--- modify the index
-modIndex_       :: MonadIO m => MVar a -> (a -> IO a) -> m ()
-modIndex_       = liftIO .:: modifyMVar_
-
--- modify the index with return value
-modIndex        :: MonadIO m => MVar a -> (a -> IO (a,b)) -> m b
-modIndex        = liftIO .:: modifyMVar
-
--- the indexer
-{-
-newTextIndexer' :: TextIndex i -> DocTable d de -> TextIndexer i d de
-newTextIndexer' i = newTextIndexer (IxCache.empty i)
--}
-
-indexer         :: Indexer Inv.InvertedIndex (Dt.Documents Document)
-indexer         = Ixx.newInvertedIndexer
-
-queryConfig     :: ProcessConfig
-queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
-
-runQueryM       :: (Monad m, TextIndex i v, DocTable d, e ~ DValue d) =>
-                   i v -> d -> Query -> m (Result e)
-runQueryM       = processQueryM queryConfig
 
 -- | Like Web'.Scotty.json', but pretty.
 jsonPretty :: (A.ToJSON a) => a -> ActionM ()
@@ -107,7 +66,7 @@ jsonPretty v = do
   setHeader "Content-Type" "application/json"
   raw $ encodePretty v
 
-
+{--
 -- Functions to check the existence/absence of documents (by URI) in the indexer.
 
 -- | Constructs a list of 'ApiDocument' 'URI's that already exist in the indexer and a
@@ -149,53 +108,55 @@ checkApiDocUrisAbsence   = checkApiDocUris' (snd, fst)
 -- | This is just used to specify the exact type of @e@ in @('DocumentWrapper' e)@
 toDocAndWords' :: (DocumentWrapper e, e ~ CompressedDoc) => ApiDocument -> (e, Words)
 toDocAndWords' = toDocAndWords
-
+--}
 -- ----------------------------------------------------------------------------
 
 -- server itself:
 --
 --  -> should get some kind of state from command line or config file
 --     f.e: which index impl to use, which doc store, which persistent backend etc...
+
 start :: IO ()
 start = scotty 3000 $ do
 
   -- interpreter
   -- env <- liftIO $ Ip.initEnv indexer (Ip.CMOptions (toDocAndWords Doc.wrapDoc))
   -- let runCmd = Ip.runCmd env
+  env <- liftIO $ initEnv emptyIndexer emptyOptions
+  let interpret = runCmd env
 
   -- index
   --let ixM    = Ip.cevIndexer env
-  ixM    <- liftIO $ newMVar indexer
+  --  ixM    <- liftIO $ newMVar indexer
   -- {-# LANGUAGE NoMonoLocalBinds #-} needed
   -- -> http://ghc.haskell.org/trac/ghc/blog/LetGeneralisationInGhc7
-  let withIx = withIndex' ixM -- :: MonadIO m => (Ixx ... -> IO b)            -> m b
-  let modIx_ = modIndex_  ixM -- :: MonadIO m => (Ixx ... -> IO (Ixx ...))    -> m ()
-  let modIx  = modIndex   ixM -- :: MonadIO m => (Ixx ... -> IO (Ixx ..., b)) -> m b
-  let runQuery queryStr = withIx $ \ix ->
+  --let withIx = withIndex' ixM -- :: MonadIO m => (Ixx ... -> IO b)            -> m b
+  --let modIx_ = modIndex_  ixM -- :: MonadIO m => (Ixx ... -> IO (Ixx ...))    -> m ()
+  --let modIx  = modIndex   ixM -- :: MonadIO m => (Ixx ... -> IO (Ixx ..., b)) -> m b
+  let runQuery queryStr = do
         case parseQuery queryStr of
           (Left err) -> return . JsonFailure . return $ err
-          (Right query) ->
-            runQueryM (Ixx.ixIndex ix) (Ixx.ixDocTable ix) query
-            >>= return . JsonSuccess
-                . map (\(_,(DocInfo d _,_)) -> unwrap d)
-                . DM.toList . docHits
-
+          (Right query) -> do
+            intRes <- (interpret $ Search query) 
+            case intRes of
+              (Right (ResSearch docs)) -> return $ JsonSuccess $ docs
+              _ -> return $ JsonFailure ["todo"]
   -- request / response logging
   middleware logStdoutDev
-
+  
   get "/"         $ redirect "/search"
   get "/search"   $ do
-    ds <- withIx $ return . Dt.size . Ixx.ixDocTable
-    html . Tmpl.index $ ds
+    html . Tmpl.index $ (0::Int)
   get "/add"      $ html Tmpl.addDocs
 
   -- simple query
   get "/search/:query" $ do
     query    <- param "query"
-    res      <- runQuery query
+    res      <- liftIO $ runQuery query
     json res
 
   -- simple query with paging
+  {--
   get "/search/:query/:page/:perPage" $ do
     query    <- param "query"
     p        <- param "page"
@@ -215,15 +176,19 @@ start = scotty 3000 $ do
               . map (\ (c, (_, o)) -> (c, M.foldr (\m r -> r + DM.size m) 0 o))
               . M.toList. wordHits
     json res
-
+--}
 
   -- insert a document (fails if a document (the uri) already exists)
   post "/document/insert" $ do
     -- Raises an exception if parse is unsuccessful
     jss <- jsonData :: ActionM [ApiDocument]
+    let batch = Sequence $ foldr (\doc seq -> (Insert doc New):seq) [] jss
+    case interpret batch of
+      _ -> json $ (JsonSuccess "document(s) added" :: JsonResponse Text) 
+
 
     -- res :: Maybe [URI]  -- maybe the documents that already exist
-    res <- modIx $ \ix -> do
+{--    res <- modIx $ \ix -> do
       -- intersection of new docs and docTable
       let uris = checkApiDocUrisAbsence jss ix :: Either [(URI, DocId)] [URI]
       -- empty intersection of sets -> safe to insert
@@ -238,7 +203,8 @@ start = scotty 3000 $ do
             (JsonSuccess "document(s) added" :: JsonResponse Text)
             JsonFailure
             res
-
+--}
+{--
   -- updated/replaces a document (fails if a document (the uri) does not exists)
   post "/document/replace" $ do
     -- Raises an exception if parse is unsuccessful
@@ -320,6 +286,7 @@ start = scotty 3000 $ do
     filename  <- param "filename"
     modIx_ $ \_ -> Bin.decodeFile $ mkIndexerPath filename
     json (JsonSuccess "index loaded" :: JsonResponse Text)
+--}
 {--
   -- interpreter route
   post "/exec" $ do
@@ -329,4 +296,3 @@ start = scotty 3000 $ do
     either json json iRes
 --}
   notFound $ text "page not found"
---}
