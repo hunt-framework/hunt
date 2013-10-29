@@ -32,11 +32,16 @@ module Holumbus.Query.Language.Grammar
   )
 where
 
-import           Data.Text ( Text )
-import qualified Data.Text as T
-import Data.Binary
-import Control.Monad
-import Holumbus.Index.Common (Context)
+import           Control.Monad
+
+import           Data.Aeson
+import           Data.Binary
+import           Data.Text             (Text)
+import qualified Data.Text             as T
+
+import           Holumbus.Index.Common (Context)
+
+-- ----------------------------------------------------------------------------
 
 -- | The query language.
 data Query = Word       Text              -- ^ Single case-insensitive word.
@@ -54,6 +59,14 @@ data BinOp = And  -- ^ Intersect two queries.
            | Or   -- ^ Union two queries.
            | But  -- ^ Filter a query by another, @q1 BUT q2@ is equivalent to @q1 AND NOT q2@.
            deriving (Eq, Show)
+
+-- ----------------------------------------------------------------------------
+
+-- TODO: impl instances
+instance FromJSON Query where parseJSON = error "fromjson query nyi"
+instance ToJSON Query where toJSON = error "tojson query nyi"
+
+-- ----------------------------------------------------------------------------
 
 instance Binary Query where
   put (Word s)           = put (0 :: Word8) >> put s
@@ -88,6 +101,8 @@ instance Binary BinOp where
              1 -> return Or
              2 -> return But
              _ -> fail "Error while decoding BinOp"
+
+-- ----------------------------------------------------------------------------
 
 -- | Transforms all @(BinQuery And q1 q2)@ where one of @q1@ or @q2@ is a @Negation@ into
 -- @BinQuery Filter q1 q2@ or @BinQuery Filter q2 q1@ respectively.

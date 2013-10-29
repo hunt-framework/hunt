@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
 
 module Holumbus.Interpreter.Interpreter where
 
@@ -6,34 +7,46 @@ import           Control.Concurrent.MVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
-import           Data.Aeson
+import           Data.Set                          (Set)
+import qualified Data.Set                          as S
+import           Data.Text                         (Text)
+import qualified Data.Text                         as T
+
 
 import           Holumbus.Index.Common             (Document, Occurrences, URI,
                                                     Words)
+
+import           Holumbus.Common.ApiDocument       as ApiDoc
+
+import           Holumbus.Common.DocIdMap          (DocIdSet, toDocIdSet)
+import qualified Holumbus.Index.Index              as Ix
 import           Holumbus.Index.InvertedIndex
 import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
---import           Holumbus.Index.TextIndex
+import qualified Holumbus.Index.TextIndex          as TIx
 
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
-import           Holumbus.Query.Language.Parser
+--import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result             as QRes
 
 import qualified Holumbus.Common.DocIdMap          as DM
 import           Holumbus.Common.Document          (unwrap)
-import qualified Holumbus.Common.Occurrences       as Occ
+import           Holumbus.Common.Analyzer
+--import qualified Holumbus.Common.Occurrences       as Occ
 
 import qualified Holumbus.DocTable.DocTable        as Dt
-import           Holumbus.DocTable.HashedDocuments
+import           Holumbus.DocTable.HashedDocuments as HDt
+
+import           Holumbus.Utility                  (catMaybesSet)
 
 -- ----------------------------------------------------------------------------
-
+{-
 data Dummy
     = Dummy
       deriving (Show)
-
+-}
 -- ----------------------------------------------------------------------------
 --
 -- the abstract syntax (syntactic domains)
@@ -44,6 +57,7 @@ data InsOpts
       deriving (Show)
 --}
 --
+{-
 data Command
     = Search     { _theQuery    :: String }
     | Completion { _thePrefix   :: String }
@@ -71,6 +85,7 @@ data CmdError
                 }
     deriving (Show)
 
+
 instance Error CmdError where
     strMsg s = ResError 500 $ "internal server error: " ++ s
 
@@ -80,7 +95,7 @@ instance FromJSON Command     where parseJSON = undefined
 instance ToJSON Command       where toJSON = undefined
 instance ToJSON CmdRes        where toJSON = undefined
 instance ToJSON CmdError      where toJSON = undefined
-
+-}
 -- ----------------------------------------------------------------------------
 --
 -- the semantic domains (datatypes for interpretation)
@@ -96,18 +111,33 @@ instance ToJSON CmdError      where toJSON = undefined
 type Indexer
     = (ContextIndex InvertedIndex Occurrences, Documents Document)
 
-type Options = Dummy
+emptyIndexer    :: Indexer
+emptyIndexer    = (CIx.empty, HDt.empty)
 
-data Env = Env
-    { evIndexer  :: MVar Indexer
-    , evOptions  :: Options
+-- ----------------------------------------------------------------------------
+
+{-
+data Options = Options
+    { opSplitter :: ApiDocument -> (Document, Words)
     }
 
-emptyIndexer    :: Indexer
-emptyIndexer    = (CIx.empty, empty)
+emptyOptions :: Options
+emptyOptions = Options
+    { opSplitter = toDocAndWords
+    }
+-}
 
-emptyOptions    :: Options
-emptyOptions    = Dummy
+data Options = Options
+
+emptyOptions :: Options
+emptyOptions = Options
+
+-- ----------------------------------------------------------------------------
+
+data Env = Env
+    { evIndexer :: MVar Indexer
+    , evOptions :: Options
+    }
 
 initEnv :: Indexer -> Options -> IO Env
 initEnv ixx opt
@@ -127,7 +157,10 @@ type CM = CMT IO
 
 -- ----------------------------------------------------------------------------
 
-runCmd :: Env -> Command -> IO (Either CmdError CmdRes)
+runCM :: CMT m a -> Env -> m (Either CmdError a)
+runCM env = runErrorT . runReaderT (runCMT $ env)
+
+runCmd :: Env -> Command -> IO (Either CmdError CmdResult)
 runCmd env cmd
     = runErrorT . runReaderT (runCMT . execCmd $ cmd) $ env
 
@@ -161,18 +194,18 @@ askOpts :: CM Options
 askOpts
     = asks evOptions
 
-throwResError :: Int -> String -> CM a
+throwResError :: Int -> Text -> CM a
 throwResError n msg
     = throwError $ ResError n msg
 
+throwNYI :: String -> CM a
+throwNYI c = throwResError 501 $ "command not yet implemented: " `T.append` (T.pack c)
+
 -- ----------------------------------------------------------------------------
 
-execCmd :: Command -> CM CmdRes
-execCmd (Completion px)
-    = withIx $ execCompletion px
-
+execCmd :: Command -> CM CmdResult
 execCmd (Search q)
-    = withIx $ execSearch q
+    = withIx $ execSearch $ q
 
 execCmd (Sequence cs)
     = execSequence cs
@@ -180,39 +213,71 @@ execCmd (Sequence cs)
 execCmd NOOP
     = return ResOK  -- keep alive test
 
-execCmd (Insert doc ws)
-    = modIx $ execInsert doc ws
+execCmd (Insert doc opts)
+    = modIx $ execInsert doc opts
+
+execCmd (Delete uri)
+    = modIx $ execDelete uri
 
 execCmd c
-    = throwResError 501 $ "command not yet implemented: " ++ show c
+    = throwNYI $ show c
 
 -- ----------------------------------------------------------------------------
 
-execCompletion :: String -> Indexer -> CM CmdRes
-execCompletion px _ix -- TODO: impl
-    = return $ ResCompl [px, px++"0"]
+execSearch :: Query -> Indexer -> CM CmdResult
+execSearch q (ix, dt) = do
+    res <- runQueryM ix dt q
+    return $ ResSearch $ map (\(_, (DocInfo d _, _)) -> unwrap d) . DM.toList . docHits $ res
 
-execSearch :: String -> Indexer -> CM CmdRes
-execSearch q (ix, dt)
-      =  case parseQuery q of
-          (Left _) -> throwResError 502 "not implemented"
-          (Right query) -> do
-            res <- runQueryM ix dt query
-            return $ ResSearch $ map (\(_, (DocInfo d _, _)) -> unwrap d) . DM.toList . docHits $ res
 
-execSequence :: [Command] -> CM CmdRes
+execSequence :: [Command] -> CM CmdResult
 execSequence []       = execCmd NOOP
 execSequence [c]      = execCmd c
 execSequence (c : cs) = execCmd c >> execSequence cs
 
-execInsert :: Document -> Words -> Indexer -> CM (Indexer, CmdRes)
-execInsert doc wrds (ix,dt) -- TODO: impl
-  = return ((newIndex, newDocTable), ResOK)
-  where
-  (did, newDocTable) = Dt.insert dt doc
-  cix                = CIx.insertContext "default" ix -- remove this line later
-  newIndex           = CIx.insert (Just "default", Just "word") (Occ.singleton 1 1) cix
---  newIndex           = addWords wrds did cix
+
+execInsert :: ApiDocument -> InsertOption -> Indexer -> CM (Indexer, CmdResult)
+execInsert doc op ixx = do
+    --split <- asks (opSplitter . evOptions)
+    let split = toDocAndWords
+    let (docs, ws) = split doc
+    let ix'        = insert docs ws ixx
+    case op of
+        New     -> return (ix', ResOK) -- TODO: not the real deal yet
+        x       -> throwNYI $ show x
+
+
+execDelete :: URI -> Indexer -> CM (Indexer, CmdResult)
+execDelete d ix = do
+    let ix' = deleteDocsByURI (S.singleton d) ix
+    return (ix', ResOK)
+
+-- ----------------------------------------------------------------------------
+-- Indexer functions
+-- ----------------------------------------------------------------------------
+
+-- | Insert a Document and Words.
+insert :: Document -> Words -> Indexer -> Indexer
+insert doc wrds (ix,dt)
+    = (newIx, newDt)
+    where
+    (did, newDt) = Dt.insert dt doc
+    newIx        = TIx.addWords wrds did ix
+
+-- | Delete a set if documents by 'URI'.
+deleteDocsByURI :: Set URI -> Indexer -> Indexer
+deleteDocsByURI us ixx@(_ix,dt)
+    = delete ixx docIds
+    where
+    docIds = toDocIdSet . catMaybesSet . S.map (Dt.lookupByURI dt) $ us
+
+-- | Delete a set of documents by 'DocId'.
+delete :: Indexer -> DocIdSet -> Indexer
+delete (ix,dt) dIds
+  = (newIx, newDt)
+    where
+    newIx = CIx.map (Ix.batchDelete dIds) ix
+    newDt = Dt.difference dIds            dt
 
 -- ----------------------------------------------------------------------------
 

@@ -56,10 +56,12 @@ import qualified Holumbus.Server.Template                 as Tmpl
 --import qualified Holumbus.Server.Interpreter              as Ip
 --}
 import           Holumbus.Interpreter.Interpreter
+import           Holumbus.Common.ApiDocument
+import           Holumbus.Query.Language.Grammar
 -- ----------------------------------------------------------------------------
 
 start :: IO ()
-start = main1 $ Search "test"
+start = main1 $ Search (Word "test")
 
 main1 :: Command -> IO ()
 main1 c

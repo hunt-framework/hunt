@@ -1,4 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
 {--
  - this file somehow causes ghc to deadlock when not
  - compiled without cabal clean
@@ -68,3 +67,6 @@ lookup t k (ContextIx m)
 
 keys :: ContextIndex i v -> [Context]
 keys (ContextIx m) = M.keys m
+
+map :: (i v -> j w) -> ContextIndex i v -> ContextIndex j w
+map f (ContextIx m) = ContextIx $ M.map f m
