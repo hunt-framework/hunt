@@ -9,7 +9,7 @@ import           Test.HUnit
 import qualified Data.Map                         as M
 import           Holumbus.Common
 import           Holumbus.Interpreter.Interpreter
-
+import           Holumbus.Interpreter.Command
 import           Holumbus.Utility
 
 import           Holumbus.Common.ApiDocument      as ApiDoc

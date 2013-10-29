@@ -81,7 +81,8 @@ library
     Holumbus.DocTable.HashedDocuments
 
     Holumbus.Interpreter.Interpreter
-    
+    Holumbus.Interpreter.Command
+ 
     Holumbus.Analyzer.Analyzer
  
     Holumbus.Query.Fuzzy

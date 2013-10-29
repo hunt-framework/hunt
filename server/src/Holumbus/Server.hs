@@ -56,6 +56,7 @@ import qualified Holumbus.Server.Template                 as Tmpl
 --import qualified Holumbus.Server.Interpreter              as Ip
 --}
 import           Holumbus.Interpreter.Interpreter
+import           Holumbus.Interpreter.Command
 import           Holumbus.Common.ApiDocument
 import           Holumbus.Query.Language.Grammar
 -- ----------------------------------------------------------------------------

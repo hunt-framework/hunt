@@ -37,7 +37,7 @@ import qualified Holumbus.DocTable.DocTable        as Dt
 import           Holumbus.DocTable.HashedDocuments as HDt
 
 import           Holumbus.Utility                  (catMaybesSet)
-
+import           Holumbus.Interpreter.Command
 -- ----------------------------------------------------------------------------
 --
 -- the semantic domains (datatypes for interpretation)
