@@ -10,7 +10,6 @@ import qualified Data.Set                          as S
 import qualified Data.IntSet                       as IS
 import qualified Data.Map                          as M
 
---import qualified Holumbus.Index.Common.Occurrences as Occ
 import           Holumbus.Utility                  (catMaybesSet)
 
 import           Holumbus.DocTable.DocTable        (DocTable)

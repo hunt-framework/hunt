@@ -11,11 +11,11 @@
 
 module Holumbus.Index.Proxy.ContextIndex where
 
-import           Data.Map                (Map)
-import qualified Data.Map                as M
+import           Data.Map                     (Map)
+import qualified Data.Map                     as M
 
-import           Holumbus.Index.Common   (Context, Textual)
-import qualified Holumbus.Index.Index    as Ix
+import           Holumbus.Common.BasicTypes   (Context, Textual)
+import qualified Holumbus.Index.Index         as Ix
 
 -- ----------------------------------------------------------------------------
 

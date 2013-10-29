@@ -67,7 +67,6 @@ library
     Holumbus.Common.RawResult
     Holumbus.Common.Compression
 
-    Holumbus.Index.Common
     Holumbus.Index.Index
     Holumbus.Index.TextIndex
     Holumbus.Index.PrefixTreeIndex
@@ -78,7 +77,6 @@ library
 --    Holumbus.Index.Proxy.CompressedIndex
 --    Holumbus.Index.Proxy.CachedIndex
 
-    Holumbus.DocTable.Common
     Holumbus.DocTable.DocTable
     Holumbus.DocTable.HashedDocuments
 

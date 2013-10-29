@@ -38,8 +38,9 @@ import           Data.Aeson
 import           Data.Binary
 import           Data.Text             (Text)
 import qualified Data.Text             as T
+import           Data.Text.Binary      ()
 
-import           Holumbus.Index.Common (Context)
+import           Holumbus.Common.BasicTypes (Context)
 
 -- ----------------------------------------------------------------------------
 

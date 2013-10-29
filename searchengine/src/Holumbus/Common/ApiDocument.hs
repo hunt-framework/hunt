@@ -13,9 +13,8 @@ import qualified Data.Map                        as M
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
 
-import           Holumbus.Index.Common           (Content, Context, Description,
-                                                  Document, Position, URI,
-                                                  WordList)
+import           Holumbus.Common.BasicTypes
+import           Holumbus.Common.Document        (Document, Description)
 
 import           Holumbus.Query.Language.Grammar (Query (..))
 

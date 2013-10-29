@@ -13,12 +13,12 @@ import           Data.Text                         (Text)
 import qualified Data.Text                         as T
 
 
-import           Holumbus.Index.Common             (Document, Occurrences, URI,
-                                                    Words)
-
+import           Holumbus.Common.BasicTypes        
 import           Holumbus.Common.ApiDocument       as ApiDoc
-
 import           Holumbus.Common.DocIdMap          (DocIdSet, toDocIdSet)
+import           Holumbus.Common.Occurrences       (Occurrences)
+import           Holumbus.Common.Document          (Document)
+
 import qualified Holumbus.Index.Index              as Ix
 import           Holumbus.Index.InvertedIndex
 import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
@@ -27,75 +27,18 @@ import qualified Holumbus.Index.TextIndex          as TIx
 
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
---import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result             as QRes
 
 import qualified Holumbus.Common.DocIdMap          as DM
 import           Holumbus.Common.Document          (unwrap)
 import           Holumbus.Common.Analyzer
---import qualified Holumbus.Common.Occurrences       as Occ
 
 import qualified Holumbus.DocTable.DocTable        as Dt
 import           Holumbus.DocTable.HashedDocuments as HDt
 
 import           Holumbus.Utility                  (catMaybesSet)
 
--- ----------------------------------------------------------------------------
-{-
-data Dummy
-    = Dummy
-      deriving (Show)
--}
--- ----------------------------------------------------------------------------
---
--- the abstract syntax (syntactic domains)
-
-{--
-data InsOpts
-    = New | Replace | Modify
-      deriving (Show)
---}
---
-{-
-data Command
-    = Search     { _theQuery    :: String }
-    | Completion { _thePrefix   :: String }
-    | Insert     { _theRawDoc   :: Document
-                 , _theOccs     :: Words -- change this later -> includ analyer here with options
- --                , _theInsOpts  :: InsOpts
-                 }
-    | Delete     { _theDocUri   :: URI }
-    | LoadIx     { _thePath     :: FilePath }
-    | StoreIx    { _thePath     :: FilePath }
-    | Sequence   { _theCmdSeq   :: [Command] }
-    | NOOP
-    | MoreCommands
-      deriving (Show)
-
-data CmdRes
-    = ResOK
-    | ResSearch { _theDocs    :: [Document] }
-    | ResCompl  { _theWords   :: [String] }
-      deriving (Show)
-
-data CmdError
-    = ResError  { _theErr     :: Int
-                , _theReason  :: String
-                }
-    deriving (Show)
-
-
-instance Error CmdError where
-    strMsg s = ResError 500 $ "internal server error: " ++ s
-
-instance FromJSON Command     where parseJSON = undefined
---instance FromJSON InsOpts     where parseJSON = undefined
-
-instance ToJSON Command       where toJSON = undefined
-instance ToJSON CmdRes        where toJSON = undefined
-instance ToJSON CmdError      where toJSON = undefined
--}
 -- ----------------------------------------------------------------------------
 --
 -- the semantic domains (datatypes for interpretation)

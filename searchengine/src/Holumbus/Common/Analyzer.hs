@@ -14,9 +14,8 @@ import qualified Data.Map                    as M
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
-import           Holumbus.Index.Common       (Document (..),
-                                              DocumentWrapper (..), Position,
-                                              Word, WordList, Words)
+import           Holumbus.Common.Document    (Document (..), DocumentWrapper(..))
+import           Holumbus.Common.BasicTypes  
 
 import           Holumbus.Common.ApiDocument
 

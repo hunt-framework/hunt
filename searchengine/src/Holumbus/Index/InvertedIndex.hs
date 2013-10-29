@@ -11,9 +11,9 @@ import           Control.Arrow                       (first)
 import           Data.Text                           (pack, unpack)
 
 import           Holumbus.Common.Compression         hiding (delete)
-import           Holumbus.Index.Common
---import           Holumbus.Common.Occurrences       (Occurrences)
+import           Holumbus.Common.BasicTypes
 import qualified Holumbus.Common.Occurrences         as Occ
+import           Holumbus.Common.Occurrences         (Occurrences)
 
 import           Holumbus.Index.ComprPrefixTreeIndex
 import           Holumbus.Index.Index                as Ix

@@ -15,7 +15,10 @@ import qualified Data.Map                          as M
 
 import qualified Holumbus.Common.Occurrences       as Occ
 
-import           Holumbus.Index.Common
+import           Holumbus.Common.BasicTypes
+import           Holumbus.Common.Occurrences       (Occurrences)
+import           Holumbus.Common.DocId             (DocId)
+
 import           Holumbus.Index.Index
 import           Holumbus.Index.Proxy.ContextIndex (ContextIndex, ContextIxCon)
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
