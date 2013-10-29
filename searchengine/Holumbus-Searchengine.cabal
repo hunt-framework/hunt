@@ -55,7 +55,6 @@ library
     Holumbus.Data.PrefixTree.Types
 
     Holumbus.Common
-    Holumbus.Common.Analyzer
     Holumbus.Common.ApiDocument
     Holumbus.Common.BasicTypes
     Holumbus.Common.DiffList
@@ -81,6 +80,9 @@ library
     Holumbus.DocTable.HashedDocuments
 
     Holumbus.Interpreter.Interpreter
+    
+    Holumbus.Analyzer.Analyzer
+ 
     Holumbus.Query.Fuzzy
     Holumbus.Query.Intermediate
     Holumbus.Query.Language.Grammar

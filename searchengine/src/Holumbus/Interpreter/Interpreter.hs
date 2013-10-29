@@ -17,7 +17,10 @@ import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.ApiDocument       as ApiDoc
 import           Holumbus.Common.DocIdMap          (DocIdSet, toDocIdSet)
 import           Holumbus.Common.Occurrences       (Occurrences)
-import           Holumbus.Common.Document          (Document)
+import           Holumbus.Common.Document          (Document, unwrap)
+import qualified Holumbus.Common.DocIdMap          as DM
+
+import           Holumbus.Analyzer.Analyzer
 
 import qualified Holumbus.Index.Index              as Ix
 import           Holumbus.Index.InvertedIndex
@@ -29,10 +32,6 @@ import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result             as QRes
-
-import qualified Holumbus.Common.DocIdMap          as DM
-import           Holumbus.Common.Document          (unwrap)
-import           Holumbus.Common.Analyzer
 
 import qualified Holumbus.DocTable.DocTable        as Dt
 import           Holumbus.DocTable.HashedDocuments as HDt

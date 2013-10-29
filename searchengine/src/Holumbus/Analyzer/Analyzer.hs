@@ -1,4 +1,4 @@
-module Holumbus.Common.Analyzer
+module Holumbus.Analyzer.Analyzer
   ( toDocAndWords
   , toDocAndWords'
   )
@@ -18,6 +18,12 @@ import           Holumbus.Common.Document    (Document (..), DocumentWrapper(..)
 import           Holumbus.Common.BasicTypes  
 
 import           Holumbus.Common.ApiDocument
+
+{--
+ - since we have a very flexible index typeclass i think it would make sense
+ - to have a typeclass for the analyzer as well that supports different output
+ - types.
+ -}
 
 -- ----------------------------------------------------------------------------
 
