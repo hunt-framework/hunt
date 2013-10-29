@@ -21,15 +21,15 @@ import qualified Holumbus.Common.Document          as Doc
 
 import qualified Holumbus.Index.Index              as Ix
 import qualified Holumbus.Index.TextIndex          as TIx
-import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 
+import           Holumbus.Indexer.Indexer
 -- ----------------------------------------------------------------------------
 
 type TextIndexerCon i dt = (TIx.TextIndex i Occurrences, DocTable dt)
 
-type TextIndexer i dt = (i Occurrences, dt)
-type ContextTextIndexer i dt = (ContextIndex i Occurrences, dt)
+type TextIndexer i dt = Indexer i Occurrences dt
+type ContextTextIndexer i dt = ContextIndexer i Occurrences dt
 
 -- ----------------------------------------------------------------------------
 
