@@ -70,7 +70,7 @@ start = scotty 3000 $ do
   env <- liftIO $ initEnv emptyIndexer emptyOptions
   let interpret = runCmd env
   
-  let interpret' cmd = do
+  let eval cmd = do
       res <- liftIO $ interpret cmd
       case res of
         Left  (ResError code msg) ->
@@ -86,49 +86,48 @@ start = scotty 3000 $ do
   middleware logStdoutDev
 
   get "/"         $ redirect "/search"
-  get "/search"   $ do
-    html . Tmpl.index $ (0::Int)
+  get "/search"   $ html . Tmpl.index $ (0::Int)
   get "/add"      $ html Tmpl.addDocs
 
   -- interpreter
-  post "/document/interpret" $ do
+  post "/eval" $ do
     -- Raises an exception if parse is unsuccessful
     cmd <- jsonData :: ActionM Command
-    interpret' cmd
+    eval cmd
 
   -- simple query
   get "/search/:query" $ do
     query    <- param "query"
     -- XXX: mix of lazy and strict Text
-    interpret' (Search . Left . LT.toStrict $ query)
+    eval (Search . Left . LT.toStrict $ query)
 
   -- completion
   get "/completion/:query" $ do
     query <- param "query"
     -- XXX: mix of lazy and strict Text
-    interpret' (Completion . LT.toStrict $ query)
+    eval (Completion . LT.toStrict $ query)
 
   -- insert a document (fails if a document (the uri) already exists)
   post "/document/insert" $ do
     -- Raises an exception if parse is unsuccessful
     jss <- jsonData :: ActionM [ApiDocument]
-    let batch = Sequence $ foldr (\doc cmds -> (Insert doc New):cmds) [] jss
-    interpret' batch
+    let batch = Sequence $ map (flip Insert New) jss
+    eval batch
 
   -- delete a set of documents by URI
   post "/document/delete" $ do
     uris <- jsonData :: ActionM (S.Set URI)
-    interpret' $ Delete uris
+    eval $ Delete uris
   
   -- write the indexer to disk
   get "/binary/save/:filename" $ do
     filename  <- param "filename"
-    interpret' $ LoadIx filename
+    eval $ LoadIx filename
 
   -- load indexer from disk
   get "/binary/load/:filename" $ do
     filename  <- param "filename"
-    interpret' $ StoreIx filename
+    eval $ StoreIx filename
 
   notFound $ text "page not found"
 
