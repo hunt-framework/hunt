@@ -1,3 +1,4 @@
+{-# LANGUAGE EmptyDataDecls #-}
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -32,6 +33,11 @@ import           System.IO
 
 -- ------------------------------------------------------------
 
+-- | A dummy type without constructor.
+data TypeDummy
+
+-- ------------------------------------------------------------
+
 -- | The boob operator.
 (.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
 (.::) = (.).(.)
@@ -43,6 +49,22 @@ import           System.IO
 -- | Data.Maybe.catMaybes on a Set instead of a List.
 catMaybesSet :: Ord a => Set (Maybe a) -> [a]
 catMaybesSet = S.toList . S.map fromJust . S.delete Nothing
+
+-- | Test if Either is a Left value.
+isLeft :: Either a b -> Bool
+isLeft = either (const True) (const False)
+
+-- | Test if Either is a Right value.
+isRight :: Either a b -> Bool
+isRight = not . isLeft
+
+-- | Unwraps a 'Left' value - fails on 'Right'.
+fromLeft :: Either a b -> a
+fromLeft = either id (error "Holumbus.Utility.fromLeft: Right")
+
+-- | Unwraps a 'Right' value - fails on 'Left'.
+fromRight :: Either a b -> b
+fromRight = either (error "Holumbus.Utility.fromRight: Left") id
 
 -- | Split a string into seperate strings at a specific character sequence.
 split :: Eq a => [a] -> [a] -> [[a]]

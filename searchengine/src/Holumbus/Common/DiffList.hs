@@ -41,8 +41,7 @@ import           Data.Word                         (Word32, Word64)
 import           Holumbus.Data.Crunch
 
 import           Holumbus.Common.BasicTypes  (Position)
-import           Holumbus.Common.Occurrences (Positions, fromListPos,
-                                                    toAscListPos)
+import           Holumbus.Common.Positions
 
 -- ----------------------------------------------------------------------------
 

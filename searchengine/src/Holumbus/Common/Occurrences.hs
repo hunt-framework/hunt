@@ -26,7 +26,7 @@ import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.DocId
 import           Holumbus.Common.DocIdMap   (DocIdMap)
 import qualified Holumbus.Common.DocIdMap   as DM
-
+import           Holumbus.Common.Positions
 -- ------------------------------------------------------------
 
 -- | The occurrences in a number of documents.
@@ -87,39 +87,4 @@ subtract                = DM.differenceWith subtractPositions
 
 -- ------------------------------------------------------------
 
--- | The positions of the word in the document.
-type Positions                  = IS.IntSet
 
--- | Empty positions.
-emptyPos                :: Positions
-emptyPos                = IS.empty
-
--- | Positions with one element.
-singletonPos            :: Position -> Positions
-singletonPos            = IS.singleton
-
--- | Whether the 'Position' is part of 'Positions'.
-memberPos               :: Position -> Positions -> Bool
-memberPos               = IS.member
-
--- | Converts 'Positions' to a list of 'Position's in ascending order.
-toAscListPos            :: Positions -> [Position]
-toAscListPos            = IS.toAscList
-
--- | Constructs Positions from a list of 'Position's.
-fromListPos             :: [Position] -> Positions
-fromListPos             = IS.fromList
-
--- | Number of 'Position's.
-sizePos                 :: Positions -> Int
-sizePos                 = IS.size
-
--- | The union of two 'Positions'.
-unionPos                :: Positions -> Positions -> Positions
-unionPos                = IS.union
-
--- | A fold over Positions
-foldPos                 :: (Position -> r -> r) -> r -> Positions -> r
-foldPos                 = IS.fold
-
--- ------------------------------------------------------------

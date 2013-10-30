@@ -5,7 +5,9 @@ import           GHC.Exts                       (Constraint)
 
 import qualified Data.IntSet                    as IS
 
-import           Holumbus.Index.Common          (DocId, Textual, DocIdSet)
+import           Holumbus.Common.BasicTypes     (Textual)
+import           Holumbus.Common.DocId          (DocId)
+import           Holumbus.Common.DocIdMap       (DocIdSet)
 
 -- ----------------------------------------------------------------------------
 

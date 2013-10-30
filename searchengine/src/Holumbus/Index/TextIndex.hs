@@ -15,7 +15,10 @@ import qualified Data.Map                          as M
 
 import qualified Holumbus.Common.Occurrences       as Occ
 
-import           Holumbus.Index.Common
+import           Holumbus.Common.BasicTypes
+import           Holumbus.Common.Occurrences       (Occurrences)
+import           Holumbus.Common.DocId             (DocId)
+
 import           Holumbus.Index.Index
 import           Holumbus.Index.Proxy.ContextIndex (ContextIndex, ContextIxCon)
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
@@ -42,7 +45,7 @@ type ContextTextIndex i v
 -- ----------------------------------------------------------------------------
 
 -- | Add words for a document to the 'Index'.
--- | Note: adds words to every >existing< Context
+-- | Note: adds words to every /existing/ Context.
 addWords :: TextIndex i Occurrences
          => Words -> DocId -> ContextIndex i Occurrences -> ContextIndex i Occurrences
 addWords wrds dId i

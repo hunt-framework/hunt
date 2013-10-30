@@ -32,6 +32,7 @@ library
                , containers             >= 0.5
                , data-stringmap         >= 0.9.1 && < 2
                , deepseq                >= 1.2
+               , dlist
                , directory              >= 1   && < 2
                , filepath               >= 1   && < 2
                , hslogger               >= 1   && < 2
@@ -50,6 +51,7 @@ library
     Holumbus.Data.Crunch
 
     Holumbus.Common
+    Holumbus.Common.ApiDocument
     Holumbus.Common.BasicTypes
     Holumbus.Common.DiffList
     Holumbus.Common.DocId
@@ -57,10 +59,10 @@ library
     Holumbus.Common.Document
     Holumbus.Common.CompressedDocument
     Holumbus.Common.Occurrences
+    Holumbus.Common.Positions
     Holumbus.Common.RawResult
     Holumbus.Common.Compression
 
-    Holumbus.Index.Common
     Holumbus.Index.Index
     Holumbus.Index.TextIndex
     Holumbus.Index.PrefixTreeIndex
@@ -71,11 +73,17 @@ library
 --    Holumbus.Index.Proxy.CompressedIndex
 --    Holumbus.Index.Proxy.CachedIndex
 
-    Holumbus.DocTable.Common
     Holumbus.DocTable.DocTable
     Holumbus.DocTable.HashedDocuments
 
+    Holumbus.Indexer.Indexer
+    Holumbus.Indexer.TextIndexer
+
     Holumbus.Interpreter.Interpreter
+    Holumbus.Interpreter.Command
+ 
+    Holumbus.Analyzer.Analyzer
+ 
     Holumbus.Query.Fuzzy
     Holumbus.Query.Intermediate
     Holumbus.Query.Language.Grammar
@@ -108,7 +116,7 @@ test-suite Holumbus-Index
   ghc-options:          -Wall
   extensions:           OverloadedStrings
 
-  build-depends: base                       >= 4.6 && < 5
+  build-depends: base                         >= 4.6 && < 5
                , containers
                , HUnit
                , QuickCheck
@@ -124,9 +132,10 @@ Test-suite Holumbus-Interpreter
   ghc-options:          -Wall
   extensions:           OverloadedStrings
 
-  build-depends: base                       >= 4.6 && < 5
+  build-depends: base                         >= 4.6 && < 5
                , containers
                , HUnit
+               , mtl                          >= 1.1 && < 3
                , QuickCheck
                , test-framework
                , test-framework-hunit

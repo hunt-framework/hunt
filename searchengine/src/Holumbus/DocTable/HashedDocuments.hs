@@ -40,9 +40,11 @@ import qualified Data.Binary                    as B
 
 import           Data.Digest.Murmur64
 
-import           Holumbus.DocTable.Common
-import qualified Holumbus.Common.DocIdMap as DM
-
+import           Holumbus.Common.BasicTypes
+import qualified Holumbus.Common.DocIdMap       as DM
+import           Holumbus.Common.Document       (Document(..), DocumentWrapper(..))
+import           Holumbus.Common.DocId          (DocId, mkDocId)
+import           Holumbus.Common.DocIdMap       (DocIdMap)
 import           Holumbus.DocTable.DocTable
 
 -- ----------------------------------------------------------------------------

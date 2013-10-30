@@ -5,6 +5,11 @@ where
 
 import           Prelude                        as P
 
+import           Control.Applicative            ((<$>))
+import           Control.Arrow                  (second)
+
+import           Data.Binary                    (Binary(..))
+
 import           Holumbus.Index.Index
 import qualified Holumbus.Index.Index           as Ix
 import           Holumbus.Index.PrefixTreeIndex
@@ -13,15 +18,19 @@ import           Holumbus.Common.Compression    hiding (delete)
 import           Holumbus.Common.DocIdMap       (DocIdMap)
 import           Holumbus.Common.Occurrences    (Occurrences)
 
-import           Control.Applicative            ((<$>))
-import           Control.Arrow                  (second)
-
 import qualified Data.StringMap                 as SM
 
 -- ----------------------------------------------------------------------------
 
-newtype ComprOccPrefixTree cv = ComprPT { comprPT :: DmPrefixTree cv}
+newtype ComprOccPrefixTree cv
+    = ComprPT { comprPT :: DmPrefixTree cv}
     deriving Show
+
+-- ----------------------------------------------------------------------------
+
+instance Binary v => Binary (ComprOccPrefixTree v) where
+    put (ComprPT i) = put i
+    get = get >>= return . ComprPT
 
 -- ----------------------------------------------------------------------------
 

@@ -1,51 +1,159 @@
 module Main where
 
-import           Data.Monoid
+--import           Data.Monoid
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 --import           Test.Framework.Providers.QuickCheck2
 import           Test.HUnit
 --import           Test.QuickCheck
-import qualified Data.Map                            as M
-import qualified Data.Text                           as T
+import qualified Data.Map                         as M
+import qualified Data.Set                         as S
+
 import           Holumbus.Common
 import           Holumbus.Interpreter.Interpreter
-import           Data.Either                         (rights)
+import           Holumbus.Interpreter.Command
+import           Holumbus.Utility
+
+import           Holumbus.Common.ApiDocument      as ApiDoc
+import           Holumbus.Query.Language.Grammar
+import           Control.Monad.Trans              (liftIO)
 
 -- ----------------------------------------------------------------------------
 
 main :: IO ()
-main = defaultMainWithOpts
-       [ testCase "Interpreter:            insert" insertTestEmpty
-       ] mempty
-
+main = defaultMain
+       [ testCase "Interpreter: insert"
+          test_insertEmpty
+       , testCase "Interpreter: insertAnalyzed"
+          test_insertAnalyzed
+       , testCase "Interpreter: insertAndSearch"
+          test_insertAndSearch
+       , testCase "Interpreter: alot"
+          test_alot
+       , testCase "Interpreter: fancy"
+          test_fancy
+       ]
 
 -- | check DmPrefixTree
-insertTestEmpty :: Assertion
-insertTestEmpty = do
+test_insertEmpty :: Assertion
+test_insertEmpty = do
   (res, _env) <- testRunCmd batchCmd
-  True @?= eitherIsRight res
-  --True @?= notEmpty res
-  where
-  eitherIsRight res = 1 == (length $ rights [res])
-  --notEmpty res = 1 == (length . _theDocs . head $ rights [res])
+  True @=? isRight res
 
-testRunCmd :: Command -> IO (Either CmdError CmdRes, Env)
+testRunCmd :: Command -> IO (Either CmdError CmdResult, Env)
 testRunCmd cmd = do
   env <- initEnv emptyIndexer emptyOptions
   res <- runCmd env cmd
   return (res, env)
 
-mkWordList :: WordList
-mkWordList = M.fromList $ [(T.pack "hallo", [1,5,10])]
-
-mkWords :: Words
-mkWords = M.fromList $ [(T.pack "default", mkWordList)]
-
-mkDoc :: Document
-mkDoc = Document (T.pack "id::1") (M.fromList [(T.pack "name", T.pack "Chris"), (T.pack "alter", T.pack "30")])
 
 insertCmd, searchCmd, batchCmd :: Command
-insertCmd = Insert mkDoc mkWords
-searchCmd = Search "d"
-batchCmd = Sequence [insertCmd,searchCmd]
+insertCmd = Insert brainDoc New
+searchCmd = Search (Right $ Word "d")
+batchCmd  = Sequence [insertCmd, searchCmd]
+
+-- ----------------------------------------------------------------------------
+
+testCmd :: Command -> IO (Either CmdError CmdResult)
+testCmd cmd = do
+  env <- initEnv emptyIndexer emptyOptions
+  runCmd env cmd
+
+-- uris of the search results
+searchResultUris :: CmdResult -> [URI]
+searchResultUris = map uri . crRes
+
+-- example apidoc
+brainDoc :: ApiDocument
+brainDoc = emptyApiDoc
+  { apiDocUri      = "test://0"
+  , apiDocIndexMap = M.fromList [("default", Right td)]
+  , apiDocDescrMap = descr
+  }
+  where
+  td = TextData
+    { idContent  = "Brain"
+    , idMetadata = md
+    }
+  md = IndexMetadata
+    { imAnalyzer = DefaultAnalyzer
+    }
+  descr = M.fromList [("name", "Brain"), ("mission", "take over the world")]
+
+
+-- insert example apidoc
+test_insertAnalyzed :: Assertion
+test_insertAnalyzed = do
+  res <- testCmd $
+      Insert brainDoc New
+  True @=? isRight res
+
+
+-- evaluate CM and check the result
+testCM' :: Bool -> CM () -> Assertion
+testCM' b int = do
+  env <- initEnv emptyIndexer emptyOptions
+  res <- runCM int env
+  (if b then isRight else isLeft) res @? "unexpected interpreter result: " ++ show res
+
+
+-- evaluate CM and check if it yields a result
+-- allows for a whole sequence of commands with tests inbetween
+-- the interpreter can fail prematurely
+testCM :: CM () -> Assertion
+testCM = testCM' True
+
+
+-- search for inserted doc
+-- sequence of commands using the execSeq
+test_insertAndSearch :: Assertion
+test_insertAndSearch = do
+  res <- testCmd . Sequence $
+      [ Insert brainDoc New
+      , Search (Right $ Word "Brain")]
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+
+-- test a whole sequence with tests inbetween
+-- the interpreter can fail prematurely
+test_alot :: Assertion
+test_alot = testCM $ do
+  --throwNYI "user error"
+  insR <- execCmd $ Insert brainDoc New
+  liftIO $ ResOK @=? insR
+  seaR <- execCmd $ Search (Right $ Word "Brain")
+  liftIO $ ["test://0"] @=? searchResultUris seaR
+  seaR2 <- execCmd $ Search (Right $ CaseWord "brain")
+  liftIO $ [] @=? searchResultUris seaR2
+
+
+-- fancy functions
+-- characters were chosen without any reason
+(@@@) :: Command -> (CmdResult -> IO b) -> CM b
+a @@@ f = execCmd a >>= liftIO . f
+
+(@@=) :: Command -> CmdResult -> CM ()
+a @@= b = a @@@ (@?=b)
+
+
+-- fancy - equivalent to 'test_alot' plus additional tests
+test_fancy :: Assertion
+test_fancy = testCM $ do
+  -- insert yields the correct result value
+  Insert brainDoc New
+    @@= ResOK
+  -- searching "brain" leads to the doc
+  Search (Right $ Word "Brain")
+    @@@ ((@?= ["test://0"]) . searchResultUris)
+  -- case-sensitive search too
+  Search (Right $ CaseWord "Brain")
+    @@@ ((@?= ["test://0"]) . searchResultUris)
+  -- case-sensitive search yields no result
+  Search (Right $ CaseWord "brain")
+    @@@ ((@?= []) . searchResultUris)
+  -- delete return the correct result value
+  Delete (S.singleton "test://0")
+    @@= ResOK
+  -- the doc is gone
+  Search (Right $ Word "Brain")
+    @@@ ((@?= []) . searchResultUris)

@@ -49,9 +49,8 @@ import qualified Data.Map                          as M
 
 import           Holumbus.Common
 import qualified Holumbus.Common.DocIdMap    as DM
-import           Holumbus.Common.Occurrences as Occ
 import           Holumbus.Query.Result
-
+import           Holumbus.Common.Positions
 -- ----------------------------------------------------------------------------
 
 -- | The configuration of the ranking mechanism.

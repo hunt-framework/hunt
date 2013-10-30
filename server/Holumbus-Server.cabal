@@ -33,11 +33,10 @@ executable holumbusServer
                  , blaze-markup
                  , containers             >= 0.5
                  , deepseq                >= 1.2
-                 , dlist
                  , hamlet                 >= 1.1.7.1
                  , Holumbus-Searchengine  >= 2
                  , mtl                    >= 1.1 && < 3
-                 , text
+                 , text                   >= 0.8
                  , transformers
                  , scotty                 >= 0.5
                  , shakespeare-js         >= 1.1.4
