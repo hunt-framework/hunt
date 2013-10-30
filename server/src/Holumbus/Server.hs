@@ -1,65 +1,52 @@
+{-# LANGUAGE ConstraintKinds   #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE ConstraintKinds   #-}
 -- http://ghc.haskell.org/trac/ghc/blog/LetGeneralisationInGhc7
 {-# LANGUAGE NoMonoLocalBinds  #-}
 
 module Holumbus.Server {-(start)-} where
 
-import           Prelude                                  as P
+import           Prelude                              as P
 
-import           Control.Concurrent.MVar
-import           Control.Monad.IO.Class                   (MonadIO, liftIO)
+import           Control.Monad.IO.Class               (MonadIO, liftIO)
 
 import           Network.Wai.Middleware.RequestLogger
 
 import           Web.Scotty
 
-import qualified Data.Binary                              as Bin
-import           Data.Either                              (partitionEithers)
-import qualified Data.Map                                 as M
-import qualified Data.Set                                 as S
-import           Data.Text                                (Text)
-import qualified Data.Text.Lazy                           as LT
+--import qualified Data.Binary                          as Bin
+--import           Data.Either                          (partitionEithers)
+--import qualified Data.Map                             as M
+import           Data.Text                            (Text)
+import qualified Data.Text.Lazy                       as LT
 
-import qualified Data.Aeson                               as A
-import           Data.Aeson.Encode.Pretty                 (encodePretty)
-import           Holumbus.Utility                         ((.::))
+import qualified Data.Aeson                           as A
+import           Data.Aeson.Encode.Pretty             (encodePretty)
 
-import           Holumbus.Common
-import qualified Holumbus.Common.DocIdMap           as DM
+--import           Holumbus.Common
 
---import           Holumbus.Index.Common.Document           as Doc
---import           Holumbus.Index.Common.CompressedDocument
+--import qualified Holumbus.Index.Proxy.CachedIndex       as IxCache
 
---import qualified Holumbus.Index.Proxy.CachedIndex         as IxCache
 --import qualified Holumbus.Index.Text.Inverted.PrefixMem as Inv
-import           Holumbus.Index.TextIndex               (TextIndex)
-import qualified Holumbus.Index.TextIndex               as TIx
-import           Holumbus.Index.InvertedIndex           as Inv
-import qualified Holumbus.DocTable.DocTable             as Dt
-import           Holumbus.DocTable.DocTable             hiding (filter, map)
-import qualified Holumbus.DocTable.HashedDocuments      as Dt
+--import           Holumbus.DocTable.DocTable           hiding (filter, map)
+--import qualified Holumbus.DocTable.DocTable           as Dt
+--import qualified Holumbus.DocTable.HashedDocuments    as Dt
+--import           Holumbus.Index.InvertedIndex         as Inv
+--import           Holumbus.Index.TextIndex             (TextIndex)
+--import qualified Holumbus.Index.TextIndex             as TIx
+--import qualified Holumbus.Indexer.TextIndexer         as Ixx
 
-import           Holumbus.Query.Fuzzy
-import           Holumbus.Query.Language.Grammar
-import           Holumbus.Query.Language.Parser
-import           Holumbus.Query.Processor
-import           Holumbus.Query.Result
-
-import qualified Holumbus.Indexer.TextIndexer           as Ixx
 --import           Holumbus.Server.Analyzer
-import           Holumbus.Server.Common                   hiding (Query)
-import qualified Holumbus.Server.Template                 as Tmpl
---import qualified Holumbus.Server.Interpreter              as Ip
---}
-import           Holumbus.Interpreter.Interpreter
+import           Holumbus.Server.Common
+import qualified Holumbus.Server.Template             as Tmpl
+--import qualified Holumbus.Server.Interpreter          as Ip
 import           Holumbus.Interpreter.Command
+import           Holumbus.Interpreter.Interpreter
 
 import           Holumbus.Common.ApiDocument
-import           Holumbus.Query.Language.Grammar
+
 -- ----------------------------------------------------------------------------
 
 -- | Like Web'.Scotty.json', but pretty.
@@ -68,49 +55,6 @@ jsonPretty v = do
   setHeader "Content-Type" "application/json"
   raw $ encodePretty v
 
-{--
--- Functions to check the existence/absence of documents (by URI) in the indexer.
-
--- | Constructs a list of 'ApiDocument' 'URI's that already exist in the indexer and a
---   ist of 'URI's and corresponding 'DocId's for 'ApiDocument's which are part of the indexer.
-checkApiDocUris :: [ApiDocument] -> Indexer Inv.InvertedIndex (Dt.Documents Document) -> ([URI], [(URI, DocId)])
-checkApiDocUris apiDocs ix =
-  let apiDocsE
-          = map (\apiDoc -> let docUri = apiDocUri apiDoc
-                                idM    = Dt.lookupByURI (Ixx.ixDocTable ix) docUri
-                            in maybe
-                                (          Left   docUri)
-                                (\docId -> Right (docUri, docId))
-                                idM)
-                apiDocs
-  in partitionEithers apiDocsE
-
--- | Constructs a Right value using the second accessor function
---   if the first accessor function is an empty list. Otherwise the non-empty list is returned.
---   Used for 'checkApiDocUrisExistence' and 'checkApiDocUrisAbsence'
-checkApiDocUris' :: (([URI], [(URI, DocId)]) -> [a], ([URI], [(URI, DocId)]) -> b)
-                    -> [ApiDocument] ->  Indexer Inv.InvertedIndex (Dt.Documents Document)  -> Either [a] b
-checkApiDocUris' (l,r) apiDocs ix =
-    let res = checkApiDocUris apiDocs ix
-    in (if P.null . l $ res then Right . r else Left . l) res
-
--- | Checks whether the Documents with the URIs supplied by ApiDocuments are in the index,
---   i.e. before an insert operation.
---   Left is the failure case where there are URIs given that cannot be found in the index.
-checkApiDocUrisExistence :: [ApiDocument] -> Indexer Inv.InvertedIndex (Dt.Documents Document) -> Either [URI] [(URI, DocId)]
-checkApiDocUrisExistence = checkApiDocUris' (fst, snd)
-
--- XXX: maybe return Either [URI] [URI], since the DocIds will not be needed in the failure case
--- | Checks whether there are no Documents with the URIs supplied by ApiDocuments in the index,
---   i.e. before an update operation.
---   Left is the failure case where there are already documents with those URIs in the index.
-checkApiDocUrisAbsence   :: [ApiDocument] -> Indexer Inv.InvertedIndex (Dt.Documents Document) -> Either [(URI, DocId)] [URI]
-checkApiDocUrisAbsence   = checkApiDocUris' (snd, fst)
-
--- | This is just used to specify the exact type of @e@ in @('DocumentWrapper' e)@
-toDocAndWords' :: (DocumentWrapper e, e ~ CompressedDoc) => ApiDocument -> (e, Words)
-toDocAndWords' = toDocAndWords
---}
 -- ----------------------------------------------------------------------------
 
 -- server itself:
@@ -122,8 +66,6 @@ start :: IO ()
 start = scotty 3000 $ do
 
   -- interpreter
-  -- env <- liftIO $ Ip.initEnv indexer (Ip.CMOptions (toDocAndWords Doc.wrapDoc))
-  -- let runCmd = Ip.runCmd env
   env <- liftIO $ initEnv emptyIndexer emptyOptions
   let interpret = runCmd env
   
@@ -147,7 +89,7 @@ start = scotty 3000 $ do
     html . Tmpl.index $ (0::Int)
   get "/add"      $ html Tmpl.addDocs
 
-  -- interpreter route
+  -- interpreter
   post "/document/interpret" $ do
     -- Raises an exception if parse is unsuccessful
     cmd <- jsonData :: ActionM Command
@@ -159,8 +101,25 @@ start = scotty 3000 $ do
     -- XXX: mix of lazy and strict Text
     interpret' (Search . Left . LT.toStrict $ query)
 
+  -- completion
+  get "/completion/:query" $ do
+    query <- param "query"
+    -- XXX: mix of lazy and strict Text
+    interpret' (Completion . LT.toStrict $ query)
+
+  -- insert a document (fails if a document (the uri) already exists)
+  post "/document/insert" $ do
+    -- Raises an exception if parse is unsuccessful
+    jss <- jsonData :: ActionM [ApiDocument]
+    let batch = Sequence $ foldr (\doc cmds -> (Insert doc New):cmds) [] jss
+    interpret' batch
+  
+  notFound $ text "page not found"
+
+-- ----------------------------------------------------------------------------
+
+{-
   -- simple query with paging
-  {--
   get "/search/:query/:page/:perPage" $ do
     query    <- param "query"
     p        <- param "page"
@@ -169,26 +128,7 @@ start = scotty 3000 $ do
     case res of
       (JsonSuccess docs) -> json . JsonSuccess $ mkPagedResult docs p pp
       _                  -> json res
-  get "/completion/:query" $ do
-    queryStr <- param "query"
-    res      <- withIx $ \ix -> do
-      case parseQuery queryStr of
-        (Left err) -> return . JsonFailure . return $ err
-        (Right query) ->
-          runQueryM (Ixx.ixIndex ix) (Ixx.ixDocTable ix) query
-          >>= return . JsonSuccess
-              . map (\ (c, (_, o)) -> (c, M.foldr (\m r -> r + DM.size m) 0 o))
-              . M.toList. wordHits
-    json res
---}
-
-  -- insert a document (fails if a document (the uri) already exists)
-  post "/document/insert" $ do
-    -- Raises an exception if parse is unsuccessful
-    jss <- jsonData :: ActionM [ApiDocument]
-    let batch = Sequence $ foldr (\doc cmds -> (Insert doc New):cmds) [] jss
-    interpret' batch
-
+-}
     -- res :: Maybe [URI]  -- maybe the documents that already exist
 {--    res <- modIx $ \ix -> do
       -- intersection of new docs and docTable
@@ -297,4 +237,49 @@ start = scotty 3000 $ do
     iRes <- liftIO $ runCmd cmd
     either json json iRes
 --}
-  notFound $ text "page not found"
+
+-- ----------------------------------------------------------------------------
+
+{--
+-- Functions to check the existence/absence of documents (by URI) in the indexer.
+
+-- | Constructs a list of 'ApiDocument' 'URI's that already exist in the indexer and a
+--   ist of 'URI's and corresponding 'DocId's for 'ApiDocument's which are part of the indexer.
+checkApiDocUris :: [ApiDocument] -> Indexer Inv.InvertedIndex (Dt.Documents Document) -> ([URI], [(URI, DocId)])
+checkApiDocUris apiDocs ix =
+  let apiDocsE
+          = map (\apiDoc -> let docUri = apiDocUri apiDoc
+                                idM    = Dt.lookupByURI (Ixx.ixDocTable ix) docUri
+                            in maybe
+                                (          Left   docUri)
+                                (\docId -> Right (docUri, docId))
+                                idM)
+                apiDocs
+  in partitionEithers apiDocsE
+
+-- | Constructs a Right value using the second accessor function
+--   if the first accessor function is an empty list. Otherwise the non-empty list is returned.
+--   Used for 'checkApiDocUrisExistence' and 'checkApiDocUrisAbsence'
+checkApiDocUris' :: (([URI], [(URI, DocId)]) -> [a], ([URI], [(URI, DocId)]) -> b)
+                    -> [ApiDocument] ->  Indexer Inv.InvertedIndex (Dt.Documents Document)  -> Either [a] b
+checkApiDocUris' (l,r) apiDocs ix =
+    let res = checkApiDocUris apiDocs ix
+    in (if P.null . l $ res then Right . r else Left . l) res
+
+-- | Checks whether the Documents with the URIs supplied by ApiDocuments are in the index,
+--   i.e. before an insert operation.
+--   Left is the failure case where there are URIs given that cannot be found in the index.
+checkApiDocUrisExistence :: [ApiDocument] -> Indexer Inv.InvertedIndex (Dt.Documents Document) -> Either [URI] [(URI, DocId)]
+checkApiDocUrisExistence = checkApiDocUris' (fst, snd)
+
+-- XXX: maybe return Either [URI] [URI], since the DocIds will not be needed in the failure case
+-- | Checks whether there are no Documents with the URIs supplied by ApiDocuments in the index,
+--   i.e. before an update operation.
+--   Left is the failure case where there are already documents with those URIs in the index.
+checkApiDocUrisAbsence   :: [ApiDocument] -> Indexer Inv.InvertedIndex (Dt.Documents Document) -> Either [(URI, DocId)] [URI]
+checkApiDocUrisAbsence   = checkApiDocUris' (snd, fst)
+
+-- | This is just used to specify the exact type of @e@ in @('DocumentWrapper' e)@
+toDocAndWords' :: (DocumentWrapper e, e ~ CompressedDoc) => ApiDocument -> (e, Words)
+toDocAndWords' = toDocAndWords
+--}
