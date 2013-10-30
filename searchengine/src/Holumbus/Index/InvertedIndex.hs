@@ -8,6 +8,7 @@ import           Prelude                             as P
 import           Control.Applicative                 ((<$>))
 import           Control.Arrow                       (first)
 
+import           Data.Binary                         (Binary(..))
 import           Data.Text                           (pack, unpack)
 
 import           Holumbus.Common.Compression         hiding (delete)
@@ -22,7 +23,13 @@ import           Holumbus.Index.Index                as Ix
 
 newtype InvertedIndex _v
     = InvIx { invIx :: ComprOccPrefixTree CompressedPositions }
-    deriving Show
+    deriving (Show)
+
+-- ----------------------------------------------------------------------------
+
+instance Binary (InvertedIndex v) where
+    put (InvIx i) = put i
+    get = get >>= return . InvIx
 
 -- ----------------------------------------------------------------------------
 

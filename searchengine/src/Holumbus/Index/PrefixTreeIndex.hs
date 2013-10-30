@@ -3,6 +3,8 @@ module Holumbus.Index.PrefixTreeIndex
 )
 where
 
+import           Data.Binary                       (Binary(..))
+
 import           Holumbus.Data.PrefixTree          (PrefixTree)
 import qualified Holumbus.Data.PrefixTree          as PT
 
@@ -14,6 +16,12 @@ import           Holumbus.Index.Index
 newtype DmPrefixTree v
     = DmPT (PrefixTree (DocIdMap v))
     deriving Show
+
+-- ----------------------------------------------------------------------------
+
+instance Binary v => Binary (DmPrefixTree v) where
+    put (DmPT i) = put i
+    get = get >>= return . DmPT
 
 -- ----------------------------------------------------------------------------
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {--
  - this file somehow causes ghc to deadlock when not
  - compiled without cabal clean
@@ -11,6 +12,8 @@
 
 module Holumbus.Index.Proxy.ContextIndex where
 
+import           Data.Binary                  (Binary(..))
+import           Data.Text.Binary             ()
 import           Data.Map                     (Map)
 import qualified Data.Map                     as M
 
@@ -27,6 +30,12 @@ type ContextIxCon impl v
     = ( Ix.Index impl
       , Ix.ICon impl v
       )
+
+-- ----------------------------------------------------------------------------
+
+instance (Binary (impl v), Binary v) => Binary (ContextIndex impl v) where
+  put (ContextIx i) = put i
+  get = get >>= return . ContextIx
 
 -- ----------------------------------------------------------------------------
 

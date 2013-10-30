@@ -7,6 +7,7 @@ import           Control.Concurrent.MVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
+import qualified Data.Binary                       as Bin
 import           Data.Set                          (Set)
 import           Data.Text                         (Text)
 import qualified Data.Text                         as T
@@ -169,6 +170,12 @@ execCmd (Insert doc opts)
 execCmd (Delete uri)
     = modIx $ execDelete uri
 
+execCmd (StoreIx filename)
+    = withIx $ execStore filename
+
+execCmd (LoadIx filename)
+    = modIx $ \_ix -> execLoad filename
+
 execCmd c
     = throwNYI $ show c
 
@@ -201,6 +208,20 @@ execDelete :: Set URI -> IpIndexer -> CM (IpIndexer, CmdResult)
 execDelete d ix = do
     let ix' = Ixx.deleteDocsByURI d ix
     return (ix', ResOK)
+
+
+execStore :: (Bin.Binary a) =>
+             FilePath -> a -> CM CmdResult
+execStore filename x = do
+    liftIO $ Bin.encodeFile filename x
+    return ResOK
+
+
+execLoad :: (Bin.Binary a) =>
+             FilePath -> CM (a, CmdResult)
+execLoad filename = do
+    x <- liftIO $ Bin.decodeFile filename
+    return (x, ResOK)
 
 -- ----------------------------------------------------------------------------
 
