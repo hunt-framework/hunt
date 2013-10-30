@@ -63,9 +63,62 @@ data BinOp = And  -- ^ Intersect two queries.
 
 -- ----------------------------------------------------------------------------
 
--- TODO: impl instances
-instance FromJSON Query where parseJSON = error "fromjson query nyi"
-instance ToJSON Query where toJSON = error "tojson query nyi"
+instance ToJSON Query where
+  toJSON o = case o of
+    Word s            -> object . ty "wi" $ [ "str" .= s ]
+    Phrase s          -> object . ty "pi" $ [ "str" .= s ]
+    CaseWord s        -> object . ty "wc" $ [ "str" .= s ]
+    CasePhrase s      -> object . ty "pc" $ [ "str" .= s ]
+    FuzzyWord s       -> object . ty "fz" $ [ "str" .= s ]
+    Specifier c q     -> object . ty "cx" $
+      [ "str" .= c
+      , "qry" .= q]
+    Negation q        -> object . ty "nt" $ [ "str" .= q ]
+    BinQuery op q1 q2 -> object . ty' op  $
+      [ "qry1" .= q1
+      , "qry2" .= q2 ]
+    where
+    ty' t = (:) ("type" .= t)
+    ty  t = ty' (t :: Text)
+
+instance FromJSON Query where
+  parseJSON (Object o) = do
+    t <- o .: "type"
+    case (t :: Text) of
+      "wi"  -> o .: "text" >>= return . Word
+      "pi"  -> o .: "text" >>= return . Phrase
+      "wc"  -> o .: "text" >>= return . CaseWord
+      "pc"  -> o .: "text" >>= return . CasePhrase
+      "fz"  -> o .: "text" >>= return . FuzzyWord
+      "cx"  -> do
+        c <- o .: "str"
+        q <- o .: "qry"
+        return $ Specifier c q
+      "and" -> bin And
+      "or"  -> bin Or
+      "but" -> bin But
+      _         -> mzero
+    where
+    bin op = do
+      q1 <- o .: "qry1"
+      q2 <- o .: "qry2"
+      return $ BinQuery op q1 q2
+  parseJSON _ = mzero
+
+instance ToJSON BinOp where
+  toJSON o = case o of
+    And -> "and"
+    Or  -> "or"
+    But -> "but"
+
+instance FromJSON BinOp where
+  parseJSON (String s)
+    = case s of
+      "and" -> return And
+      "or"  -> return Or
+      "but" -> return But
+      _         -> mzero
+  parseJSON _ = mzero
 
 -- ----------------------------------------------------------------------------
 
