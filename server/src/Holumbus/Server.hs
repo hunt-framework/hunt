@@ -120,6 +120,16 @@ start = scotty 3000 $ do
     uris <- jsonData :: ActionM (S.Set URI)
     interpret' $ Delete uris
   
+  -- write the indexer to disk
+  get "/binary/save/:filename" $ do
+    filename  <- param "filename"
+    interpret' $ LoadIx filename
+
+  -- load indexer from disk
+  get "/binary/load/:filename" $ do
+    filename  <- param "filename"
+    interpret' $ StoreIx filename
+
   notFound $ text "page not found"
 
 -- ----------------------------------------------------------------------------
@@ -213,21 +223,7 @@ start = scotty 3000 $ do
   -- TODO: proper load/save, routes, get/post/.., filenames, exception handling etc.
 
   let mkIndexerPath = (++ ".ixx")
-
-  -- write the indexer to disk
-  get "/binary/save/:filename" $ do
-    filename  <- param "filename"
-    withIx $ Bin.encodeFile $ mkIndexerPath filename
-    json (JsonSuccess "index saved" :: JsonResponse Text)
-
-
-  -- load indexer from disk
-  get "/binary/load/:filename" $ do
-    filename  <- param "filename"
-    modIx_ $ \_ -> Bin.decodeFile $ mkIndexerPath filename
-    json (JsonSuccess "index loaded" :: JsonResponse Text)
 --}
-
 -- ----------------------------------------------------------------------------
 
 {--
