@@ -4,13 +4,16 @@ import           Control.Monad                   (mzero)
 import           Control.Monad.Error             (Error (..))
 
 import           Data.Aeson
+import           Data.Set                        (Set)
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
 
-import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.ApiDocument
+import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Document        (Document)
 import           Holumbus.Query.Language.Grammar (Query (..))
+
+-- ----------------------------------------------------------------------------
 
 data InsertOption
   = New | Replace | Modify
@@ -22,7 +25,7 @@ data Command
   | Insert     { icDoc      :: ApiDocument
                , icInsOpt   :: InsertOption
                }
-  | Delete     { icUri      :: URI }
+  | Delete     { icUri      :: Set URI }
   | LoadIx     { icPath     :: FilePath }
   | StoreIx    { icPath     :: FilePath }
   | Sequence   { icCmdSeq   :: [Command] }

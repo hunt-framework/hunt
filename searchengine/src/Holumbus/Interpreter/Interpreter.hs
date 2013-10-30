@@ -7,12 +7,12 @@ import           Control.Concurrent.MVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
-import qualified Data.Set                          as S
+import           Data.Set                          (Set)
 import           Data.Text                         (Text)
 import qualified Data.Text                         as T
 
 
-import           Holumbus.Common.BasicTypes        
+import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.ApiDocument       as ApiDoc
 import           Holumbus.Common.Occurrences       (Occurrences)
 import           Holumbus.Common.Document          (Document, unwrap)
@@ -191,9 +191,9 @@ execInsert doc op ixx = do
         x       -> throwNYI $ show x
 
 
-execDelete :: URI -> IpIndexer -> CM (IpIndexer, CmdResult)
+execDelete :: Set URI -> IpIndexer -> CM (IpIndexer, CmdResult)
 execDelete d ix = do
-    let ix' = Ixx.deleteDocsByURI (S.singleton d) ix
+    let ix' = Ixx.deleteDocsByURI d ix
     return (ix', ResOK)
 
 -- ----------------------------------------------------------------------------

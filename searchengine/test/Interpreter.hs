@@ -7,6 +7,8 @@ import           Test.Framework.Providers.HUnit
 import           Test.HUnit
 --import           Test.QuickCheck
 import qualified Data.Map                         as M
+import qualified Data.Set                         as S
+
 import           Holumbus.Common
 import           Holumbus.Interpreter.Interpreter
 import           Holumbus.Interpreter.Command
@@ -150,7 +152,7 @@ test_fancy = testCM $ do
   Search (CaseWord "brain")
     @@@ ((@?= []) . searchResultUris)
   -- delete return the correct result value
-  Delete "test://0"
+  Delete (S.singleton "test://0")
     @@= ResOK
   -- the doc is gone
   Search (Word "Brain")
