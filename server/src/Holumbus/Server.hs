@@ -19,13 +19,14 @@ import           Web.Scotty
 --import qualified Data.Binary                          as Bin
 --import           Data.Either                          (partitionEithers)
 --import qualified Data.Map                             as M
+import qualified Data.Set                             as S
 import           Data.Text                            (Text)
 import qualified Data.Text.Lazy                       as LT
 
 import qualified Data.Aeson                           as A
 import           Data.Aeson.Encode.Pretty             (encodePretty)
 
---import           Holumbus.Common
+import           Holumbus.Common
 
 --import qualified Holumbus.Index.Proxy.CachedIndex       as IxCache
 
@@ -113,6 +114,11 @@ start = scotty 3000 $ do
     jss <- jsonData :: ActionM [ApiDocument]
     let batch = Sequence $ foldr (\doc cmds -> (Insert doc New):cmds) [] jss
     interpret' batch
+
+  -- delete a set of documents by URI
+  post "/document/delete" $ do
+    uris <- jsonData :: ActionM (S.Set URI)
+    interpret' $ Delete uris
   
   notFound $ text "page not found"
 
@@ -204,14 +210,6 @@ start = scotty 3000 $ do
             JsonFailure
             res
 
-
-  -- delete a set of documents by URI
-  post "/document/delete" $ do
-    jss <- jsonData :: ActionM (S.Set URI)
-    modIx_ $ \ix -> return $ Ixx.deleteDocsByURI jss ix
-    json (JsonSuccess "document(s) deleted" :: JsonResponse Text)
-
-
   -- TODO: proper load/save, routes, get/post/.., filenames, exception handling etc.
 
   let mkIndexerPath = (++ ".ixx")
@@ -228,14 +226,6 @@ start = scotty 3000 $ do
     filename  <- param "filename"
     modIx_ $ \_ -> Bin.decodeFile $ mkIndexerPath filename
     json (JsonSuccess "index loaded" :: JsonResponse Text)
---}
-{--
-  -- interpreter route
-  post "/exec" $ do
-    -- Raises an exception if parse is unsuccessful
-    cmd  <- jsonData :: ActionM Command
-    iRes <- liftIO $ runCmd cmd
-    either json json iRes
 --}
 
 -- ----------------------------------------------------------------------------
