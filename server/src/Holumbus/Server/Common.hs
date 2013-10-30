@@ -4,7 +4,7 @@ import Data.Aeson
 import Data.Text as Text
 
 -- |  some sort of json response format
-data JsonResponse r = JsonSuccess r | JsonFailure [Text]
+data JsonResponse r = JsonSuccess r | JsonFailure Int [Text]
 
 instance (ToJSON r) => ToJSON (JsonResponse r) where
   toJSON (JsonSuccess msg) = object
@@ -12,7 +12,7 @@ instance (ToJSON r) => ToJSON (JsonResponse r) where
     , "msg"   .= msg
     ]
 
-  toJSON (JsonFailure msg) = object
-    [ "code"  .= (1 :: Int)
+  toJSON (JsonFailure n msg) = object
+    [ "code"  .= n
     , "msg"   .= msg
     ]

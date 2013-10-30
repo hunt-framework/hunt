@@ -135,19 +135,33 @@ start = scotty 3000 $ do
   --let modIx  = modIndex   ixM -- :: MonadIO m => (Ixx ... -> IO (Ixx ..., b)) -> m b
   let runQuery queryStr = do
         case parseQuery queryStr of
-          (Left err) -> return . JsonFailure . return $ err
+          (Left err) -> return . JsonFailure 1 . return $ err
           (Right query) -> do
-            intRes <- (interpret $ Search . Right $ query) 
+            intRes <- (interpret $ Search .Right $ query)
             case intRes of
               (Right (ResSearch docs)) -> return $ JsonSuccess $ docs
-              _ -> return $ JsonFailure ["todo"]
+              _ -> return $ JsonFailure 2 ["todo"]
   -- request / response logging
   middleware logStdoutDev
-  
+
   get "/"         $ redirect "/search"
   get "/search"   $ do
     html . Tmpl.index $ (0::Int)
   get "/add"      $ html Tmpl.addDocs
+
+  -- interpreter route
+  post "/document/interpret" $ do
+    -- Raises an exception if parse is unsuccessful
+    cmd <- jsonData :: ActionM Command
+    res <- liftIO $ interpret cmd
+    case res of
+      Left  (ResError code msg) ->
+        json $ (JsonFailure code [msg] :: JsonResponse Text)
+      Right res' ->
+        case res' of
+          ResOK               -> json $ JsonSuccess ("ok" :: Text)
+          ResSearch docs      -> json $ JsonSuccess docs
+          ResCompletion wrds  -> json $ JsonSuccess wrds
 
   -- simple query
   get "/search/:query" $ do
@@ -182,9 +196,9 @@ start = scotty 3000 $ do
   post "/document/insert" $ do
     -- Raises an exception if parse is unsuccessful
     jss <- jsonData :: ActionM [ApiDocument]
-    let batch = Sequence $ foldr (\doc seq -> (Insert doc New):seq) [] jss
+    let batch = Sequence $ foldr (\doc cmds -> (Insert doc New):cmds) [] jss
     case interpret batch of
-      _ -> json $ (JsonSuccess "document(s) added" :: JsonResponse Text) 
+      _ -> json $ (JsonSuccess "document(s) added" :: JsonResponse Text)
 
 
     -- res :: Maybe [URI]  -- maybe the documents that already exist
