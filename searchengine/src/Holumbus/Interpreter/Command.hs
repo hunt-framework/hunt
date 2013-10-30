@@ -19,8 +19,10 @@ data InsertOption
   = New | Replace | Modify
     deriving (Show)
 
+type UnparsedQuery = Text
+
 data Command
-  = Search     { icQuery    :: Query }
+  = Search     { icQuery    :: Either UnparsedQuery Query }
   | Completion { icPrefix   :: Text }
   | Insert     { icDoc      :: ApiDocument
                , icInsOpt   :: InsertOption

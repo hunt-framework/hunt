@@ -137,7 +137,7 @@ start = scotty 3000 $ do
         case parseQuery queryStr of
           (Left err) -> return . JsonFailure . return $ err
           (Right query) -> do
-            intRes <- (interpret $ Search query) 
+            intRes <- (interpret $ Search . Right $ query) 
             case intRes of
               (Right (ResSearch docs)) -> return $ JsonSuccess $ docs
               _ -> return $ JsonFailure ["todo"]

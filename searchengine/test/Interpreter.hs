@@ -49,7 +49,7 @@ testRunCmd cmd = do
 
 insertCmd, searchCmd, batchCmd :: Command
 insertCmd = Insert brainDoc New
-searchCmd = Search (Word "d")
+searchCmd = Search (Right $ Word "d")
 batchCmd  = Sequence [insertCmd, searchCmd]
 
 -- ----------------------------------------------------------------------------
@@ -110,7 +110,7 @@ test_insertAndSearch :: Assertion
 test_insertAndSearch = do
   res <- testCmd . Sequence $
       [ Insert brainDoc New
-      , Search (Word "Brain")]
+      , Search (Right $ Word "Brain")]
   ["test://0"] @=? (searchResultUris . fromRight) res
 
 
@@ -121,9 +121,9 @@ test_alot = testCM $ do
   --throwNYI "user error"
   insR <- execCmd $ Insert brainDoc New
   liftIO $ ResOK @=? insR
-  seaR <- execCmd $ Search (Word "Brain")
+  seaR <- execCmd $ Search (Right $ Word "Brain")
   liftIO $ ["test://0"] @=? searchResultUris seaR
-  seaR2 <- execCmd $ Search (CaseWord "brain")
+  seaR2 <- execCmd $ Search (Right $ CaseWord "brain")
   liftIO $ [] @=? searchResultUris seaR2
 
 
@@ -143,17 +143,17 @@ test_fancy = testCM $ do
   Insert brainDoc New
     @@= ResOK
   -- searching "brain" leads to the doc
-  Search (Word "Brain")
+  Search (Right $ Word "Brain")
     @@@ ((@?= ["test://0"]) . searchResultUris)
   -- case-sensitive search too
-  Search (CaseWord "Brain")
+  Search (Right $ CaseWord "Brain")
     @@@ ((@?= ["test://0"]) . searchResultUris)
   -- case-sensitive search yields no result
-  Search (CaseWord "brain")
+  Search (Right $ CaseWord "brain")
     @@@ ((@?= []) . searchResultUris)
   -- delete return the correct result value
   Delete (S.singleton "test://0")
     @@= ResOK
   -- the doc is gone
-  Search (Word "Brain")
+  Search (Right $ Word "Brain")
     @@@ ((@?= []) . searchResultUris)

@@ -29,6 +29,7 @@ import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
+import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result             as QRes
 
@@ -149,7 +150,12 @@ throwNYI c = throwResError 501 $ "command not yet implemented: " `T.append` (T.p
 
 execCmd :: Command -> CM CmdResult
 execCmd (Search q)
-    = withIx $ execSearch $ q
+    = withIx $ case q of
+        Right qry -> execSearch $ qry
+        Left  str ->
+          case parseQuery (T.unpack str) of
+            Right qry -> execSearch $ qry
+            Left  err -> const $ throwResError 500 err
 
 execCmd (Sequence cs)
     = execSequence cs
