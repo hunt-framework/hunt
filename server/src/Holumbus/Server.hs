@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE ConstraintKinds   #-}
+-- http://ghc.haskell.org/trac/ghc/blog/LetGeneralisationInGhc7
 {-# LANGUAGE NoMonoLocalBinds  #-}
 
 module Holumbus.Server {-(start)-} where
@@ -21,6 +22,7 @@ import           Data.Either                              (partitionEithers)
 import qualified Data.Map                                 as M
 import qualified Data.Set                                 as S
 import           Data.Text                                (Text)
+import qualified Data.Text.Lazy                           as LT
 
 import qualified Data.Aeson                               as A
 import           Data.Aeson.Encode.Pretty                 (encodePretty)
@@ -124,23 +126,19 @@ start = scotty 3000 $ do
   -- let runCmd = Ip.runCmd env
   env <- liftIO $ initEnv emptyIndexer emptyOptions
   let interpret = runCmd env
+  
+  let interpret' cmd = do
+      res <- liftIO $ interpret cmd
+      case res of
+        Left  (ResError code msg) ->
+          json $ (JsonFailure code [msg] :: JsonResponse Text)
+        Right res' ->
+          case res' of
+            ResOK               -> json $ JsonSuccess ("ok" :: Text)
+            ResSearch docs      -> json $ JsonSuccess docs
+            ResCompletion wrds  -> json $ JsonSuccess wrds
 
-  -- index
-  --let ixM    = Ip.cevIndexer env
-  --  ixM    <- liftIO $ newMVar indexer
-  -- {-# LANGUAGE NoMonoLocalBinds #-} needed
-  -- -> http://ghc.haskell.org/trac/ghc/blog/LetGeneralisationInGhc7
-  --let withIx = withIndex' ixM -- :: MonadIO m => (Ixx ... -> IO b)            -> m b
-  --let modIx_ = modIndex_  ixM -- :: MonadIO m => (Ixx ... -> IO (Ixx ...))    -> m ()
-  --let modIx  = modIndex   ixM -- :: MonadIO m => (Ixx ... -> IO (Ixx ..., b)) -> m b
-  let runQuery queryStr = do
-        case parseQuery queryStr of
-          (Left err) -> return . JsonFailure 1 . return $ err
-          (Right query) -> do
-            intRes <- (interpret $ Search .Right $ query)
-            case intRes of
-              (Right (ResSearch docs)) -> return $ JsonSuccess $ docs
-              _ -> return $ JsonFailure 2 ["todo"]
+  
   -- request / response logging
   middleware logStdoutDev
 
@@ -153,21 +151,13 @@ start = scotty 3000 $ do
   post "/document/interpret" $ do
     -- Raises an exception if parse is unsuccessful
     cmd <- jsonData :: ActionM Command
-    res <- liftIO $ interpret cmd
-    case res of
-      Left  (ResError code msg) ->
-        json $ (JsonFailure code [msg] :: JsonResponse Text)
-      Right res' ->
-        case res' of
-          ResOK               -> json $ JsonSuccess ("ok" :: Text)
-          ResSearch docs      -> json $ JsonSuccess docs
-          ResCompletion wrds  -> json $ JsonSuccess wrds
+    interpret' cmd
 
   -- simple query
   get "/search/:query" $ do
     query    <- param "query"
-    res      <- liftIO $ runQuery query
-    json res
+    -- XXX: mix of lazy and strict Text
+    interpret' (Search . Left . LT.toStrict $ query)
 
   -- simple query with paging
   {--
@@ -197,9 +187,7 @@ start = scotty 3000 $ do
     -- Raises an exception if parse is unsuccessful
     jss <- jsonData :: ActionM [ApiDocument]
     let batch = Sequence $ foldr (\doc cmds -> (Insert doc New):cmds) [] jss
-    case interpret batch of
-      _ -> json $ (JsonSuccess "document(s) added" :: JsonResponse Text)
-
+    interpret' batch
 
     -- res :: Maybe [URI]  -- maybe the documents that already exist
 {--    res <- modIx $ \ix -> do
