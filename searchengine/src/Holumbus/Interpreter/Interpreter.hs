@@ -153,8 +153,8 @@ throwNYI c = throwResError 501 $ "command not yet implemented: " `T.append` (T.p
 -- ----------------------------------------------------------------------------
 
 execCmd :: Command -> CM CmdResult
-execCmd (Search q)
-    = withIx $ execSearch' wrapSearch q
+execCmd (Search q p pp)
+    = withIx $ execSearch' (wrapSearch p pp) q
 
 execCmd (Completion s)
     = withIx $ execSearch' wrapCompletion (Left s)
@@ -209,12 +209,13 @@ execSearch' f q (ix, dt)
             Left  err -> throwResError 500 err
     where runQ qry = runQueryM ix dt qry >>= return . f
 
-wrapSearch :: Result Document -> CmdResult
-wrapSearch
-    = ResSearch
+wrapSearch :: Int -> Int -> Result Document -> CmdResult
+wrapSearch p pp d
+    = ResSearch 
+      . (mkPagedResult p pp)
       . map (\(_, (DocInfo d _, _)) -> unwrap d)
-      . DM.toList
-      . docHits
+      . DM.toList .  docHits 
+      $ d
 
 wrapCompletion :: Result e -> CmdResult
 wrapCompletion

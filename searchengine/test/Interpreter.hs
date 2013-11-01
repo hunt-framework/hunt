@@ -49,7 +49,7 @@ testRunCmd cmd = do
 
 insertCmd, searchCmd, batchCmd :: Command
 insertCmd = Insert brainDoc New
-searchCmd = Search (Right $ Word "d")
+searchCmd = Search (Right $ Word "d") 1 100
 batchCmd  = Sequence [insertCmd, searchCmd]
 
 -- ----------------------------------------------------------------------------
@@ -61,7 +61,7 @@ testCmd cmd = do
 
 -- uris of the search results
 searchResultUris :: CmdResult -> [URI]
-searchResultUris = map uri . crRes
+searchResultUris = map uri . result . crRes
 
 -- example apidoc
 brainDoc :: ApiDocument
@@ -110,7 +110,7 @@ test_insertAndSearch :: Assertion
 test_insertAndSearch = do
   res <- testCmd . Sequence $
       [ Insert brainDoc New
-      , Search (Right $ Word "Brain")]
+      , Search (Right $ Word "Brain") 1 1000]
   ["test://0"] @=? (searchResultUris . fromRight) res
 
 
@@ -121,10 +121,13 @@ test_alot = testCM $ do
   --throwNYI "user error"
   insR <- execCmd $ Insert brainDoc New
   liftIO $ ResOK @=? insR
-  seaR <- execCmd $ Search (Right $ Word "Brain")
+  seaR <- execCmd $ Search (Right $ Word "Brain") p pp
   liftIO $ ["test://0"] @=? searchResultUris seaR
-  seaR2 <- execCmd $ Search (Right $ CaseWord "brain")
+  seaR2 <- execCmd $ Search (Right $ CaseWord "brain") p pp 
   liftIO $ [] @=? searchResultUris seaR2
+  where
+  p = 1
+  pp = 1000
 
 
 -- fancy functions
@@ -143,17 +146,20 @@ test_fancy = testCM $ do
   Insert brainDoc New
     @@= ResOK
   -- searching "brain" leads to the doc
-  Search (Right $ Word "Brain")
+  Search (Right $ Word "Brain") p pp
     @@@ ((@?= ["test://0"]) . searchResultUris)
   -- case-sensitive search too
-  Search (Right $ CaseWord "Brain")
+  Search (Right $ CaseWord "Brain") p pp
     @@@ ((@?= ["test://0"]) . searchResultUris)
   -- case-sensitive search yields no result
-  Search (Right $ CaseWord "brain")
+  Search (Right $ CaseWord "brain") p pp
     @@@ ((@?= []) . searchResultUris)
   -- delete return the correct result value
   Delete (S.singleton "test://0")
     @@= ResOK
   -- the doc is gone
-  Search (Right $ Word "Brain")
+  Search (Right $ Word "Brain") p pp
     @@@ ((@?= []) . searchResultUris)
+  where
+  p = 1
+  pp = 1000

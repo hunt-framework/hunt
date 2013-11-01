@@ -22,7 +22,10 @@ data InsertOption
 type UnparsedQuery = Text
 
 data Command
-  = Search     { icQuery    :: Either UnparsedQuery Query }
+  = Search     { icQuery    :: Either UnparsedQuery Query 
+               , page       :: Int
+               , perPage    :: Int
+               }
   | Completion { icPrefix   :: Text }
   | Insert     { icDoc      :: ApiDocument
                , icInsOpt   :: InsertOption
@@ -36,7 +39,7 @@ data Command
 
 data CmdResult
   = ResOK
-  | ResSearch       { crRes   :: [Document] }
+  | ResSearch       { crRes   :: PagedResult Document }
   | ResCompletion   { crWords :: [Text] }
   deriving (Show, Eq)
 
@@ -65,7 +68,7 @@ instance ToJSON InsertOption where
 
 instance ToJSON Command where
   toJSON o = case o of
-    Search q      -> object . cmd "search"      $ [ "query" .= q ]
+    Search q p pp -> object . cmd "search"      $ [ "query" .= q, "page" .= p, "perPage" .=pp ]
     Completion s  -> object . cmd "completion"  $ [ "text"  .= s ]
     Insert d op   -> object . cmd "insert"      $
       [ "option"    .= op
@@ -83,7 +86,11 @@ instance FromJSON Command where
   parseJSON (Object o) = do
     c <- o .: "cmd"
     case (c :: Text) of
-      "search"      -> o .: "query" >>= return . Search
+      "search"      -> do 
+        q  <- o .: "query" 
+        p  <- o .: "page"
+        pp <- o .: "perPage"
+        return $ Search q p pp
       "completion"  -> o .: "text"  >>= return . Completion
       "insert"      -> do
         op <- o .: "option"

@@ -96,10 +96,18 @@ start = scotty 3000 $ do
     eval cmd
 
   -- simple query
-  get "/search/:query" $ do
+  get "/search/:query/" $ do
     query    <- param "query"
     -- XXX: mix of lazy and strict Text
-    eval (Search . Left . LT.toStrict $ query)
+    eval (Search (Left . LT.toStrict $ query) 1 1000000)
+
+  -- paged query
+  get "/search/:query/:page/:perPage" $ do
+    query    <- param "query"
+    p        <- param "page"
+    pp       <- param "perPage"
+    -- XXX: mix of lazy and strict Text
+    eval (Search (Left . LT.toStrict $ query) p pp)
 
   -- completion
   get "/completion/:query" $ do

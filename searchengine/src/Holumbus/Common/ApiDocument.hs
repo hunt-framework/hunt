@@ -60,9 +60,10 @@ data PagedResult x = PagedResult
   , perPage :: Int
   , count   :: Int
   }
+  deriving (Show, Eq)
 
-mkPagedResult :: [x] -> Int -> Int -> PagedResult x
-mkPagedResult xs p pp = PagedResult
+mkPagedResult :: Int -> Int -> [x] -> PagedResult x
+mkPagedResult p pp xs = PagedResult
   { result  = takePage
   , page    = p
   , perPage = pp
