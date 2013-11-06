@@ -17,8 +17,7 @@ import qualified Data.Text                         as T
 import           Holumbus.Common.ApiDocument       as ApiDoc
 import           Holumbus.Common.BasicTypes
 import qualified Holumbus.Common.DocIdMap          as DM
-import           Holumbus.Common.Document          (Document, DocumentWrapper,
-                                                    unwrap)
+import           Holumbus.Common.Document          (Document)
 import           Holumbus.Common.Occurrences       (Occurrences)
 
 import           Holumbus.Analyzer.Analyzer
@@ -210,12 +209,11 @@ execSearch' f q (ix, dt)
     where runQ qry = runQueryM ix dt qry >>= return . f
 
 wrapSearch :: Int -> Int -> Result Document -> CmdResult
-wrapSearch p pp d
+wrapSearch p pp
     = ResSearch 
       . (mkPagedResult p pp)
-      . map (\(_, (DocInfo d _, _)) -> unwrap d)
+      . map (\(_, (DocInfo d _, _)) -> d)
       . DM.toList .  docHits 
-      $ d
 
 wrapCompletion :: Result e -> CmdResult
 wrapCompletion

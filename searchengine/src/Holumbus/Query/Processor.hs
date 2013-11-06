@@ -56,7 +56,7 @@ import qualified Data.Text                         as T
 
 import           Holumbus.Common                   ( Context, DocId, Position,
                                                      RawResult, Textual (..),
-                                                     Word, Positions )
+                                                     Word, Positions, Document )
 import qualified Holumbus.Common.DocIdMap          as DM
 import           Holumbus.Common.Occurrences       as Occ
 import           Holumbus.Common.Positions         (foldPos, memberPos, unionPos)
@@ -178,13 +178,15 @@ processPartialM cfg i t q = initStateM cfg i t >>= flip processM oq
   oq = if optimizeQuery cfg then optimize q else q
 -}
 
+-- XXX: DocTable dependency
+
 -- | Process a query on a specific index with regard to the configuration.
-processQuery :: (ContextTextIndex i v, DocTable d, Dt.DValue d ~ e) =>
+processQuery :: (ContextTextIndex i v, DocTable d, Dt.DValue d ~ e, e ~  Document) =>
                 ProcessConfig -> ContextIndex i v -> d -> Query -> Result e
 processQuery cfg i d q = I.toResult d (processPartial cfg i (Dt.size d) q)
 
 -- | Monadic version of 'processQuery'.
-processQueryM :: (Monad m, ContextTextIndex i v, DocTable d, Dt.DValue d ~ e) =>
+processQueryM :: (Monad m, ContextTextIndex i v, DocTable d, Dt.DValue d ~ e, e ~  Document) =>
                  ProcessConfig -> ContextIndex i v -> d -> Query -> m (Result e)
 processQueryM cfg i d q = processPartialM cfg i (Dt.size d) q >>= \ir -> return $ I.toResult d ir
 

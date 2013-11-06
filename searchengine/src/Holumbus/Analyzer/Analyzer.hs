@@ -1,10 +1,7 @@
 module Holumbus.Analyzer.Analyzer
   ( toDocAndWords
-  , toDocAndWords'
   )
 where
-
-import           Control.Arrow               (first)
 
 import           Data.Char                   (isAlphaNum)
 import           Data.DList                  (DList)
@@ -14,7 +11,7 @@ import qualified Data.Map                    as M
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
-import           Holumbus.Common.Document    (Document (..), DocumentWrapper(..))
+import           Holumbus.Common.Document    (Document (..))
 import           Holumbus.Common.BasicTypes  
 
 import           Holumbus.Common.ApiDocument
@@ -31,14 +28,9 @@ analyzerMapping :: AnalyzerType -> Text -> [(Position, Text)]
 analyzerMapping o = case o of
     DefaultAnalyzer -> scanTextDefault
 
-
--- | TODO: is the DocumentWrapper obsolete now?
-toDocAndWords :: DocumentWrapper e => ApiDocument -> (e, Words)
-toDocAndWords = first wrap . toDocAndWords'
-
 -- | ApiDocument to Document and Words mapping.
-toDocAndWords' :: ApiDocument -> (Document, Words)
-toDocAndWords' apiDoc = (doc, ws)
+toDocAndWords :: ApiDocument -> (Document, Words)
+toDocAndWords apiDoc = (doc, ws)
   where
   indexMap = apiDocIndexMap apiDoc
   descrMap = apiDocDescrMap apiDoc

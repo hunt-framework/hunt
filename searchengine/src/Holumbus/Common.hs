@@ -32,7 +32,7 @@ import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Compression
 import           Holumbus.Common.DocId
 import           Holumbus.Common.DocIdMap    (DocIdMap, DocIdSet)
-import           Holumbus.Common.Document    (Document (..), DocumentWrapper (..))
+import           Holumbus.Common.Document    (Document (..))
 import           Holumbus.Common.Occurrences (Occurrences)
 import           Holumbus.Common.Positions   (Positions)
 import           Holumbus.Common.RawResult

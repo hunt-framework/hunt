@@ -42,7 +42,7 @@ import           Data.Digest.Murmur64
 
 import           Holumbus.Common.BasicTypes
 import qualified Holumbus.Common.DocIdMap       as DM
-import           Holumbus.Common.Document       (Document(..), DocumentWrapper(..))
+import           Holumbus.Common.Document       (Document(..))
 import           Holumbus.Common.DocId          (DocId, mkDocId)
 import           Holumbus.Common.DocIdMap       (DocIdMap)
 import           Holumbus.DocTable.DocTable
@@ -62,14 +62,14 @@ newtype Documents e
 
 -- ----------------------------------------------------------------------------
 
-instance (DocumentWrapper e, Binary e) => Binary (Documents e) where
+instance Binary e => Binary (Documents e) where
   put = put . idToDoc
   get = get >>= return . Documents
 
 --- ----------------------------------------------------------------------------
 
 -- | An empty document table.
-empty :: (DocTable (Documents e), DocumentWrapper e) => Documents e
+empty :: DocTable (Documents e) => Documents e
 empty = Documents DM.empty
 
 -- | The hash function from URIs to DocIds
@@ -77,15 +77,14 @@ docToId :: URI -> DocId
 docToId = mkDocId . fromIntegral . asWord64 . hash64 . B.encode
 
 -- | Build a 'DocTable' from a 'DocIdMap' (maps 'DocId's to 'Document's)
-fromMap :: (DocTable (Documents e), DocumentWrapper e) =>
-          (Document -> e) -> DocIdMap Document -> Documents e
+fromMap :: DocTable (Documents Document) =>
+          (Document -> Document) -> DocIdMap Document -> Documents Document
 fromMap = fromMap'
 
 -- ----------------------------------------------------------------------------
 
-instance (DocumentWrapper e) =>
-         DocTable (Documents e) where
-    type DValue (Documents e) = e
+instance DocTable (Documents Document) where
+    type DValue (Documents Document) = Document
     null        = null'
 
     -- Returns the number of unique documents in the table.
@@ -133,22 +132,22 @@ instance (DocumentWrapper e) =>
 
 -- ----------------------------------------------------------------------------
 
-null'       :: (DocumentWrapper e) => Documents e -> Bool
+null'       :: Documents Document -> Bool
 null'
     = DM.null . idToDoc
 
-size'       :: (DocumentWrapper e) => Documents e -> Int
+size'       :: Documents Document -> Int
 size'
     = DM.size . idToDoc
 
-lookup'     :: (Monad m, DocumentWrapper e) => Documents e -> DocId -> m e
+lookup'     :: Monad m => Documents Document -> DocId -> m Document
 lookup'  d i
     = maybe (fail "") return
       . DM.lookup i
       . idToDoc
       $ d
 
-lookupByURI' :: (Monad m, DocumentWrapper e) => Documents e -> URI -> m DocId
+lookupByURI' :: Monad m => Documents Document -> URI -> m DocId
 lookupByURI' d u
     = maybe (fail "") (const $ return i)
       . DM.lookup i
@@ -157,11 +156,11 @@ lookupByURI' d u
       where
         i = docToId u
 
-disjoint'   :: (DocumentWrapper e) => Documents e -> Documents e -> Bool
+disjoint'   :: Documents Document -> Documents Document -> Bool
 disjoint' dt1 dt2
     = DM.null $ DM.intersection (idToDoc dt1) (idToDoc dt2)
 
-unionDocs'  :: (DocumentWrapper e) => Documents e -> Documents e -> Documents e
+unionDocs'  :: Documents Document -> Documents Document -> Documents Document
 unionDocs' dt1 dt2
     | disjoint' dt1 dt2
         = unionDocs'' dt1 dt2
@@ -169,46 +168,46 @@ unionDocs' dt1 dt2
         = error
           "HashedDocuments.unionDocs: doctables are not disjoint"
     where
-    unionDocs'' :: (DocumentWrapper e) => Documents e -> Documents e -> Documents e
+    unionDocs'' :: Documents Document -> Documents Document -> Documents Document
     unionDocs'' dt1' dt2'
         = Documents
           { idToDoc = idToDoc dt1' `DM.union` idToDoc dt2' }
 
 
-insert'     :: (DocumentWrapper e) => Documents e -> e -> (DocId, Documents e)
+insert'     :: Documents Document -> Document -> (DocId, Documents Document)
 insert' ds d
     = maybe reallyInsert (const (newId, ds)) (lookup' ds newId)
       where
         newId
-            = docToId . uri . unwrap $ d
+            = docToId . uri $ d
         reallyInsert
             = (newId, Documents {idToDoc = DM.insert newId d $ idToDoc ds})
 
-update'     :: (DocumentWrapper e) => Documents e -> DocId -> e -> Documents e
+update'     :: Documents Document -> DocId -> Document -> Documents Document
 update' ds i d
     = Documents {idToDoc = DM.insert i d $ idToDoc ds}
 
-delete'     :: (DocumentWrapper e) => Documents e -> DocId -> Documents e
+delete'     :: Documents Document -> DocId -> Documents Document
 delete' ds d
     = Documents {idToDoc = DM.delete d $ idToDoc ds}
 
-difference' :: (DocumentWrapper e) => DM.DocIdSet -> Documents e -> Documents e
+difference' :: DM.DocIdSet -> Documents Document -> Documents Document
 difference' s ds
     = Documents {idToDoc = idToDoc ds `DM.diffWithSet` s}
 
-map'        :: (DocumentWrapper e) => (e -> e) -> Documents e -> Documents e
+map'        :: (Document -> Document) -> Documents Document -> Documents Document
 map' f d
     = Documents {idToDoc = DM.map f (idToDoc d)}
 
-filter'     :: (DocumentWrapper e) => (e -> Bool) -> Documents e -> Documents e
+filter'     :: (Document -> Bool) -> Documents Document -> Documents Document
 filter' p d
     = Documents {idToDoc = DM.filter p (idToDoc d)}
 
-fromMap'    :: (DocumentWrapper e) => (Document -> e) -> DocIdMap Document -> Documents e
+fromMap'    :: (Document -> Document) -> DocIdMap Document -> Documents Document
 fromMap' f itd
     = Documents {idToDoc = DM.map f itd}
 
-toMap'      :: (DocumentWrapper e) => Documents e -> DocIdMap e
+toMap'      :: Documents Document -> DocIdMap Document
 toMap'
     = idToDoc
 

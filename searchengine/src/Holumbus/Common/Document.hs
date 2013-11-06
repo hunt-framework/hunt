@@ -39,18 +39,6 @@ data Document = Document
     deriving (Show, Eq, Ord)
 
 -- ------------------------------------------------------------
-
-class DocumentWrapper e where
-  unwrap :: e -> Document
-  wrap   :: Document -> e
-  update :: (Document -> Document) -> e -> e
-  update f = wrap . f . unwrap
-
-instance DocumentWrapper Document where
-  unwrap = id
-  wrap   = id
-
--- ------------------------------------------------------------
 instance ToJSON Document where
   toJSON (Document u d) = object
     [ "uri"   .= u

@@ -17,7 +17,6 @@ import qualified Holumbus.DocTable.DocTable        as Dt
 
 import           Holumbus.Common                   hiding (delete)
 import           Holumbus.Common.DocIdMap          (toDocIdSet)
-import qualified Holumbus.Common.Document          as Doc
 
 import qualified Holumbus.Index.Index              as Ix
 import qualified Holumbus.Index.TextIndex          as TIx
@@ -26,7 +25,8 @@ import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 import           Holumbus.Indexer.Indexer
 -- ----------------------------------------------------------------------------
 
-type TextIndexerCon i dt = (TIx.TextIndex i Occurrences, DocTable dt)
+type TextIndexerCon i dt
+    = (TIx.TextIndex i Occurrences, DocTable dt, Dt.DValue dt ~ Document)
 
 type TextIndexer i dt = Indexer i Occurrences dt
 type ContextTextIndexer i dt = ContextIndexer i Occurrences dt
@@ -91,8 +91,8 @@ modifyWithDescription descr wrds dId (ii,dt)
   newDocTable = Dt.adjust mergeDescr dId dt
   newIndex    = TIx.addWords wrds dId ii
   -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
-  mergeDescr  = Doc.update (\d' -> d'{ desc = flip M.union (desc d') descr })
---}
+  mergeDescr d = d{ desc = flip M.union (desc d) descr }
+
 -- ----------------------------------------------------------------------------
 
 -- Helper functions

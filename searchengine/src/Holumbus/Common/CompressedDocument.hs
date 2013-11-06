@@ -41,8 +41,4 @@ decompress  = B.decode . BZ.decompress . unCDoc
 compress    :: Document -> CompressedDoc
 compress    = CDoc . BZ.compress . B.encode
 
-instance DocumentWrapper CompressedDoc where
-  wrap   = compress
-  unwrap = decompress
-
 -- ----------------------------------------------------------------------------
