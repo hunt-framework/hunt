@@ -44,6 +44,7 @@ module Holumbus.Common.DocIdMap
     , filter
     , filterWithKey
     , mapWithKey
+    , traverseWithKey
     , foldr
     , foldrWithKey
     , fromList
@@ -55,14 +56,17 @@ module Holumbus.Common.DocIdMap
     )
 where
 
-import           Control.DeepSeq
 import           Prelude                     hiding (filter, foldr, lookup, map,
                                               null)
 import qualified Prelude                     as P
 
+import           Control.Applicative         (Applicative(..), (<*>), pure)
+import           Control.DeepSeq
+
 import           Data.Binary                 (Binary (..))
 import qualified Data.Binary                 as B
 import           Data.Foldable               hiding (fold, foldr, toList)
+import           Data.Traversable
 import qualified Data.IntMap                 as IM
 import qualified Data.IntSet                 as S
 
@@ -77,7 +81,7 @@ toDocIdSet              = S.fromList
 
 newtype DocIdMap v      = DIM { unDIM :: IM.IntMap v }
                           deriving
-                          (Eq, Show, Foldable, Functor, NFData)
+                          (Eq, Show, Foldable, Traversable, Functor, NFData)
 
 liftDIM                 :: (IM.IntMap v -> IM.IntMap r) ->
                            DocIdMap v -> DocIdMap r
@@ -162,6 +166,9 @@ filterWithKey p         = liftDIM $ IM.filterWithKey p
 
 mapWithKey              :: (DocId -> v -> r) -> DocIdMap v -> DocIdMap r
 mapWithKey f            = liftDIM $ IM.mapWithKey f
+
+traverseWithKey         :: Applicative t => (DocId -> a -> t b) -> DocIdMap a -> t (DocIdMap b)
+traverseWithKey f       = (pure DIM <*>) . IM.traverseWithKey f . unDIM
 
 foldr                   :: (v -> b -> b) -> b -> DocIdMap v -> b
 foldr f u               = IM.foldr f u . unDIM
