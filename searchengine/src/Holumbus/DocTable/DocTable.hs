@@ -8,6 +8,8 @@ where
 import           Prelude                    hiding (filter, lookup, map, null)
 import qualified Prelude                    as P
 
+import           Control.Monad
+
 import           Data.Maybe                 (catMaybes)
 import           Data.Set                   (Set)
 import qualified Data.Set                   as S
@@ -25,67 +27,67 @@ class DocTable i where
     type DValue i :: *
 
     -- | Test whether the doc table is empty.
-    null            :: i -> Bool
+    null            :: Monad m => i -> m Bool
 
     -- | Returns the number of unique documents in the table.
-    size            :: i -> Int
+    size            :: Monad m => i -> m Int
 
     -- | Lookup a document by its ID.
-    lookup          :: (Monad m, Functor m) => i -> DocId -> m (DValue i)
+    lookup          :: Monad m => i -> DocId -> m (Maybe (DValue i))
 
     -- | Lookup the 'DocId' of a document by an 'URI'.
-    lookupByURI     :: (Monad m, Functor m) => i -> URI -> m DocId
+    lookupByURI     :: Monad m => i -> URI -> m (Maybe DocId)
 
     -- | Union of two disjoint document tables. It is assumed, that the
     --   DocIds and the document 'URI's of both indexes are disjoint.
-    union           :: i -> i -> i
+    union           :: Monad m => i -> i -> m i
 
     -- | Test whether the 'DocId's of both tables are disjoint.
-    disjoint        :: i -> i -> Bool
+    disjoint        :: Monad m => i -> i -> m Bool
 
     -- | Insert a document into the table. Returns a tuple of the 'DocId' for that document and the
     -- new table. If a document with the same 'URI' is already present, its id will be returned
     -- and the table is returned unchanged.
-    insert          :: i -> DValue i -> (DocId, i)
+    insert          :: Monad m => i -> DValue i -> m (DocId, i)
 
     -- | Update a document with a certain 'DocId'.
-    update          :: i -> DocId -> DValue i -> i
+    update          :: Monad m => i -> DocId -> DValue i -> m i
 
     -- | Update a document by 'DocId' with the result of the provided function.
-    adjust          :: (DValue i -> DValue i) -> DocId -> i -> i
-    adjust f did d
-        = maybe d (update d did . f) $ lookup d did
+    adjust          :: Monad m => (DValue i -> m (DValue i)) -> DocId -> i -> m i
+    adjust f did d =
+        maybe (return d) (update d did <=< f) =<< lookup d did
+        --maybe d (update d did . f) $ lookup d did
 
     -- | Update a document by 'URI' with the result of the provided function.
-    adjustByURI     :: (DValue i -> DValue i) ->  URI -> i -> i
+    adjustByURI     :: Monad m => (DValue i -> m (DValue i)) ->  URI -> i -> m i
     adjustByURI f uri d
-        = maybe d (flip (adjust f) d) $ lookupByURI d uri
+        = maybe (return d) (flip (adjust f) d) =<< lookupByURI d uri
 
     -- | Removes the document with the specified 'DocId' from the table.
-    delete          :: i -> DocId -> i
+    delete          :: Monad m => i -> DocId -> m i
 
     -- | Removes the document with the specified 'URI' from the table.
-    deleteByURI     :: i -> URI -> i
+    deleteByURI     :: Monad m => i -> URI -> m i
     deleteByURI ds u
-        = maybe ds (delete ds) (lookupByURI ds u)
+        = maybe (return ds) (delete ds) =<< lookupByURI ds u
     -- | Deletes a set of documentss by 'DocId' from the table.
-    difference      :: DocIdSet -> i -> i
+    difference      :: Monad m => DocIdSet -> i -> m i
 
     -- | Deletes a set of documents by 'URI' from the table.
-    differenceByURI :: Set URI -> i -> i
-    differenceByURI uris d
-        = difference ids d
-        where
-        ids = toDocIdSet .  catMaybes . S.toList . S.map (lookupByURI d) $ uris
+    differenceByURI :: Monad m => Set URI -> i -> m i
+    differenceByURI uris d = do -- XXX: eliminate S.toList?
+        ids <- liftM (toDocIdSet . catMaybes) . mapM (lookupByURI d) . S.toList $ uris
+        difference ids d
 
     -- | Update documents (through mapping over all documents).
-    map             :: (DValue i -> DValue i) -> i -> i
+    map             :: Monad m => (DValue i -> DValue i) -> i -> m i
 
     -- | Filters all documents that satisfy the predicate.
-    filter          :: (DValue i -> Bool) -> i -> i
+    filter          :: Monad m => (DValue i -> Bool) -> i -> m i
 
     -- | Convert document table to a single map
-    toMap           :: i -> DocIdMap (DValue i)
+    toMap           :: Monad m => i -> m (DocIdMap (DValue i))
 
     -- | Edit 'DocId's.
-    mapKeys         :: (DocId -> DocId) -> i -> i
+    mapKeys         :: Monad m => (DocId -> DocId) -> i -> m i

@@ -47,6 +47,8 @@ import           Holumbus.Common.DocId          (DocId, mkDocId)
 import           Holumbus.Common.DocIdMap       (DocIdMap)
 import           Holumbus.DocTable.DocTable
 
+import           Holumbus.Utility
+
 -- ----------------------------------------------------------------------------
 
 -- XXX: add DocumentWrapper constraint?
@@ -85,47 +87,47 @@ fromMap = fromMap'
 
 instance DocTable (Documents Document) where
     type DValue (Documents Document) = Document
-    null        = null'
+    null        = return . null'
 
     -- Returns the number of unique documents in the table.
-    size        = size'
+    size        = return . size'
 
     -- Lookup a document by its id.
-    lookup      = lookup'
+    lookup      = return .:: lookup'
 
     -- Lookup the id of a document by an URI.
-    lookupByURI = lookupByURI'
+    lookupByURI = return .:: lookupByURI'
 
     -- Union of two disjoint document tables. It is assumed, that the DocIds and the document uris
     -- of both indexes are disjoint. If only the sets of uris are disjoint, the DocIds can be made
     -- disjoint by adding maxDocId of one to the DocIds of the second, e.g. with editDocIds
-    union       = unionDocs'
+    union       = return .:: unionDocs'
 
     -- Test whether the doc ids of both tables are disjoint.
-    disjoint    = disjoint'
+    disjoint    = return .:: disjoint'
 
     -- Insert a document into the table. Returns a tuple of the id for that document and the
     -- new table. If a document with the same URI is already present, its id will be returned
     -- and the table is returned unchanged.
-    insert      = insert'
+    insert      = return .:: insert'
 
     -- Update a document with a certain DocId.
-    update      = update'
+    update      = return .::: update'
 
     -- Removes the document with the specified id from the table.
-    delete      = delete'
+    delete      = return .:: delete'
 
     -- Deletes a set of Docs by Id from the table.
-    difference  = difference'
+    difference  = return .:: difference'
 
     -- Update documents (through mapping over all documents).
-    map         = map'
+    map         = return .:: map'
 
     -- Filters all documents that satisfy the predicate.
-    filter      = filter'
+    filter      = return .:: filter'
 
     -- Convert document table to a single map
-    toMap       = toMap'
+    toMap       = return . toMap'
 
     -- Edit document ids
     mapKeys     = error "hashed doctables cannot change ids"

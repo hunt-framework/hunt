@@ -46,6 +46,8 @@ where
 
 import           Prelude                           hiding (null)
 
+import           Control.Applicative               hiding (empty)
+
 import           Data.Maybe
 
 import qualified Data.List                         as L
@@ -113,19 +115,21 @@ fromList t c os                 = DM.map transform $
   transform w                   = M.singleton c (M.fromList w)
 
 -- | Convert to a @Result@ by generating the 'WordHits' structure.
-toResult                        :: (DocTable d, e ~ Dt.DValue d, e ~ Document) =>
-                                   d -> Intermediate -> Result e
-toResult d im                   = Result (createDocHits d im) (createWordHits im)
+toResult                        :: (Applicative m, Monad m, DocTable d, e ~ Dt.DValue d, e ~ Document) =>
+                                   d -> Intermediate -> m (Result e)
+toResult d im                   = do
+    dh <- createDocHits d im
+    return $ Result dh (createWordHits im)
 
 
 -- | Create the doc hits structure from an intermediate result.
-createDocHits                   :: (DocTable d, e ~ Dt.DValue d, e ~ Document) =>
-                                   d -> Intermediate -> DocHits e
-createDocHits d                 = DM.mapWithKey transformDocs
+createDocHits                   :: (Applicative m, Monad m, DocTable d, e ~ Dt.DValue d, e ~ Document) =>
+                                   d -> Intermediate -> m (DocHits e)
+createDocHits d                 = DM.traverseWithKey transformDocs
   where
-  transformDocs did ic          = let doc'  = fromMaybe dummy (Dt.lookup d did)
+  transformDocs did ic          = let doc  = fromMaybe dummy <$> (Dt.lookup d did)
                                       dummy = Document "" M.empty
-                                  in (DocInfo doc' 0.0, M.map (M.map snd) ic)
+                                  in (\doc' -> (DocInfo doc' 0.0, M.map (M.map snd) ic)) <$> doc
 
 -- | Create the word hits structure from an intermediate result.
 createWordHits                  :: Intermediate -> WordHits

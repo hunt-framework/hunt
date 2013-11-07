@@ -3,6 +3,7 @@
 
 module Holumbus.Interpreter.Interpreter where
 
+import           Control.Applicative
 import           Control.Concurrent.MVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
@@ -96,7 +97,7 @@ initEnv ixx opt
 -- the command evaluation monad
 -- ----------------------------------------------------------------------------
 newtype CMT m a = CMT { runCMT :: ReaderT Env (ErrorT CmdError m) a }
-  deriving (Monad, MonadIO, Functor, MonadReader Env, MonadError CmdError)
+  deriving (Applicative, Monad, MonadIO, Functor, MonadReader Env, MonadError CmdError)
 
 instance MonadTrans CMT where
   lift = CMT . lift . lift
@@ -189,7 +190,7 @@ execInsert doc op ixx = do
     --split <- asks (opSplitter . evOptions)
     let split = toDocAndWords
     let (docs, ws) = split doc
-    let ix'        = Ixx.insert docs ws ixx
+    ix'        <- lift $ Ixx.insert docs ws ixx
     case op of
         New     -> return (ix', ResOK) -- TODO: not the real deal yet
         x       -> throwNYI $ show x
@@ -210,10 +211,10 @@ execSearch' f q (ix, dt)
 
 wrapSearch :: Int -> Int -> Result Document -> CmdResult
 wrapSearch p pp
-    = ResSearch 
+    = ResSearch
       . (mkPagedResult p pp)
       . map (\(_, (DocInfo d _, _)) -> d)
-      . DM.toList .  docHits 
+      . DM.toList .  docHits
 
 wrapCompletion :: Result e -> CmdResult
 wrapCompletion
@@ -226,7 +227,7 @@ wrapCompletion
 
 execDelete :: Set URI -> IpIndexer -> CM (IpIndexer, CmdResult)
 execDelete d ix = do
-    let ix' = Ixx.deleteDocsByURI d ix
+    ix' <- lift $ Ixx.deleteDocsByURI d ix
     return (ix', ResOK)
 
 

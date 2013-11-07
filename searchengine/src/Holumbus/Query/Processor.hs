@@ -29,7 +29,7 @@ module Holumbus.Query.Processor
   ProcessConfig (..)
 
   -- * Processing
-  , processQuery
+  --, processQuery
   , processPartial
   , processQueryM
   , processPartialM
@@ -43,6 +43,7 @@ module Holumbus.Query.Processor
 
 where
 
+import           Control.Applicative
 import           Control.Monad
 import           Control.Parallel.Strategies
 
@@ -181,14 +182,16 @@ processPartialM cfg i t q = initStateM cfg i t >>= flip processM oq
 -- XXX: DocTable dependency
 
 -- | Process a query on a specific index with regard to the configuration.
-processQuery :: (ContextTextIndex i v, DocTable d, Dt.DValue d ~ e, e ~  Document) =>
-                ProcessConfig -> ContextIndex i v -> d -> Query -> Result e
-processQuery cfg i d q = I.toResult d (processPartial cfg i (Dt.size d) q)
+--processQuery :: (ContextTextIndex i v, DocTable d, Dt.DValue d ~ e, e ~  Document) =>
+--                ProcessConfig -> ContextIndex i v -> d -> Query -> Result e
+--processQuery cfg i d q = I.toResult d (processPartial cfg i (Dt.size d) q)
 
 -- | Monadic version of 'processQuery'.
-processQueryM :: (Monad m, ContextTextIndex i v, DocTable d, Dt.DValue d ~ e, e ~  Document) =>
+processQueryM :: (Applicative m, Monad m, ContextTextIndex i v, DocTable d, Dt.DValue d ~ e, e ~ Document) =>
                  ProcessConfig -> ContextIndex i v -> d -> Query -> m (Result e)
-processQueryM cfg i d q = processPartialM cfg i (Dt.size d) q >>= \ir -> return $ I.toResult d ir
+processQueryM cfg i d q = do
+    sz <- Dt.size d
+    processPartialM cfg i sz q >>= \ir -> I.toResult d ir
 
 -- | Continue processing a query by deciding what to do depending on the current query element.
 process :: ContextTextIndex i v => ProcessState i v -> Query -> Intermediate
