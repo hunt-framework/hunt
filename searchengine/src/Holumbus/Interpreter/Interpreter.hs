@@ -9,8 +9,10 @@ import           Control.Monad.Error
 import           Control.Monad.Reader
 
 import qualified Data.Binary                       as Bin
+import qualified Data.List                         as L
 import qualified Data.Map                          as M
 import           Data.Set                          (Set)
+import qualified Data.Set                          as S
 import           Data.Text                         (Text)
 import qualified Data.Text                         as T
 
@@ -152,29 +154,66 @@ throwNYI c = throwResError 501 $ "command not yet implemented: " `T.append` (T.p
 
 -- ----------------------------------------------------------------------------
 
+-- optimize a command/command sequence
+-- delete and batchDelete are both part of the Command datatype, but only BatchDelete should be
+-- present for execution
+-- an intermediary type may be necessary to ensure that on type-level, e.g.
+--   optimizeCmd :: Command -> ExecCommand  &&  execCmd :: ExecCommand -> CM CmdResult
+optimizeCmd :: Command -> Command
+optimizeCmd (Sequence cs) = Sequence $ opt cs
+  where
+  opt :: [Command] -> [Command]
+  opt cs' = concatMap optGroup $ L.groupBy equalHeads cs'
+  -- requires the commands to be grouped by constructor
+  optGroup :: [Command] -> [Command]
+  -- groups of delete to BatchDelete
+  optGroup cs'@(Delete{}:_)
+    = foldl (\(BatchDelete us) (Delete u) -> BatchDelete (S.insert u us)) (BatchDelete S.empty) cs' : []
+  -- optimize nested sequences too
+  -- XXX: maybe flatten sequences
+  optGroup cs'@(Sequence{}:_)
+    = map optimizeCmd cs'
+  optGroup cs' = cs'
+  -- group by constructor
+  -- NOTE: just delete and sequence because that are the only optimizations for now
+  equalHeads :: Command -> Command -> Bool
+  equalHeads Delete{}   Delete{}   = True
+  equalHeads Sequence{} Sequence{} = True
+  equalHeads _ _                   = False
+-- a single Delete is not allowed
+optimizeCmd (Delete u) = (BatchDelete $ S.singleton u)
+optimizeCmd c = c
+
+
 execCmd :: Command -> CM CmdResult
-execCmd (Search q p pp)
+execCmd = execCmd' . optimizeCmd
+
+execCmd' :: Command -> CM CmdResult
+execCmd' (Search q p pp)
     = withIx $ execSearch' (wrapSearch p pp) q
 
-execCmd (Completion s)
+execCmd' (Completion s)
     = withIx $ execSearch' wrapCompletion (Left s)
 
-execCmd (Sequence cs)
+execCmd' (Sequence cs)
     = execSequence cs
 
-execCmd NOOP
+execCmd' NOOP
     = return ResOK  -- keep alive test
 
-execCmd (Insert doc opts)
+execCmd' (Insert doc opts)
     = modIx $ execInsert doc opts
 
-execCmd (Delete uri)
-    = modIx $ execDelete uri
+execCmd' (Delete _uri)
+    = error "execCmd' (Delete{})" --modIx $ execDelete uri
 
-execCmd (StoreIx filename)
+execCmd' (BatchDelete uris)
+    = modIx $ execBatchDelete uris
+
+execCmd' (StoreIx filename)
     = withIx $ execStore filename
 
-execCmd (LoadIx filename)
+execCmd' (LoadIx filename)
     = modIx $ \_ix -> execLoad filename
 
 -- ----------------------------------------------------------------------------
@@ -225,8 +264,8 @@ wrapCompletion
       . wordHits
 
 
-execDelete :: Set URI -> IpIndexer -> CM (IpIndexer, CmdResult)
-execDelete d ix = do
+execBatchDelete :: Set URI -> IpIndexer -> CM (IpIndexer, CmdResult)
+execBatchDelete d ix = do
     ix' <- lift $ Ixx.deleteDocsByURI d ix
     return (ix', ResOK)
 

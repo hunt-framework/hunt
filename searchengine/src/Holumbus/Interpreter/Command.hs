@@ -30,7 +30,8 @@ data Command
   | Insert     { icDoc      :: ApiDocument
                , icInsOpt   :: InsertOption
                }
-  | Delete     { icUri      :: Set URI }
+  | Delete     { icUri      :: URI }
+  | BatchDelete{ icUris     :: Set URI }
   | LoadIx     { icPath     :: FilePath }
   | StoreIx    { icPath     :: FilePath }
   | Sequence   { icCmdSeq   :: [Command] }
@@ -68,13 +69,14 @@ instance ToJSON InsertOption where
 
 instance ToJSON Command where
   toJSON o = case o of
-    Search q p pp -> object . cmd "search"      $ [ "query" .= q, "page" .= p, "perPage" .=pp ]
+    Search q p pp -> object . cmd "search"      $ [ "query" .= q, "page" .= p, "perPage" .= pp ]
     Completion s  -> object . cmd "completion"  $ [ "text"  .= s ]
     Insert d op   -> object . cmd "insert"      $
       [ "option"    .= op
       , "document"  .= d
       ]
     Delete u      -> object . cmd "delete"      $ [ "uri"   .= u ]
+    BatchDelete us-> object . cmd "delete-batch"$ [ "uris"  .= us ] -- not used in fromJSON instance
     LoadIx  f     -> object . cmd "load"        $ [ "path"  .= f ]
     StoreIx f     -> object . cmd "store"       $ [ "path"  .= f ]
     NOOP          -> object . cmd "noop"        $ []

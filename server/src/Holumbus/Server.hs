@@ -19,7 +19,7 @@ import           Web.Scotty
 --import qualified Data.Binary                          as Bin
 --import           Data.Either                          (partitionEithers)
 --import qualified Data.Map                             as M
-import qualified Data.Set                             as S
+--import qualified Data.Set                             as S
 import           Data.Text                            (Text)
 import qualified Data.Text.Lazy                       as LT
 
@@ -124,8 +124,9 @@ start = scotty 3000 $ do
 
   -- delete a set of documents by URI
   post "/document/delete" $ do
-    uris <- jsonData :: ActionM (S.Set URI)
-    eval $ Delete uris
+    jss <- jsonData :: ActionM [URI]
+    let batch = Sequence $ map Delete jss
+    eval batch
   
   -- write the indexer to disk
   get "/binary/save/:filename" $ do
