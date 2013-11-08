@@ -8,7 +8,7 @@
 
 module Holumbus.Server {-(start)-} where
 
-import           Control.Monad.IO.Class               (MonadIO, liftIO)
+import           Control.Monad.Trans                  (MonadIO, liftIO)
 
 import           Network.Wai.Middleware.RequestLogger
 
