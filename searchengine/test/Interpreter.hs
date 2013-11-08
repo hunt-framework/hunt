@@ -18,8 +18,12 @@ import           Holumbus.Interpreter.Command
 import           Holumbus.Interpreter.Interpreter
 import           Holumbus.Query.Language.Grammar
 import           Holumbus.Utility
-
+import           Holumbus.Index.InvertedIndex         (InvertedIndex)
+import           Holumbus.DocTable.HashedDocuments    (Documents)
 -- ----------------------------------------------------------------------------
+
+type TestEnv = Env InvertedIndex (Documents Document)
+type TestCM a = CM InvertedIndex (Documents Document) a
 
 main :: IO ()
 main = defaultMain
@@ -41,7 +45,7 @@ test_insertEmpty = do
   (res, _env) <- testRunCmd batchCmd
   True @=? isRight res
 
-testRunCmd :: Command -> IO (Either CmdError CmdResult, Env)
+testRunCmd :: Command -> IO (Either CmdError CmdResult, TestEnv)
 testRunCmd cmd = do
   env <- initEnv emptyIndexer emptyOptions
   res <- runCmd env cmd
@@ -91,7 +95,7 @@ test_insertAnalyzed = do
 
 
 -- evaluate CM and check the result
-testCM' :: Bool -> CM () -> Assertion
+testCM' :: Bool -> TestCM () -> Assertion
 testCM' b int = do
   env <- initEnv emptyIndexer emptyOptions
   res <- runCM int env
@@ -101,7 +105,7 @@ testCM' b int = do
 -- evaluate CM and check if it yields a result
 -- allows for a whole sequence of commands with tests inbetween
 -- the interpreter can fail prematurely
-testCM :: CM () -> Assertion
+testCM :: TestCM () -> Assertion
 testCM = testCM' True
 
 
@@ -133,10 +137,10 @@ test_alot = testCM $ do
 
 -- fancy functions
 -- characters were chosen without any reason
-(@@@) :: Command -> (CmdResult -> IO b) -> CM b
+(@@@) :: Command -> (CmdResult -> IO b) -> TestCM b
 a @@@ f = execCmd a >>= liftIO . f
 
-(@@=) :: Command -> CmdResult -> CM ()
+(@@=) :: Command -> CmdResult -> TestCM ()
 a @@= b = a @@@ (@?=b)
 
 

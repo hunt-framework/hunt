@@ -1,6 +1,9 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
-
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE RankNTypes                 #-} 
+{-# LANGUAGE TypeFamilies               #-}
 module Holumbus.Interpreter.Interpreter where
 
 import           Control.Applicative
@@ -25,7 +28,7 @@ import           Holumbus.Common.Occurrences       (Occurrences)
 
 import           Holumbus.Analyzer.Analyzer
 
-import           Holumbus.Indexer.TextIndexer      (ContextTextIndexer)
+import           Holumbus.Indexer.TextIndexer      (ContextTextIndexer, TextIndexerCon)
 import qualified Holumbus.Indexer.TextIndexer      as Ixx
 
 import           Holumbus.Index.InvertedIndex
@@ -56,23 +59,14 @@ import           Holumbus.Interpreter.Command
 -- but right now its okay to have the indexer
 -- replaceable by a type declaration
 
-type IpIndexer = ContextTextIndexer InvertedIndex (Documents Document)
 
-emptyIndexer    :: IpIndexer
+
+type IpIndexer      ix dt = ContextTextIndexer ix dt
+
+emptyIndexer    :: IpIndexer InvertedIndex (Documents Document)
 emptyIndexer    = (CIx.empty, HDt.empty)
 
 -- ----------------------------------------------------------------------------
-
-{-
-data Options = Options
-    { opSplitter :: ApiDocument -> (Document, Words)
-    }
-
-emptyOptions :: Options
-emptyOptions = Options
-    { opSplitter = toDocAndWords
-    }
--}
 
 data Options = Options
 
@@ -85,12 +79,12 @@ emptyOptions = Options
 -- with a MVar for storing the index
 -- so the MVar acts as a global state (within IO)
 
-data Env = Env
-    { evIndexer :: MVar IpIndexer
+data Env ix dt = Env
+    { evIndexer :: TextIndexerCon ix dt => MVar (IpIndexer ix dt)
     , evOptions :: Options
     }
 
-initEnv :: IpIndexer -> Options -> IO Env
+initEnv :: TextIndexerCon ix dt => IpIndexer ix dt -> Options -> IO (Env ix dt)
 initEnv ixx opt
     = do ixref <- newMVar ixx
          return $ Env ixref opt
@@ -98,30 +92,31 @@ initEnv ixx opt
 -- ----------------------------------------------------------------------------
 -- the command evaluation monad
 -- ----------------------------------------------------------------------------
-newtype CMT m a = CMT { runCMT :: ReaderT Env (ErrorT CmdError m) a }
-  deriving (Applicative, Monad, MonadIO, Functor, MonadReader Env, MonadError CmdError)
+newtype CMT ix dt m a = CMT { runCMT :: ReaderT (Env ix dt) (ErrorT CmdError m) a }
+  deriving (Applicative, Monad, MonadIO, Functor, MonadReader (Env ix dt), MonadError CmdError)
 
-instance MonadTrans CMT where
+instance MonadTrans (CMT ix dt) where
   lift = CMT . lift . lift
 
-type CM = CMT IO
+type CM ix dt = CMT ix dt IO
 
 -- ----------------------------------------------------------------------------
 
-runCM :: CMT m a -> Env -> m (Either CmdError a)
+runCM :: TextIndexerCon ix dt => CMT ix dt m a -> Env ix dt -> m (Either CmdError a)
 runCM env = runErrorT . runReaderT (runCMT $ env)
 
-runCmd :: Env -> Command -> IO (Either CmdError CmdResult)
+runCmd :: TextIndexerCon ix dt => Env ix dt -> Command -> IO (Either CmdError CmdResult)
 runCmd env cmd
     = runErrorT . runReaderT (runCMT . execCmd $ cmd) $ env
 
-askIx :: CM IpIndexer
+askIx :: TextIndexerCon ix dt => CM ix dt (IpIndexer ix dt)
 askIx
     = do ref <- asks evIndexer
          liftIO $ readMVar ref
 
 -- FIXME: io exception-safe?
-modIx :: (IpIndexer -> CM (IpIndexer, a)) -> CM a
+modIx :: TextIndexerCon ix dt 
+      => (IpIndexer ix dt-> CM ix dt (IpIndexer ix dt, a)) -> CM ix dt a
 modIx f
     = do ref <- asks evIndexer
          ix <- liftIO $ takeMVar ref
@@ -133,23 +128,23 @@ modIx f
         liftIO $ putMVar ref i
         throwError e
 
-modIx_ :: (IpIndexer -> CM IpIndexer) -> CM ()
+modIx_ :: TextIndexerCon ix dt => (IpIndexer ix dt -> CM ix dt (IpIndexer ix dt)) -> CM ix dt ()
 modIx_ f = modIx f'
     where f' i = f i >>= \r -> return (r, ())
 
-withIx :: (IpIndexer -> CM a) -> CM a
+withIx :: TextIndexerCon ix dt => (IpIndexer ix dt -> CM ix dt a) -> CM ix dt a
 withIx f
     = askIx >>= f
 
-askOpts :: CM Options
+askOpts :: TextIndexerCon ix dt => CM ix dt Options
 askOpts
     = asks evOptions
 
-throwResError :: Int -> Text -> CM a
+throwResError :: TextIndexerCon ix dt => Int -> Text -> CM ix dt a
 throwResError n msg
     = throwError $ ResError n msg
 
-throwNYI :: String -> CM a
+throwNYI :: TextIndexerCon ix dt => String -> CM ix dt a
 throwNYI c = throwResError 501 $ "command not yet implemented: " `T.append` (T.pack c)
 
 -- ----------------------------------------------------------------------------
@@ -185,10 +180,10 @@ optimizeCmd (Delete u) = (BatchDelete $ S.singleton u)
 optimizeCmd c = c
 
 
-execCmd :: Command -> CM CmdResult
+execCmd :: (Bin.Binary dt) => TextIndexerCon ix dt => Command -> CM ix dt CmdResult
 execCmd = execCmd' . optimizeCmd
 
-execCmd' :: Command -> CM CmdResult
+execCmd' :: (Bin.Binary dt, TextIndexerCon ix dt) => Command -> CM ix dt CmdResult
 execCmd' (Search q p pp)
     = withIx $ execSearch' (wrapSearch p pp) q
 
@@ -218,13 +213,14 @@ execCmd' (LoadIx filename)
 
 -- ----------------------------------------------------------------------------
 
-execSequence :: [Command] -> CM CmdResult
+execSequence :: TextIndexerCon ix dt => [Command] -> CM ix dt CmdResult
 execSequence []       = execCmd NOOP
 execSequence [c]      = execCmd c
 execSequence (c : cs) = execCmd c >> execSequence cs
 
 
-execInsert :: ApiDocument -> InsertOption -> IpIndexer -> CM (IpIndexer, CmdResult)
+execInsert :: TextIndexerCon ix dt 
+           => ApiDocument -> InsertOption -> IpIndexer ix dt -> CM ix dt (IpIndexer ix dt, CmdResult)
 execInsert doc op ixx = do
     --split <- asks (opSplitter . evOptions)
     let split = toDocAndWords
@@ -235,10 +231,11 @@ execInsert doc op ixx = do
         x       -> throwNYI $ show x
 
 
-execSearch' :: (Result Document -> CmdResult)
+execSearch' :: TextIndexerCon ix dt 
+            => (Result Document -> CmdResult)
             -> Either Text Query
-            -> IpIndexer
-            -> CM CmdResult
+            -> IpIndexer ix dt
+            -> CM ix dt CmdResult
 execSearch' f q (ix, dt)
     = case q of
         Right qry -> runQ qry
@@ -264,21 +261,21 @@ wrapCompletion
       . wordHits
 
 
-execBatchDelete :: Set URI -> IpIndexer -> CM (IpIndexer, CmdResult)
+execBatchDelete :: TextIndexerCon ix dt => Set URI -> IpIndexer ix dt -> CM ix dt (IpIndexer ix dt, CmdResult)
 execBatchDelete d ix = do
     ix' <- lift $ Ixx.deleteDocsByURI d ix
     return (ix', ResOK)
 
 
-execStore :: (Bin.Binary a) =>
-             FilePath -> a -> CM CmdResult
+execStore :: (Bin.Binary a, TextIndexerCon ix dt) =>
+             FilePath -> a -> CM ix dt CmdResult
 execStore filename x = do
     liftIO $ Bin.encodeFile filename x
     return ResOK
 
 
-execLoad :: (Bin.Binary a) =>
-             FilePath -> CM (a, CmdResult)
+execLoad :: (Bin.Binary a, TextIndexerCon ix dt) =>
+             FilePath -> CM ix dt (a, CmdResult)
 execLoad filename = do
     x <- liftIO $ Bin.decodeFile filename
     return (x, ResOK)
@@ -288,8 +285,9 @@ execLoad filename = do
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
-runQueryM       :: ContextIndex InvertedIndex Occurrences
-                -> Documents Document
+runQueryM       :: TextIndexerCon ix dt
+                => ContextIndex ix Occurrences
+                -> dt
                 -> Query
-                -> CM (QRes.Result (Dt.DValue (Documents Document)))
+                -> CM ix dt (QRes.Result (Dt.DValue (Documents Document)))
 runQueryM       = processQueryM queryConfig

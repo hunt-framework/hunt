@@ -12,6 +12,7 @@ import qualified Data.Set                          as S
 import qualified Data.IntSet                       as IS
 import qualified Data.Map                          as M
 import           Data.Maybe
+import qualified Data.Binary                       as Bin
 
 import           Holumbus.DocTable.DocTable        (DocTable)
 import qualified Holumbus.DocTable.DocTable        as Dt
@@ -23,12 +24,20 @@ import qualified Holumbus.Index.Index              as Ix
 import qualified Holumbus.Index.TextIndex          as TIx
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 
+
 import           Holumbus.Indexer.Indexer
 
 -- ----------------------------------------------------------------------------
 
 type TextIndexerCon i dt
-    = (TIx.TextIndex i Occurrences, DocTable dt)
+    = ( TIx.TextIndex i Occurrences
+      , DocTable dt
+      -- we need this for load and store, but i dont like these constraints here
+      , Bin.Binary dt
+      , Bin.Binary (i Occurrences)
+      -- hm maybe we need the document wrapper back :/
+      , Dt.DValue dt ~ Document
+      )
 
 type TextIndexer i dt = Indexer i Occurrences dt
 type ContextTextIndexer i dt = ContextIndexer i Occurrences dt
