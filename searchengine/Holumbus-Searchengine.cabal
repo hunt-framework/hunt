@@ -81,9 +81,9 @@ library
 
     Holumbus.Interpreter.Interpreter
     Holumbus.Interpreter.Command
- 
+
     Holumbus.Analyzer.Analyzer
- 
+
     Holumbus.Query.Fuzzy
     Holumbus.Query.Intermediate
     Holumbus.Query.Language.Grammar

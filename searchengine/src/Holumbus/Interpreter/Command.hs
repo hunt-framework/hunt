@@ -22,7 +22,7 @@ data InsertOption
 type UnparsedQuery = Text
 
 data Command
-  = Search     { icQuery    :: Either UnparsedQuery Query 
+  = Search     { icQuery    :: Either UnparsedQuery Query
                , page       :: Int
                , perPage    :: Int
                }
@@ -88,8 +88,8 @@ instance FromJSON Command where
   parseJSON (Object o) = do
     c <- o .: "cmd"
     case (c :: Text) of
-      "search"      -> do 
-        q  <- o .: "query" 
+      "search"      -> do
+        q  <- o .: "query"
         p  <- o .: "page"
         pp <- o .: "perPage"
         return $ Search q p pp

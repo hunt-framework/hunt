@@ -12,7 +12,7 @@ import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
 import           Holumbus.Common.Document    (Document (..))
-import           Holumbus.Common.BasicTypes  
+import           Holumbus.Common.BasicTypes
 
 import           Holumbus.Common.ApiDocument
 

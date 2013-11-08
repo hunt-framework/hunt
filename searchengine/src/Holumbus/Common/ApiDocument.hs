@@ -2,14 +2,14 @@
 
 module Holumbus.Common.ApiDocument where
 
-import           Control.Monad                   (mzero)
+import           Control.Monad              (mzero)
 
-import           Data.Monoid                     (mappend)
+import           Data.Monoid                (mappend)
 
 import           Data.Aeson
-import           Data.Map                        (Map ())
-import qualified Data.Map                        as M
-import           Data.Text                       (Text)
+import           Data.Map                   (Map ())
+import qualified Data.Map                   as M
+import           Data.Text                  (Text)
 
 import           Holumbus.Common.BasicTypes
 
@@ -159,10 +159,3 @@ instance ToJSON IndexMetadata where
 instance ToJSON AnalyzerType where
   toJSON (DefaultAnalyzer) =
     "default"
-
--- ----------------------------------------------------------------------------
--- Interpreter
--- ----------------------------------------------------------------------------
-
--- TODO: improve this :D
-

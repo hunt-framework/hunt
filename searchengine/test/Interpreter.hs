@@ -1,22 +1,23 @@
 module Main where
 
+import           Control.Monad.Trans                  (liftIO)
+
+import qualified Data.Map                             as M
 --import           Data.Monoid
+import qualified Data.Set                             as S
+
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 --import           Test.Framework.Providers.QuickCheck2
 import           Test.HUnit
 --import           Test.QuickCheck
-import qualified Data.Map                         as M
-import qualified Data.Set                         as S
 
 import           Holumbus.Common
-import           Holumbus.Interpreter.Interpreter
+import           Holumbus.Common.ApiDocument          as ApiDoc
 import           Holumbus.Interpreter.Command
-import           Holumbus.Utility
-
-import           Holumbus.Common.ApiDocument      as ApiDoc
+import           Holumbus.Interpreter.Interpreter
 import           Holumbus.Query.Language.Grammar
-import           Control.Monad.Trans              (liftIO)
+import           Holumbus.Utility
 
 -- ----------------------------------------------------------------------------
 
@@ -123,7 +124,7 @@ test_alot = testCM $ do
   liftIO $ ResOK @=? insR
   seaR <- execCmd $ Search (Right $ Word "Brain") p pp
   liftIO $ ["test://0"] @=? searchResultUris seaR
-  seaR2 <- execCmd $ Search (Right $ CaseWord "brain") p pp 
+  seaR2 <- execCmd $ Search (Right $ CaseWord "brain") p pp
   liftIO $ [] @=? searchResultUris seaR2
   where
   p = 1
