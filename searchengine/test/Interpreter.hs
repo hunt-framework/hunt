@@ -156,7 +156,7 @@ test_fancy = testCM $ do
   Search (Right $ CaseWord "brain") p pp
     @@@ ((@?= []) . searchResultUris)
   -- delete return the correct result value
-  Delete (S.singleton "test://0")
+  BatchDelete (S.singleton "test://0")
     @@= ResOK
   -- the doc is gone
   Search (Right $ Word "Brain") p pp
