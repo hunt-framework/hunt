@@ -23,10 +23,6 @@ class Index i where
     -- | General lookup function.
     search       :: ICon i v => Textual -> IKey i v -> i v -> [(IKey i v, IVal i v)]
 
-    -- TODO: remove this later
-    lookup       :: ICon i v => Textual -> IKey i v -> i v -> [(IKey i v, IVal i v)]
-    lookup       = search
-
     -- | Insert occurrences.
     insert       :: ICon i v => IKey i v -> IVal i v -> i v -> i v
 
