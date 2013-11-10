@@ -30,20 +30,25 @@ configure: 	; $(MAKE) target action=configure
 build:		; $(MAKE) target action=build
 install:	; $(MAKE) target action="install --enable-tests"
 
-target: searchengine server
+target: searchengine server yesod-holumbus
 
 sandbox:
 	cabal sandbox init --sandbox .cabal-sandbox
-	cd searchengine && cabal sandbox init --sandbox ../.cabal-sandbox
-	cd server       && cabal sandbox init --sandbox ../.cabal-sandbox
-	cd server       && cabal sandbox add-source ../searchengine/
-	cd hayooCrawler && cabal sandbox init --sandbox ../.cabal-sandbox
-
+	cd searchengine   && cabal sandbox init --sandbox ../.cabal-sandbox
+	cd server         && cabal sandbox init --sandbox ../.cabal-sandbox
+	cd server         && cabal sandbox add-source ../searchengine/
+	cd hayooCrawler   && cabal sandbox init --sandbox ../.cabal-sandbox
+	cd yesod-holumbus && cabal sandbox init --sandbox ../.cabal-sandbox
+	cd yesod-holumbus && cabal sandbox add-source ../searchengine/
+ 
 searchengine:
 	cd searchengine && cabal $(action)
 
 server: stopServer
 	cd server       && cabal $(action)
+
+yesod-holumbus: 
+	cd yesod-holumbus && cabal $(action)
 
 hayooCrawler:
 	$(MAKE) -C hayooCrawler
@@ -81,4 +86,4 @@ insertRandom: startServer
 	$(MAKE) -C data/random generate
 	curl -X POST -d @data/random/RandomData.js $(SERVER)/document/insert
 
-.PHONY: target clean configure build install all searchengine server insertJokes startServer stopServer sandbox hayooCrawler
+.PHONY: target clean configure build install all searchengine server insertJokes startServer stopServer sandbox hayooCrawler yesod-holumbus
