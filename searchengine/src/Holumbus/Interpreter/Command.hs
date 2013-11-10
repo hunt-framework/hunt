@@ -76,18 +76,20 @@ instance ToJSON InsertOption where
 
 instance ToJSON Command where
   toJSON o = case o of
-    Search q p pp -> object . cmd "search"      $ [ "query" .= q, "page" .= p, "perPage" .= pp ]
-    Completion s  -> object . cmd "completion"  $ [ "text"  .= s ]
-    Insert d op   -> object . cmd "insert"      $
+    Search q p pp   -> object . cmd "search"         $ [ "query" .= q, "page" .= p, "perPage" .= pp ]
+    Completion s    -> object . cmd "completion"     $ [ "text"  .= s ]
+    Insert d op     -> object . cmd "insert"         $
       [ "option"    .= op
       , "document"  .= d
       ]
-    Delete u      -> object . cmd "delete"      $ [ "uri"   .= u ]
-    BatchDelete us-> object . cmd "delete-batch"$ [ "uris"  .= us ] -- not used in fromJSON instance
-    LoadIx  f     -> object . cmd "load"        $ [ "path"  .= f ]
-    StoreIx f     -> object . cmd "store"       $ [ "path"  .= f ]
-    NOOP          -> object . cmd "noop"        $ []
-    Sequence cs   -> toJSON cs
+    Delete u        -> object . cmd "delete"         $ [ "uri"   .= u ]
+    InsertContext c -> object . cmd "insert-context" $ [ "context" .= c ]
+    DeleteContext c -> object . cmd "delete-context" $ [ "context" .= c ]
+    BatchDelete us  -> object . cmd "delete-batch"   $ [ "uris"  .= us ] -- not used in fromJSON instance
+    LoadIx  f       -> object . cmd "load"           $ [ "path"  .= f ]
+    StoreIx f       -> object . cmd "store"          $ [ "path"  .= f ]
+    NOOP            -> object . cmd "noop"           $ []
+    Sequence cs     -> toJSON cs
     where
     cmd c = (:) ("cmd" .= (c :: Text))
 
@@ -95,21 +97,23 @@ instance FromJSON Command where
   parseJSON (Object o) = do
     c <- o .: "cmd"
     case (c :: Text) of
-      "search"      -> do
+      "search"         -> do
         q  <- o .: "query"
         p  <- o .: "page"
         pp <- o .: "perPage"
         return $ Search q p pp
-      "completion"  -> o .: "text"  >>= return . Completion
-      "insert"      -> do
+      "completion"     -> o .: "text"  >>= return . Completion
+      "insert"         -> do
         op <- o .: "option"
         d  <- o .: "document"
         return $ Insert d op
-      "delete"      -> o .: "uri"   >>= return . Delete
-      "load"        -> o .: "path"  >>= return . LoadIx
-      "store"       -> o .: "path"  >>= return . StoreIx
-      "noop"        ->                  return NOOP
-      _             -> mzero
+      "delete"         -> o .: "uri"   >>= return . Delete
+      "insert-context" -> o .: "context" >>= return . InsertContext
+      "delete-context" -> o .: "context" >>= return . DeleteContext
+      "load"           -> o .: "path"  >>= return . LoadIx
+      "store"          -> o .: "path"  >>= return . StoreIx
+      "noop"           ->                  return NOOP
+      _                -> mzero
   parseJSON o       = parseJSON o   >>= return . Sequence
 
 instance ToJSON CmdResult where
