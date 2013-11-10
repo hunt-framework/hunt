@@ -22,19 +22,26 @@ data InsertOption
 type UnparsedQuery = Text
 
 data Command
-  = Search     { icQuery    :: Query
-               , page       :: Int
-               , perPage    :: Int
-               }
-  | Completion { icPrefix   :: Query }
-  | Insert     { icDoc      :: ApiDocument
-               , icInsOpt   :: InsertOption
-               }
-  | Delete     { icUri      :: URI }
-  | BatchDelete{ icUris     :: Set URI }
-  | LoadIx     { icPath     :: FilePath }
-  | StoreIx    { icPath     :: FilePath }
-  | Sequence   { icCmdSeq   :: [Command] }
+  -- | Search
+  = Search        { icQuery    :: Query
+                  , page       :: Int
+                  , perPage    :: Int
+                  }
+  | Completion    { icPrefix   :: Query }
+  -- | Index manipulation 
+  | Insert        { icDoc      :: ApiDocument
+                  , icInsOpt   :: InsertOption
+                  }
+  | Delete        { icUri      :: URI }
+  | BatchDelete   { icUris     :: Set URI }
+  -- | context manipulation
+  | InsertContext { icICon     :: Context }      
+  | DeleteContext { icDCon     :: Context }
+  -- | persistent commands
+  | LoadIx        { icPath     :: FilePath }
+  | StoreIx       { icPath     :: FilePath }
+  -- | general
+  | Sequence      { icCmdSeq   :: [Command] }
   | NOOP
   deriving (Show)
 

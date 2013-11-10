@@ -211,6 +211,12 @@ execCmd' (StoreIx filename)
 execCmd' (LoadIx filename)
     = modIx $ \_ix -> execLoad filename
 
+execCmd' (InsertContext cx)
+    = modIx $ execInsertContext cx
+
+execCmd' (DeleteContext cx)
+    = modIx $ execDeleteContext cx
+
 -- ----------------------------------------------------------------------------
 
 execSequence :: TextIndexerCon ix dt => [Command] -> CM ix dt CmdResult
@@ -218,6 +224,18 @@ execSequence []       = execCmd NOOP
 execSequence [c]      = execCmd c
 execSequence (c : cs) = execCmd c >> execSequence cs
 
+
+execInsertContext :: TextIndexerCon ix dt 
+                  => Context 
+                  -> IpIndexer ix dt
+                  -> CM ix dt (IpIndexer ix dt, CmdResult)
+execInsertContext cx (ix,dt) = return ((CIx.insertContext cx ix,dt), ResOK)  
+ 
+execDeleteContext :: TextIndexerCon ix dt
+                  => Context
+                  -> IpIndexer ix dt
+                  -> CM ix dt (IpIndexer ix dt, CmdResult)
+execDeleteContext cx (ix,dt) = return ((CIx.deleteContext cx ix,dt), ResOK)
 
 execInsert :: TextIndexerCon ix dt 
            => ApiDocument -> InsertOption -> IpIndexer ix dt -> CM ix dt (IpIndexer ix dt, CmdResult)
