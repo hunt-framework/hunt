@@ -15,16 +15,19 @@ import           Network.Wai.Middleware.RequestLogger
 import           Web.Scotty
 
 import           Data.Text                            (Text)
-import qualified Data.Text.Lazy                       as LT
+--import qualified Data.Text.Lazy                       as LT
 
 import qualified Data.Aeson                           as A
 import           Data.Aeson.Encode.Pretty             (encodePretty)
 
 
 import           Holumbus.Common
-import           Holumbus.Common.ApiDocument
+
 import           Holumbus.Interpreter.Command
 import           Holumbus.Interpreter.Interpreter
+
+import           Holumbus.Query.Language.Parser
+
 import           Holumbus.Server.Common
 import qualified Holumbus.Server.Template             as Tmpl
 
@@ -78,22 +81,25 @@ start = scotty 3000 $ do
   -- simple query
   get "/search/:query/" $ do
     query    <- param "query"
-    -- XXX: mix of lazy and strict Text
-    eval (Search (Left . LT.toStrict $ query) 1 1000000)
-
+    case parseQuery query of
+      Right qry -> eval (Search qry 1 1000000)
+      Left  err -> json $ (JsonFailure 700 [err] :: JsonResponse Text)
+ 
   -- paged query
   get "/search/:query/:page/:perPage" $ do
     query    <- param "query"
     p        <- param "page"
     pp       <- param "perPage"
-    -- XXX: mix of lazy and strict Text
-    eval (Search (Left . LT.toStrict $ query) p pp)
+    case parseQuery query of
+      Right qry -> eval (Search qry p pp)
+      Left  err -> json $ (JsonFailure 700 [err] :: JsonResponse Text)
 
   -- completion
   get "/completion/:query" $ do
     query <- param "query"
-    -- XXX: mix of lazy and strict Text
-    eval (Completion . LT.toStrict $ query)
+    case parseQuery query of
+      Right qry -> eval (Completion qry)
+      Left  err -> json $ (JsonFailure 700 [err] :: JsonResponse Text)
 
   -- insert a document (fails if a document (the uri) already exists)
   post "/document/insert" $ do

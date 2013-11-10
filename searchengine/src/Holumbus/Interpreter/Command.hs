@@ -22,11 +22,11 @@ data InsertOption
 type UnparsedQuery = Text
 
 data Command
-  = Search     { icQuery    :: Either UnparsedQuery Query
+  = Search     { icQuery    :: Query
                , page       :: Int
                , perPage    :: Int
                }
-  | Completion { icPrefix   :: Text }
+  | Completion { icPrefix   :: Query }
   | Insert     { icDoc      :: ApiDocument
                , icInsOpt   :: InsertOption
                }

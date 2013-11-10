@@ -37,7 +37,7 @@ import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
-import           Holumbus.Query.Language.Parser
+--import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Result             as QRes
 
@@ -187,8 +187,8 @@ execCmd' :: (Bin.Binary dt, TextIndexerCon ix dt) => Command -> CM ix dt CmdResu
 execCmd' (Search q p pp)
     = withIx $ execSearch' (wrapSearch p pp) q
 
-execCmd' (Completion s)
-    = withIx $ execSearch' wrapCompletion (Left s)
+execCmd' (Completion q)
+    = withIx $ execSearch' wrapCompletion q
 
 execCmd' (Sequence cs)
     = execSequence cs
@@ -233,17 +233,11 @@ execInsert doc op ixx = do
 
 execSearch' :: TextIndexerCon ix dt 
             => (Result Document -> CmdResult)
-            -> Either Text Query
+            -> Query
             -> IpIndexer ix dt
             -> CM ix dt CmdResult
 execSearch' f q (ix, dt)
-    = case q of
-        Right qry -> runQ qry
-        Left  str ->
-          case parseQuery (T.unpack str) of
-            Right qry -> runQ qry
-            Left  err -> throwResError 500 err
-    where runQ qry = runQueryM ix dt qry >>= return . f
+    = runQueryM ix dt q >>= return . f 
 
 wrapSearch :: Int -> Int -> Result Document -> CmdResult
 wrapSearch p pp
