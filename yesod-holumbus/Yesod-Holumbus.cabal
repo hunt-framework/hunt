@@ -1,0 +1,46 @@
+name:          Yesod-Holumbus
+version:       0.1
+license:       MIT
+license-file:  LICENSE
+author:        
+copyright:
+maintainer:
+stability:     experimental
+category:      
+synopsis:      A Yesod Plugin, Subsite to integrate search framework Holumbus within Yesod applications 
+cabal-version: >=1.8
+build-type:    Simple
+-- tested-with:   ghc-7.0.3
+
+-- extra-source-files:
+--     README
+
+source-repository head
+  type:        git
+  location:    https://github.com/UlfS/holumbus.git
+
+library
+  build-depends: base                   >= 4   && < 5
+               , aeson                  >= 0.6
+               , yesod                  >= 1.2
+               , Holumbus-Searchengine  >= 2
+               , text
+
+  exposed-modules:
+    Yesod.Holumbus.SubSite
+    Yesod.Holumbus.Routes
+    Yesod.Holumbus
+  hs-source-dirs: src
+
+  ghc-options: -Wall -funbox-strict-fields -fwarn-tabs
+
+  extensions: MultiParamTypeClasses
+              FlexibleContexts
+              FlexibleInstances
+              OverloadedStrings
+              TypeFamilies
+              ConstraintKinds
+              KindSignatures
+              TemplateHaskell
+              QuasiQuotes
+              RankNTypes
