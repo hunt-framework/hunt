@@ -88,8 +88,8 @@ start = scotty 3000 $ do
   -- paged query
   get "/search/:query/:offset/:mx" $ do
     query    <- param "query"
-    offset   <- param "page"
-    mx       <- param "perPage"
+    offset   <- param "offset"
+    mx       <- param "mx"
     case parseQuery query of
       Right qry -> eval (Search qry offset mx)
       Left  err -> json $ (JsonFailure 700 [err] :: JsonResponse Text)
