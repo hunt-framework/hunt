@@ -38,9 +38,9 @@ class ( Yesod master
 -- | TemplateHaskell magic: create Types for routes with
 --   that small QQ-Dsl then generate Yesod Dispatch
 mkYesodSubData "Holumbus" [parseRoutes|
-/search/#Text              HolSearch         GET
-/search/#Text/#Int/#Int    HolPagedSearch    GET
-/completion/#Text          HolCompletion     GET
+/search/#String            HolSearch         GET
+/search/#String/#Int/#Int  HolPagedSearch    GET
+/completion/#String        HolCompletion     GET
 /insert                    HolInsert         POST
 /delete                    HolDelete         POST
 |]

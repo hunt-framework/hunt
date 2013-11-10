@@ -7,9 +7,10 @@ import           Data.Aeson
 import           Control.Applicative              ((<$>))
 
 import           Holumbus.Common
-import           Holumbus.Common.ApiDocument
+
 import qualified Holumbus.Interpreter.Interpreter as Hol
 import           Holumbus.Interpreter.Command
+import           Holumbus.Query.Language.Parser
 
 import           Yesod
 import           Yesod.Holumbus.Routes
@@ -55,26 +56,38 @@ runCmd cmd = do
 
 
 -- | search for all documents
-getHolSearch :: Text -> HolHandler Value
+getHolSearch :: String -> HolHandler Value
 getHolSearch query = getHolPagedSearch query 1 10000
 
 -- | search for a subset of documents by page
-getHolPagedSearch :: Text -> Int -> Int -> HolHandler Value
-getHolPagedSearch q p pp = do
-  res <- runHolumbus $ Search (Left q) p pp
-  return $ case res of 
-    Right (ResSearch docs)   -> toJSON $ JsonSuccess docs 
-    Left (ResError code msg) -> toJSON $ (JsonFailure code [msg] :: JsonResponse [Document])
-    _                        -> toJSON $ (JsonFailure 700 ["invalid operation"] :: JsonResponse [Document])
+getHolPagedSearch :: String -> Int -> Int -> HolHandler Value
+getHolPagedSearch query p pp = do
+  case parseQuery query of
+    Left  err -> return $ toJSON $ (JsonFailure 700 [err] :: JsonResponse Text)
+    Right qry -> do
+      res <- runHolumbus $ Search qry p pp
+      case res of 
+        Right (ResSearch docs)   -> return . toJSON
+                                  $ JsonSuccess docs 
+        Left (ResError code msg) -> return . toJSON
+                                  $ (JsonFailure code [msg] :: JsonResponse [Document])
+        _                        -> return . toJSON
+                                  $ (JsonFailure 700 ["invalid operation"] :: JsonResponse [Document])
 
 -- | search for auto-completion terms
-getHolCompletion :: Text -> HolHandler Value
-getHolCompletion q = do
-  res <- runHolumbus $ Completion q
-  return $ case res of 
-    Right (ResCompletion ws) -> toJSON $ JsonSuccess ws
-    Left (ResError code msg) -> toJSON $ (JsonFailure code [msg] :: JsonResponse [Text])
-    _                        -> toJSON $ (JsonFailure 700 ["invalid operation"] :: JsonResponse [Text])
+getHolCompletion :: String -> HolHandler Value
+getHolCompletion query = do
+  case parseQuery query of
+    Left  err -> return . toJSON $ (JsonFailure 700 [err] :: JsonResponse Text)
+    Right qry -> do
+      res <- runHolumbus $ Completion qry
+      case res of 
+        Right (ResCompletion ws) -> return . toJSON 
+                                  $ JsonSuccess ws
+        Left (ResError code msg) -> return . toJSON 
+                                  $ (JsonFailure code [msg] :: JsonResponse [Text])
+        _                        -> return . toJSON 
+                                  $ (JsonFailure 700 ["invalid operation"] :: JsonResponse [Text])
 
 -- | insert document
 postHolInsert :: HolHandler Value
