@@ -184,8 +184,8 @@ execCmd :: (Bin.Binary dt) => TextIndexerCon ix dt => Command -> CM ix dt CmdRes
 execCmd = execCmd' . optimizeCmd
 
 execCmd' :: (Bin.Binary dt, TextIndexerCon ix dt) => Command -> CM ix dt CmdResult
-execCmd' (Search q p pp)
-    = withIx $ execSearch' (wrapSearch p pp) q
+execCmd' (Search q offset mx)
+    = withIx $ execSearch' (wrapSearch offset mx) q
 
 execCmd' (Completion q)
     = withIx $ execSearch' wrapCompletion q
@@ -258,9 +258,9 @@ execSearch' f q (ix, dt)
     = runQueryM ix dt q >>= return . f 
 
 wrapSearch :: Int -> Int -> Result Document -> CmdResult
-wrapSearch p pp
+wrapSearch offset mx
     = ResSearch
-      . (mkPagedResult p pp)
+      . mkLimitedResult offset mx
       . map (\(_, (DocInfo d _, _)) -> d)
       . DM.toList .  docHits
 

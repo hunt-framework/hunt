@@ -54,23 +54,24 @@ defaultIndexMetadata = IndexMetadata
   }
 
 -- | paged api document result
-data PagedResult x = PagedResult
-  { result  :: [x]
-  , page    :: Int
-  , perPage :: Int
-  , count   :: Int
+data LimitedResult x = LimitedResult
+  { lrResult :: [x]
+  , lrOffset :: Int
+  , lrMax    :: Int
+  , lrCount  :: Int
   }
   deriving (Show, Eq)
 
-mkPagedResult :: Int -> Int -> [x] -> PagedResult x
-mkPagedResult p pp xs = PagedResult
-  { result  = takePage
-  , page    = p
-  , perPage = pp
-  , count   = length xs
+mkLimitedResult :: Int -> Int -> [x] -> LimitedResult x
+mkLimitedResult offset mx xs = LimitedResult
+  { lrResult = take mx . drop offset $ xs
+  , lrOffset = offset
+  , lrMax    = mx
+  , lrCount  = length xs
   }
-  where
-  takePage = take pp $ drop (pp * (p-1)) xs
+
+--mkPagedResult :: Int -> Int -> [x] -> LimitedResult x
+--mkPagedResult p pp = mkLimitedResult pp (pp * (p-1))
 
 -- | empty document
 emptyApiDocIndexMap :: Map Context (Either WordList TextData)
@@ -84,12 +85,12 @@ emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescrMap
 
 -- ----------------------------------------------------------------------------
 
-instance (ToJSON x) => ToJSON (PagedResult x) where
-   toJSON (PagedResult l p pp c) = object
-    [ "result"  .= l
-    , "page"    .= p
-    , "perPage" .= pp
-    , "count"   .= c
+instance (ToJSON x) => ToJSON (LimitedResult x) where
+   toJSON (LimitedResult res offset mx cnt) = object
+    [ "result" .= res
+    , "offset" .= offset
+    , "max"    .= mx
+    , "count"  .= cnt
     ]
 
 instance FromJSON ApiDocument where

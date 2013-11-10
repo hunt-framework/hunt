@@ -82,16 +82,16 @@ start = scotty 3000 $ do
   get "/search/:query/" $ do
     query    <- param "query"
     case parseQuery query of
-      Right qry -> eval (Search qry 1 1000000)
+      Right qry -> eval (Search qry 0 1000000)
       Left  err -> json $ (JsonFailure 700 [err] :: JsonResponse Text)
- 
+
   -- paged query
-  get "/search/:query/:page/:perPage" $ do
+  get "/search/:query/:offset/:mx" $ do
     query    <- param "query"
-    p        <- param "page"
-    pp       <- param "perPage"
+    offset   <- param "page"
+    mx       <- param "perPage"
     case parseQuery query of
-      Right qry -> eval (Search qry p pp)
+      Right qry -> eval (Search qry offset mx)
       Left  err -> json $ (JsonFailure 700 [err] :: JsonResponse Text)
 
   -- completion

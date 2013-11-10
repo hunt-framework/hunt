@@ -170,10 +170,10 @@ index docs =
         if (data.code === 0)
         {
           var pager = data.msg;
-          globalPage = pager.page;
-          globalPerPage = pager.perPage;
+          globalPage    = pager.offset / pager.max + 1;
+          globalPerPage = pager.max;
           globalResults = pager.count;
-          globalPages = Math.ceil(pager.count / pager.perPage);
+          globalPages   = Math.ceil(globalResults / globalPerPage);
           simpleSearchCompletedHandler({code:0, msg:pager.result});
 
           $("#result-count").html(globalResults + " documents found");
@@ -206,7 +206,7 @@ index docs =
          $("#result-body").html("<tr><td colspan=\"4\">No results.</td></tr>");
          return false;
       }
-      $.get("/search/" + query + "/" + globalPage + "/" + globalPerPage, pagedSearchCompletedHandler);
+      $.get("/search/" + query + "/" + ((globalPage-1) * globalPerPage) + "/" + globalPerPage, pagedSearchCompletedHandler);
      };
   });
 </script>

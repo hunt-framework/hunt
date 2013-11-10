@@ -47,7 +47,7 @@ data Command
 
 data CmdResult
   = ResOK
-  | ResSearch       { crRes   :: PagedResult Document }
+  | ResSearch       { crRes   :: LimitedResult Document }
   | ResCompletion   { crWords :: [Text] }
   deriving (Show, Eq)
 
