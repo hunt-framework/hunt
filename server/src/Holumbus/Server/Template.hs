@@ -66,7 +66,7 @@ index docs =
        <tr>
          <td>query combinators
          <td>AND, OR, NOT, BUT
-               
+
 |]) `LT.append`
   -- generate javascript
   renderJavascriptUrl (\_ _ -> "") [julius|
@@ -108,7 +108,7 @@ index docs =
       globalPage = 1;
       search(e);
     });
- 
+
     $("#pagination-prev").click(function(e) {
       if (globalPage > 1)
       {
@@ -135,7 +135,7 @@ index docs =
             $("#result-body").html("<tr><td colspan=\"4\">No results.</td></tr>");
             return false;
           }
- 
+
           var res = "";
           $(docs).each(function(i,e) {
              var desc = e.desc
@@ -163,7 +163,7 @@ index docs =
         {
            alert("Error occurred - please check server!");
         }
-    };   
+    };
 
     // handles search results with paging
     var pagedSearchCompletedHandler = function(data) {
@@ -202,7 +202,7 @@ index docs =
       ev.preventDefault();
       var query = $("#txt-search").val();
 
-      if (query === "") {     
+      if (query === "") {
          $("#result-body").html("<tr><td colspan=\"4\">No results.</td></tr>");
          return false;
       }
@@ -247,15 +247,15 @@ addDocs =
           <th>Information
           <th>
             <button .btn .btn-success #add-index>
-              +        
-        <tr .indexed>             
+              +
+        <tr .indexed>
           <th>
           <td>
             <input type="text" .indexed-key  value="sample context" />
           <td>
             <input type="text" .indexed-value value="sample index information" />
           <td>
-          
+
     <div .span5>
       <textarea name=document #txt-document style=height:400px;width:100%>
       <button .btn .btn-primary #btn-add style=float:right>
@@ -278,17 +278,17 @@ addDocs =
       // add entity properties to description
       var values = $(".persistent-value");
       $(".persistent-key").each(function(i,v) {
-        eval("apiDoc.description['"+$(v).val()+"'] ='"+$(values[i]).val()+"'"); 
+        eval("apiDoc.description['"+$(v).val()+"'] ='"+$(values[i]).val()+"'");
       });
 
       // add indexed information to index
       values = $(".indexed-value");
       $(".indexed-key").each(function(i,v) {
-        eval("apiDoc.index['"+$(v).val()+"'] = {'content':'"+$(values[i]).val()+"'}"); 
+        eval("apiDoc.index['"+$(v).val()+"'] = {'content':'"+$(values[i]).val()+"'}");
       });
-    
+
       // wrap doc into list and format as json
-      var apiDocs = [apiDoc]; 
+      var apiDocs = [apiDoc];
       $("#txt-document").html(JSON.stringify(apiDocs));
     };
     updateApiDoc();
@@ -297,18 +297,18 @@ addDocs =
     // add another entity property to editor
     $("#add-persistent").on("click", function(ev) {
       ev.preventDefault();
-      $(".persistent").after("<tr><td></td>" + 
+      $(".persistent").after("<tr><td></td>" +
         "<td><input class=\"persistent-key\" type=\"text\"/></td>" +
-        "<td><input class=\"persistent-value\" type=\"text\" /></td>" + 
+        "<td><input class=\"persistent-value\" type=\"text\" /></td>" +
         "<td></td></tr>");
     });
 
     // add another context to indexed information
     $("#add-index").on("click", function(ev) {
       ev.preventDefault();
-      $(".indexed").after("<tr><td></td>" + 
+      $(".indexed").after("<tr><td></td>" +
         "<td><input class=\"indexed-key\" type=\"text\"/></td>" +
-        "<td><input class=\"indexed-value\" type=\"text\" /></td>" + 
+        "<td><input class=\"indexed-value\" type=\"text\" /></td>" +
         "<td></td></tr>");
     });
 

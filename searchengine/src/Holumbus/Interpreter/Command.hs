@@ -28,14 +28,14 @@ data Command
                   , perPage    :: Int
                   }
   | Completion    { icPrefix   :: Query }
-  -- | Index manipulation 
+  -- | Index manipulation
   | Insert        { icDoc      :: ApiDocument
                   , icInsOpt   :: InsertOption
                   }
   | Delete        { icUri      :: URI }
   | BatchDelete   { icUris     :: Set URI }
   -- | context manipulation
-  | InsertContext { icICon     :: Context }      
+  | InsertContext { icICon     :: Context }
   | DeleteContext { icDCon     :: Context }
   -- | persistent commands
   | LoadIx        { icPath     :: FilePath }

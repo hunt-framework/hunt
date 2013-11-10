@@ -49,7 +49,7 @@ runHolumbus cmd = do
 runCmd :: Command -> HolHandler Value
 runCmd cmd = do
   res <- runHolumbus cmd
-  return $ case res of 
+  return $ case res of
     Right (ResOK)            -> toJSON $ JsonSuccess ("Ok"::Text)
     Left (ResError code msg) -> toJSON $ (JsonFailure code [msg] :: JsonResponse Text)
     _                        -> toJSON $ (JsonFailure 700 ["invalid operation"] :: JsonResponse Text)
@@ -66,9 +66,9 @@ getHolPagedSearch query p pp = do
     Left  err -> return $ toJSON $ (JsonFailure 700 [err] :: JsonResponse Text)
     Right qry -> do
       res <- runHolumbus $ Search qry p pp
-      case res of 
+      case res of
         Right (ResSearch docs)   -> return . toJSON
-                                  $ JsonSuccess docs 
+                                  $ JsonSuccess docs
         Left (ResError code msg) -> return . toJSON
                                   $ (JsonFailure code [msg] :: JsonResponse [Document])
         _                        -> return . toJSON
@@ -81,12 +81,12 @@ getHolCompletion query = do
     Left  err -> return . toJSON $ (JsonFailure 700 [err] :: JsonResponse Text)
     Right qry -> do
       res <- runHolumbus $ Completion qry
-      case res of 
-        Right (ResCompletion ws) -> return . toJSON 
+      case res of
+        Right (ResCompletion ws) -> return . toJSON
                                   $ JsonSuccess ws
-        Left (ResError code msg) -> return . toJSON 
+        Left (ResError code msg) -> return . toJSON
                                   $ (JsonFailure code [msg] :: JsonResponse [Text])
-        _                        -> return . toJSON 
+        _                        -> return . toJSON
                                   $ (JsonFailure 700 ["invalid operation"] :: JsonResponse [Text])
 
 -- | insert document

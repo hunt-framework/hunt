@@ -47,7 +47,7 @@ insertContext c (ContextIx m) = ContextIx $ M.insertWith (const id) c Ix.empty m
 
 -- | removes context including attached index from ContextIndex
 deleteContext :: ContextIxCon i v => Context -> ContextIndex i v -> ContextIndex i v
-deleteContext c (ContextIx m) = ContextIx $ M.delete c m 
+deleteContext c (ContextIx m) = ContextIx $ M.delete c m
 
 insert :: ContextIxCon impl v =>
           (Maybe Context, Maybe (Ix.IKey impl v)) -> Ix.IVal impl v

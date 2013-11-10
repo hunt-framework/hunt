@@ -17,7 +17,7 @@ data Holumbus = Holumbus { getHolumbus :: Hol.Env InvertedIndex (Documents Docum
 
 -- | helper for easy initiation
 emptyIndex :: IO Holumbus
-emptyIndex = do 
+emptyIndex = do
   env <- Hol.initEnv Hol.emptyIndexer Hol.emptyOptions
   return $ Holumbus env
 

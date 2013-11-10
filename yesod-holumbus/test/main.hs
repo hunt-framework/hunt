@@ -37,9 +37,9 @@ main = do
 -- kind of JS client library for holumbus
 getHomeR :: Handler Html
 getHomeR = defaultLayout $ do
-   addScriptRemote $ "http://code.jquery.com/jquery-1.10.0.min.js" 
-   addScriptRemote $ "//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"   
-   addStylesheetRemote $ "//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" 
+   addScriptRemote $ "http://code.jquery.com/jquery-1.10.0.min.js"
+   addScriptRemote $ "//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"
+   addStylesheetRemote $ "//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css"
    toWidget $ [julius|
   $(document).ready(function() {
 
@@ -78,7 +78,7 @@ getHomeR = defaultLayout $ do
       globalPage = 1;
       search(e);
     });
- 
+
     $("#pagination-prev").click(function(e) {
       if (globalPage > 1)
       {
@@ -105,7 +105,7 @@ getHomeR = defaultLayout $ do
             $("#result-body").html("<tr><td colspan=\"4\">No results.</td></tr>");
             return false;
           }
- 
+
           var res = "";
           $(docs).each(function(i,e) {
              var desc = e.desc
@@ -133,7 +133,7 @@ getHomeR = defaultLayout $ do
         {
            alert("Error occurred - please check server!");
         }
-    };   
+    };
 
     // handles search results with paging
     var pagedSearchCompletedHandler = function(data) {
@@ -172,7 +172,7 @@ getHomeR = defaultLayout $ do
       ev.preventDefault();
       var query = $("#txt-search").val();
 
-      if (query === "") {     
+      if (query === "") {
          $("#result-body").html("<tr><td colspan=\"4\">No results.</td></tr>");
          return false;
       }
@@ -235,6 +235,6 @@ getHomeR = defaultLayout $ do
                <tr>
                  <td>query combinators
                  <td>AND, OR, NOT, BUT
-    |] 
+    |]
 
 

@@ -1,5 +1,5 @@
-module Yesod.Holumbus 
-( module Yesod.Holumbus.SubSite 
+module Yesod.Holumbus
+( module Yesod.Holumbus.SubSite
 , module Yesod.Holumbus.Routes
 )
 where

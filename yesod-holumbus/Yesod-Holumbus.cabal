@@ -2,12 +2,12 @@ name:          Yesod-Holumbus
 version:       0.1
 license:       MIT
 license-file:  LICENSE
-author:        
+author:
 copyright:
 maintainer:
 stability:     experimental
-category:      
-synopsis:      A Yesod Plugin, Subsite to integrate search framework Holumbus within Yesod applications 
+category:
+synopsis:      A Yesod Plugin, Subsite to integrate search framework Holumbus within Yesod applications
 cabal-version: >=1.8
 build-type:    Simple
 -- tested-with:   ghc-7.0.3
