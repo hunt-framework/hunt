@@ -66,7 +66,7 @@ testCmd cmd = do
 
 -- uris of the search results
 searchResultUris :: CmdResult -> [URI]
-searchResultUris = map uri . result . crRes
+searchResultUris = map uri . lrResult . crRes
 
 -- example apidoc
 brainDoc :: ApiDocument
