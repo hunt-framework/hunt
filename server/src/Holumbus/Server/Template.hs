@@ -77,6 +77,7 @@ index docs =
     var globalPerPage = 5;
     var globalPages = undefined;
     var globalResults = undefined;
+    var globalCompletionMax = 20;
 
     $(document).keypress(function(event) {
       if ( event.which == 13 ) {
@@ -90,7 +91,7 @@ index docs =
     // XXX should be improved or removed
     $("#txt-search").typeahead({
       source: function(query, callback) {
-        $.get("/completion/" + query, function(data) {
+        $.get("/completion/" + query + "/" + globalCompletionMax, function(data) {
           var result = [];
           if (data.code === 0)
           {

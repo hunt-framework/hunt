@@ -28,7 +28,9 @@ data Command
                   , icOffsetSR :: Int
                   , icMaxSR    :: Int
                   }
-  | Completion    { icPrefix   :: Query }
+  | Completion    { icPrefixCR :: Query
+                  , icMaxCR    :: Int
+                  }
   -- | Index manipulation
   | Insert        { icDoc      :: ApiDocument
                   , icInsOpt   :: InsertOption
@@ -80,7 +82,7 @@ instance ToJSON InsertOption where
 instance ToJSON Command where
   toJSON o = case o of
     Search q ofs mx   -> object . cmd "search"         $ [ "query" .= q, "offset" .= ofs, "max" .= mx ]
-    Completion s      -> object . cmd "completion"     $ [ "text"  .= s ]
+    Completion s mx   -> object . cmd "completion"     $ [ "text"  .= s, "max" .= mx ]
     Insert d op       -> object . cmd "insert"         $
       [ "option"   .= op
       , "document" .= d
@@ -108,7 +110,10 @@ instance FromJSON Command where
         p  <- o .: "offset"
         pp <- o .: "max"
         return $ Search q p pp
-      "completion"     -> o .: "text"  >>= return . Completion
+      "completion"     -> do
+        txt <- o .: "text"
+        mx  <- o .: "max"
+        return $ Completion txt mx
       "insert"         -> do
         op <- o .: "option"
         d  <- o .: "document"

@@ -95,10 +95,11 @@ start = scotty 3000 $ do
       Left  err -> json $ (JsonFailure 700 [err] :: JsonResponse Text)
 
   -- completion
-  get "/completion/:query" $ do
+  get "/completion/:query/:mx" $ do
     query <- param "query"
+    mx    <- param "mx"
     case parseQuery query of
-      Right qry -> eval (Completion qry)
+      Right qry -> eval (Completion qry mx)
       Left  err -> json $ (JsonFailure 700 [err] :: JsonResponse Text)
 
   -- insert a document (fails if a document (the uri) already exists)

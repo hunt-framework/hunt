@@ -184,8 +184,8 @@ execCmd' :: (Bin.Binary dt, TextIndexerCon ix dt) => Command -> CM ix dt CmdResu
 execCmd' (Search q offset mx)
     = withIx $ execSearch' (wrapSearch offset mx) q
 
-execCmd' (Completion q)
-    = withIx $ execSearch' wrapCompletion q
+execCmd' (Completion q mx)
+    = withIx $ execSearch' (wrapCompletion mx) q
 
 execCmd' (Sequence cs)
     = execSequence cs
@@ -269,9 +269,10 @@ wrapSearch offset mx
       . map (\(_, (DocInfo d _, _)) -> d)
       . DM.toList .  docHits
 
-wrapCompletion :: Result e -> CmdResult
-wrapCompletion
+wrapCompletion :: Int -> Result e -> CmdResult
+wrapCompletion mx
     = ResCompletion
+      . take mx
       . map fst -- delete line to get the number of occurrences
       . map (\(c, (_, o)) -> (c, M.foldr (\m r -> r + DM.size m) 0 o))
       . M.toList
