@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE RankNTypes                 #-} 
+{-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeFamilies               #-}
 module Holumbus.Interpreter.Interpreter where
 
@@ -112,7 +112,7 @@ askIx
          liftIO $ readMVar ref
 
 -- FIXME: io exception-safe?
-modIx :: TextIndexerCon ix dt 
+modIx :: TextIndexerCon ix dt
       => (IpIndexer ix dt-> CM ix dt (IpIndexer ix dt, a)) -> CM ix dt a
 modIx f
     = do ref <- asks evIndexer
@@ -222,27 +222,27 @@ execSequence [c]      = execCmd c
 execSequence (c : cs) = execCmd c >> execSequence cs
 
 
-execInsertContext :: TextIndexerCon ix dt 
+execInsertContext :: TextIndexerCon ix dt
                   => Context
-                  -> ContextType 
+                  -> ContextType
                   -> IpIndexer ix dt
                   -> CM ix dt (IpIndexer ix dt, CmdResult)
 execInsertContext cx ct (ix, dt, s)
     -- | XX todo - handle case were context already exists
-    --   => throw error? 
-    = return (ixx, ResOK)  
+    --   => throw error?
+    = return (ixx, ResOK)
     where
     ixx = ( CIx.insertContext cx ix
           , dt
           , M.insert cx ct s)
- 
+
 execDeleteContext :: TextIndexerCon ix dt
                   => Context
                   -> IpIndexer ix dt
                   -> CM ix dt (IpIndexer ix dt, CmdResult)
 execDeleteContext cx (ix, dt, s) = return ((CIx.deleteContext cx ix, dt, s), ResOK)
 
-execInsert :: TextIndexerCon ix dt 
+execInsert :: TextIndexerCon ix dt
            => ApiDocument -> InsertOption -> IpIndexer ix dt -> CM ix dt (IpIndexer ix dt, CmdResult)
 execInsert doc op ixx = do
     --split <- asks (opSplitter . evOptions)
@@ -254,13 +254,13 @@ execInsert doc op ixx = do
         x       -> throwNYI $ show x
 
 
-execSearch' :: TextIndexerCon ix dt 
+execSearch' :: TextIndexerCon ix dt
             => (Result Document -> CmdResult)
             -> Query
             -> IpIndexer ix dt
             -> CM ix dt CmdResult
 execSearch' f q (ix, dt, _)
-    = runQueryM ix dt q >>= return . f 
+    = runQueryM ix dt q >>= return . f
 
 wrapSearch :: Int -> Int -> Result Document -> CmdResult
 wrapSearch offset mx

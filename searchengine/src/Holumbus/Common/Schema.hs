@@ -1,28 +1,34 @@
 module Holumbus.Common.Schema where
 
-import Holumbus.Common.BasicTypes
+import Control.Monad                   (mzero)
+
 import Data.Aeson
 import Data.Text
 import Data.Map
 import Data.Binary
-import Control.Monad                   (mzero)
 
--- | Schema 
+import Holumbus.Common.BasicTypes
+
+-- ----------------------------------------------------------------------------
+
+-- | Schema
 type ContextSchema = Map Context ContextType
 
-type ContextType = (CType, CRegex, [CNormalizer])
+type ContextType   = (CType, CRegex, [CNormalizer])
 
 type CRegex = Text
-data CType = CText | CInt
+data CType  = CText | CInt
   deriving (Show, Eq)
- 
+
 data CNormalizer = CUpperCase | CLowerCase
   deriving (Show, Eq)
 
+-- ----------------------------------------------------------------------------
+-- JSON instances
+-- ----------------------------------------------------------------------------
 
--- | json instances
 instance FromJSON CType where
-  parseJSON (String s) 
+  parseJSON (String s)
     = case s of
         "ctext" -> return CText
         "cint"  -> return CInt
@@ -35,7 +41,7 @@ instance ToJSON CType where
     CInt  -> "cint"
 
 instance FromJSON CNormalizer where
-  parseJSON (String s) 
+  parseJSON (String s)
     = case s of
         "uppercase" -> return CUpperCase
         "lowercase" -> return CLowerCase
@@ -47,24 +53,26 @@ instance ToJSON CNormalizer where
     CUpperCase -> "uppercase"
     CLowerCase -> "lowercase"
 
--- | binary instances
+-- ----------------------------------------------------------------------------
+-- Binary instances
+-- ----------------------------------------------------------------------------
+
 instance Binary CType where
   put (CText) = put (0 :: Word8)
   put (CInt)  = put (1 :: Word8)
-  
+
   get = do
     t <- get :: Get Word8
-    case t of 
+    case t of
       0 -> return CText
       1 -> return CInt
 
 instance Binary CNormalizer where
   put (CUpperCase) = put (0 :: Word8)
   put (CLowerCase) = put (1 :: Word8)
-  
+
   get = do
     t <- get :: Get Word8
-    case t of 
+    case t of
       0 -> return CUpperCase
       1 -> return CLowerCase
-

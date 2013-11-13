@@ -3,7 +3,7 @@ module Holumbus.Index.PrefixTreeIndex
 )
 where
 
-import           Data.Binary                       (Binary(..))
+import           Data.Binary                       (Binary (..))
 
 import qualified Data.StringMap                    as SM
 

@@ -38,7 +38,7 @@ data Command
   | Delete        { icUri      :: URI }
   | BatchDelete   { icUris     :: Set URI }
   -- | context manipulation
-  | InsertContext { icICon     :: Context 
+  | InsertContext { icICon     :: Context
                   , icSchema   :: ContextType
                   }
   | DeleteContext { icDCon     :: Context }
@@ -88,8 +88,8 @@ instance ToJSON Command where
       , "document" .= d
       ]
     Delete u          -> object . cmd "delete"         $ [ "uri"   .= u ]
-    InsertContext c s -> object . cmd "insert-context" $ 
-      [ "context" .= c 
+    InsertContext c s -> object . cmd "insert-context" $
+      [ "context" .= c
       , "schema"  .= s
       ]
     DeleteContext c   -> object . cmd "delete-context" $ [ "context" .= c ]
@@ -119,7 +119,7 @@ instance FromJSON Command where
         d  <- o .: "document"
         return $ Insert d op
       "delete"         -> o .: "uri"   >>= return . Delete
-      "insert-context" -> do 
+      "insert-context" -> do
         cx  <- o .: "context"
         s   <- o .: "schema"
         return $ InsertContext cx s

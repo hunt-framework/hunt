@@ -31,14 +31,14 @@ module Holumbus.Common
   )
 where
 
+import           Holumbus.Common.ApiDocument  (ApiDocument (..))
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Compression
 import           Holumbus.Common.DocId
-import           Holumbus.Common.DocIdMap    (DocIdMap, DocIdSet)
-import           Holumbus.Common.Document    (Document (..))
-import           Holumbus.Common.Occurrences (Occurrences)
-import           Holumbus.Common.Positions   (Positions)
+import           Holumbus.Common.DocIdMap     (DocIdMap, DocIdSet)
+import           Holumbus.Common.Document     (Document (..))
+import           Holumbus.Common.Occurrences  (Occurrences)
+import           Holumbus.Common.Positions    (Positions)
 import           Holumbus.Common.RawResult
-import           Holumbus.Common.ApiDocument (ApiDocument (..))
-import           Holumbus.Interpreter.Command (Command(..))
 import           Holumbus.Common.Schema
+import           Holumbus.Interpreter.Command (Command (..))

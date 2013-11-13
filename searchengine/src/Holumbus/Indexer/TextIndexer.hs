@@ -24,7 +24,6 @@ import qualified Holumbus.Index.Index              as Ix
 import qualified Holumbus.Index.TextIndex          as TIx
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 
-
 import           Holumbus.Indexer.Indexer
 
 -- ----------------------------------------------------------------------------
