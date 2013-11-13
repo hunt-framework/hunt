@@ -8,6 +8,7 @@ import           Data.Set                        (Set)
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
 
+import           Holumbus.Common.Schema
 import           Holumbus.Common.ApiDocument
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Document        (Document)
@@ -35,7 +36,9 @@ data Command
   | Delete        { icUri      :: URI }
   | BatchDelete   { icUris     :: Set URI }
   -- | context manipulation
-  | InsertContext { icICon     :: Context }
+  | InsertContext { icICon     :: Context 
+                  , icSchema   :: ContextType
+                  }
   | DeleteContext { icDCon     :: Context }
   -- | persistent commands
   | LoadIx        { icPath     :: FilePath }
@@ -76,20 +79,23 @@ instance ToJSON InsertOption where
 
 instance ToJSON Command where
   toJSON o = case o of
-    Search q p pp   -> object . cmd "search"         $ [ "query" .= q, "page" .= p, "perPage" .= pp ]
-    Completion s    -> object . cmd "completion"     $ [ "text"  .= s ]
-    Insert d op     -> object . cmd "insert"         $
-      [ "option"    .= op
-      , "document"  .= d
+    Search q p pp     -> object . cmd "search"         $ [ "query" .= q, "page" .= p, "perPage" .= pp ]
+    Completion s      -> object . cmd "completion"     $ [ "text"  .= s ]
+    Insert d op       -> object . cmd "insert"         $
+      [ "option"   .= op
+      , "document" .= d
       ]
-    Delete u        -> object . cmd "delete"         $ [ "uri"   .= u ]
-    InsertContext c -> object . cmd "insert-context" $ [ "context" .= c ]
-    DeleteContext c -> object . cmd "delete-context" $ [ "context" .= c ]
-    BatchDelete us  -> object . cmd "delete-batch"   $ [ "uris"  .= us ] -- not used in fromJSON instance
-    LoadIx  f       -> object . cmd "load"           $ [ "path"  .= f ]
-    StoreIx f       -> object . cmd "store"          $ [ "path"  .= f ]
-    NOOP            -> object . cmd "noop"           $ []
-    Sequence cs     -> toJSON cs
+    Delete u          -> object . cmd "delete"         $ [ "uri"   .= u ]
+    InsertContext c s -> object . cmd "insert-context" $ 
+      [ "context" .= c 
+      , "schema"  .= s
+      ]
+    DeleteContext c   -> object . cmd "delete-context" $ [ "context" .= c ]
+    BatchDelete us    -> object . cmd "delete-batch"   $ [ "uris"  .= us ] -- not used in fromJSON instance
+    LoadIx  f         -> object . cmd "load"           $ [ "path"  .= f ]
+    StoreIx f         -> object . cmd "store"          $ [ "path"  .= f ]
+    NOOP              -> object . cmd "noop"           $ []
+    Sequence cs       -> toJSON cs
     where
     cmd c = (:) ("cmd" .= (c :: Text))
 
@@ -108,7 +114,10 @@ instance FromJSON Command where
         d  <- o .: "document"
         return $ Insert d op
       "delete"         -> o .: "uri"   >>= return . Delete
-      "insert-context" -> o .: "context" >>= return . InsertContext
+      "insert-context" -> do 
+        cx  <- o .: "context"
+        s   <- o .: "schema"
+        return $ InsertContext cx s
       "delete-context" -> o .: "context" >>= return . DeleteContext
       "load"           -> o .: "path"  >>= return . LoadIx
       "store"          -> o .: "path"  >>= return . StoreIx

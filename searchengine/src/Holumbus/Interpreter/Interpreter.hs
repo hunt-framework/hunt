@@ -19,12 +19,9 @@ import qualified Data.Set                          as S
 import           Data.Text                         (Text)
 import qualified Data.Text                         as T
 
-
+import           Holumbus.Common
 import           Holumbus.Common.ApiDocument       as ApiDoc
-import           Holumbus.Common.BasicTypes
 import qualified Holumbus.Common.DocIdMap          as DM
-import           Holumbus.Common.Document          (Document)
-import           Holumbus.Common.Occurrences       (Occurrences)
 
 import           Holumbus.Analyzer.Analyzer
 
@@ -211,8 +208,8 @@ execCmd' (StoreIx filename)
 execCmd' (LoadIx filename)
     = modIx $ \_ix -> execLoad filename
 
-execCmd' (InsertContext cx)
-    = modIx $ execInsertContext cx
+execCmd' (InsertContext cx ct)
+    = modIx $ execInsertContext cx ct
 
 execCmd' (DeleteContext cx)
     = modIx $ execDeleteContext cx
@@ -226,10 +223,18 @@ execSequence (c : cs) = execCmd c >> execSequence cs
 
 
 execInsertContext :: TextIndexerCon ix dt 
-                  => Context 
+                  => Context
+                  -> ContextType 
                   -> IpIndexer ix dt
                   -> CM ix dt (IpIndexer ix dt, CmdResult)
-execInsertContext cx (ix, dt, s) = return ((CIx.insertContext cx ix, dt, s), ResOK)  
+execInsertContext cx ct (ix, dt, s)
+    -- | XX todo - handle case were context already exists
+    --   => throw error? 
+    = return (ixx, ResOK)  
+    where
+    ixx = ( CIx.insertContext cx ix
+          , dt
+          , M.insert cx ct s)
  
 execDeleteContext :: TextIndexerCon ix dt
                   => Context
@@ -254,7 +259,7 @@ execSearch' :: TextIndexerCon ix dt
             -> Query
             -> IpIndexer ix dt
             -> CM ix dt CmdResult
-execSearch' f q (ix, dt, s)
+execSearch' f q (ix, dt, _)
     = runQueryM ix dt q >>= return . f 
 
 wrapSearch :: Int -> Int -> Result Document -> CmdResult
