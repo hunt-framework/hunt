@@ -25,8 +25,8 @@ type UnparsedQuery = Text
 data Command
   -- | Search
   = Search        { icQuery    :: Query
-                  , page       :: Int
-                  , perPage    :: Int
+                  , icOffsetSR :: Int
+                  , icMaxSR    :: Int
                   }
   | Completion    { icPrefix   :: Query }
   -- | Index manipulation
@@ -79,7 +79,7 @@ instance ToJSON InsertOption where
 
 instance ToJSON Command where
   toJSON o = case o of
-    Search q p pp     -> object . cmd "search"         $ [ "query" .= q, "page" .= p, "perPage" .= pp ]
+    Search q ofs mx   -> object . cmd "search"         $ [ "query" .= q, "offset" .= ofs, "max" .= mx ]
     Completion s      -> object . cmd "completion"     $ [ "text"  .= s ]
     Insert d op       -> object . cmd "insert"         $
       [ "option"   .= op
@@ -105,8 +105,8 @@ instance FromJSON Command where
     case (c :: Text) of
       "search"         -> do
         q  <- o .: "query"
-        p  <- o .: "page"
-        pp <- o .: "perPage"
+        p  <- o .: "offset"
+        pp <- o .: "max"
         return $ Search q p pp
       "completion"     -> o .: "text"  >>= return . Completion
       "insert"         -> do
