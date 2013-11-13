@@ -95,7 +95,7 @@ index docs =
           if (data.code === 0)
           {
             $(data.msg).each(function(i,e) {
-              result.push(e[0]);
+              result.push(e);
             });
           }
           callback(result);
