@@ -3,13 +3,14 @@ module Holumbus.Analyzer.Analyzer
   )
 where
 
-import           Data.Char                   (isAlphaNum)
 import           Data.DList                  (DList)
 import qualified Data.DList                  as DL
 import           Data.Map                    (Map)
 import qualified Data.Map                    as M
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
+
+import           Text.Regex.XMLSchema.String
 
 import           Holumbus.Common.Document    (Document (..))
 import           Holumbus.Common.BasicTypes
@@ -24,7 +25,7 @@ import           Holumbus.Common.ApiDocument
 
 -- ----------------------------------------------------------------------------
 
-analyzerMapping :: AnalyzerType -> Text -> [(Position, Text)]
+analyzerMapping :: AnalyzerType -> Text -> [(Position, Word)]
 analyzerMapping o = case o of
     DefaultAnalyzer -> scanTextDefault
 
@@ -46,7 +47,7 @@ toDocAndWords apiDoc = (doc, ws)
 
 -- | Construct a WordList from Text using the function f to split
 --   the text into words with their corresponding positions.
-toWordList :: (Text -> [(Position, Text)]) -> Text -> WordList
+toWordList :: (Text -> [(Position, Word)]) -> Text -> WordList
 toWordList f = M.map DL.toList . foldr insert M.empty . f
   where
   insert :: (Position, Word) -> Map Word (DList Position) -> Map Word (DList Position)
@@ -56,6 +57,10 @@ toWordList f = M.map DL.toList . foldr insert M.empty . f
 -- Analyzer
 
 -- | The default analyzer function
-scanTextDefault :: Text -> [(Position, Text)]
+scanTextDefault :: Text -> [(Position, Word)]
 scanTextDefault
-  = zip [0..] . T.words . T.map (\c -> if isAlphaNum c then c else ' ')
+  = scanTextRE "[^ \t\n\r]*"
+
+-- | Tokenize a text with a regular expression for words
+scanTextRE :: Text -> Text -> [(Position, Word)]
+scanTextRE wRex = zip [0..] . map T.pack . tokenize (T.unpack wRex) . T.unpack
