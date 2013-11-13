@@ -64,7 +64,7 @@ import           Holumbus.Interpreter.Command
 type IpIndexer      ix dt = ContextTextIndexer ix dt
 
 emptyIndexer    :: IpIndexer InvertedIndex (Documents Document)
-emptyIndexer    = (CIx.empty, HDt.empty)
+emptyIndexer    = (CIx.empty, HDt.empty, M.empty)
 
 -- ----------------------------------------------------------------------------
 
@@ -229,13 +229,13 @@ execInsertContext :: TextIndexerCon ix dt
                   => Context 
                   -> IpIndexer ix dt
                   -> CM ix dt (IpIndexer ix dt, CmdResult)
-execInsertContext cx (ix,dt) = return ((CIx.insertContext cx ix,dt), ResOK)  
+execInsertContext cx (ix, dt, s) = return ((CIx.insertContext cx ix, dt, s), ResOK)  
  
 execDeleteContext :: TextIndexerCon ix dt
                   => Context
                   -> IpIndexer ix dt
                   -> CM ix dt (IpIndexer ix dt, CmdResult)
-execDeleteContext cx (ix,dt) = return ((CIx.deleteContext cx ix,dt), ResOK)
+execDeleteContext cx (ix, dt, s) = return ((CIx.deleteContext cx ix, dt, s), ResOK)
 
 execInsert :: TextIndexerCon ix dt 
            => ApiDocument -> InsertOption -> IpIndexer ix dt -> CM ix dt (IpIndexer ix dt, CmdResult)
@@ -254,7 +254,7 @@ execSearch' :: TextIndexerCon ix dt
             -> Query
             -> IpIndexer ix dt
             -> CM ix dt CmdResult
-execSearch' f q (ix, dt)
+execSearch' f q (ix, dt, s)
     = runQueryM ix dt q >>= return . f 
 
 wrapSearch :: Int -> Int -> Result Document -> CmdResult

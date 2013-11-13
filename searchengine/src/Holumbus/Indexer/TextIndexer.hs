@@ -47,10 +47,10 @@ type ContextTextIndexer i dt = ContextIndexer i Occurrences dt
 -- | Insert a Document and Words.
 insert :: (Monad m, TextIndexerCon i dt)
        => (Dt.DValue dt) -> Words -> ContextTextIndexer i dt -> m (ContextTextIndexer i dt)
-insert doc wrds (ix,dt) = do
+insert doc wrds (ix, dt, s) = do
     (did, newDt) <- Dt.insert dt doc
-    let newIx     = TIx.addWords wrds did ix
-    return (newIx, newDt)
+    let newIx = TIx.addWords wrds did ix
+    return (newIx, newDt, s)
 
 -- | Update elements
 update :: (Monad m, TextIndexerCon i dt)
@@ -65,25 +65,25 @@ update docId doc' w ix = do
 modify :: (Monad m, TextIndexerCon i dt)
        => (Dt.DValue dt -> m (Dt.DValue dt))
        -> Words -> DocId -> ContextTextIndexer i dt -> m (ContextTextIndexer i dt)
-modify f wrds dId (ii,dt) = do
+modify f wrds dId (ii, dt, s) = do
   newDocTable <- Dt.adjust f dId dt
   let newIndex = TIx.addWords wrds dId ii
-  return (newIndex,newDocTable)
+  return (newIndex, newDocTable, s)
 
 -- | Delete a set of documents by 'URI'.
 deleteDocsByURI :: (Monad m, TextIndexerCon i dt)
                 => Set URI -> ContextTextIndexer i dt -> m (ContextTextIndexer i dt)
-deleteDocsByURI us ixx@(_ix,dt) = do
+deleteDocsByURI us ixx@(_ix,dt,_) = do
     docIds <- liftM (toDocIdSet . catMaybes) . mapM (Dt.lookupByURI dt) . S.toList $ us
     delete ixx docIds
 
 -- | Delete a set of documents by 'DocId'.
 delete :: (Monad m, TextIndexerCon i dt)
           => ContextTextIndexer i dt -> DocIdSet -> m (ContextTextIndexer i dt)
-delete (ix,dt) dIds = do
+delete (ix,dt,s) dIds = do
     let newIx = CIx.map (Ix.batchDelete dIds) ix
     newDt <- Dt.difference dIds dt
-    return (newIx, newDt)
+    return (newIx, newDt, s)
 
 -- ----------------------------------------------------------------------------
 
@@ -92,10 +92,10 @@ delete (ix,dt) dIds = do
 modifyWithDescription :: (Monad m, TextIndexerCon i dt, Dt.DValue dt ~ Document)
                       => Description -> Words -> DocId
                       -> ContextTextIndexer i dt -> m (ContextTextIndexer i dt)
-modifyWithDescription descr wrds dId (ii,dt) = do
+modifyWithDescription descr wrds dId (ii, dt, s) = do
     newDocTable <- Dt.adjust mergeDescr dId dt
     let newIndex = TIx.addWords wrds dId ii
-    return (newIndex, newDocTable)
+    return (newIndex, newDocTable, s)
     where
     -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
     mergeDescr d = return d{ desc = flip M.union (desc d) descr }
