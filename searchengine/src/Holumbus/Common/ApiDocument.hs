@@ -70,9 +70,6 @@ mkLimitedResult offset mx xs = LimitedResult
   , lrCount  = length xs
   }
 
---mkPagedResult :: Int -> Int -> [x] -> LimitedResult x
---mkPagedResult p pp = mkLimitedResult pp (pp * (p-1))
-
 -- | empty document
 emptyApiDocIndexMap :: Map Context (Either WordList TextData)
 emptyApiDocIndexMap = M.empty
