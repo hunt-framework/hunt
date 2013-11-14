@@ -244,13 +244,11 @@ execDeleteContext cx (ix, dt, s) = return ((CIx.deleteContext cx ix, dt, s), Res
 
 execInsert :: TextIndexerCon ix dt
            => ApiDocument -> InsertOption -> IpIndexer ix dt -> CM ix dt (IpIndexer ix dt, CmdResult)
-execInsert doc op ixx = do
-    --split <- asks (opSplitter . evOptions)
-    let split = toDocAndWords
-    let (docs, ws) = split doc
-    ix'        <- lift $ Ixx.insert docs ws ixx
+execInsert doc op ixx@(_, _, schema) = do
+    let (docs, ws) = toDocAndWords schema doc
+    ixx' <- lift $ Ixx.insert docs ws ixx
     case op of
-        New     -> return (ix', ResOK) -- TODO: not the real deal yet
+        New     -> return (ixx', ResOK) -- TODO: not the real deal yet
         x       -> throwNYI $ show x
 
 
