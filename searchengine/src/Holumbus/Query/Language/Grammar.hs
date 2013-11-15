@@ -40,11 +40,10 @@ import           Data.Text             (Text)
 import qualified Data.Text             as T
 import           Data.Text.Binary      ()
 
-import           Holumbus.Common.BasicTypes (Context)
+import           Holumbus.Common.BasicTypes (Context, TextSearchOp)
+import           Holumbus.Common.Schema
 
 -- ----------------------------------------------------------------------------
-
--- | The query language.
 data Query = Word       Text              -- ^ Single case-insensitive word.
            | Phrase     Text              -- ^ Single case-insensitive phrase.
            | CaseWord   Text              -- ^ Single case-sensitive word.
@@ -55,6 +54,16 @@ data Query = Word       Text              -- ^ Single case-insensitive word.
            | BinQuery   BinOp Query Query -- ^ Combine two queries through a binary operation.
            deriving (Eq, Show)
 
+-- | new The query language.
+{--
+data Query = QText    TextSearchOp Word           -- Single Text Queries
+           | QContext [(Context, CWeight)] Query  -- Weighted Context Queries
+           | QRange   Word Word                   -- Range Queries
+           | QBinary  BinOp [Query]               -- Combinator
+           | QNegation Query                      -- XXX do we still support this??
+           deriving (Eq, Show)
+--}
+
 -- | A binary operation.
 data BinOp = And  -- ^ Intersect two queries.
            | Or   -- ^ Union two queries.
@@ -62,7 +71,6 @@ data BinOp = And  -- ^ Intersect two queries.
            deriving (Eq, Show)
 
 -- ----------------------------------------------------------------------------
-
 instance ToJSON Query where
   toJSON o = case o of
     Word s            -> object . ty "wi" $ [ "str" .= s ]
@@ -81,11 +89,36 @@ instance ToJSON Query where
     ty' t = (:) ("type" .= t)
     ty  t = ty' (t :: Text)
 
+
+{-- new json
+instance ToJSON Query where
+  toJSON o = case o of
+    QText op w         -> object . ty "text" $
+      [ "op"   .= op
+      , "word" .=
+      ]
+    QContext cs qs     -> object . ty "context" $
+      [ "contexts" .= cs
+      , "queries"  .= qs
+      ]
+    QRange l u         -> object . ty "range" $
+      [ "lower" .= l ]
+      [ "upper" .= u ]
+    QNegation q        -> object . ty "not" $ 
+      [ "query" .= q ]
+    QBinQuery op q1 q2 -> object . ty' op  $
+      [ "query1" .= q1
+      , "query2" .= q2 ]   
+    where
+    ty' t = (:) ("type" .= t)
+    ty  t = ty' (t :: Text)
+--}
+
 instance FromJSON Query where
   parseJSON (Object o) = do
     t <- o .: "type"
     case (t :: Text) of
-      "wi"  -> o .: "text" >>= return . Word
+      "text"  -> o .: "text" >>= return . Word
       "pi"  -> o .: "text" >>= return . Phrase
       "wc"  -> o .: "text" >>= return . CaseWord
       "pc"  -> o .: "text" >>= return . CasePhrase
