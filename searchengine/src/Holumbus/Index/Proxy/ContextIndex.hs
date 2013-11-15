@@ -1,15 +1,4 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{--
- - this file somehow causes ghc to deadlock when not
- - compiled without cabal clean
- -
- - maybe it doesn't make so much sense to have this
- - contextindex beeing an instance of index.
- -
- - the index can be exchanged either way but the
- - change from contextindex to
- -}
-
 module Holumbus.Index.Proxy.ContextIndex where
 
 import           Data.Binary                  (Binary(..))
@@ -17,7 +6,7 @@ import           Data.Text.Binary             ()
 import           Data.Map                     (Map)
 import qualified Data.Map                     as M
 
-import           Holumbus.Common.BasicTypes   (Context, Textual)
+import           Holumbus.Common
 import qualified Holumbus.Index.Index         as Ix
 
 -- ----------------------------------------------------------------------------
@@ -68,8 +57,8 @@ insert k v (ContextIx m)
 empty :: ContextIndex i v
 empty = ContextIx $ M.empty
 
-lookup :: ContextIxCon i v =>
-          Textual
+lookup :: ContextIxCon i v
+          => Ix.ISearchOp i v
           -> (Maybe Context, Maybe (Ix.IKey i v))
           -> ContextIndex i v
           -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]

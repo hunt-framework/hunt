@@ -36,7 +36,7 @@ main = defaultMainWithOpts
 -- check if element is inserted in insert operation
 
 -- | general check function
-insertTest :: (Ix.Index i, Eq (Ix.IVal i v), (Ix.ICon i v)) =>
+insertTest :: (Ix.ISearchOp i v ~ TextSearchOp, Ix.Index i, Eq (Ix.IVal i v), (Ix.ICon i v)) =>
               i v -> Ix.IKey i v -> Ix.IVal i v -> Bool
 insertTest emptyIndex k v = v == nv
   where

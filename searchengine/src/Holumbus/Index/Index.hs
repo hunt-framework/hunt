@@ -5,23 +5,24 @@ import           GHC.Exts                       (Constraint)
 
 import qualified Data.IntSet                    as IS
 
-import           Holumbus.Common.BasicTypes     (Textual)
-import           Holumbus.Common.DocId          (DocId)
-import           Holumbus.Common.DocIdMap       (DocIdSet)
+import           Holumbus.Common
 
 -- ----------------------------------------------------------------------------
 
 class Index i where
-    type IKey    i v :: *
+    type IKey      i v :: *
 
-    type IVal    i v :: *
-    type IVal    i v = v
+    type IVal      i v :: *
+    type IVal      i v = v
 
-    type ICon    i v :: Constraint
-    type ICon    i v =  ()
+    type ICon      i v :: Constraint
+    type ICon      i v =  ()
+
+    type ISearchOp i v :: *
+    type ISearchOp i v = TextSearchOp
 
     -- | General lookup function.
-    search       :: ICon i v => Textual -> IKey i v -> i v -> [(IKey i v, IVal i v)]
+    search       :: ICon i v => ISearchOp i v -> IKey i v -> i v -> [(IKey i v, IVal i v)]
 
     -- | Insert occurrences.
     insert       :: ICon i v => IKey i v -> IVal i v -> i v -> i v

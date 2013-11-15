@@ -55,11 +55,8 @@ import qualified Data.Text                         as T
 
 --import           Holumbus.Utility                  ((.::), (.:::))
 
-import           Holumbus.Common                   ( Context, DocId, Position,
-                                                     RawResult, Textual (..),
-                                                     Word, Positions, Document )
+import           Holumbus.Common                
 import qualified Holumbus.Common.DocIdMap          as DM
-import           Holumbus.Common.Occurrences       as Occ
 import           Holumbus.Common.Positions         (foldPos, memberPos, unionPos)
 import           Holumbus.Index.TextIndex
 

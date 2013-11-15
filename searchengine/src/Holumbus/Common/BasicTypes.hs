@@ -51,6 +51,6 @@ type Words        = Map Context WordList
 type WordList     = Map Word [Position]
 
 -- | Text index
-data Textual      = Case | NoCase | PrefixCase | PrefixNoCase
+data TextSearchOp = Case | NoCase | PrefixCase | PrefixNoCase | Fuzzy
 
 -- ------------------------------------------------------------

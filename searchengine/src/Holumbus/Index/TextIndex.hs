@@ -15,9 +15,7 @@ import qualified Data.Map                          as M
 
 import qualified Holumbus.Common.Occurrences       as Occ
 
-import           Holumbus.Common.BasicTypes
-import           Holumbus.Common.Occurrences       (Occurrences)
-import           Holumbus.Common.DocId             (DocId)
+import           Holumbus.Common
 
 import           Holumbus.Index.Index
 import           Holumbus.Index.Proxy.ContextIndex (ContextIndex, ContextIxCon)
@@ -32,6 +30,7 @@ type TextIndex i v
     , v ~ IVal i v
     , v ~ Occurrences
     , IKey i v ~ Word
+    , ISearchOp i v ~ TextSearchOp
     )
 
 type ContextTextIndex i v
