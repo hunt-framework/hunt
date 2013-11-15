@@ -14,9 +14,11 @@ import Holumbus.Common.BasicTypes
 -- | Schema
 type ContextSchema = Map Context ContextType
 
-type ContextType   = (CType, CRegex, [CNormalizer])
+type ContextType   = (CType, CRegex, [CNormalizer], CWeight)
 
 type CRegex = Text
+type CWeight = Int
+
 data CType  = CText | CInt
   deriving (Show, Eq)
 

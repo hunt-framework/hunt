@@ -50,7 +50,7 @@ toDocAndWords schema apiDoc = (doc, ws)
                 (\(TextData content metadata)
                     -- FIXME: make sure that all contexts exist, otherwise this will crash
                     -- TODO: discards index metadata in apidoc - obsolete now?
-                    -> let (cType, rex, normType) = fromJust $ M.lookup context schema
+                    -> let (cType, rex, normType, w) = fromJust $ M.lookup context schema
                            scan = scanTextRE rex
                            norm = chainFuns . map normalizerMapping $ normType
                        in toWordList scan norm content)) indexMap
