@@ -31,6 +31,7 @@ instance (Binary (impl v), Binary v) => Binary (ContextIndex impl v) where
 -- | insert new context into context index.
 --   note: If context already exists this function behaves like Data.Map insert:
 --   the index stored behind the context gets overwriten by an empty index
+--   XXX: either the comment or the implementation is wrong :P
 insertContext :: ContextIxCon i v => Context -> ContextIndex i v -> ContextIndex i v
 insertContext c (ContextIx m) = ContextIx $ M.insertWith (const id) c Ix.empty m
 

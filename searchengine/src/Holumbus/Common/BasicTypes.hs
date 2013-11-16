@@ -75,7 +75,7 @@ instance ToJSON TextSearchOp where
     NoCase       -> "noCase"
     PrefixCase   -> "prefixCase"
     PrefixNoCase -> "prefixNoCase"
-    Fuzzy        -> "fuzzy"    
+    Fuzzy        -> "fuzzy"
 
 -- ----------------------------------------------------------------------------
 -- Binary instances
@@ -87,7 +87,7 @@ instance Binary TextSearchOp where
   put (PrefixCase)   = put (2 :: Word8)
   put (PrefixNoCase) = put (3 :: Word8)
   put (Fuzzy)        = put (4 :: Word8)
-  
+
   get = do
     t <- get :: Get Word8
     case t of
@@ -96,6 +96,5 @@ instance Binary TextSearchOp where
       2 -> return PrefixCase
       3 -> return PrefixNoCase
       4 -> return Fuzzy
-
 
 -- ------------------------------------------------------------

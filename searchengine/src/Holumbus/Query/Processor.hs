@@ -55,7 +55,7 @@ import qualified Data.Text                         as T
 
 --import           Holumbus.Utility                  ((.::), (.:::))
 
-import           Holumbus.Common                
+import           Holumbus.Common
 import qualified Holumbus.Common.DocIdMap          as DM
 import           Holumbus.Common.Positions         (foldPos, memberPos, unionPos)
 import           Holumbus.Index.TextIndex

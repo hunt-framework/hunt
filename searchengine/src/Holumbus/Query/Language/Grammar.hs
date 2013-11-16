@@ -22,8 +22,8 @@
 module Holumbus.Query.Language.Grammar
   (
   -- * Query data types
-  Query (Word, Phrase, CaseWord, CasePhrase, FuzzyWord, Specifier, Negation, BinQuery)
-  , BinOp (And, Or, But)
+    Query (..)
+  , BinOp (..)
 
   -- * Optimizing
   , optimize
@@ -104,11 +104,11 @@ instance ToJSON Query where
     QRange l u         -> object . ty "range" $
       [ "lower" .= l ]
       [ "upper" .= u ]
-    QNegation q        -> object . ty "not" $ 
+    QNegation q        -> object . ty "not" $
       [ "query" .= q ]
     QBinQuery op q1 q2 -> object . ty' op  $
       [ "query1" .= q1
-      , "query2" .= q2 ]   
+      , "query2" .= q2 ]
     where
     ty' t = (:) ("type" .= t)
     ty  t = ty' (t :: Text)
