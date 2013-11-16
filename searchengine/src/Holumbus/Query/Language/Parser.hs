@@ -42,10 +42,13 @@ module Holumbus.Query.Language.Parser
   )
 where
 
-import           Data.Text                (Text)
-import qualified Data.Text                as T
-import           Holumbus.Query.Language.Grammar
+import           Data.Text                       (Text)
+import qualified Data.Text                       as T
+
 import           Text.ParserCombinators.Parsec
+
+import           Holumbus.Common.BasicTypes
+import           Holumbus.Query.Language.Grammar
 
 -- ----------------------------------------------------------------------------
 
@@ -113,15 +116,15 @@ caseQuery = caseQuery' <|> fuzzyQuery
   where
   caseQuery' = do char '!'
                   spaces
-                  phraseQuery CasePhrase <|> wordQuery CaseWord
+                  phraseQuery CasePhrase <|> wordQuery (QText Case)
 
 -- | Parse a fuzzy query.
 fuzzyQuery :: Parser Query
-fuzzyQuery = fuzzyQuery' <|> phraseQuery Phrase <|> wordQuery Word
+fuzzyQuery = fuzzyQuery' <|> phraseQuery Phrase <|> wordQuery (QText NoCase)
   where
   fuzzyQuery' = do char '~'
                    spaces
-                   wordQuery FuzzyWord
+                   wordQuery (QText Fuzzy)
 
 -- | Parse a word query.
 wordQuery :: (Text -> Query) -> Parser Query

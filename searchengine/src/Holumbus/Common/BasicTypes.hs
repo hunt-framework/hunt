@@ -57,6 +57,7 @@ type WordList     = Map Word [Position]
 
 -- | Text index
 data TextSearchOp = Case | NoCase | PrefixCase | PrefixNoCase | Fuzzy
+  deriving (Eq, Show)
 
 instance FromJSON TextSearchOp where
   parseJSON (String s)

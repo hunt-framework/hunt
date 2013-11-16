@@ -14,6 +14,7 @@ import           Test.HUnit
 
 import           Holumbus.Common
 import           Holumbus.Common.ApiDocument          as ApiDoc
+import           Holumbus.Common.BasicTypes
 import           Holumbus.Interpreter.Command
 import           Holumbus.Interpreter.Interpreter
 import           Holumbus.Query.Language.Grammar
@@ -54,7 +55,7 @@ testRunCmd cmd = do
 
 insertCmd, searchCmd, batchCmd :: Command
 insertCmd = Insert brainDoc New
-searchCmd = Search (Word "d") 1 100
+searchCmd = Search (QText NoCase "d") 1 100
 batchCmd  = Sequence [insertCmd, searchCmd]
 
 -- ----------------------------------------------------------------------------
@@ -115,7 +116,7 @@ test_insertAndSearch :: Assertion
 test_insertAndSearch = do
   res <- testCmd . Sequence $
       [ Insert brainDoc New
-      , Search (Word "Brain") 0 1000]
+      , Search (QText NoCase "Brain") 0 1000]
   ["test://0"] @=? (searchResultUris . fromRight) res
 
 
@@ -126,9 +127,9 @@ test_alot = testCM $ do
   --throwNYI "user error"
   insR <- execCmd $ Insert brainDoc New
   liftIO $ ResOK @=? insR
-  seaR <- execCmd $ Search (Word "Brain") os pp
+  seaR <- execCmd $ Search (QText NoCase "Brain") os pp
   liftIO $ ["test://0"] @=? searchResultUris seaR
-  seaR2 <- execCmd $ Search (CaseWord "brain") os pp
+  seaR2 <- execCmd $ Search (QText Case "brain") os pp
   liftIO $ [] @=? searchResultUris seaR2
   where
   os = 0
@@ -151,19 +152,19 @@ test_fancy = testCM $ do
   Insert brainDoc New
     @@= ResOK
   -- searching "brain" leads to the doc
-  Search (Word "Brain") os pp
+  Search (QText NoCase "Brain") os pp
     @@@ ((@?= ["test://0"]) . searchResultUris)
   -- case-sensitive search too
-  Search (CaseWord "Brain") os pp
+  Search (QText Case "Brain") os pp
     @@@ ((@?= ["test://0"]) . searchResultUris)
   -- case-sensitive search yields no result
-  Search (CaseWord "brain") os pp
+  Search (QText Case "brain") os pp
     @@@ ((@?= []) . searchResultUris)
   -- delete return the correct result value
   BatchDelete (S.singleton "test://0")
     @@= ResOK
   -- the doc is gone
-  Search (Word "Brain") os pp
+  Search (QText NoCase "Brain") os pp
     @@@ ((@?= []) . searchResultUris)
   where
   os = 0

@@ -192,11 +192,9 @@ processQueryM cfg i d q = do
 
 -- | Continue processing a query by deciding what to do depending on the current query element.
 process :: ContextTextIndex i v => ProcessState i v -> Query -> Intermediate
-process s (Word w)           = processWord s w
+process s (QText op w)       = processText s op w
 process s (Phrase w)         = processPhrase s w
-process s (CaseWord w)       = processCaseWord s w
 process s (CasePhrase w)     = processCasePhrase s w
-process s (FuzzyWord w)      = processFuzzyWord s w
 process s (Negation q)       = processNegation s (process s q)
 process s (Specifier c q)    = process (setContexts c s) q
 process s (BinQuery o q1 q2) = processBin o (process s q1) (process s q2)
@@ -215,6 +213,15 @@ processM s (BinQuery o q1 q2) = do
   ir2 <- processM s q2
   return $ processBin o ir1 ir2
 -}
+
+processText :: ContextTextIndex i v => ProcessState i v -> TextSearchOp -> Text -> Intermediate
+processText s op w = case op of
+  Case          -> processCaseWord s w
+  NoCase        -> processWord s w
+  -- TODO: this prefix stuff should be removed
+  PrefixCase    -> undefined
+  PrefixNoCase  -> undefined
+  Fuzzy         -> processFuzzyWord s w
 
 -- | Process a single, case-insensitive word by finding all documents whreturn I.empty -- ich contain the word as prefix.
 processWord :: ContextTextIndex i v => ProcessState i v -> Text -> Intermediate
