@@ -48,6 +48,7 @@ import qualified Data.Text                       as T
 import           Text.ParserCombinators.Parsec
 
 import           Holumbus.Common.BasicTypes
+import           Holumbus.Common.Schema          (CWeight)
 import           Holumbus.Query.Language.Grammar
 
 -- ----------------------------------------------------------------------------
@@ -98,7 +99,7 @@ contextQuery = try contextQuery' <|> parQuery
                      char ':'
                      spaces
                      t <- parQuery
-                     return (Specifier (map T.pack cs) t)
+                     return (QContext cs t)
 
 -- | Parse a query surrounded by parentheses.
 parQuery :: Parser Query
@@ -184,15 +185,16 @@ phraseChar :: Parser Char
 phraseChar = noneOf "\""
 
 -- | Parse a list of contexts.
-contexts :: Parser [String]
+contexts :: Parser [(Text, CWeight)]
 contexts = context `sepBy1` char ','
 
 -- | Parse a context.
-context :: Parser String
+context :: Parser (Text, CWeight)
 context = do spaces
              c <- many1 alphaNum
              spaces
-             return c
+             -- | XXX Todo parse the weight here
+             return (T.pack c,1)
 
 -- | Parse at least on white space character.
 spaces1 :: Parser ()

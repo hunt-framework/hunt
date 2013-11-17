@@ -37,7 +37,7 @@ import           Control.Monad
 import           Data.Aeson
 import           Data.Binary
 import           Data.Text                  (Text)
-import qualified Data.Text                  as T
+--import qualified Data.Text                  as T
 import           Data.Text.Binary           ()
 
 import           Holumbus.Common.BasicTypes as BTy
@@ -49,7 +49,7 @@ data Query = QText      TextSearchOp Text     -- ^ Word search.
            -- TODO: phrase with a single constructor, or is there a better abstraction?
            | Phrase     Text                  -- ^ Single case-insensitive phrase.
            | CasePhrase Text                  -- ^ Single case-sensitive phrase.
-           | Specifier  [Context] Query       -- ^ Restrict query to a list of contexts.
+           | QContext   [(Context, CWeight)] Query       -- ^ Restrict query to a list of contexts.
            | Negation   Query                 -- ^ Negate the query.
            | QBinary    BinOp [Query]         -- ^ Combine two queries through a binary operation.
            deriving (Eq, Show)
@@ -77,7 +77,7 @@ instance ToJSON Query where
     QText op w        -> object . ty "wd" $ [ "op"  .= op, "str" .= w ]
     Phrase s          -> object . ty "pi" $ [ "str" .= s ]
     CasePhrase s      -> object . ty "pc" $ [ "str" .= s ]
-    Specifier c q     -> object . ty "cx" $ [ "str" .= c , "qry" .= q]
+    QContext c q      -> object . ty "context" $ [ "contexts" .= c , "query" .= q ]
     Negation q        -> object . ty "nt" $ [ "str"  .= q ]
     QBinary op qs     -> object . ty' op  $ [ "qrys" .= qs ]
     where
@@ -116,10 +116,10 @@ instance FromJSON Query where
       "wd"  -> o .: "str" >>= return . (QText Case)
       "pi"  -> o .: "str" >>= return . Phrase
       "pc"  -> o .: "str" >>= return . CasePhrase
-      "cx"  -> do
-        c <- o .: "str"
-        q <- o .: "qry"
-        return $ Specifier c q
+      "context"  -> do
+        c <- o .: "contexts"
+        q <- o .: "query"
+        return $ QContext c q
       "and" -> bin And
       "or"  -> bin Or
       "but" -> bin But
@@ -151,7 +151,7 @@ instance Binary Query where
   put (QText op s)       = put (0 :: Word8) >> put op >> put s
   put (Phrase s)         = put (1 :: Word8) >> put s
   put (CasePhrase s)     = put (3 :: Word8) >> put s
-  put (Specifier c q)    = put (5 :: Word8) >> put c >> put q
+  put (QContext c q)     = put (5 :: Word8) >> put c >> put q
   put (Negation q)       = put (6 :: Word8) >> put q
   put (QBinary o qs)     = put (7 :: Word8) >> put o >> put qs
 
@@ -160,7 +160,7 @@ instance Binary Query where
              0 -> liftM2 QText      get get
              1 -> liftM  Phrase     get
              3 -> liftM  CasePhrase get
-             5 -> liftM2 Specifier  get get
+             5 -> liftM2 QContext   get get
              6 -> liftM  Negation   get
              7 -> liftM2 QBinary    get get
              _ -> fail "Error while decoding Query"
