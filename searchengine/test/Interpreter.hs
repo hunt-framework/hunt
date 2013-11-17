@@ -1,6 +1,7 @@
 module Main where
 
-import           Control.Monad.Trans                  (liftIO)
+import           Control.Monad.Error
+--import           Control.Monad.Trans                  (liftIO)
 
 import qualified Data.Map                             as M
 --import           Data.Monoid
@@ -14,7 +15,7 @@ import           Test.HUnit
 
 import           Holumbus.Common
 import           Holumbus.Common.ApiDocument          as ApiDoc
-import           Holumbus.Common.BasicTypes
+--import           Holumbus.Common.BasicTypes
 import           Holumbus.Interpreter.Command
 import           Holumbus.Interpreter.Interpreter
 import           Holumbus.Query.Language.Grammar
@@ -30,8 +31,6 @@ main :: IO ()
 main = defaultMain
        [ testCase "Interpreter: insert"
           test_insertEmpty
-       , testCase "Interpreter: insertAnalyzed"
-          test_insertAnalyzed
        , testCase "Interpreter: insertAndSearch"
           test_insertAndSearch
        , testCase "Interpreter: alot"
@@ -56,7 +55,7 @@ testRunCmd cmd = do
 insertCmd, searchCmd, batchCmd :: Command
 insertCmd = Insert brainDoc Default
 searchCmd = Search (QText NoCase "d") 1 100
-batchCmd  = Sequence [insertCmd, searchCmd]
+batchCmd  = Sequence [insertDefaultContext, insertCmd, searchCmd]
 
 -- ----------------------------------------------------------------------------
 
@@ -87,12 +86,11 @@ brainDoc = emptyApiDoc
   descr = M.fromList [("name", "Brain"), ("mission", "take over the world")]
 
 
--- insert example apidoc
-test_insertAnalyzed :: Assertion
-test_insertAnalyzed = do
-  res <- testCmd $
-      Insert brainDoc Default
-  True @=? isRight res
+defaultContextInfo :: (Context, (CType, CRegex, [CNormalizer], CWeight))
+defaultContextInfo = ("default", (CText, "[^ \t\n\r]*", [], 1))
+
+insertDefaultContext :: Command
+insertDefaultContext = uncurry InsertContext defaultContextInfo
 
 
 -- evaluate CM and check the result
@@ -115,7 +113,8 @@ testCM = testCM' True
 test_insertAndSearch :: Assertion
 test_insertAndSearch = do
   res <- testCmd . Sequence $
-      [ Insert brainDoc Default
+      [ insertDefaultContext
+      , Insert brainDoc Default
       , Search (QText NoCase "Brain") 0 1000]
   ["test://0"] @=? (searchResultUris . fromRight) res
 
@@ -125,6 +124,8 @@ test_insertAndSearch = do
 test_alot :: Assertion
 test_alot = testCM $ do
   --throwNYI "user error"
+  insCR <- execCmd insertDefaultContext
+  liftIO $ ResOK @=? insCR
   insR <- execCmd $ Insert brainDoc Default
   liftIO $ ResOK @=? insR
   seaR <- execCmd $ Search (QText NoCase "Brain") os pp
@@ -148,6 +149,13 @@ a @@= b = a @@@ (@?=b)
 -- fancy - equivalent to 'test_alot' plus additional tests
 test_fancy :: Assertion
 test_fancy = testCM $ do
+  -- insert into non-existent context results in an error
+  (Insert brainDoc Default
+    @@@ const (assertFailure "insert into non-existent context succeeded"))
+        `catchError` const (return ())
+  -- insert context succeeds
+  insertDefaultContext
+    @@= ResOK
   -- insert yields the correct result value
   Insert brainDoc Default
     @@= ResOK
