@@ -247,14 +247,23 @@ execDeleteContext cx (ix, dt, s) = return ((CIx.deleteContext cx ix, dt, s), Res
 -- all contexts mentioned in the apidoc need to exist
 execInsert :: TextIndexerCon ix dt
            => ApiDocument -> InsertOption -> IpIndexer ix dt -> CM ix dt (IpIndexer ix dt, CmdResult)
-execInsert doc op ixx@(_, _, schema) = do
+execInsert doc op ixx@(_ix, dt, schema) = do
     let (docs, ws) = toDocAndWords schema doc
     let contexts   = M.keys ws
     checkContextsExistence contexts ixx
-    ixx' <- lift $ Ixx.insert docs ws ixx
     case op of
-        Default -> return (ixx', ResOK)
-        Update  -> throwNYI $ show Update
+      Default -> do
+        ixx' <- lift $ Ixx.insert docs ws ixx
+        return (ixx', ResOK)
+      Update  -> do
+        -- XXX: move to Ixx
+        docIdM <- lift $ Dt.lookupByURI dt (uri docs)
+        case docIdM of
+          Just docId -> do
+            ixx' <- lift $ Ixx.modifyWithDescription (desc docs) ws docId ixx
+            return (ixx', ResOK)
+          Nothing    -> throwResError 409 $ "document for update not found: "
+                                            `T.append` uri docs
 
 
 checkContextsExistence :: TextIndexerCon ix dt
