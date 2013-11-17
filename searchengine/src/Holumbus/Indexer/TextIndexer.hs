@@ -84,6 +84,10 @@ delete (ix,dt,s) dIds = do
     newDt <- Dt.difference dIds dt
     return (newIx, newDt, s)
 
+keys :: (Monad m, TextIndexerCon i dt)
+          => ContextTextIndexer i dt -> m [Context]
+keys (ix,_dt,_s) = return $ CIx.keys ix
+
 -- ----------------------------------------------------------------------------
 
 -- | Modify the description of a document and add words

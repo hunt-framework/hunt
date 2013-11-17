@@ -244,14 +244,29 @@ execDeleteContext :: TextIndexerCon ix dt
 execDeleteContext cx (ix, dt, s) = return ((CIx.deleteContext cx ix, dt, s), ResOK)
 
 
+-- all contexts mentioned in the apidoc need to exist
 execInsert :: TextIndexerCon ix dt
            => ApiDocument -> InsertOption -> IpIndexer ix dt -> CM ix dt (IpIndexer ix dt, CmdResult)
 execInsert doc op ixx@(_, _, schema) = do
     let (docs, ws) = toDocAndWords schema doc
+    let contexts   = M.keys ws
+    checkContextsExistence contexts ixx
     ixx' <- lift $ Ixx.insert docs ws ixx
     case op of
         Default -> return (ixx', ResOK)
         Update  -> throwNYI $ show Update
+
+
+checkContextsExistence :: TextIndexerCon ix dt
+                       => [Context] -> IpIndexer ix dt -> CM ix dt ()
+checkContextsExistence cs ixx = do
+  ixxContexts        <- S.fromList <$> Ixx.keys ixx
+  let docContexts     = S.fromList cs
+  let invalidContexts = S.difference docContexts ixxContexts
+  if S.null invalidContexts
+    then return ()
+    else throwResError 409 $ "mentioned context(s) are not present: "
+                             `T.append` (T.pack . show . S.toList) invalidContexts
 
 
 execSearch' :: TextIndexerCon ix dt
