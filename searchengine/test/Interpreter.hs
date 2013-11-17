@@ -54,7 +54,7 @@ testRunCmd cmd = do
 
 
 insertCmd, searchCmd, batchCmd :: Command
-insertCmd = Insert brainDoc New
+insertCmd = Insert brainDoc Default
 searchCmd = Search (QText NoCase "d") 1 100
 batchCmd  = Sequence [insertCmd, searchCmd]
 
@@ -91,7 +91,7 @@ brainDoc = emptyApiDoc
 test_insertAnalyzed :: Assertion
 test_insertAnalyzed = do
   res <- testCmd $
-      Insert brainDoc New
+      Insert brainDoc Default
   True @=? isRight res
 
 
@@ -115,7 +115,7 @@ testCM = testCM' True
 test_insertAndSearch :: Assertion
 test_insertAndSearch = do
   res <- testCmd . Sequence $
-      [ Insert brainDoc New
+      [ Insert brainDoc Default
       , Search (QText NoCase "Brain") 0 1000]
   ["test://0"] @=? (searchResultUris . fromRight) res
 
@@ -125,7 +125,7 @@ test_insertAndSearch = do
 test_alot :: Assertion
 test_alot = testCM $ do
   --throwNYI "user error"
-  insR <- execCmd $ Insert brainDoc New
+  insR <- execCmd $ Insert brainDoc Default
   liftIO $ ResOK @=? insR
   seaR <- execCmd $ Search (QText NoCase "Brain") os pp
   liftIO $ ["test://0"] @=? searchResultUris seaR
@@ -149,7 +149,7 @@ a @@= b = a @@@ (@?=b)
 test_fancy :: Assertion
 test_fancy = testCM $ do
   -- insert yields the correct result value
-  Insert brainDoc New
+  Insert brainDoc Default
     @@= ResOK
   -- searching "brain" leads to the doc
   Search (QText NoCase "Brain") os pp

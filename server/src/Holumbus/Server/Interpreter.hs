@@ -120,14 +120,12 @@ execSequence []       = execCmd NOOP
 execSequence [c]      = execCmd c
 execSequence (c : cs) = execCmd c >> execSequence cs
 
-execInsert :: ApiDocument -> InsertOption -> Indexer e it iv i d de -> CM e it iv i d de (Indexer e it iv i d de, CmdResult)
+execInsert :: ApiDocument -> Indexer e it iv i d de -> CM e it iv i d de (Indexer e it iv i d de, CmdResult)
 execInsert d op ix = do
     split <- asks (ceoSplit . cevOptions)
     let (docs, ws) = split d
     let ix' = Ix.insert ix docs ws
-    case op of
-        New     -> return (ix', ResOK) -- TODO: not the real deal yet
-        x       -> throwNYI . show $ x
+    return (ix', ResOK)
 
 execDelete :: URI -> Indexer e it iv i d de -> CM e it iv i d de (Indexer e it iv i d de, CmdResult)
 execDelete d ix = do

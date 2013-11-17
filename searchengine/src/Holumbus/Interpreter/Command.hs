@@ -17,7 +17,7 @@ import           Holumbus.Query.Language.Grammar (Query (..))
 -- ----------------------------------------------------------------------------
 
 data InsertOption
-  = New | Replace | Modify
+  = Default | Update
     deriving (Show)
 
 type UnparsedQuery = Text
@@ -67,17 +67,15 @@ data CmdError
 instance FromJSON InsertOption where
   parseJSON (String s)
     = case s of
-      "new"     -> return New
-      "replace" -> return Replace
-      "modify"  -> return Modify
+      "default" -> return Default
+      "update"  -> return Update
       _         -> mzero
   parseJSON _ = mzero
 
 instance ToJSON InsertOption where
   toJSON o = case o of
-    New     -> "new"
-    Replace -> "replace"
-    Modify  -> "modify"
+    Default -> "default"
+    Update  -> "update"
 
 instance ToJSON Command where
   toJSON o = case o of

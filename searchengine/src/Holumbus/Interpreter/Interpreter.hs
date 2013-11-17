@@ -243,14 +243,15 @@ execDeleteContext :: TextIndexerCon ix dt
                   -> CM ix dt (IpIndexer ix dt, CmdResult)
 execDeleteContext cx (ix, dt, s) = return ((CIx.deleteContext cx ix, dt, s), ResOK)
 
+
 execInsert :: TextIndexerCon ix dt
            => ApiDocument -> InsertOption -> IpIndexer ix dt -> CM ix dt (IpIndexer ix dt, CmdResult)
 execInsert doc op ixx@(_, _, schema) = do
     let (docs, ws) = toDocAndWords schema doc
     ixx' <- lift $ Ixx.insert docs ws ixx
     case op of
-        New     -> return (ixx', ResOK) -- TODO: not the real deal yet
-        x       -> throwNYI $ show x
+        Default -> return (ixx', ResOK)
+        Update  -> throwNYI $ show Update
 
 
 execSearch' :: TextIndexerCon ix dt
