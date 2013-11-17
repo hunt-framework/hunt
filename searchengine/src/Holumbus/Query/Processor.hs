@@ -197,7 +197,7 @@ process s (Phrase w)         = processPhrase s w
 process s (CasePhrase w)     = processCasePhrase s w
 process s (Negation q)       = processNegation s (process s q)
 process s (Specifier c q)    = process (setContexts c s) q
-process s (BinQuery o q1 q2) = processBin o (process s q1) (process s q2)
+process s (QBinary o qs)     = processBin o (map (process s) qs)
 
 {--- | Monadic version of 'process'.
 processM :: (Monad m, TextIndex i v) => ProcessState i v -> Query -> m Intermediate
@@ -208,7 +208,7 @@ processM s (CasePhrase w)     = processCasePhraseM s w
 processM s (FuzzyWord w)      = processFuzzyWordM s w
 processM s (Negation q)       = processM s q >>= processNegationM s
 processM s (Specifier c q)    = setContextsM c s >>= \ns -> processM ns q
-processM s (BinQuery o q1 q2) = do
+processM s (QBinary o q1 q2)  = do
   ir1 <- processM s q1
   ir2 <- processM s q2
   return $ processBin o ir1 ir2
@@ -364,10 +364,10 @@ processNegationM s r1 = allDocumentsM s >>= \r2 -> return $ I.difference r2 r1
 -}
 
 -- | Process a binary operator by caculating the union or the intersection of the two subqueries.
-processBin :: BinOp -> Intermediate -> Intermediate -> Intermediate
-processBin And r1 r2 = I.intersection r1 r2
-processBin Or  r1 r2 = I.union        r1 r2
-processBin But r1 r2 = I.difference   r1 r2
+processBin :: BinOp -> [Intermediate] -> Intermediate
+processBin And rs = I.intersections1 rs
+processBin Or  rs = I.unions         rs
+processBin But rs = I.differences1   rs
 
 
 -- | Limit a 'RawResult' to a fixed amount of the best words.

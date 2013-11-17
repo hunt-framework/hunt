@@ -63,6 +63,7 @@ parseQuery = result . parse query ""
 query :: Parser Query
 query = spaces >> andQuery
 
+-- TODO: this might need some work for lists
 -- | Parse an and query.
 andQuery :: Parser Query
 andQuery = do t <- orQuery
@@ -70,14 +71,14 @@ andQuery = do t <- orQuery
   where
   andOp' r = do andOp
                 q <- andQuery
-                return (BinQuery And r q)
+                return (QBinary And [r, q])
 
 -- | Parse an or query.
 orQuery :: Parser Query
 orQuery = do t <- notQuery
              do orOp
                 q <- orQuery
-                return (BinQuery Or t q)
+                return (QBinary Or [t, q])
                 <|> return t
 
 -- | Parse a negation.

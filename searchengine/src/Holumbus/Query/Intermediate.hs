@@ -37,6 +37,8 @@ module Holumbus.Query.Intermediate
   , difference
   , intersection
   , unions
+  , intersections1
+  , differences1
 
   -- * Conversion
   , fromList
@@ -93,6 +95,15 @@ unions                          = L.foldl' union empty
 -- | Intersect two sets of intermediate results.
 intersection                    :: Intermediate -> Intermediate -> Intermediate
 intersection                    = DM.intersectionWith combineContexts
+
+-- TODO: make this safe and efficient
+-- foldl is inefficient because the neutral element of the intersection is >everything<
+intersections1                  :: [Intermediate] -> Intermediate
+intersections1                  = L.foldl1' intersection
+
+-- TODO: same as for 'intersections1' but this is not commutative
+differences1                    :: [Intermediate] -> Intermediate
+differences1                    = L.foldl1' difference
 
 -- | Union two sets of intermediate results.
 union                           :: Intermediate -> Intermediate -> Intermediate

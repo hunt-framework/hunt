@@ -27,8 +27,8 @@ module Holumbus.Query.Language.Grammar
 
   -- * Optimizing
   , optimize
-  , checkWith
-  , extractTerms
+  --, checkWith
+  --, extractTerms
   )
 where
 
@@ -51,7 +51,7 @@ data Query = QText      TextSearchOp Text     -- ^ Word search.
            | CasePhrase Text                  -- ^ Single case-sensitive phrase.
            | Specifier  [Context] Query       -- ^ Restrict query to a list of contexts.
            | Negation   Query                 -- ^ Negate the query.
-           | BinQuery   BinOp Query Query     -- ^ Combine two queries through a binary operation.
+           | QBinary    BinOp [Query]         -- ^ Combine two queries through a binary operation.
            deriving (Eq, Show)
 
 -- | new The query language.
@@ -77,13 +77,9 @@ instance ToJSON Query where
     QText op w        -> object . ty "wd" $ [ "op"  .= op, "str" .= w ]
     Phrase s          -> object . ty "pi" $ [ "str" .= s ]
     CasePhrase s      -> object . ty "pc" $ [ "str" .= s ]
-    Specifier c q     -> object . ty "cx" $
-      [ "str" .= c
-      , "qry" .= q]
-    Negation q        -> object . ty "nt" $ [ "str" .= q ]
-    BinQuery op q1 q2 -> object . ty' op  $
-      [ "qry1" .= q1
-      , "qry2" .= q2 ]
+    Specifier c q     -> object . ty "cx" $ [ "str" .= c , "qry" .= q]
+    Negation q        -> object . ty "nt" $ [ "str"  .= q ]
+    QBinary op qs     -> object . ty' op  $ [ "qrys" .= qs ]
     where
     ty' t = (:) ("type" .= t)
     ty  t = ty' (t :: Text)
@@ -105,7 +101,7 @@ instance ToJSON Query where
       [ "upper" .= u ]
     QNegation q        -> object . ty "not" $
       [ "query" .= q ]
-    QBinQuery op q1 q2 -> object . ty' op  $
+    QQBiary op q1 q2 -> object . ty' op  $
       [ "query1" .= q1
       , "query2" .= q2 ]
     where
@@ -130,9 +126,8 @@ instance FromJSON Query where
       _         -> mzero
     where
     bin op = do
-      q1 <- o .: "qry1"
-      q2 <- o .: "qry2"
-      return $ BinQuery op q1 q2
+      qs <- o .: "qrys"
+      return $ QBinary op qs
   parseJSON _ = mzero
 
 instance ToJSON BinOp where
@@ -158,7 +153,7 @@ instance Binary Query where
   put (CasePhrase s)     = put (3 :: Word8) >> put s
   put (Specifier c q)    = put (5 :: Word8) >> put c >> put q
   put (Negation q)       = put (6 :: Word8) >> put q
-  put (BinQuery o q1 q2) = put (7 :: Word8) >> put o >> put q1 >> put q2
+  put (QBinary o qs)     = put (7 :: Word8) >> put o >> put qs
 
   get = do tag <- getWord8
            case tag of
@@ -167,7 +162,7 @@ instance Binary Query where
              3 -> liftM  CasePhrase get
              5 -> liftM2 Specifier  get get
              6 -> liftM  Negation   get
-             7 -> liftM3 BinQuery   get get get
+             7 -> liftM2 QBinary    get get
              _ -> fail "Error while decoding Query"
 
 instance Binary BinOp where
@@ -184,36 +179,41 @@ instance Binary BinOp where
 
 -- ----------------------------------------------------------------------------
 
--- | Transforms all @(BinQuery And q1 q2)@ where one of @q1@ or @q2@ is a @Negation@ into
--- @BinQuery Filter q1 q2@ or @BinQuery Filter q2 q1@ respectively.
+-- FIXME: refactor 'optimize' for lists
+optimize :: Query -> Query
+optimize = id
+
+{-
+-- | Transforms all @(QBinary And q1 q2)@ where one of @q1@ or @q2@ is a @Negation@ into
+-- @QBinary Filter q1 q2@ or @QBinary Filter q2 q1@ respectively.
 optimize :: Query -> Query
 
-optimize q@(BinQuery And (QText NoCase q1) (QText NoCase q2))
+optimize q@(QBinary And (QText NoCase q1) (QText NoCase q2))
   | T.toLower q1 `T.isPrefixOf` T.toLower q2 = QText NoCase q2
   | T.toLower q2 `T.isPrefixOf` T.toLower q1 = QText NoCase q1
   | otherwise = q
 
-optimize q@(BinQuery And (QText Case q1) (QText Case q2))
+optimize q@(QBinary And (QText Case q1) (QText Case q2))
   | q1 `T.isPrefixOf` q2 = QText Case q2
   | q2 `T.isPrefixOf` q1 = QText Case q1
   | otherwise = q
 
-optimize q@(BinQuery Or (QText NoCase q1) (QText NoCase q2))
+optimize q@(QBinary Or (QText NoCase q1) (QText NoCase q2))
   | T.toLower q1 `T.isPrefixOf` T.toLower q2 = QText NoCase q1
   | T.toLower q2 `T.isPrefixOf` T.toLower q1 = QText NoCase q2
   | otherwise = q
 
-optimize q@(BinQuery Or (QText Case q1) (QText Case q2))
+optimize q@(QBinary Or (QText Case q1) (QText Case q2))
   | q1 `T.isPrefixOf` q2 = QText Case q1
   | q2 `T.isPrefixOf` q1 = QText Case q2
   | otherwise = q
 
-optimize (BinQuery And q1 (Negation q2))  = BinQuery But (optimize q1) (optimize q2)
-optimize (BinQuery And (Negation q1) q2)  = BinQuery But (optimize q2) (optimize q1)
+optimize (QBinary And q1 (Negation q2))  = QBinary But (optimize q1) (optimize q2)
+optimize (QBinary And (Negation q1) q2)  = QBinary But (optimize q2) (optimize q1)
 
-optimize (BinQuery And q1 q2)             = BinQuery And (optimize q1) (optimize q2)
-optimize (BinQuery Or q1 q2)              = BinQuery Or (optimize q1) (optimize q2)
-optimize (BinQuery But q1 q2)             = BinQuery But (optimize q1) (optimize q2)
+optimize (QBinary And q1 q2)             = QBinary And (optimize q1) (optimize q2)
+optimize (QBinary Or q1 q2)              = QBinary Or (optimize q1) (optimize q2)
+optimize (QBinary But q1 q2)             = QBinary But (optimize q1) (optimize q2)
 optimize (Negation q)                     = Negation (optimize q)
 optimize (Specifier cs q)                 = Specifier cs (optimize q)
 
@@ -227,7 +227,7 @@ checkWith f (QText Case s)        = f s
 checkWith f (CasePhrase s)        = f s
 checkWith f (QText Fuzzy s)       = f s
 checkWith f (Negation q)          = checkWith f q
-checkWith f (BinQuery _ q1 q2)    = checkWith f q1 && checkWith f q2
+checkWith f (QBinary _ q1 q2)     = checkWith f q1 && checkWith f q2
 checkWith f (Specifier _ q)       = checkWith f q
 
 -- | Returns a list of all terms in the query.
@@ -237,5 +237,6 @@ extractTerms (QText Case s)       = [s]
 extractTerms (QText Fuzzy s)      = [s]
 extractTerms (Specifier _ q)      = extractTerms q
 extractTerms (Negation q)         = extractTerms q
-extractTerms (BinQuery _ q1 q2)   = extractTerms q1 ++ extractTerms q2
+extractTerms (QBinary _ q1 q2)    = extractTerms q1 ++ extractTerms q2
 extractTerms _                    = []
+-}
