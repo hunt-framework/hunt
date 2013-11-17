@@ -83,8 +83,16 @@ brainDoc = emptyApiDoc
   md = IndexMetadata
     { imAnalyzer = DefaultAnalyzer
     }
-  descr = M.fromList [("name", "Brain"), ("mission", "take over the world")]
+  descr = M.fromList [("name", "Brain"), ("mission", "take over the world"), ("legs", "4")]
 
+-- example apidoc
+brainDocUpdate :: ApiDocument
+brainDocUpdate = brainDoc { apiDocDescrMap = descr }
+  where
+  descr = M.fromList [("name", "Pinky"), ("mission", "ask stupid questions")]
+
+brainDocMerged :: ApiDocument
+brainDocMerged = brainDocUpdate { apiDocDescrMap = (apiDocDescrMap brainDocUpdate) `M.union` (apiDocDescrMap brainDoc) }
 
 defaultContextInfo :: (Context, (CType, CRegex, [CNormalizer], CWeight))
 defaultContextInfo = ("default", (CText, "[^ \t\n\r]*", [], 1))
@@ -156,10 +164,12 @@ test_fancy = testCM $ do
   -- insert context succeeds
   insertDefaultContext
     @@= ResOK
+
   -- insert yields the correct result value
   Insert brainDoc Default
     @@= ResOK
-  -- searching "brain" leads to the doc
+
+  -- searching "Brain" leads to the doc
   Search (QText NoCase "Brain") os pp
     @@@ ((@?= ["test://0"]) . searchResultUris)
   -- case-sensitive search too
@@ -168,6 +178,21 @@ test_fancy = testCM $ do
   -- case-sensitive search yields no result
   Search (QText Case "brain") os pp
     @@@ ((@?= []) . searchResultUris)
+
+  -- insert with default does not update the description
+  Insert brainDocUpdate Default
+    @@= ResOK
+  -- search yields the old description
+  Search (QText Case "Brain") os pp
+    @@@ ((@?= (apiDocDescrMap brainDoc)) . desc . head . lrResult . crRes)
+
+  -- update the description
+  Insert brainDocUpdate Update
+    @@= ResOK
+  -- search yields >merged< description
+  Search (QText Case "Brain") os pp
+    @@@ ((@?= (apiDocDescrMap brainDocMerged)) . desc . head . lrResult . crRes)
+
   -- delete return the correct result value
   BatchDelete (S.singleton "test://0")
     @@= ResOK
