@@ -17,7 +17,7 @@ type ContextSchema = Map Context ContextType
 type ContextType   = (CType, CRegex, [CNormalizer], CWeight)
 
 type CRegex = Text
-type CWeight = Int
+type CWeight = Float
 
 data CType  = CText | CInt
   deriving (Show, Eq)

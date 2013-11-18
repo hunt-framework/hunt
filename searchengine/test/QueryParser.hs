@@ -57,7 +57,7 @@ fw = QWord QFuzzy
 rg :: Text -> Text -> Query
 rg = QRange
 
-bst :: Int -> Query -> Query
+bst :: Float -> Query -> Query
 bst = QBoost
 
 andTests :: Test
@@ -192,6 +192,10 @@ boostTests = TestList
   [ TestCase $ assertEqual "Boosting a word"
     (Right (bst 9 $ w "word"))
     ( P.parseQuery "word^9")
+
+  , TestCase $ assertEqual "Boosting a word with a proper float"
+    (Right (bst 9.5 $ w "word"))
+    ( P.parseQuery "word^9.5")
 
   , TestCase $ assertEqual "Boosting a phrase"
     (Right (bst 9 $ p "word"))

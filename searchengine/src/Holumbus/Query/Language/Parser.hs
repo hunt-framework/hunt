@@ -42,6 +42,8 @@ module Holumbus.Query.Language.Parser
   )
 where
 
+import           Control.Applicative             hiding ((<|>))
+
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
 
@@ -68,8 +70,8 @@ boostQuery = do t <- andQuery
                 try (boostOp' t) <|> return t
   where
   boostOp' r = do char '^'
-                  b <- many1 digit
-                  return (QBoost (read b) r)
+                  b <- simpleFloat
+                  return (QBoost b r)
 
 -- | Parse an and query.
 andQuery :: Parser Query
@@ -218,5 +220,22 @@ context = do spaces
 -- | Parse at least on white space character.
 spaces1 :: Parser ()
 spaces1 = skipMany1 space
+
+number :: Parser String
+number = many1 digit
+
+simpleFloat :: Parser Float
+simpleFloat = fmap read $ number <++> decimal
+  where decimal  = option "" $ char '.' <:> number
+
+-- ------------------------------------------------------------
+
+(<++>) :: Applicative f
+       => f [a] -> f [a] -> f [a]
+(<++>) a b = (++) <$> a <*> b
+
+(<:>) :: Applicative f
+      => f a -> f [a] -> f [a]
+(<:>) a b = (:) <$> a <*> b
 
 -- ------------------------------------------------------------
