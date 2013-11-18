@@ -94,7 +94,7 @@ instance Binary ProcessConfig where
 data ProcessState i v
     = ProcessState
       { config   :: ! ProcessConfig   -- ^ The configuration for the query processor.
-      , contexts :: ! [(Context, CWeight)]       -- ^ The current list of contexts.
+      , contexts :: ! [Context]       -- ^ The current list of contexts.
       -- XXX: strictness annotation
       , index    ::   ContextIndex i v-- ^ The index to search.
       , total    :: ! Int             -- ^ The number of documents in the index.
@@ -118,11 +118,11 @@ getFuzzyConfigM :: Monad m => ProcessState i v -> m FuzzyConfig
 getFuzzyConfigM s = return $ fuzzyConfig $ config s
 
 -- | Set the current context in the state.
-setContexts :: [(Context, CWeight)] -> ProcessState i v -> ProcessState i v
+setContexts :: [Context] -> ProcessState i v -> ProcessState i v
 setContexts cs (ProcessState cfg _ i t) = ProcessState cfg cs i t
 
 -- | Monadic version of 'setContexts'.
-setContextsM :: Monad m => [(Context, CWeight)] -> ProcessState i v -> m (ProcessState i v)
+setContextsM :: Monad m => [Context] -> ProcessState i v -> m (ProcessState i v)
 setContextsM cs (ProcessState cfg _ i t) = return $ ProcessState cfg cs i t
 
 -- | Initialize the state of the processor.
@@ -132,7 +132,7 @@ initState cfg i = ProcessState cfg wcs i
   -- TODO default context weights should be used here 
   -- should be stored in interpreter schema and then
   -- somehow used here.
-  wcs = map (\c -> (c,1)) $ CIx.keys i
+  wcs = CIx.keys i
 
 -- | Monadic version of 'initState'.
 initStateM :: (Monad m, ContextTextIndex i v) => ProcessConfig -> ContextIndex i v -> Int -> m (ProcessState i v)
@@ -141,15 +141,12 @@ initStateM cfg i t = contextsM i >>= \cs -> return $ ProcessState cfg cs i t
   -- TODO default context weights should be used here 
   -- should be stored in interpreter schema and then
   -- somehow used here.
-  contextsM = return . map (\c -> (c,1)) . CIx.keys
+  contextsM = return . CIx.keys
 
 -- TODO: previously rdeepseq
 -- | Try to evaluate the query for all contexts in parallel.
-forAllContexts :: (Context -> Intermediate) -> [(Context,CWeight)] -> Intermediate
-forAllContexts f wcs = L.foldl' I.union I.empty $ parMap rseq f cs
-  where
-  -- TODO: not sure where and how to use weights: right now: ignoring them
-  cs = map fst wcs
+forAllContexts :: (Context -> Intermediate) -> [Context] -> Intermediate
+forAllContexts f wcs = L.foldl' I.union I.empty $ parMap rseq f wcs
 
 -- | Monadic version of 'forAllContexts'.
 forAllContextsM :: Monad m => (Context -> m Intermediate) -> [Context] -> m Intermediate

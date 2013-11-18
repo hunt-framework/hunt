@@ -47,8 +47,6 @@ import qualified Data.Text                       as T
 
 import           Text.ParserCombinators.Parsec
 
-import           Holumbus.Common.BasicTypes
-import           Holumbus.Common.Schema          (CWeight)
 import           Holumbus.Query.Language.Grammar
 
 -- ----------------------------------------------------------------------------
@@ -185,16 +183,15 @@ phraseChar :: Parser Char
 phraseChar = noneOf "\""
 
 -- | Parse a list of contexts.
-contexts :: Parser [(Text, CWeight)]
+contexts :: Parser [Text]
 contexts = context `sepBy1` char ','
 
 -- | Parse a context.
-context :: Parser (Text, CWeight)
+context :: Parser Text
 context = do spaces
              c <- many1 alphaNum
              spaces
-             -- | XXX Todo parse the weight here
-             return (T.pack c,1)
+             return (T.pack c)
 
 -- | Parse at least on white space character.
 spaces1 :: Parser ()
