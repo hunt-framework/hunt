@@ -66,18 +66,25 @@ insert w v (ContextIx m) = ContextIx $ M.map (Ix.insert w v) m
 empty :: ContextIndex i v
 empty = ContextIx $ M.empty
 
-lookup :: ContextIxCon i v
-          => Ix.ISearchOp i v
-          -> (Maybe Context, Maybe (Ix.IKey i v))
-          -> ContextIndex i v
-          -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]
-lookup t k (ContextIx m)
-    = case k of
-        (Just c,  Just w)  -> case M.lookup c m of
-            (Just cm) -> [(c, Ix.search t w cm)]
-            _         -> []
-        (Nothing, Just w)  -> M.toList $ M.map (Ix.search t w) m
-        _                  -> []
+search :: ContextIxCon i v
+       => Ix.ISearchOp i v 
+       -> Ix.IKey i v
+       -> ContextIndex i v
+       -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]
+search op k (ContextIx m) = M.toList $ M.map (Ix.search op k) m
+
+
+searchWithCx :: ContextIxCon i v
+             => Ix.ISearchOp i v 
+             -> Context
+             -> Ix.IKey i v
+             -> ContextIndex i v
+             -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]
+searchWithCx op c k (ContextIx m) 
+  = case M.lookup c m of
+      (Just cm) -> [(c, Ix.search op k cm)]
+      _         -> []
+
 -- | keys of contextindex a.k.a contexts
 -- XXX: bedder name? contexts?
 keys :: ContextIndex i v -> [Context]

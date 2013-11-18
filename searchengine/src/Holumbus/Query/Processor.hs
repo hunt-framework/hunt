@@ -138,9 +138,6 @@ initState cfg i = ProcessState cfg wcs i
 initStateM :: (Monad m, ContextTextIndex i v) => ProcessConfig -> ContextIndex i v -> Int -> m (ProcessState i v)
 initStateM cfg i t = contextsM i >>= \cs -> return $ ProcessState cfg cs i t
   where 
-  -- TODO default context weights should be used here 
-  -- should be stored in interpreter schema and then
-  -- somehow used here.
   contextsM = return . CIx.keys
 
 -- TODO: previously rdeepseq
@@ -161,8 +158,7 @@ allDocuments s = forAllContexts (\c -> I.fromList "" c $ ixSize (index s) c) (co
   --          and the type param will be ignored
   --        - ixSize i c = concat . map snd . filter ((== c) . fst) . Ix.toList $ i
   --          this should be slower
-  ixSize i c = toRawResult $ CIx.lookup dummy (Just c, Nothing) i
-  dummy = PrefixCase -- unused with this type of lookup
+  ixSize i c = toRawResult $ CIx.searchWithCx PrefixNoCase c "" i 
 
 {-
 allDocumentsM :: (Monad m, TextIndex i v) => ProcessState i v -> m Intermediate
@@ -232,7 +228,7 @@ processM s (QBinary o q1 q2)  = do
 processWord :: ContextTextIndex i v => ProcessState i v -> Text -> Intermediate
 processWord s q = forAllContexts wordNoCase (contexts s)
   where
-  wordNoCase c = I.fromList q c $ limitWords s . toRawResult $ CIx.lookup PrefixNoCase (Just c, Just q) (index s)
+  wordNoCase c = I.fromList q c $ limitWords s . toRawResult $ CIx.searchWithCx PrefixNoCase c q (index s)
 
 {-
 -- | Monadic version of 'processWord'.
@@ -248,7 +244,7 @@ processWordM s q = forAllContextsM wordNoCase (contexts s)
 processCaseWord :: ContextTextIndex i v => ProcessState i v -> Text -> Intermediate
 processCaseWord s q = forAllContexts wordCase (contexts s)
   where
-  wordCase c = I.fromList q c $ limitWords s . toRawResult $ CIx.lookup PrefixCase (Just c, Just q) (index s)
+  wordCase c = I.fromList q c $ limitWords s . toRawResult $ CIx.searchWithCx PrefixCase c q (index s)
 
 {-
 -- | Monadic version of 'processCaseWord'.
@@ -266,7 +262,7 @@ processPhrase s q = forAllContexts phraseNoCase (contexts s)
   where
   phraseNoCase c = processPhraseInternal meaningfulName c q
     where
-    meaningfulName t = toRawResult $ CIx.lookup NoCase (Just c, Just t) (index s)
+    meaningfulName t = toRawResult $ CIx.searchWithCx NoCase c t (index s)
 
 {-
 -- | Monadic version of 'processPhrase'.
@@ -282,7 +278,7 @@ processCasePhrase s q = forAllContexts phraseCase (contexts s)
   where
   phraseCase c = processPhraseInternal meaningfulName c q
     where
-    meaningfulName t = toRawResult $ CIx.lookup Case (Just c, Just t) (index s)
+    meaningfulName t = toRawResult $ CIx.searchWithCx Case c t (index s)
 
 {-
 -- | Monadic version of 'processCasePhrase'.
