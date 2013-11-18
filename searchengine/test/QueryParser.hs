@@ -57,6 +57,9 @@ fw = QWord QFuzzy
 rg :: Text -> Text -> Query
 rg = QRange 
 
+bst :: Int -> Query -> Query
+bst = QBoost
+
 andTests :: Test
 andTests = TestList
   [ TestCase (assertEqual "Simple two term 'and' query"
@@ -182,6 +185,26 @@ caseTests = TestList
   ,TestCase (assertEqual "Case sensitive word with whitespace"
   (Right (cw "test"))
   (P.parseQuery " ! test")) 
+  ]
+
+boostTests :: Test
+boostTests = TestList
+  [ TestCase $ assertEqual "Boosting a word"
+    (Right (bst 9 $ w "word"))
+    ( P.parseQuery "word^9")
+
+  , TestCase $ assertEqual "Boosting a phrase"
+    (Right (bst 9 $ p "word"))
+    ( P.parseQuery "\"word\"^9")
+
+  , TestCase $ assertEqual "Boosting a binary query with parantheses"
+    (Right (bst 9 $ a (w "w") (o (w "k") (w "p"))))
+    ( P.parseQuery "(w AND k OR p)^9")
+
+  , TestCase $ assertEqual "Boosting a context"
+    (Right (bst 9 $ s ["con"] (w "word")))
+    ( P.parseQuery "(con:word)^9")
+
   ]
 
 rangeTests :: Test
@@ -325,6 +348,7 @@ allUnitTests = testGroup "Query Parser Hunit tests" $ hUnitTestToTests $ TestLis
   , TestLabel "Phrase tests" phraseTests
   , TestLabel "Fuzzy tests" fuzzyTests
   , TestLabel "Range tests" rangeTests
+  , TestLabel "Boost tests" boostTests
   ]
 --
 main :: IO ()

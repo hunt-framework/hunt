@@ -60,9 +60,17 @@ parseQuery = result . parse query ""
 
 -- | A query may always be surrounded by whitespace
 query :: Parser Query
-query = spaces >> andQuery
+query = spaces >> boostQuery
 
 -- TODO: this might need some work for lists
+boostQuery :: Parser Query
+boostQuery = do t <- andQuery
+                try (boostOp' t) <|> return t
+  where
+  boostOp' r = do char '^'
+                  b <- many1 digit
+                  return (QBoost (read b) r)
+
 -- | Parse an and query.
 andQuery :: Parser Query
 andQuery = do t <- orQuery
@@ -99,13 +107,15 @@ contextQuery = try contextQuery' <|> parQuery
                      t <- parQuery
                      return (QContext cs t)
 
+
+
 -- | Parse a query surrounded by parentheses.
 parQuery :: Parser Query
 parQuery = parQuery' <|> rangeQuery
   where
   parQuery' = do char '('
                  spaces
-                 q <- andQuery
+                 q <- boostQuery
                  spaces
                  char ')'
                  return q
@@ -188,7 +198,7 @@ phrase = do char '"'
 
 -- | Parse a character of a word.
 wordChar :: Parser Char
-wordChar = noneOf "\")([]- "
+wordChar = noneOf "\")([]-^ "
 
 -- | Parse a character of a phrases.
 phraseChar :: Parser Char
