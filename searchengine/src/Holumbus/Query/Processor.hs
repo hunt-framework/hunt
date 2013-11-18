@@ -204,12 +204,17 @@ processQueryM cfg i d q = do
 
 -- | Continue processing a query by deciding what to do depending on the current query element.
 process :: ContextTextIndex i v => ProcessState i v -> Query -> Intermediate
-process s (QText op w)       = processText s op w
-process s (Phrase w)         = processPhrase s w
-process s (CasePhrase w)     = processCasePhrase s w
-process s (Negation q)       = processNegation s (process s q)
-process s (QContext c q)     = process (setContexts c s) q
-process s (QBinary o qs)     = processBin o (map (process s) qs)
+-- word search
+process s (QWord QCase w)     = processCaseWord s w
+process s (QWord QNoCase w)   = processWord s w
+process s (QWord QFuzzy w)    = processFuzzyWord s w
+-- phrase search
+process s (QPhrase QCase w)   = processCasePhrase s w
+process s (QPhrase QNoCase w) = processPhrase s w
+process s (QPhrase QFuzzy w)  = undefined -- XXX TODO
+process s (QNegation q)       = processNegation s (process s q)
+process s (QContext c q)      = process (setContexts c s) q
+process s (QBinary o qs)      = processBin o (map (process s) qs)
 
 {--- | Monadic version of 'process'.
 processM :: (Monad m, TextIndex i v) => ProcessState i v -> Query -> m Intermediate
@@ -225,15 +230,6 @@ processM s (QBinary o q1 q2)  = do
   ir2 <- processM s q2
   return $ processBin o ir1 ir2
 -}
-
-processText :: ContextTextIndex i v => ProcessState i v -> TextSearchOp -> Text -> Intermediate
-processText s op w = case op of
-  Case          -> processCaseWord s w
-  NoCase        -> processWord s w
-  -- TODO: this prefix stuff should be removed
-  PrefixCase    -> undefined
-  PrefixNoCase  -> undefined
-  Fuzzy         -> processFuzzyWord s w
 
 -- | Process a single, case-insensitive word by finding all documents whreturn I.empty -- ich contain the word as prefix.
 processWord :: ContextTextIndex i v => ProcessState i v -> Text -> Intermediate

@@ -88,7 +88,7 @@ notQuery = notQuery' <|> contextQuery
   where
   notQuery' = do notOp
                  q <- contextQuery
-                 return (Negation q)
+                 return (QNegation q)
 
 -- | Parse a context query.
 contextQuery :: Parser Query
@@ -118,15 +118,15 @@ caseQuery = caseQuery' <|> fuzzyQuery
   where
   caseQuery' = do char '!'
                   spaces
-                  phraseQuery CasePhrase <|> wordQuery (QText Case)
+                  phraseQuery (QPhrase QCase) <|> wordQuery (QWord QCase)
 
 -- | Parse a fuzzy query.
 fuzzyQuery :: Parser Query
-fuzzyQuery = fuzzyQuery' <|> phraseQuery Phrase <|> wordQuery (QText NoCase)
+fuzzyQuery = fuzzyQuery' <|> phraseQuery (QPhrase QNoCase) <|> wordQuery (QWord QNoCase)
   where
   fuzzyQuery' = do char '~'
                    spaces
-                   wordQuery (QText Fuzzy)
+                   wordQuery (QWord QFuzzy)
 
 -- | Parse a word query.
 wordQuery :: (Text -> Query) -> Parser Query

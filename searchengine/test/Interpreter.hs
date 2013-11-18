@@ -54,7 +54,7 @@ testRunCmd cmd = do
 
 insertCmd, searchCmd, batchCmd :: Command
 insertCmd = Insert brainDoc Default
-searchCmd = Search (QText NoCase "d") 1 100
+searchCmd = Search (QWord QNoCase "d") 1 100
 batchCmd  = Sequence [insertDefaultContext, insertCmd, searchCmd]
 
 -- ----------------------------------------------------------------------------
@@ -123,7 +123,7 @@ test_insertAndSearch = do
   res <- testCmd . Sequence $
       [ insertDefaultContext
       , Insert brainDoc Default
-      , Search (QText NoCase "Brain") 0 1000]
+      , Search (QWord QNoCase "Brain") 0 1000]
   ["test://0"] @=? (searchResultUris . fromRight) res
 
 
@@ -136,9 +136,9 @@ test_alot = testCM $ do
   liftIO $ ResOK @=? insCR
   insR <- execCmd $ Insert brainDoc Default
   liftIO $ ResOK @=? insR
-  seaR <- execCmd $ Search (QText NoCase "Brain") os pp
+  seaR <- execCmd $ Search (QWord QNoCase "Brain") os pp
   liftIO $ ["test://0"] @=? searchResultUris seaR
-  seaR2 <- execCmd $ Search (QText Case "brain") os pp
+  seaR2 <- execCmd $ Search (QWord QCase "brain") os pp
   liftIO $ [] @=? searchResultUris seaR2
   where
   os = 0
@@ -170,34 +170,34 @@ test_fancy = testCM $ do
     @@= ResOK
 
   -- searching "Brain" leads to the doc
-  Search (QText NoCase "Brain") os pp
+  Search (QWord QNoCase "Brain") os pp
     @@@ ((@?= ["test://0"]) . searchResultUris)
   -- case-sensitive search too
-  Search (QText Case "Brain") os pp
+  Search (QWord QCase "Brain") os pp
     @@@ ((@?= ["test://0"]) . searchResultUris)
   -- case-sensitive search yields no result
-  Search (QText Case "brain") os pp
+  Search (QWord QCase "brain") os pp
     @@@ ((@?= []) . searchResultUris)
 
   -- insert with default does not update the description
   Insert brainDocUpdate Default
     @@= ResOK
   -- search yields the old description
-  Search (QText Case "Brain") os pp
+  Search (QWord QCase "Brain") os pp
     @@@ ((@?= (apiDocDescrMap brainDoc)) . desc . head . lrResult . crRes)
 
   -- update the description
   Insert brainDocUpdate Update
     @@= ResOK
   -- search yields >merged< description
-  Search (QText Case "Brain") os pp
+  Search (QWord QCase "Brain") os pp
     @@@ ((@?= (apiDocDescrMap brainDocMerged)) . desc . head . lrResult . crRes)
 
   -- delete return the correct result value
   BatchDelete (S.singleton "test://0")
     @@= ResOK
   -- the doc is gone
-  Search (QText NoCase "Brain") os pp
+  Search (QWord QNoCase "Brain") os pp
     @@@ ((@?= []) . searchResultUris)
   where
   os = 0
