@@ -106,7 +106,7 @@ start = scotty 3000 $ do
   post "/document/insert" $ do
     -- Raises an exception if parse is unsuccessful
     jss <- jsonData :: ActionM [ApiDocument]
-    let batch = Sequence $ map (flip Insert New) jss
+    let batch = Sequence $ map (flip Insert Default) jss
     eval batch
 
   -- delete a set of documents by URI
