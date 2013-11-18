@@ -86,6 +86,14 @@ searchWithCx op c k (ContextIx m)
 contexts :: ContextIndex i v -> [Context]
 contexts (ContextIx m) = M.keys m
 
+-- XXX: maybe rename to hasContext or something like that?
+-- | Check if the context exists.
+member :: ContextIxCon i v
+       => Context
+       -> ContextIndex i v
+       -> Bool
+member c (ContextIx m) = M.member c m
+
 -- | Map a function iver all values of the 'ContextIndex'.
 map :: (i v -> j w) -> ContextIndex i v -> ContextIndex j w
 map f (ContextIx m) = ContextIx $ M.map f m

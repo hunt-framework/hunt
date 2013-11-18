@@ -88,6 +88,11 @@ contexts :: (Monad m, TextIndexerCon i dt)
           => ContextTextIndexer i dt -> m [Context]
 contexts (ix,_dt,_s) = return $ CIx.contexts ix
 
+-- | Does the context exist?
+member :: (Monad m, TextIndexerCon i dt)
+          => Context -> ContextTextIndexer i dt -> m Bool
+member c (ix,_dt,_s) = return $ CIx.member c ix
+
 -- ----------------------------------------------------------------------------
 
 -- | Modify the description of a document and add words
