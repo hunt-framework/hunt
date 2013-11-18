@@ -51,8 +51,8 @@ data Query = QWord      TextSearchType Text        -- ^ Word search.
            | QContext   [(Context, CWeight)] Query -- ^ Restrict query to a list of contexts.
            | QNegation  Query                      -- ^ Negate the query.
            | QBinary    BinOp [Query]              -- ^ Combine two queries through a binary operation.
- --        | QWeight    CWeight Query	           -- ^ Weight for Query
- --        | QRange     Word Word                  -- ^ Range Query
+           | QWeight    CWeight Query              -- ^ Weight for Query
+           | QRange     Text Text                  -- ^ Range Query
            deriving (Eq, Show)
 
 data TextSearchType = QCase | QNoCase | QFuzzy
@@ -73,8 +73,8 @@ instance ToJSON Query where
     QContext c q      -> object . ty "context" $ [ "contexts" .= c , "query" .= q ]
     QNegation q       -> object . ty "not"     $ [ "query"  .= q ]
     QBinary op qs     -> object . ty' op       $ [ "queries" .= qs ]
---  QWeight w q       -> object . ty "weight"  $ [ "weight" .= w, "query" .= q ]
---  QRange l u        -> object . ty "range"   $ [ "lower" .= l, "upper" .= u ]
+    QWeight w q       -> object . ty "weight"  $ [ "weight" .= w, "query" .= q ]
+    QRange l u        -> object . ty "range"   $ [ "lower" .= l, "upper" .= u ]
     where
     ty' t = (:) ("type" .= t)
     ty  t = ty' (t :: Text)
@@ -95,14 +95,14 @@ instance FromJSON Query where
         c <- o .: "contexts"
         q <- o .: "query"
         return $ QContext c q
-{--      "weight"   -> do
+      "weight"   -> do
         w <- o .: "weight"
         q <- o .: "query"
         return $ QWeight w q
       "range"    -> do
         l <- o .: "lower" 
         u <- o .: "upper"
-        return $ QRange l u --}
+        return $ QRange l u
       "and" -> bin And
       "or"  -> bin Or
       "but" -> bin But
@@ -149,17 +149,21 @@ instance FromJSON BinOp where
 instance Binary Query where
   put (QWord op s)       = put (0 :: Word8) >> put op >> put s
   put (QPhrase op s)     = put (1 :: Word8) >> put op >> put s
-  put (QContext c q)     = put (5 :: Word8) >> put c >> put q
-  put (QNegation q)      = put (6 :: Word8) >> put q
-  put (QBinary o qs)     = put (7 :: Word8) >> put o >> put qs
+  put (QContext c q)     = put (2 :: Word8) >> put c >> put q
+  put (QNegation q)      = put (3 :: Word8) >> put q
+  put (QBinary o qs)     = put (4 :: Word8) >> put o >> put qs
+  put (QWeight w q)      = put (5 :: Word8) >> put w >> put q
+  put (QRange l u)       = put (6 :: Word8) >> put l >> put u
 
   get = do tag <- getWord8
            case tag of
              0 -> liftM2 QWord      get get
              1 -> liftM2 QPhrase    get get
-             5 -> liftM2 QContext   get get
-             6 -> liftM  QNegation  get
-             7 -> liftM2 QBinary    get get
+             2 -> liftM2 QContext   get get
+             3 -> liftM  QNegation  get
+             4 -> liftM2 QBinary    get get
+             5 -> liftM2 QWeight    get get
+             6 -> liftM2 QRange     get get
              _ -> fail "Error while decoding Query"
 
 
