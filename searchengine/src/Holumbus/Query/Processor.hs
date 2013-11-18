@@ -211,7 +211,7 @@ process s (QPhrase QNoCase w) = processPhrase s w
 process s (QPhrase QFuzzy w)  = undefined -- XXX TODO
 process s (QNegation q)       = processNegation s (process s q)
 process s (QContext c q)      = process (setContexts c s) q
-process s (QBinary o qs)      = processBin o (map (process s) qs)
+process s (QBinary o q1 q2)   = processBin o (process s q1) (process s q2)
 
 {--- | Monadic version of 'process'.
 processM :: (Monad m, TextIndex i v) => ProcessState i v -> Query -> m Intermediate
@@ -369,11 +369,10 @@ processNegationM s r1 = allDocumentsM s >>= \r2 -> return $ I.difference r2 r1
 -}
 
 -- | Process a binary operator by caculating the union or the intersection of the two subqueries.
-processBin :: BinOp -> [Intermediate] -> Intermediate
-processBin And rs = I.intersections1 rs
-processBin Or  rs = I.unions         rs
-processBin But rs = I.differences1   rs
-
+processBin :: BinOp -> Intermediate -> Intermediate -> Intermediate
+processBin And r1 r2 = I.intersection r1 r2
+processBin Or  r1 r2 = I.union        r1 r2
+processBin But r1 r2 = I.difference   r1 r2
 
 -- | Limit a 'RawResult' to a fixed amount of the best words.
 --
