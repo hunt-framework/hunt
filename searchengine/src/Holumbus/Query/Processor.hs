@@ -91,42 +91,46 @@ instance Binary ProcessConfig where
       = liftM4 ProcessConfig get get get get
 
 -- | The internal state of the query processor.
-data ProcessState i v
+data ProcessState i
     = ProcessState
-      { config   :: ! ProcessConfig   -- ^ The configuration for the query processor.
-      , contexts :: ! [Context]       -- ^ The current list of contexts.
+      { config   :: ! ProcessConfig    -- ^ The configuration for the query processor.
+      , contexts :: ! [Context]        -- ^ The current list of contexts.
       -- XXX: strictness annotation
-      , index    ::   ContextIndex i v-- ^ The index to search.
-      , total    :: ! Int             -- ^ The number of documents in the index.
+      , index    ::   ContextIndex i Occurrences  -- ^ The index to search.
+      , total    :: ! Int              -- ^ The number of documents in the index.
       }
+
+-- |  shortcuts
+type QueryIndex i = ContextIndex i Occurrences
+type QueryIndexCon i = ContextTextIndex i Occurrences
 
 -- ----------------------------------------------------------------------------
 
 -- TODO: transform all monadic functions and delete this section
 
-processPartialM :: (Monad m, ContextTextIndex i v) => ProcessConfig -> ContextIndex i v -> Int -> Query -> m Intermediate
+processPartialM :: (Monad m, QueryIndexCon i) => ProcessConfig -> QueryIndex i -> Int -> Query -> m Intermediate
 processPartialM cfg i t q = return $ processPartial cfg i t q
 
 -- ----------------------------------------------------------------------------
 
 -- | Get the fuzzy config out of the process state.
-getFuzzyConfig :: ProcessState i v -> FuzzyConfig
+getFuzzyConfig :: ProcessState i -> FuzzyConfig
 getFuzzyConfig = fuzzyConfig . config
 
 -- | Monadic version of 'getFuzzyConfig'.
-getFuzzyConfigM :: Monad m => ProcessState i v -> m FuzzyConfig
+getFuzzyConfigM :: Monad m => ProcessState i -> m FuzzyConfig
 getFuzzyConfigM s = return $ fuzzyConfig $ config s
 
 -- | Set the current context in the state.
-setContexts :: [Context] -> ProcessState i v -> ProcessState i v
+setContexts :: [Context] -> ProcessState i -> ProcessState i
 setContexts cs (ProcessState cfg _ i t) = ProcessState cfg cs i t
 
 -- | Monadic version of 'setContexts'.
-setContextsM :: Monad m => [Context] -> ProcessState i v -> m (ProcessState i v)
+setContextsM :: Monad m => [Context] -> ProcessState i -> m (ProcessState i)
 setContextsM cs (ProcessState cfg _ i t) = return $ ProcessState cfg cs i t
 
 -- | Initialize the state of the processor.
-initState :: (TextIndex i v) => ProcessConfig -> ContextIndex i v -> Int -> ProcessState i v
+initState :: (TextIndex i v) => ProcessConfig -> QueryIndex i -> Int -> ProcessState i
 initState cfg i = ProcessState cfg wcs i 
   where
   -- TODO default context weights should be used here 
@@ -135,7 +139,7 @@ initState cfg i = ProcessState cfg wcs i
   wcs = CIx.keys i
 
 -- | Monadic version of 'initState'.
-initStateM :: (Monad m, ContextTextIndex i v) => ProcessConfig -> ContextIndex i v -> Int -> m (ProcessState i v)
+initStateM :: (Monad m, QueryIndexCon i) => ProcessConfig -> QueryIndex i -> Int -> m (ProcessState i)
 initStateM cfg i t = contextsM i >>= \cs -> return $ ProcessState cfg cs i t
   where 
   contextsM = return . CIx.keys
@@ -150,7 +154,7 @@ forAllContextsM :: Monad m => (Context -> m Intermediate) -> [Context] -> m Inte
 forAllContextsM f cs = mapM f cs >>= \is -> return $ L.foldl' I.union I.empty is
 
 -- | Just everything.
-allDocuments :: ContextTextIndex i v => ProcessState i v -> Intermediate
+allDocuments :: QueryIndexCon i => ProcessState i -> Intermediate
 allDocuments s = forAllContexts (\c -> I.fromList "" c $ ixSize (index s) c) (contexts s)
   where
   -- FIXME: Ix.size replacement -- size :: i -> Context -> RawResult
@@ -161,21 +165,21 @@ allDocuments s = forAllContexts (\c -> I.fromList "" c $ ixSize (index s) c) (co
   ixSize i c = toRawResult $ CIx.searchWithCx PrefixNoCase c "" i 
 
 {-
-allDocumentsM :: (Monad m, TextIndex i v) => ProcessState i v -> m Intermediate
+allDocumentsM :: (Monad m, TextIndex i v) => ProcessState i -> m Intermediate
 allDocumentsM s = forAllContextsM (\c -> allWordsM (index s) c >>= \r -> return $ I.fromList "" c r) (contexts s)
   where allWordsM = return .:: Ix.size -- XXX: needs monadic Ix.allWords
 -}
 
 -- | Process a query only partially in terms of a distributed index. Only the intermediate
 -- result will be returned.
-processPartial :: ContextTextIndex i v => ProcessConfig -> ContextIndex i v -> Int -> Query -> Intermediate
+processPartial :: QueryIndexCon i => ProcessConfig -> QueryIndex i -> Int -> Query -> Intermediate
 processPartial cfg i t q = process (initState cfg i t) oq
   where
   oq = if optimizeQuery cfg then optimize q else q
 
 {-
 -- | Monadic version of 'processPartial'.
-processPartialM :: (Monad m, TextIndex i v) => ProcessConfig -> ContextIndex i v -> Int -> Query -> m Intermediate
+processPartialM :: (Monad m, TextIndex i v) => ProcessConfig -> QueryIndex i -> Int -> Query -> m Intermediate
 processPartialM cfg i t q = initStateM cfg i t >>= flip processM oq
   where
   oq = if optimizeQuery cfg then optimize q else q
@@ -184,19 +188,19 @@ processPartialM cfg i t q = initStateM cfg i t >>= flip processM oq
 -- XXX: DocTable dependency
 
 -- | Process a query on a specific index with regard to the configuration.
---processQuery :: (ContextTextIndex i v, DocTable d, Dt.DValue d ~ e, e ~  Document) =>
---                ProcessConfig -> ContextIndex i v -> d -> Query -> Result e
+--processQuery :: (QueryIndexCon i, DocTable d, Dt.DValue d ~ e, e ~  Document) =>
+--                ProcessConfig -> QueryIndex i -> d -> Query -> Result e
 --processQuery cfg i d q = I.toResult d (processPartial cfg i (Dt.size d) q)
 
 -- | Monadic version of 'processQuery'.
-processQueryM :: (Applicative m, Monad m, ContextTextIndex i v, DocTable d, Dt.DValue d ~ e, e ~ Document) =>
-                 ProcessConfig -> ContextIndex i v -> d -> Query -> m (Result e)
+processQueryM :: (Applicative m, Monad m, QueryIndexCon i, DocTable d, Dt.DValue d ~ e, e ~ Document) =>
+                 ProcessConfig -> QueryIndex i -> d -> Query -> m (Result e)
 processQueryM cfg i d q = do
     sz <- Dt.size d
     processPartialM cfg i sz q >>= \ir -> I.toResult d ir
 
 -- | Continue processing a query by deciding what to do depending on the current query element.
-process :: ContextTextIndex i v => ProcessState i v -> Query -> Intermediate
+process :: QueryIndexCon i => ProcessState i -> Query -> Intermediate
 -- word search
 process s (QWord QCase w)     = processCaseWord s w
 process s (QWord QNoCase w)   = processWord s w
@@ -210,7 +214,7 @@ process s (QContext c q)      = process (setContexts c s) q
 process s (QBinary o q1 q2)   = processBin o (process s q1) (process s q2)
 
 {--- | Monadic version of 'process'.
-processM :: (Monad m, TextIndex i v) => ProcessState i v -> Query -> m Intermediate
+processM :: (Monad m, TextIndex i v) => ProcessState i -> Query -> m Intermediate
 processM s (Word w)           = processWordM s w
 processM s (Phrase w)         = processPhraseM s w
 processM s (CaseWord w)       = processCaseWordM s w
@@ -225,14 +229,14 @@ processM s (QBinary o q1 q2)  = do
 -}
 
 -- | Process a single, case-insensitive word by finding all documents whreturn I.empty -- ich contain the word as prefix.
-processWord :: ContextTextIndex i v => ProcessState i v -> Text -> Intermediate
+processWord :: QueryIndexCon i => ProcessState i -> Text -> Intermediate
 processWord s q = forAllContexts wordNoCase (contexts s)
   where
   wordNoCase c = I.fromList q c $ limitWords s . toRawResult $ CIx.searchWithCx PrefixNoCase c q (index s)
 
 {-
 -- | Monadic version of 'processWord'.
-processWordM :: (Monad m, TextIndex i v) => ProcessState i v -> Text -> m Intermediate
+processWordM :: (Monad m, TextIndex i v) => ProcessState i -> Text -> m Intermediate
 processWordM s q = forAllContextsM wordNoCase (contexts s)
   where
   wordNoCase c = prefixNoCaseM (index s) c q >>= limitWordsM s >>= \r -> return $ I.fromList q c r
@@ -241,14 +245,14 @@ processWordM s q = forAllContextsM wordNoCase (contexts s)
 -}
 
 -- | Process a single, case-sensitive word by finding all documents which contain the word as prefix.
-processCaseWord :: ContextTextIndex i v => ProcessState i v -> Text -> Intermediate
+processCaseWord :: QueryIndexCon i => ProcessState i -> Text -> Intermediate
 processCaseWord s q = forAllContexts wordCase (contexts s)
   where
   wordCase c = I.fromList q c $ limitWords s . toRawResult $ CIx.searchWithCx PrefixCase c q (index s)
 
 {-
 -- | Monadic version of 'processCaseWord'.
-processCaseWordM :: (Monad m, TextIndex i v) => ProcessState i v -> Text -> m Intermediate
+processCaseWordM :: (Monad m, TextIndex i v) => ProcessState i -> Text -> m Intermediate
 processCaseWordM s q = forAllContextsM wordCase (contexts s)
   where
   wordCase c = prefixCaseM (index s) c q >>= limitWordsM s >>= \r -> return $ I.fromList q c r
@@ -257,7 +261,7 @@ processCaseWordM s q = forAllContextsM wordCase (contexts s)
 -}
 
 -- | Process a phrase case-insensitive.
-processPhrase :: ContextTextIndex i v => ProcessState i v -> Text -> Intermediate
+processPhrase :: QueryIndexCon i => ProcessState i -> Text -> Intermediate
 processPhrase s q = forAllContexts phraseNoCase (contexts s)
   where
   phraseNoCase c = processPhraseInternal meaningfulName c q
@@ -266,14 +270,14 @@ processPhrase s q = forAllContexts phraseNoCase (contexts s)
 
 {-
 -- | Monadic version of 'processPhrase'.
-processPhraseM :: (Monad m, TextIndex i v) => ProcessState i v -> Text -> m Intermediate
+processPhraseM :: (Monad m, TextIndex i v) => ProcessState i -> Text -> m Intermediate
 processPhraseM s q = forAllContextsM phraseNoCase (contexts s)
   where
   phraseNoCase c = processPhraseInternalM (CIx.lookup NoCase (index s) c) c q
 -}
 
 -- | Process a phrase case-sensitive.
-processCasePhrase :: ContextTextIndex i v => ProcessState i v -> Text -> Intermediate
+processCasePhrase :: QueryIndexCon i => ProcessState i -> Text -> Intermediate
 processCasePhrase s q = forAllContexts phraseCase (contexts s)
   where
   phraseCase c = processPhraseInternal meaningfulName c q
@@ -282,7 +286,7 @@ processCasePhrase s q = forAllContexts phraseCase (contexts s)
 
 {-
 -- | Monadic version of 'processCasePhrase'.
-processCasePhraseM :: (Monad m, ContextTextIndex i v) => ProcessState i v -> Text -> m Intermediate
+processCasePhraseM :: (Monad m, QueryIndexCon i) => ProcessState i -> Text -> m Intermediate
 processCasePhraseM s q = forAllContextsM phraseCase (contexts s)
   where
   phraseCase c = processPhraseInternalM (Ix.lookup Case (index s) c) c q
@@ -333,7 +337,7 @@ processPhraseInternalM f c q = let
 -}
 
 -- | Process a single word and try some fuzzy alternatives if nothing was found.
-processFuzzyWord :: ContextTextIndex i v => ProcessState i v -> Text -> Intermediate
+processFuzzyWord :: QueryIndexCon i => ProcessState i -> Text -> Intermediate
 processFuzzyWord s oq = processFuzzyWord' (F.toList $ F.fuzz (getFuzzyConfig s) oq) (processWord s oq)
   where
   processFuzzyWord' :: [(Text, FuzzyScore)] -> Intermediate -> Intermediate
@@ -342,7 +346,7 @@ processFuzzyWord s oq = processFuzzyWord' (F.toList $ F.fuzz (getFuzzyConfig s) 
 
 {-
 -- | Monadic version of 'processFuzzyWord'.
-processFuzzyWordM :: (Monad m, TextIndex i v) => ProcessState i v -> Text -> m Intermediate
+processFuzzyWordM :: (Monad m, TextIndex i v) => ProcessState i -> Text -> m Intermediate
 processFuzzyWordM s oq = do
   sr <- processWordM s oq
   cfg <- getFuzzyConfigM s
@@ -355,12 +359,12 @@ processFuzzyWordM s oq = do
 -}
 
 -- | Process a negation by getting all documents and subtracting the result of the negated query.
-processNegation :: ContextTextIndex i v => ProcessState i v -> Intermediate -> Intermediate
+processNegation :: QueryIndexCon i => ProcessState i -> Intermediate -> Intermediate
 processNegation s = I.difference (allDocuments s)
 
 {-
 -- | Monadic version of 'processNegation'.
-processNegationM :: (Monad m, TextIndex i v) => ProcessState i v -> Intermediate -> m Intermediate
+processNegationM :: (Monad m, TextIndex i v) => ProcessState i -> Intermediate -> m Intermediate
 processNegationM s r1 = allDocumentsM s >>= \r2 -> return $ I.difference r2 r1
 -}
 
@@ -385,7 +389,7 @@ processBin But r1 r2 = I.difference   r1 r2
 -- The second heuristic isn't that expensive any more when the resul list is cut of by the heuristic
 --
 -- The limit 500 should be part of a configuration
-limitWords              :: ProcessState i v -> RawResult -> RawResult
+limitWords              :: ProcessState i -> RawResult -> RawResult
 limitWords s r          = cutW . cutD $ r
   where
   limitD                = docLimit $ config s
@@ -416,7 +420,7 @@ limitDocs limit (x:xs)  = x : limitDocs (limit - DM.size (snd x)) xs
 -- ----------------------------------------------------------------------------
 {-
 -- | Monadic version of 'limitWords'.
-limitWordsM             :: (Monad m) => ProcessState i v -> RawResult -> m RawResult
+limitWordsM             :: (Monad m) => ProcessState i -> RawResult -> m RawResult
 limitWordsM s r         = return $ limitWords s r
 -}
 
