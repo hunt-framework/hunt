@@ -75,7 +75,8 @@ insertTestContextIx
     "context" @?= c
   where
   newElem = singleton 1 1
-  [(c,[(_, insertedElem)])] = ConIx.lookup PrefixNoCase key $ ConIx.insert key newElem emptyIndex
+  [(c,[(_, insertedElem)])] = ConIx.lookup PrefixNoCase key 
+                            $ ConIx.insertWithCx "context" "word" newElem emptyIndex
   key = (Just "context", Just "word")
   emptyIndex :: ConIx.ContextIndex InvIx.InvertedIndex Occurrences
   emptyIndex = ConIx.empty

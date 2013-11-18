@@ -50,7 +50,7 @@ addWords :: TextIndex i Occurrences
 addWords wrds dId i
   = M.foldrWithKey (\c wl acc ->
       M.foldrWithKey (\w ps acc' ->
-        CIx.insert (Just c, Just w) (mkOccs dId ps) acc')
+        CIx.insertWithCx c w (mkOccs dId ps) acc')
       acc wl)
       i wrds
   where
