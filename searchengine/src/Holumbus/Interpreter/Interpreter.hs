@@ -250,9 +250,9 @@ execDeleteContext cx (ix, dt, s) = return ((CIx.deleteContext cx ix, dt, s), Res
 execInsert :: TextIndexerCon ix dt
            => ApiDocument -> InsertOption -> IpIndexer ix dt -> CM ix dt (IpIndexer ix dt, CmdResult)
 execInsert doc op ixx@(_ix, dt, schema) = do
-    let (docs, ws) = toDocAndWords schema doc
-    let contexts   = M.keys ws
+    let contexts = M.keys $ apiDocIndexMap doc
     checkContextsExistence contexts ixx
+    let (docs, ws) = toDocAndWords schema doc
     case op of
       Default -> do
         ixx' <- lift $ Ixx.insert docs ws ixx

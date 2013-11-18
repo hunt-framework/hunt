@@ -36,6 +36,7 @@ analyzerMapping o = case o of
 -}
 
 -- | ApiDocument to Document and Words mapping.
+--   /Note/: Contexts mentioned in the ApiDoc need to exist.
 toDocAndWords :: ContextSchema -> ApiDocument -> (Document, Words)
 toDocAndWords schema apiDoc = (doc, ws)
   where
@@ -48,7 +49,6 @@ toDocAndWords schema apiDoc = (doc, ws)
   ws = M.mapWithKey (\context -> either
                 id
                 (\(TextData content metadata)
-                    -- FIXME: make sure that all contexts exist, otherwise this will crash
                     -- TODO: discards index metadata in apidoc - obsolete now?
                     -> let (cType, rex, normType, w) = fromJust $ M.lookup context schema
                            scan = scanTextRE rex
