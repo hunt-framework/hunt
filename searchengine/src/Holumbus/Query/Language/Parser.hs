@@ -101,7 +101,7 @@ contextQuery = try contextQuery' <|> parQuery
 
 -- | Parse a query surrounded by parentheses.
 parQuery :: Parser Query
-parQuery = parQuery' <|> caseQuery
+parQuery = parQuery' <|> rangeQuery
   where
   parQuery' = do char '('
                  spaces
@@ -109,6 +109,18 @@ parQuery = parQuery' <|> caseQuery
                  spaces
                  char ')'
                  return q
+
+rangeQuery :: Parser Query
+rangeQuery = rangeQuery' <|> caseQuery
+  where 
+  rangeQuery' = do char '['    
+                   spaces
+                   l <- word
+                   char '-'    
+                   u <- word   
+                   spaces
+                   char ']'
+                   return $ QRange (T.pack l) (T.pack u)               
 
 -- | Parse a case-sensitive query.
 caseQuery :: Parser Query
@@ -176,7 +188,7 @@ phrase = do char '"'
 
 -- | Parse a character of a word.
 wordChar :: Parser Char
-wordChar = noneOf "\")( "
+wordChar = noneOf "\")([]- "
 
 -- | Parse a character of a phrases.
 phraseChar :: Parser Char

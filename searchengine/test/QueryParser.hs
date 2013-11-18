@@ -54,6 +54,9 @@ cp = QPhrase QCase
 fw :: Text -> Query
 fw = QWord QFuzzy
 
+rg :: Text -> Text -> Query
+rg = QRange 
+
 andTests :: Test
 andTests = TestList
   [ TestCase (assertEqual "Simple two term 'and' query"
@@ -181,6 +184,27 @@ caseTests = TestList
   (P.parseQuery " ! test")) 
   ]
 
+rangeTests :: Test
+rangeTests = TestList
+  [ TestCase $ assertEqual "Simple Range Query without meta"
+    (Right (rg "30" "40"))
+    ( P.parseQuery "[30-40]")
+
+  , TestCase $ assertEqual "Range with context"
+    (Right (s ["con"] (rg "30" "40")))
+    ( P.parseQuery "con:[30-40]")
+
+  , TestCase $ assertEqual "Range with contexts"
+    (Right (s ["con1", "con2"] (rg "30" "40")))
+    ( P.parseQuery "con1,con2:[30-40]")
+
+  , TestCase $ assertEqual "complex query with ranges"
+    (Right (a (s ["con1"] (rg "30" "40")) (s ["con2"] (rg "59" "100"))))
+    ( P.parseQuery "con1:[30-40] AND con2:[59-100]")
+
+  ]
+     
+
 parentheseTests :: Test
 parentheseTests = TestList
   [ TestCase (assertEqual "Parentheses without effect"
@@ -300,6 +324,7 @@ allUnitTests = testGroup "Query Parser Hunit tests" $ hUnitTestToTests $ TestLis
   , TestLabel "Parenthese tests" parentheseTests
   , TestLabel "Phrase tests" phraseTests
   , TestLabel "Fuzzy tests" fuzzyTests
+  , TestLabel "Range tests" rangeTests
   ]
 --
 main :: IO ()
