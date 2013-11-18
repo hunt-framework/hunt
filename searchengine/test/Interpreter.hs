@@ -165,6 +165,11 @@ test_fancy = testCM $ do
   insertDefaultContext
     @@= ResOK
 
+  -- inserting the same context again fails
+  (insertDefaultContext
+    @@@ const (assertFailure "inserting a context twice succeeded"))
+        `catchError` const (return ())
+
   -- insert yields the correct result value
   Insert brainDoc Default
     @@= ResOK
