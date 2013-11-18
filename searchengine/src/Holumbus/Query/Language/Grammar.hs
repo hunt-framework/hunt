@@ -28,8 +28,8 @@ module Holumbus.Query.Language.Grammar
 
   -- * Optimizing
   , optimize
-  --, checkWith
-  --, extractTerms
+  , checkWith
+  , extractTerms
   )
 where
 
@@ -100,7 +100,7 @@ instance FromJSON Query where
         q <- o .: "query"
         return $ QBoost w q
       "range"    -> do
-        l <- o .: "lower" 
+        l <- o .: "lower"
         u <- o .: "upper"
         return $ QRange l u
       "and" -> bin And

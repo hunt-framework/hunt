@@ -59,10 +59,10 @@ import           Holumbus.Interpreter.Command
 
 
 
-type IpIndexer      ix dt = ContextTextIndexer ix dt
+type IpIndexer ix dt = ContextTextIndexer ix dt
 
-emptyIndexer    :: IpIndexer InvertedIndex (Documents Document)
-emptyIndexer    = (CIx.empty, HDt.empty, M.empty)
+emptyIndexer :: IpIndexer InvertedIndex (Documents Document)
+emptyIndexer = (CIx.empty, HDt.empty, M.empty)
 
 -- ----------------------------------------------------------------------------
 
@@ -229,7 +229,7 @@ execInsertContext :: TextIndexerCon ix dt
                   -> IpIndexer ix dt
                   -> CM ix dt (IpIndexer ix dt, CmdResult)
 execInsertContext cx ct (ix, dt, s)
-    -- | XX todo - handle case were context already exists
+    -- | TODO: handle case where context already exists
     --   => throw error?
     = return (ixx, ResOK)
     where
@@ -269,7 +269,7 @@ execInsert doc op ixx@(_ix, dt, schema) = do
 checkContextsExistence :: TextIndexerCon ix dt
                        => [Context] -> IpIndexer ix dt -> CM ix dt ()
 checkContextsExistence cs ixx = do
-  ixxContexts        <- S.fromList <$> Ixx.keys ixx
+  ixxContexts        <- S.fromList <$> Ixx.contexts ixx
   let docContexts     = S.fromList cs
   let invalidContexts = S.difference docContexts ixxContexts
   if S.null invalidContexts

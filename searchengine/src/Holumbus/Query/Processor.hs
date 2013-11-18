@@ -131,18 +131,18 @@ setContextsM cs (ProcessState cfg _ i t) = return $ ProcessState cfg cs i t
 
 -- | Initialize the state of the processor.
 initState :: (TextIndex i v) => ProcessConfig -> QueryIndex i -> Int -> ProcessState i
-initState cfg i = ProcessState cfg wcs i 
+initState cfg i = ProcessState cfg wcs i
   where
-  -- TODO default context weights should be used here 
+  -- TODO: default context weights should be used here
   -- should be stored in interpreter schema and then
   -- somehow used here.
-  wcs = CIx.keys i
+  wcs = CIx.contexts i
 
 -- | Monadic version of 'initState'.
 initStateM :: (Monad m, QueryIndexCon i) => ProcessConfig -> QueryIndex i -> Int -> m (ProcessState i)
 initStateM cfg i t = contextsM i >>= \cs -> return $ ProcessState cfg cs i t
-  where 
-  contextsM = return . CIx.keys
+  where
+  contextsM = return . CIx.contexts
 
 -- TODO: previously rdeepseq
 -- | Try to evaluate the query for all contexts in parallel.
@@ -162,7 +162,7 @@ allDocuments s = forAllContexts (\c -> I.fromList "" c $ ixSize (index s) c) (co
   --          and the type param will be ignored
   --        - ixSize i c = concat . map snd . filter ((== c) . fst) . Ix.toList $ i
   --          this should be slower
-  ixSize i c = toRawResult $ CIx.searchWithCx PrefixNoCase c "" i 
+  ixSize i c = toRawResult $ CIx.searchWithCx PrefixNoCase c "" i
 
 {-
 allDocumentsM :: (Monad m, TextIndex i v) => ProcessState i -> m Intermediate
@@ -208,7 +208,7 @@ process s (QWord QFuzzy w)    = processFuzzyWord s w
 -- phrase search
 process s (QPhrase QCase w)   = processCasePhrase s w
 process s (QPhrase QNoCase w) = processPhrase s w
-process s (QPhrase QFuzzy w)  = undefined -- XXX TODO
+process s (QPhrase QFuzzy w)  = undefined -- XXX: TODO
 process s (QNegation q)       = processNegation s (process s q)
 process s (QContext c q)      = process (setContexts c s) q
 process s (QBinary o q1 q2)   = processBin o (process s q1) (process s q2)

@@ -122,15 +122,15 @@ parQuery = parQuery' <|> rangeQuery
 
 rangeQuery :: Parser Query
 rangeQuery = rangeQuery' <|> caseQuery
-  where 
-  rangeQuery' = do char '['    
+  where
+  rangeQuery' = do char '['
                    spaces
                    l <- word
-                   char '-'    
-                   u <- word   
+                   char '-'
+                   u <- word
                    spaces
                    char ']'
-                   return $ QRange (T.pack l) (T.pack u)               
+                   return $ QRange (T.pack l) (T.pack u)
 
 -- | Parse a case-sensitive query.
 caseQuery :: Parser Query

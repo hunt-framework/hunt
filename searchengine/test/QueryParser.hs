@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS 
-   -fno-warn-orphans 
-   -fno-warn-missing-signatures 
-   -fno-warn-missing-methods 
-   -fno-warn-unused-matches 
+{-# OPTIONS
+   -fno-warn-orphans
+   -fno-warn-missing-signatures
+   -fno-warn-missing-methods
+   -fno-warn-unused-matches
    -fno-warn-type-defaults
 #-}
 module Main where
@@ -12,9 +12,9 @@ import           Control.Applicative                  ((<$>))
 
 import           Test.Framework                       hiding (Test)
 import           Test.Framework.Providers.HUnit
-import           Test.HUnit                           
+import           Test.HUnit
 --import           Test.Framework.Providers.QuickCheck2
-import           Test.QuickCheck                      
+import           Test.QuickCheck
 
 import           Control.Monad
 import           Data.Text                            (Text)
@@ -31,7 +31,7 @@ a :: Query -> Query -> Query
 a = QBinary And
 
 o :: Query -> Query -> Query
-o = QBinary Or 
+o = QBinary Or
 
 n :: Query -> Query
 n = QNegation
@@ -55,7 +55,7 @@ fw :: Text -> Query
 fw = QWord QFuzzy
 
 rg :: Text -> Text -> Query
-rg = QRange 
+rg = QRange
 
 bst :: Int -> Query -> Query
 bst = QBoost
@@ -113,7 +113,7 @@ orTests = TestList
   (Right (a (w "Operation") (w "ORganism")))
   (P.parseQuery "Operation ORganism"))
   ]
-  
+
 specifierTests :: Test
 specifierTests = TestList
   [ TestCase (assertEqual "Specifier with whitespace"
@@ -130,23 +130,23 @@ specifierTests = TestList
 
   ,TestCase (assertEqual "Specifier and brackets"
   (Right (a (s ["wurst"] (a (w "abc") (a (w "def") (w "ghi")))) (s ["batzen"] (o (w "abc") (w "def")))))
-  (P.parseQuery "wurst: (abc def ghi) batzen: (abc OR def)")) 
+  (P.parseQuery "wurst: (abc def ghi) batzen: (abc OR def)"))
 
   ,TestCase (assertEqual "Specifier and space"
   (Right (a (s ["wurst"] (a (w "abc") (a (w "def") (w "ghi")))) (s ["batzen"] (o (w "abc") (w "def")))))
-  (P.parseQuery "wurst \t: (abc def ghi) batzen \n : (abc OR def)")) 
+  (P.parseQuery "wurst \t: (abc def ghi) batzen \n : (abc OR def)"))
 
   ,TestCase (assertEqual "Specifier lists"
   (Right (s ["wurst","batzen","schinken"] (a (w "abc") (a (w "def") (w "ghi")))))
-  (P.parseQuery "wurst,batzen,schinken: (abc def ghi)")) 
+  (P.parseQuery "wurst,batzen,schinken: (abc def ghi)"))
 
   ,TestCase (assertEqual "Specifier lists with space"
   (Right (s ["wurst","batzen","schinken"] (a (w "abc") (a (w "def") (w "ghi")))))
-  (P.parseQuery "wurst , \n batzen \t, schinken: (abc def ghi)")) 
+  (P.parseQuery "wurst , \n batzen \t, schinken: (abc def ghi)"))
 
   ,TestCase (assertEqual "Specifier lists with phrase"
   (Right (s ["wurst","batzen","schinken"] (p "this is A Test")))
-  (P.parseQuery "wurst , \n batzen \t, schinken: \"this is A Test\"")) 
+  (P.parseQuery "wurst , \n batzen \t, schinken: \"this is A Test\""))
   ]
 
 notTests :: Test
@@ -180,11 +180,11 @@ caseTests = TestList
 
   ,TestCase (assertEqual "Simple case-sensitive phrase"
   (Right (cp "this is a test"))
-  (P.parseQuery "!\"this is a test\"")) 
+  (P.parseQuery "!\"this is a test\""))
 
   ,TestCase (assertEqual "Case sensitive word with whitespace"
   (Right (cw "test"))
-  (P.parseQuery " ! test")) 
+  (P.parseQuery " ! test"))
   ]
 
 boostTests :: Test
@@ -226,14 +226,14 @@ rangeTests = TestList
     ( P.parseQuery "con1:[30-40] AND con2:[59-100]")
 
   ]
-     
+
 
 parentheseTests :: Test
 parentheseTests = TestList
   [ TestCase (assertEqual "Parentheses without effect"
   (P.parseQuery "abc def OR ghi")
   (P.parseQuery "abc (def OR ghi)"))
-  
+
   , TestCase (assertEqual "Parentheses changing priority of OR"
   (Right (a (o (w "abc") (w "def")) (w "ghi")))
   (P.parseQuery "(abc OR def) ghi"))
@@ -246,7 +246,7 @@ parentheseTests = TestList
   (Right (a (w "abc") (w "def")))
   (P.parseQuery " ( abc def ) "))
   ]
-  
+
 fuzzyTests :: Test
 fuzzyTests = TestList
   [ TestCase (assertEqual "Simple fuzzy query"
@@ -284,7 +284,7 @@ query :: Int -> Gen Query
 query num | num == 0 = liftM (QWord QCase) word
           | num < 0 = query (abs num)
           | num > 0 = frequency [ (4, liftM (QWord QNoCase) word)
-                                , (1, liftM (QWord QCase) word) 
+                                , (1, liftM (QWord QCase) word)
                                 , (1, liftM (QWord QFuzzy) word)
                                 , (2, liftM (QPhrase QNoCase) phrase)
                                 , (1, liftM (QPhrase QCase) phrase)
@@ -315,9 +315,9 @@ showQuery _ (QWord QFuzzy st)    = T.concat ["~", st]
 showQuery _ (QPhrase QFuzzy st)  = T.concat ["~", "XXX todo"]
 showQuery f (QContext c q)       = T.concat [(T.intercalate "," c), ":(", (showQuery f q), ")"]
 showQuery f (QNegation q)        = T.concat ["(NOT ", (showQuery f q), ")"]
-showQuery f (QBinary opr q1 q2)  = T.concat ["(", (showQuery f q1),
-                                   " " , (T.pack $ f opr) , 
-                                   " " , (showQuery f q2) , ")"]
+showQuery f (QBinary opr q1 q2)  = T.concat ["(", (showQuery f q1)
+                                            ," " , (T.pack $ f opr)
+                                            ," " , (showQuery f q2) , ")"]
 showQuery f (QRange l u)         = T.concat [ "[", l, "-", u, "]"]
 showQuery f (QBoost factor q)    = T.concat [ showQuery f q, "^", (T.pack . show $ factor) ]
 
@@ -339,21 +339,19 @@ allProperties = testGroup "Query Parser Properties"
                 ]
 
 allUnitTests = testGroup "Query Parser Hunit tests" $ hUnitTestToTests $ TestList
-  [ TestLabel "And tests" andTests
-  , TestLabel "Or tests" orTests
-  , TestLabel "Not tests" notTests
-  , TestLabel "Specifier tests" specifierTests
-  , TestLabel "Case tests" caseTests
-  , TestLabel "Parenthese tests" parentheseTests
-  , TestLabel "Phrase tests" phraseTests
-  , TestLabel "Fuzzy tests" fuzzyTests
-  , TestLabel "Range tests" rangeTests
-  , TestLabel "Boost tests" boostTests
+  [ TestLabel "And tests"         andTests
+  , TestLabel "Or tests"          orTests
+  , TestLabel "Not tests"         notTests
+  , TestLabel "Specifier tests"   specifierTests
+  , TestLabel "Case tests"        caseTests
+  , TestLabel "Parenthese tests"  parentheseTests
+  , TestLabel "Phrase tests"      phraseTests
+  , TestLabel "Fuzzy tests"       fuzzyTests
+  , TestLabel "Range tests"       rangeTests
+  , TestLabel "Boost tests"       boostTests
   ]
 --
 main :: IO ()
-main = defaultMain $ [ allProperties 
+main = defaultMain $ [ allProperties
                      , allUnitTests
                      ]
-
-
