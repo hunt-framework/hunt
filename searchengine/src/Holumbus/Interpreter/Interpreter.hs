@@ -228,12 +228,14 @@ execInsertContext :: TextIndexerCon ix dt
                   -> ContextType
                   -> IpIndexer ix dt
                   -> CM ix dt (IpIndexer ix dt, CmdResult)
-execInsertContext cx ct (ix, dt, s)
-    -- | TODO: handle case where context already exists
-    --   => throw error?
-    = return (ixx, ResOK)
+execInsertContext cx ct ixx@(ix, dt, s)
+    = do
+      contextExists        <- Ixx.member cx ixx
+      guard' (not contextExists)
+             409 $ "context already exists: " `T.append` cx
+      return (ixx', ResOK)
     where
-    ixx = ( CIx.insertContext cx ix
+    ixx' = ( CIx.insertContext cx ix
           , dt
           , M.insert cx ct s)
 
@@ -266,16 +268,23 @@ execInsert doc op ixx@(_ix, dt, schema) = do
                                             `T.append` uri docs
 
 
+guard' :: TextIndexerCon ix dt
+       => Bool -> Int -> Text -> CMT ix dt IO ()
+guard' b code text = do
+  if b
+    then return ()
+    else throwResError code $ text
+
+
 checkContextsExistence :: TextIndexerCon ix dt
                        => [Context] -> IpIndexer ix dt -> CM ix dt ()
 checkContextsExistence cs ixx = do
   ixxContexts        <- S.fromList <$> Ixx.contexts ixx
   let docContexts     = S.fromList cs
   let invalidContexts = S.difference docContexts ixxContexts
-  if S.null invalidContexts
-    then return ()
-    else throwResError 409 $ "mentioned context(s) are not present: "
-                             `T.append` (T.pack . show . S.toList) invalidContexts
+  guard' (S.null invalidContexts)
+         409 $ "mentioned context(s) are not present: "
+               `T.append` (T.pack . show . S.toList) invalidContexts
 
 
 execSearch' :: TextIndexerCon ix dt
