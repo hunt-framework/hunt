@@ -51,7 +51,6 @@ import           Holumbus.Utility
 
 -- ----------------------------------------------------------------------------
 
--- XXX: add DocumentWrapper constraint?
 -- | The table which is used to map a document to an artificial id and vice versa.
 type DocMap e
     = DocIdMap e

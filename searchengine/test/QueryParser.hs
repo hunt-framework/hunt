@@ -326,11 +326,11 @@ showQuery f (QRange l u)         = T.concat [ "[", l, "-", u, "]"]
 showQuery f (QBoost factor q)    = T.concat [ showQuery f q, "^", (T.pack . show $ factor) ]
 
 showOpAnd And = "AND"
-showOpAnd Or = "OR"
+showOpAnd Or  = "OR"
 showOpAnd But = error "But not allowed!"
 
 showOpSpace And = " "
-showOpSpace Or = "OR"
+showOpSpace Or  = "OR"
 showOpSpace But = error "But not allowed!"
 
 -- ???

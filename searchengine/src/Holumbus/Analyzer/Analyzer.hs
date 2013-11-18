@@ -3,18 +3,18 @@ module Holumbus.Analyzer.Analyzer
   )
 where
 
-import           Data.DList                  (DList)
-import qualified Data.DList                  as DL
-import           Data.Map                    (Map)
-import qualified Data.Map                    as M
-import           Data.Maybe                  (fromJust)
-import           Data.Text                   (Text)
-import qualified Data.Text                   as T
+import           Data.DList                   (DList)
+import qualified Data.DList                   as DL
+import           Data.Map                     (Map)
+import qualified Data.Map                     as M
+import           Data.Maybe                   (fromJust)
+import           Data.Text                    (Text)
+import qualified Data.Text                    as T
 
 import           Text.Regex.XMLSchema.String
 
-import           Holumbus.Common.Document    (Document (..))
 import           Holumbus.Common.BasicTypes
+import           Holumbus.Common.Document     (Document (..))
 
 import           Holumbus.Common.ApiDocument
 import           Holumbus.Common.Schema
@@ -50,7 +50,7 @@ toDocAndWords schema apiDoc = (doc, ws)
                 id
                 (\(TextData content)
                     -- TODO: discards index metadata in apidoc - obsolete now?
-                    -> let (cType, rex, normType, w) = fromJust $ M.lookup context schema
+                    -> let (cType, rex, normType, _weight) = fromJust $ M.lookup context schema
                            scan = scanTextRE rex
                            norm = chainFuns . map normalizerMapping $ normType
                        in toWordList scan norm content)) indexMap
@@ -70,13 +70,8 @@ toWordList scan norm = M.map DL.toList . foldr insert M.empty . zip [1..] . map 
 
 -- Analyzer
 
--- | Tokenize a text with a regular expression for words
+-- | Tokenize a text with a regular expression for words.
+--
+--  > scanTextRE "[^ \t\n\r]*" == Data.Text.words
 scanTextRE :: Text -> Text -> [Word]
 scanTextRE wRex = map T.pack . tokenize (T.unpack wRex) . T.unpack
-
-{-
--- | The default analyzer function
-scanTextDefault :: Text -> [Word]
-scanTextDefault
-  = scanTextRE "[^ \t\n\r]*"
--}

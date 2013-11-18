@@ -1,4 +1,3 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Holumbus.Index.Proxy.ContextIndex where
 
 import           Data.Binary                  (Binary(..))
