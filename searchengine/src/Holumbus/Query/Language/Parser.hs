@@ -128,7 +128,9 @@ rangeQuery = rangeQuery' <|> caseQuery
   rangeQuery' = do char '['
                    spaces
                    l <- word
-                   char '-'
+                   spaces1
+                   string "TO"
+                   spaces1
                    u <- word
                    spaces
                    char ']'
@@ -200,7 +202,7 @@ phrase = do char '"'
 
 -- | Parse a character of a word.
 wordChar :: Parser Char
-wordChar = noneOf "\")([]-^ "
+wordChar = noneOf "\")([]^ "
 
 -- | Parse a character of a phrases.
 phraseChar :: Parser Char
