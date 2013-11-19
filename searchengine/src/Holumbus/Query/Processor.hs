@@ -208,7 +208,7 @@ process s (QWord QFuzzy w)    = processFuzzyWord s w
 -- phrase search
 process s (QPhrase QCase w)   = processCasePhrase s w
 process s (QPhrase QNoCase w) = processPhrase s w
-process s (QPhrase QFuzzy w)  = undefined -- XXX: TODO
+process s (QPhrase QFuzzy w)  = processFuzzyPhrase s w
 process s (QNegation q)       = processNegation s (process s q)
 process s (QContext c q)      = process (setContexts c s) q
 process s (QBinary o q1 q2)   = processBin o (process s q1) (process s q2)
@@ -291,6 +291,14 @@ processCasePhraseM s q = forAllContextsM phraseCase (contexts s)
   where
   phraseCase c = processPhraseInternalM (Ix.lookup Case (index s) c) c q
 -}
+
+-- | Process a fuzzy phrase.
+processFuzzyPhrase :: QueryIndexCon i => ProcessState i -> Text -> Intermediate
+processFuzzyPhrase s q = forAllContexts phraseFuzzy (contexts s)
+  where
+  phraseFuzzy c = processPhraseInternal meaningfulName c q
+    where
+    meaningfulName t = toRawResult $ CIx.searchWithCx Fuzzy c t (index s)
 
 -- | Process a phrase query by searching for every word of the phrase and comparing their positions.
 processPhraseInternal :: (Text -> RawResult) -> Context -> Text -> Intermediate
