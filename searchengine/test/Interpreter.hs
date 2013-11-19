@@ -76,13 +76,7 @@ brainDoc = emptyApiDoc
   , apiDocDescrMap = descr
   }
   where
-  td = TextData
-    { idContent  = "Brain"
-    , idMetadata = md
-    }
-  md = IndexMetadata
-    { imAnalyzer = DefaultAnalyzer
-    }
+  td = TextData "Brain"
   descr = M.fromList [("name", "Brain"), ("mission", "take over the world"), ("legs", "4")]
 
 -- example apidoc

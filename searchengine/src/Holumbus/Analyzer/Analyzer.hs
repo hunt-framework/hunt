@@ -48,7 +48,7 @@ toDocAndWords schema apiDoc = (doc, ws)
           }
   ws = M.mapWithKey (\context -> either
                 id
-                (\(TextData content metadata)
+                (\(TextData content)
                     -- TODO: discards index metadata in apidoc - obsolete now?
                     -> let (cType, rex, normType, w) = fromJust $ M.lookup context schema
                            scan = scanTextRE rex
