@@ -73,7 +73,7 @@ instance ToJSON Query where
     QContext c q      -> object . ty "context" $ [ "contexts" .= c , "query" .= q ]
     QNegation q       -> object . ty "not"     $ [ "query"  .= q ]
     QBinary op q1 q2  -> object . ty' op       $ [ "query1" .= q1, "query2" .= q2 ]
-    QBoost  w q       -> object . ty "boost"  $ [ "weight" .= w, "query" .= q ]
+    QBoost  w q       -> object . ty "boost"   $ [ "weight" .= w, "query" .= q ]
     QRange l u        -> object . ty "range"   $ [ "lower" .= l, "upper" .= u ]
     where
     ty' t = (:) ("type" .= t)
@@ -163,7 +163,7 @@ instance Binary Query where
              2 -> liftM2 QContext   get get
              3 -> liftM  QNegation  get
              4 -> liftM3 QBinary    get get get
-             5 -> liftM2 QBoost    get get
+             5 -> liftM2 QBoost     get get
              6 -> liftM2 QRange     get get
              _ -> fail "Error while decoding Query"
 
@@ -227,7 +227,7 @@ optimize (QBinary But q1 q2)             = QBinary But (optimize q1) (optimize q
 optimize (QNegation q)                   = QNegation (optimize q)
 optimize (QContext cs q)                 = QContext cs (optimize q)
 
-optimize q                                = q
+optimize q                               = q
 
 -- | Check if the query arguments comply with some custom predicate.
 checkWith                         :: (Text -> Bool) -> Query -> Bool
