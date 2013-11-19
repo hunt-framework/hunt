@@ -206,9 +206,9 @@ process s (QWord QCase w)     = processCaseWord s w
 process s (QWord QNoCase w)   = processWord s w
 process s (QWord QFuzzy w)    = processFuzzyWord s w
 -- phrase search
-process s (QPhrase QCase w)   = processCasePhrase s w
-process s (QPhrase QNoCase w) = processPhrase s w
-process s (QPhrase QFuzzy w)  = processFuzzyPhrase s w
+process s (QPhrase QCase w)   = processPhrase s Case w
+process s (QPhrase QNoCase w) = processPhrase s NoCase w
+process s (QPhrase QFuzzy w)  = processPhrase s Fuzzy w
 process s (QNegation q)       = processNegation s (process s q)
 process s (QContext c q)      = process (setContexts c s) q
 process s (QBinary o q1 q2)   = processBin o (process s q1) (process s q2)
@@ -260,29 +260,21 @@ processCaseWordM s q = forAllContextsM wordCase (contexts s)
   prefixCaseM i c w = return .::: CIx.lookup PrefixCase (Just c, Just w) i -- XXX: real monadic version
 -}
 
--- | Process a phrase case-insensitive.
-processPhrase :: QueryIndexCon i => ProcessState i -> Text -> Intermediate
-processPhrase s q = forAllContexts phraseNoCase (contexts s)
+-- | Process a phrase.
+processPhrase :: QueryIndexCon i => ProcessState i -> TextSearchOp -> Text -> Intermediate
+processPhrase s op q = forAllContexts phraseNoCase (contexts s)
   where
   phraseNoCase c = processPhraseInternal meaningfulName c q
     where
-    meaningfulName t = toRawResult $ CIx.searchWithCx NoCase c t (index s)
+    meaningfulName t = toRawResult $ CIx.searchWithCx op c t (index s)
 
 {-
--- | Monadic version of 'processPhrase'.
+-- | Monadic version of 'processPhrase.
 processPhraseM :: (Monad m, TextIndex i v) => ProcessState i -> Text -> m Intermediate
 processPhraseM s q = forAllContextsM phraseNoCase (contexts s)
   where
   phraseNoCase c = processPhraseInternalM (CIx.lookup NoCase (index s) c) c q
 -}
-
--- | Process a phrase case-sensitive.
-processCasePhrase :: QueryIndexCon i => ProcessState i -> Text -> Intermediate
-processCasePhrase s q = forAllContexts phraseCase (contexts s)
-  where
-  phraseCase c = processPhraseInternal meaningfulName c q
-    where
-    meaningfulName t = toRawResult $ CIx.searchWithCx Case c t (index s)
 
 {-
 -- | Monadic version of 'processCasePhrase'.
@@ -291,14 +283,6 @@ processCasePhraseM s q = forAllContextsM phraseCase (contexts s)
   where
   phraseCase c = processPhraseInternalM (Ix.lookup Case (index s) c) c q
 -}
-
--- | Process a fuzzy phrase.
-processFuzzyPhrase :: QueryIndexCon i => ProcessState i -> Text -> Intermediate
-processFuzzyPhrase s q = forAllContexts phraseFuzzy (contexts s)
-  where
-  phraseFuzzy c = processPhraseInternal meaningfulName c q
-    where
-    meaningfulName t = toRawResult $ CIx.searchWithCx Fuzzy c t (index s)
 
 -- | Process a phrase query by searching for every word of the phrase and comparing their positions.
 processPhraseInternal :: (Text -> RawResult) -> Context -> Text -> Intermediate
