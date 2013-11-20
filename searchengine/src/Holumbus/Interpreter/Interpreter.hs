@@ -292,8 +292,8 @@ execSearch' :: TextIndexerCon ix dt
             -> Query
             -> IpIndexer ix dt
             -> CM ix dt CmdResult
-execSearch' f q (ix, dt, _)
-    = runQueryM ix dt q >>= return . f
+execSearch' f q (ix, dt, s)
+    = runQueryM ix s dt q >>= return . f
 
 wrapSearch :: Int -> Int -> Result Document -> CmdResult
 wrapSearch offset mx
@@ -338,6 +338,7 @@ queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) T
 
 runQueryM       :: TextIndexerCon ix dt
                 => ContextIndex ix Occurrences
+                -> ContextSchema
                 -> dt
                 -> Query
                 -> CM ix dt (QRes.Result (Dt.DValue (Documents Document)))

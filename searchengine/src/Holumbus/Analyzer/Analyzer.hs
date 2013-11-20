@@ -1,5 +1,7 @@
 module Holumbus.Analyzer.Analyzer
   ( toDocAndWords
+  , normalize
+  , scanTextRE
   )
 where
 
@@ -52,8 +54,13 @@ toDocAndWords schema apiDoc = (doc, ws)
                     -- TODO: discards index metadata in apidoc - obsolete now?
                     -> let (cType, rex, normType, _weight) = fromJust $ M.lookup context schema
                            scan = scanTextRE rex
-                           norm = chainFuns . map normalizerMapping $ normType
-                       in toWordList scan norm content)) indexMap
+                       in toWordList scan (normalize normType) content)) indexMap
+
+
+-- | Apply the normalizers to a Word.
+normalize :: [CNormalizer] -> Word -> Word
+normalize cType = chainFuns . map normalizerMapping $ cType
+
 
 -- | Chain a list of functions.
 chainFuns :: [a -> a] -> a -> a

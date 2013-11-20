@@ -50,10 +50,16 @@ import           Control.Parallel.Strategies
 import           Data.Binary                       (Binary (..))
 import           Data.Function
 import qualified Data.List                         as L
+import qualified Data.Map                          as M
+import           Data.Maybe
 import           Data.Text                         (Text)
 import qualified Data.Text                         as T
+import           Data.Text.Lazy                    (fromStrict, toStrict)
+import qualified Data.Text.Lazy.Read               as TR
+import           Data.Text.Lazy.Builder            (toLazyText)
+import qualified Data.Text.Lazy.Builder.Int        as TBI (decimal)
 
---import           Holumbus.Utility                  ((.::), (.:::))
+import           Holumbus.Utility
 
 import           Holumbus.Common
 import qualified Holumbus.Common.DocIdMap          as DM
@@ -72,6 +78,8 @@ import           Holumbus.Query.Result             (Result)
 
 import           Holumbus.DocTable.DocTable        (DocTable)
 import qualified Holumbus.DocTable.DocTable        as Dt
+
+import           Holumbus.Analyzer.Analyzer
 
 -- ----------------------------------------------------------------------------
 
@@ -97,6 +105,7 @@ data ProcessState i
       , contexts :: ! [Context]        -- ^ The current list of contexts.
       -- XXX: strictness annotation
       , index    ::   ContextIndex i Occurrences  -- ^ The index to search.
+      , schema   ::   ContextSchema
       , total    :: ! Int              -- ^ The number of documents in the index.
       }
 
@@ -108,8 +117,8 @@ type QueryIndexCon i = ContextTextIndex i Occurrences
 
 -- TODO: transform all monadic functions and delete this section
 
-processPartialM :: (Monad m, QueryIndexCon i) => ProcessConfig -> QueryIndex i -> Int -> Query -> m Intermediate
-processPartialM cfg i t q = return $ processPartial cfg i t q
+processPartialM :: (Monad m, QueryIndexCon i) => ProcessConfig -> QueryIndex i -> ContextSchema -> Int -> Query -> m Intermediate
+processPartialM cfg i s t q = return $ processPartial cfg i s t q
 
 -- ----------------------------------------------------------------------------
 
@@ -123,15 +132,15 @@ getFuzzyConfigM s = return $ fuzzyConfig $ config s
 
 -- | Set the current context in the state.
 setContexts :: [Context] -> ProcessState i -> ProcessState i
-setContexts cs (ProcessState cfg _ i t) = ProcessState cfg cs i t
+setContexts cs (ProcessState cfg _ i s t) = ProcessState cfg cs i s t
 
 -- | Monadic version of 'setContexts'.
 setContextsM :: Monad m => [Context] -> ProcessState i -> m (ProcessState i)
-setContextsM cs (ProcessState cfg _ i t) = return $ ProcessState cfg cs i t
+setContextsM cs (ProcessState cfg _ i s t) = return $ ProcessState cfg cs i s t
 
 -- | Initialize the state of the processor.
-initState :: (TextIndex i v) => ProcessConfig -> QueryIndex i -> Int -> ProcessState i
-initState cfg i = ProcessState cfg wcs i
+initState :: (TextIndex i v) => ProcessConfig -> QueryIndex i -> ContextSchema -> Int -> ProcessState i
+initState cfg i s = ProcessState cfg wcs i s
   where
   -- TODO: default context weights should be used here
   -- should be stored in interpreter schema and then
@@ -139,8 +148,8 @@ initState cfg i = ProcessState cfg wcs i
   wcs = CIx.contexts i
 
 -- | Monadic version of 'initState'.
-initStateM :: (Monad m, QueryIndexCon i) => ProcessConfig -> QueryIndex i -> Int -> m (ProcessState i)
-initStateM cfg i t = contextsM i >>= \cs -> return $ ProcessState cfg cs i t
+initStateM :: (Monad m, QueryIndexCon i) => ProcessConfig -> QueryIndex i -> ContextSchema -> Int -> m (ProcessState i)
+initStateM cfg i s t = contextsM i >>= \cs -> return $ ProcessState cfg cs i s t
   where
   contextsM = return . CIx.contexts
 
@@ -172,8 +181,8 @@ allDocumentsM s = forAllContextsM (\c -> allWordsM (index s) c >>= \r -> return 
 
 -- | Process a query only partially in terms of a distributed index. Only the intermediate
 -- result will be returned.
-processPartial :: QueryIndexCon i => ProcessConfig -> QueryIndex i -> Int -> Query -> Intermediate
-processPartial cfg i t q = process (initState cfg i t) oq
+processPartial :: QueryIndexCon i => ProcessConfig -> QueryIndex i -> ContextSchema -> Int -> Query -> Intermediate
+processPartial cfg i s t q = process (initState cfg i s t) oq
   where
   oq = if optimizeQuery cfg then optimize q else q
 
@@ -194,10 +203,10 @@ processPartialM cfg i t q = initStateM cfg i t >>= flip processM oq
 
 -- | Monadic version of 'processQuery'.
 processQueryM :: (Applicative m, Monad m, QueryIndexCon i, DocTable d, Dt.DValue d ~ e, e ~ Document) =>
-                 ProcessConfig -> QueryIndex i -> d -> Query -> m (Result e)
-processQueryM cfg i d q = do
+                 ProcessConfig -> QueryIndex i -> ContextSchema -> d -> Query -> m (Result e)
+processQueryM cfg i s d q = do
     sz <- Dt.size d
-    processPartialM cfg i sz q >>= \ir -> I.toResult d ir
+    processPartialM cfg i s sz q >>= \ir -> I.toResult d ir
 
 -- | Continue processing a query by deciding what to do depending on the current query element.
 process :: QueryIndexCon i => ProcessState i -> Query -> Intermediate
@@ -212,6 +221,8 @@ process s (QPhrase QFuzzy w)  = processPhrase s Fuzzy w
 process s (QNegation q)       = processNegation s (process s q)
 process s (QContext c q)      = process (setContexts c s) q
 process s (QBinary o q1 q2)   = processBin o (process s q1) (process s q2)
+process s (QRange l h)        = processRange s l h
+-- TODO: implement boosting of queries: (QBoost w q)
 
 {--- | Monadic version of 'process'.
 processM :: (Monad m, TextIndex i v) => ProcessState i -> Query -> m Intermediate
@@ -227,6 +238,113 @@ processM s (QBinary o q1 q2)  = do
   ir2 <- processM s q2
   return $ processBin o ir1 ir2
 -}
+
+-- TODO: error handling
+processRange :: QueryIndexCon i => ProcessState i -> Text -> Text -> Intermediate
+processRange s l h
+  = let res = map contextSensitiveRange (contexts s)
+  in if any isNothing res then error "range query not compatible with context types"
+     else process s $ chainQueries1 . catMaybes $ res
+  where
+  -- FIXME: constructing a single query probably requires the Query to be fully evaluated beforehand
+  -- (especially when using query optimization) -
+  -- this leads to the string range to be fully evaluated which requires a lot of memory
+  contextSensitiveRange :: Context -> Maybe Query
+  contextSensitiveRange c
+    = do
+     (cType, rex, cNormalizer, _cWeight) <- contextSchema c
+     let scan w = unbox .  scanTextRE rex . normalize cNormalizer $ w
+     let validRange = (<=) -- TODO: context-sensitive check
+     l' <- scan l
+     h' <- scan h
+     guard $ validRange l' h'
+     return $ QContext [c] $ rangeQueryMapping cType l' h'
+
+  contextSchema :: Context -> Maybe ContextType
+  contextSchema c = M.lookup c $ schema s
+
+  unbox [e] = Just e
+  unbox _   = Nothing
+
+
+-- range queries will be transformed to other queries for now
+rangeQueryMapping :: CType -> Text -> Text -> Query
+rangeQueryMapping t = case t of
+  CText -> createTextRangeQuery
+  CInt  -> createIntRangeQuery
+
+createTextRangeQuery :: Text -> Text -> Query
+createTextRangeQuery l h = naiveRangeQuery1 $ rangeText l h
+
+-- NOTE: range limits have to be readable as Ints and the range has to contain at least 2 elements.
+createIntRangeQuery :: Text -> Text -> Query
+createIntRangeQuery l h = naiveRangeQuery1 . map show' $ [l'..h']
+  where
+  -- XXX: custom reader?
+  read' = fst . fromRight . TR.decimal . fromStrict
+  show' = toStrict . toLazyText . TBI.decimal
+  _limits :: (Int, Int)
+  _limits@(l',h') = (read' l, read' h)
+
+-- NOTE: list must be non-empty.
+naiveRangeQuery1 :: [Text] -> Query
+naiveRangeQuery1 = chainQueries1 . map (QWord QCase)
+
+-- NOTE: list must be non-empty.
+chainQueries1 :: [Query] -> Query
+chainQueries1 = L.foldl1' (QBinary Or)
+
+-- | 'rangeString' with 'Text'.
+rangeText :: Text -> Text -> [Text]
+rangeText l h = map T.pack $ rangeString (T.unpack l) (T.unpack h)
+
+-- [str0..str1]
+rangeString :: String -> String -> [String]
+rangeString start0 end = rangeString' start0
+  where
+  len = length end
+  rangeString' start
+    = let succ' = succString len start
+    in if start == end
+       then [start]
+       else start:rangeString' succ'
+
+{-
+-- tail-recursive version
+-- NOTE: order is reversed.
+rangeString' :: String -> String -> [String]
+rangeString' start0 end = range [] start0
+  where
+  len = length end
+  range acc start
+    = let succ' = succString len start
+      in if start == end
+         then start:acc
+         else range (start:acc) succ'
+-}
+
+-- | Computes the string successor.
+--   NOTE: characters need to be in range of minBound'..maxBound'.
+succString :: Int -> String -> String
+succString = succString'
+  where
+  succString' :: Int -> String -> String
+  succString' m s =
+    if length s < m then s ++ [minBound']
+    else
+      case s of
+      [] -> []
+      _  ->
+        if l == maxBound'
+        then succString' (m-1) i
+        else i ++ [succ l]
+    where
+    (i,l) = (init s, last s)
+    -- TODO: appropriate bounds?
+    minBound' = 'a'
+    maxBound' = 'z'
+    --minBound' = '!'
+    --maxBound' = '~'
 
 -- | Process a single, case-insensitive word by finding all documents whreturn I.empty -- ich contain the word as prefix.
 processWord :: QueryIndexCon i => ProcessState i -> Text -> Intermediate
