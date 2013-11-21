@@ -39,18 +39,19 @@ module Holumbus.Query.Ranking
   )
 where
 
-import           Prelude                           hiding (foldr)
+import           Prelude                   hiding (foldr)
 
 import           Data.Foldable
 import           Data.Function
 
-import qualified Data.List                         as L
-import qualified Data.Map                          as M
+import qualified Data.List                 as L
+import qualified Data.Map                  as M
 
 import           Holumbus.Common
-import qualified Holumbus.Common.DocIdMap    as DM
+import qualified Holumbus.Common.DocIdMap  as DM
+import           Holumbus.Common.Positions as Pos
 import           Holumbus.Query.Result
-import           Holumbus.Common.Positions
+
 -- ----------------------------------------------------------------------------
 
 -- | The configuration of the ranking mechanism.
@@ -80,11 +81,11 @@ rank (RankConfig fd fw {-ld lw-}) r
 -- | Rank documents by count.
 docRankByCount          :: DocId -> DocInfo e -> DocContextHits -> Score
 docRankByCount _ _ h    = fromIntegral $
-                          M.foldr (flip (M.foldr (\h2 r2 -> sizePos h2 + r2))) 0 h
+                          M.foldr (flip (M.foldr (\h2 r2 -> Pos.size h2 + r2))) 0 h
 
 -- | Rank words by count.
 wordRankByCount         :: Word -> WordInfo -> WordContextHits -> Score
-wordRankByCount _ _ h   = fromIntegral $ M.foldr (flip (DM.foldr ((+) . sizePos))) 0 h
+wordRankByCount _ _ h   = fromIntegral $ M.foldr (flip (DM.foldr ((+) . Pos.size))) 0 h
 
 -- | Rank documents by context-weighted count. The weights will be normalized to a maximum of 1.0.
 -- Contexts with no weight (or a weight of zero) will be ignored.
@@ -106,7 +107,7 @@ calcWeightedScore ws c h r
                           lookupWeight c ws
   where
     count               = fromIntegral $
-                          foldl' (flip $ (+) . sizePos) 0 h
+                          foldl' (flip $ (+) . Pos.size) 0 h
     mw                  = snd $
                           L.maximumBy (compare `on` snd) ws
 

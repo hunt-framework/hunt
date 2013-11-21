@@ -63,7 +63,7 @@ import           Holumbus.Utility
 
 import           Holumbus.Common
 import qualified Holumbus.Common.DocIdMap          as DM
-import           Holumbus.Common.Positions         (foldPos, memberPos, unionPos)
+import qualified Holumbus.Common.Positions         as Pos
 import           Holumbus.Index.TextIndex
 
 import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
@@ -455,7 +455,7 @@ processPhraseInternal f c q = let
       nextWord no d np = maybe False hasSuccessor $ DM.lookup d (mergeOccurrencesList no)
           where
             hasSuccessor :: Positions -> Bool
-            hasSuccessor w = foldPos (\cp r -> r || memberPos (cp + p) w) False np
+            hasSuccessor w = Pos.foldr (\cp r -> r || Pos.member (cp + p) w) False np
 
 {-
 -- | Monadic version of 'processPhraseInternal'.
@@ -557,7 +557,7 @@ limitWordsM s r         = return $ limitWords s r
 
 -- | Merge occurrences
 mergeOccurrencesList    :: [Occurrences] -> Occurrences
-mergeOccurrencesList    = DM.unionsWith unionPos
+mergeOccurrencesList    = DM.unionsWith Pos.union
 
 -- ----------------------------------------------------------------------------
 

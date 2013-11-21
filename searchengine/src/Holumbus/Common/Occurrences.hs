@@ -18,15 +18,17 @@
 module Holumbus.Common.Occurrences
 where
 
-import           Prelude                          hiding (subtract)
+import           Prelude                     hiding (subtract)
 
-import qualified Data.IntSet                      as IS
+import qualified Data.IntSet                 as IS
 
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.DocId
-import           Holumbus.Common.DocIdMap   (DocIdMap)
-import qualified Holumbus.Common.DocIdMap   as DM
-import           Holumbus.Common.Positions
+import           Holumbus.Common.DocIdMap    (DocIdMap)
+import qualified Holumbus.Common.DocIdMap    as DM
+import           Holumbus.Common.Positions   (Positions)
+import qualified Holumbus.Common.Positions   as Pos
+
 -- ------------------------------------------------------------
 
 -- | The occurrences in a number of documents.
@@ -51,11 +53,11 @@ size                    = DM.foldr ((+) . IS.size) 0
 
 -- | Add a position to occurrences.
 insert                  :: DocId -> Position -> Occurrences -> Occurrences
-insert d p              = DM.insertWith IS.union d (singletonPos p)
+insert d p              = DM.insertWith IS.union d (Pos.singleton p)
 
 -- | Remove a position from occurrences.
 deleteOccurrence        :: DocId -> Position -> Occurrences -> Occurrences
-deleteOccurrence d p    = subtract (DM.singleton d (singletonPos p))
+deleteOccurrence d p    = subtract (DM.singleton d (Pos.singleton p))
 
 -- | Delete a document (by 'DocId') from occurrences.
 delete                  :: DocId -> Occurrences -> Occurrences

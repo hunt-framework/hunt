@@ -46,25 +46,25 @@ module Holumbus.Query.Intermediate
 )
 where
 
-import           Prelude                           hiding (null)
+import           Prelude                    hiding (null)
 
-import           Control.Applicative               hiding (empty)
+import           Control.Applicative        hiding (empty)
 
 import           Data.Maybe
 
-import qualified Data.List                         as L
+import qualified Data.List                  as L
 
-import           Data.Map                          (Map)
-import qualified Data.Map                          as M
+import           Data.Map                   (Map)
+import qualified Data.Map                   as M
 
-import           Holumbus.Query.Result             hiding (null)
+import           Holumbus.Query.Result      hiding (null)
 
 import           Holumbus.Common
-import qualified Holumbus.Common.DocIdMap    as DM
-import qualified Holumbus.Common.Positions   as Pos
+import qualified Holumbus.Common.DocIdMap   as DM
+import qualified Holumbus.Common.Positions  as Pos
 
-import           Holumbus.DocTable.DocTable        (DocTable)
-import qualified Holumbus.DocTable.DocTable        as Dt
+import           Holumbus.DocTable.DocTable (DocTable)
+import qualified Holumbus.DocTable.DocTable as Dt
 
 -- ----------------------------------------------------------------------------
 
@@ -163,7 +163,7 @@ combineWordHits                 :: (WordInfo, WordContextHits) ->
                                    (WordInfo, WordContextHits) -> (WordInfo, WordContextHits)
 combineWordHits (i1, c1) (i2, c2)
                                 = ( combineWordInfo i1 i2
-                                  , M.unionWith (DM.unionWith Pos.unionPos) c1 c2
+                                  , M.unionWith (DM.unionWith Pos.union) c1 c2
                                   )
 
 -- | Combine two tuples with score and context hits.
@@ -171,7 +171,7 @@ combineContexts                 :: IntermediateContexts -> IntermediateContexts 
 combineContexts                 = M.unionWith (M.unionWith merge')
   where
   merge' (i1, p1) (i2, p2)       = ( combineWordInfo i1 i2
-                                  , Pos.unionPos p1 p2
+                                  , Pos.union p1 p2
                                   )
 
 -- | Combine two word informations.

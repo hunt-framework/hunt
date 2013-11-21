@@ -36,12 +36,13 @@ module Holumbus.Common.DiffList
 where
 
 import           Data.List
-import           Data.Word                         (Word32, Word64)
+import           Data.Word                  (Word32, Word64)
 
 import           Holumbus.Data.Crunch
 
-import           Holumbus.Common.BasicTypes  (Position)
-import           Holumbus.Common.Positions
+import           Holumbus.Common.BasicTypes (Position)
+import           Holumbus.Common.Positions  (Positions)
+import qualified Holumbus.Common.Positions  as Pos
 
 -- ----------------------------------------------------------------------------
 
@@ -53,11 +54,11 @@ type DiffList           = [Diff]
 
 -- | Convert a set of integers into a list of difference encoded values.
 fromPositions           :: Positions -> DiffList
-fromPositions           = fromList . toAscListPos
+fromPositions           = fromList . Pos.toAscList
 
 -- | Convert the difference encoded values to a list of integers.
 toPositions             :: DiffList -> Positions
-toPositions             = fromListPos . toList
+toPositions             = Pos.fromList . toList
 
 -- | Convert a list of positions into a list of difference encoded values.
 fromList                :: [Position] -> DiffList
