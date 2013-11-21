@@ -52,7 +52,7 @@ toDocAndWords schema apiDoc = (doc, ws)
                 id
                 (\(TextData content)
                     -- TODO: discards index metadata in apidoc - obsolete now?
-                    -> let (cType, rex, normType, _weight) = fromJust $ M.lookup context schema
+                    -> let (_cType, rex, normType, _weight) = fromJust $ M.lookup context schema
                            scan = scanTextRE rex
                        in toWordList scan (normalize normType) content)) indexMap
 

@@ -48,7 +48,7 @@ import           Holumbus.Common.Schema
 
 data Query = QWord      TextSearchType Text        -- ^ Word search.
            | QPhrase    TextSearchType Text        -- ^ Phrase search
-           | QContext   [(Context)] Query          -- ^ Restrict query to a list of contexts.
+           | QContext   [Context] Query            -- ^ Restrict query to a list of contexts.
            | QNegation  Query                      -- ^ Negate the query.
            | QBinary    BinOp Query Query          -- ^ Combine two queries through a binary operation.
            | QBoost     CWeight Query              -- ^ Weight for Query

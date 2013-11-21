@@ -110,7 +110,7 @@ data ProcessState i
       }
 
 -- |  shortcuts
-type QueryIndex i = ContextIndex i Occurrences
+type QueryIndex    i = ContextIndex     i Occurrences
 type QueryIndexCon i = ContextTextIndex i Occurrences
 
 -- ----------------------------------------------------------------------------
@@ -156,11 +156,11 @@ initStateM cfg i s t = contextsM i >>= \cs -> return $ ProcessState cfg cs i s t
 -- TODO: previously rdeepseq
 -- | Try to evaluate the query for all contexts in parallel.
 forAllContexts :: (Context -> Intermediate) -> [Context] -> Intermediate
-forAllContexts f wcs = L.foldl' I.union I.empty $ parMap rseq f wcs
+forAllContexts f wcs = I.unions $ parMap rseq f wcs
 
 -- | Monadic version of 'forAllContexts'.
 forAllContextsM :: Monad m => (Context -> m Intermediate) -> [Context] -> m Intermediate
-forAllContextsM f cs = mapM f cs >>= \is -> return $ L.foldl' I.union I.empty is
+forAllContextsM f cs = mapM f cs >>= \is -> return $ I.unions is
 
 -- | Just everything.
 allDocuments :: QueryIndexCon i => ProcessState i -> Intermediate
@@ -238,6 +238,10 @@ processM s (QBinary o q1 q2)  = do
   ir2 <- processM s q2
   return $ processBin o ir1 ir2
 -}
+
+-- ----------------------------------------------------------------------------
+-- Range Query
+-- ----------------------------------------------------------------------------
 
 -- TODO: error handling
 processRange :: QueryIndexCon i => ProcessState i -> Text -> Text -> Intermediate
@@ -323,28 +327,33 @@ rangeString' start0 end = range [] start0
          else range (start:acc) succ'
 -}
 
--- | Computes the string successor.
+-- | Computes the string successor with a length restriction.
 --   NOTE: characters need to be in range of minBound'..maxBound'.
 succString :: Int -> String -> String
 succString = succString'
   where
   succString' :: Int -> String -> String
   succString' m s =
-    if length s < m then s ++ [minBound']
+    if length s < m
+    then s ++ [minBound']
     else
-      case s of
-      [] -> []
-      _  ->
+      if null s
+      then s
+      else
         if l == maxBound'
         then succString' (m-1) i
         else i ++ [succ l]
     where
     (i,l) = (init s, last s)
     -- TODO: appropriate bounds?
-    minBound' = 'a'
-    maxBound' = 'z'
-    --minBound' = '!'
-    --maxBound' = '~'
+    --minBound' = 'a'
+    --maxBound' = 'z'
+    minBound' = '!'
+    maxBound' = '~'
+
+-- ----------------------------------------------------------------------------
+-- Word Query
+-- ----------------------------------------------------------------------------
 
 -- | Process a single, case-insensitive word by finding all documents whreturn I.empty -- ich contain the word as prefix.
 processWord :: QueryIndexCon i => ProcessState i -> Text -> Intermediate
@@ -378,6 +387,32 @@ processCaseWordM s q = forAllContextsM wordCase (contexts s)
   prefixCaseM i c w = return .::: CIx.lookup PrefixCase (Just c, Just w) i -- XXX: real monadic version
 -}
 
+-- | Process a single word and try some fuzzy alternatives if nothing was found.
+processFuzzyWord :: QueryIndexCon i => ProcessState i -> Text -> Intermediate
+processFuzzyWord s oq = processFuzzyWord' (F.toList $ F.fuzz (getFuzzyConfig s) oq) (processWord s oq)
+  where
+  processFuzzyWord' :: [(Text, FuzzyScore)] -> Intermediate -> Intermediate
+  processFuzzyWord' []     r = r
+  processFuzzyWord' (q:qs) r = if I.null r then processFuzzyWord' qs (processWord s (fst q)) else r
+
+{-
+-- | Monadic version of 'processFuzzyWord'.
+processFuzzyWordM :: (Monad m, TextIndex i v) => ProcessState i -> Text -> m Intermediate
+processFuzzyWordM s oq = do
+  sr <- processWordM s oq
+  cfg <- getFuzzyConfigM s
+  processFuzzyWordM' (F.toList $ F.fuzz cfg oq) sr
+    where
+    processFuzzyWordM' []     r = return r
+    processFuzzyWordM' (q:qs) r = if I.null r
+                                  then processWordM s (fst q) >>= processFuzzyWordM' qs
+                                  else return r
+-}
+
+-- ----------------------------------------------------------------------------
+-- Phrase Query
+-- ----------------------------------------------------------------------------
+
 -- | Process a phrase.
 processPhrase :: QueryIndexCon i => ProcessState i -> TextSearchOp -> Text -> Intermediate
 processPhrase s op q = forAllContexts phraseNoCase (contexts s)
@@ -405,11 +440,11 @@ processCasePhraseM s q = forAllContextsM phraseCase (contexts s)
 -- | Process a phrase query by searching for every word of the phrase and comparing their positions.
 processPhraseInternal :: (Text -> RawResult) -> Context -> Text -> Intermediate
 processPhraseInternal f c q = let
-  w = T.words q
-  m = mergeOccurrencesList $ map snd $ f (head w) in
+  (w:ws) = T.words q
+  m = mergeOccurrencesList $ map snd $ f w in
   if DM.null m
   then I.empty
-  else I.fromList q c [(q, processPhrase' (tail w) 1 m)]
+  else I.fromList q c [(q, processPhrase' ws 1 m)]
   where
   processPhrase' :: [Text] -> Position -> Occurrences -> Occurrences
   processPhrase' [] _ o = o
@@ -417,7 +452,7 @@ processPhraseInternal f c q = let
     where
       nextWord :: [Occurrences] -> DocId -> Positions -> Bool
       nextWord [] _ _  = False
-      nextWord no d np = maybe False hasSuccessor (DM.lookup d (mergeOccurrencesList no))
+      nextWord no d np = maybe False hasSuccessor $ DM.lookup d (mergeOccurrencesList no)
           where
             hasSuccessor :: Positions -> Bool
             hasSuccessor w = foldPos (\cp r -> r || memberPos (cp + p) w) False np
@@ -446,27 +481,9 @@ processPhraseInternalM f c q = let
             hasSuccessor w = foldPos (\cp r -> r || memberPos (cp + p) w) False np
 -}
 
--- | Process a single word and try some fuzzy alternatives if nothing was found.
-processFuzzyWord :: QueryIndexCon i => ProcessState i -> Text -> Intermediate
-processFuzzyWord s oq = processFuzzyWord' (F.toList $ F.fuzz (getFuzzyConfig s) oq) (processWord s oq)
-  where
-  processFuzzyWord' :: [(Text, FuzzyScore)] -> Intermediate -> Intermediate
-  processFuzzyWord' []     r = r
-  processFuzzyWord' (q:qs) r = if I.null r then processFuzzyWord' qs (processWord s (fst q)) else r
-
-{-
--- | Monadic version of 'processFuzzyWord'.
-processFuzzyWordM :: (Monad m, TextIndex i v) => ProcessState i -> Text -> m Intermediate
-processFuzzyWordM s oq = do
-  sr <- processWordM s oq
-  cfg <- getFuzzyConfigM s
-  processFuzzyWordM' (F.toList $ F.fuzz cfg oq) sr
-    where
-    processFuzzyWordM' []     r = return r
-    processFuzzyWordM' (q:qs) r = if I.null r
-                                  then processWordM s (fst q) >>= processFuzzyWordM' qs
-                                  else return r
--}
+-- ----------------------------------------------------------------------------
+-- Operators
+-- ----------------------------------------------------------------------------
 
 -- | Process a negation by getting all documents and subtracting the result of the negated query.
 processNegation :: QueryIndexCon i => ProcessState i -> Intermediate -> Intermediate
@@ -480,9 +497,13 @@ processNegationM s r1 = allDocumentsM s >>= \r2 -> return $ I.difference r2 r1
 
 -- | Process a binary operator by caculating the union or the intersection of the two subqueries.
 processBin :: BinOp -> Intermediate -> Intermediate -> Intermediate
-processBin And r1 r2 = I.intersection r1 r2
-processBin Or  r1 r2 = I.union        r1 r2
-processBin But r1 r2 = I.difference   r1 r2
+processBin And = I.intersection
+processBin Or  = I.union
+processBin But = I.difference
+
+-- ----------------------------------------------------------------------------
+-- Helper
+-- ----------------------------------------------------------------------------
 
 -- | Limit a 'RawResult' to a fixed amount of the best words.
 --
@@ -542,6 +563,6 @@ mergeOccurrencesList    = DM.unionsWith unionPos
 
 -- XXX: no merging - just for results with a single context
 toRawResult :: [(Context, [(Word, Occurrences)])] -> RawResult
-toRawResult = concat . map snd
+toRawResult = concatMap snd
 
 -- ----------------------------------------------------------------------------
