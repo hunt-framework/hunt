@@ -46,7 +46,6 @@ library
                , SHA                    >= 1.4 && < 2
                , text                   >= 0.11.1
                , unix                   >= 2.3 && < 3
-               , QuickCheck
 
   exposed-modules:
     Data.Text.Binary
