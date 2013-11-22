@@ -12,5 +12,6 @@ import           Holumbus.Common.Schema
 
 normalizerMapping :: CNormalizer -> Word -> Word
 normalizerMapping o = case o of
-    CUpperCase -> T.toUpper
-    CLowerCase -> T.toLower
+    NormUpperCase -> T.toUpper
+    NormLowerCase -> T.toLower
+    NormDate      -> undefined

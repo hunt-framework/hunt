@@ -40,13 +40,14 @@ type ContextType
 data CType
   = CText
   | CInt
+  | CDate
   deriving (Show, Eq)
 
 -- | Regular expression.
 type CRegex  = Text
 
 -- | Enum for text-normalizers than can be chose by the user.
-data CNormalizer = CUpperCase | CLowerCase
+data CNormalizer = NormUpperCase | NormLowerCase | NormDate
   deriving (Show, Eq)
 
 -- | Context weight for search result rankings.
@@ -59,28 +60,31 @@ type CWeight = Float
 instance FromJSON CType where
   parseJSON (String s)
     = case s of
-        "ctext" -> return CText
-        "cint"  -> return CInt
+        "text" -> return CText
+        "int"  -> return CInt
+        "date" -> return CDate
         _       -> mzero
   parseJSON _ = mzero
 
 instance ToJSON CType where
   toJSON o = case o of
-    CText -> "ctext"
-    CInt  -> "cint"
+    CText -> "text"
+    CInt  -> "int"
+    CDate -> "date"
 
 instance FromJSON CNormalizer where
   parseJSON (String s)
     = case s of
-        "uppercase" -> return CUpperCase
-        "lowercase" -> return CLowerCase
+        "uppercase" -> return NormUpperCase
+        "lowercase" -> return NormLowerCase
         _           -> mzero
   parseJSON _ = mzero
 
 instance ToJSON CNormalizer where
   toJSON o = case o of
-    CUpperCase -> "uppercase"
-    CLowerCase -> "lowercase"
+    NormUpperCase -> "uppercase"
+    NormLowerCase -> "lowercase"
+    NormDate      -> "date"
 
 -- ----------------------------------------------------------------------------
 -- Binary instances
@@ -89,19 +93,25 @@ instance ToJSON CNormalizer where
 instance Binary CType where
   put (CText) = put (0 :: Word8)
   put (CInt)  = put (1 :: Word8)
+  put (CDate) = put (2 :: Word8)
 
   get = do
     t <- get :: Get Word8
     case t of
       0 -> return CText
       1 -> return CInt
+      2 -> return CDate
+      _ -> fail "get(CType) out of bounds"
 
 instance Binary CNormalizer where
-  put (CUpperCase) = put (0 :: Word8)
-  put (CLowerCase) = put (1 :: Word8)
+  put (NormUpperCase) = put (0 :: Word8)
+  put (NormLowerCase) = put (1 :: Word8)
+  put (NormDate)      = put (2 :: Word8)
 
   get = do
     t <- get :: Get Word8
     case t of
-      0 -> return CUpperCase
-      1 -> return CLowerCase
+      0 -> return NormUpperCase
+      1 -> return NormLowerCase
+      2 -> return NormDate
+      _ -> fail "get(CNormalizer) out of bounds"
