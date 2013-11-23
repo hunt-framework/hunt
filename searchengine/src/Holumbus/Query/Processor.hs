@@ -80,6 +80,7 @@ import           Holumbus.DocTable.DocTable        (DocTable)
 import qualified Holumbus.DocTable.DocTable        as Dt
 
 import           Holumbus.Analyzer.Analyzer
+import           Holumbus.Analyzer.Normalizer
 
 -- ----------------------------------------------------------------------------
 
@@ -257,7 +258,8 @@ processRange s l h
   contextSensitiveRange c
     = do
      (cType, rex, cNormalizer, _cWeight) <- contextSchema c
-     let scan w = unbox .  scanTextRE rex . normalize cNormalizer $ w
+     guard $ all (typeValidator cType) [l,h]
+     let scan w = unbox .  map (normalize cNormalizer) . scanTextRE rex $ w
      let validRange = (<=) -- TODO: context-sensitive check
      l' <- scan l
      h' <- scan h
@@ -276,6 +278,10 @@ rangeQueryMapping :: CType -> Text -> Text -> Query
 rangeQueryMapping t = case t of
   CText -> createTextRangeQuery
   CInt  -> createIntRangeQuery
+  CDate -> createDateRangeQuery -- XXX: same as for Text
+
+createDateRangeQuery :: Text -> Text -> Query
+createDateRangeQuery = createTextRangeQuery
 
 createTextRangeQuery :: Text -> Text -> Query
 createTextRangeQuery l h = naiveRangeQuery1 $ rangeText l h

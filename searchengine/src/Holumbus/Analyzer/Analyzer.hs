@@ -51,9 +51,8 @@ toDocAndWords schema apiDoc = (doc, ws)
   ws = M.mapWithKey (\context -> either
                 id
                 (\(TextData content)
-                    -- TODO: discards index metadata in apidoc - obsolete now?
-                    -> let (_cType, rex, normType, _weight) = fromJust $ M.lookup context schema
-                           scan = scanTextRE rex
+                    -> let (cType, rex, normType, _weight) = fromJust $ M.lookup context schema
+                           scan = filter (typeValidator cType) . scanTextRE rex
                        in toWordList scan (normalize normType) content)) indexMap
 
 
