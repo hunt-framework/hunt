@@ -58,7 +58,7 @@ toDocAndWords schema apiDoc = (doc, ws)
 
 -- | Apply the normalizers to a Word.
 normalize :: [CNormalizer] -> Word -> Word
-normalize cType = chainFuns . map normalizerMapping $ cType
+normalize cType = chainFuns . map contextNormalizer $ cType
 
 
 -- | Chain a list of functions.

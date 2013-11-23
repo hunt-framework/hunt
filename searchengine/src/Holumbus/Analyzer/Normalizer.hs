@@ -1,5 +1,5 @@
 module Holumbus.Analyzer.Normalizer
-  ( normalizerMapping
+  ( contextNormalizer
   , typeValidator
   )
 where
@@ -24,8 +24,8 @@ import           Text.Regex.XMLSchema.String
 
 -- ----------------------------------------------------------------------------
 
-normalizerMapping :: CNormalizer -> Word -> Word
-normalizerMapping o = case o of
+contextNormalizer :: CNormalizer -> Word -> Word
+contextNormalizer o = case o of
     NormUpperCase -> T.toUpper
     NormLowerCase -> T.toLower
     NormDate      -> normalizeDate

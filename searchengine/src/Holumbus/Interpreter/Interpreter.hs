@@ -26,7 +26,8 @@ import qualified Holumbus.Common.DocIdMap          as DM
 
 import           Holumbus.Analyzer.Analyzer
 
-import           Holumbus.Indexer.TextIndexer      (ContextTextIndexer, TextIndexerCon)
+import           Holumbus.Indexer.TextIndexer      (ContextTextIndexer,
+                                                    TextIndexerCon)
 import qualified Holumbus.Indexer.TextIndexer      as Ixx
 
 import           Holumbus.Index.InvertedIndex
@@ -101,7 +102,7 @@ type CM ix dt = CMT ix dt IO
 -- ----------------------------------------------------------------------------
 
 runCM :: TextIndexerCon ix dt => CMT ix dt m a -> Env ix dt -> m (Either CmdError a)
-runCM env = runErrorT . runReaderT (runCMT $ env)
+runCM env = runErrorT . runReaderT (runCMT env)
 
 runCmd :: TextIndexerCon ix dt => Env ix dt -> Command -> IO (Either CmdError CmdResult)
 runCmd env cmd
@@ -143,7 +144,7 @@ throwResError n msg
     = throwError $ ResError n msg
 
 throwNYI :: TextIndexerCon ix dt => String -> CM ix dt a
-throwNYI c = throwResError 501 $ "command not yet implemented: " `T.append` (T.pack c)
+throwNYI c = throwResError 501 $ "command not yet implemented: " `T.append` T.pack c
 
 -- ----------------------------------------------------------------------------
 
@@ -174,7 +175,7 @@ optimizeCmd (Sequence cs) = Sequence $ opt cs
   equalHeads Sequence{} Sequence{} = True
   equalHeads _ _                   = False
 -- a single Delete is not allowed
-optimizeCmd (Delete u) = (BatchDelete $ S.singleton u)
+optimizeCmd (Delete u) = BatchDelete $ S.singleton u
 optimizeCmd c = c
 
 
@@ -231,7 +232,7 @@ execInsertContext :: TextIndexerCon ix dt
 execInsertContext cx ct ixx@(ix, dt, s)
     = do
       contextExists        <- Ixx.member cx ixx
-      guard' (not contextExists)
+      unless' (not contextExists)
              409 $ "context already exists: " `T.append` cx
       return (ixx', ResOK)
     where
@@ -268,12 +269,9 @@ execInsert doc op ixx@(_ix, dt, schema) = do
                                             `T.append` uri docs
 
 
-guard' :: TextIndexerCon ix dt
+unless' :: TextIndexerCon ix dt
        => Bool -> Int -> Text -> CMT ix dt IO ()
-guard' b code text = do
-  if b
-    then return ()
-    else throwResError code $ text
+unless' b code text = unless b $ throwResError code text
 
 
 checkContextsExistence :: TextIndexerCon ix dt
@@ -282,7 +280,7 @@ checkContextsExistence cs ixx = do
   ixxContexts        <- S.fromList <$> Ixx.contexts ixx
   let docContexts     = S.fromList cs
   let invalidContexts = S.difference docContexts ixxContexts
-  guard' (S.null invalidContexts)
+  unless' (S.null invalidContexts)
          409 $ "mentioned context(s) are not present: "
                `T.append` (T.pack . show . S.toList) invalidContexts
 
@@ -295,8 +293,8 @@ execSearch' :: TextIndexerCon ix dt
 execSearch' f q (ix, dt, s)
     = do
       r <- lift $ runQueryM ix s dt q
-      case r of 
-        (Left err) -> throwError err 
+      case r of
+        (Left err) -> throwError err
         (Right res) -> return $ f res
 
 wrapSearch :: Int -> Int -> Result Document -> CmdResult

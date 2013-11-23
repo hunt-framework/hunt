@@ -29,7 +29,7 @@ module Holumbus.Query.Processor
 ,  initState
 
 ,  ProcessConfig (..)
-,  ProcessState 
+,  ProcessState
 )
 
 where
@@ -82,13 +82,13 @@ import           Holumbus.Interpreter.Command      (CmdError(..))
 data ProcessConfig
     = ProcessConfig
       -- ^ The configuration for fuzzy queries.
-      { fuzzyConfig   :: ! FuzzyConfig 
+      { fuzzyConfig   :: ! FuzzyConfig
       -- ^ Optimize the query before processing.
-      , optimizeQuery :: ! Bool        
+      , optimizeQuery :: ! Bool
       -- ^ The maximum number of words used from a prefix. Zero switches off limiting.
-      , wordLimit     :: ! Int          
+      , wordLimit     :: ! Int
       -- ^ The maximum number of documents taken into account. Zero switches off limiting.
-      , docLimit      :: ! Int               
+      , docLimit      :: ! Int
 }
 
 instance Bin.Binary ProcessConfig where
@@ -107,8 +107,8 @@ data ProcessState i
       , total    :: ! Int              -- ^ The number of documents in the index.
       }
 
---- ----------------------------------------------------------------------------
--- | Processor monad 
+-- ----------------------------------------------------------------------------
+-- | Processor monad
 -- ----------------------------------------------------------------------------
 
 type QueryIndex    i = ContextIndex     i Occurrences
@@ -124,7 +124,7 @@ instance MonadTrans (ProcessorT ix) where
 type Processor ix = ProcessorT ix IO
 
 
---- ----------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
 -- | helper
 -- ----------------------------------------------------------------------------
 
@@ -136,7 +136,7 @@ getContexts :: QueryIndexCon ix => Processor ix [Context]
 getContexts = get >>= return . contexts
 
 getConfig :: QueryIndexCon ix => Processor ix ProcessConfig
-getConfig = get >>= return . config 
+getConfig = get >>= return . config
 
 getFuzzyConfig :: QueryIndexCon ix => Processor ix FuzzyConfig
 getFuzzyConfig = get >>= return . fuzzyConfig . config
@@ -153,24 +153,24 @@ withState' f = get >>= f
 -- | Monadic version of 'setContexts'.
 putContexts :: QueryIndexCon ix => [Context] -> Processor ix ()
 putContexts cs = modify setCx
-  where 
+  where
   setCx (ProcessState cfg _ ix s dts) = ProcessState cfg cs ix s dts
-  
+
 
 -- | Initialize the state of the processor.
-initState :: QueryIndexCon i 
-          => ProcessConfig -> QueryIndex i -> ContextSchema -> Int 
+initState :: QueryIndexCon i
+          => ProcessConfig -> QueryIndex i -> ContextSchema -> Int
           -> ProcessState i
-initState cfg ix s dtSize 
+initState cfg ix s dtSize
   = ProcessState cfg (CIx.contexts ix) ix s dtSize
 
---- ----------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
 -- | processor code
 -- ----------------------------------------------------------------------------
 
-processQuery :: (QueryIndexCon i, DocTable d, Dt.DValue d ~ e, e ~ Document) 
+processQuery :: (QueryIndexCon i, DocTable d, Dt.DValue d ~ e, e ~ Document)
               => ProcessState i -> d -> Query -> IO (Either CmdError (Result e))
-processQuery st d q = runErrorT . evalStateT (runProcessor $ processToRes) $ st
+processQuery st d q = runErrorT . evalStateT (runProcessor processToRes) $ st
     where
     oq = if optimizeQuery (config st) then optimize q else q
     processToRes = process oq >>= \ir -> I.toResult d ir
@@ -184,52 +184,52 @@ process (QPhrase QNoCase w)   = forAllContexts' . processPhraseNoCase $ w
 process (QPhrase QFuzzy w)    = forAllContexts' . processPhraseFuzzy  $ w
 process (QNegation q)         = process q >>= processNegation
 process (QContext c q)        = putContexts c >> process q
-process (QBinary o q1 q2)     = do 
-                                pq1 <- process q1 
+process (QBinary o q1 q2)     = do -- XXX: maybe parallel
+                                pq1 <- process q1
                                 pq2 <- process q2
                                 processBin o pq1 pq2
 process (QRange l h)          = processRange l h
-process _                     = processError 404 "Not yet implemented" 
+process _                     = processError 404 "Not yet implemented"
 
 
--- TODO: previously rdeepseq 
+-- TODO: previously rdeepseq
 -- TODO: parallelize mapM
 -- | Try to evaluate the query for all contexts in parallel.
 --   version with implizit state
 forAllContexts :: (QueryIndexCon i)
-               => (Context -> ProcessState i -> Processor i Intermediate) 
+               => (Context -> ProcessState i -> Processor i Intermediate)
                -> Processor i Intermediate
-forAllContexts f = getContexts >>= mapM (\c -> get >>= f c) >>= return . I.unions 
+forAllContexts f = getContexts >>= mapM (\c -> get >>= f c) >>= return . I.unions
 
 -- | second version with explizit state in function
 --   not sure which way is more elagant
 forAllContexts' :: (QueryIndexCon i)
-               => (Context -> Processor i Intermediate) 
+               => (Context -> Processor i Intermediate)
                -> Processor i Intermediate
-forAllContexts' f = getContexts >>= mapM f  >>= return . I.unions 
+forAllContexts' f = getContexts >>= mapM f >>= return . I.unions
 
 -- ----------------------------------------------------------------------------
 -- Word Query
 -- ----------------------------------------------------------------------------
 
--- | Process a single, case-insensitive word by finding all documents 
+-- | Process a single, case-insensitive word by finding all documents
 --   which contain the word as prefix.
-processWord :: QueryIndexCon i 
-            => TextSearchOp -> Text -> Context -> ProcessState i 
+processWord :: QueryIndexCon i
+            => TextSearchOp -> Text -> Context -> ProcessState i
             -> Processor i Intermediate
-processWord op q c st 
-    = return . I.fromList q c . limitWords st . toRawResult 
+processWord op q c st
+    = return . I.fromList q c . limitWords st . toRawResult
     $ CIx.searchWithCx op c q (index st)
 
 -- | Case Sensitive variant of process Word
-processWordCase :: QueryIndexCon i 
-                => Text -> Context -> ProcessState i 
+processWordCase :: QueryIndexCon i
+                => Text -> Context -> ProcessState i
                 -> Processor i Intermediate
 processWordCase = processWord PrefixCase
 
 -- | Case Insensitive variant of process Word
-processWordNoCase :: QueryIndexCon i 
-                  => Text -> Context -> ProcessState i 
+processWordNoCase :: QueryIndexCon i
+                  => Text -> Context -> ProcessState i
                   -> Processor i Intermediate
 processWordNoCase = processWord PrefixNoCase
 
@@ -240,47 +240,47 @@ processWordNoCase = processWord PrefixNoCase
 --               - upper bound for size of fuzzyset
 processFuzzyWord :: QueryIndexCon i => Text -> Processor i Intermediate
 processFuzzyWord q = do
-  cfg <- getFuzzyConfig  
-  is <- mapM (forAllContexts . processWordNoCase . fst) (fuzzySet cfg)
+  cfg <- getFuzzyConfig
+  is <- mapM (forAllContexts . processWordNoCase . fst) $ fuzzySet cfg
   return . I.unions $ is
   where
-  fuzzySet cfg = (q,0):(F.toList $ F.fuzz cfg q) 
+  fuzzySet cfg = (q,0):(F.toList $ F.fuzz cfg q)
 
 -- ----------------------------------------------------------------------------
 -- Phrase Query
 -- ----------------------------------------------------------------------------
 
 -- | Process a phrase.
-processPhrase :: QueryIndexCon i 
-              => TextSearchOp 
+processPhrase :: QueryIndexCon i
+              => TextSearchOp
               -> Text -> Context
               -> Processor i Intermediate
 processPhrase op q c = do
-    ix <- getIx 
+    ix <- getIx
     processPhraseInternal (meaningfulName ix) q c
     where
     meaningfulName ix t = toRawResult $ CIx.searchWithCx op c t ix
 
-processPhraseCase :: QueryIndexCon i => Text -> Context -> Processor i Intermediate
-processPhraseCase = processPhrase Case
+processPhraseCase   :: QueryIndexCon i => Text -> Context -> Processor i Intermediate
+processPhraseCase   = processPhrase Case
 
 processPhraseNoCase :: QueryIndexCon i => Text -> Context -> Processor i Intermediate
 processPhraseNoCase = processPhrase NoCase
 
-processPhraseFuzzy :: QueryIndexCon i => Text -> Context -> Processor i Intermediate
-processPhraseFuzzy = processPhrase Fuzzy 
+processPhraseFuzzy  :: QueryIndexCon i => Text -> Context -> Processor i Intermediate
+processPhraseFuzzy  = processPhrase Fuzzy
 
 -- | Process a phrase query by searching for every word of the phrase and comparing their positions.
-processPhraseInternal :: QueryIndexCon i 
-                      => (Text -> RawResult) -> Text -> Context 
+processPhraseInternal :: QueryIndexCon i
+                      => (Text -> RawResult) -> Text -> Context
                       -> Processor i Intermediate
-processPhraseInternal f c q = let
-  (w:ws) = T.words q
-  m = mergeOccurrencesList $ map snd $ f w in
-  if DM.null m
-  then return $ I.empty
-  else return $ I.fromList q c [(q, processPhrase' ws 1 m)]
+processPhraseInternal f c q =
+  if DM.null result
+    then return $ I.empty
+    else return $ I.fromList q c [(q, processPhrase' ws 1 result)]
   where
+  result = mergeOccurrencesList $ map snd $ f w
+  (w:ws) = T.words q
   processPhrase' :: [Text] -> Position -> Occurrences -> Occurrences
   processPhrase' [] _ o = o
   processPhrase' (x:xs) p o = processPhrase' xs (p+1) (DM.filterWithKey (nextWord $ map snd $ f x) o)
@@ -290,7 +290,7 @@ processPhraseInternal f c q = let
       nextWord no d np = maybe False hasSuccessor $ DM.lookup d (mergeOccurrencesList no)
           where
             hasSuccessor :: Positions -> Bool
-            hasSuccessor w = Pos.foldr (\cp r -> r || Pos.member (cp + p) w) False np
+            hasSuccessor w' = Pos.foldr (\cp r -> r || Pos.member (cp + p) w') False np
 
 -- ----------------------------------------------------------------------------
 -- Range Query
@@ -298,12 +298,12 @@ processPhraseInternal f c q = let
 -- TODO: error handling
 processRange :: QueryIndexCon i => Text -> Text -> Processor i Intermediate
 processRange l h = do
-  cs <- getContexts
-  s <- getSchema
+  cs     <- getContexts
+  s      <- getSchema
   let mqs = map (contextSensitiveRange s) cs
-  case any isNothing mqs of
-    True  -> processError 101 "range query not compatible with context types"
-    False -> process $ chainQueries1 . catMaybes $ mqs
+  if any isNothing mqs
+    then processError 101 "range query not compatible with context types"
+    else process $ chainQueries1 . catMaybes $ mqs
   where
   -- FIXME: constructing a single query probably requires the Query to be fully evaluated beforehand
   -- (especially when using query optimization) -
@@ -313,7 +313,7 @@ processRange l h = do
     = do
      (cType, rex, cNormalizer, _cWeight) <- M.lookup c s
      guard $ all (typeValidator cType) [l,h]
-     let scan w = unbox .  map (normalize cNormalizer) . scanTextRE rex $ w
+     let scan w = unbox . map (normalize cNormalizer) . scanTextRE rex $ w
      let validRange = (<=) -- TODO: context-sensitive check
      l' <- scan l
      h' <- scan h
@@ -335,7 +335,7 @@ createDateRangeQuery :: Text -> Text -> Query
 createDateRangeQuery = createTextRangeQuery
 
 createTextRangeQuery :: Text -> Text -> Query
-createTextRangeQuery l h = naiveRangeQuery1 $ rangeText l h
+createTextRangeQuery = naiveRangeQuery1 .:: rangeText
 
 -- NOTE: range limits have to be readable as Ints and the range has to contain at least 2 elements.
 createIntRangeQuery :: Text -> Text -> Query
@@ -391,23 +391,18 @@ succString :: Int -> String -> String
 succString = succString'
   where
   succString' :: Int -> String -> String
-  succString' m s =
-    if length s < m
-    then s ++ [minBound']
-    else
-      if null s
-      then s
-      else
-        if l == maxBound'
-        then succString' (m-1) i
-        else i ++ [succ l]
+  succString' m s
+    | length s < m   = s ++ [minBound']
+    | null s         = s
+    | l == maxBound' = succString' (m - 1) i
+    | otherwise      = i ++ [succ l]
     where
-    (i,l) = (init s, last s)
+    (i, l) = (init s, last s)
+    minBound' = '!'
+    maxBound' = '~'
     -- TODO: appropriate bounds?
     --minBound' = 'a'
     --maxBound' = 'z'
-    minBound' = '!'
-    maxBound' = '~'
 
 -- ----------------------------------------------------------------------------
 -- Operators
@@ -415,12 +410,10 @@ succString = succString'
 
 -- | Process a negation by getting all documents and subtracting the result of the negated query.
 processNegation :: QueryIndexCon i => Intermediate -> Processor i Intermediate
-processNegation i = do
-  allDocs <- allDocuments
-  return $ I.difference allDocs i
+processNegation i = allDocuments >>= \allDocs -> return $ I.difference allDocs i
 
 -- | Process a binary operator by caculating the union or the intersection of the two subqueries.
-processBin :: QueryIndexCon i 
+processBin :: QueryIndexCon i
            => BinOp -> Intermediate -> Intermediate -> Processor i Intermediate
 processBin And i1 i2 = return $ I.intersection i1 i2
 processBin Or  i1 i2 = return $ I.union        i1 i2
@@ -481,10 +474,10 @@ mergeOccurrencesList    :: [Occurrences] -> Occurrences
 mergeOccurrencesList    = DM.unionsWith Pos.union
 
 -- ----------------------------------------------------------------------------
+
 -- XXX: no merging - just for results with a single context
 toRawResult :: [(Context, [(Word, Occurrences)])] -> RawResult
 toRawResult = concatMap snd
-
 
 
 -- | Just everything.
