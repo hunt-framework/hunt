@@ -4,6 +4,7 @@ module Holumbus.Analyzer.Normalizer
   )
 where
 
+import           Control.Applicative
 import           Control.Monad
 
 import           Data.Text                   (Text)
@@ -27,15 +28,14 @@ normalizerMapping :: CNormalizer -> Word -> Word
 normalizerMapping o = case o of
     NormUpperCase -> T.toUpper
     NormLowerCase -> T.toLower
-    -- TODO: date has to be a valid schema date
-    --       maybe disable json parsing or use a separate enum
     NormDate      -> normalizeDate
 
 -- ----------------------------------------------------------------------------
 
 -- | Normalize a date representation to store in the index or search for.
 normalizeDate :: Text -> Text
-normalizeDate = T.pack . normDateRep . showDate . normDate . readAnyDate . T.unpack
+normalizeDate s = fromMaybe s
+    (T.pack . normDateRep . showDate . normDate <$> (readAnyDateM . T.unpack $ s))
   where
   -- TODO: to GMT / eliminate timezone
   normDate :: Date -> Date
