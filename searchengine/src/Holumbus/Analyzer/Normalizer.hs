@@ -4,6 +4,8 @@ module Holumbus.Analyzer.Normalizer
   )
 where
 
+import           Control.Monad
+
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
@@ -12,6 +14,7 @@ import           Holumbus.Common.Schema
 
 import           Data.Char                   (isDigit)
 import           Data.Function               (on)
+import           Data.Maybe
 import           Data.Ratio                  ((%))
 import           Data.Time                   (Day, DiffTime, UTCTime (..),
                                               addUTCTime, fromGregorian)
@@ -32,7 +35,7 @@ normalizerMapping o = case o of
 
 -- | Normalize a date representation to store in the index or search for.
 normalizeDate :: Text -> Text
-normalizeDate = T.pack . normDateRep . showDate . normDate . readDate . T.unpack
+normalizeDate = T.pack . normDateRep . showDate . normDate . readAnyDate . T.unpack
   where
   -- TODO: to GMT / eliminate timezone
   normDate :: Date -> Date
@@ -47,7 +50,38 @@ typeValidator :: CType -> Text -> Bool
 typeValidator t = case t of
     CText -> const True
     CInt  -> const True
-    CDate -> isDate . T.unpack
+    -- XXX: maybe use more rigid anyDate'?
+    CDate -> isAnyDate . T.unpack
+
+-- ----------------------------------------------------------------------------
+
+-- | Checks if the string is a date representation (syntactically).
+isAnyDate :: String -> Bool
+isAnyDate s = any ($ s) $ map fst safeDateReaders
+
+-- Same as 'isAnyDate'' but also checks if @(showDate . readAnyDate)@ produces the same result.
+isAnyDate' :: String -> Bool
+isAnyDate' s = isAnyDate s && ((==s) . showDate . readAnyDate) s
+
+-- | Unsafe 'readAnyDateM'.
+readAnyDate :: String -> Date
+readAnyDate = fromJust . readAnyDateM
+
+-- | Try to read a date.
+readAnyDateM :: String -> Maybe Date
+readAnyDateM s = fmap head . mapM readDateM $ safeDateReaders
+  where
+  readDateM :: (String -> Bool, String -> Date) -> Maybe Date
+  readDateM (v, r) = guard (v s) >> return (r s)
+
+-- | Tuples of date validator and reader.
+safeDateReaders :: [(String -> Bool, String -> Date)]
+safeDateReaders = zip validators readers
+  where
+  validators :: [String -> Bool]
+  validators = [  isDateTime,   isDate,   isGYearMonth,   isGYear,   isGMonthDay,   isGMonth,   isGDay]
+  readers    :: [String -> Date]
+  readers    = [readDateTime, readDate, readGYearMonth, readGYear, readGMonthDay, readGMonth, readGDay]
 
 -- ----------------------------------------------------------------------------
 
