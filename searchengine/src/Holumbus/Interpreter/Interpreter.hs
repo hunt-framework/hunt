@@ -293,7 +293,11 @@ execSearch' :: TextIndexerCon ix dt
             -> IpIndexer ix dt
             -> CM ix dt CmdResult
 execSearch' f q (ix, dt, s)
-    = runQueryM ix s dt q >>= return . f
+    = do
+      r <- lift $ runQueryM ix s dt q
+      case r of 
+        (Left err) -> throwError err 
+        (Right res) -> return $ f res
 
 wrapSearch :: Int -> Int -> Result Document -> CmdResult
 wrapSearch offset mx
@@ -341,5 +345,7 @@ runQueryM       :: TextIndexerCon ix dt
                 -> ContextSchema
                 -> dt
                 -> Query
-                -> CM ix dt (QRes.Result (Dt.DValue (Documents Document)))
-runQueryM       = processQueryM queryConfig
+                -> IO (Either CmdError (QRes.Result (Dt.DValue (Documents Document))))
+runQueryM ix s dt q = processQuery st dt q
+   where
+   st = initState queryConfig ix s 2
