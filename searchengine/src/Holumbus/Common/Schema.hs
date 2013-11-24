@@ -12,8 +12,8 @@ import Holumbus.Common.BasicTypes
 -- ----------------------------------------------------------------------------
 
 -- | Schema
-type ContextSchema
-  = Map Context ContextType
+type Schema
+  = Map Context ContextSchema
 
 -- | The type can be any of the supported basic index types.
 --   The regexp validates and splits the text into words:
@@ -33,7 +33,7 @@ type ContextSchema
 --     - two normalizer for transformation
 --   The first  regexp/normalizer is type-specific and is applied first (forced)
 --   The second regexp/normalizer is context-specific (defined/chosen by user)
-type ContextType
+type ContextSchema
   = (CType, CRegex, [CNormalizer], CWeight)
 
 -- | Types for values in a context.

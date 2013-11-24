@@ -39,7 +39,7 @@ data Command
   | BatchDelete   { icUris     :: Set URI }
   -- | context manipulation
   | InsertContext { icICon     :: Context
-                  , icSchema   :: ContextType
+                  , icSchema   :: ContextSchema
                   }
   | DeleteContext { icDCon     :: Context }
   -- | persistent commands

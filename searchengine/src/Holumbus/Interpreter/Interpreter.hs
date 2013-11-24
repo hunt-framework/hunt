@@ -226,7 +226,7 @@ execSequence (c : cs) = execCmd c >> execSequence cs
 
 execInsertContext :: TextIndexerCon ix dt
                   => Context
-                  -> ContextType
+                  -> ContextSchema
                   -> IpIndexer ix dt
                   -> CM ix dt (IpIndexer ix dt, CmdResult)
 execInsertContext cx ct ixx@(ix, dt, s)
@@ -237,8 +237,8 @@ execInsertContext cx ct ixx@(ix, dt, s)
       return (ixx', ResOK)
     where
     ixx' = ( CIx.insertContext cx ix
-          , dt
-          , M.insert cx ct s)
+           , dt
+           , M.insert cx ct s)
 
 execDeleteContext :: TextIndexerCon ix dt
                   => Context
@@ -340,7 +340,7 @@ queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) T
 
 runQueryM       :: TextIndexerCon ix dt
                 => ContextIndex ix Occurrences
-                -> ContextSchema
+                -> Schema
                 -> dt
                 -> Query
                 -> IO (Either CmdError (QRes.Result (Dt.DValue (Documents Document))))

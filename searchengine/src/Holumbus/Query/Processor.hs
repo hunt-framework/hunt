@@ -103,7 +103,7 @@ data ProcessState i
       { config   :: ! ProcessConfig    -- ^ The configuration for the query processor.
       , contexts :: ! [Context]        -- ^ The current list of contexts.
       , index    ::   ContextIndex i Occurrences  -- ^ The index to search.
-      , schema   ::   ContextSchema
+      , schema   ::   Schema           -- ^ Schema / Schemas for the contexts.
       , total    :: ! Int              -- ^ The number of documents in the index.
       }
 
@@ -144,7 +144,7 @@ getFuzzyConfig = get >>= return . fuzzyConfig . config
 getIx :: QueryIndexCon ix => Processor ix (QueryIndex ix)
 getIx = get >>= return . index
 
-getSchema :: QueryIndexCon ix => Processor ix ContextSchema
+getSchema :: QueryIndexCon ix => Processor ix Schema
 getSchema = get >>= return . schema
 
 withState' :: QueryIndexCon ix => (ProcessState ix -> Processor ix a) -> Processor ix a
@@ -159,7 +159,7 @@ putContexts cs = modify setCx
 
 -- | Initialize the state of the processor.
 initState :: QueryIndexCon i
-          => ProcessConfig -> QueryIndex i -> ContextSchema -> Int
+          => ProcessConfig -> QueryIndex i -> Schema -> Int
           -> ProcessState i
 initState cfg ix s dtSize
   = ProcessState cfg (CIx.contexts ix) ix s dtSize
@@ -308,7 +308,7 @@ processRange l h = do
   -- FIXME: constructing a single query probably requires the Query to be fully evaluated beforehand
   -- (especially when using query optimization) -
   -- this leads to the string range to be fully evaluated which requires a lot of memory
-  contextSensitiveRange :: ContextSchema -> Context -> Maybe Query
+  contextSensitiveRange :: Schema -> Context -> Maybe Query
   contextSensitiveRange s c
     = do
      (cType, rex, cNormalizer, _cWeight) <- M.lookup c s
