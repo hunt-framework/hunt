@@ -176,20 +176,20 @@ processQuery st d q = runErrorT . evalStateT (runProcessor processToRes) $ st
     processToRes = process oq >>= \ir -> I.toResult d ir
 
 process :: QueryIndexCon ix   => Query -> Processor ix Intermediate
-process (QWord QCase w)       = forAllContexts . processWordCase      $ w
-process (QWord QNoCase w)     = forAllContexts . processWordNoCase    $ w
-process (QWord QFuzzy w)      = processFuzzyWord                      $ w
-process (QPhrase QCase w)     = forAllContexts' . processPhraseCase   $ w
-process (QPhrase QNoCase w)   = forAllContexts' . processPhraseNoCase $ w
-process (QPhrase QFuzzy w)    = forAllContexts' . processPhraseFuzzy  $ w
-process (QNegation q)         = process q >>= processNegation
-process (QContext c q)        = putContexts c >> process q
-process (QBinary o q1 q2)     = do -- XXX: maybe parallel
-                                pq1 <- process q1
-                                pq2 <- process q2
-                                processBin o pq1 pq2
-process (QRange l h)          = processRange l h
-process _                     = processError 404 "Not yet implemented"
+process o = case o of
+  QWord QCase w       -> forAllContexts . processWordCase      $ w
+  QWord QNoCase w     -> forAllContexts . processWordNoCase    $ w
+  QWord QFuzzy w      -> processFuzzyWord                      $ w
+  QPhrase QCase w     -> forAllContexts' . processPhraseCase   $ w
+  QPhrase QNoCase w   -> forAllContexts' . processPhraseNoCase $ w
+  QPhrase QFuzzy w    -> forAllContexts' . processPhraseFuzzy  $ w
+  QNegation q         -> process q >>= processNegation
+  QContext c q        -> putContexts c >> process q
+  QBinary op q1 q2    -> do -- XXX: maybe parallel
+                          pq1 <- process q1
+                          pq2 <- process q2
+                          processBin op pq1 pq2
+  QRange l h          -> processRange l h
 
 
 -- TODO: previously rdeepseq

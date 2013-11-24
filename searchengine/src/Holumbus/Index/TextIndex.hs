@@ -44,7 +44,7 @@ type ContextTextIndex i v
 -- ----------------------------------------------------------------------------
 
 -- | Add words for a document to the 'Index'.
--- | Note: adds words to every /existing/ Context.
+--   /NOTE/: adds words to /existing/ 'Context's.
 addWords :: TextIndex i Occurrences
          => Words -> DocId -> ContextIndex i Occurrences -> ContextIndex i Occurrences
 addWords wrds dId i
