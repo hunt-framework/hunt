@@ -88,8 +88,8 @@ brainDocUpdate = brainDoc { apiDocDescrMap = descr }
 brainDocMerged :: ApiDocument
 brainDocMerged = brainDocUpdate { apiDocDescrMap = (apiDocDescrMap brainDocUpdate) `M.union` (apiDocDescrMap brainDoc) }
 
-defaultContextInfo :: (Context, (CType, CRegex, [CNormalizer], CWeight))
-defaultContextInfo = ("default", (CText, "[^ \t\n\r]*", [], 1))
+defaultContextInfo :: (Context, ContextSchema)
+defaultContextInfo = ("default", ContextSchema CText "[^ \t\n\r]*" [] 1)
 
 insertDefaultContext :: Command
 insertDefaultContext = uncurry InsertContext defaultContextInfo

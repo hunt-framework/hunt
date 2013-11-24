@@ -311,10 +311,13 @@ processRange l h = do
   contextSensitiveRange :: Schema -> Context -> Maybe Query
   contextSensitiveRange s c
     = do
-     (cType, rex, cNormalizer, _cWeight) <- M.lookup c s
+     cSchema <- M.lookup c s
+     let cType       = cxType cSchema
+         rex         = cxRegEx cSchema
+         cNormalizer = cxNormalizer cSchema
      guard $ all (typeValidator cType) [l,h]
-     let scan w = unbox . map (normalize cNormalizer) . scanTextRE rex $ w
-     let validRange = (<=) -- TODO: context-sensitive check
+     let scan w      = unbox . map (normalize cNormalizer) . scanTextRE rex $ w
+         validRange  = (<=) -- TODO: context-sensitive check
      l' <- scan l
      h' <- scan h
      guard $ validRange l' h'

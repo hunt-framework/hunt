@@ -51,9 +51,9 @@ toDocAndWords schema apiDoc = (doc, ws)
   ws = M.mapWithKey (\context -> either
                 id
                 (\(TextData content)
-                    -> let (cType, rex, normType, _weight) = fromJust $ M.lookup context schema
-                           scan = filter (typeValidator cType) . scanTextRE rex
-                       in toWordList scan (normalize normType) content)) indexMap
+                    -> let cxSchema = fromJust $ M.lookup context schema
+                           scan = filter (typeValidator (cxType cxSchema)) . scanTextRE (cxRegEx cxSchema)
+                       in toWordList scan (normalize (cxNormalizer cxSchema)) content)) indexMap
 
 
 -- | Apply the normalizers to a Word.

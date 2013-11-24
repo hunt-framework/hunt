@@ -1,13 +1,14 @@
 module Holumbus.Common.Schema where
 
-import Control.Monad                   (mzero)
+import           Control.Monad              (liftM4, mzero)
 
-import Data.Aeson
-import Data.Text
-import Data.Map
-import Data.Binary
+import           Data.Aeson
+import           Data.Binary
+import           Data.Map
+import           Data.Text
+import           Data.Text.Binary           ()
 
-import Holumbus.Common.BasicTypes
+import           Holumbus.Common.BasicTypes
 
 -- ----------------------------------------------------------------------------
 
@@ -33,8 +34,12 @@ type Schema
 --     - two normalizer for transformation
 --   The first  regexp/normalizer is type-specific and is applied first (forced)
 --   The second regexp/normalizer is context-specific (defined/chosen by user)
-type ContextSchema
-  = (CType, CRegex, [CNormalizer], CWeight)
+data ContextSchema = ContextSchema
+  { cxType        :: CType
+  , cxRegEx       :: CRegex
+  , cxNormalizer  :: [CNormalizer]
+  , cxWeight      :: CWeight
+  } deriving (Show, Eq)
 
 -- | Types for values in a context.
 data CType
@@ -86,6 +91,24 @@ instance ToJSON CNormalizer where
     NormLowerCase -> "lowercase"
     NormDate      -> "date"
 
+instance FromJSON ContextSchema where
+  parseJSON (Object o) = do
+    t <- o .: "type"
+    r <- o .: "regexp"
+    n <- o .: "normalizers"
+    w <- o .: "weight"
+    return $ ContextSchema t r n w
+
+  parseJSON _ = mzero
+
+instance ToJSON ContextSchema where
+  toJSON (ContextSchema t r n w) = object
+    [ "type"        .= t
+    , "regexp"      .= r
+    , "normalizers" .= n
+    , "weight"      .= w
+    ]
+
 -- ----------------------------------------------------------------------------
 -- Binary instances
 -- ----------------------------------------------------------------------------
@@ -115,3 +138,7 @@ instance Binary CNormalizer where
       1 -> return NormLowerCase
       2 -> return NormDate
       _ -> fail "get(CNormalizer) out of bounds"
+
+instance Binary ContextSchema where
+  get = liftM4 ContextSchema get get get get
+  put (ContextSchema a b c d) = put a >> put b >> put c >> put d
