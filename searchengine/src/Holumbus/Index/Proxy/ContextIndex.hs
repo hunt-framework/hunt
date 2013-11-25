@@ -2,8 +2,8 @@ module Holumbus.Index.Proxy.ContextIndex where
 
 import           Data.Binary                  (Binary(..))
 import           Data.Text.Binary             ()
-import           Data.Map                     (Map)
-import qualified Data.Map                     as M
+import           Data.Map.Strict              (Map)
+import qualified Data.Map.Strict              as M
 
 import           Holumbus.Common
 import qualified Holumbus.Index.Index         as Ix
