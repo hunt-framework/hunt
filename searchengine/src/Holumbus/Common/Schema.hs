@@ -1,6 +1,6 @@
 module Holumbus.Common.Schema where
 
-import           Control.Monad              (liftM4, mzero)
+import           Control.Monad              (liftM5, mzero)
 
 import           Data.Aeson
 import           Data.Binary
@@ -39,6 +39,7 @@ data ContextSchema = ContextSchema
   , cxRegEx       :: CRegex
   , cxNormalizer  :: [CNormalizer]
   , cxWeight      :: CWeight
+  , cxDefault     :: Bool
   } deriving (Show, Eq)
 
 -- | Types for values in a context.
@@ -97,16 +98,18 @@ instance FromJSON ContextSchema where
     r <- o .: "regexp"
     n <- o .: "normalizers"
     w <- o .: "weight"
-    return $ ContextSchema t r n w
+    d <- o .:? "default" .!= True
+    return $ ContextSchema t r n w d
 
   parseJSON _ = mzero
 
 instance ToJSON ContextSchema where
-  toJSON (ContextSchema t r n w) = object
+  toJSON (ContextSchema t r n w d) = object
     [ "type"        .= t
     , "regexp"      .= r
     , "normalizers" .= n
     , "weight"      .= w
+    , "default"     .= d
     ]
 
 -- ----------------------------------------------------------------------------
@@ -140,5 +143,5 @@ instance Binary CNormalizer where
       _ -> fail "get(CNormalizer) out of bounds"
 
 instance Binary ContextSchema where
-  get = liftM4 ContextSchema get get get get
-  put (ContextSchema a b c d) = put a >> put b >> put c >> put d
+  get = liftM5 ContextSchema get get get get get
+  put (ContextSchema a b c d e) = put a >> put b >> put c >> put d >> put e

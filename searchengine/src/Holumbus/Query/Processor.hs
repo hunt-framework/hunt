@@ -162,7 +162,9 @@ initState :: QueryIndexCon i
           => ProcessConfig -> QueryIndex i -> Schema -> Int
           -> ProcessState i
 initState cfg ix s dtSize
-  = ProcessState cfg (CIx.contexts ix) ix s dtSize
+  = ProcessState cfg cxs ix s dtSize
+  where -- XXX: kind of inefficient
+  cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault) $ CIx.contexts ix
 
 -- ----------------------------------------------------------------------------
 -- | processor code
