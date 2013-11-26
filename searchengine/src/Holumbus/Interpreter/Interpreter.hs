@@ -270,7 +270,7 @@ execInsert doc op ixx@(_ix, dt, schema) = do
 
 
 unless' :: TextIndexerCon ix dt
-       => Bool -> Int -> Text -> CMT ix dt IO ()
+       => Bool -> Int -> Text -> CM ix dt ()
 unless' b code text = unless b $ throwResError code text
 
 

@@ -24,6 +24,9 @@ class Index i where
     -- | General lookup function.
     search       :: ICon i v => ISearchOp i v -> IKey i v -> i v -> [(IKey i v, IVal i v)]
 
+    -- | Search within a range.
+    lookupRange  :: ICon i v => IKey i v -> IKey i v -> i v -> [(IKey i v, IVal i v)]
+
     -- | Insert occurrences.
     insert       :: ICon i v => IKey i v -> IVal i v -> i v -> i v
 

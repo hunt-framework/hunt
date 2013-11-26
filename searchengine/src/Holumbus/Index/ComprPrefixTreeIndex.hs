@@ -57,6 +57,9 @@ instance Index ComprOccPrefixTree where
     search t k (ComprPT i)
         = second decompressOcc <$> search t k i
 
+    lookupRange k1 k2 (ComprPT i)
+        = second decompressOcc <$> lookupRange k1 k2 i
+
     unionWith op (ComprPT i1) (ComprPT i2)
         = ComprPT $ unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
 

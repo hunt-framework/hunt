@@ -69,6 +69,12 @@ search :: ContextIxCon i v
        -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]
 search op k (ContextIx m) = M.toList $ M.map (Ix.search op k) m
 
+lookupRange :: ContextIxCon i v
+       => Ix.IKey i v
+       -> Ix.IKey i v
+       -> ContextIndex i v
+       -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]
+lookupRange k1 k2 (ContextIx m) = M.toList $ M.map (Ix.lookupRange k1 k2) m
 
 searchWithCx :: ContextIxCon i v
              => Ix.ISearchOp i v

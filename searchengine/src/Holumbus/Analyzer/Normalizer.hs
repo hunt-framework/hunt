@@ -1,21 +1,23 @@
 module Holumbus.Analyzer.Normalizer
   ( contextNormalizer
   , typeValidator
+  , rangeValidator
   )
 where
 
 import           Control.Applicative
 import           Control.Monad
 
+import           Data.Maybe
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Schema
+import           Holumbus.Utility
 
 import           Data.Char                   (isDigit)
 import           Data.Function               (on)
-import           Data.Maybe
 import           Data.Ratio                  ((%))
 import           Data.Time                   (Day, DiffTime, UTCTime (..),
                                               addUTCTime, fromGregorian)
@@ -46,12 +48,25 @@ normalizeDate s = fromMaybe s
 
 -- ----------------------------------------------------------------------------
 
+-- | Checks if value is valid for a context type.
 typeValidator :: CType -> Text -> Bool
 typeValidator t = case t of
     CText -> const True
     CInt  -> const True
     -- XXX: maybe use more rigid anyDate'?
     CDate -> isAnyDate . T.unpack
+
+-- ----------------------------------------------------------------------------
+
+-- | Checks if a range is valid for a context type.
+rangeValidator :: CType -> [Text] -> [Text] -> Bool
+rangeValidator t = case t of
+    _     -> defaultCheck
+  where
+  defaultCheck xs ys = fromMaybe False $ do
+    x <- unboxM xs
+    y <- unboxM ys
+    return $ x <= y
 
 -- ----------------------------------------------------------------------------
 

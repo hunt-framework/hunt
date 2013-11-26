@@ -46,10 +46,6 @@ import qualified Data.Map                          as M
 import           Data.Maybe
 import           Data.Text                         (Text)
 import qualified Data.Text                         as T
-import           Data.Text.Lazy                    (fromStrict, toStrict)
-import qualified Data.Text.Lazy.Read               as TR
-import           Data.Text.Lazy.Builder            (toLazyText)
-import qualified Data.Text.Lazy.Builder.Int        as TBI (decimal)
 
 import           Holumbus.Utility
 
@@ -131,6 +127,9 @@ type Processor ix = ProcessorT ix IO
 processError :: QueryIndexCon ix => Int -> Text -> Processor ix a
 processError n msg
     = throwError $ ResError n msg
+
+unless' :: QueryIndexCon i => Bool -> Int -> Text -> Processor i ()
+unless' b code text = unless b $ processError code text
 
 getContexts :: QueryIndexCon ix => Processor ix [Context]
 getContexts = get >>= return . contexts
@@ -297,69 +296,39 @@ processPhraseInternal f c q =
 -- ----------------------------------------------------------------------------
 -- Range Query
 -- ----------------------------------------------------------------------------
--- TODO: error handling
 processRange :: QueryIndexCon i => Text -> Text -> Processor i Intermediate
-processRange l h = do
-  cs     <- getContexts
-  s      <- getSchema
-  let mqs = map (contextSensitiveRange s) cs
-  if any isNothing mqs
-    then processError 101 "range query not compatible with context types"
-    else process $ chainQueries1 . catMaybes $ mqs
+processRange l h = forAllContexts' range
   where
-  -- FIXME: constructing a single query probably requires the Query to be fully evaluated beforehand
-  -- (especially when using query optimization) -
-  -- this leads to the string range to be fully evaluated which requires a lot of memory
-  contextSensitiveRange :: Schema -> Context -> Maybe Query
-  contextSensitiveRange s c
-    = do
-     cSchema <- M.lookup c s
-     let cType       = cxType cSchema
-         rex         = cxRegEx cSchema
-         cNormalizer = cxNormalizer cSchema
-     guard $ all (typeValidator cType) [l,h]
-     let scan w      = unbox . map (normalize cNormalizer) . scanTextRE rex $ w
-         validRange  = (<=) -- TODO: context-sensitive check
-     l' <- scan l
-     h' <- scan h
-     guard $ validRange l' h'
-     return $ QContext [c] $ rangeQueryMapping cType l' h'
+  range c = do
+    -- get context schema
+    s <- getSchema
+    let cSchemaM = M.lookup c s
+    unless' (isJust cSchemaM)
+            1 $ "context schema missing: " `T.append` c
+    -- compatible with context
+    let cSchema     = fromJust cSchemaM
+        cType       = cxType   cSchema
+        rangeText   = T.pack . show $ [l,h]
+        scan        = scanTextRE (cxRegEx      cSchema)
+        norm        = normalize  (cxNormalizer cSchema)
+        rs@[ls, hs] = [scan l, scan h]
+    -- all range values are valid
+    unless' (all (typeValidator cType) $ concat rs)
+            1 $ "range value(s) incompatible with context type: " `T.append` rangeText
+    let (ls', hs') = (map norm $ ls, map norm $ hs)
+    -- values form a valid range
+    unless' (rangeValidator cType ls' hs')
+            1 $ "invalid range for context: " `T.append` rangeText
+    -- type determines the processing
+    case cType of
+      _ -> get >>= processRange' (unbox ls') (unbox hs') c
 
-  unbox [e] = Just e
-  unbox _   = Nothing
+  processRange' :: QueryIndexCon i => Text -> Text -> Context -> ProcessState i -> Processor i Intermediate
+  processRange' lo hi c st
+    = return . I.fromList lo c . limitWords st . toRawResult -- FIXME: check I.fromList
+    $ CIx.lookupRange lo hi (index st)
 
-
--- range queries will be transformed to other queries for now
-rangeQueryMapping :: CType -> Text -> Text -> Query
-rangeQueryMapping t = case t of
-  CText -> createTextRangeQuery
-  CInt  -> createIntRangeQuery
-  CDate -> createDateRangeQuery -- XXX: same as for Text
-
-createDateRangeQuery :: Text -> Text -> Query
-createDateRangeQuery = createTextRangeQuery
-
-createTextRangeQuery :: Text -> Text -> Query
-createTextRangeQuery = naiveRangeQuery1 .:: rangeText
-
--- NOTE: range limits have to be readable as Ints and the range has to contain at least 2 elements.
-createIntRangeQuery :: Text -> Text -> Query
-createIntRangeQuery l h = naiveRangeQuery1 . map show' $ [l'..h']
-  where
-  -- XXX: custom reader?
-  read' = fst . fromRight . TR.decimal . fromStrict
-  show' = toStrict . toLazyText . TBI.decimal
-  _limits :: (Int, Int)
-  _limits@(l',h') = (read' l, read' h)
-
--- NOTE: list must be non-empty.
-naiveRangeQuery1 :: [Text] -> Query
-naiveRangeQuery1 = chainQueries1 . map (QWord QCase)
-
--- NOTE: list must be non-empty.
-chainQueries1 :: [Query] -> Query
-chainQueries1 = L.foldl1' (QBinary Or)
-
+{-
 -- | 'rangeString' with 'Text'.
 rangeText :: Text -> Text -> [Text]
 rangeText l h = map T.pack $ rangeString (T.unpack l) (T.unpack h)
@@ -408,6 +377,7 @@ succString = succString'
     -- TODO: appropriate bounds?
     --minBound' = 'a'
     --maxBound' = 'z'
+-}
 
 -- ----------------------------------------------------------------------------
 -- Operators

@@ -55,6 +55,9 @@ instance Index InvertedIndex where
     search t k (InvIx i)
         = first pack <$> search t (unpack k) i
 
+    lookupRange k1 k2 (InvIx i)
+        = first pack <$> lookupRange (unpack k1) (unpack k2) i
+
     unionWith op (InvIx i1) (InvIx i2)
         = InvIx $ unionWith op i1 i2
 

@@ -48,6 +48,9 @@ instance Index DmPrefixTree where
         = case t of
             _ -> SM.prefixFindWithKey k pt
 
+    lookupRange k1 k2 (DmPT pt)
+        = SM.toList $ SM.lookupRange k1 k2 pt
+
     unionWith op (DmPT pt1) (DmPT pt2)
         = DmPT $ SM.unionWith op pt1 pt2
 

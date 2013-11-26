@@ -66,6 +66,23 @@ fromLeft = either id (error "Holumbus.Utility.fromLeft: Right")
 fromRight :: Either a b -> b
 fromRight = either (error "Holumbus.Utility.fromRight: Left") id
 
+-- | Unbox a singleton.
+--   /NOTE/: This fails if the list is not a singleton.
+unbox :: [a] -> a
+unbox [e] = e
+unbox _   = error "unbox with non-singleton"
+
+-- | Unbox a singleton in a safe way with 'Maybe'.
+unboxM :: [a] -> Maybe a
+unboxM [e] = Just e
+unboxM _   = Nothing
+
+-- | Test if the list contains a single element.
+isSingleton :: [a] -> Bool
+isSingleton [_] = True
+isSingleton _   = False
+
+
 -- | Split a string into seperate strings at a specific character sequence.
 split :: Eq a => [a] -> [a] -> [[a]]
 split _ []       = [[]]
