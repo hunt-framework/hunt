@@ -240,11 +240,13 @@ execInsertContext cx ct ixx@(ix, dt, s)
            , dt
            , M.insert cx ct s)
 
+-- | Deletes the context and the schema associated with it.
 execDeleteContext :: TextIndexerCon ix dt
                   => Context
                   -> IpIndexer ix dt
                   -> CM ix dt (IpIndexer ix dt, CmdResult)
-execDeleteContext cx (ix, dt, s) = return ((CIx.deleteContext cx ix, dt, s), ResOK)
+execDeleteContext cx (ix, dt, s)
+  = return ((CIx.deleteContext cx ix, dt, M.delete cx s), ResOK)
 
 
 -- all contexts mentioned in the apidoc need to exist
