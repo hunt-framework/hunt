@@ -96,11 +96,11 @@ instance Bin.Binary ProcessConfig where
 -- | The internal state of the query processor.
 data ProcessState i
     = ProcessState
-      { config   :: ! ProcessConfig    -- ^ The configuration for the query processor.
-      , contexts :: ! [Context]        -- ^ The current list of contexts.
-      , index    ::   ContextIndex i Occurrences  -- ^ The index to search.
-      , schema   ::   Schema           -- ^ Schema / Schemas for the contexts.
-      , total    :: ! Int              -- ^ The number of documents in the index.
+      { psConfig   :: ! ProcessConfig    -- ^ The configuration for the query processor.
+      , psContexts :: ! [Context]        -- ^ The current list of contexts.
+      , psIndex    ::   ContextIndex i Occurrences  -- ^ The index to search.
+      , psSchema   ::   Schema           -- ^ Schema / Schemas for the contexts.
+      , psTotal    :: ! Int              -- ^ The number of documents in the index.
       }
 
 -- ----------------------------------------------------------------------------
@@ -132,19 +132,19 @@ unless' :: QueryIndexCon i => Bool -> Int -> Text -> Processor i ()
 unless' b code text = unless b $ processError code text
 
 getContexts :: QueryIndexCon ix => Processor ix [Context]
-getContexts = get >>= return . contexts
+getContexts = get >>= return . psContexts
 
 getConfig :: QueryIndexCon ix => Processor ix ProcessConfig
-getConfig = get >>= return . config
+getConfig = get >>= return . psConfig
 
 getFuzzyConfig :: QueryIndexCon ix => Processor ix FuzzyConfig
-getFuzzyConfig = get >>= return . fuzzyConfig . config
+getFuzzyConfig = get >>= return . fuzzyConfig . psConfig
 
 getIx :: QueryIndexCon ix => Processor ix (QueryIndex ix)
-getIx = get >>= return . index
+getIx = get >>= return . psIndex
 
 getSchema :: QueryIndexCon ix => Processor ix Schema
-getSchema = get >>= return . schema
+getSchema = get >>= return . psSchema
 
 -- | Get the schema associated with that context/index.
 --   /NOTE/: This fails if the schema does not exist.
@@ -157,8 +157,8 @@ withState' f = get >>= f
 -- | Set the contexts to be used for the query. Checks if the contexts exist.
 putContexts :: QueryIndexCon ix => [Context] -> Processor ix ()
 putContexts cs = do
-  schema' <- getSchema
-  let invalidContexts = filter (not . flip M.member schema') cs
+  schema <- getSchema
+  let invalidContexts = filter (not . flip M.member schema) cs
   if null invalidContexts
     then modify setCx
     else processError 404 $ "mentioned context(s) do not exist: " -- schema to be precise
@@ -184,7 +184,7 @@ processQuery :: (QueryIndexCon i, DocTable d, Dt.DValue d ~ e, e ~ Document)
               => ProcessState i -> d -> Query -> IO (Either CmdError (Result e))
 processQuery st d q = runErrorT . evalStateT (runProcessor processToRes) $ st
     where
-    oq = if optimizeQuery (config st) then optimize q else q
+    oq = if optimizeQuery (psConfig st) then optimize q else q
     processToRes = process oq >>= \ir -> I.toResult d ir
 
 process :: QueryIndexCon ix   => Query -> Processor ix Intermediate
@@ -192,9 +192,9 @@ process o = case o of
   QWord QCase w       -> forAllContexts . processWordCase      $ w
   QWord QNoCase w     -> forAllContexts . processWordNoCase    $ w
   QWord QFuzzy w      -> processFuzzyWord                      $ w
-  QPhrase QCase w     -> forAllContexts' . processPhraseCase   $ w
-  QPhrase QNoCase w   -> forAllContexts' . processPhraseNoCase $ w
-  QPhrase QFuzzy w    -> forAllContexts' . processPhraseFuzzy  $ w
+  QPhrase QCase w     -> forAllContexts . processPhraseCase   $ w
+  QPhrase QNoCase w   -> forAllContexts . processPhraseNoCase $ w
+  QPhrase QFuzzy w    -> forAllContexts . processPhraseFuzzy  $ w
   QNegation q         -> process q >>= processNegation
   QContext c q        -> putContexts c >> process q
   QBinary op q1 q2    -> do -- XXX: maybe parallel
@@ -206,19 +206,21 @@ process o = case o of
 
 -- TODO: previously rdeepseq
 -- TODO: parallelize mapM
--- | Try to evaluate the query for all contexts in parallel.
---   version with implizit state
+-- | Evaluate (the query) for all contexts.
 forAllContexts :: (QueryIndexCon i)
-               => (Context -> ProcessState i -> Processor i Intermediate)
-               -> Processor i Intermediate
-forAllContexts f = getContexts >>= mapM (\c -> get >>= f c) >>= return . I.unions
-
--- | second version with explizit state in function
---   not sure which way is more elagant
-forAllContexts' :: (QueryIndexCon i)
                => (Context -> Processor i Intermediate)
                -> Processor i Intermediate
-forAllContexts' f = getContexts >>= mapM f >>= return . I.unions
+forAllContexts f = getContexts >>= mapM f >>= return . I.unions
+
+{-
+-- version with explicit state
+forAllContexts' :: (QueryIndexCon i)
+-- | Try to evaluate the query for all contexts in parallel.
+--   version with implizit state
+               => (Context -> ProcessState i -> Processor i Intermediate)
+               -> Processor i Intermediate
+forAllContexts' f = getContexts >>= mapM (\c -> get >>= f c) >>= return . I.unions
+-}
 
 -- ----------------------------------------------------------------------------
 -- Word Query
@@ -227,21 +229,23 @@ forAllContexts' f = getContexts >>= mapM f >>= return . I.unions
 -- | Process a single, case-insensitive word by finding all documents
 --   which contain the word as prefix.
 processWord :: QueryIndexCon i
-            => TextSearchOp -> Text -> Context -> ProcessState i
+            => TextSearchOp -> Text -> Context
             -> Processor i Intermediate
-processWord op q c st
-    = return . I.fromList q c . limitWords st . toRawResult
-    $ CIx.searchWithCx op c q (index st)
+processWord op q c = do
+  st <- get
+  ix <- getIx
+  return . I.fromList q c . limitWords st . toRawResult
+    $ CIx.searchWithCx op c q ix
 
 -- | Case Sensitive variant of process Word
 processWordCase :: QueryIndexCon i
-                => Text -> Context -> ProcessState i
+                => Text -> Context
                 -> Processor i Intermediate
 processWordCase = processWord PrefixCase
 
 -- | Case Insensitive variant of process Word
 processWordNoCase :: QueryIndexCon i
-                  => Text -> Context -> ProcessState i
+                  => Text -> Context
                   -> Processor i Intermediate
 processWordNoCase = processWord PrefixNoCase
 
@@ -308,7 +312,7 @@ processPhraseInternal f c q =
 -- Range Query
 -- ----------------------------------------------------------------------------
 processRange :: QueryIndexCon i => Text -> Text -> Processor i Intermediate
-processRange l h = forAllContexts' range
+processRange l h = forAllContexts range
   where
   range c = do
     cSchema <- getContextSchema c
@@ -327,12 +331,14 @@ processRange l h = forAllContexts' range
             400 $ "invalid range for context: " `T.append` rangeText
     -- type determines the processing
     case cType of
-      _ -> get >>= processRange' (unbox ls') (unbox hs') c
+      _ -> processRange' (unbox ls') (unbox hs') c
 
-  processRange' :: QueryIndexCon i => Text -> Text -> Context -> ProcessState i -> Processor i Intermediate
-  processRange' lo hi c st
-    = return . I.fromList lo c . limitWords st . toRawResult -- FIXME: check I.fromList
-    $ CIx.lookupRange lo hi (index st)
+  processRange' :: QueryIndexCon i => Text -> Text -> Context -> Processor i Intermediate
+  processRange' lo hi c = do
+    st <- get
+    ix <- getIx
+    return . I.fromList lo c . limitWords st . toRawResult -- FIXME: check I.fromList
+      $ CIx.lookupRange lo hi ix
 
 {-
 -- | 'rangeString' with 'Text'.
@@ -423,12 +429,12 @@ processBin But i1 i2 = return $ I.difference   i1 i2
 limitWords              :: ProcessState i -> RawResult -> RawResult
 limitWords s r          = cutW . cutD $ r
   where
-  limitD                = docLimit $ config s
+  limitD                = docLimit $ psConfig s
   cutD
       | limitD > 0      = limitDocs limitD
       | otherwise       = id
 
-  limitW                = wordLimit $ config s
+  limitW                = wordLimit $ psConfig s
   cutW
       | limitW > 0
         &&
@@ -437,7 +443,7 @@ limitWords s r          = cutW . cutD $ r
       | otherwise       = id
 
   calcScore             :: (Word, Occurrences) -> (Double, (Word, Occurrences))
-  calcScore w@(_, o)    = (log (fromIntegral (total s) / fromIntegral (DM.size o)), w)
+  calcScore w@(_, o)    = (log (fromIntegral (psTotal s) / fromIntegral (DM.size o)), w)
 
 -- ----------------------------------------------------------------------------
 
@@ -463,6 +469,6 @@ toRawResult = concatMap snd
 
 -- | Just everything.
 allDocuments :: QueryIndexCon i => Processor i Intermediate
-allDocuments = forAllContexts (\c s -> return $ I.fromList "" c $ ixSize (index s) c)
+allDocuments = forAllContexts (\c -> getIx >>= \ix -> return $ I.fromList "" c $ ixSize ix c)
   where
   ixSize i c = toRawResult $ CIx.searchWithCx PrefixNoCase c "" i
