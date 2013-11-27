@@ -72,11 +72,11 @@ searchResultUris = map uri . lrResult . crRes
 brainDoc :: ApiDocument
 brainDoc = emptyApiDoc
   { apiDocUri      = "test://0"
-  , apiDocIndexMap = M.fromList [("default", Right td)]
+  , apiDocIndexMap = M.fromList [("default", td)]
   , apiDocDescrMap = descr
   }
   where
-  td = TextData "Brain"
+  td = "Brain"
   descr = M.fromList [("name", "Brain"), ("mission", "take over the world"), ("legs", "4")]
 
 -- example apidoc

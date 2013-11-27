@@ -27,7 +27,7 @@ newtype TextData = TextData Content
 -- | The document accepted via the API.
 data ApiDocument  = ApiDocument
   { apiDocUri      :: URI
-  , apiDocIndexMap :: Map Context (Either WordList TextData)
+  , apiDocIndexMap :: Map Context Content
   , apiDocDescrMap :: Description
   }
   deriving (Show)
@@ -58,7 +58,7 @@ mkLimitedResult offset mx xs = LimitedResult
   }
 
 -- | empty document
-emptyApiDocIndexMap :: Map Context (Either WordList TextData)
+emptyApiDocIndexMap :: Map Context Content 
 emptyApiDocIndexMap = M.empty
 
 emptyApiDocDescrMap :: Description

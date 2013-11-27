@@ -48,9 +48,8 @@ toDocAndWords schema apiDoc = (doc, ws)
           { uri   = apiDocUri apiDoc
           , desc  = descrMap
           }
-  ws = M.mapWithKey (\context -> either
-                id
-                (\(TextData content)
+  ws = M.mapWithKey (\context -> 
+                (\(content)
                     -> let cxSchema = fromJust $ M.lookup context schema
                            scan = filter (typeValidator (cxType cxSchema)) . scanTextRE (cxRegEx cxSchema)
                        in toWordList scan (normalize (cxNormalizer cxSchema)) content)) indexMap
