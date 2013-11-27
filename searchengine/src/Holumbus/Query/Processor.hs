@@ -146,12 +146,23 @@ getIx = get >>= return . index
 getSchema :: QueryIndexCon ix => Processor ix Schema
 getSchema = get >>= return . schema
 
+-- | Get the schema associated with that context/index.
+--   /NOTE/: This fails if the schema does not exist.
+getContextSchema :: QueryIndexCon ix => Context -> Processor ix ContextSchema
+getContextSchema c = getSchema >>= return . fromJust . M.lookup c
+
 withState' :: QueryIndexCon ix => (ProcessState ix -> Processor ix a) -> Processor ix a
 withState' f = get >>= f
 
--- | Monadic version of 'setContexts'.
+-- | Set the contexts to be used for the query. Checks if the contexts exist.
 putContexts :: QueryIndexCon ix => [Context] -> Processor ix ()
-putContexts cs = modify setCx
+putContexts cs = do
+  schema' <- getSchema
+  let invalidContexts = filter (not . flip M.member schema') cs
+  if null invalidContexts
+    then modify setCx
+    else processError 404 $ "mentioned context(s) do not exist: " -- schema to be precise
+                          `T.append` (T.pack . show $ invalidContexts)
   where
   setCx (ProcessState cfg _ ix s dts) = ProcessState cfg cs ix s dts
 
@@ -300,25 +311,20 @@ processRange :: QueryIndexCon i => Text -> Text -> Processor i Intermediate
 processRange l h = forAllContexts' range
   where
   range c = do
-    -- get context schema
-    s <- getSchema
-    let cSchemaM = M.lookup c s
-    unless' (isJust cSchemaM)
-            1 $ "context schema missing: " `T.append` c
+    cSchema <- getContextSchema c
     -- compatible with context
-    let cSchema     = fromJust cSchemaM
-        cType       = cxType   cSchema
+    let cType       = cxType   cSchema
         rangeText   = T.pack . show $ [l,h]
         scan        = scanTextRE (cxRegEx      cSchema)
         norm        = normalize  (cxNormalizer cSchema)
         rs@[ls, hs] = [scan l, scan h]
     -- all range values are valid
     unless' (all (typeValidator cType) $ concat rs)
-            1 $ "range value(s) incompatible with context type: " `T.append` rangeText
+            400 $ "range value(s) incompatible with context type: " `T.append` rangeText
     let (ls', hs') = (map norm $ ls, map norm $ hs)
     -- values form a valid range
     unless' (rangeValidator cType ls' hs')
-            1 $ "invalid range for context: " `T.append` rangeText
+            400 $ "invalid range for context: " `T.append` rangeText
     -- type determines the processing
     case cType of
       _ -> get >>= processRange' (unbox ls') (unbox hs') c
