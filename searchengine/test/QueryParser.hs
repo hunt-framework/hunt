@@ -13,7 +13,7 @@ import           Control.Applicative                  ((<$>))
 import           Test.Framework                       hiding (Test)
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit
---import           Test.Framework.Providers.QuickCheck2
+import           Test.Framework.Providers.QuickCheck2
 import           Test.QuickCheck
 
 import           Control.Monad
@@ -304,7 +304,9 @@ op = frequency [(3, return (And)), (1, return (Or))]
 subQuery = sized (\num -> query (num `div` 2))
 
 specs = sequence [ word | i <- [1..2] ]
-word = arbitrary
+
+word :: Gen Text
+word = fmap T.pack . listOf1 . elements $ concat [['0'..'9'], ['A'..'Z'], ['a'..'z']]
 
 phrase = do
          ws <- sequence [ word | i <- [1..3] ]
@@ -316,13 +318,13 @@ showQuery _ (QPhrase QNoCase st) = T.concat ["\"", st, "\""]
 showQuery _ (QWord QCase st)     = T.concat ["!", st]
 showQuery _ (QPhrase QCase st)   = T.concat ["!\"", st, "\""]
 showQuery _ (QWord QFuzzy st)    = T.concat ["~", st]
-showQuery _ (QPhrase QFuzzy st)  = T.concat ["~", "XXX todo"]
+showQuery _ (QPhrase QFuzzy st)  = T.concat ["~\"", st, "\""]
 showQuery f (QContext c q)       = T.concat [(T.intercalate "," c), ":(", (showQuery f q), ")"]
 showQuery f (QNegation q)        = T.concat ["(NOT ", (showQuery f q), ")"]
 showQuery f (QBinary opr q1 q2)  = T.concat ["(", (showQuery f q1)
                                             ," " , (T.pack $ f opr)
                                             ," " , (showQuery f q2) , ")"]
-showQuery f (QRange l u)         = T.concat [ "[", l, "-", u, "]"]
+showQuery f (QRange l u)         = T.concat [ "[", l, " TO ", u, "]"]
 showQuery f (QBoost factor q)    = T.concat [ showQuery f q, "^", (T.pack . show $ factor) ]
 
 showOpAnd And = "AND"
@@ -333,13 +335,13 @@ showOpSpace And = " "
 showOpSpace Or  = "OR"
 showOpSpace But = error "But not allowed!"
 
--- ???
+
 prop_ParseAnd q = P.parseQuery (T.unpack $ showQuery showOpAnd q) == Right q
 prop_ParseSpace q = P.parseQuery (T.unpack $ showQuery showOpSpace q) == Right q
 
 allProperties = testGroup "Query Parser Properties"
-                [ -- testProperty "prop_ParseAnd" prop_ParseAnd
-               -- , testProperty "prop_ParseSpace" prop_ParseSpace
+                [ testProperty "prop_ParseAnd" prop_ParseAnd
+                , testProperty "prop_ParseSpace" prop_ParseSpace
                 ]
 
 allUnitTests = testGroup "Query Parser Hunit tests" $ hUnitTestToTests $ TestList
