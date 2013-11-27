@@ -11,6 +11,7 @@ import           Control.Monad
 import           Data.Maybe
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
+import           Data.List
 
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Schema
@@ -37,14 +38,11 @@ contextNormalizer o = case o of
 -- | Normalize a date representation to store in the index or search for.
 normalizeDate :: Text -> Text
 normalizeDate s = fromMaybe s
-    (T.pack . normDateRep . showDate . normDate <$> (readAnyDateM . T.unpack $ s))
+    (T.pack . normDateRep . showDate . toUTC <$> (readAnyDateM . T.unpack $ s))
   where
-  -- TODO: to GMT / eliminate timezone
-  normDate :: Date -> Date
-  normDate = id
-  -- TODO: general normalizer for the date representation
+  -- XXX: no dates before year 0 (1 BCE) this way
   normDateRep :: String -> String
-  normDateRep = filter (`elem` "-T")
+  normDateRep = filter (not . (`elem` "-"))
 
 -- ----------------------------------------------------------------------------
 
@@ -54,7 +52,7 @@ typeValidator t = case t of
     CText -> const True
     CInt  -> const True
     -- XXX: maybe use more rigid anyDate'?
-    CDate -> isAnyDate . T.unpack
+    CDate -> isAnyDate' . T.unpack
 
 -- ----------------------------------------------------------------------------
 
@@ -70,13 +68,19 @@ rangeValidator t = case t of
 
 -- ----------------------------------------------------------------------------
 
+{-
 -- | Checks if the string is a date representation (syntactically).
 isAnyDate :: String -> Bool
 isAnyDate s = any ($ s) $ map fst safeDateReaders
+-}
 
--- Same as 'isAnyDate'' but also checks if @(showDate . readAnyDate)@ produces the same result.
+-- | Same as 'isAnyDate' but also checks if @(showDate . readAnyDate)@ produces the same result.
+--   /NOTE/: excludes dates before year 0 (1 BCE).
 isAnyDate' :: String -> Bool
-isAnyDate' s = isAnyDate s && ((==s) . showDate . readAnyDate) s
+isAnyDate' s = fromMaybe False $ do
+  d <- readAnyDateM s
+  guard $ ((==s) . showDate . readAnyDate) s
+  return . not . isPrefixOf "-" . showDate . toUTC $ d
 
 -- | Unsafe 'readAnyDateM'.
 readAnyDate :: String -> Date
@@ -142,6 +146,10 @@ mkDateTime d t z
 toUTCTime :: Date -> UTCTime
 toUTCTime (Date d Nothing) = d
 toUTCTime (Date d (Just tz)) = addUTCTime (fromInteger . toInteger $ tz) d
+
+-- | Convert to UTC time. Eliminates the timezone offset.
+toUTC :: Date -> Date
+toUTC d = Date (toUTCTime d) Nothing -- to UTC
 
 -- ----------------------------------------------------------------------------
 
