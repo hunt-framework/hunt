@@ -7,6 +7,7 @@ import           Data.Binary                       (Binary (..))
 
 import qualified Data.StringMap                    as SM
 
+import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.DocIdMap          as DM
 import           Holumbus.Index.Index
 
@@ -46,7 +47,12 @@ instance Index DmPrefixTree where
     -- TODO: use indextype parameter for real search
     search t k (DmPT pt)
         = case t of
-            _ -> SM.prefixFindWithKey k pt
+            Case         -> case SM.lookup k pt of
+                              Nothing   -> []
+                              (Just xs) -> [(k,xs)]
+            NoCase       -> SM.lookupNoCase k pt
+            PrefixCase   -> SM.prefixFindCaseWithKey k pt
+            PrefixNoCase -> SM.prefixFindNoCaseWithKey k pt
 
     lookupRange k1 k2 (DmPT pt)
         = SM.toList $ SM.lookupRange k1 k2 pt
