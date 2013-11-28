@@ -56,7 +56,7 @@ type Words        = Map Context WordList
 type WordList     = Map Word [Position]
 
 -- | Text index
-data TextSearchOp = Case | NoCase | PrefixCase | PrefixNoCase | Fuzzy
+data TextSearchOp = Case | NoCase | PrefixCase | PrefixNoCase 
   deriving (Eq, Show)
 
 instance FromJSON TextSearchOp where
@@ -66,7 +66,6 @@ instance FromJSON TextSearchOp where
         "noCase"       -> return NoCase
         "prefixCase"   -> return PrefixCase
         "prefixNoCase" -> return PrefixNoCase
-        "fuzzy"        -> return Fuzzy
         _              -> mzero
   parseJSON _ = mzero
 
@@ -76,7 +75,6 @@ instance ToJSON TextSearchOp where
     NoCase       -> "noCase"
     PrefixCase   -> "prefixCase"
     PrefixNoCase -> "prefixNoCase"
-    Fuzzy        -> "fuzzy"
 
 -- ----------------------------------------------------------------------------
 -- Binary instances
@@ -87,7 +85,6 @@ instance Binary TextSearchOp where
   put (NoCase)       = put (1 :: Word8)
   put (PrefixCase)   = put (2 :: Word8)
   put (PrefixNoCase) = put (3 :: Word8)
-  put (Fuzzy)        = put (4 :: Word8)
 
   get = do
     t <- get :: Get Word8
@@ -96,6 +93,5 @@ instance Binary TextSearchOp where
       1 -> return NoCase
       2 -> return PrefixCase
       3 -> return PrefixNoCase
-      4 -> return Fuzzy
 
 -- ------------------------------------------------------------

@@ -289,8 +289,9 @@ processPhraseCase   = processPhrase Case
 processPhraseNoCase :: QueryIndexCon i => Text -> [Context] -> Processor i Intermediate
 processPhraseNoCase = processPhrase NoCase
 
+-- | TODO actually use fuzzy search using a fuzzyset like the general query
 processPhraseFuzzy  :: QueryIndexCon i => Text -> [Context] -> Processor i Intermediate
-processPhraseFuzzy  = processPhrase Fuzzy
+processPhraseFuzzy  = processPhrase NoCase
 
 -- | Process a phrase query by searching for every word of the phrase and comparing their positions.
 processPhraseInternal :: QueryIndexCon i
