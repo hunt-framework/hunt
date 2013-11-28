@@ -134,8 +134,8 @@ unless' b code text = unless b $ processError code text
 getContexts :: QueryIndexCon ix => Processor ix [Context]
 getContexts = get >>= return . psContexts
 
-getConfig :: QueryIndexCon ix => Processor ix ProcessConfig
-getConfig = get >>= return . psConfig
+--getConfig :: QueryIndexCon ix => Processor ix ProcessConfig
+--getConfig = get >>= return . psConfig
 
 getFuzzyConfig :: QueryIndexCon ix => Processor ix FuzzyConfig
 getFuzzyConfig = get >>= return . fuzzyConfig . psConfig
@@ -151,8 +151,8 @@ getSchema = get >>= return . psSchema
 getContextSchema :: QueryIndexCon ix => Context -> Processor ix ContextSchema
 getContextSchema c = getSchema >>= return . fromJust . M.lookup c
 
-withState' :: QueryIndexCon ix => (ProcessState ix -> Processor ix a) -> Processor ix a
-withState' f = get >>= f
+--withState' :: QueryIndexCon ix => (ProcessState ix -> Processor ix a) -> Processor ix a
+--withState' f = get >>= f
 
 -- | Set the contexts to be used for the query. Checks if the contexts exist.
 putContexts :: QueryIndexCon ix => [Context] -> Processor ix ()
@@ -194,7 +194,7 @@ process o = case o of
   QWord QFuzzy w      -> processFuzzyWord                      $ w
   QPhrase QCase w     -> forAllContexts . processPhraseCase   $ w
   QPhrase QNoCase w   -> forAllContexts . processPhraseNoCase $ w
-  QPhrase QFuzzy w    -> forAllContexts . processPhraseFuzzy  $ w
+  QPhrase QFuzzy w    -> processPhraseFuzzy  $ w
   QNegation q         -> process q >>= processNegation
   QContext c q        -> putContexts c >> process q
   QBinary op q1 q2    -> do -- XXX: maybe parallel
@@ -289,9 +289,14 @@ processPhraseCase   = processPhrase Case
 processPhraseNoCase :: QueryIndexCon i => Text -> [Context] -> Processor i Intermediate
 processPhraseNoCase = processPhrase NoCase
 
--- | TODO actually use fuzzy search using a fuzzyset like the general query
-processPhraseFuzzy  :: QueryIndexCon i => Text -> [Context] -> Processor i Intermediate
-processPhraseFuzzy  = processPhrase NoCase
+processPhraseFuzzy  :: QueryIndexCon i => Text -> Processor i Intermediate
+processPhraseFuzzy q = do
+  cfg <- getFuzzyConfig
+  is <- mapM (forAllContexts . processPhraseNoCase . fst) $ fuzzySet cfg
+  return . I.unions $ is
+  where
+  fuzzySet cfg = (q,0):(F.toList $ F.fuzz cfg q)
+
 
 -- | Process a phrase query by searching for every word of the phrase and comparing their positions.
 processPhraseInternal :: QueryIndexCon i
