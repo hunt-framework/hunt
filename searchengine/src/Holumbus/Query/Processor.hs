@@ -208,9 +208,15 @@ process o = case o of
 -- TODO: parallelize mapM
 -- | Evaluate (the query) for all contexts.
 forAllContexts :: (QueryIndexCon i)
+               => ([Context] -> Processor i Intermediate)
+               -> Processor i Intermediate
+forAllContexts f = getContexts >>= f
+
+forAllContexts' :: (QueryIndexCon i)
                => (Context -> Processor i Intermediate)
                -> Processor i Intermediate
-forAllContexts f = getContexts >>= mapM f >>= return . I.unions
+forAllContexts' f = getContexts >>= mapM f >>= return . I.unions
+
 
 {-
 -- version with explicit state
@@ -229,23 +235,23 @@ forAllContexts' f = getContexts >>= mapM (\c -> get >>= f c) >>= return . I.unio
 -- | Process a single, case-insensitive word by finding all documents
 --   which contain the word as prefix.
 processWord :: QueryIndexCon i
-            => TextSearchOp -> Text -> Context
+            => TextSearchOp -> Text -> [Context]
             -> Processor i Intermediate
 processWord op q c = do
   st <- get
   ix <- getIx
-  return . I.fromList q c . limitWords st . toRawResult
-    $ CIx.searchWithCx op c q ix
+  return . I.fromListCx q c . limitWords st . toRawResult
+    $ CIx.searchWithCxs op c q ix
 
 -- | Case Sensitive variant of process Word
 processWordCase :: QueryIndexCon i
-                => Text -> Context
+                => Text -> [Context]
                 -> Processor i Intermediate
 processWordCase = processWord PrefixCase
 
 -- | Case Insensitive variant of process Word
 processWordNoCase :: QueryIndexCon i
-                  => Text -> Context
+                  => Text -> [Context]
                   -> Processor i Intermediate
 processWordNoCase = processWord PrefixNoCase
 
@@ -269,31 +275,31 @@ processFuzzyWord q = do
 -- | Process a phrase.
 processPhrase :: QueryIndexCon i
               => TextSearchOp
-              -> Text -> Context
+              -> Text -> [Context]
               -> Processor i Intermediate
 processPhrase op q c = do
     ix <- getIx
     processPhraseInternal (meaningfulName ix) q c
     where
-    meaningfulName ix t = toRawResult $ CIx.searchWithCx op c t ix
+    meaningfulName ix t = toRawResult $ CIx.searchWithCxs op c t ix
 
-processPhraseCase   :: QueryIndexCon i => Text -> Context -> Processor i Intermediate
+processPhraseCase   :: QueryIndexCon i => Text -> [Context] -> Processor i Intermediate
 processPhraseCase   = processPhrase Case
 
-processPhraseNoCase :: QueryIndexCon i => Text -> Context -> Processor i Intermediate
+processPhraseNoCase :: QueryIndexCon i => Text -> [Context] -> Processor i Intermediate
 processPhraseNoCase = processPhrase NoCase
 
-processPhraseFuzzy  :: QueryIndexCon i => Text -> Context -> Processor i Intermediate
+processPhraseFuzzy  :: QueryIndexCon i => Text -> [Context] -> Processor i Intermediate
 processPhraseFuzzy  = processPhrase Fuzzy
 
 -- | Process a phrase query by searching for every word of the phrase and comparing their positions.
 processPhraseInternal :: QueryIndexCon i
-                      => (Text -> RawResult) -> Text -> Context
+                      => (Text -> RawResult) -> Text -> [Context]
                       -> Processor i Intermediate
-processPhraseInternal f c q =
+processPhraseInternal f q c =
   if DM.null result
     then return $ I.empty
-    else return $ I.fromList q c [(q, processPhrase' ws 1 result)]
+    else return $ I.fromListCx q c [(q, processPhrase' ws 1 result)]
   where
   result = mergeOccurrencesList $ map snd $ f w
   (w:ws) = T.words q
@@ -312,7 +318,7 @@ processPhraseInternal f c q =
 -- Range Query
 -- ----------------------------------------------------------------------------
 processRange :: QueryIndexCon i => Text -> Text -> Processor i Intermediate
-processRange l h = forAllContexts range
+processRange l h = forAllContexts' range
   where
   range c = do
     cSchema <- getContextSchema c
@@ -469,6 +475,6 @@ toRawResult = concatMap snd
 
 -- | Just everything.
 allDocuments :: QueryIndexCon i => Processor i Intermediate
-allDocuments = forAllContexts (\c -> getIx >>= \ix -> return $ I.fromList "" c $ ixSize ix c)
+allDocuments = forAllContexts' (\c -> getIx >>= \ix -> return $ I.fromList "" c $ ixSize ix c)
   where
   ixSize i c = toRawResult $ CIx.searchWithCx PrefixNoCase c "" i

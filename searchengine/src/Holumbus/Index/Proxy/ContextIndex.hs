@@ -1,10 +1,12 @@
 module Holumbus.Index.Proxy.ContextIndex where
 
+import           Control.Parallel.Strategies
+
 import           Data.Binary                  (Binary(..))
 import           Data.Text.Binary             ()
 import           Data.Map.Strict              (Map)
 import qualified Data.Map.Strict              as M
-
+import qualified Data.List                    as L
 import           Holumbus.Common
 import qualified Holumbus.Index.Index         as Ix
 
@@ -86,6 +88,18 @@ searchWithCx op c k (ContextIx m)
   = case M.lookup c m of
       (Just cm) -> [(c, Ix.search op k cm)]
       _         -> []
+
+searchWithCxs :: ContextIxCon i v 
+              => Ix.ISearchOp i v
+              -> [Context]
+              -> Ix.IKey i v
+              -> ContextIndex i v
+              -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]
+-- non parallel
+-- searchWithCxs op cs k ix = concat $ L.map (\c -> searchWithCx op c k ix) cs
+-- parallel
+searchWithCxs op cs k ix = concat $ parMap rseq (\c -> searchWithCx op c k ix) cs
+
 
 -- | Contexts/keys of 'ContextIndex'.
 contexts :: ContextIndex i v -> [Context]

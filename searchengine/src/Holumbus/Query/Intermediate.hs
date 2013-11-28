@@ -42,6 +42,7 @@ module Holumbus.Query.Intermediate
 
   -- * Conversion
   , fromList
+  , fromListCx
   , toResult
 )
 where
@@ -124,6 +125,9 @@ fromList t c os                 = DM.map transform $
   where
   insertWords (w, o)            = DM.map (\p -> [(w, (WordInfo [t] 0.0 , p))]) o
   transform w                   = M.singleton c (M.fromList w)
+
+fromListCx :: Word -> [Context] -> RawResult -> Intermediate
+fromListCx t cs os              = unions $ map (\c -> fromList t c os) cs
 
 -- | Convert to a @Result@ by generating the 'WordHits' structure.
 toResult                        :: (Applicative m, Monad m, DocTable d, e ~ Dt.DValue d, e ~ Document) =>
