@@ -44,7 +44,6 @@ instance Index DmPrefixTree where
     toList (DmPT pt)
         = SM.toList pt
 
-    -- TODO: use indextype parameter for real search
     search t k (DmPT pt)
         = case t of
             Case         -> case SM.lookup k pt of
