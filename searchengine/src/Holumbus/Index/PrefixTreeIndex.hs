@@ -5,7 +5,7 @@ where
 
 import           Data.Binary                       (Binary (..))
 
-import qualified Data.StringMap                    as SM
+import qualified Data.StringMap.Strict             as SM
 
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.DocIdMap          as DM
