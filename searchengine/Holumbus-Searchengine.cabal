@@ -163,3 +163,24 @@ Test-suite Holumbus-Query-Parser
                , test-framework-quickcheck2
                , Holumbus-Searchengine
                , text
+
+
+Test-suite Holumbus-IndexStrictess
+  hs-source-dirs:       test
+  main-is:              IndexStrict.hs
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -Wall
+  extensions:           OverloadedStrings
+
+  build-depends: base                         >= 4.6 && < 5
+               , containers
+               , HUnit
+               , mtl                          >= 1.1 && < 3
+               , QuickCheck
+               , test-framework
+               , test-framework-hunit
+               , test-framework-quickcheck2
+               , Holumbus-Searchengine
+               , text
+               , ghc-heap-view                >= 0.5
+               , random                       >= 1.0
