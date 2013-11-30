@@ -33,8 +33,8 @@ a = QBinary And
 o :: Query -> Query -> Query
 o = QBinary Or
 
-n :: Query -> Query
-n = QNegation
+an :: Query -> Query -> Query
+an = QBinary AndNot
 
 w :: Text -> Query
 w = QWord QNoCase
@@ -121,8 +121,8 @@ specifierTests = TestList
   (P.parseQuery " wurst:\t abc \nbatzen : \r def "))
 
   , TestCase (assertEqual "Specifier priority"
-  (Right (a (w "abc") (a (s ["wurst"] (w "def")) (o (n (s ["wurst"] (w "ghi"))) (s ["wurst"] (w "jkl"))))))
-  (P.parseQuery "abc wurst: def NOT wurst: ghi OR wurst: jkl"))
+  (Right (a (w "abc") (a (s ["wurst"] (w "def")) (o (s ["wurst"] (w "ghi")) (s ["wurst"] (w "jkl"))))))
+  (P.parseQuery "abc wurst: def wurst: ghi OR wurst: jkl"))
 
   ,TestCase (assertEqual "Specifier and brackets"
   (Right (a (s ["wurst"] (a (w "abc") (a (w "def") (w "ghi")))) (s ["batzen"] (o (w "abc") (w "def")))))
@@ -149,6 +149,30 @@ specifierTests = TestList
   (P.parseQuery "wurst , \n batzen \t, schinken: \"this is A Test\""))
   ]
 
+andNotTests :: Test
+andNotTests = TestList
+  [ TestCase (assertEqual "Simple two term 'and not' query"
+  (Right (an (w "abc") (w "def")))
+  (P.parseQuery "abc AND NOT def"))
+
+  , TestCase (assertEqual "Concatenating 'and' terms"
+  (Right (an (w "abc") (an (w "def") (w "ghi"))))
+  (P.parseQuery "abc AND NOT def AND NOT ghi"))
+
+  , TestCase (assertEqual "Ignoring whitespace"
+  (Right (an (w "abc") (an (w "def") (an (w "ghi") (w "jkl")))))
+  (P.parseQuery " \rabc AND NOT\r  def  \tAND NOT ghi AND NOT \njkl \r\n "))
+
+  , TestCase (assertEqual "Priorities"
+  (Right (an (s ["wurst"] (w "abc")) (an (w "def") (an (w "ghi") (s ["wurst"] (w "jkl"))))))
+  (P.parseQuery "wurst:abc AND NOT def AND NOT ghi AND NOT wurst:jkl"))
+
+  , TestCase (assertEqual "Confusing operator"
+  (Right (an (w "Apple") (a (w "Anna") (w "ANDNOTtingham"))))
+  (P.parseQuery "Apple AND NOT Anna ANDNOTtingham"))
+  ]
+
+{-
 notTests :: Test
 notTests = TestList
   [ TestCase (assertEqual "Simple not query"
@@ -171,6 +195,7 @@ notTests = TestList
   (Right (a (w "Nail") (a (w "NOrthpole") (w "NOTtingham"))))
   (P.parseQuery "Nail NOrthpole NOTtingham"))
   ]
+-}
 
 caseTests :: Test
 caseTests = TestList
@@ -293,14 +318,13 @@ query num | num == 0 = liftM (QWord QCase) word
                                 , (2, liftM (QPhrase QNoCase) phrase)
                                 , (1, liftM (QPhrase QCase) phrase)
                                 , (1, liftM2 QContext specs subQuery)
-                                , (2, liftM  QNegation subQuery)
                                 , (4, liftM3 QBinary op subQuery subQuery)
                                 ]
 query _ = error "Error in query generator!"
 
 
 
-op = frequency [(3, return (And)), (1, return (Or))]
+op = frequency [(3, return (And)), (1, return (Or)), (1, return (AndNot))]
 subQuery = sized (\num -> query (num `div` 2))
 
 specs = sequence [ word | i <- [1..2] ]
@@ -320,20 +344,19 @@ showQuery _ (QPhrase QCase st)   = T.concat ["!\"", st, "\""]
 showQuery _ (QWord QFuzzy st)    = T.concat ["~", st]
 showQuery _ (QPhrase QFuzzy st)  = T.concat ["~\"", st, "\""]
 showQuery f (QContext c q)       = T.concat [(T.intercalate "," c), ":(", (showQuery f q), ")"]
-showQuery f (QNegation q)        = T.concat ["(NOT ", (showQuery f q), ")"]
 showQuery f (QBinary opr q1 q2)  = T.concat ["(", (showQuery f q1)
                                             ," " , (T.pack $ f opr)
                                             ," " , (showQuery f q2) , ")"]
 showQuery f (QRange l u)         = T.concat [ "[", l, " TO ", u, "]"]
 showQuery f (QBoost factor q)    = T.concat [ showQuery f q, "^", (T.pack . show $ factor) ]
 
-showOpAnd And = "AND"
-showOpAnd Or  = "OR"
-showOpAnd But = error "But not allowed!"
+showOpAnd And    = "AND"
+showOpAnd Or     = "OR"
+showOpAnd AndNot = "AND NOT"
 
-showOpSpace And = " "
-showOpSpace Or  = "OR"
-showOpSpace But = error "But not allowed!"
+showOpSpace And    = " "
+showOpSpace Or     = "OR"
+showOpSpace AndNot = "AND NOT"
 
 
 prop_ParseAnd q = P.parseQuery (T.unpack $ showQuery showOpAnd q) == Right q
@@ -347,7 +370,8 @@ allProperties = testGroup "Query Parser Properties"
 allUnitTests = testGroup "Query Parser Hunit tests" $ hUnitTestToTests $ TestList
   [ TestLabel "And tests"         andTests
   , TestLabel "Or tests"          orTests
-  , TestLabel "Not tests"         notTests
+  , TestLabel "And Not tests"     andNotTests
+  --, TestLabel "Not tests"         notTests
   , TestLabel "Specifier tests"   specifierTests
   , TestLabel "Case tests"        caseTests
   , TestLabel "Parenthese tests"  parentheseTests

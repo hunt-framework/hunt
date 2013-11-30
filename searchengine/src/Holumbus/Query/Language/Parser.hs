@@ -78,25 +78,17 @@ andQuery :: Parser Query
 andQuery = do t <- orQuery
               try (andOp' t) <|> return t
   where
-  andOp' r = do andOp
+  andOp' r = do op <- andOp
                 q <- andQuery
-                return (QBinary And r q)
+                return (QBinary op r q)
 
 -- | Parse an or query.
 orQuery :: Parser Query
-orQuery = do t <- notQuery
+orQuery = do t <- contextQuery
              do orOp
                 q <- orQuery
                 return (QBinary Or t q)
                 <|> return t
-
--- | Parse a negation.
-notQuery :: Parser Query
-notQuery = notQuery' <|> contextQuery
-  where
-  notQuery' = do notOp
-                 q <- contextQuery
-                 return (QNegation q)
 
 -- | Parse a context query.
 contextQuery :: Parser Query
@@ -163,13 +155,20 @@ phraseQuery c = do p <- phrase
                    return (c $ T.pack p)
 
 -- | Parse an and operator.
-andOp :: Parser ()
-andOp = try andOp' <|> spaces1
+andOp :: Parser BinOp
+andOp = try andNotOp' <|> try andOp' <|> (spaces1 >> return And)
   where
+  andNotOp' = do
+    spaces
+    string "AND"
+    spaces
+    string "NOT"
+    spaces1
+    return AndNot
   andOp' = do spaces
               string "AND"
               spaces1
-              return ()
+              return And
 
 -- | Parse an or operator.
 orOp :: Parser ()
@@ -179,15 +178,6 @@ orOp = try orOp'
              string "OR"
              spaces1
              return ()
-
--- | Parse a not operator.
-notOp :: Parser ()
-notOp = try notOp'
-  where
-  notOp' = do spaces
-              string "NOT"
-              spaces1
-              return ()
 
 -- | Parse a word.
 word :: Parser String

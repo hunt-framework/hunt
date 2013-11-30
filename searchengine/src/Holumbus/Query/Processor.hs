@@ -192,7 +192,6 @@ process o = case o of
   QPhrase QCase w     -> forAllContexts . processPhraseCase   $ w
   QPhrase QNoCase w   -> forAllContexts . processPhraseNoCase $ w
   QPhrase QFuzzy w    -> processPhraseFuzzy  $ w
-  QNegation q         -> process q >>= processNegation
   QContext c q        -> putContexts c >> process q
   QBinary op q1 q2    -> do -- XXX: maybe parallel
                           pq1 <- process q1
@@ -404,16 +403,12 @@ succString = succString'
 -- Operators
 -- ----------------------------------------------------------------------------
 
--- | Process a negation by getting all documents and subtracting the result of the negated query.
-processNegation :: QueryIndexCon i => Intermediate -> Processor i Intermediate
-processNegation i = allDocuments >>= \allDocs -> return $ I.difference allDocs i
-
 -- | Process a binary operator by caculating the union or the intersection of the two subqueries.
 processBin :: QueryIndexCon i
            => BinOp -> Intermediate -> Intermediate -> Processor i Intermediate
-processBin And i1 i2 = return $ I.intersection i1 i2
-processBin Or  i1 i2 = return $ I.union        i1 i2
-processBin But i1 i2 = return $ I.difference   i1 i2
+processBin And    i1 i2 = return $ I.intersection i1 i2
+processBin Or     i1 i2 = return $ I.union        i1 i2
+processBin AndNot i1 i2 = return $ I.difference   i1 i2
 
 
 -- ----------------------------------------------------------------------------
@@ -474,10 +469,3 @@ mergeOccurrencesList    = DM.unionsWith Pos.union
 -- XXX: no merging - just for results with a single context
 toRawResult :: [(Context, [(Word, Occurrences)])] -> RawResult
 toRawResult = concatMap snd
-
-
--- | Just everything.
-allDocuments :: QueryIndexCon i => Processor i Intermediate
-allDocuments = forAllContexts' (\c -> getIx >>= \ix -> return $ I.fromList "" c $ ixSize ix c)
-  where
-  ixSize i c = toRawResult $ CIx.searchWithCx PrefixNoCase c "" i
