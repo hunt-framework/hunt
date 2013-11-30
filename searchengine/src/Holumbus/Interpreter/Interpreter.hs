@@ -195,8 +195,11 @@ execCmd' (Sequence cs)
 execCmd' NOOP
     = return ResOK  -- keep alive test
 
-execCmd' (Insert doc opts)
-    = modIx $ execInsert doc opts
+execCmd' (Insert doc)
+    = modIx $ execInsert doc
+
+execCmd' (Update doc)
+    = modIx $ execUpdate doc
 
 execCmd' (Delete _uri)
     = error "execCmd' (Delete{})" --modIx $ execDelete uri
@@ -249,26 +252,35 @@ execDeleteContext cx (ix, dt, s)
   = return ((CIx.deleteContext cx ix, dt, M.delete cx s), ResOK)
 
 
--- all contexts mentioned in the apidoc need to exist
+-- | Inserts an 'ApiDocument' into the index.
+-- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
+-- Documents/URIs must not exist.
 execInsert :: TextIndexerCon ix dt
-           => ApiDocument -> InsertOption -> IpIndexer ix dt -> CM ix dt (IpIndexer ix dt, CmdResult)
-execInsert doc op ixx@(_ix, dt, schema) = do
+           => ApiDocument -> IpIndexer ix dt -> CM ix dt (IpIndexer ix dt, CmdResult)
+execInsert doc ixx@(_ix, _dt, schema) = do
     let contexts = M.keys $ apiDocIndexMap doc
     checkContextsExistence contexts ixx
     let (docs, ws) = toDocAndWords schema doc
-    case op of
-      Default -> do
-        ixx' <- lift $ Ixx.insert docs ws ixx
+    ixx' <- lift $ Ixx.insert docs ws ixx
+    return (ixx', ResOK)
+
+
+-- | Updates an 'ApiDocument'.
+-- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
+-- Documents/URIs need to exist.
+execUpdate :: TextIndexerCon ix dt
+           => ApiDocument -> IpIndexer ix dt -> CM ix dt (IpIndexer ix dt, CmdResult)
+execUpdate doc ixx@(_ix, dt, schema) = do
+    let contexts = M.keys $ apiDocIndexMap doc
+    checkContextsExistence contexts ixx
+    let (docs, ws) = toDocAndWords schema doc
+    docIdM <- lift $ Dt.lookupByURI dt (uri docs)
+    case docIdM of
+      Just docId -> do
+        ixx' <- lift $ Ixx.modifyWithDescription (desc docs) ws docId ixx
         return (ixx', ResOK)
-      Update  -> do
-        -- XXX: move to Ixx
-        docIdM <- lift $ Dt.lookupByURI dt (uri docs)
-        case docIdM of
-          Just docId -> do
-            ixx' <- lift $ Ixx.modifyWithDescription (desc docs) ws docId ixx
-            return (ixx', ResOK)
-          Nothing    -> throwResError 409 $ "document for update not found: "
-                                            `T.append` uri docs
+      Nothing    -> throwResError 409 $ "document for update not found: "
+                                        `T.append` uri docs
 
 
 unless' :: TextIndexerCon ix dt

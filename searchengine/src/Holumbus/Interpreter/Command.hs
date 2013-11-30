@@ -16,10 +16,6 @@ import           Holumbus.Query.Language.Grammar (Query (..))
 
 -- ----------------------------------------------------------------------------
 
-data InsertOption
-  = Default | Update
-    deriving (Show)
-
 type UnparsedQuery = Text
 
 data Command
@@ -32,9 +28,8 @@ data Command
                   , icMaxCR    :: Int
                   }
   -- | Index manipulation
-  | Insert        { icDoc      :: ApiDocument
-                  , icInsOpt   :: InsertOption
-                  }
+  | Insert        { icDoc      :: ApiDocument }
+  | Update        { icDoc      :: ApiDocument }
   | Delete        { icUri      :: URI }
   | BatchDelete   { icUris     :: Set URI }
   -- | context manipulation
@@ -64,36 +59,18 @@ data CmdError
 
 -- ----------------------------------------------------------------------------
 
-instance FromJSON InsertOption where
-  parseJSON (String s)
-    = case s of
-      "default" -> return Default
-      "update"  -> return Update
-      _         -> mzero
-  parseJSON _ = mzero
-
-instance ToJSON InsertOption where
-  toJSON o = case o of
-    Default -> "default"
-    Update  -> "update"
-
 instance ToJSON Command where
   toJSON o = case o of
     Search q ofs mx   -> object . cmd "search"         $ [ "query" .= q, "offset" .= ofs, "max" .= mx ]
     Completion s mx   -> object . cmd "completion"     $ [ "text"  .= s, "max" .= mx ]
-    Insert d op       -> object . cmd "insert"         $
-      [ "option"   .= op
-      , "document" .= d
-      ]
-    Delete u          -> object . cmd "delete"         $ [ "uri"   .= u ]
-    InsertContext c s -> object . cmd "insert-context" $
-      [ "context" .= c
-      , "schema"  .= s
-      ]
+    Insert d          -> object . cmd "insert"         $ [ "document" .= d ]
+    Update d          -> object . cmd "update"         $ [ "document" .= d ]
+    Delete u          -> object . cmd "delete"         $ [ "uri" .= u ]
+    InsertContext c s -> object . cmd "insert-context" $ [ "context" .= c, "schema" .= s ]
     DeleteContext c   -> object . cmd "delete-context" $ [ "context" .= c ]
-    BatchDelete us    -> object . cmd "delete-batch"   $ [ "uris"  .= us ] -- not used in fromJSON instance
-    LoadIx  f         -> object . cmd "load"           $ [ "path"  .= f ]
-    StoreIx f         -> object . cmd "store"          $ [ "path"  .= f ]
+    BatchDelete us    -> object . cmd "delete-batch"   $ [ "uris" .= us ] -- not used in fromJSON instance
+    LoadIx  f         -> object . cmd "load"           $ [ "path" .= f ]
+    StoreIx f         -> object . cmd "store"          $ [ "path" .= f ]
     NOOP              -> object . cmd "noop"           $ []
     Sequence cs       -> toJSON cs
     where
@@ -112,29 +89,25 @@ instance FromJSON Command where
         txt <- o .: "text"
         mx  <- o .: "max"
         return $ Completion txt mx
-      "insert"         -> do
-        op <- o .: "option"
-        d  <- o .: "document"
-        return $ Insert d op
-      "delete"         -> o .: "uri"   >>= return . Delete
+      "insert"         -> o .: "document" >>= return . Insert
+      "update"         -> o .: "document" >>= return . Update
+      "delete"         -> o .: "uri"      >>= return . Delete
       "insert-context" -> do
         cx  <- o .: "context"
         s   <- o .: "schema"
         return $ InsertContext cx s
       "delete-context" -> o .: "context" >>= return . DeleteContext
-      "load"           -> o .: "path"  >>= return . LoadIx
-      "store"          -> o .: "path"  >>= return . StoreIx
-      "noop"           ->                  return NOOP
+      "load"           -> o .: "path"    >>= return . LoadIx
+      "store"          -> o .: "path"    >>= return . StoreIx
+      "noop"           ->                    return NOOP
       _                -> mzero
-  parseJSON o       = parseJSON o   >>= return . Sequence
+  parseJSON o = parseJSON o >>= return . Sequence
 
 instance ToJSON CmdResult where
   toJSON o = case o of
-    ResOK -> object . code 0 $ []
-    ResSearch r -> object . code 0 $
-      [ "res" .= r ]
-    ResCompletion w -> object . code 0 $
-      [ "res" .= w ]
+    ResOK           -> object . code 0 $ []
+    ResSearch r     -> object . code 0 $ [ "res" .= r ]
+    ResCompletion w -> object . code 0 $ [ "res" .= w ]
     where
     code i = (:) ("code" .= (i :: Int))
 

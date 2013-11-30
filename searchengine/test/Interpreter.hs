@@ -53,7 +53,7 @@ testRunCmd cmd = do
 
 
 insertCmd, searchCmd, batchCmd :: Command
-insertCmd = Insert brainDoc Default
+insertCmd = Insert brainDoc
 searchCmd = Search (QWord QNoCase "d") 1 100
 batchCmd  = Sequence [insertDefaultContext, insertCmd, searchCmd]
 
@@ -116,7 +116,7 @@ test_insertAndSearch :: Assertion
 test_insertAndSearch = do
   res <- testCmd . Sequence $
       [ insertDefaultContext
-      , Insert brainDoc Default
+      , Insert brainDoc
       , Search (QWord QNoCase "Brain") 0 1000]
   ["test://0"] @=? (searchResultUris . fromRight) res
 
@@ -128,7 +128,7 @@ test_alot = testCM $ do
   --throwNYI "user error"
   insCR <- execCmd insertDefaultContext
   liftIO $ ResOK @=? insCR
-  insR <- execCmd $ Insert brainDoc Default
+  insR <- execCmd $ Insert brainDoc
   liftIO $ ResOK @=? insR
   seaR <- execCmd $ Search (QWord QNoCase "Brain") os pp
   liftIO $ ["test://0"] @=? searchResultUris seaR
@@ -152,7 +152,7 @@ a @@= b = a @@@ (@?=b)
 test_fancy :: Assertion
 test_fancy = testCM $ do
   -- insert into non-existent context results in an error
-  (Insert brainDoc Default
+  (Insert brainDoc
     @@@ const (assertFailure "insert into non-existent context succeeded"))
         `catchError` const (return ())
   -- insert context succeeds
@@ -165,7 +165,7 @@ test_fancy = testCM $ do
         `catchError` const (return ())
 
   -- insert yields the correct result value
-  Insert brainDoc Default
+  Insert brainDoc
     @@= ResOK
 
   -- searching "Brain" leads to the doc
@@ -179,14 +179,14 @@ test_fancy = testCM $ do
     @@@ ((@?= []) . searchResultUris)
 
   -- insert with default does not update the description
-  Insert brainDocUpdate Default
+  Insert brainDocUpdate
     @@= ResOK
   -- search yields the old description
   Search (QWord QCase "Brain") os pp
     @@@ ((@?= (apiDocDescrMap brainDoc)) . desc . head . lrResult . crRes)
 
   -- update the description
-  Insert brainDocUpdate Update
+  Update brainDocUpdate
     @@= ResOK
   -- search yields >merged< description
   Search (QWord QCase "Brain") os pp
