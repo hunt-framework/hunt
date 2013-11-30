@@ -6,7 +6,6 @@ import           Data.Binary                  (Binary(..))
 import           Data.Text.Binary             ()
 import           Data.Map.Strict              (Map)
 import qualified Data.Map.Strict              as M
-import qualified Data.List                    as L
 import           Holumbus.Common
 import qualified Holumbus.Index.Index         as Ix
 
@@ -65,35 +64,25 @@ empty :: ContextIndex i v
 empty = ContextIx $ M.empty
 
 search :: ContextIxCon i v
-       => Ix.ISearchOp i v
-       -> Ix.IKey i v
-       -> ContextIndex i v
+       => Ix.ISearchOp i v -> Ix.IKey i v -> ContextIndex i v
        -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]
 search op k (ContextIx m) = M.toList $ M.map (Ix.search op k) m
 
 lookupRange :: ContextIxCon i v
-       => Ix.IKey i v
-       -> Ix.IKey i v
-       -> ContextIndex i v
+       => Ix.IKey i v -> Ix.IKey i v -> ContextIndex i v
        -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]
 lookupRange k1 k2 (ContextIx m) = M.toList $ M.map (Ix.lookupRange k1 k2) m
 
 searchWithCx :: ContextIxCon i v
-             => Ix.ISearchOp i v
-             -> Context
-             -> Ix.IKey i v
-             -> ContextIndex i v
+             => Ix.ISearchOp i v -> Context -> Ix.IKey i v -> ContextIndex i v
              -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]
 searchWithCx op c k (ContextIx m)
   = case M.lookup c m of
       (Just cm) -> [(c, Ix.search op k cm)]
       _         -> []
 
-searchWithCxs :: ContextIxCon i v 
-              => Ix.ISearchOp i v
-              -> [Context]
-              -> Ix.IKey i v
-              -> ContextIndex i v
+searchWithCxs :: ContextIxCon i v
+              => Ix.ISearchOp i v -> [Context] -> Ix.IKey i v -> ContextIndex i v
               -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]
 -- non parallel
 -- searchWithCxs op cs k ix = concat $ L.map (\c -> searchWithCx op c k ix) cs
@@ -108,9 +97,7 @@ contexts (ContextIx m) = M.keys m
 -- XXX: maybe rename to hasContext or something like that?
 -- | Check if the context exists.
 member :: ContextIxCon i v
-       => Context
-       -> ContextIndex i v
-       -> Bool
+       => Context -> ContextIndex i v -> Bool
 member c (ContextIx m) = M.member c m
 
 -- | Map a function iver all values of the 'ContextIndex'.

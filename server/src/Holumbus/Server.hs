@@ -74,7 +74,6 @@ start = scotty 3000 $ do
 
   -- interpreter
   post "/eval" $ do
-    -- Raises an exception if parse is unsuccessful
     cmd <- jsonData :: ActionM Command
     eval cmd
 
@@ -104,14 +103,12 @@ start = scotty 3000 $ do
 
   -- insert a document (fails if a document (the uri) already exists)
   post "/document/insert" $ do
-    -- Raises an exception if parse is unsuccessful
     jss <- jsonData :: ActionM [ApiDocument]
     let batch = Sequence $ map Insert jss
     eval batch
 
   -- update a document (fails if a document (the uri) does not exist)
   post "/document/update" $ do
-    -- Raises an exception if parse is unsuccessful
     jss <- jsonData :: ActionM [ApiDocument]
     let batch = Sequence $ map Update jss
     eval batch

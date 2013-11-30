@@ -58,7 +58,7 @@ mkLimitedResult offset mx xs = LimitedResult
   }
 
 -- | empty document
-emptyApiDocIndexMap :: Map Context Content 
+emptyApiDocIndexMap :: Map Context Content
 emptyApiDocIndexMap = M.empty
 
 emptyApiDocDescrMap :: Description

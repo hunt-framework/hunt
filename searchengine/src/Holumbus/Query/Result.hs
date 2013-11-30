@@ -50,11 +50,11 @@ module Holumbus.Query.Result
   )
 where
 
-import           Prelude                        hiding (null)
+import           Prelude                  hiding (null)
 
-import           Data.Map                       (Map)
-import qualified Data.Map                       as M
-import           Data.Text                      (Text)
+import           Data.Map                 (Map)
+import qualified Data.Map                 as M
+import           Data.Text                (Text)
 
 import           Holumbus.Common
 import qualified Holumbus.Common.DocIdMap as DM
@@ -62,28 +62,31 @@ import qualified Holumbus.Common.DocIdMap as DM
 -- ----------------------------------------------------------------------------
 
 -- | The combined result type for Holumbus queries.
-data Result e            = Result
-                          { docHits  :: DocHits e    -- ^ The documents matching the query.
-                          , wordHits :: WordHits     -- ^ The words which are completions of the query terms.
-                          }
-                          --deriving (Eq, Show)
+data Result e
+  = Result
+    { docHits  :: DocHits e  -- ^ The documents matching the query.
+    , wordHits :: WordHits   -- ^ The words which are completions of the query terms.
+    }
+    --deriving (Eq, Show)
 
 -- | Information about an document.
-data DocInfo e           = DocInfo
-                          { document :: e            -- ^ The document itself.
-                          , docScore :: Score        -- ^ The score for the document (initial score for all documents is @0.0@).
-                          }
-                          --deriving (Eq, Show)
+data DocInfo e
+  = DocInfo
+    { document :: e          -- ^ The document itself.
+    , docScore :: Score      -- ^ The score for the document (initial score for all documents is @0.0@).
+    }
+    --deriving (Eq, Show)
 
 -- | Information about a word.
-data WordInfo           = WordInfo
-                          { terms     :: Terms    -- ^ The search terms that led to this very word.
-                          , wordScore :: Score    -- ^ The frequency of the word in the document for a context.
-                          }
-                          deriving (Eq, Show)
+data WordInfo
+  = WordInfo
+    { terms     :: Terms     -- ^ The search terms that led to this very word.
+    , wordScore :: Score     -- ^ The frequency of the word in the document for a context.
+    }
+    deriving (Eq, Show)
 
 -- | A mapping from a document to it's score and the contexts where it was found.
-type DocHits e           = DocIdMap (DocInfo e, DocContextHits)
+type DocHits e          = DocIdMap (DocInfo e, DocContextHits)
 
 -- | A mapping from a context to the words of the document that were found in this context.
 type DocContextHits     = Map Context DocWordHits
@@ -132,42 +135,39 @@ instance NFData WordInfo where
 -- ----------------------------------------------------------------------------
 
 -- | Create an empty result.
-emptyResult             :: Result e
-emptyResult             = Result DM.empty M.empty
+emptyResult :: Result e
+emptyResult = Result DM.empty M.empty
 
 -- | Query the number of documents in a result.
-sizeDocHits             :: Result e -> Int
-sizeDocHits             = DM.size . docHits
+sizeDocHits :: Result e -> Int
+sizeDocHits = DM.size . docHits
 
 -- | Query the number of documents in a result.
-sizeWordHits            :: Result e -> Int
-sizeWordHits            = M.size . wordHits
+sizeWordHits :: Result e -> Int
+sizeWordHits = M.size . wordHits
 
 -- | Query the maximum score of the documents.
-maxScoreDocHits         :: Result e -> Score
-maxScoreDocHits         = DM.foldr (\(di, _) r -> max (docScore di) r) 0.0 . docHits
+maxScoreDocHits :: Result e -> Score
+maxScoreDocHits = DM.foldr (\(di, _) r -> max (docScore di) r) 0.0 . docHits
 
 -- | Query the maximum score of the words.
-maxScoreWordHits        :: Result e -> Score
-maxScoreWordHits        = M.foldr (\(wi, _) r -> max (wordScore wi) r) 0.0 . wordHits
+maxScoreWordHits :: Result e -> Score
+maxScoreWordHits = M.foldr (\(wi, _) r -> max (wordScore wi) r) 0.0 . wordHits
 
 -- | Test if the result contains anything.
-null                    :: Result e -> Bool
-null                    = DM.null . docHits
+null :: Result e -> Bool
+null = DM.null . docHits
 
 -- | Set the score in a document info.
-setDocScore             :: Score -> DocInfo e -> DocInfo e
-setDocScore s (DocInfo d _)
-                        = DocInfo d s
+setDocScore :: Score -> DocInfo e -> DocInfo e
+setDocScore s di@(DocInfo{}) = di { docScore = s }
 
 -- | Set the score in a word info.
-setWordScore            :: Score -> WordInfo -> WordInfo
-setWordScore s (WordInfo t _)
-                        = WordInfo t s
+setWordScore :: Score -> WordInfo -> WordInfo
+setWordScore s wi@(WordInfo{}) = wi { wordScore = s }
 
--- | Extract all documents from a result
-getDocuments            :: Result e -> [e]
-getDocuments r          = map (document . fst . snd) .
-                          DM.toList $ docHits r
+-- | Extract all documents from a result.
+getDocuments :: Result e -> [e]
+getDocuments r = map (document . fst . snd) . DM.toList $ docHits r
 
 -- ----------------------------------------------------------------------------

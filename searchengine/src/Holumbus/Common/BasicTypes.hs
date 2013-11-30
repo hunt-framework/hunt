@@ -56,7 +56,7 @@ type Words        = Map Context WordList
 type WordList     = Map Word [Position]
 
 -- | Text index
-data TextSearchOp = Case | NoCase | PrefixCase | PrefixNoCase 
+data TextSearchOp = Case | NoCase | PrefixCase | PrefixNoCase
   deriving (Eq, Show)
 
 instance FromJSON TextSearchOp where

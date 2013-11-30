@@ -39,6 +39,7 @@ import           Control.Monad
 import           Control.Monad.Error
 import           Control.Monad.State
 
+import           Data.Binary                       (Binary)
 import qualified Data.Binary                       as Bin
 import           Data.Function
 import qualified Data.List                         as L
@@ -76,32 +77,28 @@ import           Holumbus.Interpreter.Command      (CmdError(..))
 -- ----------------------------------------------------------------------------
 
 data ProcessConfig
-    = ProcessConfig
-      -- ^ The configuration for fuzzy queries.
-      { fuzzyConfig   :: ! FuzzyConfig
-      -- ^ Optimize the query before processing.
-      , optimizeQuery :: ! Bool
-      -- ^ The maximum number of words used from a prefix. Zero switches off limiting.
-      , wordLimit     :: ! Int
-      -- ^ The maximum number of documents taken into account. Zero switches off limiting.
-      , docLimit      :: ! Int
-}
+  = ProcessConfig
+    { fuzzyConfig   :: ! FuzzyConfig -- ^ The configuration for fuzzy queries.
+    , optimizeQuery :: ! Bool        -- ^ Optimize the query before processing.
+    , wordLimit     :: ! Int         -- ^ The maximum number of words used from a prefix. @0@ = no limit.
+    , docLimit      :: ! Int         -- ^ The maximum number of documents taken into account. @0@ = no limit.
+    }
 
-instance Bin.Binary ProcessConfig where
+instance Binary ProcessConfig where
   put (ProcessConfig fc o l d)
-      = Bin.put fc >> Bin.put o >> Bin.put l >> Bin.put d
+    = Bin.put fc >> Bin.put o >> Bin.put l >> Bin.put d
   get
-      = liftM4 ProcessConfig Bin.get Bin.get Bin.get Bin.get
+    = liftM4 ProcessConfig Bin.get Bin.get Bin.get Bin.get
 
 -- | The internal state of the query processor.
 data ProcessState i
-    = ProcessState
-      { psConfig   :: ! ProcessConfig    -- ^ The configuration for the query processor.
-      , psContexts :: ! [Context]        -- ^ The current list of contexts.
-      , psIndex    ::   ContextIndex i Occurrences  -- ^ The index to search.
-      , psSchema   ::   Schema           -- ^ Schema / Schemas for the contexts.
-      , psTotal    :: ! Int              -- ^ The number of documents in the index.
-      }
+  = ProcessState
+    { psConfig   :: ! ProcessConfig    -- ^ The configuration for the query processor.
+    , psContexts :: ! [Context]        -- ^ The current list of contexts.
+    , psIndex    ::   ContextIndex i Occurrences  -- ^ The index to search.
+    , psSchema   ::   Schema           -- ^ Schema / Schemas for the contexts.
+    , psTotal    :: ! Int              -- ^ The number of documents in the index.
+    }
 
 -- ----------------------------------------------------------------------------
 -- | Processor monad
