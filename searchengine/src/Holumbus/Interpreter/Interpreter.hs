@@ -234,7 +234,7 @@ execInsertContext :: TextIndexerCon ix dt
                   -> CM ix dt (IpIndexer ix dt, CmdResult)
 execInsertContext cx ct ixx@(ix, dt, s)
     = do
-      contextExists        <- Ixx.member cx ixx
+      contextExists        <- Ixx.hasContext cx ixx
       unless' (not contextExists)
              409 $ "context already exists: " `T.append` cx
       return (ixx', ResOK)

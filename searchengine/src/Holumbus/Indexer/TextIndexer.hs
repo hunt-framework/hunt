@@ -89,9 +89,9 @@ contexts :: (Monad m, TextIndexerCon i dt)
 contexts (ix,_dt,_s) = return $ CIx.contexts ix
 
 -- | Does the context exist?
-member :: (Monad m, TextIndexerCon i dt)
+hasContext :: (Monad m, TextIndexerCon i dt)
           => Context -> ContextTextIndexer i dt -> m Bool
-member c (ix,_dt,_s) = return $ CIx.member c ix
+hasContext c (ix,_dt,_s) = return $ CIx.hasContext c ix
 
 -- ----------------------------------------------------------------------------
 
