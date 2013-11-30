@@ -260,6 +260,9 @@ execInsert :: TextIndexerCon ix dt
 execInsert doc ixx@(_ix, _dt, schema) = do
     let contexts = M.keys $ apiDocIndexMap doc
     checkContextsExistence contexts ixx
+    -- apidoc should not exist
+    checkApiDocExistence False doc ixx
+
     let (docs, ws) = toDocAndWords schema doc
     ixx' <- lift $ Ixx.insert docs ws ixx
     return (ixx', ResOK)
@@ -297,6 +300,18 @@ checkContextsExistence cs ixx = do
   unless' (S.null invalidContexts)
          409 $ "mentioned context(s) are not present: "
                `T.append` (T.pack . show . S.toList) invalidContexts
+
+
+checkApiDocExistence :: TextIndexerCon ix dt
+                     => Bool -> ApiDocument -> IpIndexer ix dt -> CM ix dt ()
+checkApiDocExistence switch apidoc ixx = do
+  let u = apiDocUri apidoc
+  mem <- Ixx.member u ixx
+  unless' (switch == mem)
+         409 $ (if mem
+                  then "document already exists: "
+                  else "document does not exist: ")
+               `T.append` u
 
 
 execSearch' :: TextIndexerCon ix dt

@@ -94,6 +94,12 @@ hasContext :: (Monad m, TextIndexerCon i dt)
            => Context -> ContextTextIndexer i dt -> m Bool
 hasContext c (ix,_dt,_s) = return $ CIx.hasContext c ix
 
+-- | Is the document part of the index?
+member :: (Monad m, TextIndexerCon i dt)
+       => URI -> ContextTextIndexer i dt -> m Bool
+member u (_ii, dt, _s) = do
+  mem <- Dt.lookupByURI dt u
+  return $ isJust mem
 -- ----------------------------------------------------------------------------
 
 -- | Modify the description of a document and add words

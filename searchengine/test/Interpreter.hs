@@ -179,8 +179,9 @@ test_fancy = testCM $ do
     @@@ ((@?= []) . searchResultUris)
 
   -- insert with default does not update the description
-  Insert brainDocUpdate
-    @@= ResOK
+  (Insert brainDocUpdate
+    @@@ const (assertFailure "inserting twice succeeded"))
+        `catchError` const (return ())
   -- search yields the old description
   Search (QWord QCase "Brain") os pp
     @@@ ((@?= (apiDocDescrMap brainDoc)) . desc . head . lrResult . crRes)
