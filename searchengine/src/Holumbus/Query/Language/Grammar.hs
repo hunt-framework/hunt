@@ -223,13 +223,12 @@ optimize q                               = q
 
 -- | Check if the query arguments comply with some custom predicate.
 checkWith                         :: (Text -> Bool) -> Query -> Bool
-checkWith f (QWord QNoCase s)     = f s
-checkWith f (QPhrase QNoCase s)   = f s
-checkWith f (QWord QCase s)       = f s
-checkWith f (QPhrase QCase s)     = f s
-checkWith f (QWord QFuzzy s)      = f s
+checkWith f (QWord _ s)           = f s
+checkWith f (QPhrase _ s)         = f s
 checkWith f (QBinary _ q1 q2)     = checkWith f q1 && checkWith f q2
 checkWith f (QContext _ q)        = checkWith f q
+checkWith f (QBoost _ q)          = checkWith f q
+checkWith f (QRange s1 s2)        = f s1 && f s2
 
 -- | Returns a list of all terms in the query.
 extractTerms                      :: Query -> [Text]
