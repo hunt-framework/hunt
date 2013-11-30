@@ -38,7 +38,7 @@ type TextIndexerCon i dt
       , Dt.DValue dt ~ Document
       )
 
-type TextIndexer i dt = Indexer i Occurrences dt
+type TextIndexer        i dt = Indexer        i Occurrences dt
 type ContextTextIndexer i dt = ContextIndexer i Occurrences dt
 
 -- ----------------------------------------------------------------------------
@@ -78,19 +78,20 @@ deleteDocsByURI us ixx@(_ix,dt,_) = do
 
 -- | Delete a set of documents by 'DocId'.
 delete :: (Monad m, TextIndexerCon i dt)
-          => ContextTextIndexer i dt -> DocIdSet -> m (ContextTextIndexer i dt)
+       => ContextTextIndexer i dt -> DocIdSet -> m (ContextTextIndexer i dt)
 delete (ix,dt,s) dIds = do
     let newIx = CIx.map (Ix.batchDelete dIds) ix
     newDt <- Dt.difference dIds dt
     return (newIx, newDt, s)
 
+-- | All contexts.
 contexts :: (Monad m, TextIndexerCon i dt)
-          => ContextTextIndexer i dt -> m [Context]
+         => ContextTextIndexer i dt -> m [Context]
 contexts (ix,_dt,_s) = return $ CIx.contexts ix
 
 -- | Does the context exist?
 hasContext :: (Monad m, TextIndexerCon i dt)
-          => Context -> ContextTextIndexer i dt -> m Bool
+           => Context -> ContextTextIndexer i dt -> m Bool
 hasContext c (ix,_dt,_s) = return $ CIx.hasContext c ix
 
 -- ----------------------------------------------------------------------------
