@@ -1,4 +1,4 @@
-module Holumbus.Common.Schema where
+module Holumbus.Index.Schema where
 
 import           Control.Monad              (liftM5, mzero)
 

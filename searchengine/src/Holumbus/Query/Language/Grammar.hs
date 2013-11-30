@@ -42,7 +42,7 @@ import qualified Data.Text                  as T
 import           Data.Text.Binary           ()
 
 import           Holumbus.Common.BasicTypes as BTy
-import           Holumbus.Common.Schema
+import           Holumbus.Index.Schema
 
 -- ----------------------------------------------------------------------------
 

@@ -64,7 +64,11 @@ library
     Holumbus.Common.Positions
     Holumbus.Common.RawResult
     Holumbus.Common.Compression
-    Holumbus.Common.Schema
+
+    Holumbus.Index.Schema
+    Holumbus.Index.Schema.Analyze
+    Holumbus.Index.Schema.Normalize
+    Holumbus.Index.Schema.Normalize.Date
 
     Holumbus.Index.Index
     Holumbus.Index.TextIndex
@@ -84,9 +88,6 @@ library
 
     Holumbus.Interpreter.Interpreter
     Holumbus.Interpreter.Command
-
-    Holumbus.Analyzer.Analyzer
-    Holumbus.Analyzer.Normalizer
 
     Holumbus.Query.Fuzzy
     Holumbus.Query.Intermediate

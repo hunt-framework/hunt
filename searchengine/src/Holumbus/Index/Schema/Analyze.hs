@@ -1,4 +1,4 @@
-module Holumbus.Analyzer.Analyzer
+module Holumbus.Index.Schema.Analyze
   ( toDocAndWords
   , normalize
   , scanTextRE
@@ -19,9 +19,9 @@ import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Document     (Document (..))
 
 import           Holumbus.Common.ApiDocument
-import           Holumbus.Common.Schema
+import           Holumbus.Index.Schema
 
-import           Holumbus.Analyzer.Normalizer
+import           Holumbus.Index.Schema.Normalize
 
 {--
  - since we have a very flexible index typeclass i think it would make sense
@@ -48,7 +48,7 @@ toDocAndWords schema apiDoc = (doc, ws)
           { uri   = apiDocUri apiDoc
           , desc  = descrMap
           }
-  ws = M.mapWithKey (\context -> 
+  ws = M.mapWithKey (\context ->
                 (\(content)
                     -> let cxSchema = fromJust $ M.lookup context schema
                            scan = filter (typeValidator (cxType cxSchema)) . scanTextRE (cxRegEx cxSchema)

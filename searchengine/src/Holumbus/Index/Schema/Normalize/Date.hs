@@ -1,9 +1,5 @@
-module Holumbus.Analyzer.Normalizer
-  ( contextNormalizer
-  , typeValidator
-  , rangeValidator
-  )
-where
+module Holumbus.Index.Schema.Normalize.Date where
+
 
 import           Control.Applicative
 import           Control.Monad
@@ -12,10 +8,6 @@ import           Data.Maybe
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 import           Data.List
-
-import           Holumbus.Common.BasicTypes
-import           Holumbus.Common.Schema
-import           Holumbus.Utility
 
 import           Data.Char                   (isDigit)
 import           Data.Function               (on)
@@ -27,14 +19,6 @@ import           Text.Regex.XMLSchema.String
 
 -- ----------------------------------------------------------------------------
 
-contextNormalizer :: CNormalizer -> Word -> Word
-contextNormalizer o = case o of
-    NormUpperCase -> T.toUpper
-    NormLowerCase -> T.toLower
-    NormDate      -> normalizeDate
-
--- ----------------------------------------------------------------------------
-
 -- | Normalize a date representation to store in the index or search for.
 normalizeDate :: Text -> Text
 normalizeDate s = fromMaybe s
@@ -43,28 +27,6 @@ normalizeDate s = fromMaybe s
   -- XXX: no dates before year 0 (1 BCE) this way
   normDateRep :: String -> String
   normDateRep = filter (not . (`elem` "-"))
-
--- ----------------------------------------------------------------------------
-
--- | Checks if value is valid for a context type.
-typeValidator :: CType -> Text -> Bool
-typeValidator t = case t of
-    CText -> const True
-    CInt  -> const True
-    -- XXX: maybe use more rigid anyDate'?
-    CDate -> isAnyDate' . T.unpack
-
--- ----------------------------------------------------------------------------
-
--- | Checks if a range is valid for a context type.
-rangeValidator :: CType -> [Text] -> [Text] -> Bool
-rangeValidator t = case t of
-    _     -> defaultCheck
-  where
-  defaultCheck xs ys = fromMaybe False $ do
-    x <- unboxM xs
-    y <- unboxM ys
-    return $ x <= y
 
 -- ----------------------------------------------------------------------------
 

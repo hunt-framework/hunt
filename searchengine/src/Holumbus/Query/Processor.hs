@@ -68,8 +68,8 @@ import           Holumbus.Query.Result             (Result)
 import           Holumbus.DocTable.DocTable        (DocTable)
 import qualified Holumbus.DocTable.DocTable        as Dt
 
-import           Holumbus.Analyzer.Analyzer
-import           Holumbus.Analyzer.Normalizer
+import           Holumbus.Index.Schema.Analyze
+import           Holumbus.Index.Schema.Normalize
 import           Holumbus.Interpreter.Command      (CmdError(..))
 
 -- ----------------------------------------------------------------------------

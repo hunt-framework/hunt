@@ -24,7 +24,7 @@ import           Holumbus.Common
 import           Holumbus.Common.ApiDocument       as ApiDoc
 import qualified Holumbus.Common.DocIdMap          as DM
 
-import           Holumbus.Analyzer.Analyzer
+import           Holumbus.Index.Schema.Analyze
 
 import           Holumbus.Indexer.TextIndexer      (ContextTextIndexer,
                                                     TextIndexerCon)
