@@ -117,13 +117,15 @@ difference = DM.difference
 -- | Create an intermediate result from a list of words and their occurrences.
 fromList :: Word -> Context -> RawResult -> Intermediate
 -- Beware! This is extremly optimized and will not work for merging arbitrary intermediate results!
--- Based on resultByDocument from Holumbus.Index.Common
+-- Based on resultByDocument from Holumbus.Index.Common.RawResult
 fromList t c os
   = DM.map transform $
-      DM.unionsWith (flip $ (:) . head)
+      DM.unionsWith (flip $ (:) . head) -- merge of list with head because it is always a singleton
         (map insertWords os)
   where
-  insertWords (w, o) = DM.map (\p -> [(w, (WordInfo [t] 0.0 , p))]) o
+  insertWords :: (Word, Occurrences) -> DocIdMap [(Word, (WordInfo, Positions))]
+  insertWords (w, o) = DM.map (\p -> [(w, (WordInfo [t] 0.0 , p))]) o -- singleton
+  transform :: [(Word, (WordInfo, Positions))] -> IntermediateContexts
   transform w        = M.singleton c (M.fromList w)
 
 fromListCx :: Word -> [Context] -> RawResult -> Intermediate
