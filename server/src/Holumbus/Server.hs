@@ -8,18 +8,11 @@
 
 module Holumbus.Server {-(start)-} where
 
-import           Control.Monad.Trans                  (MonadIO, liftIO)
+import           Control.Monad.Error
 
 import           Network.Wai.Middleware.RequestLogger
 
-import           Web.Scotty
-
 import           Data.Text                            (Text)
---import qualified Data.Text.Lazy                       as LT
-
-import qualified Data.Aeson                           as A
-import           Data.Aeson.Encode.Pretty             (encodePretty)
-
 
 import           Holumbus.Common
 
@@ -30,15 +23,7 @@ import           Holumbus.Query.Language.Parser
 
 import           Holumbus.Server.Common
 import qualified Holumbus.Server.Template             as Tmpl
-
-
--- ----------------------------------------------------------------------------
-
--- | Like Web'.Scotty.json', but pretty.
-jsonPretty :: (A.ToJSON a) => a -> ActionM ()
-jsonPretty v = do
-  setHeader "Content-Type" "application/json"
-  raw $ encodePretty v
+import           Holumbus.Server.Schrotty
 
 -- ----------------------------------------------------------------------------
 
@@ -48,10 +33,16 @@ jsonPretty v = do
 --     f.e: which index impl to use, which doc store, which persistent backend etc...
 
 start :: IO ()
-start = scotty 3000 $ do
+start = do
+  -- init interpreter
+  env <- initEnv emptyIndexer emptyOptions
 
-  -- interpreter
-  env <- liftIO $ initEnv emptyIndexer emptyOptions
+  -- start schrotty
+  schrotty 3000 $ do
+
+  -- request / response logging
+  middleware logStdoutDev
+
   let interpret = runCmd env
 
   let eval cmd = do
@@ -65,8 +56,6 @@ start = scotty 3000 $ do
             ResSearch docs      -> json $ JsonSuccess docs
             ResCompletion wrds  -> json $ JsonSuccess wrds
 
-  -- request / response logging
-  middleware logStdoutDev
 
   get "/"         $ redirect "/search"
   get "/search"   $ html . Tmpl.index $ (0::Int)
@@ -74,7 +63,7 @@ start = scotty 3000 $ do
 
   -- interpreter
   post "/eval" $ do
-    cmd <- jsonData :: ActionM Command
+    cmd <- jsonData
     eval cmd
 
   -- simple query
@@ -103,19 +92,19 @@ start = scotty 3000 $ do
 
   -- insert a document (fails if a document (the uri) already exists)
   post "/document/insert" $ do
-    jss <- jsonData :: ActionM [ApiDocument]
+    jss <- jsonData
     let batch = Sequence $ map Insert jss
     eval batch
 
   -- update a document (fails if a document (the uri) does not exist)
   post "/document/update" $ do
-    jss <- jsonData :: ActionM [ApiDocument]
+    jss <- jsonData
     let batch = Sequence $ map Update jss
     eval batch
 
   -- delete a set of documents by URI
   post "/document/delete" $ do
-    jss <- jsonData :: ActionM [URI]
+    jss <- jsonData
     let batch = Sequence $ map Delete jss
     eval batch
 
@@ -129,4 +118,6 @@ start = scotty 3000 $ do
     filename  <- param "filename"
     eval $ StoreIx filename
 
-  notFound $ text "page not found"
+  notFound $ throwWE $ NotFound
+    -- req <- request
+    -- let path = BSL.fromStrict $ rawPathInfo req
