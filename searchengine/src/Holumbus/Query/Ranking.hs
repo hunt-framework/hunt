@@ -36,6 +36,8 @@ module Holumbus.Query.Ranking
   -- * Predefined word rankings
   , wordRankByCount
   , wordRankWeightedByCount
+
+  , defaultRankConfig
   )
 where
 
@@ -120,3 +122,10 @@ lookupWeight c (x:xs)
     else lookupWeight c xs
 
 -- ----------------------------------------------------------------------------
+
+-- | The configuration of the ranking mechanism.
+defaultRankConfig :: RankConfig e
+defaultRankConfig = RankConfig
+  { docRanking  = docRankByCount
+  , wordRanking = wordRankByCount
+  }

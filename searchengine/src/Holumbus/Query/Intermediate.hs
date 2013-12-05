@@ -24,6 +24,7 @@ module Holumbus.Query.Intermediate
 (
   -- * The intermediate result type.
   Intermediate
+  , IntermediateWords
 
   -- * Construction
   , empty

@@ -1,5 +1,6 @@
 module Main where
 
+import           Control.Applicative
 import           Control.Monad.Error
 --import           Control.Monad.Trans                  (liftIO)
 
@@ -19,13 +20,18 @@ import           Holumbus.Common.ApiDocument          as ApiDoc
 import           Holumbus.Interpreter.Command
 import           Holumbus.Interpreter.Interpreter
 import           Holumbus.Query.Language.Grammar
+import           Holumbus.Query.Ranking
 import           Holumbus.Utility
 import           Holumbus.Index.InvertedIndex         (InvertedIndex)
 import           Holumbus.DocTable.HashedDocuments    (Documents)
+
 -- ----------------------------------------------------------------------------
 
 type TestEnv = Env InvertedIndex (Documents Document)
 type TestCM a = CM InvertedIndex (Documents Document) a
+
+rankConfig :: RankConfig e
+rankConfig = defaultRankConfig
 
 main :: IO ()
 main = defaultMain
@@ -47,7 +53,7 @@ test_insertEmpty = do
 
 testRunCmd :: Command -> IO (Either CmdError CmdResult, TestEnv)
 testRunCmd cmd = do
-  env <- initEnv emptyIndexer emptyOptions
+  env <- initEnv emptyIndexer rankConfig emptyOptions
   res <- runCmd env cmd
   return (res, env)
 
@@ -60,9 +66,7 @@ batchCmd  = Sequence [insertDefaultContext, insertCmd, searchCmd]
 -- ----------------------------------------------------------------------------
 
 testCmd :: Command -> IO (Either CmdError CmdResult)
-testCmd cmd = do
-  env <- initEnv emptyIndexer emptyOptions
-  runCmd env cmd
+testCmd cmd = fst <$> testRunCmd cmd
 
 -- uris of the search results
 searchResultUris :: CmdResult -> [URI]
@@ -98,7 +102,7 @@ insertDefaultContext = uncurry InsertContext defaultContextInfo
 -- evaluate CM and check the result
 testCM' :: Bool -> TestCM () -> Assertion
 testCM' b int = do
-  env <- initEnv emptyIndexer emptyOptions
+  env <- initEnv emptyIndexer rankConfig emptyOptions
   res <- runCM int env
   (if b then isRight else isLeft) res @? "unexpected interpreter result: " ++ show res
 

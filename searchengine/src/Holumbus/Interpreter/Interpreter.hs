@@ -13,7 +13,8 @@ import           Control.Monad.Error
 import           Control.Monad.Reader
 
 import qualified Data.Binary                       as Bin
-import qualified Data.List                         as L
+import           Data.Function                     (on)
+import           Data.List                         (groupBy, sortBy)
 import qualified Data.Map                          as M
 import           Data.Set                          (Set)
 import qualified Data.Set                          as S
@@ -38,6 +39,7 @@ import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
 --import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
+import           Holumbus.Query.Ranking
 import           Holumbus.Query.Result             as QRes
 
 import qualified Holumbus.DocTable.DocTable        as Dt
@@ -80,13 +82,14 @@ emptyOptions = Options
 
 data Env ix dt = Env
     { evIndexer :: TextIndexerCon ix dt => MVar (IpIndexer ix dt)
+    , evRanking :: RankConfig Document
     , evOptions :: Options
     }
 
-initEnv :: TextIndexerCon ix dt => IpIndexer ix dt -> Options -> IO (Env ix dt)
-initEnv ixx opt
-    = do ixref <- newMVar ixx
-         return $ Env ixref opt
+initEnv :: TextIndexerCon ix dt => IpIndexer ix dt -> RankConfig Document -> Options -> IO (Env ix dt)
+initEnv ixx rnk opt = do
+  ixref <- newMVar ixx
+  return $ Env ixref rnk opt
 
 -- ----------------------------------------------------------------------------
 -- the command evaluation monad
@@ -139,12 +142,19 @@ askOpts :: TextIndexerCon ix dt => CM ix dt Options
 askOpts
     = asks evOptions
 
+askRanking :: TextIndexerCon ix dt => CM ix dt (RankConfig Document)
+askRanking
+    = asks evRanking
+
 throwResError :: TextIndexerCon ix dt => Int -> Text -> CM ix dt a
 throwResError n msg
     = throwError $ ResError n msg
 
 throwNYI :: TextIndexerCon ix dt => String -> CM ix dt a
 throwNYI c = throwResError 501 $ "command not yet implemented: " `T.append` T.pack c
+
+descending :: Ord a => a -> a -> Ordering
+descending = flip compare
 
 -- ----------------------------------------------------------------------------
 
@@ -157,7 +167,7 @@ optimizeCmd :: Command -> Command
 optimizeCmd (Sequence cs) = Sequence $ opt cs
   where
   opt :: [Command] -> [Command]
-  opt cs' = concatMap optGroup $ L.groupBy equalHeads cs'
+  opt cs' = concatMap optGroup $ groupBy equalHeads cs'
   -- requires the commands to be grouped by constructor
   optGroup :: [Command] -> [Command]
   -- groups of delete to BatchDelete
@@ -321,23 +331,28 @@ execSearch' :: TextIndexerCon ix dt
 execSearch' f q (ix, dt, s)
     = do
       r <- lift $ runQueryM ix s dt q
+      rc <- askRanking
       case r of
-        (Left err) -> throwError err
-        (Right res) -> return $ f res
+        (Left  err) -> throwError err
+        (Right res) -> return . f . rank rc $ res
 
 wrapSearch :: Int -> Int -> Result Document -> CmdResult
 wrapSearch offset mx
     = ResSearch
       . mkLimitedResult offset mx
-      . map (\(_, (DocInfo d _, _)) -> d)
-      . DM.toList . docHits
+      . map fst -- remove score from result
+      . sortBy (descending `on` snd) -- sort by score
+      . map (\(_did, (di, _dch)) -> (document di, docScore di))
+      . DM.toList
+      . docHits
 
 wrapCompletion :: Int -> Result e -> CmdResult
 wrapCompletion mx
     = ResCompletion
       . take mx
-      . map fst -- delete line to get the number of occurrences
-      . map (\(c, (_, o)) -> (c, M.foldr (\m r -> r + DM.size m) 0 o))
+      . map fst -- remove score from result
+      . sortBy (descending `on` snd) -- sort by score
+      . map (\(c, (wi, _wch)) -> (c, wordScore wi))
       . M.toList
       . wordHits
 

@@ -16,6 +16,7 @@ import           Holumbus.Interpreter.Command
 import           Holumbus.Interpreter.Interpreter
 
 import           Holumbus.Query.Language.Parser
+import           Holumbus.Query.Ranking
 
 import           Holumbus.Server.Common
 import qualified Holumbus.Server.Template             as Tmpl
@@ -26,7 +27,7 @@ import           Holumbus.Server.Schrotty
 start :: IO ()
 start = do
   -- init interpreter
-  env <- initEnv emptyIndexer emptyOptions
+  env <- initEnv emptyIndexer defaultRankConfig emptyOptions
 
   -- start schrotty
   schrotty 3000 $ do
