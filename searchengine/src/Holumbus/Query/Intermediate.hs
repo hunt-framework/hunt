@@ -37,6 +37,7 @@ module Holumbus.Query.Intermediate
   , difference
   , intersection
   , unions
+  , unionsDocLimited
   , intersections1
   , differences1
 
@@ -48,6 +49,7 @@ module Holumbus.Query.Intermediate
 where
 
 import           Prelude                    hiding (null)
+import qualified Prelude                    as P
 
 import           Control.Applicative        hiding (empty)
 
@@ -137,6 +139,15 @@ toResult :: (Applicative m, Monad m, DocTable d, e ~ Dt.DValue d, e ~ Document) 
 toResult d im = do
     dh <- createDocHits d im
     return $ Result dh (createWordHits im)
+
+
+-- XXX: IntMap.size is O(n) :(
+-- | Merge 'Intermediate's until a certain number of documents is reached/surpassed.
+unionsDocLimited :: Int -> [Intermediate] -> Intermediate
+unionsDocLimited n = takeOne ((>= n) . size) . scanl union empty
+  where
+  takeOne b (x:xs) = if P.null xs || b x then x else takeOne b xs
+  takeOne _ _      = error "takeOne with empty list"
 
 
 -- | Create the doc hits structure from an intermediate result.
