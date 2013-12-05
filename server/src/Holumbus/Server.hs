@@ -8,8 +8,6 @@ import           Control.Monad.Error
 
 import           Network.Wai.Middleware.RequestLogger
 
-import           Data.Text                            (Text)
-
 import           Holumbus.Common
 
 import           Holumbus.Interpreter.Command
@@ -42,10 +40,10 @@ start = do
         res <- liftIO $ interpret cmd
         case res of
           Left  (ResError code msg) ->
-            json $ (JsonFailure code [msg] :: JsonResponse Text)
+            json $ JsonFailure code [msg]
           Right res' ->
             case res' of
-              ResOK               -> json $ JsonSuccess ("ok" :: Text)
+              ResOK               -> json $ JsonSuccess ("ok"::String)
               ResSearch docs      -> json $ JsonSuccess docs
               ResCompletion wrds  -> json $ JsonSuccess wrds
 
@@ -64,7 +62,7 @@ start = do
       query    <- param "query"
       case parseQuery query of
         Right qry -> eval (Search qry 0 1000000)
-        Left  err -> json $ (JsonFailure 700 [err] :: JsonResponse Text)
+        Left  err -> json $ JsonFailure 700 err
 
     -- paged query
     get "/search/:query/:offset/:mx" $ do
@@ -73,7 +71,7 @@ start = do
       mx       <- param "mx"
       case parseQuery query of
         Right qry -> eval (Search qry offset mx)
-        Left  err -> json $ (JsonFailure 700 [err] :: JsonResponse Text)
+        Left  err -> json $ JsonFailure 700 err
 
     -- completion
     get "/completion/:query/:mx" $ do
@@ -81,7 +79,7 @@ start = do
       mx    <- param "mx"
       case parseQuery query of
         Right qry -> eval (Completion qry mx)
-        Left  err -> json $ (JsonFailure 700 [err] :: JsonResponse Text)
+        Left  err -> json $ JsonFailure 700 err
 
     -- insert a document (fails if a document (the uri) already exists)
     post "/document/insert" $ do

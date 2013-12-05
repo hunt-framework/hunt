@@ -1,14 +1,17 @@
+{-# LANGUAGE GADTs #-}
+
 module Holumbus.Server.Common where
 
 import Data.Aeson
-import Data.Text as Text
 
 -- ----------------------------------------------------------------------------
 
 -- |  some sort of json response format
-data JsonResponse r = JsonSuccess r | JsonFailure Int [Text]
+data JsonResponse r f
+  = ToJSON r => JsonSuccess     r
+  | ToJSON f => JsonFailure Int f
 
-instance (ToJSON r) => ToJSON (JsonResponse r) where
+instance ToJSON (JsonResponse r f) where
   toJSON (JsonSuccess msg) = object
     [ "code"  .= (0 :: Int)
     , "msg"   .= msg
