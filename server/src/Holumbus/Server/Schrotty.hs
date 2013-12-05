@@ -100,7 +100,7 @@ schrotty :: Port -> Schrotty () -> IO ()
 schrotty p = Scotty.scottyT p runM runActionToIO
   where
   runM m = do
-          r <- runErrorT (runWebErrorM m)
-          either (\ ex -> fail $ "exception at startup: " ++ show ex) return r
+    r <- runErrorT (runWebErrorM m)
+    either (\ ex -> fail $ "exception at startup: " ++ show ex) return r
   -- 'runActionToIO' is called once per action
   runActionToIO m = runErrorT (runWebErrorM m) >>= either handleError return

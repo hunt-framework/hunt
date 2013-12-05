@@ -4,21 +4,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
-import           Data.Map                            (Map)
+import           Data.Map                             (Map)
 
 import           Test.Framework
 --import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
 --import           Test.HUnit
+import           System.Random
 import           Test.QuickCheck
 import           Test.QuickCheck.Gen
-import           Test.QuickCheck.Monadic (assert, monadicIO, {--pick, pre,--} run)
-import           System.Random
+import           Test.QuickCheck.Monadic              (assert, monadicIO, run)
 
 
-import           Data.Text                           (Text)
-import qualified Data.Text                           as T
-import qualified Data.Map                            as M
+import qualified Data.Map                             as M
+import           Data.Text                            (Text)
+import qualified Data.Text                            as T
 import           Holumbus.Common
 --import           Holumbus.Common.Occurrences         (singleton)
 
@@ -101,11 +101,11 @@ descriptionGen = do
 
 
 mkIndexData :: Int -> Description -> Map Context Content
-mkIndexData i d = M.fromList 
+mkIndexData i d = M.fromList
                 $ map (\c -> ("context" `T.append` (T.pack $ show c), prefixx c)) [0..i]
   where
 --  index   = T.pack $ show i
-  prefixx i = T.intercalate " " . map (T.take i . T.filter (/=' ') . snd) . M.toList $ d
+  prefixx n = T.intercalate " " . map (T.take n . T.filter (/=' ') . snd) . M.toList $ d
 
 -- ------------------------------------------------------------
 

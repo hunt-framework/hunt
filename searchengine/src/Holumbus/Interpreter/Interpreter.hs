@@ -282,8 +282,8 @@ execUpdate doc ixx@(_ix, dt, schema) = do
       Just docId -> do
         ixx' <- lift $ Ixx.modifyWithDescription (desc docs) ws docId ixx
         return (ixx', ResOK)
-      Nothing    -> throwResError 409 $ "document for update not found: "
-                                        `T.append` uri docs
+      Nothing    ->
+        throwResError 409 $ "document for update not found: " `T.append` uri docs
 
 
 unless' :: TextIndexerCon ix dt
@@ -298,8 +298,8 @@ checkContextsExistence cs ixx = do
   let docContexts     = S.fromList cs
   let invalidContexts = S.difference docContexts ixxContexts
   unless' (S.null invalidContexts)
-         409 $ "mentioned context(s) are not present: "
-               `T.append` (T.pack . show . S.toList) invalidContexts
+    409 $ "mentioned context(s) are not present: "
+            `T.append` (T.pack . show . S.toList) invalidContexts
 
 
 checkApiDocExistence :: TextIndexerCon ix dt
@@ -308,10 +308,9 @@ checkApiDocExistence switch apidoc ixx = do
   let u = apiDocUri apidoc
   mem <- Ixx.member u ixx
   unless' (switch == mem)
-         409 $ (if mem
-                  then "document already exists: "
-                  else "document does not exist: ")
-               `T.append` u
+    409 $ (if mem
+            then "document already exists: "
+            else "document does not exist: ") `T.append` u
 
 
 execSearch' :: TextIndexerCon ix dt
@@ -331,7 +330,7 @@ wrapSearch offset mx
     = ResSearch
       . mkLimitedResult offset mx
       . map (\(_, (DocInfo d _, _)) -> d)
-      . DM.toList .  docHits
+      . DM.toList . docHits
 
 wrapCompletion :: Int -> Result e -> CmdResult
 wrapCompletion mx

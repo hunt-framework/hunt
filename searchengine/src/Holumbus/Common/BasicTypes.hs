@@ -93,5 +93,6 @@ instance Binary TextSearchOp where
       1 -> return NoCase
       2 -> return PrefixCase
       3 -> return PrefixNoCase
+      _ -> fail "enum out of bounds: TextSearchOp"
 
 -- ------------------------------------------------------------

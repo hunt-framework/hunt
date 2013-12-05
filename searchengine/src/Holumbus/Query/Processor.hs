@@ -204,13 +204,11 @@ process o = case o of
 -- TODO: parallelize mapM
 -- | Evaluate (the query) for all contexts.
 forAllContexts :: (QueryIndexCon i)
-               => ([Context] -> Processor i Intermediate)
-               -> Processor i Intermediate
+               => ([Context] -> Processor i Intermediate) -> Processor i Intermediate
 forAllContexts f = getContexts >>= f
 
 forAllContexts' :: (QueryIndexCon i)
-               => (Context -> Processor i Intermediate)
-               -> Processor i Intermediate
+                => (Context -> Processor i Intermediate) -> Processor i Intermediate
 forAllContexts' f = getContexts >>= mapM f >>= return . I.unions
 
 

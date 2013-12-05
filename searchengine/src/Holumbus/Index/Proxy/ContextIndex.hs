@@ -94,7 +94,6 @@ searchWithCxs op cs k ix = parMap rseq (\c -> (c, searchWithCx op c k ix)) cs
 contexts :: ContextIndex i v -> [Context]
 contexts (ContextIx m) = M.keys m
 
--- XXX: maybe rename to hasContext or something like that?
 -- | Check if the context exists.
 hasContext :: ContextIxCon i v
        => Context -> ContextIndex i v -> Bool
