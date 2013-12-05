@@ -75,10 +75,10 @@ lookupRange k1 k2 (ContextIx m) = M.toList $ M.map (Ix.lookupRange k1 k2) m
 
 searchWithCx :: ContextIxCon i v
              => Ix.ISearchOp i v -> Context -> Ix.IKey i v -> ContextIndex i v
-             -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]
+             -> [(Ix.IKey i v, Ix.IVal i v)]
 searchWithCx op c k (ContextIx m)
   = case M.lookup c m of
-      (Just cm) -> [(c, Ix.search op k cm)]
+      (Just cm) -> Ix.search op k cm
       _         -> []
 
 searchWithCxs :: ContextIxCon i v
@@ -87,7 +87,7 @@ searchWithCxs :: ContextIxCon i v
 -- non parallel
 -- searchWithCxs op cs k ix = concat $ L.map (\c -> searchWithCx op c k ix) cs
 -- parallel
-searchWithCxs op cs k ix = concat $ parMap rseq (\c -> searchWithCx op c k ix) cs
+searchWithCxs op cs k ix = parMap rseq (\c -> (c, searchWithCx op c k ix)) cs
 
 
 -- | Contexts/keys of 'ContextIndex'.
