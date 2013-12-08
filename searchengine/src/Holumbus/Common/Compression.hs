@@ -1,5 +1,5 @@
-{-# LANGUAGE TypeSynonymInstances #-} 
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances    #-}
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -41,14 +41,14 @@ module Holumbus.Common.Compression
   )
 where
 
-import qualified Data.IntSet                       as IS
+import qualified Data.IntSet                 as IS
 
 import           Holumbus.Common.DiffList
 import           Holumbus.Common.DocId       (DocId)
 import           Holumbus.Common.DocIdMap    (DocIdMap)
 import qualified Holumbus.Common.DocIdMap    as DM
 import           Holumbus.Common.Occurrences hiding (delete)
-import           Holumbus.Common.Positions    (Positions)
+import           Holumbus.Common.Positions   (Positions)
 
 -- ----------------------------------------------------------------------------
 
