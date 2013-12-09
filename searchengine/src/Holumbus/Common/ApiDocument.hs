@@ -1,10 +1,6 @@
-{-# LANGUAGE FlexibleInstances #-}
-
 module Holumbus.Common.ApiDocument where
 
 import           Control.Monad              (mzero)
-
-import           Data.Monoid                (mappend)
 
 import           Data.Aeson
 import           Data.Map                   (Map ())
@@ -17,12 +13,6 @@ import           Holumbus.Common.BasicTypes
 
 -- | Multiple ApiDocuments.
 type ApiDocuments = [ApiDocument]
-
--- XXX: newtype for now
--- also takes care of orphaned json instance warning with (Either WordList TextData)
--- either replace by a plain type or create a new datatype with ... = WL WordList | TD TextData
-newtype TextData = TextData Content
-  deriving (Show)
 
 -- | The document accepted via the API.
 data ApiDocument  = ApiDocument
@@ -89,15 +79,6 @@ instance FromJSON ApiDocument where
       }
   parseJSON _ = mzero
 
-instance FromJSON (Either WordList TextData) where
-  parseJSON o =
-    (parseJSON o >>= return . Left)
-    `mappend`
-    (parseJSON o >>= return . Right)
-
-instance FromJSON TextData where
-  parseJSON x = parseJSON x >>= return . TextData
-
 instance FromJSON AnalyzerType where
   parseJSON (String s) =
     case s of
@@ -111,12 +92,6 @@ instance ToJSON ApiDocument where
     , "index"       .= im
     , "description" .= dm
     ]
-
-instance ToJSON (Either WordList TextData) where
-  toJSON = either toJSON toJSON
-
-instance ToJSON TextData where
-  toJSON (TextData c) = toJSON c
 
 instance ToJSON AnalyzerType where
   toJSON (DefaultAnalyzer) =
