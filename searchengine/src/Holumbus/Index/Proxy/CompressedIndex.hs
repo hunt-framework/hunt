@@ -1,61 +1,71 @@
-module Holumbus.Index.Proxy.CompressedIndex where
+module Holumbus.Index.Proxy.CompressedIndex
+( ComprOccIndex(..)
+)
+where
 
-{--
- -
- - there is an implementation for a compreossed index
- - within the InvertedIndex implementation.
- -
- - would be great to have a more general solution as
- - proxy implementation here.
- -
- -}
+import           Prelude                        as P
 
+import           Control.Applicative            ((<$>))
+import           Control.Arrow                  (second)
 
-{--
-import           Data.ByteString          (ByteString)
-import qualified Data.StringMap as SM
+import           Data.Binary                    (Binary(..))
+
 import           Holumbus.Index.Index
+import qualified Holumbus.Index.Index           as Ix
 
-import           Control.Applicative ((<$>))
-import           Control.Arrow       (first, second)
---}
+import           Holumbus.Common.Compression    hiding (delete)
+import           Holumbus.Common.Occurrences    (Occurrences)
 
+-- ----------------------------------------------------------------------------
 
-{-
+newtype ComprOccIndex impl to from
+    = ComprIx { comprIx :: impl to}
+    deriving Show
 
-newtype CompressedIndex impl v = CompressedIx (impl ByteString)
+-- ----------------------------------------------------------------------------
 
-instance Index (CompressedIndex impl) where
-    type IKey (CompressedIndex impl) v = IKey impl ByteString
-    type IToL (CompressedIndex impl) v = IToL impl v
-    type ICon (CompressedIndex impl) v = ( Index impl
-                                         , Compression v
-                                         , IVal impl v ~ ByteString
-                                         , IVal impl ByteString ~ ByteString
-                                         , IKey impl v ~ IKey impl ByteString
-                                         , ICon impl v
-                                         , ICon impl (IVal impl v)
-                                         , IType (CompressedIndex impl) v ~ IType impl v
-                                         )
+instance Binary (impl v) => Binary (ComprOccIndex impl v from) where
+    put (ComprIx i) = put i
+    get = get >>= return . ComprIx
 
+-- ----------------------------------------------------------------------------
 
-    insert k v (CompressedIx m) = CompressedIx $ insert k (compress v) m
-    delete k   (CompressedIx m) = CompressedIx $ delete k              m
-    empty                       = CompressedIx $ empty
-    fromList xs                 = CompressedIx $ fromList $ map (second compress) xs
-    search k   (CompressedIx m) = second decompress <$> search k m
-    toList     (CompressedIx m) = second decompress <$> toList m
---}
+instance Index (ComprOccIndex impl to) where
+    type IKey      (ComprOccIndex impl to) from = IKey impl to
+    type IVal      (ComprOccIndex impl to) from = Occurrences
+    type ISearchOp (ComprOccIndex impl to) from = ISearchOp impl to
+    type ICon      (ComprOccIndex impl to) from =
+        ( Index impl
+        , ICon impl to
+        , OccCompression (IVal impl to)
+        )
 
+    insert k v (ComprIx i)
+        = ComprIx $ insert k (compressOcc v) i
 
-{--
-newtype CompStrMap v = CM (StringMap ByteString)
-    deriving (Show)
+    batchDelete ks (ComprIx i)
+        = ComprIx $ batchDelete ks i
 
-instance Index CompStrMap where
-    type IKey CompStrMap v = String
-    type IVal CompStrMap v = v
-    type IToL CompStrMap v = [(String, v)]
-    type ICon CompStrMap v = Compression v
+    empty
+        = ComprIx $ empty
 
---}
+    fromList l
+        = ComprIx . fromList $ P.map (second compressOcc) l
+
+    toList (ComprIx i)
+        = second decompressOcc <$> toList i
+
+    search t k (ComprIx i)
+        = second decompressOcc <$> search t k i
+
+    lookupRange k1 k2 (ComprIx i)
+        = second decompressOcc <$> lookupRange k1 k2 i
+
+    unionWith op (ComprIx i1) (ComprIx i2)
+        = ComprIx $ unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
+
+    map f (ComprIx i)
+        = ComprIx $ Ix.map (compressOcc . f . decompressOcc) i
+
+    keys (ComprIx i)
+        = keys i

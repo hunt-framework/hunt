@@ -1,73 +1,84 @@
 module Holumbus.Index.Proxy.CachedIndex
 where
 
-{--
-import           Prelude                           hiding (lookup, subtract)
-import qualified Prelude                           as P
+import qualified Prelude                    as P
 
-import           Control.Arrow                     (second)
+import           Control.Arrow              (second)
 
-import qualified Data.IntSet                       as IS
+import qualified Data.IntSet                as IS
 
-import           Holumbus.Index.Common.DocIdMap    (DocIdSet)
-import qualified Holumbus.Index.Common.Occurrences as Occ
+import           Holumbus.Common.DocIdMap   (DocIdMap, DocIdSet)
+import qualified Holumbus.Common.DocIdMap   as DM
 import           Holumbus.Index.Index
+import           Prelude                    as P
 
--- ------------------------------------------------------------
+import           Data.Binary                (Binary (..))
 
-newtype CachedIndex impl = CachedIx (DocIdSet, impl)
+import           Holumbus.Index.Index       as Ix
 
-instance Index CachedIndex where
-    type IKey StringMap v = PT.Key
+-- ----------------------------------------------------------------------------
 
-    insert k v (CachedIx (c,i)
-      = CachedIx (c, insert k v i)
+data CachedIndex impl v = CachedIx DocIdSet (impl v)
+    deriving Show
 
-    batchDelete ks pt      = foldr (\k i -> delete k i) pt ks
-    delete                 =
+-- ----------------------------------------------------------------------------
 
-    empty                  = PT.empty
-    fromList               = PT.fromList
-    toList                 = PT.toList
-    search _               = PT.prefixFindWithKey
-    unionWith              = PT.unionWith
+instance Binary (impl v) => Binary (CachedIndex impl v) where
+    put (CachedIx c i) = put c >> put i
+    get = do
+        c <- get
+        i <- get
+        return $ CachedIx c i
 
+-- ----------------------------------------------------------------------------
 
-realIx    = deleteDocs keySet i -- the doctable with docs deleted
-new       = newIndex keySet
-deleteIds = IS.fold Occ.delete
+instance Index (CachedIndex impl) where
+    type IKey      (CachedIndex impl) v = IKey      impl v
+    type IVal      (CachedIndex impl) v = IVal      impl v
+    type ISearchOp (CachedIndex impl) v = ISearchOp impl v
+    type ICon      (CachedIndex impl) v
+        = ( Index impl
+          , ICon impl v
+          , IVal impl v ~ DocIdMap v
+          )
 
--- | An index with an empty cache.
-empty :: Index it v i -> Index it v i
-empty = newIndex IS.empty
+    insert k v (CachedIx c i)
+        = CachedIx c (insert k v i)
 
+    batchDelete ks (CachedIx c i)
+        = CachedIx (IS.union c ks) i
 
--- | A cached Index. Documents are not deleted right away but stored in a separate set.
---   This way we do not have to walk the whole index.
---   The deleted items are removed from the results of lookups.
---   Trade-off between lookup (every time) and delete (once) performance.
---   The set of deleted items should be merged before it gets too big.
-newIndex :: DocIdSet -> Index it v i -> Index it v i
-newIndex keySet i =
-    Ix {
-      _unique                        = unique i   -- XXX: inaccurate
-    , _contexts                      = contexts i -- XXX: inaccurate
-    , _size                          = map (second (flip deleteIds keySet)) . size i
-    , _lookup                        = \it c w -> map (second (flip deleteIds keySet)) $ lookup it i c w
-    , _insert                        = \c w o -> new $ insert c w o i
-    , _delete                        = \c w o -> new $ delete c w o i
-    , _deleteDocs                    = \s -> newIndex (IS.union keySet s) i
-    -- the following functions merge the keySet before doing anything
-    , _merge                         = new . merge realIx
-    , _subtract                      = new . subtract realIx
-    {-
-    , _splitByContexts               = map new . splitByContexts realIx
-    , _splitByDocuments              = map new . splitByDocuments realIx
-    , _splitByWords                  = map new . splitByWords realIx
-    , _mapDocIds                     = \f -> new $ mapDocIds f realIx
-    -}
-    , _toList                        = toList realIx
-    , _impl                          = impl realIx
-    }
-    where
--}
+    empty
+        = CachedIx IS.empty empty
+
+    fromList l
+        = CachedIx IS.empty (fromList l)
+
+    toList i
+        = let (CachedIx _ i') = flatten i
+          in toList i'
+
+    search t k (CachedIx c i)
+        = filterResult c $ search t k i
+
+    lookupRange k1 k2 (CachedIx c i)
+        = filterResult c $ lookupRange k1 k2 i
+
+    unionWith op (CachedIx c1 i1) (CachedIx c2 i2)
+        = CachedIx (IS.union c1 c2) (unionWith op i1 i2)
+
+    map f i
+        = let (CachedIx c i') = flatten i
+          in CachedIx c (Ix.map f i')
+
+    keys (CachedIx _c i)
+        = keys i
+
+-- ----------------------------------------------------------------------------
+
+filterResult :: IS.IntSet -> [(d, DocIdMap v)] -> [(d, DocIdMap v)]
+filterResult c = P.map (second (flip deleteIds c))
+    where deleteIds = IS.foldr DM.delete
+
+flatten :: (ICon impl v, Index impl) => CachedIndex impl v -> CachedIndex impl v
+flatten (CachedIx c i) = CachedIx IS.empty (batchDelete c i)

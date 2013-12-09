@@ -1,3 +1,5 @@
+{-# LANGUAGE OverlappingInstances #-}
+
 module Holumbus.Index.InvertedIndex
 ( InvertedIndex(..)
 )
@@ -5,24 +7,29 @@ where
 
 import           Prelude                             as P
 
-import           Control.Applicative                 ((<$>))
-import           Control.Arrow                       (first)
+--import           Control.Applicative                 ((<$>))
+--import           Control.Arrow                       (first)
 
 import           Data.Binary                         (Binary(..))
-import           Data.Text                           (pack, unpack)
+--import           Data.Text                           (pack, unpack)
 
 import           Holumbus.Common.Compression         hiding (delete)
 import           Holumbus.Common.BasicTypes
 import qualified Holumbus.Common.Occurrences         as Occ
 import           Holumbus.Common.Occurrences         (Occurrences)
+import           Holumbus.Common.Positions           (Positions)
 
-import           Holumbus.Index.ComprPrefixTreeIndex
+import           Holumbus.Index.PrefixTreeIndex
 import           Holumbus.Index.Index                as Ix
+
+import           Holumbus.Index.Proxy.CompressedIndex
+import           Holumbus.Index.Proxy.CachedIndex
+import           Holumbus.Index.Proxy.TextKeyIndex
 
 -- ----------------------------------------------------------------------------
 
 newtype InvertedIndex _v
-    = InvIx { invIx :: ComprOccPrefixTree CompressedPositions }
+    = InvIx { invIx :: CachedIndex (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions }
     deriving (Show)
 
 -- ----------------------------------------------------------------------------
@@ -38,25 +45,25 @@ instance Index InvertedIndex where
     type IVal InvertedIndex v = Occurrences
 
     insert w o
-        = unionWith Occ.merge (InvIx $ insert (unpack w) o empty)
+        = unionWith Occ.merge (InvIx $ insert w o empty) -- InvIx $ insert w o i
 
-    batchDelete docIds (InvIx (ComprPT pt))
-        = InvIx $ ComprPT $ Ix.map (differenceWithKeySet docIds) pt
+    batchDelete docIds (InvIx i)
+        = InvIx $ batchDelete docIds i
 
     empty
         = InvIx $ empty
 
     fromList l
-        = InvIx $ fromList $ P.map (first unpack) l
+        = InvIx $ fromList l
 
     toList (InvIx i)
-        = first pack <$> toList i
+        = toList i
 
     search t k (InvIx i)
-        = first pack <$> search t (unpack k) i
+        = search t k i
 
     lookupRange k1 k2 (InvIx i)
-        = first pack <$> lookupRange (unpack k1) (unpack k2) i
+        = lookupRange k1 k2 i
 
     unionWith op (InvIx i1) (InvIx i2)
         = InvIx $ unionWith op i1 i2
@@ -65,4 +72,4 @@ instance Index InvertedIndex where
         = InvIx $ Ix.map f i
 
     keys (InvIx i)
-        = P.map pack $ keys i -- XXX: pack unnecessary, maybe change IKeys
+        = keys i

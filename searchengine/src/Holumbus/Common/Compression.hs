@@ -36,7 +36,7 @@ module Holumbus.Common.Compression
   , inflatePos
   -- * Efficiency
   , delete
-  , differenceWithKeySet
+  -- , differenceWithKeySet
   , differenceWithKeyList
   )
 where
@@ -59,12 +59,14 @@ type CompressedPositions        = DiffList
 
 -- ----------------------------------------------------------------------------
 class OccCompression cv where
-    compressOcc   :: Occurrences -> cv
-    decompressOcc :: cv -> Occurrences
+    compressOcc          :: Occurrences -> cv
+    decompressOcc        :: cv -> Occurrences
+    differenceWithKeySet :: DM.DocIdSet -> cv -> cv
 
 instance OccCompression CompressedOccurrences where
-    compressOcc   = deflateOcc
-    decompressOcc = inflateOcc
+    compressOcc          = deflateOcc
+    decompressOcc        = inflateOcc
+    differenceWithKeySet = differenceWithKeySet'
 
 -- | Decompressing the occurrences by just decompressing all contained positions.
 inflateOcc :: CompressedOccurrences -> Occurrences
@@ -83,8 +85,8 @@ differenceWithKeyList :: [DocId] -> CompressedOccurrences -> CompressedOccurrenc
 differenceWithKeyList = differenceWithKeySet . IS.fromList
 
 -- | Difference without deflating and inflating.
-differenceWithKeySet :: DM.DocIdSet -> CompressedOccurrences -> CompressedOccurrences
-differenceWithKeySet = flip $ IS.foldr delete
+differenceWithKeySet' :: DM.DocIdSet -> CompressedOccurrences -> CompressedOccurrences
+differenceWithKeySet' = flip $ IS.foldr delete
 
 -- | Convert the compressed differences back to a set of integers.
 inflatePos :: CompressedPositions -> Positions

@@ -77,8 +77,9 @@ library
     Holumbus.Index.InvertedIndex
 
     Holumbus.Index.Proxy.ContextIndex
---    Holumbus.Index.Proxy.CompressedIndex
---    Holumbus.Index.Proxy.CachedIndex
+    Holumbus.Index.Proxy.CompressedIndex
+    Holumbus.Index.Proxy.CachedIndex
+    Holumbus.Index.Proxy.TextKeyIndex
 
     Holumbus.DocTable.DocTable
     Holumbus.DocTable.HashedDocuments

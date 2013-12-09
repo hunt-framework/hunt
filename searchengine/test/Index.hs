@@ -4,21 +4,23 @@
 
 module Main where
 
+import qualified Data.Map                             as M
 import           Data.Monoid
+
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 --import          Test.Framework.Providers.QuickCheck2
 import           Test.HUnit
 --import          Test.QuickCheck
-import qualified Data.Map                            as M
-import           Holumbus.Common
-import           Holumbus.Common.Occurrences         (singleton)
 
-import qualified Holumbus.Index.ComprPrefixTreeIndex as CPIx
-import qualified Holumbus.Index.Index                as Ix
-import qualified Holumbus.Index.InvertedIndex        as InvIx
-import qualified Holumbus.Index.PrefixTreeIndex      as PIx
-import qualified Holumbus.Index.Proxy.ContextIndex   as ConIx
+import           Holumbus.Common
+import           Holumbus.Common.Occurrences          (merge, singleton)
+
+import qualified Holumbus.Index.Index                 as Ix
+import qualified Holumbus.Index.InvertedIndex         as InvIx
+import qualified Holumbus.Index.PrefixTreeIndex       as PIx
+import qualified Holumbus.Index.Proxy.CompressedIndex as CPIx
+import qualified Holumbus.Index.Proxy.ContextIndex    as ConIx
 import           Holumbus.Index.TextIndex
 
 -- ----------------------------------------------------------------------------
@@ -27,6 +29,7 @@ main :: IO ()
 main = defaultMainWithOpts
        [ testCase "DmPrefixTree:            insert"        insertTestPIx
        , testCase "InvertedIndex:           insert"        insertTestInvIx
+       , testCase "InvertedIndex:           merge"         mergeTestInvIx
        , testCase "ComprOccPrefixTree:      insert"        insertTestCPIx
        , testCase "ContextIndex Inverted:   insert"        insertTestContextIx
        , testCase "ContextIndex Inverted:   insertContext" insertTestContext
@@ -42,6 +45,16 @@ insertTest emptyIndex k v = v == nv
   where
   [(_,nv)] = Ix.search PrefixNoCase k $ Ix.insert k v emptyIndex
 
+
+-- v1 and v2 need the have the same id
+mergeTest :: (Ix.ICon i v, Ix.Index i, Ix.ISearchOp i v ~ TextSearchOp
+             , Ix.IVal i v ~ DocIdMap Positions) =>
+             i v -> Ix.IKey i v -> Occurrences -> Occurrences -> Bool
+mergeTest emptyIndex k v1 v2 = length res == 1 && merge v1 v2 == nv
+  where
+  res@[(_,nv)] = Ix.search PrefixNoCase k $ Ix.insert k v1 . Ix.insert k v2 $ emptyIndex
+
+
 -- | check DmPrefixTree
 insertTestPIx :: Assertion
 insertTestPIx
@@ -54,7 +67,7 @@ insertTestPIx
 insertTestCPIx :: Assertion
 insertTestCPIx
   = True @?= insertTest
-    (Ix.empty::(CPIx.ComprOccPrefixTree CompressedPositions))
+    (Ix.empty::((CPIx.ComprOccIndex PIx.DmPrefixTree CompressedPositions) Positions))
     "test"
     (singleton 1 1)
 
@@ -66,6 +79,15 @@ insertTestInvIx
     (Ix.empty::(InvIx.InvertedIndex Occurrences)) -- the Occurrences type is a dummy in this case
     "test"
     (singleton 1 1)
+
+-- | test merging of occurrences in InvertedIndex
+mergeTestInvIx :: Assertion
+mergeTestInvIx
+  = True @?= mergeTest
+    (Ix.empty::(InvIx.InvertedIndex Occurrences)) -- the Occurrences type is a dummy in this case
+    "test"
+    (singleton 1 1)
+    (singleton 1 2)
 
 -- | check ContextIndex
 insertTestContextIx :: Assertion
