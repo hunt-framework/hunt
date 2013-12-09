@@ -30,7 +30,7 @@ library
                , bytestring             >= 0.9 && < 1
                , bzlib                  >= 0.4 && < 1
                , containers             >= 0.5
-               , data-stringmap         >= 0.9.1 && < 2
+               , data-stringmap         >= 0.9.2 && < 2
                , deepseq                >= 1.2
                , dlist
                , directory              >= 1   && < 2
