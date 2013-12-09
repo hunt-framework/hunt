@@ -285,7 +285,7 @@ addDocs =
       // add indexed information to index
       values = $(".indexed-value");
       $(".indexed-key").each(function(i,v) {
-        eval("apiDoc.index['"+$(v).val()+"'] = {'content':'"+$(values[i]).val()+"'}");
+        eval("apiDoc.index['"+$(v).val()+"'] = '"+$(values[i]).val()+"'");
       });
 
       // wrap doc into list and format as json
