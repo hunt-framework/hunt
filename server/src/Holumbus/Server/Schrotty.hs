@@ -74,7 +74,7 @@ handleError (Other bs)
 handleError (Text code bs)
   = handleCustomError code bs
 handleError (Json code o)
-  = return $ jsonResponse (toEnum code) (JsonFailure code (A.encode o))
+  = return $ jsonResponse (toEnum code) (JsonFailure code o)
 handleError (InterpreterError (ResError code msg))
   = handleError (Json code msg)
   -- = handleCustomError code $ TEnc.encodeUtf8 . TL.fromStrict $ msg
