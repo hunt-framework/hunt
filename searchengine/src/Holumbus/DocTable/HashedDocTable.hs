@@ -35,16 +35,17 @@ module Holumbus.DocTable.HashedDocTable
     )
 where
 
-import           Data.Binary                    (Binary (..))
-import qualified Data.Binary                    as B
+import           Data.Binary                (Binary (..))
+import qualified Data.Binary                as B
 
 import           Data.Digest.Murmur64
 
 import           Holumbus.Common.BasicTypes
-import qualified Holumbus.Common.DocIdMap       as DM
-import           Holumbus.Common.Document       (Document(..))
-import           Holumbus.Common.DocId          (DocId, mkDocId)
-import           Holumbus.Common.DocIdMap       (DocIdMap)
+import           Holumbus.Common.DocId      (DocId)
+import qualified Holumbus.Common.DocId      as DId
+import           Holumbus.Common.DocIdMap   (DocIdMap)
+import qualified Holumbus.Common.DocIdMap   as DM
+import           Holumbus.Common.Document   (Document (..))
 import           Holumbus.DocTable.DocTable
 
 import           Holumbus.Utility
@@ -75,7 +76,7 @@ empty = Documents DM.empty
 
 -- | The hash function from URIs to DocIds
 docToId :: URI -> DocId
-docToId = mkDocId . fromIntegral . asWord64 . hash64 . B.encode
+docToId = DId.fromInteger . fromIntegral . asWord64 . hash64 . B.encode
 
 -- | Build a 'DocTable' from a 'DocIdMap' (maps 'DocId's to 'Document's)
 fromMap :: DocTable (Documents e) =>

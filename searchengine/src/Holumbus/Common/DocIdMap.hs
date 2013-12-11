@@ -71,6 +71,7 @@ import qualified Data.IntMap                 as IM
 import qualified Data.IntSet                 as S
 
 import           Holumbus.Common.DocId
+import qualified Holumbus.Common.DocId       as DId
 
 -- ------------------------------------------------------------
 
@@ -119,10 +120,10 @@ size                    :: DocIdMap v -> Int
 size                    = IM.size . unDIM
 
 minKey                  :: DocIdMap v -> DocId
-minKey                  = maybe nullDocId (fst . fst) . IM.minViewWithKey . unDIM
+minKey                  = maybe DId.mkNull (fst . fst) . IM.minViewWithKey . unDIM
 
 maxKey                  :: DocIdMap v -> DocId
-maxKey                  = maybe nullDocId (fst . fst) . IM.maxViewWithKey . unDIM
+maxKey                  = maybe DId.mkNull (fst . fst) . IM.maxViewWithKey . unDIM
 
 isIntervall             :: DocIdMap v -> Bool
 isIntervall m           = null m

@@ -18,36 +18,26 @@
 module Holumbus.Common.DocId
 where
 
--- ------------------------------------------------------------
+-- ----------------------------------------------------------------------------
 
--- | The unique identifier of a document
--- (created upon insertion into the document table).
+-- | The unique identifier of a document.
+type DocId = Int
 
-type DocId                   = Int
+-- ----------------------------------------------------------------------------
 
-incrDocId                       :: DocId -> DocId
-incrDocId                       = (1+)
+mkNull :: DocId
+mkNull = 0
 
-addDocId                        :: DocId -> DocId -> DocId
-addDocId                        = (+)
+mkFirst :: DocId
+mkFirst = 1
 
-subDocId                        :: DocId -> DocId -> DocId
-subDocId                        = (-)
+fromInteger :: Integer -> DocId
+fromInteger = fromIntegral
 
-nullDocId                       :: DocId
-nullDocId                       = 0
+-- ----------------------------------------------------------------------------
 
-firstDocId                      :: DocId
-firstDocId                      = 1
+{-# INLINE mkNull #-}
+{-# INLINE mkFirst #-}
+{-# INLINE fromInteger #-}
 
-mkDocId                         :: Integer -> DocId
-mkDocId                         = fromIntegral
-
-{-# INLINE incrDocId #-}
-{-# INLINE addDocId #-}
-{-# INLINE subDocId #-}
-{-# INLINE nullDocId #-}
-{-# INLINE firstDocId #-}
-{-# INLINE mkDocId #-}
-
--- ------------------------------------------------------------
+-- ----------------------------------------------------------------------------
