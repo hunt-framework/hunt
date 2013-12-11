@@ -78,8 +78,8 @@ docToId :: URI -> DocId
 docToId = mkDocId . fromIntegral . asWord64 . hash64 . B.encode
 
 -- | Build a 'DocTable' from a 'DocIdMap' (maps 'DocId's to 'Document's)
-fromMap :: DocTable (Documents Document) =>
-          (Document -> Document) -> DocIdMap Document -> Documents Document
+fromMap :: DocTable (Documents e) =>
+          (e -> e) -> DocIdMap e -> Documents e
 fromMap = fromMap'
 
 -- ----------------------------------------------------------------------------
@@ -133,22 +133,22 @@ instance DocTable (Documents Document) where
 
 -- ----------------------------------------------------------------------------
 
-null'       :: Documents Document -> Bool
+null'       :: Documents e -> Bool
 null'
     = DM.null . idToDoc
 
-size'       :: Documents Document -> Int
+size'       :: Documents e -> Int
 size'
     = DM.size . idToDoc
 
-lookup'     :: Monad m => Documents Document -> DocId -> m Document
+lookup'     :: Monad m => Documents e -> DocId -> m e
 lookup'  d i
     = maybe (fail "") return
       . DM.lookup i
       . idToDoc
       $ d
 
-lookupByURI' :: Monad m => Documents Document -> URI -> m DocId
+lookupByURI' :: Monad m => Documents e -> URI -> m DocId
 lookupByURI' d u
     = maybe (fail "") (const $ return i)
       . DM.lookup i
@@ -157,11 +157,11 @@ lookupByURI' d u
       where
         i = docToId u
 
-disjoint'   :: Documents Document -> Documents Document -> Bool
+disjoint'   :: Documents e -> Documents e -> Bool
 disjoint' dt1 dt2
     = DM.null $ DM.intersection (idToDoc dt1) (idToDoc dt2)
 
-unionDocs'  :: Documents Document -> Documents Document -> Documents Document
+unionDocs'  :: Documents e -> Documents e -> Documents e
 unionDocs' dt1 dt2
     | disjoint' dt1 dt2
         = unionDocs'' dt1 dt2
@@ -169,7 +169,7 @@ unionDocs' dt1 dt2
         = error
           "HashedDocuments.unionDocs: doctables are not disjoint"
     where
-    unionDocs'' :: Documents Document -> Documents Document -> Documents Document
+    unionDocs'' :: Documents e -> Documents e -> Documents e
     unionDocs'' dt1' dt2'
         = Documents
           { idToDoc = idToDoc dt1' `DM.union` idToDoc dt2' }
@@ -184,31 +184,31 @@ insert' ds d
         reallyInsert
             = (newId, Documents {idToDoc = DM.insert newId d $ idToDoc ds})
 
-update'     :: Documents Document -> DocId -> Document -> Documents Document
+update'     :: Documents e -> DocId -> e -> Documents e
 update' ds i d
     = Documents {idToDoc = DM.insert i d $ idToDoc ds}
 
-delete'     :: Documents Document -> DocId -> Documents Document
+delete'     :: Documents e -> DocId -> Documents e
 delete' ds d
     = Documents {idToDoc = DM.delete d $ idToDoc ds}
 
-difference' :: DM.DocIdSet -> Documents Document -> Documents Document
+difference' :: DM.DocIdSet -> Documents e -> Documents e
 difference' s ds
     = Documents {idToDoc = idToDoc ds `DM.diffWithSet` s}
 
-map'        :: (Document -> Document) -> Documents Document -> Documents Document
+map'        :: (e -> e) -> Documents e -> Documents e
 map' f d
     = Documents {idToDoc = DM.map f (idToDoc d)}
 
-filter'     :: (Document -> Bool) -> Documents Document -> Documents Document
+filter'     :: (e -> Bool) -> Documents e -> Documents e
 filter' p d
     = Documents {idToDoc = DM.filter p (idToDoc d)}
 
-fromMap'    :: (Document -> Document) -> DocIdMap Document -> Documents Document
+fromMap'    :: (e -> e) -> DocIdMap e -> Documents e
 fromMap' f itd
     = Documents {idToDoc = DM.map f itd}
 
-toMap'      :: Documents Document -> DocIdMap Document
+toMap'      :: Documents e -> DocIdMap e
 toMap'
     = idToDoc
 
