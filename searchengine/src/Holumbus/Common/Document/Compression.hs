@@ -6,7 +6,10 @@
 module Holumbus.Common.Document.Compression
 where
 
-import qualified Codec.Compression.BZip         as BZ
+-- http://hackage.haskell.org/package/bzlib
+import qualified Codec.Compression.BZip         as ZIP
+-- http://hackage.haskell.org/package/snappy
+-- import qualified Codec.Compression.Snappy       as ZIP
 
 import           Control.DeepSeq
 
@@ -34,11 +37,12 @@ instance NFData CompressedDoc where
 
 -- ----------------------------------------------------------------------------
 
+-- | 'CompressedDoc' to 'conversion' Document.
 decompress  :: CompressedDoc -> Document
-decompress  = B.decode . BZ.decompress . unCDoc
+decompress  = B.decode . ZIP.decompress . unCDoc
 
 -- | 'Document' to 'CompressedDoc' conversion.
 compress    :: Document -> CompressedDoc
-compress    = CDoc . BZ.compress . B.encode
+compress    = CDoc . ZIP.compress . B.encode
 
 -- ----------------------------------------------------------------------------

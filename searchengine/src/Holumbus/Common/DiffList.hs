@@ -52,6 +52,8 @@ type Diff               = Word64
 -- | A list of differences.
 type DiffList           = [Diff]
 
+-- ----------------------------------------------------------------------------
+
 -- | Convert a set of integers into a list of difference encoded values.
 fromPositions           :: Positions -> DiffList
 fromPositions           = fromList . Pos.toAscList

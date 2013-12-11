@@ -19,7 +19,7 @@ import           Holumbus.Common.Occurrences.Compression hiding (delete)
 -- ----------------------------------------------------------------------------
 
 newtype ComprOccIndex impl to from
-    = ComprIx { comprIx :: impl to}
+    = ComprIx { comprIx :: impl to }
     deriving Show
 
 -- ----------------------------------------------------------------------------

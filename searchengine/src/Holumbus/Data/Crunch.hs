@@ -4,19 +4,19 @@
   Module     : Holumbus.Data.Crunch
   Copyright  : Copyright (C) 2008 Timo B. Huebel
   License    : MIT
-  
+
   Maintainer : Timo B. Huebel (tbh@holumbus.org)
   Stability  : experimental
   Portability: portable
   Version    : 0.1
-  
-  This module provides compression for streams of 32-bit words. Because of 
+
+  This module provides compression for streams of 32-bit words. Because of
   some internal restriction in GHC, which makes all fixed integer size equal
   in terms of bit-width, the algorithm tries to crunch as much numbers as
   possible into a single 64-bit word.
 
   Based on the Simple9 encoding scheme from this article:
-  
+
     * Vo N. Anh, Alstair Moffat,
       \"/Inverted Index Compression Using Word-Aligned Binary Codes/\",
       Information Retrieval, 8 (1), 2005, pages 151-166
@@ -27,14 +27,14 @@
 
 {-# OPTIONS -fno-warn-type-defaults #-}
 
-module Holumbus.Data.Crunch 
+module Holumbus.Data.Crunch
   (
   -- * Compression
   crunch8
   , crunch16
   , crunch32
   , crunch64
-  
+
   -- * Decompression
   , decrunch8
   , decrunch16
@@ -101,7 +101,7 @@ width W60 = 60
 
 -- | Crunch some values by encoding several values into one 'Word64'. The values may not exceed
 -- the upper limit of @(2 ^ 60) - 1@. This precondition is not checked! The compression works
--- best on small values, therefore a difference encoding (like the one in 
+-- best on small values, therefore a difference encoding (like the one in
 -- "Holumbus.Data.DiffList") prior to compression pays off well.
 crunch64 :: [Word64] -> [Word64]
 crunch64 [] = []
@@ -115,10 +115,10 @@ crunch' s 0 m r = encode m r:crunch' s (count W01) W01 []
 crunch' s@(x:xs) n m r = if x <= value m then crunch' xs (n - 1) m (r ++ [x])
                          else crunch' (r ++ s) (count (succ m)) (succ m) []
 
--- | Encode some numbers with a given width. The number of elements in the list may not exceed 
+-- | Encode some numbers with a given width. The number of elements in the list may not exceed
 -- the amount of numbers allowed for this width and the numbers in the list may not exceed the
 -- upper bound for this width. These preconditions are not checked!
-encode :: Width -> [Word64] -> Word64                         
+encode :: Width -> [Word64] -> Word64
 encode w [] = rotateR (fromIntegral (fromEnum w)) (64 - (width w * count w))
 encode w (x:xs) = rotateR (encode w xs .|. fromIntegral x) (width w)
 

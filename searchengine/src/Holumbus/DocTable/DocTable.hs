@@ -35,7 +35,7 @@ class DocTable i where
     -- | Lookup a document by its ID.
     lookup          :: Monad m => i -> DocId -> m (Maybe (DValue i))
 
--- | Lookup the 'DocId' of a document by an 'URI'.
+    -- | Lookup the 'DocId' of a document by an 'URI'.
     lookupByURI     :: Monad m => i -> URI -> m (Maybe DocId)
 
     -- | Union of two disjoint document tables. It is assumed, that the
