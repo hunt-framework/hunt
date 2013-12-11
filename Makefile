@@ -28,7 +28,8 @@ all:		install
 clean: 		; $(MAKE) target action=clean
 configure: 	; $(MAKE) target action=configure
 build:		; $(MAKE) target action=build
-install:	; $(MAKE) target action="install --enable-tests"
+install:	; $(MAKE) target action=install
+test:		; $(MAKE) target action=test
 
 target: searchengine server
 
@@ -38,7 +39,7 @@ sandbox:
 	cd server         && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd server         && cabal sandbox add-source ../searchengine/
 	cd hayooCrawler   && cabal sandbox init --sandbox ../.cabal-sandbox
- 
+
 searchengine:
 	cd searchengine && cabal $(action)
 
@@ -82,4 +83,4 @@ insertRandom: startServer
 	$(MAKE) -C data/random generate
 	curl -X POST -d @data/random/RandomData.js $(SERVER)/document/insert
 
-.PHONY: target clean configure build install all searchengine server insertJokes startServer stopServer sandbox hayooCrawler
+.PHONY: target clean configure build install test all searchengine server insertJokes startServer stopServer sandbox hayooCrawler
