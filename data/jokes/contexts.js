@@ -6,7 +6,7 @@
         "weight": 1.0,
         "default": true,
         "normalizers": [],
-        "regexp": "[^ \t\n\r]*",
+        "regexp": "\\w*",
         "type": "text"
     }
 }
@@ -18,7 +18,7 @@
         "weight": 1.0,
         "default": true,
         "normalizers": [],
-        "regexp": "[^ \t\n\r]*",
+        "regexp": "\\w*",
         "type": "text"
     }
 }
@@ -30,7 +30,7 @@
         "weight": 1.0,
         "default": true,
         "normalizers": [],
-        "regexp": "[^ \t\n\r]*",
+        "regexp": "\\w*",
         "type": "text"
     }
 }
@@ -42,7 +42,7 @@
         "weight": 1.0,
         "default": true,
         "normalizers": [],
-        "regexp": "[^ \t\n\r]*",
+        "regexp": "\\w*",
         "type": "text"
     }
 }
