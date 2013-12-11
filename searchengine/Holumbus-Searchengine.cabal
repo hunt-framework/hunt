@@ -61,9 +61,9 @@ library
     Holumbus.Common.Document
     Holumbus.Common.CompressedDocument
     Holumbus.Common.Occurrences
+    Holumbus.Common.Occurrences.Compression
     Holumbus.Common.Positions
     Holumbus.Common.RawResult
-    Holumbus.Common.Compression
 
     Holumbus.Index.Schema
     Holumbus.Index.Schema.Analyze

@@ -20,7 +20,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Common.Compression
+module Holumbus.Common.Occurrences.Compression
   (
   -- * Compression types
   CompressedOccurrences

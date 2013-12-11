@@ -18,7 +18,7 @@
 module Holumbus.Common
   (
     module Holumbus.Common.BasicTypes
-  , module Holumbus.Common.Compression
+  , module Holumbus.Common.Occurrences.Compression
   , module Holumbus.Common.DocId
   , module Holumbus.Common.DocIdMap
   , module Holumbus.Common.Document
@@ -33,7 +33,7 @@ where
 
 import           Holumbus.Common.ApiDocument  (ApiDocument (..))
 import           Holumbus.Common.BasicTypes
-import           Holumbus.Common.Compression
+import           Holumbus.Common.Occurrences.Compression
 import           Holumbus.Common.DocId
 import           Holumbus.Common.DocIdMap     (DocIdMap, DocIdSet)
 import           Holumbus.Common.Document     (Document (..))

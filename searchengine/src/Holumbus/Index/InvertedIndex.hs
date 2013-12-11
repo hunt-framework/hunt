@@ -5,25 +5,25 @@ module Holumbus.Index.InvertedIndex
 )
 where
 
-import           Prelude                             as P
+import           Prelude                                 as P
 
 --import           Control.Applicative                 ((<$>))
 --import           Control.Arrow                       (first)
 
-import           Data.Binary                         (Binary(..))
+import           Data.Binary                             (Binary (..))
 --import           Data.Text                           (pack, unpack)
 
-import           Holumbus.Common.Compression         hiding (delete)
 import           Holumbus.Common.BasicTypes
-import qualified Holumbus.Common.Occurrences         as Occ
-import           Holumbus.Common.Occurrences         (Occurrences)
-import           Holumbus.Common.Positions           (Positions)
+import           Holumbus.Common.Occurrences             (Occurrences)
+import qualified Holumbus.Common.Occurrences             as Occ
+import           Holumbus.Common.Occurrences.Compression hiding (delete)
+import           Holumbus.Common.Positions               (Positions)
 
+import           Holumbus.Index.Index                    as Ix
 import           Holumbus.Index.PrefixTreeIndex
-import           Holumbus.Index.Index                as Ix
 
-import           Holumbus.Index.Proxy.CompressedIndex
 import           Holumbus.Index.Proxy.CachedIndex
+import           Holumbus.Index.Proxy.CompressedIndex
 import           Holumbus.Index.Proxy.TextKeyIndex
 
 -- ----------------------------------------------------------------------------

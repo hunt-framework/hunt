@@ -19,7 +19,7 @@ import qualified Holumbus.Index.Index                       as Ix
 
 import           Holumbus.Index.Proxy.CompressedIndex
 
-import           Holumbus.Common.Compression
+import           Holumbus.Common.Occurrences.Compression
 
 -- ----------------------------------------------------------------------------
 

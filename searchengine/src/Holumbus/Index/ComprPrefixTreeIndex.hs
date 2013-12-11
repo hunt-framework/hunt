@@ -3,22 +3,23 @@ module Holumbus.Index.ComprPrefixTreeIndex
 )
 where
 
-import           Prelude                        as P
+import           Prelude                                 as P
 
-import           Control.Applicative            ((<$>))
-import           Control.Arrow                  (second)
+import           Control.Applicative                     ((<$>))
+import           Control.Arrow                           (second)
 
-import           Data.Binary                    (Binary(..))
+import           Data.Binary                             (Binary (..))
 
 import           Holumbus.Index.Index
-import qualified Holumbus.Index.Index           as Ix
+import qualified Holumbus.Index.Index                    as Ix
 import           Holumbus.Index.PrefixTreeIndex
 
-import           Holumbus.Common.Compression    hiding (delete)
-import           Holumbus.Common.DocIdMap       (DocIdMap)
-import           Holumbus.Common.Occurrences    (Occurrences)
+import           Holumbus.Common.DocIdMap                (DocIdMap)
+import           Holumbus.Common.Occurrences             (Occurrences)
+import           Holumbus.Common.Occurrences.Compression hiding (delete)
 
-import qualified Data.StringMap                 as SM
+import qualified Data.StringMap                          as SM
+
 
 -- ----------------------------------------------------------------------------
 
