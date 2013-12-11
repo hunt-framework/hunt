@@ -3,7 +3,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Common.CompressedDocument
+module Holumbus.Common.Document.Compression
 where
 
 import qualified Codec.Compression.BZip         as BZ

@@ -59,7 +59,7 @@ library
     Holumbus.Common.DocId
     Holumbus.Common.DocIdMap
     Holumbus.Common.Document
-    Holumbus.Common.CompressedDocument
+    Holumbus.Common.Document.Compression
     Holumbus.Common.Occurrences
     Holumbus.Common.Occurrences.Compression
     Holumbus.Common.Positions
