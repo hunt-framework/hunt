@@ -82,7 +82,7 @@ library
     Holumbus.Index.Proxy.TextKeyIndex
 
     Holumbus.DocTable.DocTable
-    Holumbus.DocTable.HashedDocuments
+    Holumbus.DocTable.HashedDocTable
 
     Holumbus.Indexer.Indexer
     Holumbus.Indexer.TextIndexer

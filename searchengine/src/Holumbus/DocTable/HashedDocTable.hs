@@ -5,7 +5,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.HashedDocuments
+  Module     : Holumbus.Index.HashedDocTable
   Copyright  : Copyright (C) 2012 Uwe Schmidt
   License    : MIT
 
@@ -21,7 +21,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.DocTable.HashedDocuments
+module Holumbus.DocTable.HashedDocTable
     (
       -- * Documents type
       Documents (..)
@@ -129,7 +129,7 @@ instance DocTable (Documents Document) where
     toMap       = return . toMap'
 
     -- Edit document ids
-    mapKeys     = error "hashed doctables cannot change ids"
+    mapKeys     = error "DocTable.mapKeys: HashedDocTable"
 
 -- ----------------------------------------------------------------------------
 
@@ -167,7 +167,7 @@ unionDocs' dt1 dt2
         = unionDocs'' dt1 dt2
     | otherwise
         = error
-          "HashedDocuments.unionDocs: doctables are not disjoint"
+          "HashedDocTable.unionDocs: doctables are not disjoint"
     where
     unionDocs'' :: Documents e -> Documents e -> Documents e
     unionDocs'' dt1' dt2'

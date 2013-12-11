@@ -43,7 +43,7 @@ import           Holumbus.Query.Ranking
 import           Holumbus.Query.Result             as QRes
 
 import qualified Holumbus.DocTable.DocTable        as Dt
-import           Holumbus.DocTable.HashedDocuments as HDt
+import           Holumbus.DocTable.HashedDocTable  as HDt
 
 import           Holumbus.Interpreter.Command
 

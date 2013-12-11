@@ -23,7 +23,7 @@ import           Holumbus.Query.Language.Grammar
 import           Holumbus.Query.Ranking
 import           Holumbus.Utility
 import           Holumbus.Index.InvertedIndex         (InvertedIndex)
-import           Holumbus.DocTable.HashedDocuments    (Documents)
+import           Holumbus.DocTable.HashedDocTable     (Documents)
 
 -- ----------------------------------------------------------------------------
 
