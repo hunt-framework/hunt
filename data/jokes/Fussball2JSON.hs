@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module FussballToJSON where
+
 import           Control.Monad               (mzero)
 
 import           Data.Aeson
@@ -17,6 +18,8 @@ import           FussballerSprueche
 
 import           System.IO
 
+-- ----------------------------------------------------------------------------
+
 type URI          = Text
 type Word         = Text
 type Content      = Text
@@ -30,26 +33,18 @@ type Words        = Map Context WordList
 -- | Positions of words in the document.
 type WordList     = Map Word [Position]
 
+-- ----------------------------------------------------------------------------
+
 -- | Multiple ApiDocuments.
 type ApiDocuments = [ApiDocument]
 
 -- | The document accepted via the API.
 data ApiDocument  = ApiDocument
-  { apiDocUri       :: URI
-  , apiDocIndexMap  :: Map Context IndexData
-  , apiDocDescrMap  :: Description
+  { apiDocUri      :: URI
+  , apiDocIndexMap :: Map Context Content
+  , apiDocDescrMap :: Description
   }
-
--- | Data necessary for adding documents to the index.
-data IndexData = IndexData
-  { idContent       :: Content
-  , idMetadata      :: IndexMetadata
-  }
-
--- | Metadata for index processing
-data IndexMetadata = IndexMetadata
-  { imAnalyzer :: AnalyzerType
-  } deriving Eq
+  deriving (Show)
 
 -- | Text analysis function
 type AnalyzerFunction = Text -> [(Position, Text)]
@@ -57,51 +52,56 @@ type AnalyzerFunction = Text -> [(Position, Text)]
 -- | Types of analyzer
 data AnalyzerType
   = DefaultAnalyzer
-  deriving Eq
+  deriving (Show)
 
+-- | paged api document result
+data LimitedResult x = LimitedResult
+  { lrResult :: [x]
+  , lrOffset :: Int
+  , lrMax    :: Int
+  , lrCount  :: Int
+  }
+  deriving (Show, Eq)
 
-  -- | The default Matadata
-defaultIndexMetadata :: IndexMetadata
-defaultIndexMetadata = IndexMetadata
-  { imAnalyzer = DefaultAnalyzer
+mkLimitedResult :: Int -> Int -> [x] -> LimitedResult x
+mkLimitedResult offset mx xs = LimitedResult
+  { lrResult = take mx . drop offset $ xs
+  , lrOffset = offset
+  , lrMax    = mx
+  , lrCount  = length xs
   }
 
 -- | empty document
+emptyApiDocIndexMap :: Map Context Content
+emptyApiDocIndexMap = M.empty
+
+emptyApiDocDescrMap :: Description
+emptyApiDocDescrMap = M.empty
+
 emptyApiDoc :: ApiDocument
-emptyApiDoc = ApiDocument "" M.empty M.empty
+emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescrMap
+
+-- ----------------------------------------------------------------------------
+
+instance (ToJSON x) => ToJSON (LimitedResult x) where
+   toJSON (LimitedResult res offset mx cnt) = object
+    [ "result" .= res
+    , "offset" .= offset
+    , "max"    .= mx
+    , "count"  .= cnt
+    ]
 
 instance FromJSON ApiDocument where
   parseJSON (Object o) = do
     parsedUri         <- o    .: "uri"
-    indexMap          <- o    .: "index"
-    descrMap          <- o    .: "description"
+    indexMap          <- o    .:? "index"       .!= emptyApiDocIndexMap
+    descrMap          <- o    .:? "description" .!= emptyApiDocDescrMap
     return ApiDocument
       { apiDocUri       = parsedUri
       , apiDocIndexMap  = indexMap
       , apiDocDescrMap  = descrMap
       }
   parseJSON _ = mzero
-
-
-instance FromJSON IndexData where
-  parseJSON (Object o) = do
-    content           <- o    .:  "content"
-    metadata          <- o    .:? "metadata" .!= defaultIndexMetadata
-    return IndexData
-      { idContent       = content
-      , idMetadata      = metadata
-      }
-  parseJSON _ = mzero
-
-
-instance FromJSON IndexMetadata where
-  parseJSON (Object o) = do
-    analyzer <- o .: "analyzer" .!= DefaultAnalyzer
-    return IndexMetadata
-      { imAnalyzer = analyzer
-      }
-  parseJSON _ = mzero
-
 
 instance FromJSON AnalyzerType where
   parseJSON (String s) =
@@ -110,8 +110,6 @@ instance FromJSON AnalyzerType where
       _         -> mzero
   parseJSON _ = mzero
 
-
-
 instance ToJSON ApiDocument where
   toJSON (ApiDocument u im dm) = object
     [ "uri"         .= u
@@ -119,50 +117,21 @@ instance ToJSON ApiDocument where
     , "description" .= dm
     ]
 
-instance ToJSON IndexData where
-  toJSON (IndexData c m) = object $
-    "content"     .= c
-      : if m == defaultIndexMetadata
-        then []
-        else [ "metadata"    .= m]
-
-
-instance ToJSON IndexMetadata where
-  toJSON (IndexMetadata a) = object
-    [ "analyzer"    .= a
-    ]
-
 instance ToJSON AnalyzerType where
   toJSON (DefaultAnalyzer) =
     "default"
 
-
--- |  some sort of json response format
-data JsonResponse r = JsonSuccess r | JsonFailure [Text]
-
-instance (ToJSON r) => ToJSON (JsonResponse r) where
-  toJSON (JsonSuccess msg) = object
-    [ "code"  .= (0 :: Int)
-    , "msg"   .= msg
-    ]
-
-  toJSON (JsonFailure msg) = object
-    [ "code"  .= (1 :: Int)
-    , "msg"   .= msg
-    ]
-
+-- ----------------------------------------------------------------------------
 
 joke2Api :: Joke -> ApiDocument
 joke2Api (n, who, what, wher, grp)
     = ApiDocument
       { apiDocUri
           = T.pack . ("joke://joke" ++) . show $ n
-      , apiDocDescrMap
-          = descrMap
+      , apiDocDescrMap = descrMap
       , apiDocIndexMap = indexMap
       }
     where
-    defaultMetadata = IndexMetadata DefaultAnalyzer
     descrMap = M.fromList $
       (if null wher
       then []
@@ -172,7 +141,7 @@ joke2Api (n, who, what, wher, grp)
       , ("was",    T.pack what)
       , ("gruppe", T.pack grp)
       ]
-    indexMap = M.map (\text -> IndexData text defaultMetadata) descrMap
+    indexMap = descrMap
 
 toWL :: String -> WordList
 toWL = foldr insert M.empty . scanText
@@ -197,6 +166,8 @@ encodeDocs
                            `mappend`
                            compare
                      }
+
+-- ----------------------------------------------------------------------------
 
 main :: IO ()
 main
