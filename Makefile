@@ -70,6 +70,7 @@ stopServer:
 	-killall $(notdir $(EXE))
 
 insertJokes: startServer
+	curl -X POST -d @data/jokes/contexts.js $(SERVER)/eval
 	curl -X POST -d @data/jokes/FussballerSprueche.js $(SERVER)/document/insert
 
 random:
