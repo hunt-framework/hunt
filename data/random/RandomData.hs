@@ -22,6 +22,7 @@ import           Test.QuickCheck.Gen
 import           System.Environment       (getArgs)
 import           System.Random
 
+import           Text.Lorem.Words
 -- ------------------------------------------------------------
 
 type URI          = Text
@@ -179,6 +180,11 @@ niceText1 :: Gen Text
 niceText1 = fmap T.pack . listOf1 . elements $ concat [" ", ['0'..'9'], ['A'..'Z'], ['a'..'z']]
 
 
+loremText :: Gen Text
+loremText = do
+  words <- listOf1 $ elements latin
+  return $ T.intercalate " " words
+
 descriptionGen :: Gen Description
 descriptionGen = do
   tuples <- listOf kvTuples
@@ -186,7 +192,7 @@ descriptionGen = do
   where
   kvTuples = do
     a <- resize 15 niceText1 -- keys are short
-    b <- niceText1
+    b <- loremText
     return (a,b)
 
 
