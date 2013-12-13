@@ -41,7 +41,7 @@ type WordList     = Map Word [Position]
 -- | The document accepted via the API.
 data ApiDocument  = ApiDocument
   { apiDocUri       :: URI
-  , apiDocIndexMap  :: Map Context IndexData
+  , apiDocIndexMap  :: Map Context Text
   , apiDocDescrMap  :: Description
   } deriving (Eq, Show)
 
@@ -187,7 +187,7 @@ loremText = do
 
 descriptionGen :: Gen Description
 descriptionGen = do
-  tuples <- listOf kvTuples
+  tuples <- vectorOf 3 kvTuples
   return $ M.fromList tuples
   where
   kvTuples = do
@@ -196,12 +196,12 @@ descriptionGen = do
     return (a,b)
 
 
-mkIndexData :: Int -> Description -> Map Context IndexData
-mkIndexData i d = M.fromList [("index", mkID index), ("prefix3", mkID prefix3)]
+mkIndexData :: Int -> Description -> Map Context Text
+mkIndexData i d = M.fromList [("id", index), ("context1", cx1), ("context2", cx2)]
   where
-  mkID    = flip IndexData (IndexMetadata DefaultAnalyzer)
   index   = T.pack $ show i
-  prefix3 = T.intercalate " " . map (T.take 3 . T.filter (/=' ') . snd) . M.toList $ d
+  cx1 = T.intercalate " " . map (T.take 4 . T.filter (/=' ') . snd) . M.toList $ d
+  cx2 = T.intercalate " " . map snd $  M.toList  d
 
 -- ------------------------------------------------------------
 

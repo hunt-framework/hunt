@@ -80,8 +80,10 @@ generateRandom:
 	-$(MAKE) -C data/random cleanData
 	$(MAKE) -C data/random generate SIZEMIN=$(SIZEMIN) SIZEMAX=$(SIZEMAX) NUMDOCS=$(NUMDOCS)
 
-insertRandom: startServer
-	$(MAKE) -C data/random generate
+insertRandom: startServer generateRandom
+	curl -X POST -d @data/random/contexts.js $(SERVER)/eval
 	curl -X POST -d @data/random/RandomData.js $(SERVER)/document/insert
+
+
 
 .PHONY: target clean configure build install test all searchengine server insertJokes startServer stopServer sandbox hayooCrawler
