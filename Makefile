@@ -7,6 +7,7 @@ H       = 500
 A       = 8
 K       = 200
 RUNOPTS = +RTS -N$(N) -s -K$(K)M -A$(A)M -H$(H)M -RTS
+RUNOPTSP = +RTS -N$(N) -s -hc -K$(K)M -A$(A)M -H$(H)M -RTS
 
 SERVER  = http://localhost:3000
 EXE     = $(shell [ -d ".cabal-sandbox" ] && echo ".cabal-sandbox/bin/holumbusServer" || echo "holumbusServer")
@@ -24,6 +25,7 @@ NUMDOCS = 1000
 action		= install
 
 all:		install
+profiling:      searchengine-profiling server-profiling
 
 clean: 		; $(MAKE) target action=clean
 configure: 	; $(MAKE) target action=configure
@@ -46,6 +48,11 @@ searchengine:
 server: stopServer
 	cd server       && cabal $(action)
 
+searchengine-profiling:
+	cd searchengine && cabal $(action) --enable-library-profiling --enable-executable-profiling
+
+server-profiling: stopServer
+	cd server       && cabal $(action) --enable-library-profiling --enable-executable-profiling
 
 hayooCrawler:
 	$(MAKE) -C hayooCrawler
@@ -66,6 +73,9 @@ hayooCrawler-clean:
 startServer: stopServer
 	$(EXE) $(RUNOPTS) &
 
+startServer-profiling: stopServer
+	$(EXE) $(RUNOPTSP)
+
 stopServer:
 	-killall $(notdir $(EXE))
 
@@ -80,10 +90,11 @@ generateRandom:
 	-$(MAKE) -C data/random cleanData
 	$(MAKE) -C data/random generate SIZEMIN=$(SIZEMIN) SIZEMAX=$(SIZEMAX) NUMDOCS=$(NUMDOCS)
 
-insertRandom: startServer generateRandom
+insertRandom: generateRandom
 	curl -X POST -d @data/random/contexts.js $(SERVER)/eval
 	curl -X POST -d @data/random/RandomData.js $(SERVER)/document/insert
 
+benchmark: generateRandom
+	ab -k -n 1000 -c 5 http://localhost:3000/search/esta
 
-
-.PHONY: target clean configure build install test all searchengine server insertJokes startServer stopServer sandbox hayooCrawler
+.PHONY: target clean configure build install test all searchengine server insertJokes startServer stopServer sandbox hayooCrawler benchmark
