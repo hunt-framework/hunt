@@ -6,8 +6,8 @@ N       = 1
 H       = 500
 A       = 8
 K       = 200
-RUNOPTS = +RTS -N$(N) -s -K$(K)M -A$(A)M -H$(H)M -RTS
-RUNOPTSP = +RTS -N$(N) -s -hc -K$(K)M -A$(A)M -H$(H)M -RTS
+RTSPROF = 
+RUNOPTS = +RTS -N$(N) -s $(RTSPROF) -K$(K)M -A$(A)M -H$(H)M -RTS
 
 SERVER  = http://localhost:3000
 EXE     = $(shell [ -d ".cabal-sandbox" ] && echo ".cabal-sandbox/bin/holumbusServer" || echo "holumbusServer")
@@ -49,10 +49,10 @@ server: stopServer
 	cd server       && cabal $(action)
 
 searchengine-profiling:
-	cd searchengine && cabal $(action) --enable-library-profiling --enable-executable-profiling
+	cd searchengine && cabal $(action) --enable-library-profiling --ghc-option=-auto-all
 
 server-profiling: stopServer
-	cd server       && cabal $(action) --enable-library-profiling --enable-executable-profiling
+	cd server       && cabal $(action) --enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
 
 hayooCrawler:
 	$(MAKE) -C hayooCrawler
@@ -72,9 +72,6 @@ hayooCrawler-clean:
 
 startServer: stopServer
 	$(EXE) $(RUNOPTS) &
-
-startServer-profiling: stopServer
-	$(EXE) $(RUNOPTSP)
 
 stopServer:
 	-killall $(notdir $(EXE))
@@ -97,4 +94,9 @@ insertRandom: generateRandom
 benchmark: generateRandom
 	ab -k -n 1000 -c 5 http://localhost:3000/search/esta
 
-.PHONY: target clean configure build install test all searchengine server insertJokes startServer stopServer sandbox hayooCrawler benchmark
+# able to read heap profile at runtime
+runtimeHeapProfile: 
+	head -`fgrep -n END_SAMPLE holumbusServer.hp | tail -1 | cut -d : -f 1` holumbusServer.hp | hp2ps -d -c > holumbusServer.ps
+	ps2pdf holumbusServer.ps
+
+.PHONY: target clean configure build install test all searchengine server insertJokes startServer stopServer sandbox hayooCrawler benchmark runtimeHeapProfile startServer profiling searchengine-profiling server-profiling
