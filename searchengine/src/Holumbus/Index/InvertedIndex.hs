@@ -1,5 +1,5 @@
 {-# LANGUAGE OverlappingInstances #-}
-
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Holumbus.Index.InvertedIndex
 ( InvertedIndex(..)
 )
@@ -30,7 +30,7 @@ import           Holumbus.Index.Proxy.TextKeyIndex
 
 newtype InvertedIndex _v
     = InvIx { invIx :: CachedIndex (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions }
-    deriving (Eq, Show, NFData)
+    deriving Show
 
 -- ----------------------------------------------------------------------------
 
