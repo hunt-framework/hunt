@@ -7,7 +7,7 @@ H       = 500
 A       = 8
 K       = 200
 RTSPROF = 
-RUNOPTS = +RTS -N$(N) -s $(RTSPROF) -K$(K)M -A$(A)M -H$(H)M -RTS
+RUNOPTS = +RTS -N$(N) -p -s $(RTSPROF) -K$(K)M -A$(A)M -H$(H)M -RTS
 
 SERVER  = http://localhost:3000
 EXE     = $(shell [ -d ".cabal-sandbox" ] && echo ".cabal-sandbox/bin/holumbusServer" || echo "holumbusServer")
