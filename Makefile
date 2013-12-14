@@ -6,7 +6,7 @@ N       = 1
 H       = 500
 A       = 8
 K       = 200
-RTSPROF = 
+RTSPROF =
 RUNOPTS = +RTS -N$(N) -s $(RTSPROF) -K$(K)M -A$(A)M -H$(H)M -RTS
 
 SERVER  = http://localhost:3000
@@ -95,7 +95,7 @@ benchmark: generateRandom
 	ab -k -n 1000 -c 5 http://localhost:3000/search/esta
 
 # able to read heap profile at runtime
-runtimeHeapProfile: 
+runtimeHeapProfile:
 	head -`fgrep -n END_SAMPLE holumbusServer.hp | tail -1 | cut -d : -f 1` holumbusServer.hp | hp2ps -d -c > holumbusServer.ps
 	ps2pdf holumbusServer.ps
 

@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Holumbus.Index.Proxy.CompressedIndex
 ( ComprOccIndex (..)
 , mkComprIx
@@ -26,7 +27,7 @@ newtype ComprOccIndex impl to from
     deriving (Eq, Show, NFData)
 
 mkComprIx :: impl to -> ComprOccIndex impl to from
-mkComprIx v = ComprIx $! v  
+mkComprIx v = ComprIx $! v
 
 -- ----------------------------------------------------------------------------
 

@@ -19,8 +19,8 @@ import           Holumbus.Index.Index       as Ix
 
 -- ----------------------------------------------------------------------------
 
-data CachedIndex impl v = CachedIx 
-    { cachedIds :: DocIdSet 
+data CachedIndex impl v = CachedIx
+    { cachedIds :: DocIdSet
     , cachedIx  :: ! (impl v)
     }
     deriving (Eq, Show)

@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Holumbus.Index.ComprPrefixTreeIndex
 ( ComprOccPrefixTree(..)
 )
@@ -29,7 +30,7 @@ newtype ComprOccPrefixTree cv
     deriving (Eq, Show, NFData)
 
 mkComprPT :: NFData cv => DmPrefixTree cv -> ComprOccPrefixTree cv
-mkComprPT cv = ComprPT $! cv 
+mkComprPT cv = ComprPT $! cv
 
 -- ----------------------------------------------------------------------------
 

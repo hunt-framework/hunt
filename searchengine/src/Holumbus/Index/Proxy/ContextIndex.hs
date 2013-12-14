@@ -87,7 +87,7 @@ searchWithCxs :: ContextIxCon i v
 -- non parallel
 -- searchWithCxs op cs k ix = concat $ L.map (\c -> searchWithCx op c k ix) cs
 -- parallel
--- XXX since we do not evaluate anything here 
+-- XXX: since we do not evaluate anything here
 -- we dont have any real parallelism right now
 searchWithCxs op cs k ix = parMap rseq (\c -> (c, searchWithCx op c k ix)) cs
 

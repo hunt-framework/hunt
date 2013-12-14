@@ -1,5 +1,6 @@
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Holumbus.Index.InvertedIndex
 ( InvertedIndex(..)
 )
@@ -7,11 +8,8 @@ where
 
 import           Prelude                                 as P
 
---import           Control.Applicative                 ((<$>))
---import           Control.Arrow                       (first)
 import           Control.DeepSeq
 import           Data.Binary                             (Binary (..))
---import           Data.Text                           (pack, unpack)
 
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Occurrences             (Occurrences)
@@ -32,7 +30,7 @@ newtype InvertedIndex _v
     = InvIx { invIx :: CachedIndex (TextKeyProxyIndex ({-ComprOccIndex-} DmPrefixTree {-CompressedPositions-})) Positions }
     deriving (Eq, Show, NFData)
 
---mkInvIx :: CachedIndex (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions 
+--mkInvIx :: CachedIndex (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions
 --        -> InvertedIndex v_
 mkInvIx x = InvIx $! x
 

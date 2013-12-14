@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
+
 module Main where
 
 import           Control.Monad                        (foldM)
@@ -48,14 +49,13 @@ main = do
 --  assertNF $! y
 --  bool <- isNF $! y
 --  putStrLn $ show bool
-  defaultMain [ 
+  defaultMain [
 
                 testProperty "prop_strictness_occurrences"          prop_occs
 
-              , testProperty "prop_strictness_prefixtreeindex"      prop_ptix 
-              , testProperty "prop_strictness_comprprefixtreeindex" prop_cptix 
+              , testProperty "prop_strictness_prefixtreeindex"      prop_ptix
+              , testProperty "prop_strictness_comprprefixtreeindex" prop_cptix
               , testProperty "prop_strictness_invindex"             prop_invix
-    
               , testProperty "prop_strictness_proxy_cache"          prop_cachedix
 
               ]
@@ -72,14 +72,14 @@ prop_occs = monadicIO $ do
               assert passed
 
 -- ----------------------------------------------------------------------------
--- test with simple index 
+-- test with simple index
 -- ----------------------------------------------------------------------------
 
--- | helper generating random indices 
+-- | helper generating random indices
 
 
 prop_ptix :: Property
-prop_ptix 
+prop_ptix
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Positions)
     passed <- run $ isNF $! ix
@@ -89,7 +89,7 @@ prop_ptix
 
 -- why is this in NF - we don't call the constructor in the implementation..?
 prop_cptix :: Property
-prop_cptix  
+prop_cptix
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (CPIx.ComprOccPrefixTree CompressedPositions)
     passed <- run $ isNF $! ix
@@ -100,7 +100,7 @@ prop_cptix
 
 -- this is failing atm - not implemented seq here
 prop_invix :: Property
-prop_invix  
+prop_invix
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex Positions)
     passed <- run $ isNF $! ix
@@ -115,7 +115,7 @@ prop_invix
 
 -- cache
 prop_cachedix :: Property
-prop_cachedix  
+prop_cachedix
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (CacheProxy.CachedIndex (PIx.DmPrefixTree) Positions)
     passed <- run $ isNF $! ix
@@ -126,7 +126,7 @@ prop_cachedix
 
 -- text proxy
 prop_textix :: Property
-prop_textix  
+prop_textix
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (TextProxy.TextKeyProxyIndex (PIx.DmPrefixTree) Positions)
     passed <- run $ isNF $! ix
@@ -140,7 +140,7 @@ prop_textix
 -- ----------------------------------------------------------------------------
 prop_simple :: Property
 prop_simple = monadicIO $ do
-                          x <- pick arbitrary 
+                          x <- pick arbitrary
                           passed <- run $ isNF $! mkTuple x
                           assert passed
 
@@ -179,7 +179,7 @@ mkOccurrences = listOf mkPositions >>= foldM foldOccs Occ.empty
     return $ Occ.insert' docId ps occs
 
 mkPositions :: Gen Positions
-mkPositions = listOf arbitrary >>= return . Pos.fromList 
+mkPositions = listOf arbitrary >>= return . Pos.fromList
 
 -- --------------------
 -- Arbitrary ApiDocument
