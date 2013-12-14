@@ -3,6 +3,7 @@ where
 
 import           GHC.Exts                       (Constraint)
 
+import           Control.DeepSeq
 import qualified Data.IntSet                    as IS
 
 import           Holumbus.Common
@@ -16,7 +17,7 @@ class Index i where
     type IVal      i v = v
 
     type ICon      i v :: Constraint
-    type ICon      i v =  ()
+    type ICon      i v =  NFData v
 
     type ISearchOp i v :: *
     type ISearchOp i v = TextSearchOp

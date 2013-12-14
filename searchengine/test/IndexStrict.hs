@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
 
+import           Control.DeepSeq
 import           Data.Map                             (Map)
 
 import           Test.Framework
@@ -13,41 +14,69 @@ import           Test.Framework.Providers.QuickCheck2
 import           System.Random
 import           Test.QuickCheck
 import           Test.QuickCheck.Gen
-import           Test.QuickCheck.Monadic              (assert, monadicIO, run)
+import           Test.QuickCheck.Monadic              (assert, monadicIO, run, pick)
 
 
 import qualified Data.Map                             as M
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 import           Holumbus.Common
+import qualified Holumbus.Common.DocIdMap             as DM
 --import           Holumbus.Common.Occurrences         (singleton)
+
+
+import qualified Holumbus.Index.Index                 as Ix
+import qualified Holumbus.Index.PrefixTreeIndex       as PIx
+import qualified Holumbus.Index.ComprPrefixTreeIndex  as CPIx
+import qualified Holumbus.Index.InvertedIndex         as InvIx
 
 import           GHC.AssertNF
 
 -- ----------------------------------------------------------------------------
-
-x :: Int
-x = 1 + 2
-
-data Tuple x = Tuple {
-  val1 :: x,
-  val2 :: x
-}
-
-y :: Tuple Int
-y = Tuple x x
-
 main :: IO ()
 main = do
 --  assertNF $! y
 --  bool <- isNF $! y
 --  putStrLn $ show bool
-  defaultMain [ testProperty "prop_range" prop_simple ]
+  defaultMain [ testProperty "prop_range" prop_ptix ]
 
+
+-- ----------------------------------------------------------------------------
+-- test with simple index 
+-- ----------------------------------------------------------------------------
+
+prop_ptix :: Property
+prop_ptix = monadicIO $ do
+                          x <- pick arbitrary 
+                          passed <- run $ isNF $! ix x
+                          assert passed
+              where
+              ix :: Int -> PIx.DmPrefixTree (Tuple Int)
+              ix x =  Ix.insert "key" (DM.singleton 1 (mkTuple x)) Ix.empty
+
+
+
+-- ----------------------------------------------------------------------------
+-- test property
+-- ----------------------------------------------------------------------------
 prop_simple :: Property
 prop_simple = monadicIO $ do
-                          passed <- run $ isNF $! y
+                          x <- pick arbitrary 
+                          passed <- run $ isNF $! mkTuple x
                           assert passed
+
+inc :: Int -> Int
+inc x = 1 + x
+
+data Tuple x = Tuple {
+  val1 :: !x,
+  val2 :: !x
+} deriving (Eq, Show)
+
+instance NFData (Tuple x) where
+
+mkTuple :: Int -> Tuple Int
+mkTuple x = Tuple (inc x) (inc x)
 
 
 --instance Arbitrary Text where
@@ -56,8 +85,6 @@ prop_simple = monadicIO $ do
 
 --test2 :: Assertion
 --test2 = assertNF $ ptIndex
---
---
 
 -- --------------------
 -- Arbitrary Occurrences

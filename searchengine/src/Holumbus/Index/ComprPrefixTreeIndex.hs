@@ -7,6 +7,7 @@ import           Prelude                                 as P
 
 import           Control.Applicative                     ((<$>))
 import           Control.Arrow                           (second)
+import           Control.DeepSeq
 
 import           Data.Binary                             (Binary (..))
 
@@ -29,7 +30,7 @@ newtype ComprOccPrefixTree cv
 
 -- ----------------------------------------------------------------------------
 
-instance Binary v => Binary (ComprOccPrefixTree v) where
+instance (NFData v, Binary v) => Binary (ComprOccPrefixTree v) where
     put (ComprPT i) = put i
     get = get >>= return . ComprPT
 
@@ -38,7 +39,7 @@ instance Binary v => Binary (ComprOccPrefixTree v) where
 instance Index ComprOccPrefixTree where
     type IKey ComprOccPrefixTree v = SM.Key
     type IVal ComprOccPrefixTree v = Occurrences
-    type ICon ComprOccPrefixTree v = (OccCompression (DocIdMap v))
+    type ICon ComprOccPrefixTree v = (OccCompression (DocIdMap v), NFData v)
 
     insert k v (ComprPT i)
         = ComprPT $ insert k (compressOcc v) i

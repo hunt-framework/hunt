@@ -185,4 +185,5 @@ Test-suite Holumbus-IndexStrictess
                , Holumbus-Searchengine
                , text
                , ghc-heap-view                >= 0.5
+               , deepseq                      >= 1.2
                , random                       >= 1.0
