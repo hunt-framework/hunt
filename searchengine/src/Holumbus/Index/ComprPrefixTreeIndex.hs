@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Holumbus.Index.ComprPrefixTreeIndex
 ( ComprOccPrefixTree(..)
 )
@@ -21,12 +22,14 @@ import           Holumbus.Common.Occurrences.Compression hiding (delete)
 
 import qualified Data.StringMap                          as SM
 
-
 -- ----------------------------------------------------------------------------
 
 newtype ComprOccPrefixTree cv
     = ComprPT { comprPT :: DmPrefixTree cv}
-    deriving Show
+    deriving (Eq, Show, NFData)
+
+mkComprPT :: NFData cv => DmPrefixTree cv -> ComprOccPrefixTree cv
+mkComprPT cv = ComprPT $! cv 
 
 -- ----------------------------------------------------------------------------
 

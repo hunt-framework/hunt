@@ -22,7 +22,8 @@ import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 import           Holumbus.Common
 import qualified Holumbus.Common.DocIdMap             as DM
---import           Holumbus.Common.Occurrences         (singleton)
+--import qualified Holumbus.Common.Positions            as Pos
+import qualified Holumbus.Common.Occurrences          as Occ
 
 
 import qualified Holumbus.Index.Index                 as Ix
@@ -38,7 +39,10 @@ main = do
 --  assertNF $! y
 --  bool <- isNF $! y
 --  putStrLn $ show bool
-  defaultMain [ testProperty "prop_range" prop_ptix ]
+  defaultMain [ testProperty "prop_strictness_prefixtreeindex"      prop_ptix 
+              , testProperty "prop_strictness_comprprefixtreeindex" prop_cptix 
+              , testProperty "prop_strictness_invindex"             prop_invix
+              ]
 
 
 -- ----------------------------------------------------------------------------
@@ -53,6 +57,26 @@ prop_ptix = monadicIO $ do
               where
               ix :: Int -> PIx.DmPrefixTree (Tuple Int)
               ix x =  Ix.insert "key" (DM.singleton 1 (mkTuple x)) Ix.empty
+
+-- why is this in NF - we don't call the constructor in the implementation..?
+prop_cptix :: Property
+prop_cptix = monadicIO $ do
+                          x <- pick arbitrary 
+                          passed <- run $ isNF $! ix x
+                          assert passed
+              where
+              ix :: Int -> CPIx.ComprOccPrefixTree CompressedPositions
+              ix x =  Ix.insert "key" (Occ.singleton 1 x) Ix.empty
+
+-- this is failing atm - not implemented seq here
+prop_invix :: Property
+prop_invix = monadicIO $ do
+                          x <- pick arbitrary 
+                          passed <- run $ isNF $! ix x
+                          assert passed
+              where
+              ix :: Int -> InvIx.InvertedIndex Positions
+              ix x =  Ix.insert "key" (Occ.singleton 1 x) Ix.empty
 
 
 

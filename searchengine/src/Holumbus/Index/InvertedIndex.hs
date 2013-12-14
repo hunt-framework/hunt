@@ -9,7 +9,7 @@ import           Prelude                                 as P
 
 --import           Control.Applicative                 ((<$>))
 --import           Control.Arrow                       (first)
-
+import           Control.DeepSeq
 import           Data.Binary                             (Binary (..))
 --import           Data.Text                           (pack, unpack)
 
@@ -30,7 +30,7 @@ import           Holumbus.Index.Proxy.TextKeyIndex
 
 newtype InvertedIndex _v
     = InvIx { invIx :: CachedIndex (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions }
-    deriving (Show)
+    deriving (Eq, Show, NFData)
 
 -- ----------------------------------------------------------------------------
 
