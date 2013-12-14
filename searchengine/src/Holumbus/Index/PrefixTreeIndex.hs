@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 module Holumbus.Index.PrefixTreeIndex
 ( DmPrefixTree(..)
 )
@@ -12,6 +13,8 @@ import qualified Data.StringMap.Strict             as SM
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.DocIdMap          as DM
 import           Holumbus.Index.Index
+
+import           Holumbus.Utility
 
 -- ----------------------------------------------------------------------------
 
@@ -52,11 +55,16 @@ instance Index DmPrefixTree where
     search t k (DmPT pt)
         = case t of
             Case         -> case SM.lookup k pt of
-                              Nothing   -> []
-                              (Just xs) -> [(k,xs)]
-            NoCase       -> SM.lookupNoCase k pt
-            PrefixCase   -> SM.prefixFindCaseWithKey k pt
-            PrefixNoCase -> SM.prefixFindNoCaseWithKey k pt
+                              Nothing -> []
+                              Just xs -> [(k,xs)]
+            NoCase       -> luCase k pt
+            PrefixCase   -> pfCase k pt
+            PrefixNoCase -> pfNoCase k pt
+        where
+        toL      = SM.toListShortestFirst
+        luCase   = toL .:: SM.lookupNoCase
+        pfCase   = toL .:: SM.prefixFilter
+        pfNoCase = toL .:: SM.prefixFilterNoCase
 
     lookupRange k1 k2 (DmPT pt)
         = SM.toList $ SM.lookupRange k1 k2 pt
