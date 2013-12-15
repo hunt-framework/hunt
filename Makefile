@@ -76,7 +76,7 @@ startServer: stopServer
 stopServer:
 	-killall $(notdir $(EXE))
 
-insertJokes: startServer
+insertJokes:
 	curl -X POST -d @data/jokes/contexts.js $(SERVER)/eval
 	curl -X POST -d @data/jokes/FussballerSprueche.js $(SERVER)/document/insert
 
@@ -99,4 +99,8 @@ runtimeHeapProfile:
 	head -`fgrep -n END_SAMPLE holumbusServer.hp | tail -1 | cut -d : -f 1` holumbusServer.hp | hp2ps -d -c > holumbusServer.ps
 	ps2pdf holumbusServer.ps
 
-.PHONY: target clean configure build install test all searchengine server insertJokes startServer stopServer sandbox hayooCrawler benchmark runtimeHeapProfile startServer profiling searchengine-profiling server-profiling
+# github data-stringmap install
+stringmap:
+	git clone https://github.com/sebastian-philipp/StringMap.git tmpstringmap && cd searchengine && cabal install ../tmpstringmap && cd .. && rm -rf tmpstringmap
+
+.PHONY: target clean configure build install test all searchengine server insertJokes startServer stopServer sandbox hayooCrawler benchmark runtimeHeapProfile startServer profiling searchengine-profiling server-profiling stringmap
