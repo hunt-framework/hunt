@@ -29,14 +29,18 @@ import           Holumbus.Index.Proxy.TextKeyIndex
 -- ----------------------------------------------------------------------------
 
 newtype InvertedIndex _v
-    = InvIx { invIx :: CachedIndex (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions }
-    deriving Show
+    = InvIx { invIx :: {-CachedIndex-} (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions }
+    deriving (Eq, Show, NFData)
+
+mkInvIx :: {-CachedIndex-} (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions 
+        -> InvertedIndex v_
+mkInvIx x = InvIx $! x
 
 -- ----------------------------------------------------------------------------
 
 instance Binary (InvertedIndex v) where
     put (InvIx i) = put i
-    get = get >>= return . InvIx
+    get = get >>= return . mkInvIx
 
 -- ----------------------------------------------------------------------------
 
@@ -45,16 +49,16 @@ instance Index InvertedIndex where
     type IVal InvertedIndex v = Occurrences
 
     insert w o
-        = unionWith Occ.merge (InvIx $ insert w o empty) -- InvIx $ insert w o i
+        = unionWith Occ.merge (mkInvIx $ insert w o empty) -- InvIx $ insert w o i
 
     batchDelete docIds (InvIx i)
-        = InvIx $ batchDelete docIds i
+        = mkInvIx $ batchDelete docIds i
 
     empty
-        = InvIx $ empty
+        = mkInvIx $ empty
 
     fromList l
-        = InvIx $ fromList l
+        = mkInvIx $ fromList l
 
     toList (InvIx i)
         = toList i
@@ -66,10 +70,10 @@ instance Index InvertedIndex where
         = lookupRange k1 k2 i
 
     unionWith op (InvIx i1) (InvIx i2)
-        = InvIx $ unionWith op i1 i2
+        = mkInvIx $ unionWith op i1 i2
 
     map f (InvIx i)
-        = InvIx $ Ix.map f i
+        = mkInvIx $ Ix.map f i
 
     keys (InvIx i)
         = keys i

@@ -1,5 +1,6 @@
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Holumbus.Index.Proxy.TextKeyIndex
 ( TextKeyProxyIndex(..)
@@ -7,6 +8,7 @@ module Holumbus.Index.Proxy.TextKeyIndex
 where
 
 import           Prelude                                    as P
+import           Control.DeepSeq
 
 import           Control.Applicative                        ((<$>))
 import           Control.Arrow                              (first)
@@ -25,13 +27,16 @@ import           Holumbus.Common.Occurrences.Compression
 
 newtype TextKeyProxyIndex impl cv
     = TKPIx { tkpIx :: impl cv}
-    deriving Show
+    deriving (Eq, Show, NFData)
+
+mkTKPIx :: impl cv -> TextKeyProxyIndex impl cv
+mkTKPIx v = TKPIx $! v
 
 -- ----------------------------------------------------------------------------
 
 instance Binary (impl v) => Binary (TextKeyProxyIndex impl v) where
     put (TKPIx i) = put i
-    get = get >>= return . TKPIx
+    get = get >>= return . mkTKPIx
 
 -- ----------------------------------------------------------------------------
 
@@ -46,16 +51,16 @@ instance Index (TextKeyProxyIndex impl) where
         )
 
     insert k v (TKPIx i)
-        = TKPIx $ insert (unpack k) v i
+        = mkTKPIx $ insert (unpack k) v i
 
     batchDelete ks (TKPIx i)
-        = TKPIx $ batchDelete ks i
+        = mkTKPIx $ batchDelete ks i
 
     empty
-        = TKPIx $ empty
+        = mkTKPIx $ empty
 
     fromList l
-        = TKPIx . fromList $ P.map (first unpack) l
+        = mkTKPIx . fromList $ P.map (first unpack) l
 
     toList (TKPIx i)
         = first pack <$> toList i
@@ -67,10 +72,10 @@ instance Index (TextKeyProxyIndex impl) where
         = first pack <$> lookupRange (unpack k1) (unpack k2) i
 
     unionWith op (TKPIx i1) (TKPIx i2)
-        = TKPIx $ unionWith op i1 i2
+        = mkTKPIx $ unionWith op i1 i2
 
     map f (TKPIx i)
-        = TKPIx $ Ix.map f i
+        = mkTKPIx $ Ix.map f i
 
     keys (TKPIx i)
         = P.map pack $ keys i
@@ -92,17 +97,17 @@ instance Index (TextKeyProxyIndex (ComprOccIndex impl to)) where
         )
     -- this is the only "special" function
     batchDelete docIds (TKPIx (ComprIx pt))
-        = TKPIx $ ComprIx $ Ix.map (differenceWithKeySet docIds) pt
+        = mkTKPIx $ mkComprIx $ Ix.map (differenceWithKeySet docIds) pt
 
     -- everything below is copied from the more general instance Index (TextKeyProxyIndex impl)
     insert k v (TKPIx i)
-        = TKPIx $ insert (unpack k) v i
+        = mkTKPIx $ insert (unpack k) v i
 
     empty
-        = TKPIx $ empty
+        = mkTKPIx $ empty
 
     fromList l
-        = TKPIx . fromList $ P.map (first unpack) l
+        = mkTKPIx . fromList $ P.map (first unpack) l
 
     toList (TKPIx i)
         = first pack <$> toList i
@@ -114,10 +119,10 @@ instance Index (TextKeyProxyIndex (ComprOccIndex impl to)) where
         = first pack <$> lookupRange (unpack k1) (unpack k2) i
 
     unionWith op (TKPIx i1) (TKPIx i2)
-        = TKPIx $ unionWith op i1 i2
+        = mkTKPIx $ unionWith op i1 i2
 
     map f (TKPIx i)
-        = TKPIx $ Ix.map f i
+        = mkTKPIx $ Ix.map f i
 
     keys (TKPIx i)
         = P.map pack $ keys i

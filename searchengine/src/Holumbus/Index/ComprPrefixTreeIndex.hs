@@ -35,7 +35,7 @@ mkComprPT cv = ComprPT $! cv
 
 instance (NFData v, Binary v) => Binary (ComprOccPrefixTree v) where
     put (ComprPT i) = put i
-    get = get >>= return . ComprPT
+    get = get >>= return . mkComprPT
 
 -- ----------------------------------------------------------------------------
 
@@ -45,16 +45,16 @@ instance Index ComprOccPrefixTree where
     type ICon ComprOccPrefixTree v = (OccCompression (DocIdMap v), NFData v)
 
     insert k v (ComprPT i)
-        = ComprPT $ insert k (compressOcc v) i
+        = mkComprPT $ insert k (compressOcc v) i
 
     batchDelete ks (ComprPT i)
-        = ComprPT $ batchDelete ks i
+        = mkComprPT $ batchDelete ks i
 
     empty
-        = ComprPT $ empty
+        = mkComprPT $ empty
 
     fromList l
-        = ComprPT . fromList $ P.map (second compressOcc) l
+        = mkComprPT . fromList $ P.map (second compressOcc) l
 
     toList (ComprPT i)
         = second decompressOcc <$> toList i
@@ -66,10 +66,10 @@ instance Index ComprOccPrefixTree where
         = second decompressOcc <$> lookupRange k1 k2 i
 
     unionWith op (ComprPT i1) (ComprPT i2)
-        = ComprPT $ unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
+        = mkComprPT $ unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
 
     map f (ComprPT i)
-        = ComprPT $ Ix.map (compressOcc . f . decompressOcc) i
+        = mkComprPT $ Ix.map (compressOcc . f . decompressOcc) i
 
     keys (ComprPT i)
         = keys i
