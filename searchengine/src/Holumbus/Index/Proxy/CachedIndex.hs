@@ -8,7 +8,7 @@ import           Control.Arrow              (second)
 
 import qualified Data.IntSet                as IS
 
-import           Holumbus.Common.DocIdMap   (DocIdMap, DocIdSet, seqDocIdSet)
+import           Holumbus.Common.DocIdMap   (DocIdMap, DocIdSet)
 import qualified Holumbus.Common.DocIdMap   as DM
 import           Holumbus.Index.Index
 import           Prelude                    as P
