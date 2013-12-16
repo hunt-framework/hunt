@@ -2,8 +2,11 @@
 {-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Main where
 
+import           Control.Monad                        (foldM)
 import           Control.DeepSeq
 import           Data.Map                             (Map)
 
@@ -14,7 +17,7 @@ import           Test.Framework.Providers.QuickCheck2
 import           System.Random
 import           Test.QuickCheck
 import           Test.QuickCheck.Gen
-import           Test.QuickCheck.Monadic              (assert, monadicIO, run, pick)
+import           Test.QuickCheck.Monadic              (PropertyM, assert, monadicIO, run, pick)
 
 
 import qualified Data.Map                             as M
@@ -22,7 +25,7 @@ import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 import           Holumbus.Common
 import qualified Holumbus.Common.DocIdMap             as DM
---import qualified Holumbus.Common.Positions            as Pos
+import qualified Holumbus.Common.Positions            as Pos
 import qualified Holumbus.Common.Occurrences          as Occ
 
 
@@ -39,9 +42,14 @@ main = do
 --  assertNF $! y
 --  bool <- isNF $! y
 --  putStrLn $ show bool
-  defaultMain [ testProperty "prop_strictness_prefixtreeindex"      prop_ptix 
+  defaultMain [ 
+
+                testProperty "prop_strictness_occurrences"          prop_occs
+
+              , testProperty "prop_strictness_prefixtreeindex"      prop_ptix 
               , testProperty "prop_strictness_comprprefixtreeindex" prop_cptix 
               , testProperty "prop_strictness_invindex"             prop_invix
+   
               ]
 
 
@@ -61,12 +69,20 @@ prop_ptix = monadicIO $ do
 -- why is this in NF - we don't call the constructor in the implementation..?
 prop_cptix :: Property
 prop_cptix = monadicIO $ do
-                          x <- pick arbitrary 
+                          x <- pick arbitrary
                           passed <- run $ isNF $! ix x
                           assert passed
               where
-              ix :: Int -> CPIx.ComprOccPrefixTree CompressedPositions
-              ix x =  Ix.insert "key" (Occ.singleton 1 x) Ix.empty
+              ix :: Occurrences -> CPIx.ComprOccPrefixTree CompressedPositions
+              ix x =  Ix.insert "key" x Ix.empty
+
+prop_occs :: Property
+prop_occs = monadicIO $ do
+              x <- pick arbitrary :: PropertyM IO Occurrences
+              -- $!! needed here to $! does not evaluate everything of course
+              passed <- run $ isNF $!! x
+              assert passed
+
 
 -- this is failing atm - not implemented seq here
 prop_invix :: Property
@@ -75,8 +91,8 @@ prop_invix = monadicIO $ do
                           passed <- run $ isNF $! ix x
                           assert passed
               where
-              ix :: Int -> InvIx.InvertedIndex Positions
-              ix x =  Ix.insert "key" (Occ.singleton 1 x) Ix.empty
+              ix :: Occurrences -> InvIx.InvertedIndex Positions
+              ix x =  Ix.insert "key" x Ix.empty
 
 
 
@@ -113,7 +129,18 @@ mkTuple x = Tuple (inc x) (inc x)
 -- --------------------
 -- Arbitrary Occurrences
 
--- XX TODO
+instance Arbitrary Occurrences where
+  arbitrary = mkOccurrences
+
+mkOccurrences :: Gen Occurrences
+mkOccurrences = listOf mkPositions >>= foldM foldOccs Occ.empty
+  where
+  foldOccs occs ps = do
+    docId <- arbitrary
+    return $ Occ.insert' docId ps occs
+
+mkPositions :: Gen Positions
+mkPositions = listOf arbitrary >>= return . Pos.fromList 
 
 -- --------------------
 -- Arbitrary ApiDocument
