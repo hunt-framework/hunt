@@ -44,14 +44,15 @@ instance Index ComprOccPrefixTree where
     type IVal ComprOccPrefixTree v = Occurrences
     type ICon ComprOccPrefixTree v = (OccCompression (DocIdMap v), NFData v)
 
+    -- | why is this strict, even without using the smart constructor?
     insert k v (ComprPT i)
-        = mkComprPT $ insert k (compressOcc v) i
+        = ComprPT $ insert k (compressOcc v) i
 
     batchDelete ks (ComprPT i)
         = mkComprPT $ batchDelete ks i
 
     empty
-        = mkComprPT $ empty
+        = ComprPT $ empty
 
     fromList l
         = mkComprPT . fromList $ P.map (second compressOcc) l
