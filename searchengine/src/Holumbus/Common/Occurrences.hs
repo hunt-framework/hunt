@@ -55,6 +55,10 @@ size                    = DM.foldr ((+) . IS.size) 0
 insert                  :: DocId -> Position -> Occurrences -> Occurrences
 insert d p              = DM.insertWith IS.union d (Pos.singleton p)
 
+-- | Add multiple positions to occurrences
+insert'                 :: DocId -> Positions -> Occurrences -> Occurrences
+insert' d ps occs       = IS.foldr (insert d) occs ps
+
 -- | Remove a position from occurrences.
 deleteOccurrence        :: DocId -> Position -> Occurrences -> Occurrences
 deleteOccurrence d p    = subtract (DM.singleton d (Pos.singleton p))
