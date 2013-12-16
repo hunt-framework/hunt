@@ -46,13 +46,13 @@ instance Index ComprOccPrefixTree where
 
     -- | why is this strict, even without using the smart constructor?
     insert k v (ComprPT i)
-        = ComprPT $ insert k (compressOcc v) i
+        = mkComprPT $ insert k (compressOcc v) i
 
     batchDelete ks (ComprPT i)
         = mkComprPT $ batchDelete ks i
 
     empty
-        = ComprPT $ empty
+        = mkComprPT $ empty
 
     fromList l
         = mkComprPT . fromList $ P.map (second compressOcc) l
