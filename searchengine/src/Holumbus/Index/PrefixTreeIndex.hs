@@ -20,7 +20,7 @@ newtype DmPrefixTree v
     deriving (Eq, Show, NFData)
 
 mkDmPT :: NFData v => SM.StringMap (DocIdMap v) -> DmPrefixTree v
-mkDmPT v = DmPT $!! v
+mkDmPT v = DmPT $! v
 
 -- ----------------------------------------------------------------------------
 
