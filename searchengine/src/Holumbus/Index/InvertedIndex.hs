@@ -29,10 +29,10 @@ import           Holumbus.Index.Proxy.TextKeyIndex
 -- ----------------------------------------------------------------------------
 
 newtype InvertedIndex _v
-    = InvIx { invIx :: {-CachedIndex-} (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions }
+    = InvIx { invIx :: CachedIndex (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions }
     deriving (Eq, Show, NFData)
 
-mkInvIx :: {-CachedIndex-} (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions 
+mkInvIx :: CachedIndex (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions 
         -> InvertedIndex v_
 mkInvIx x = InvIx $! x
 
