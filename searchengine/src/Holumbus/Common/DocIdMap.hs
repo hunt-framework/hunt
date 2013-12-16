@@ -67,7 +67,7 @@ import           Data.Binary                 (Binary (..))
 import qualified Data.Binary                 as B
 import           Data.Foldable               hiding (fold, foldr, toList)
 import           Data.Traversable
-import qualified Data.IntMap                 as IM
+import qualified Data.IntMap.Strict          as IM
 import qualified Data.IntSet                 as S
 
 import           Holumbus.Common.DocId
