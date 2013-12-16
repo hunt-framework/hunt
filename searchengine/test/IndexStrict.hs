@@ -23,6 +23,8 @@ import           Test.QuickCheck.Monadic              (PropertyM, assert, monadi
 import qualified Data.Map                             as M
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
+import qualified Data.IntSet                          as IS
+
 import           Holumbus.Common
 import qualified Holumbus.Common.DocIdMap             as DM
 import qualified Holumbus.Common.Positions            as Pos
@@ -33,6 +35,10 @@ import qualified Holumbus.Index.Index                 as Ix
 import qualified Holumbus.Index.PrefixTreeIndex       as PIx
 import qualified Holumbus.Index.ComprPrefixTreeIndex  as CPIx
 import qualified Holumbus.Index.InvertedIndex         as InvIx
+
+import qualified Holumbus.Index.Proxy.CachedIndex     as CacheProxy
+import qualified Holumbus.Index.Proxy.TextKeyIndex    as TextProxy
+import qualified Holumbus.Index.Proxy.CompressedIndex as ComprProxy
 
 import           GHC.AssertNF
 
@@ -49,51 +55,84 @@ main = do
               , testProperty "prop_strictness_prefixtreeindex"      prop_ptix 
               , testProperty "prop_strictness_comprprefixtreeindex" prop_cptix 
               , testProperty "prop_strictness_invindex"             prop_invix
-   
+    
+              , testProperty "prop_strictness_proxy_cache"          prop_cachedix
+
               ]
 
+-- ----------------------------------------------------------------------------
+-- test data structures
+-- ----------------------------------------------------------------------------
+
+prop_occs :: Property
+prop_occs = monadicIO $ do
+              x <- pick arbitrary :: PropertyM IO Occurrences
+              -- $!! needed here - $! does not evaluate everything of course
+              passed <- run $ isNF $!! x
+              assert passed
 
 -- ----------------------------------------------------------------------------
 -- test with simple index 
 -- ----------------------------------------------------------------------------
 
+-- | helper generating random indices 
+
+
 prop_ptix :: Property
-prop_ptix = monadicIO $ do
-                          x <- pick arbitrary 
-                          passed <- run $ isNF $! ix x
-                          assert passed
-              where
-              ix :: Int -> PIx.DmPrefixTree (Tuple Int)
-              ix x =  Ix.insert "key" (DM.singleton 1 (mkTuple x)) Ix.empty
+prop_ptix 
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Positions)
+    passed <- run $ isNF $! ix
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
 -- why is this in NF - we don't call the constructor in the implementation..?
 prop_cptix :: Property
-prop_cptix = monadicIO $ do
-                          x <- pick arbitrary
-                          passed <- run $ isNF $! ix x
-                          assert passed
-              where
-              ix :: Occurrences -> CPIx.ComprOccPrefixTree CompressedPositions
-              ix x =  Ix.insert "key" x Ix.empty
-
-prop_occs :: Property
-prop_occs = monadicIO $ do
-              x <- pick arbitrary :: PropertyM IO Occurrences
-              -- $!! needed here to $! does not evaluate everything of course
-              passed <- run $ isNF $!! x
-              assert passed
+prop_cptix  
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (CPIx.ComprOccPrefixTree CompressedPositions)
+    passed <- run $ isNF $! ix
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
 
 -- this is failing atm - not implemented seq here
 prop_invix :: Property
-prop_invix = monadicIO $ do
-                          x <- pick arbitrary 
-                          passed <- run $ isNF $! ix x
-                          assert passed
-              where
-              ix :: Occurrences -> InvIx.InvertedIndex Positions
-              ix x =  Ix.insert "key" x Ix.empty
+prop_invix  
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex Positions)
+    passed <- run $ isNF $! ix
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
+
+-- ----------------------------------------------------------------------------
+-- test index proxies
+-- ----------------------------------------------------------------------------
+
+-- cache
+prop_cachedix :: Property
+prop_cachedix  
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (CacheProxy.CachedIndex (PIx.DmPrefixTree) Positions)
+    passed <- run $ isNF $! ix
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
+
+
+-- text proxy
+prop_textix :: Property
+prop_textix  
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (TextProxy.TextKeyProxyIndex (PIx.DmPrefixTree) Positions)
+    passed <- run $ isNF $! ix
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
 
 -- ----------------------------------------------------------------------------
