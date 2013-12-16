@@ -8,7 +8,7 @@ import           Control.Arrow              (second)
 
 import qualified Data.IntSet                as IS
 
-import           Holumbus.Common.DocIdMap   (DocIdMap, DocIdSet)
+import           Holumbus.Common.DocIdMap   (DocIdMap, DocIdSet, seqDocIdSet)
 import qualified Holumbus.Common.DocIdMap   as DM
 import           Holumbus.Index.Index
 import           Prelude                    as P
@@ -19,14 +19,18 @@ import           Holumbus.Index.Index       as Ix
 
 -- ----------------------------------------------------------------------------
 
-data CachedIndex impl v = CachedIx DocIdSet (impl v)
+data CachedIndex impl v = CachedIx 
+    { cachedIds :: DocIdSet 
+    , cachedIx  :: ! (impl v)
+    }
     deriving (Eq, Show)
+
+mkCachedIx :: DocIdSet -> impl v -> CachedIndex impl v
+mkCachedIx v = CachedIx $! v
+
 
 instance NFData (CachedIndex impl v) where
   -- default
-
-mkCachedIx :: DocIdSet -> impl v -> CachedIndex impl v
-mkCachedIx v = CachedIx $! v  
 
 -- ----------------------------------------------------------------------------
 
