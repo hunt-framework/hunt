@@ -80,23 +80,26 @@ rank (RankConfig fd fw {-ld lw-}) r
   scoredWordHits = M.mapWithKey  (\k (wi, wch) -> (setWordScore (fw k wi wch) wi, wch)) $ wordHits r
 
 -- | Rank documents by count.
-docRankByCount :: DocId -> DocInfo e -> DocContextHits -> Score
-docRankByCount _ _ h
-  = fromIntegral $ M.foldr (flip (M.foldr (\h2 r2 -> Pos.size h2 + r2))) 0 h
+-- docRankByCount :: DocId -> DocInfo e -> DocContextHits -> Score
+docRankByCount :: DocRanking e
+docRankByCount _ di h
+  = (*) b . fromIntegral $ M.foldr (flip (M.foldr (\h2 r2 -> Pos.size h2 + r2))) 0 h
+  where b = boost di
 
 -- | Rank words by count.
-wordRankByCount :: Word -> WordInfo -> WordContextHits -> Score
+-- wordRankByCount :: Word -> WordInfo -> WordContextHits -> Score
+wordRankByCount :: WordRanking
 wordRankByCount _ _ h
   = fromIntegral $ M.foldr (flip (DM.foldr ((+) . Pos.size))) 0 h
 
 -- | Rank documents by context-weighted count. The weights will be normalized to a maximum of 1.0.
--- Contexts with no weight (or a weight of zero) will be ignored.
+--   Contexts with no weight (or a weight of zero) will be ignored.
 docRankWeightedByCount :: [(Context, Score)] -> DocId -> DocInfo e -> DocContextHits -> Score
 docRankWeightedByCount ws _ _
   =  M.foldrWithKey (calcWeightedScore ws) 0.0
 
 -- | Rank words by context-weighted count. The weights will be normalized to a maximum of 1.0.
--- Contexts with no weight (or a weight of zero) will be ignored.
+--   Contexts with no weight (or a weight of zero) will be ignored.
 wordRankWeightedByCount :: [(Context, Score)] -> Word -> WordInfo -> WordContextHits -> Score
 wordRankWeightedByCount ws _ _
   = M.foldrWithKey (calcWeightedScore ws) 0.0
@@ -110,7 +113,7 @@ calcWeightedScore ws c h r
   mw    = snd $ L.maximumBy (compare `on` snd) ws
 
 -- | Find the weight of a context in a list of weights. If the context was not found or it's
--- weight is equal to zero, 'Nothing' will be returned.
+--   weight is equal to zero, 'Nothing' will be returned.
 lookupWeight :: Context -> [(Context, Score)] -> Maybe Score
 lookupWeight _ []     = Nothing
 lookupWeight c (x:xs)

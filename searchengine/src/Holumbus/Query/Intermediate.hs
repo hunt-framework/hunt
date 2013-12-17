@@ -75,7 +75,7 @@ import qualified Holumbus.DocTable.DocTable as Dt
 -- | The intermediate result used during query processing.
 
 type Intermediate               = DocIdMap IntermediateContexts
-type IntermediateContexts       = Map Context IntermediateWords
+type IntermediateContexts       = (Map Context IntermediateWords, Boost)
 type IntermediateWords          = Map Word (WordInfo, Positions)
 
 -- ----------------------------------------------------------------------------
@@ -129,7 +129,7 @@ fromList t c os
   insertWords :: (Word, Occurrences) -> DocIdMap [(Word, (WordInfo, Positions))]
   insertWords (w, o) = DM.map (\p -> [(w, (WordInfo [t] 0.0 , p))]) o -- singleton
   transform :: [(Word, (WordInfo, Positions))] -> IntermediateContexts
-  transform w        = M.singleton c (M.fromList w)
+  transform w        = (M.singleton c (M.fromList w), []) -- XXX: empty docboost
 
 fromListCx :: Word -> [Context] -> RawResult -> Intermediate
 fromListCx t cs os = unions $ map (\c -> fromList t c os) cs
@@ -156,16 +156,17 @@ createDocHits :: (Applicative m, Monad m, DocTable d, e ~ Dt.DValue d, e ~ Docum
                  d -> Intermediate -> m (DocHits e)
 createDocHits d = DM.traverseWithKey transformDocs
   where
-  transformDocs did ic
+  transformDocs did (ic,db)
     = let doc   = fromMaybe dummy <$> (Dt.lookup d did)
           dummy = Document "" M.empty
-      in (\doc' -> (DocInfo doc' 0.0, M.map (M.map snd) ic)) <$> doc
+      in (\doc' -> (DocInfo doc' db 0.0, M.map (M.map snd) ic)) <$> doc
 
 -- | Create the word hits structure from an intermediate result.
 createWordHits :: Intermediate -> WordHits
 createWordHits = DM.foldrWithKey transformDoc M.empty
   where
-  transformDoc d ic wh = M.foldrWithKey transformContext wh ic
+  -- XXX: boosting not used in wordhits
+  transformDoc d (ic, _db) wh = M.foldrWithKey transformContext wh ic
     where
     transformContext c iw wh' = M.foldrWithKey insertWord wh' iw
       where
@@ -186,7 +187,7 @@ combineWordHits (i1, c1) (i2, c2)
 
 -- | Combine two tuples with score and context hits.
 combineContexts :: IntermediateContexts -> IntermediateContexts -> IntermediateContexts
-combineContexts = M.unionWith (M.unionWith merge')
+combineContexts (ic1,db1) (ic2,db2) = (M.unionWith (M.unionWith merge') ic1 ic2, db1 ++ db2) -- XXX: db merge
   where
   merge' (i1, p1) (i2, p2)
     = ( combineWordInfo i1 i2

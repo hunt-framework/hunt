@@ -35,6 +35,7 @@ module Holumbus.Query.Processor
 where
 
 import           Control.Applicative
+import           Control.Arrow                     (second)
 import           Control.Monad
 import           Control.Monad.Error
 import           Control.Monad.State
@@ -198,6 +199,7 @@ process o = case o of
                           pq2 <- process q2
                           processBin op pq1 pq2
   QRange l h          -> processRange l h
+  QBoost w q          -> process q >>= processBoost w
 
 
 -- TODO: previously rdeepseq
@@ -408,6 +410,10 @@ processBin And    i1 i2 = return $ I.intersection i1 i2
 processBin Or     i1 i2 = return $ I.union        i1 i2
 processBin AndNot i1 i2 = return $ I.difference   i1 i2
 
+
+-- | Process query boosting
+processBoost :: QueryIndexCon i => Float -> Intermediate -> Processor i Intermediate
+processBoost b = return . DM.map (second (b:))
 
 -- ----------------------------------------------------------------------------
 -- Helper

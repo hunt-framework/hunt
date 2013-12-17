@@ -32,6 +32,7 @@ class DocTable i where
     -- | Returns the number of unique documents in the table.
     size            :: Monad m => i -> m Int
 
+    -- TODO: argument ordering
     -- | Lookup a document by its ID.
     lookup          :: Monad m => i -> DocId -> m (Maybe (DValue i))
 

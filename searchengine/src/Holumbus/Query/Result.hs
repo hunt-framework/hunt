@@ -32,6 +32,8 @@ module Holumbus.Query.Result
   , DocInfo (..)
   , WordInfo (..)
   , Score
+  , Boost
+  , DocBoosts
 
   -- * Construction
   , emptyResult
@@ -47,11 +49,14 @@ module Holumbus.Query.Result
   -- * Transform
   , setDocScore
   , setWordScore
+
+  , boost
   )
 where
 
 import           Prelude                  hiding (null)
 
+import qualified Data.List                as L
 import           Data.Map                 (Map)
 import qualified Data.Map                 as M
 import           Data.Text                (Text)
@@ -64,8 +69,8 @@ import qualified Holumbus.Common.DocIdMap as DM
 -- | The combined result type for Holumbus queries.
 data Result e
   = Result
-    { docHits  :: DocHits e  -- ^ The documents matching the query.
-    , wordHits :: WordHits   -- ^ The words which are completions of the query terms.
+    { docHits   :: DocHits e  -- ^ The documents matching the query.
+    , wordHits  :: WordHits   -- ^ The words which are completions of the query terms.
     }
     --deriving (Eq, Show)
 
@@ -73,6 +78,7 @@ data Result e
 data DocInfo e
   = DocInfo
     { document :: e          -- ^ The document itself.
+    , docBoost :: [Float]
     , docScore :: Score      -- ^ The score for the document (initial score for all documents is @0.0@).
     }
     --deriving (Eq, Show)
@@ -84,6 +90,14 @@ data WordInfo
     , wordScore :: Score     -- ^ The frequency of the word in the document for a context.
     }
     deriving (Eq, Show)
+
+
+-- XXX: a list for now - maybe useful for testing
+-- | Boosting of a single document.
+type Boost = [Float]
+
+-- | Document boosting.
+type DocBoosts          = DocIdMap Boost
 
 -- | A mapping from a document to it's score and the contexts where it was found.
 type DocHits e          = DocIdMap (DocInfo e, DocContextHits)
@@ -169,5 +183,9 @@ setWordScore s wi@(WordInfo{}) = wi { wordScore = s }
 -- | Extract all documents from a result.
 getDocuments :: Result e -> [e]
 getDocuments r = map (document . fst . snd) . DM.toList $ docHits r
+
+-- | Get the boosting factor for the document.
+boost :: DocInfo e -> Float
+boost = L.foldl' (*) 1 . docBoost
 
 -- ----------------------------------------------------------------------------
