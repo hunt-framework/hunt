@@ -64,6 +64,7 @@ data CmdError
 instance LogShow Command where
   logShow (Insert doc) = "Insert {icDoc = " ++ logShow doc ++ "\", ..}"
   logShow (Update doc) = "Update {icDoc = " ++ logShow doc ++ "\", ..}"
+  logShow (Sequence _) = "Sequence"
   logShow o = show o
 
 -- ----------------------------------------------------------------------------
