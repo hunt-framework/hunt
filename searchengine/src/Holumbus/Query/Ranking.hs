@@ -31,11 +31,11 @@ module Holumbus.Query.Ranking
 
   -- * Predefined document rankings
   , docRankByCount
-  , docRankWeightedByCount
+  --, docRankWeightedByCount
 
   -- * Predefined word rankings
   , wordRankByCount
-  , wordRankWeightedByCount
+  --, wordRankWeightedByCount
 
   , defaultRankConfig
   )
@@ -43,10 +43,12 @@ where
 
 import           Prelude                   hiding (foldr)
 
-import           Data.Foldable
-import           Data.Function
+--import           Data.Foldable
+--import           Data.Function
+import           Data.Maybe
 
-import qualified Data.List                 as L
+--import qualified Data.List                 as L
+import           Data.Map                  (Map)
 import qualified Data.Map                  as M
 
 import           Holumbus.Common
@@ -54,44 +56,76 @@ import qualified Holumbus.Common.DocIdMap  as DM
 import           Holumbus.Common.Positions as Pos
 import           Holumbus.Query.Result
 
+import           Holumbus.Utility
+
 -- ----------------------------------------------------------------------------
 
 -- | The configuration of the ranking mechanism.
 data RankConfig e
   = RankConfig
-    { docRanking  :: DocRanking e -- ^ A function to determine the score of a document.
-    , wordRanking :: WordRanking  -- ^ A funciton to determine the score of a word.
+    { docRanking     :: DocRanking e   -- ^ A function to determine the score of a document.
+    , wordRanking    :: WordRanking    -- ^ A function to determine the score of a word.
     }
 
 -- | The signature of a function to determine the score of a document.
-type DocRanking e = DocId -> DocInfo e -> DocContextHits -> Score
+type DocRanking e = ContextWeights -> DocId -> DocInfo e -> DocContextHits -> Score
 
+-- TODO: add ContextWeights
 -- | The signature of a function to determine the score of a word.
 type WordRanking  = Word -> WordInfo -> WordContextHits -> Score
 
+-- | Weights for the contexts (optional).
+type ContextWeights = Map Context Weight
+
 -- ----------------------------------------------------------------------------
 
--- | Rank the result with custom ranking functions.
-rank :: RankConfig e -> Result e -> Result e
-rank (RankConfig fd fw {-ld lw-}) r
+-- | The configuration of the ranking mechanism.
+defaultRankConfig :: RankConfig e
+defaultRankConfig = RankConfig
+  { docRanking  = docRankByCount
+  , wordRanking = wordRankByCount
+  }
+
+-- ----------------------------------------------------------------------------
+
+-- | Rank the result with custom ranking functions (and the given context weights).
+rank :: RankConfig e -> ContextWeights -> Result e -> Result e
+rank (RankConfig fd fw {-ld lw-}) cw r
   = Result scoredDocHits scoredWordHits
   where
-  scoredDocHits  = DM.mapWithKey (\k (di, dch) -> (setDocScore  (fd k di dch) di, dch)) $ docHits  r
+  scoredDocHits  = DM.mapWithKey (\k (di, dch) -> (setDocScore  (fd cw k di dch) di, dch)) $ docHits  r
   scoredWordHits = M.mapWithKey  (\k (wi, wch) -> (setWordScore (fw k wi wch) wi, wch)) $ wordHits r
 
--- | Rank documents by count.
--- docRankByCount :: DocId -> DocInfo e -> DocContextHits -> Score
+-- ----------------------------------------------------------------------------
+
+-- | Rank documents by count and multiply occurrences with their respective context weights (default @1.0@).
+--   Pass an empty map to discard context weights.
+--
+-- @docRankByCount :: DocId -> DocInfo e -> DocContextHits -> Score@
 docRankByCount :: DocRanking e
-docRankByCount _ di h
-  = (*) b . fromIntegral $ M.foldr (flip (M.foldr (\h2 r2 -> Pos.size h2 + r2))) 0 h
-  where b = boost di
+docRankByCount cw _ di h
+  = (*) dcb $ M.foldrWithKey (\cx -> (*) (cxw cx) .:: flip (M.foldr (\h2 r2 -> fromIntegral (Pos.size h2) + r2))) 0.0 h
+  where
+  dcb = boost di
+  cxw cx = fromMaybe 1.0 $ M.lookup cx cw -- default 1.0
 
 -- | Rank words by count.
--- wordRankByCount :: Word -> WordInfo -> WordContextHits -> Score
+--
+-- @wordRankByCount :: Word -> WordInfo -> WordContextHits -> Score@
 wordRankByCount :: WordRanking
 wordRankByCount _ _ h
   = fromIntegral $ M.foldr (flip (DM.foldr ((+) . Pos.size))) 0 h
 
+-- ----------------------------------------------------------------------------
+
+-- The old weighting mechanism
+--   - used a list of context weights
+--   - normalizes the weights to a maximum of 1.0
+--     - not sure if this is really necessary or the users responsibility
+--     - the computation should be done /once/ every time the weights are set, not with every query
+--   - seems overall cumbersome
+
+{-
 -- | Rank documents by context-weighted count. The weights will be normalized to a maximum of 1.0.
 --   Contexts with no weight (or a weight of zero) will be ignored.
 docRankWeightedByCount :: [(Context, Score)] -> DocId -> DocInfo e -> DocContextHits -> Score
@@ -123,12 +157,6 @@ lookupWeight c (x:xs)
       then Just (snd x)
       else Nothing
     else lookupWeight c xs
+-}
 
 -- ----------------------------------------------------------------------------
-
--- | The configuration of the ranking mechanism.
-defaultRankConfig :: RankConfig e
-defaultRankConfig = RankConfig
-  { docRanking  = docRankByCount
-  , wordRanking = wordRankByCount
-  }

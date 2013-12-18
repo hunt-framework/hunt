@@ -146,6 +146,11 @@ askRanking :: TextIndexerCon ix dt => CM ix dt (RankConfig Document)
 askRanking
     = asks evRanking
 
+-- TODO: meh
+askContextsWeights :: TextIndexerCon ix dt => CM ix dt (M.Map Context CWeight)
+askContextsWeights
+    = withIx (\(_,_,schema) -> return $ M.map cxWeight schema)
+
 throwResError :: TextIndexerCon ix dt => Int -> Text -> CM ix dt a
 throwResError n msg
     = throwError $ ResError n msg
@@ -332,9 +337,10 @@ execSearch' f q (ix, dt, s)
     = do
       r <- lift $ runQueryM ix s dt q
       rc <- askRanking
+      cw <- askContextsWeights
       case r of
         (Left  err) -> throwError err
-        (Right res) -> return . f . rank rc $ res
+        (Right res) -> return . f . rank rc cw $ res
 
 wrapSearch :: Int -> Int -> Result Document -> CmdResult
 wrapSearch offset mx

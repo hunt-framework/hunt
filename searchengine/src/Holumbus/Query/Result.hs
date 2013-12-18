@@ -32,6 +32,7 @@ module Holumbus.Query.Result
   , DocInfo (..)
   , WordInfo (..)
   , Score
+  , Weight
   , Boost
   , DocBoosts
 
@@ -91,10 +92,12 @@ data WordInfo
     }
     deriving (Eq, Show)
 
+-- | A single weight for weighting/boosting .
+type Weight = Float
 
 -- XXX: a list for now - maybe useful for testing
 -- | Boosting of a single document.
-type Boost = [Float]
+type Boost = [Weight]
 
 -- | Document boosting.
 type DocBoosts          = DocIdMap Boost
