@@ -36,6 +36,7 @@ executable holumbusServer
                  , deepseq                >= 1.2
                  , hamlet                 >= 1.1.7.1   && < 1.2
                  , Holumbus-Searchengine  >= 2
+                 , hslogger               >= 1         && < 2
                  , http-types             >= 0.8.0
                  , mtl                    >= 1.1       && < 3
                  , text                   >= 0.11      && < 1

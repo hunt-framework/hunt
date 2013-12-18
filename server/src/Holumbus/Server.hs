@@ -11,19 +11,73 @@ import           Network.Wai.Middleware.RequestLogger
 import           Holumbus.Common
 
 import           Holumbus.Interpreter.Command
-import           Holumbus.Interpreter.Interpreter
+import           Holumbus.Interpreter.Interpreter     hiding (Options, modName, debugM)
 
 import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Ranking
 
 import           Holumbus.Server.Common
+import           Holumbus.Server.Schrotty             hiding (Options)
 import qualified Holumbus.Server.Template             as Tmpl
-import           Holumbus.Server.Schrotty
+
+import           System.IO                            (stdout)
+
+import           System.Log.Formatter                 (simpleLogFormatter)
+import           System.Log.Handler                   (setFormatter)
+import           System.Log.Handler.Simple            (streamHandler)
+import           System.Log.Logger                    hiding (debugM, warningM, errorM)
+import qualified System.Log.Logger                    as Log
+
+-- ----------------------------------------------------------------------------
+-- Application launch options
+
+data Options = Options
+  { optLogLevel :: Priority
+  }
+
+defaultOptions :: Options
+defaultOptions = Options
+  { optLogLevel = DEBUG
+  }
+
+-- ----------------------------------------------------------------------------
+-- Logging
+
+-- | Name of the module for logging purposes.
+modName :: String
+modName = "Holumbus.Server"
+
+-- | Log a message at 'DEBUG' priority.
+debugM :: String -> IO ()
+debugM = Log.debugM modName
+
+-- | Log a message at 'WARNING' priority.
+warningM :: String -> IO ()
+warningM = Log.warningM modName
+
+-- | Log a message at 'ERROR' priority.
+errorM :: String -> IO ()
+errorM = Log.errorM modName
+
+-- | Initializes the loggers with the given priority.
+initLoggers :: Priority -> IO ()
+initLoggers level = do
+    handlerBare <- streamHandler stdout DEBUG
+    let handler = setFormatter handlerBare $ simpleLogFormatter "[$time : $loggername : $prio] $msg"
+
+    updateGlobalLogger "" (setLevel level . setHandlers [handler])
+    rl <- getRootLogger
+    saveGlobalLogger rl
 
 -- ----------------------------------------------------------------------------
 
 start :: IO ()
 start = do
+  -- initialize loggers
+  initLoggers $ optLogLevel defaultOptions
+
+  debugM "Application start"
+
   -- init interpreter
   env <- initEnv emptyIndexer defaultRankConfig emptyOptions
 

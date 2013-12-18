@@ -97,7 +97,9 @@ library
     Holumbus.Query.Processor
     Holumbus.Query.Ranking
     Holumbus.Query.Result
+
     Holumbus.Utility
+    Holumbus.Utility.Log
 
   hs-source-dirs: src
 

@@ -14,6 +14,8 @@ import           Holumbus.Common.Document        (Document)
 import           Holumbus.Query.Language.Grammar (Query (..))
 import           Holumbus.Index.Schema
 
+import           Holumbus.Utility.Log
+
 -- ----------------------------------------------------------------------------
 
 type UnparsedQuery = Text
@@ -56,6 +58,13 @@ data CmdError
     { ceCode :: Int
     , ceMsg  :: Text
     } deriving (Show)
+
+-- ----------------------------------------------------------------------------
+
+instance LogShow Command where
+  logShow (Insert doc) = "Insert {icDoc = " ++ logShow doc ++ "\", ..}"
+  logShow (Update doc) = "Update {icDoc = " ++ logShow doc ++ "\", ..}"
+  logShow o = show o
 
 -- ----------------------------------------------------------------------------
 

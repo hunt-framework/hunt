@@ -6,8 +6,11 @@ import           Data.Aeson
 import           Data.Map                   (Map ())
 import qualified Data.Map                   as M
 import           Data.Text                  (Text)
+import qualified Data.Text                  as T
 
 import           Holumbus.Common.BasicTypes
+
+import           Holumbus.Utility.Log
 
 -- ----------------------------------------------------------------------------
 
@@ -56,6 +59,11 @@ emptyApiDocDescrMap = M.empty
 
 emptyApiDoc :: ApiDocument
 emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescrMap
+
+-- ----------------------------------------------------------------------------
+
+instance LogShow ApiDocument where
+  logShow o = "ApiDocument {apiDocUri = \"" ++ (T.unpack . apiDocUri $ o) ++ "\", ..}"
 
 -- ----------------------------------------------------------------------------
 

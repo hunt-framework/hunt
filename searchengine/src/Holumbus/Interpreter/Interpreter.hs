@@ -42,10 +42,13 @@ import           Holumbus.Query.Processor
 import           Holumbus.Query.Ranking
 import           Holumbus.Query.Result             as QRes
 
-import qualified Holumbus.DocTable.DocTable        as Dt
-import           Holumbus.DocTable.HashedDocTable  as HDt
+import qualified Holumbus.DocTable.DocTable       as Dt
+import           Holumbus.DocTable.HashedDocTable as HDt
 
 import           Holumbus.Interpreter.Command
+
+import qualified System.Log.Logger                as Log
+import           Holumbus.Utility.Log
 
 -- ----------------------------------------------------------------------------
 --
@@ -60,7 +63,28 @@ import           Holumbus.Interpreter.Command
 -- but right now its okay to have the indexer
 -- replaceable by a type declaration
 
+-- ----------------------------------------------------------------------------
+-- Logging
 
+-- TODO: manage exports
+
+-- | Name of the module for logging purposes.
+modName :: String
+modName = "Holumbus.Interpreter.Interpreter"
+
+-- | Log a message at 'DEBUG' priority.
+debugM :: String -> IO ()
+debugM = Log.debugM modName
+
+-- | Log a message at 'WARNING' priority.
+warningM :: String -> IO ()
+warningM = Log.warningM modName
+
+-- | Log a message at 'ERROR' priority.
+errorM :: String -> IO ()
+errorM = Log.errorM modName
+
+-- ----------------------------------------------------------------------------
 
 type IpIndexer ix dt = ContextTextIndexer ix dt
 
@@ -195,7 +219,9 @@ optimizeCmd c = c
 
 
 execCmd :: (Bin.Binary dt) => TextIndexerCon ix dt => Command -> CM ix dt CmdResult
-execCmd = execCmd' . optimizeCmd
+execCmd cmd = do
+  liftIO $ debugM $ "Executing command: " ++ logShow cmd
+  execCmd' . optimizeCmd $ cmd
 
 execCmd' :: (Bin.Binary dt, TextIndexerCon ix dt) => Command -> CM ix dt CmdResult
 execCmd' (Search q offset mx)
