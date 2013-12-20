@@ -1,5 +1,6 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -23,7 +24,9 @@
 module Holumbus.Common.Occurrences.Compression
   (
   -- * Compression types
-  CompressedOccurrences
+    CompressedOccurrences
+  , SerializedOccurrences
+  , OccOSerialized
   , CompressedPositions
   , OccCompression(..)
 
@@ -41,9 +44,15 @@ module Holumbus.Common.Occurrences.Compression
   )
 where
 
+import           Control.DeepSeq
+import qualified Data.Binary                 as B
 import qualified Data.IntSet                 as IS
+import qualified Codec.Compression.BZip      as BZ
 
 import           Holumbus.Common.DiffList
+import qualified Data.ByteString.Lazy       as BL
+
+
 import           Holumbus.Common.DocId       (DocId)
 import           Holumbus.Common.DocIdMap    (DocIdMap)
 import qualified Holumbus.Common.DocIdMap    as DM
@@ -51,6 +60,9 @@ import           Holumbus.Common.Occurrences hiding (delete)
 import           Holumbus.Common.Positions   (Positions)
 
 -- ----------------------------------------------------------------------------
+
+type SerializedOccurrences      = OccOSerialized
+
 
 -- | Compressed occurrences using a difference list implementation.
 type CompressedOccurrences      = DocIdMap CompressedPositions
@@ -67,6 +79,34 @@ instance OccCompression CompressedOccurrences where
     compressOcc          = deflateOcc
     decompressOcc        = inflateOcc
     differenceWithKeySet = differenceWithKeySet'
+
+
+newtype OccOSerialized  = OccOBs { unOccOBs :: ByteString }
+                          deriving (Eq, Show, NFData)
+
+instance OccCompression SerializedOccurrences where
+  compressOcc           = OccOBs . mkBs . BZ.compress . B.encode
+  decompressOcc         = B.decode . BZ.decompress . unBs. unOccOBs
+  differenceWithKeySet  = undefined
+
+
+instance B.Binary OccOSerialized where
+  put                   = B.put . unOccOBs
+  get                   = B.get >>= return . OccOBs
+
+newtype ByteString      = Bs { unBs :: BL.ByteString }
+                          deriving (Eq, Show)
+
+mkBs                    :: BL.ByteString -> ByteString
+mkBs s                  = Bs $!! s
+
+instance NFData ByteString where
+-- use default implementation: eval to WHNF, and that's sufficient
+--
+instance B.Binary ByteString where
+   put                   = B.put . unBs
+   get                   = B.get >>= return . mkBs
+
 
 -- | Decompressing the occurrences by just decompressing all contained positions.
 inflateOcc :: CompressedOccurrences -> Occurrences
