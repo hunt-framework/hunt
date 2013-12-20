@@ -18,7 +18,7 @@ import           Holumbus.Common.Occurrences.Compression hiding (delete)
 import           Holumbus.Common.Positions               (Positions)
 
 import           Holumbus.Index.Index                    as Ix
-import           Holumbus.Index.PrefixTreeIndex
+import           Holumbus.Index.ComprPrefixTreeIndex
 
 import           Holumbus.Index.Proxy.CachedIndex
 import           Holumbus.Index.Proxy.CompressedIndex
@@ -27,7 +27,7 @@ import           Holumbus.Index.Proxy.TextKeyIndex
 -- ----------------------------------------------------------------------------
 
 newtype InvertedIndex _v
-    = InvIx { invIx :: CachedIndex (TextKeyProxyIndex ({-ComprOccIndex-} DmPrefixTree {-CompressedPositions-})) Positions }
+    = InvIx { invIx :: TextKeyProxyIndex ComprOccPrefixTree CompressedOccurrences }
     deriving (Eq, Show, NFData)
 
 --mkInvIx :: CachedIndex (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions
