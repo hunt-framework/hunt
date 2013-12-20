@@ -27,7 +27,7 @@ import           Holumbus.Index.Proxy.TextKeyIndex
 -- ----------------------------------------------------------------------------
 
 newtype InvertedIndex _v
-    = InvIx { invIx :: TextKeyProxyIndex ComprOccPrefixTree CompressedOccurrences }
+    = InvIx { invIx :: TextKeyProxyIndex ComprOccPrefixTree SerializedOccurrences }
     deriving (Eq, Show, NFData)
 
 --mkInvIx :: CachedIndex (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions
