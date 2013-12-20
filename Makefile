@@ -94,6 +94,9 @@ insertRandom: generateRandom
 benchmark: generateRandom
 	ab -k -n 1000 -c 5 http://localhost:3000/search/esta
 
+benchmark2: generateRandom
+	siege -c50 -d10 -t3M -f data/random/urls
+
 # able to read heap profile at runtime
 runtimeHeapProfile:
 	head -`fgrep -n END_SAMPLE holumbusServer.hp | tail -1 | cut -d : -f 1` holumbusServer.hp | hp2ps -d -c > holumbusServer.ps
@@ -103,4 +106,4 @@ runtimeHeapProfile:
 stringmap:
 	git clone https://github.com/sebastian-philipp/StringMap.git tmpstringmap && cd searchengine && cabal install ../tmpstringmap && cd .. && rm -rf tmpstringmap
 
-.PHONY: target clean configure build install test all searchengine server insertJokes startServer stopServer sandbox hayooCrawler benchmark runtimeHeapProfile startServer profiling searchengine-profiling server-profiling stringmap
+.PHONY: target clean configure build install test all searchengine server insertJokes startServer stopServer sandbox hayooCrawler benchmark benchmark2 runtimeHeapProfile startServer profiling searchengine-profiling server-profiling stringmap
