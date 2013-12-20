@@ -15,21 +15,24 @@ import           Data.Binary                             (Binary (..))
 
 import           Holumbus.Index.Index
 import qualified Holumbus.Index.Index                    as Ix
-import           Holumbus.Index.PrefixTreeIndex
 
-import           Holumbus.Common.DocIdMap                (DocIdMap)
+import qualified Data.StringMap.Strict                   as SM
+
+
+import           Holumbus.Common.BasicTypes              (TextSearchOp(..))
+--import           Holumbus.Common.DocIdMap                (DocIdMap)
+import qualified Holumbus.Common.DocIdMap                as DM
 import           Holumbus.Common.Occurrences             (Occurrences)
 import           Holumbus.Common.Occurrences.Compression hiding (delete)
 
-import qualified Data.StringMap                          as SM
-
+import           Holumbus.Utility
 -- ----------------------------------------------------------------------------
 
 newtype ComprOccPrefixTree cv
-    = ComprPT { comprPT :: DmPrefixTree cv}
+    = ComprPT { comprPT :: SM.StringMap cv}
     deriving (Eq, Show, NFData)
 
-mkComprPT :: NFData cv => DmPrefixTree cv -> ComprOccPrefixTree cv
+mkComprPT :: NFData cv => SM.StringMap cv -> ComprOccPrefixTree cv
 mkComprPT cv = ComprPT $! cv
 
 -- ----------------------------------------------------------------------------
@@ -43,35 +46,47 @@ instance (NFData v, Binary v) => Binary (ComprOccPrefixTree v) where
 instance Index ComprOccPrefixTree where
     type IKey ComprOccPrefixTree v = SM.Key
     type IVal ComprOccPrefixTree v = Occurrences
-    type ICon ComprOccPrefixTree v = (OccCompression (DocIdMap v), NFData v)
+    type ICon ComprOccPrefixTree v = (OccCompression v, NFData v)
 
-    -- | why is this strict, even without using the smart constructor?
     insert k v (ComprPT i)
-        = mkComprPT $ insert k (compressOcc v) i
+        = mkComprPT $ SM.insert k (compressOcc v) i
 
-    batchDelete ks (ComprPT i)
-        = mkComprPT $ batchDelete ks i
+    -- XXX not the best solution, but is there really another solution?
+    batchDelete ks i
+        = Ix.map (\m -> DM.diffWithSet m ks) i
 
     empty
-        = mkComprPT $ empty
+        = mkComprPT $ SM.empty
 
     fromList l
-        = mkComprPT . fromList $ P.map (second compressOcc) l
+        = mkComprPT . SM.fromList $ P.map (second compressOcc) l
 
     toList (ComprPT i)
-        = second decompressOcc <$> toList i
+        = second decompressOcc <$> SM.toList i
 
-    search t k (ComprPT i)
-        = second decompressOcc <$> search t k i
+    search t k (ComprPT pt)
+        = case t of
+            Case         -> case SM.lookup k pt of
+                              Nothing -> []
+                              Just xs -> [(k, decompressOcc xs)]
+            NoCase       -> luCase k pt
+            PrefixCase   -> pfCase k pt
+            PrefixNoCase -> pfNoCase k pt
+        where
+        toL f    = second decompressOcc <$> SM.toListShortestFirst f
+        luCase   = toL .:: SM.lookupNoCase
+        pfCase   = toL .:: SM.prefixFilter
+        pfNoCase = toL .:: SM.prefixFilterNoCase
 
-    lookupRange k1 k2 (ComprPT i)
-        = second decompressOcc <$> lookupRange k1 k2 i
+
+    lookupRange k1 k2 (ComprPT pt)
+        = second decompressOcc <$> (SM.toList $ SM.lookupRange k1 k2 pt)
 
     unionWith op (ComprPT i1) (ComprPT i2)
-        = mkComprPT $ unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
+        = mkComprPT $ SM.unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
 
     map f (ComprPT i)
-        = mkComprPT $ Ix.map (compressOcc . f . decompressOcc) i
+        = mkComprPT $ SM.map (compressOcc . f . decompressOcc) i
 
     keys (ComprPT i)
-        = keys i
+        = SM.keys i
