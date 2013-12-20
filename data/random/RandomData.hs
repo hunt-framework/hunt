@@ -13,6 +13,7 @@ import           Data.Monoid              (mappend)
 import           Data.Text                (Text)
 import qualified Data.Text                as T
 import           Data.Word                (Word32)
+import           Data.Maybe               (fromMaybe)
 
 import           System.IO
 
@@ -23,6 +24,10 @@ import           System.Environment       (getArgs)
 import           System.Random
 
 import           Text.Lorem.Words
+import           Data.Time
+import           Data.Time.Format
+import           System.Locale
+
 -- ------------------------------------------------------------
 
 type URI          = Text
@@ -172,7 +177,7 @@ mkData gen minS maxS =
 apiDocGen :: Int -> Gen ApiDocument
 apiDocGen n = do
   desc    <- descriptionGen
-  let ix  =  mkIndexData n desc
+  ix      <- mkIndexData n desc
   return  $ ApiDocument uri ix desc
   where uri = T.pack . ("rnd://" ++) . show $ n
 
@@ -188,20 +193,34 @@ loremText = do
 descriptionGen :: Gen Description
 descriptionGen = do
   tuples <- vectorOf 3 kvTuples
-  return $ M.fromList tuples
+  dates  <- cxDate
+  return $ M.fromList (dates:tuples) 
   where
   kvTuples = do
     a <- resize 15 niceText1 -- keys are short
     b <- loremText
     return (a,b)
+  cxDate = do
+    ds <- vectorOf 3 date >>= \l -> return $ T.intercalate " " l
+    return ("dates", ds)
 
+date :: Gen Text
+date = arbitrary >>= \x -> return . T.pack $ formatTime defaultTimeLocale "%Y-%m-%d" (newDate x)
+  where
+  newDate x = addDays (-x) (fromGregorian 2013 12 31)
 
-mkIndexData :: Int -> Description -> Map Context Text
-mkIndexData i d = M.fromList [("id", index), ("context1", cx1), ("context2", cx2)]
+mkIndexData :: Int -> Description -> Gen (Map Context Text)
+mkIndexData i d = do
+  return $ M.fromList [ ("id", index)
+                      , ("context1", cx1)
+                      , ("context2", cx2)
+                      , ("contextdate", cxd)
+                      ]
   where
   index   = T.pack $ show i
   cx1 = T.intercalate " " . map (T.take 4 . T.filter (/=' ') . snd) . M.toList $ d
   cx2 = T.intercalate " " . map snd $  M.toList  d
+  cxd = fromMaybe "" (M.lookup "dates" d)
 
 -- ------------------------------------------------------------
 
