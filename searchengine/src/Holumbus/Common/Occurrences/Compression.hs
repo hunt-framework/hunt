@@ -84,8 +84,11 @@ instance OccCompression CompressedOccurrences where
 newtype OccOSerialized  = OccOBs { unOccOBs :: ByteString }
                           deriving (Eq, Show, NFData)
 
+mkOccOBs :: ByteString -> OccOSerialized
+mkOccOBs b = OccOBs $! b
+
 instance OccCompression SerializedOccurrences where
-  compressOcc           = OccOBs . mkBs . BZ.compress . B.encode
+  compressOcc           = mkOccOBs . mkBs . BZ.compress . B.encode
   decompressOcc         = B.decode . BZ.decompress . unBs. unOccOBs
   differenceWithKeySet  = undefined
 
