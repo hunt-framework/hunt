@@ -24,6 +24,7 @@ import           Holumbus.Query.Ranking
 import           Holumbus.Utility
 import           Holumbus.Index.InvertedIndex         (InvertedIndex)
 import           Holumbus.DocTable.HashedDocTable     (Documents)
+import           Holumbus.Index.Schema.Normalize.Date (rexDates)
 
 -- ----------------------------------------------------------------------------
 
@@ -43,6 +44,8 @@ main = defaultMain
           test_alot
        , testCase "Interpreter: fancy"
           test_fancy
+       , testCase "Interpreter: date context"
+          test_dates
        ]
 
 -- | check DmPrefixTree
@@ -83,6 +86,15 @@ brainDoc = emptyApiDoc
   td = "Brain"
   descr = M.fromList [("name", "Brain"), ("mission", "take over the world"), ("legs", "4")]
 
+dateDoc :: ApiDocument
+dateDoc = emptyApiDoc
+  { apiDocUri      = uri
+  , apiDocIndexMap = M.insert "datecontext" "2013-01-01" ix 
+  , apiDocDescrMap = dt
+  }
+  where
+  ApiDocument uri ix dt = brainDoc
+
 -- example apidoc
 brainDocUpdate :: ApiDocument
 brainDocUpdate = brainDoc { apiDocDescrMap = descr }
@@ -97,6 +109,14 @@ defaultContextInfo = ("default", ContextSchema CText "[^ \t\n\r]*" [] 1 True)
 
 insertDefaultContext :: Command
 insertDefaultContext = uncurry InsertContext defaultContextInfo
+
+dateContextInfo :: (Context, ContextSchema)
+dateContextInfo = ("datecontext", ContextSchema CDate (rexDates!!2)  [] 1 True)
+
+insertDateContext :: Command
+insertDateContext = uncurry InsertContext dateContextInfo
+
+
 
 
 -- evaluate CM and check the result
@@ -150,6 +170,18 @@ a @@@ f = execCmd a >>= liftIO . f
 
 (@@=) :: Command -> CmdResult -> TestCM ()
 a @@= b = a @@@ (@?=b)
+
+
+test_dates :: Assertion
+test_dates = testCM $ do
+  -- create contexts
+  insertDateContext       @@= ResOK
+  insertDefaultContext    @@= ResOK
+  -- insert date containing document
+  Insert dateDoc          @@= ResOK
+  -- searching for date
+  Search (QContext ["datecontext"] (QWord QNoCase "2013")) 0 10
+    @@@ ((@?= ["test://0"]) . searchResultUris)
 
 
 -- fancy - equivalent to 'test_alot' plus additional tests
