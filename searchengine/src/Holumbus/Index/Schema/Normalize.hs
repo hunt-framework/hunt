@@ -29,11 +29,11 @@ contextNormalizer o = case o of
 
 typeNormalizer :: CType -> [CNormalizer]
 typeNormalizer o = case o of
-    CText -> []
+    CText     -> []
     -- TODO: int normalizer
-    CInt  -> []
-    CDate -> [NormDate]
-
+    CInt      -> []
+    CDate     -> [NormDate]
+    CPosition -> [NormPosition]
 -- ----------------------------------------------------------------------------
 
 -- | Checks if value is valid for a context type.
