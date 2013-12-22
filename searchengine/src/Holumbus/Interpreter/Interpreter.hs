@@ -8,7 +8,6 @@
 module Holumbus.Interpreter.Interpreter where
 
 import           Control.Applicative
-import           Control.Concurrent.MVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
@@ -48,7 +47,9 @@ import           Holumbus.DocTable.HashedDocTable as HDt
 import           Holumbus.Interpreter.Command
 
 import qualified System.Log.Logger                as Log
+
 import           Holumbus.Utility.Log
+import           Holumbus.Utility.XMVar
 
 -- ----------------------------------------------------------------------------
 --
@@ -105,14 +106,14 @@ emptyOptions = Options
 -- so the MVar acts as a global state (within IO)
 
 data Env ix dt = Env
-    { evIndexer :: TextIndexerCon ix dt => MVar (IpIndexer ix dt)
+    { evIndexer :: TextIndexerCon ix dt => XMVar (IpIndexer ix dt)
     , evRanking :: RankConfig Document
     , evOptions :: Options
     }
 
 initEnv :: TextIndexerCon ix dt => IpIndexer ix dt -> RankConfig Document -> Options -> IO (Env ix dt)
 initEnv ixx rnk opt = do
-  ixref <- newMVar ixx
+  ixref <- newXMVar ixx
   return $ Env ixref rnk opt
 
 -- ----------------------------------------------------------------------------
@@ -138,20 +139,20 @@ runCmd env cmd
 askIx :: TextIndexerCon ix dt => CM ix dt (IpIndexer ix dt)
 askIx
     = do ref <- asks evIndexer
-         liftIO $ readMVar ref
+         liftIO $ readXMVar ref
 
 -- FIXME: io exception-safe?
 modIx :: TextIndexerCon ix dt
       => (IpIndexer ix dt-> CM ix dt (IpIndexer ix dt, a)) -> CM ix dt a
 modIx f
     = do ref <- asks evIndexer
-         ix <- liftIO $ takeMVar ref
+         ix <- liftIO $ takeXMVarWrite ref
          (i',a) <- f ix `catchError` putBack ref ix
-         liftIO $ putMVar ref i'
+         liftIO $ putXMVarWrite ref i'
          return a
     where
     putBack ref i e = do
-        liftIO $ putMVar ref i
+        liftIO $ putXMVarWrite ref i
         throwError e
 
 modIx_ :: TextIndexerCon ix dt => (IpIndexer ix dt -> CM ix dt (IpIndexer ix dt)) -> CM ix dt ()
