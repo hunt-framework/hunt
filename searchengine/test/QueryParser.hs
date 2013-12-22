@@ -218,6 +218,10 @@ boostTests = TestList
     (Right (bst 9 $ w "word"))
     ( P.parseQuery "word^9")
 
+  , TestCase $ assertEqual "Boosting and more"
+    (Right (a (bst 2 $ w "foo") (w "bar")))
+    ( P.parseQuery "foo^2 bar")
+
   , TestCase $ assertEqual "Boosting a word with a proper float"
     (Right (bst 9.5 $ w "word"))
     ( P.parseQuery "word^9.5")
