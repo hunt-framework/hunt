@@ -194,7 +194,8 @@ descriptionGen :: Gen Description
 descriptionGen = do
   tuples <- vectorOf 3 kvTuples
   dates  <- cxDate
-  return $ M.fromList (dates:tuples) 
+  pos    <- cxp 
+  return $ M.fromList ([pos, dates] ++ tuples) 
   where
   kvTuples = do
     a <- resize 15 niceText1 -- keys are short
@@ -203,6 +204,10 @@ descriptionGen = do
   cxDate = do
     ds <- vectorOf 3 date >>= \l -> return $ T.intercalate " " l
     return ("dates", ds)
+  cxp = do
+    lo <- choose (-70,70)   :: Gen Integer -- could be -90-90 
+    la <- choose (-150,150) :: Gen Integer -- could be .180-180
+    return ("location", T.concat [ T.pack . show $ lo, "|" , T.pack . show $ la])
 
 date :: Gen Text
 date = arbitrary >>= \x -> return . T.pack $ formatTime defaultTimeLocale "%Y-%m-%d" (newDate x)
@@ -212,16 +217,17 @@ date = arbitrary >>= \x -> return . T.pack $ formatTime defaultTimeLocale "%Y-%m
 mkIndexData :: Int -> Description -> Gen (Map Context Text)
 mkIndexData i d = do
   return $ M.fromList [ ("id", index)
-                      , ("context1", cx1)
+                      , ("context1", cx2)
                       , ("context2", cx2)
                       , ("contextdate", cxd)
+                      , ("contextgeo", cxp)
                       ]
   where
   index   = T.pack $ show i
-  cx1 = T.intercalate " " . map (T.take 4 . T.filter (/=' ') . snd) . M.toList $ d
+ -- cx1 = T.intercalate " " . map (T.take 4 . T.filter (/=' ') . snd) . M.toList $ d
   cx2 = T.intercalate " " . map snd $  M.toList  d
+  cxp = fromMaybe "" (M.lookup "location" d)
   cxd = fromMaybe "" (M.lookup "dates" d)
-
 -- ------------------------------------------------------------
 
 encodeDocs :: [ApiDocument] -> B.ByteString

@@ -34,11 +34,11 @@ import qualified Test.QuickCheck.Monadic                as QM
 --import           Holumbus.Index.InvertedIndex         (InvertedIndex)
 --import           Holumbus.DocTable.HashedDocTable     (Documents)
 
-import qualified Holumbus.Index.Schema                as S
-import qualified Holumbus.Index.Schema.Analyze        as A
-import qualified Holumbus.Index.Schema.Normalize      as N
-import qualified Holumbus.Index.Schema.Normalize.Date as ND
-
+import qualified Holumbus.Index.Schema                    as S
+import qualified Holumbus.Index.Schema.Analyze            as A
+import qualified Holumbus.Index.Schema.Normalize          as N
+import qualified Holumbus.Index.Schema.Normalize.Date     as ND
+import qualified Holumbus.Index.Schema.Normalize.Position as NP
 -- ----------------------------------------------------------------------------
 
 main :: IO ()
@@ -58,15 +58,40 @@ main = defaultMain
        , testProperty "typeValidator: date val"    prop_validate_date
        , testProperty "typeValidator: date inv"    prop_validate_date2
   
-       -- Normalizer data - isAnyDate
+       -- Normalizer date - isAnyDate
        , testProperty "Normalizer:date 2013-01-01" prop_isAnyDate
        , testProperty "Normalizer:date 2013-01-01" prop_isAnyDate2
        , testProperty "Normalizer:date 2013-01-01" prop_isAnyDate3
+   
+       -- Normalizer position 
+       , testProperty "Normlizer:pos double"       prop_isPosition_d
+       , testProperty "Normlizer:pos int"          prop_isPosition_i
+       , testProperty "Normlizer:pos text"         prop_isPosition_t
+       , testCase     "Normlizer:norm pos"         test_norm_pos
        ]
 
 -- ----------------------------------------------------------------------------
--- normalizer tests - 
+-- normalizer position tests
+prop_isPosition_d :: Gen Bool
+prop_isPosition_d = do
+  long <- arbitrary :: Gen Double
+  lat  <- arbitrary :: Gen Double
+  return . NP.isPosition $ T.concat [ T.pack . show $ long, "|", T.pack . show $ lat]
 
+prop_isPosition_i :: Gen Bool
+prop_isPosition_i = do
+  long <- arbitrary :: Gen Int
+  lat  <- arbitrary :: Gen Int
+  return . NP.isPosition $ T.concat [ T.pack . show $ long, "|", T.pack . show $ lat]
+
+prop_isPosition_t :: Gen Bool
+prop_isPosition_t = do
+  long <- niceText1
+  lat  <- niceText1
+  return $ False == NP.isPosition (T.concat [ long, "|", lat ])
+
+test_norm_pos :: Assertion
+test_norm_pos = assertEqual "" "110000111100000011000011001111001100000000000000" (NP.normalizePosition "1|1")
 
 -- ----------------------------------------------------------------------------
 -- normalizer date tests

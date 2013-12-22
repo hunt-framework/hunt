@@ -69,6 +69,7 @@ library
     Holumbus.Index.Schema.Analyze
     Holumbus.Index.Schema.Normalize
     Holumbus.Index.Schema.Normalize.Date
+    Holumbus.Index.Schema.Normalize.Position
 
     Holumbus.Index.Index
     Holumbus.Index.TextIndex

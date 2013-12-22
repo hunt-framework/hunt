@@ -47,13 +47,14 @@ data CType
   = CText
   | CInt
   | CDate
+  | CPosition
   deriving (Show, Eq)
 
 -- | Regular expression.
 type CRegex  = Text
 
 -- | Enum for text-normalizers than can be chose by the user.
-data CNormalizer = NormUpperCase | NormLowerCase | NormDate
+data CNormalizer = NormUpperCase | NormLowerCase | NormDate | NormPosition
   deriving (Show, Eq)
 
 -- | Context weight for search result rankings.
@@ -66,23 +67,27 @@ type CWeight = Float
 instance FromJSON CType where
   parseJSON (String s)
     = case s of
-        "text" -> return CText
-        "int"  -> return CInt
-        "date" -> return CDate
-        _       -> mzero
+        "text"     -> return CText
+        "int"      -> return CInt
+        "date"     -> return CDate
+        "position" -> return CPosition
+        _          -> mzero
   parseJSON _ = mzero
 
 instance ToJSON CType where
   toJSON o = case o of
-    CText -> "text"
-    CInt  -> "int"
-    CDate -> "date"
+    CText     -> "text"
+    CInt      -> "int"
+    CDate     -> "date"
+    CPosition -> "position"
 
 instance FromJSON CNormalizer where
   parseJSON (String s)
     = case s of
         "uppercase" -> return NormUpperCase
         "lowercase" -> return NormLowerCase
+        "date"      -> return NormDate
+        "position"  -> return NormPosition
         _           -> mzero
   parseJSON _ = mzero
 
@@ -91,6 +96,7 @@ instance ToJSON CNormalizer where
     NormUpperCase -> "uppercase"
     NormLowerCase -> "lowercase"
     NormDate      -> "date"
+    NormPosition  -> "position"
 
 instance FromJSON ContextSchema where
   parseJSON (Object o) = do
@@ -117,9 +123,10 @@ instance ToJSON ContextSchema where
 -- ----------------------------------------------------------------------------
 
 instance Binary CType where
-  put (CText) = put (0 :: Word8)
-  put (CInt)  = put (1 :: Word8)
-  put (CDate) = put (2 :: Word8)
+  put (CText)     = put (0 :: Word8)
+  put (CInt)      = put (1 :: Word8)
+  put (CDate)     = put (2 :: Word8)
+  put (CPosition) = put (3 :: Word8)
 
   get = do
     t <- get :: Get Word8
@@ -127,12 +134,14 @@ instance Binary CType where
       0 -> return CText
       1 -> return CInt
       2 -> return CDate
+      3 -> return CPosition
       _ -> fail "get(CType) out of bounds"
 
 instance Binary CNormalizer where
   put (NormUpperCase) = put (0 :: Word8)
   put (NormLowerCase) = put (1 :: Word8)
   put (NormDate)      = put (2 :: Word8)
+  put (NormPosition)  = put (3 :: Word8)
 
   get = do
     t <- get :: Get Word8
@@ -140,6 +149,7 @@ instance Binary CNormalizer where
       0 -> return NormUpperCase
       1 -> return NormLowerCase
       2 -> return NormDate
+      3 -> return NormPosition
       _ -> fail "get(CNormalizer) out of bounds"
 
 instance Binary ContextSchema where

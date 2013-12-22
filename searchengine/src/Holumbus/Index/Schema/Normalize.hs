@@ -13,8 +13,8 @@ import           Holumbus.Common.BasicTypes
 import           Holumbus.Index.Schema
 import           Holumbus.Utility
 
-import           Holumbus.Index.Schema.Normalize.Date (normalizeDate, isAnyDate')
-
+import           Holumbus.Index.Schema.Normalize.Date     (normalizeDate, isAnyDate')
+import           Holumbus.Index.Schema.Normalize.Position 
 -- ----------------------------------------------------------------------------
 
 contextNormalizer :: CNormalizer -> Word -> Word
@@ -22,15 +22,17 @@ contextNormalizer o = case o of
     NormUpperCase -> T.toUpper
     NormLowerCase -> T.toLower
     NormDate      -> normalizeDate
+    NormPosition  -> normalizePosition
 
 -- ----------------------------------------------------------------------------
 
 -- | Checks if value is valid for a context type.
 typeValidator :: CType -> Text -> Bool
 typeValidator t = case t of
-    CText -> const True
-    CInt  -> const True
-    CDate -> isAnyDate' . T.unpack
+    CText     -> const True
+    CInt      -> const True
+    CDate     -> isAnyDate' . T.unpack
+    CPosition -> isPosition 
 
 -- ----------------------------------------------------------------------------
 
