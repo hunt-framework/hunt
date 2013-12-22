@@ -23,12 +23,16 @@ import           Holumbus.Utility
 
 -- | Normalize a date representation to store in the index or search for.
 normalizeDate :: Text -> Text
-normalizeDate s = fromMaybe s
-    (T.pack . normDateRep . showDate . toUTC <$> (readAnyDateM . T.unpack $ s))
+normalizeDate t = fromMaybe t
+    (T.pack . normDateRep . showDateTime . toUTC <$> (readAnyDateM . T.unpack $ t))
   where
-  -- XXX: no dates before year 0 (1 BCE) this way
+  -- XXX: no proper support for dates before year 0 (1 BCE) this way
   normDateRep :: String -> String
-  normDateRep = filter (not . (`elem` "-"))
+  normDateRep s
+    = if head' s == Just '-'
+      then ('-':) . fil . tail $ s
+      else fil s
+    where fil = filter (not . (`elem` "-T:"))
 
 -- ----------------------------------------------------------------------------
 

@@ -101,6 +101,7 @@ library
 
     Holumbus.Utility
     Holumbus.Utility.Log
+    Holumbus.Utility.XMVar
 
   hs-source-dirs: src
 
