@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main where
-{-- Tests for Normalizers Analizers Formatters #-} 
+{-- Tests for Normalizers Analizers Formatters #-}
 
 --import           Control.Applicative
 --import           Control.Monad.Error
@@ -43,7 +43,7 @@ import qualified Holumbus.Index.Schema.Normalize.Date as ND
 
 main :: IO ()
 main = defaultMain
-       [ 
+       [
        -- Analyzer tests
          testCase "scanTextRE: text1 "             test_scan_text1
        , testCase "scanTextRE: date inv"           test_scan_date1
@@ -57,7 +57,7 @@ main = defaultMain
        , testProperty "typeValidator: int inv"     prop_validate_int2
        , testProperty "typeValidator: date val"    prop_validate_date
        , testProperty "typeValidator: date inv"    prop_validate_date2
-  
+
        -- Normalizer data - isAnyDate
        , testProperty "Normalizer:date 2013-01-01" prop_isAnyDate
        , testProperty "Normalizer:date 2013-01-01" prop_isAnyDate2
@@ -65,7 +65,7 @@ main = defaultMain
        ]
 
 -- ----------------------------------------------------------------------------
--- normalizer tests - 
+-- normalizer tests -
 
 
 -- ----------------------------------------------------------------------------
@@ -120,8 +120,8 @@ test_scan_text1 :: Assertion
 test_scan_text1 = assert $ length scan == 3
   where
   scan = A.scanTextRE "[^ \t\n\r]*" "w1 w2 w3"
-              
--- | test date regex with invalid date given      
+
+-- | test date regex with invalid date given
 test_scan_date1 :: Assertion
 test_scan_date1 = assert $ length scan == 0
   where
@@ -132,7 +132,7 @@ test_scan_date2 :: Assertion
 test_scan_date2 = assert $ length scan == 1
   where
   scan = A.scanTextRE "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))" "2013-01-01"
- 
+
 -- | test date regex with multiple dates given
 test_scan_date3 :: Assertion
 test_scan_date3 = assert $ length scan == 2
@@ -144,7 +144,7 @@ test_scan_date4 :: Assertion
 test_scan_date4 = assert $ (length scan == 2) && (scan !! 1 == "2013-01-01")
   where
   scan = A.scanTextRE "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))" "2013-01-01 asd 2013-01-01"
- 
+
 -- ----------------------------------------------------------------------------
 -- helper
 

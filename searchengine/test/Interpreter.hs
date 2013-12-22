@@ -89,7 +89,7 @@ brainDoc = emptyApiDoc
 dateDoc :: ApiDocument
 dateDoc = emptyApiDoc
   { apiDocUri      = uri
-  , apiDocIndexMap = M.insert "datecontext" "2013-01-01" ix 
+  , apiDocIndexMap = M.insert "datecontext" "2013-01-01" ix
   , apiDocDescrMap = dt
   }
   where
