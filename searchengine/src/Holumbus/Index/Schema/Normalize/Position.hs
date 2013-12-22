@@ -9,39 +9,35 @@ import qualified Data.List           as L
 
 import           Holumbus.Common.BasicTypes
 
--- | regex not used here atm.
---   accepted format: double|double
+-- | Check if value is a valid position
+-- a valid position has a format like "double double"
+-- a space is seperating the long/lat values
 isPosition :: Text -> Bool
 isPosition p 
-  = if length split < 2 
-    then False
-    else case (parsedLong, parsedLat) of
-      (Just _, Just _) -> True
+  = case split of
+      [Just _, Just _] -> True
       _                -> False       
   where
-  split = T.splitOn "|" p
-  -- XXX refactor to map or something
-  long       = split !! 0
-  lat        = split !! 1
-  parsedLong = readMaybe (T.unpack long) :: Maybe Double
-  parsedLat  = readMaybe (T.unpack lat)  :: Maybe Double
+  split = map (\v -> readMaybe (T.unpack v) :: Maybe Double) $ T.splitOn " " p
 
--- | covertts double|double to int that contains both positions
+
+-- | Normalizer with space as seperator
+-- Format "double double"
+-- XXX normalize length -> we need int normalization first
 normalizePosition :: Word -> Word
 normalizePosition p 
-  = if length split < 2 
-    then error "failure: list should always be splitable!"
-    else res 
+  = case split of
+     [loB, laB] -> T.pack . concat $ zipWith (\lo la -> [lo,la]) loB laB
+     _          -> error "failure: invalid format: check that before!"
   where
-  split = T.splitOn "|" p
-  -- XXX refactor to map or something
-  long       = split !! 0
-  lat        = split !! 1
-  pLong      = fromMaybe 0.0 $ readMaybe (T.unpack long) :: Double
-  pLat       = fromMaybe 0.0 $ readMaybe (T.unpack lat)  :: Double
-  (loI, laI) = (floor (pLong * 10000000), floor (pLat * 10000000)) :: (Integer,Integer)
-  (loB, laB) = (dec2bin loI, dec2bin laI)
-  res        = T.pack $ concat $ zipWith (\lo la -> [lo,la]) loB laB
+  split = map format $ T.splitOn " " p
+  format = dec2bin . toInt . toDouble 
+  -- XXX use int normalizer here later
+  toInt      :: Double -> Integer
+  toInt    v = floor (v * 10000000)
+   
+  toDouble   :: Text -> Double
+  toDouble v = fromMaybe 0.0 $ readMaybe (T.unpack v)
 
 
 bin2dec :: String -> Integer

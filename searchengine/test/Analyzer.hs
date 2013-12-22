@@ -58,22 +58,22 @@ prop_isPosition_d :: Gen Bool
 prop_isPosition_d = do
   long <- arbitrary :: Gen Double
   lat  <- arbitrary :: Gen Double
-  return . NP.isPosition $ T.concat [ T.pack . show $ long, "|", T.pack . show $ lat]
+  return . NP.isPosition $ T.concat [ T.pack . show $ long, " ", T.pack . show $ lat]
 
 prop_isPosition_i :: Gen Bool
 prop_isPosition_i = do
   long <- arbitrary :: Gen Int
   lat  <- arbitrary :: Gen Int
-  return . NP.isPosition $ T.concat [ T.pack . show $ long, "|", T.pack . show $ lat]
+  return . NP.isPosition $ T.concat [ T.pack . show $ long, " ", T.pack . show $ lat]
 
 prop_isPosition_t :: Gen Bool
 prop_isPosition_t = do
   long <- niceText1
   lat  <- niceText1
-  return $ False == NP.isPosition (T.concat [ long, "|", lat ])
+  return $ False == NP.isPosition (T.concat [ long, " ", lat ])
 
 test_norm_pos :: Assertion
-test_norm_pos = assertEqual "" "110000111100000011000011001111001100000000000000" (NP.normalizePosition "1|1")
+test_norm_pos = assertEqual "" "110000111100000011000011001111001100000000000000" (NP.normalizePosition "1 1")
 
 -- ----------------------------------------------------------------------------
 -- normalizer date tests
