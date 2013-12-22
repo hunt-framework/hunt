@@ -41,9 +41,9 @@ main = defaultMain
        , testProperty "typeValidator: date inv"    prop_validate_date2
 
        -- Normalizer data - isAnyDate
-       , testProperty "Normalizer:date 2013-01-01" prop_isAnyDate
-       , testProperty "Normalizer:date 2013-01-01" prop_isAnyDate2
-       , testProperty "Normalizer:date 2013-01-01" prop_isAnyDate3
+       , testProperty "Normalizer:date YYYYMMDD"            prop_isAnyDate
+       , testProperty "Normalizer:date 2013-01-01T21:12:12" prop_isAnyDate2
+       , testProperty "Normalizer:date 2013"                prop_isAnyDate3
        ]
 
 -- ----------------------------------------------------------------------------
@@ -56,13 +56,13 @@ main = defaultMain
 -- | test with date formatted like "2013-01-01"
 -- | XXX everything fails?!?!
 prop_isAnyDate :: Gen Bool
-prop_isAnyDate = dateYYYYMMDD >>= return . ND.isAnyDate' . T.unpack
+prop_isAnyDate = dateYYYYMMDD >>= return . ND.isAnyDate . T.unpack
 
 prop_isAnyDate2 :: Gen Bool
-prop_isAnyDate2 = return . ND.isAnyDate' $ "2013-01-01T21:12:12"
+prop_isAnyDate2 = return . ND.isAnyDate $ "2013-01-01T21:12:12"
 
 prop_isAnyDate3 :: Gen Bool
-prop_isAnyDate3 = return . ND.isAnyDate' $ "2013"
+prop_isAnyDate3 = return . ND.isAnyDate $ "2013"
 
 -- | test date normalization
 -- XXX

@@ -13,7 +13,7 @@ import           Holumbus.Common.BasicTypes
 import           Holumbus.Index.Schema
 import           Holumbus.Utility
 
-import           Holumbus.Index.Schema.Normalize.Date (normalizeDate, isAnyDate')
+import           Holumbus.Index.Schema.Normalize.Date (normalizeDate, isAnyDate)
 
 -- ----------------------------------------------------------------------------
 
@@ -30,7 +30,8 @@ typeValidator :: CType -> Text -> Bool
 typeValidator t = case t of
     CText -> const True
     CInt  -> const True
-    CDate -> isAnyDate' . T.unpack
+    -- XXX: does not exclude negative dates yet
+    CDate -> isAnyDate . T.unpack
 
 -- ----------------------------------------------------------------------------
 
