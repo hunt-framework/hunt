@@ -32,6 +32,9 @@ main = defaultMain
        , testCase "scanTextRE: date val"           test_scan_date2
        , testCase "scanTextRE: date val multiple"  test_scan_date3
        , testCase "scanTextRE: date val + inval"   test_scan_date4
+       , testCase "scanTextRE: date val short   "  test_scan_date5
+       , testCase "scanTextRE: date val shorter"   test_scan_date6
+
 
        -- Normalizer tests - validation
        , testProperty "typeValidator: text"        prop_validate_text
@@ -151,6 +154,19 @@ test_scan_date4 :: Assertion
 test_scan_date4 = assert $ (length scan == 2) && (scan !! 1 == "2013-01-01")
   where
   scan = A.scanTextRE "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))" "2013-01-01 asd 2013-01-01"
+
+-- | test date regex with invalid date given
+test_scan_date5 :: Assertion
+test_scan_date5 = assert $ length scan == 0
+  where
+  scan = A.scanTextRE "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))" "2013-01"
+
+-- | test date regex with invalid date given
+test_scan_date6 :: Assertion
+test_scan_date6 = assert $ length scan == 0
+  where
+  scan = A.scanTextRE "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))" "2013"
+
 
 -- ----------------------------------------------------------------------------
 -- helper
