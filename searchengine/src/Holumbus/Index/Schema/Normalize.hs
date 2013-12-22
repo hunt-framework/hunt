@@ -1,5 +1,6 @@
 module Holumbus.Index.Schema.Normalize
   ( contextNormalizer
+  , typeNormalizer
   , typeValidator
   , rangeValidator
   )
@@ -22,6 +23,15 @@ contextNormalizer o = case o of
     NormUpperCase -> T.toUpper
     NormLowerCase -> T.toLower
     NormDate      -> normalizeDate
+
+-- ----------------------------------------------------------------------------
+
+typeNormalizer :: CType -> [CNormalizer]
+typeNormalizer o = case o of
+    CText -> []
+    -- TODO: int normalizer
+    CInt  -> []
+    CDate -> [NormDate]
 
 -- ----------------------------------------------------------------------------
 
