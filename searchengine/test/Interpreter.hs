@@ -111,7 +111,7 @@ insertDefaultContext :: Command
 insertDefaultContext = uncurry InsertContext defaultContextInfo
 
 dateContextInfo :: (Context, ContextSchema)
-dateContextInfo = ("datecontext", ContextSchema CDate (rexDates!!2)  [] 1 True)
+dateContextInfo = ("datecontext", ContextSchema CDate "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))"   [] 1 True)
 
 insertDateContext :: Command
 insertDateContext = uncurry InsertContext dateContextInfo
