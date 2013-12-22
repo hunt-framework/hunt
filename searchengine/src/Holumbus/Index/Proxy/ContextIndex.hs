@@ -91,6 +91,16 @@ searchWithCxs :: ContextIxCon i v
 -- we dont have any real parallelism right now
 searchWithCxs op cs k ix = parMap rseq (\c -> (c, searchWithCx op c k ix)) cs
 
+-- | search in different contexts with key already normalized in respect
+--   to each context type
+searchWithCxsNormalized :: (ContextIxCon i v)
+                           => Ix.ISearchOp i v
+                           -> [(Context, Ix.IKey i v)]
+                           -> ContextIndex i v
+                           -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]
+searchWithCxsNormalized op cks ix 
+  = parMap rseq (\(c,k) -> (c, searchWithCx op c k ix)) cks
+
 
 -- | Contexts/keys of 'ContextIndex'.
 contexts :: ContextIndex i v -> [Context]

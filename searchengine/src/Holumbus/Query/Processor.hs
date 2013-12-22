@@ -149,6 +149,20 @@ getSchema = get >>= return . psSchema
 getContextSchema :: QueryIndexCon ix => Context -> Processor ix ContextSchema
 getContextSchema c = getSchema >>= return . fromJust . M.lookup c
 
+-- | normalizes search text in respect of schema context type
+--   first runs validator that throws error for invalid values
+--   then runs normalizers attached to the given context
+normQueryCx :: QueryIndexCon ix => Context -> Text -> Processor ix Text
+normQueryCx c t = do
+  cSchema <- getContextSchema c
+  if typeValidator (cxType cSchema) t 
+    then return $ normalize (cxNormalizer cSchema) t 
+    else processError 400 $ T.concat ["value incompatible with context type: ", c, ":", t]
+
+-- | normalizes search text in respect of multiple contexts
+normQueryCxs :: QueryIndexCon ix => [Context] -> Text -> Processor ix [(Context, Text)]
+normQueryCxs cs t  = mapM (\c -> normQueryCx c t >>= \nt -> return (c, nt)) cs
+ 
 --withState' :: QueryIndexCon ix => (ProcessState ix -> Processor ix a) -> Processor ix a
 --withState' f = get >>= f
 
@@ -236,8 +250,9 @@ processWord :: QueryIndexCon i
 processWord op q c = do
   st <- get
   ix <- getIx
+  cq <- normQueryCxs c q
   return . I.fromListCx q c . limitWords st . toRawResult
-    $ CIx.searchWithCxs op c q ix
+    $ CIx.searchWithCxsNormalized op cq ix
 
 -- | Case Sensitive variant of process Word
 processWordCase :: QueryIndexCon i
@@ -298,7 +313,8 @@ processPhraseFuzzy q = do
 processPhraseInternal :: QueryIndexCon i
                       => (Text -> RawResult) -> Text -> [Context]
                       -> Processor i Intermediate
-processPhraseInternal f q c =
+processPhraseInternal f q c = do
+  cq <- normQueryCxs c q
   if DM.null result
     then return $ I.empty
     else return $ I.fromListCx q c [(q, processPhrase' ws 1 result)]
