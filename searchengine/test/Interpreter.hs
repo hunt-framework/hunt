@@ -46,6 +46,8 @@ main = defaultMain
           test_fancy
        , testCase "Interpreter: date context"
           test_dates
+       , testCase "Interpreter: geo context"
+          test_geo
        ]
 
 -- | check DmPrefixTree
@@ -95,6 +97,17 @@ dateDoc = emptyApiDoc
   where
   ApiDocument uri ix dt = brainDoc
 
+geoDoc :: ApiDocument
+geoDoc = emptyApiDoc
+  { apiDocUri      = uri
+  , apiDocIndexMap = M.insert "geocontext" "53.60000 10.00000" ix
+  , apiDocDescrMap = dt
+  }
+  where
+  ApiDocument uri ix dt = brainDoc
+
+
+
 -- example apidoc
 brainDocUpdate :: ApiDocument
 brainDocUpdate = brainDoc { apiDocDescrMap = descr }
@@ -115,6 +128,12 @@ dateContextInfo = ("datecontext", ContextSchema CDate "[0-9]{4}-((0[1-9])|(1[0-2
 
 insertDateContext :: Command
 insertDateContext = uncurry InsertContext dateContextInfo
+
+geoContextInfo :: (Context, ContextSchema)
+geoContextInfo = ("datecontext", ContextSchema CPosition "" [] 1 True)
+
+insertGeoContext :: Command
+insertGeoContext = uncurry InsertContext geoContextInfo
 
 
 
@@ -180,8 +199,21 @@ test_dates = testCM $ do
   -- insert date containing document
   Insert dateDoc          @@= ResOK
   -- searching for date
-  Search (QContext ["datecontext"] (QWord QNoCase "2013")) 0 10
+  Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
     @@@ ((@?= ["test://0"]) . searchResultUris)
+
+
+test_geo :: Assertion
+test_geo = testCM $ do
+  -- create contexts
+  insertGeoContext       @@= ResOK
+  insertDefaultContext   @@= ResOK
+  -- insert date containing document
+  Insert geoDoc          @@= ResOK
+  -- searching for date
+  Search (QContext ["geocontext"] (QWord QNoCase "53.60000 10.00000")) 0 10
+    @@@ ((@?= ["test://0"]) . searchResultUris)
+
 
 
 -- fancy - equivalent to 'test_alot' plus additional tests
