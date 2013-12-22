@@ -1,19 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Main where
-{-- Tests for Normalizers Analizers Formatters #-}
-
---import           Control.Applicative
---import           Control.Monad.Error
---import           Control.Monad.Trans                  (liftIO)
-
---import qualified Data.Map                             as M
---import           Data.Monoid
---import qualified Data.Set                             as S
+{-- Tests for Normalizers Analyzers Formatters #-}
 
 import           Data.Text                              (Text)
 import qualified Data.Text                              as T
 import           Data.Time
-import           Data.Time.Format
+--import           Data.Time.Format
 import           System.Locale
 
 import           Test.Framework
@@ -21,18 +14,7 @@ import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
 import           Test.HUnit
 import           Test.QuickCheck
-import qualified Test.QuickCheck.Monadic                as QM
-
---import           Holumbus.Common
---import           Holumbus.Common.ApiDocument          as ApiDoc
---import           Holumbus.Common.BasicTypes
---import           Holumbus.Interpreter.Command
---import           Holumbus.Interpreter.Interpreter
---import           Holumbus.Query.Language.Grammar
---import           Holumbus.Query.Ranking
---import           Holumbus.Utility
---import           Holumbus.Index.InvertedIndex         (InvertedIndex)
---import           Holumbus.DocTable.HashedDocTable     (Documents)
+--import qualified Test.QuickCheck.Monadic                as QM
 
 import qualified Holumbus.Index.Schema                as S
 import qualified Holumbus.Index.Schema.Analyze        as A

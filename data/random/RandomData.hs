@@ -194,7 +194,7 @@ descriptionGen :: Gen Description
 descriptionGen = do
   tuples <- vectorOf 3 kvTuples
   dates  <- cxDate
-  return $ M.fromList (dates:tuples) 
+  return $ M.fromList (dates:tuples)
   where
   kvTuples = do
     a <- resize 15 niceText1 -- keys are short

@@ -15,7 +15,6 @@ import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Occurrences             (Occurrences)
 import qualified Holumbus.Common.Occurrences             as Occ
 import           Holumbus.Common.Occurrences.Compression hiding (delete)
-import           Holumbus.Common.Positions               (Positions)
 
 import           Holumbus.Index.Index                    as Ix
 import           Holumbus.Index.ComprPrefixTreeIndex
