@@ -46,6 +46,10 @@ data TypeDummy
 (.:::) :: (d -> e) -> (a -> b -> c -> d) -> a -> b -> c -> e
 (.:::) = (.).(.).(.)
 
+-- | Safe 'head'.
+head' :: [a] -> Maybe a
+head' xs = if null xs then Nothing else Just $ head xs
+
 -- | Data.Maybe.catMaybes on a Set instead of a List.
 catMaybesSet :: Ord a => Set (Maybe a) -> [a]
 catMaybesSet = S.toList . S.map fromJust . S.delete Nothing

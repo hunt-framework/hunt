@@ -50,9 +50,13 @@ toDocAndWords schema apiDoc = (doc, ws)
           }
   ws = M.mapWithKey (\context ->
                 (\(content)
-                    -> let cxSchema = fromJust $ M.lookup context schema
-                           scan = filter (typeValidator (cxType cxSchema)) . scanTextRE (cxRegEx cxSchema)
-                       in toWordList scan (normalize (cxNormalizer cxSchema)) content)) indexMap
+                    -> let cSchema  = fromJust $ M.lookup context schema
+                           cType    = cxType cSchema
+                           cNorm    = cxNormalizer cSchema
+                           tNorm    = typeNormalizer cType
+                           scan = filter (typeValidator cType) . scanTextRE (cxRegEx cSchema)
+                       -- XXX: simple concat without nub
+                       in toWordList scan (normalize (tNorm ++ cNorm)) content)) indexMap
 
 
 -- | Apply the normalizers to a Word.

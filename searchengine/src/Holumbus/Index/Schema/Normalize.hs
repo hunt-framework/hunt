@@ -1,5 +1,6 @@
 module Holumbus.Index.Schema.Normalize
   ( contextNormalizer
+  , typeNormalizer
   , typeValidator
   , rangeValidator
   )
@@ -13,8 +14,8 @@ import           Holumbus.Common.BasicTypes
 import           Holumbus.Index.Schema
 import           Holumbus.Utility
 
-import           Holumbus.Index.Schema.Normalize.Date     (normalizeDate, isAnyDate')
 import           Holumbus.Index.Schema.Normalize.Position 
+import           Holumbus.Index.Schema.Normalize.Date (normalizeDate, isAnyDate)
 -- ----------------------------------------------------------------------------
 
 contextNormalizer :: CNormalizer -> Word -> Word
@@ -26,14 +27,22 @@ contextNormalizer o = case o of
 
 -- ----------------------------------------------------------------------------
 
+typeNormalizer :: CType -> [CNormalizer]
+typeNormalizer o = case o of
+    CText -> []
+    -- TODO: int normalizer
+    CInt  -> []
+    CDate -> [NormDate]
+
+-- ----------------------------------------------------------------------------
+
 -- | Checks if value is valid for a context type.
 typeValidator :: CType -> Text -> Bool
 typeValidator t = case t of
     CText     -> const True
     CInt      -> const True
-    CDate     -> isAnyDate' . T.unpack
     CPosition -> isPosition 
-
+    CDate -> isAnyDate . T.unpack
 -- ----------------------------------------------------------------------------
 
 -- | Checks if a range is valid for a context type.

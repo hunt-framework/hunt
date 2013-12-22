@@ -17,6 +17,8 @@ import           Data.Time                   (Day, DiffTime, UTCTime (..),
 
 import           Text.Regex.XMLSchema.String
 
+import           Holumbus.Utility
+
 -- ----------------------------------------------------------------------------
 
 -- | Normalize a date representation to store in the index or search for.
@@ -30,12 +32,11 @@ normalizeDate s = fromMaybe s
 
 -- ----------------------------------------------------------------------------
 
-{-
 -- | Checks if the string is a date representation (syntactically).
 isAnyDate :: String -> Bool
 isAnyDate s = any ($ s) $ map fst safeDateReaders
--}
 
+-- XXX: generally (showDate . readAnyDate) /= id
 -- | Same as 'isAnyDate' but also checks if @(showDate . readAnyDate)@ produces the same result.
 --   /NOTE/: excludes dates before year 0 (1 BCE).
 isAnyDate' :: String -> Bool
@@ -50,7 +51,7 @@ readAnyDate = fromJust . readAnyDateM
 
 -- | Try to read a date.
 readAnyDateM :: String -> Maybe Date
-readAnyDateM s = fmap head . mapM readDateM $ safeDateReaders
+readAnyDateM s = head' . catMaybes . map readDateM $ safeDateReaders
   where
   readDateM :: (String -> Bool, String -> Date) -> Maybe Date
   readDateM (v, r) = guard (v s) >> return (r s)

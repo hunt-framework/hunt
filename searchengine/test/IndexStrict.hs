@@ -56,7 +56,7 @@ main = do
               , testProperty "prop_strictness_prefixtreeindex"           prop_ptix
               , testProperty "prop_strictness_invindex"                  prop_invix
 --            test failing right now because compressedoccurrences are not strict
---            but we are not using them at the moment at probably won't in the future 
+--            but we are not using them at the moment at probably won't in the future
 --              , testProperty "prop_strictness_comprprefixtreeindex comp" prop_cptix
               , testProperty "prop_strictness_comprprefixtreeindex seri" prop_cptix2
               , testProperty "prop_strictness_proxy_cache"               prop_cachedix

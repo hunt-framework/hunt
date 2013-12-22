@@ -1,19 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Main where
-{-- Tests for Normalizers Analizers Formatters #-} 
-
---import           Control.Applicative
---import           Control.Monad.Error
---import           Control.Monad.Trans                  (liftIO)
-
---import qualified Data.Map                             as M
---import           Data.Monoid
---import qualified Data.Set                             as S
+{-- Tests for Normalizers Analyzers Formatters #-}
 
 import           Data.Text                              (Text)
 import qualified Data.Text                              as T
 import           Data.Time
-import           Data.Time.Format
+--import           Data.Time.Format
 import           System.Locale
 
 import           Test.Framework
@@ -21,18 +14,7 @@ import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
 import           Test.HUnit
 import           Test.QuickCheck
-import qualified Test.QuickCheck.Monadic                as QM
-
---import           Holumbus.Common
---import           Holumbus.Common.ApiDocument          as ApiDoc
---import           Holumbus.Common.BasicTypes
---import           Holumbus.Interpreter.Command
---import           Holumbus.Interpreter.Interpreter
---import           Holumbus.Query.Language.Grammar
---import           Holumbus.Query.Ranking
---import           Holumbus.Utility
---import           Holumbus.Index.InvertedIndex         (InvertedIndex)
---import           Holumbus.DocTable.HashedDocTable     (Documents)
+--import qualified Test.QuickCheck.Monadic                as QM
 
 import qualified Holumbus.Index.Schema                    as S
 import qualified Holumbus.Index.Schema.Analyze            as A
@@ -43,7 +25,7 @@ import qualified Holumbus.Index.Schema.Normalize.Position as NP
 
 main :: IO ()
 main = defaultMain
-       [ 
+       [
        -- Analyzer tests
          testCase "scanTextRE: text1 "             test_scan_text1
        , testCase "scanTextRE: date inv"           test_scan_date1
@@ -57,12 +39,12 @@ main = defaultMain
        , testProperty "typeValidator: int inv"     prop_validate_int2
        , testProperty "typeValidator: date val"    prop_validate_date
        , testProperty "typeValidator: date inv"    prop_validate_date2
-  
-       -- Normalizer date - isAnyDate
-       , testProperty "Normalizer:date 2013-01-01" prop_isAnyDate
-       , testProperty "Normalizer:date 2013-01-01" prop_isAnyDate2
-       , testProperty "Normalizer:date 2013-01-01" prop_isAnyDate3
-   
+
+       -- Normalizer data - isAnyDate
+       , testProperty "Normalizer:date YYYYMMDD"            prop_isAnyDate
+       , testProperty "Normalizer:date 2013-01-01T21:12:12" prop_isAnyDate2
+       , testProperty "Normalizer:date 2013"                prop_isAnyDate3
+
        -- Normalizer position 
        , testProperty "Normlizer:pos double"       prop_isPosition_d
        , testProperty "Normlizer:pos int"          prop_isPosition_i
@@ -99,13 +81,13 @@ test_norm_pos = assertEqual "" "110000111100000011000011001111001100000000000000
 -- | test with date formatted like "2013-01-01"
 -- | XXX everything fails?!?!
 prop_isAnyDate :: Gen Bool
-prop_isAnyDate = dateYYYYMMDD >>= return . ND.isAnyDate' . T.unpack
+prop_isAnyDate = dateYYYYMMDD >>= return . ND.isAnyDate . T.unpack
 
 prop_isAnyDate2 :: Gen Bool
-prop_isAnyDate2 = return . ND.isAnyDate' $ "2013-01-01T21:12:12"
+prop_isAnyDate2 = return . ND.isAnyDate $ "2013-01-01T21:12:12"
 
 prop_isAnyDate3 :: Gen Bool
-prop_isAnyDate3 = return . ND.isAnyDate' $ "2013"
+prop_isAnyDate3 = return . ND.isAnyDate $ "2013"
 
 -- | test date normalization
 -- XXX
@@ -145,8 +127,8 @@ test_scan_text1 :: Assertion
 test_scan_text1 = assert $ length scan == 3
   where
   scan = A.scanTextRE "[^ \t\n\r]*" "w1 w2 w3"
-              
--- | test date regex with invalid date given      
+
+-- | test date regex with invalid date given
 test_scan_date1 :: Assertion
 test_scan_date1 = assert $ length scan == 0
   where
@@ -157,7 +139,7 @@ test_scan_date2 :: Assertion
 test_scan_date2 = assert $ length scan == 1
   where
   scan = A.scanTextRE "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))" "2013-01-01"
- 
+
 -- | test date regex with multiple dates given
 test_scan_date3 :: Assertion
 test_scan_date3 = assert $ length scan == 2
@@ -169,7 +151,7 @@ test_scan_date4 :: Assertion
 test_scan_date4 = assert $ (length scan == 2) && (scan !! 1 == "2013-01-01")
   where
   scan = A.scanTextRE "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))" "2013-01-01 asd 2013-01-01"
- 
+
 -- ----------------------------------------------------------------------------
 -- helper
 
