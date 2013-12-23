@@ -175,10 +175,14 @@ getContextSchema c = getSchema >>= return . fromJust . M.lookup c
 --   then runs normalizers attached to the given context
 normQueryCx :: QueryIndexCon ix => Context -> Text -> Processor ix Text
 normQueryCx c t = do
-  cSchema <- getContextSchema c
-  if typeValidator (cxType cSchema) t 
-    then return $ normalize (cxNormalizer cSchema) t 
+  s <- getContextSchema c
+  if typeValidator (cxType s) t 
+    then do
+       liftIO . debugM $ concat [ "query normalizer: ", T.unpack c, ": [", T.unpack t, "=>", T.unpack $ n s, "]"] 
+       return $ n s 
     else processError 400 $ T.concat ["value incompatible with context type: ", c, ":", t]
+  where
+  n s = normalize (cxNormalizer s) t 
 
 -- | normalizes search text in respect of multiple contexts
 normQueryCxs :: QueryIndexCon ix => [Context] -> Text -> Processor ix [(Context, Text)]
