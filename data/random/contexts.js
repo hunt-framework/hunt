@@ -54,7 +54,7 @@
         "weight": 1.0,
         "default": false,
         "normalizers": [],
-        "regexp": "\\w*",
+        "regexp": "([-]?[0-9]*[.]?[0-9]*)[ ]{1}([-]?[0-9]*[.]?[0-9]*)",
         "type": "position"
     }
 }
@@ -66,7 +66,7 @@
         "weight": 1.0,
         "default": false,
         "normalizers": [],
-        "regexp": "\\w*",
+        "regexp": "([-]?[0-9]*)",
         "type": "int"
     }
 }
