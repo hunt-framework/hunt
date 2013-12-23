@@ -58,4 +58,16 @@
         "type": "position"
     }
 }
+,
+{
+    "cmd": "insert-context",
+    "context": "contextint",
+    "schema": {
+        "weight": 1.0,
+        "default": false,
+        "normalizers": [],
+        "regexp": "\\w*",
+        "type": "int"
+    }
+}
 ]
