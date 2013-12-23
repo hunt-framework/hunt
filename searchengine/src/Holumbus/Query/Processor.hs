@@ -73,6 +73,27 @@ import           Holumbus.Index.Schema.Analyze
 import           Holumbus.Index.Schema.Normalize
 import           Holumbus.Interpreter.Command      (CmdError(..))
 
+import qualified System.Log.Logger                as Log
+
+import           Holumbus.Utility.Log
+
+
+-- | Name of the module for logging purposes.
+modName :: String
+modName = "Holumbus.Query.Processor"
+
+-- | Log a message at 'DEBUG' priority.
+debugM :: String -> IO ()
+debugM = Log.debugM modName
+
+-- | Log a message at 'WARNING' priority.
+warningM :: String -> IO ()
+warningM = Log.warningM modName
+
+-- | Log a message at 'ERROR' priority.
+errorM :: String -> IO ()
+errorM = Log.errorM modName
+
 -- ----------------------------------------------------------------------------
 -- | The configuration and State for the query processor.
 -- ----------------------------------------------------------------------------

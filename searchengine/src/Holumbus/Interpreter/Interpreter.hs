@@ -19,6 +19,7 @@ import           Data.Set                          (Set)
 import qualified Data.Set                          as S
 import           Data.Text                         (Text)
 import qualified Data.Text                         as T
+import           Data.Maybe                        (fromMaybe)
 
 import           Holumbus.Common
 import           Holumbus.Common.ApiDocument       as ApiDoc
@@ -84,6 +85,10 @@ warningM = Log.warningM modName
 -- | Log a message at 'ERROR' priority.
 errorM :: String -> IO ()
 errorM = Log.errorM modName
+
+-- | Log formated values that get inserted into a context
+debugContext :: Context -> Words -> IO ()
+debugContext c ws = debugM $ concat ["insert in", T.unpack c, show . M.toList $ fromMaybe M.empty $ M.lookup c ws]  
 
 -- ----------------------------------------------------------------------------
 
@@ -304,8 +309,12 @@ execInsert doc ixx@(_ix, _dt, schema) = do
     checkContextsExistence contexts ixx
     -- apidoc should not exist
     checkApiDocExistence False doc ixx
-
     let (docs, ws) = toDocAndWords schema doc
+    
+    liftIO $ debugContext "contextgeo" ws
+    liftIO $ debugContext "contextint" ws
+    liftIO $ debugContext "contextdate" ws
+
     ixx' <- lift $ Ixx.insert docs ws ixx
     return (ixx', ResOK)
 
