@@ -54,7 +54,7 @@ data CType
 type CRegex  = Text
 
 -- | Enum for text-normalizers than can be chose by the user.
-data CNormalizer = NormUpperCase | NormLowerCase | NormDate | NormPosition
+data CNormalizer = NormUpperCase | NormLowerCase | NormDate | NormPosition | NormIntZeroFill
   deriving (Show, Eq)
 
 -- | Context weight for search result rankings.
@@ -88,15 +88,17 @@ instance FromJSON CNormalizer where
         "lowercase" -> return NormLowerCase
         "date"      -> return NormDate
         "position"  -> return NormPosition
+        "zerofill"  -> return NormIntZeroFill
         _           -> mzero
   parseJSON _ = mzero
 
 instance ToJSON CNormalizer where
   toJSON o = case o of
-    NormUpperCase -> "uppercase"
-    NormLowerCase -> "lowercase"
-    NormDate      -> "date"
-    NormPosition  -> "position"
+    NormUpperCase   -> "uppercase"
+    NormLowerCase   -> "lowercase"
+    NormDate        -> "date"
+    NormPosition    -> "position"
+    NormIntZeroFill -> "zerofill"
 
 instance FromJSON ContextSchema where
   parseJSON (Object o) = do
@@ -138,10 +140,11 @@ instance Binary CType where
       _ -> fail "get(CType) out of bounds"
 
 instance Binary CNormalizer where
-  put (NormUpperCase) = put (0 :: Word8)
-  put (NormLowerCase) = put (1 :: Word8)
-  put (NormDate)      = put (2 :: Word8)
-  put (NormPosition)  = put (3 :: Word8)
+  put (NormUpperCase)   = put (0 :: Word8)
+  put (NormLowerCase)   = put (1 :: Word8)
+  put (NormDate)        = put (2 :: Word8)
+  put (NormPosition)    = put (3 :: Word8)
+  put (NormIntZeroFill) = put (4 :: Word8)
 
   get = do
     t <- get :: Get Word8
@@ -150,6 +153,7 @@ instance Binary CNormalizer where
       1 -> return NormLowerCase
       2 -> return NormDate
       3 -> return NormPosition
+      4 -> return NormIntZeroFill
       _ -> fail "get(CNormalizer) out of bounds"
 
 instance Binary ContextSchema where

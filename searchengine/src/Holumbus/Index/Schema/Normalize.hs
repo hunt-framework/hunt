@@ -7,31 +7,33 @@ module Holumbus.Index.Schema.Normalize
 where
 
 import           Data.Maybe
-import           Data.Text                            (Text)
-import qualified Data.Text                            as T
+import           Data.Text                                (Text)
+import qualified Data.Text                                as T
 
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Index.Schema
 import           Holumbus.Utility
 
-import           Holumbus.Index.Schema.Normalize.Position 
-import           Holumbus.Index.Schema.Normalize.Date (normalizeDate, isAnyDate)
+import           Holumbus.Index.Schema.Normalize.Position (normalizePosition, isPosition)
+import           Holumbus.Index.Schema.Normalize.Date     (normalizeDate, isAnyDate)
+import           Holumbus.Index.Schema.Normalize.Int      (normalizeInt, isInt)
+
 -- ----------------------------------------------------------------------------
 
 contextNormalizer :: CNormalizer -> Word -> Word
 contextNormalizer o = case o of
-    NormUpperCase -> T.toUpper
-    NormLowerCase -> T.toLower
-    NormDate      -> normalizeDate
-    NormPosition  -> normalizePosition
+    NormUpperCase   -> T.toUpper
+    NormLowerCase   -> T.toLower
+    NormDate        -> normalizeDate
+    NormPosition    -> normalizePosition
+    NormIntZeroFill -> normalizeInt
 
 -- ----------------------------------------------------------------------------
 
 typeNormalizer :: CType -> [CNormalizer]
 typeNormalizer o = case o of
     CText     -> []
-    -- TODO: int normalizer
-    CInt      -> []
+    CInt      -> [NormIntZeroFill]
     CDate     -> [NormDate]
     CPosition -> [NormPosition]
 -- ----------------------------------------------------------------------------
@@ -40,9 +42,10 @@ typeNormalizer o = case o of
 typeValidator :: CType -> Text -> Bool
 typeValidator t = case t of
     CText     -> const True
-    CInt      -> const True
+    CInt      -> isInt
     CPosition -> isPosition 
-    CDate -> isAnyDate . T.unpack
+    CDate     -> isAnyDate . T.unpack
+
 -- ----------------------------------------------------------------------------
 
 -- | Checks if a range is valid for a context type.

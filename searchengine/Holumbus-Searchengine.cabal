@@ -70,6 +70,7 @@ library
     Holumbus.Index.Schema.Normalize
     Holumbus.Index.Schema.Normalize.Date
     Holumbus.Index.Schema.Normalize.Position
+    Holumbus.Index.Schema.Normalize.Int
 
     Holumbus.Index.Index
     Holumbus.Index.TextIndex

@@ -21,6 +21,8 @@ import qualified Holumbus.Index.Schema.Analyze            as A
 import qualified Holumbus.Index.Schema.Normalize          as N
 import qualified Holumbus.Index.Schema.Normalize.Date     as ND
 import qualified Holumbus.Index.Schema.Normalize.Position as NP
+import qualified Holumbus.Index.Schema.Normalize.Int      as NI
+
 -- ----------------------------------------------------------------------------
 
 main :: IO ()
@@ -34,7 +36,6 @@ main = defaultMain
        , testCase "scanTextRE: date val + inval"   test_scan_date4
        , testCase "scanTextRE: date val short   "  test_scan_date5
        , testCase "scanTextRE: date val shorter"   test_scan_date6
-
 
        -- Normalizer tests - validation
        , testProperty "typeValidator: text"        prop_validate_text
@@ -53,7 +54,90 @@ main = defaultMain
        , testProperty "Normlizer:pos int"          prop_isPosition_i
        , testProperty "Normlizer:pos text"         prop_isPosition_t
        , testCase     "Normlizer:norm pos"         test_norm_pos
+
+       -- Normalizer int
+       , testProperty "Normlizer:isInt Int"        prop_isInt_int
+       , testProperty "Normlizer:isInt Integer"    prop_isInt_integer
+       , testProperty "Normlizer:isInt text"       prop_isInt_text
+       , testProperty "Normlizer:isInt double"     prop_isInt_double
+       , testCase     "Normlizer:isInt overflow"   test_isInt_overflow
+       , testCase     "Normlizer:isInt nooverflow" test_isInt_overflow2
+       , testCase     "Normlizer:isInt maxBound"   test_isInt_upper1
+       , testCase     "Normlizer:isInt maxBound"   test_isInt_upper2
+       , testCase     "Normlizer:isInt minBound"   test_isInt_lower1
+       , testCase     "Normlizer:isInt minBound"   test_isInt_lower2
+
+       , testProperty "Normlizer:normInt int"      prop_normInt_int
+       , testProperty "Normlizer:normInt integer"  prop_normInt_integer
+       , testCase     "Normlizer:isInt 1"          test_normInt1
+       , testCase     "Normlizer:isInt -1"         test_normInt2
+       , testCase     "Normlizer:isInt maxBound"   test_normInt3
+       , testCase     "Normlizer:isInt minBound"   test_normInt4
        ]
+
+-- ----------------------------------------------------------------------------
+-- normalizer position tests
+
+prop_isInt_int :: Gen Bool
+prop_isInt_int = do
+  val <- arbitrary :: Gen Int
+  return . NI.isInt . T.pack . show $ val
+
+prop_isInt_integer :: Gen Bool
+prop_isInt_integer = do
+  val <- arbitrary :: Gen Integer
+  return . NI.isInt . T.pack .show $ val
+
+prop_isInt_text :: Gen Bool
+prop_isInt_text = do
+  val <- niceText1
+  return . not . NI.isInt $ val
+
+prop_isInt_double :: Gen Bool
+prop_isInt_double = do
+  val <- arbitrary :: Gen Double
+  return . not . NI.isInt . T.pack . show $ val
+
+test_isInt_overflow :: Assertion
+test_isInt_overflow = assertEqual "" False (NI.isInt  "10000000000000000000000000000000000000")
+
+test_isInt_overflow2 :: Assertion
+test_isInt_overflow2 = assertEqual "" True (NI.isInt  "6443264")
+
+test_isInt_upper1 :: Assertion
+test_isInt_upper1 = assertEqual "" True (NI.isInt  "9223372036854775807")
+
+test_isInt_upper2 :: Assertion
+test_isInt_upper2 = assertEqual "" False (NI.isInt  "9223372036854775808")
+
+test_isInt_lower1 :: Assertion
+test_isInt_lower1 = assertEqual "" True (NI.isInt  "-9223372036854775808")
+
+test_isInt_lower2 :: Assertion
+test_isInt_lower2 = assertEqual "" False (NI.isInt  "-9223372036854775809")
+
+prop_normInt_int :: Gen Bool
+prop_normInt_int = do
+  val <- arbitrary :: Gen Int
+  return $ 21 == T.length (NI.normalizeInt . T.pack . show $ val)
+
+prop_normInt_integer :: Gen Bool
+prop_normInt_integer = do
+  val <- arbitrary :: Gen Integer
+  return $ 21 == T.length (NI.normalizeInt . T.pack . show $ val)
+
+test_normInt1 :: Assertion
+test_normInt1 = assertEqual "" "100000000000000000001" (NI.normalizeInt "1")
+
+test_normInt2 :: Assertion
+test_normInt2 = assertEqual "" "000000000000000000001" (NI.normalizeInt "-1")
+
+test_normInt3 :: Assertion
+test_normInt3 = assertEqual "" "109223372036854775807" (NI.normalizeInt "9223372036854775807")
+
+test_normInt4 :: Assertion
+test_normInt4 = assertEqual "" "009223372036854775808" (NI.normalizeInt "-9223372036854775808")
+
 
 -- ----------------------------------------------------------------------------
 -- normalizer position tests
@@ -172,7 +256,7 @@ test_scan_date6 = assert $ length scan == 0
 -- helper
 
 niceText1 :: Gen Text
-niceText1 = fmap T.pack . listOf1 . elements $ concat [" ", ['0'..'9'], ['A'..'Z'], ['a'..'z']]
+niceText1 = fmap T.pack . listOf1 . elements $ concat [" ", ['A'..'Z'], ['a'..'z']]
 
 dateYYYYMMDD :: Gen Text
 dateYYYYMMDD = arbitrary >>= \x -> return . T.pack $ formatTime defaultTimeLocale "%Y-%m-%d" (newDate x)
