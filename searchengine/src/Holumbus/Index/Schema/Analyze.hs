@@ -1,6 +1,7 @@
 module Holumbus.Index.Schema.Analyze
   ( toDocAndWords
   , normalize
+  , normalizeByType
   , scanTextRE
   )
 where
@@ -63,6 +64,14 @@ toDocAndWords schema apiDoc = (doc, ws)
 normalize :: [CNormalizer] -> Word -> Word
 normalize cType = chainFuns . map contextNormalizer $ cType
 
+
+-- | Fetch normalzers from Schema and apply them to a Word
+normalizeByType :: ContextSchema -> Word -> Word
+normalizeByType s = normalize (tNorm ++ cNorm) 
+  where
+  cNorm    = cxNormalizer s
+  tNorm    = typeNormalizer . cxType $ s
+                     
 
 -- | Chain a list of functions.
 chainFuns :: [a -> a] -> a -> a
