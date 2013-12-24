@@ -16,10 +16,7 @@ import           Control.Applicative                        ((<$>))
 import           Control.Arrow                              (first)
 
 import           Data.Binary                                (Binary (..))
-import           Data.Text                                  (Text, pack, unpack)
-import qualified Data.Text                                  as T
-import           Data.Maybe                                 (isJust, fromMaybe)
-import           Text.Read                                  hiding (get)
+import           Data.Text                                  (Text)
 
 import           Holumbus.Index.Index
 import qualified Holumbus.Index.Index                       as Ix

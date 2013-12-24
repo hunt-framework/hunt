@@ -84,6 +84,7 @@ library
     Holumbus.Index.Proxy.TextKeyIndex
     Holumbus.Index.Proxy.IntNormalizerIndex
     Holumbus.Index.Proxy.DateNormalizerIndex
+    Holumbus.Index.Proxy.PositionNormalizerIndex
 
     Holumbus.DocTable.DocTable
     Holumbus.DocTable.HashedDocTable

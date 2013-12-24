@@ -208,7 +208,7 @@ descriptionGen = do
   cxp = do
     lo <- choose (-70,70)   :: Gen Integer -- could be -90-90 
     la <- choose (-150,150) :: Gen Integer -- could be .180-180
-    return ("location", T.concat [ T.pack . show $ lo, " " , T.pack . show $ la])
+    return ("location", T.concat [ T.pack . show $ lo, "-" , T.pack . show $ la])
   cxi = do
     i <- arbitrary :: Gen Int
     return ("points", T.pack . show $ i)

@@ -53,7 +53,10 @@ main = defaultMain
        , testProperty "Normlizer:pos double"       prop_isPosition_d
        , testProperty "Normlizer:pos int"          prop_isPosition_i
        , testProperty "Normlizer:pos text"         prop_isPosition_t
-       , testCase     "Normlizer:norm pos"         test_norm_pos
+       , testCase     "Normlizer:norm pos int"     test_norm_pos
+       , testCase     "Normlizer:norm pos dbl"     test_norm_pos4
+       , testProperty "Normlizer:norm denorm int"  prop_norm_pos2
+       , testProperty "Normlizer:norm denorm dbl"  prop_norm_pos3
 
        -- Normalizer int
        , testProperty "Normlizer:isInt Int"        prop_isInt_int
@@ -145,22 +148,39 @@ prop_isPosition_d :: Gen Bool
 prop_isPosition_d = do
   long <- arbitrary :: Gen Double
   lat  <- arbitrary :: Gen Double
-  return . NP.isPosition $ T.concat [ T.pack . show $ long, " ", T.pack . show $ lat]
+  return . NP.isPosition $ T.concat [ T.pack . show $ long, "-", T.pack . show $ lat]
 
 prop_isPosition_i :: Gen Bool
 prop_isPosition_i = do
   long <- arbitrary :: Gen Int
   lat  <- arbitrary :: Gen Int
-  return . NP.isPosition $ T.concat [ T.pack . show $ long, " ", T.pack . show $ lat]
+  return . NP.isPosition $ T.concat [ T.pack . show $ long, "-", T.pack . show $ lat]
 
 prop_isPosition_t :: Gen Bool
 prop_isPosition_t = do
   long <- niceText1
   lat  <- niceText1
-  return $ False == NP.isPosition (T.concat [ long, " ", lat ])
+  return $ False == NP.isPosition (T.concat [ long, "-", lat ])
 
 test_norm_pos :: Assertion
-test_norm_pos = assertEqual "" "110000111100000011000011001111001100000000000000" (NP.normalizePosition "1 1")
+test_norm_pos = assertEqual "" "110000111100000011000011001111001100000000000000" (NP.normalize "1-1")
+
+test_norm_pos4 :: Assertion
+test_norm_pos4 = assertEqual "" "110000111100000011000011001111001100000000000000" (NP.normalize "1.000000-1.000000")
+
+prop_norm_pos2 :: Gen Bool
+prop_norm_pos2 = do
+  long <- arbitrary :: Gen Int
+  lat  <- arbitrary :: Gen Int
+  let pos = T.concat [ T.pack . show $ long, "-", T.pack . show $ lat]
+  return $ pos == (NP.denormalize . NP.normalize $ pos)
+
+prop_norm_pos3 :: Gen Bool
+prop_norm_pos3 = do
+  long <- arbitrary :: Gen Double
+  lat  <- arbitrary :: Gen Double
+  let pos = T.concat [ T.pack . show $ long, "-", T.pack . show $ lat]
+  return $ pos == (NP.denormalize . NP.normalize $ pos)
 
 -- ----------------------------------------------------------------------------
 -- normalizer date tests
