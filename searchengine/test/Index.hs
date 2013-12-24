@@ -15,6 +15,7 @@ import           Test.HUnit
 
 import           Holumbus.Common
 import           Holumbus.Common.Occurrences          (merge, singleton)
+import           Holumbus.Common.Occurrences.Compression.Simple9
 
 import qualified Holumbus.Index.Index                 as Ix
 import qualified Holumbus.Index.InvertedIndex         as InvIx

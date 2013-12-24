@@ -18,7 +18,7 @@ import           Holumbus.Index.Index
 import qualified Holumbus.Index.Index                    as Ix
 
 import           Holumbus.Common.Occurrences             (Occurrences)
-import           Holumbus.Common.Occurrences.Compression hiding (delete)
+import           Holumbus.Common.Occurrences.Compression
 
 -- ----------------------------------------------------------------------------
 

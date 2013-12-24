@@ -7,9 +7,8 @@
 
 module Main where
 
-import           Control.Monad                        (foldM)
 import           Control.DeepSeq
-import           Data.Map                             (Map)
+import           Control.Monad                                   (foldM)
 
 import           Test.Framework
 --import           Test.Framework.Providers.HUnit
@@ -18,30 +17,37 @@ import           Test.Framework.Providers.QuickCheck2
 import           System.Random
 import           Test.QuickCheck
 import           Test.QuickCheck.Gen
-import           Test.QuickCheck.Monadic              (PropertyM, assert, monadicIO, run, pick)
+import           Test.QuickCheck.Monadic                         (PropertyM,
+                                                                  assert,
+                                                                  monadicIO,
+                                                                  pick, run)
 
 
-import qualified Data.Map                             as M
-import           Data.Text                            (Text)
-import qualified Data.Text                            as T
---import qualified Data.IntSet                          as IS
+import           Data.Map                                        (Map)
+import qualified Data.Map                                        as M
+import           Data.Text                                       (Text)
+import qualified Data.Text                                       as T
+--import qualified Data.IntSet                                     as IS
 
 import           Holumbus.Common
---import qualified Holumbus.Common.DocIdMap             as DM
-import qualified Holumbus.Common.Positions            as Pos
-import qualified Holumbus.Common.Occurrences          as Occ
+--import qualified Holumbus.Common.DocIdMap                        as DM
+import qualified Holumbus.Common.Occurrences                     as Occ
+import qualified Holumbus.Common.Occurrences.Compression.BZip    as ZB
+import qualified Holumbus.Common.Occurrences.Compression.Simple9 as Z9
+import qualified Holumbus.Common.Positions                       as Pos
 
 
-import qualified Holumbus.Index.Index                 as Ix
-import qualified Holumbus.Index.PrefixTreeIndex       as PIx
-import qualified Holumbus.Index.ComprPrefixTreeIndex  as CPIx
-import qualified Holumbus.Index.InvertedIndex         as InvIx
+import qualified Holumbus.Index.ComprPrefixTreeIndex             as CPIx
+import qualified Holumbus.Index.Index                            as Ix
+import qualified Holumbus.Index.InvertedIndex                    as InvIx
+import qualified Holumbus.Index.PrefixTreeIndex                  as PIx
 
-import qualified Holumbus.Index.Proxy.CachedIndex     as CacheProxy
-import qualified Holumbus.Index.Proxy.TextKeyIndex    as TextProxy
---import qualified Holumbus.Index.Proxy.CompressedIndex as ComprProxy
+import qualified Holumbus.Index.Proxy.CachedIndex                as CacheProxy
+import qualified Holumbus.Index.Proxy.TextKeyIndex               as TextProxy
+--import qualified Holumbus.Index.Proxy.CompressedIndex            as ComprProxy
 
 import           GHC.AssertNF
+
 
 -- ----------------------------------------------------------------------------
 main :: IO ()
@@ -93,7 +99,7 @@ prop_ptix
 prop_cptix :: Property
 prop_cptix
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (CPIx.ComprOccPrefixTree CompressedOccurrences)
+    ix <- pickIx :: PropertyM IO (CPIx.ComprOccPrefixTree Z9.CompressedOccurrences)
     passed <- run $ isNF $! ix
     assert passed
   where
@@ -102,7 +108,7 @@ prop_cptix
 prop_cptix2 :: Property
 prop_cptix2
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (CPIx.ComprOccPrefixTree SerializedOccurrences)
+    ix <- pickIx :: PropertyM IO (CPIx.ComprOccPrefixTree ZB.CompressedOccurrences)
     passed <- run $ isNF $! ix
     assert passed
   where

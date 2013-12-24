@@ -6,18 +6,18 @@ module Holumbus.Index.InvertedIndex
 )
 where
 
-import           Prelude                                 as P
+import           Prelude                                         as P
 
 import           Control.DeepSeq
-import           Data.Binary                             (Binary (..))
+import           Data.Binary                                     (Binary (..))
 
 import           Holumbus.Common.BasicTypes
-import           Holumbus.Common.Occurrences             (Occurrences)
-import qualified Holumbus.Common.Occurrences             as Occ
-import           Holumbus.Common.Occurrences.Compression hiding (delete)
+import           Holumbus.Common.Occurrences                     (Occurrences)
+import qualified Holumbus.Common.Occurrences                     as Occ
+import           Holumbus.Common.Occurrences.Compression.BZip
 
-import           Holumbus.Index.Index                    as Ix
 import           Holumbus.Index.ComprPrefixTreeIndex
+import           Holumbus.Index.Index                            as Ix
 
 import           Holumbus.Index.Proxy.CachedIndex
 import           Holumbus.Index.Proxy.CompressedIndex
@@ -26,7 +26,7 @@ import           Holumbus.Index.Proxy.TextKeyIndex
 -- ----------------------------------------------------------------------------
 
 newtype InvertedIndex _v
-    = InvIx { invIx :: TextKeyProxyIndex ComprOccPrefixTree SerializedOccurrences }
+    = InvIx { invIx :: TextKeyProxyIndex ComprOccPrefixTree CompressedOccurrences }
     deriving (Eq, Show, NFData)
 
 --mkInvIx :: CachedIndex (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions

@@ -17,7 +17,7 @@ import qualified Data.Binary                       as Bin
 import           Holumbus.DocTable.DocTable        (DocTable)
 import qualified Holumbus.DocTable.DocTable        as Dt
 
-import           Holumbus.Common                   hiding (delete)
+import           Holumbus.Common
 import           Holumbus.Common.DocIdMap          (toDocIdSet)
 import qualified Holumbus.Common.Document          as Doc
 

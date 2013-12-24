@@ -64,6 +64,9 @@ library
     Holumbus.Common.Document.Compression.Snappy
     Holumbus.Common.Occurrences
     Holumbus.Common.Occurrences.Compression
+    Holumbus.Common.Occurrences.Compression.BZip
+    Holumbus.Common.Occurrences.Compression.Simple9
+    Holumbus.Common.Occurrences.Compression.Snappy
     Holumbus.Common.Positions
     Holumbus.Common.RawResult
 

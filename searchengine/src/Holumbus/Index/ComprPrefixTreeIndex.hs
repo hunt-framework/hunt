@@ -23,7 +23,7 @@ import           Holumbus.Common.BasicTypes              (TextSearchOp(..))
 --import           Holumbus.Common.DocIdMap                (DocIdMap)
 import qualified Holumbus.Common.DocIdMap                as DM
 import           Holumbus.Common.Occurrences             (Occurrences)
-import           Holumbus.Common.Occurrences.Compression hiding (delete)
+import           Holumbus.Common.Occurrences.Compression
 
 import           Holumbus.Utility
 -- ----------------------------------------------------------------------------
