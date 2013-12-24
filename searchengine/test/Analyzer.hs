@@ -119,24 +119,24 @@ test_isInt_lower2 = assertEqual "" False (NI.isInt  "-9223372036854775809")
 prop_normInt_int :: Gen Bool
 prop_normInt_int = do
   val <- arbitrary :: Gen Int
-  return $ 21 == T.length (NI.normalizeInt . T.pack . show $ val)
+  return $ 21 == T.length (NI.normalizeToText . T.pack . show $ val)
 
 prop_normInt_integer :: Gen Bool
 prop_normInt_integer = do
   val <- arbitrary :: Gen Integer
-  return $ 21 == T.length (NI.normalizeInt . T.pack . show $ val)
+  return $ 21 == T.length (NI.normalizeToText . T.pack . show $ val)
 
 test_normInt1 :: Assertion
-test_normInt1 = assertEqual "" "100000000000000000001" (NI.normalizeInt "1")
+test_normInt1 = assertEqual "" "100000000000000000001" (NI.normalizeToText "1")
 
 test_normInt2 :: Assertion
-test_normInt2 = assertEqual "" "000000000000000000001" (NI.normalizeInt "-1")
+test_normInt2 = assertEqual "" "000000000000000000001" (NI.normalizeToText "-1")
 
 test_normInt3 :: Assertion
-test_normInt3 = assertEqual "" "109223372036854775807" (NI.normalizeInt "9223372036854775807")
+test_normInt3 = assertEqual "" "109223372036854775807" (NI.normalizeToText "9223372036854775807")
 
 test_normInt4 :: Assertion
-test_normInt4 = assertEqual "" "009223372036854775808" (NI.normalizeInt "-9223372036854775808")
+test_normInt4 = assertEqual "" "009223372036854775808" (NI.normalizeToText "-9223372036854775808")
 
 
 -- ----------------------------------------------------------------------------
