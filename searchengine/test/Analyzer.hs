@@ -49,7 +49,7 @@ main = defaultMain
        , testProperty "Normalizer:date 2013-01-01T21:12:12" prop_isAnyDate2
        , testProperty "Normalizer:date 2013"                prop_isAnyDate3
 
-       -- Normalizer position 
+       -- Normalizer position
        , testProperty "Normlizer:pos double"       prop_isPosition_d
        , testProperty "Normlizer:pos int"          prop_isPosition_i
        , testProperty "Normlizer:pos text"         prop_isPosition_t

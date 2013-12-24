@@ -3,8 +3,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Holumbus.Index.Proxy.IntNormalizerIndex
-( 
-  -- normalized text to int 
+(
+  -- normalized text to int
   IntNormalizerIndex(..)
   -- normalized text to text with sign as leading 0/1
 , IntAsTextNormalizerIndex(..)
@@ -18,10 +18,7 @@ import           Control.Applicative                        ((<$>))
 import           Control.Arrow                              (first)
 
 import           Data.Binary                                (Binary (..))
-import           Data.Text                                  (Text, pack, unpack)
-import qualified Data.Text                                  as T
-import           Data.Maybe                                 (isJust, fromMaybe)
-import           Text.Read                                  hiding (get)
+import           Data.Text                                  (Text)
 
 import           Holumbus.Index.Index
 import qualified Holumbus.Index.Index                       as Ix
@@ -87,11 +84,6 @@ instance Index (IntNormalizerIndex impl) where
     keys (IntNIx i)
         = P.map Int.denormalizeFromInt $ keys i
 
--- ----------------------------------------------------------------------------
-
-
--- ----------------------------------------------------------------------------
-
 
 -- ----------------------------------------------------------------------------
 -- Int values represented as Text (Text to normalized Text conversion)
@@ -109,8 +101,7 @@ mkIntAsTextNIx v = IntAsTextNIx $! v
 instance Binary (impl v) => Binary (IntAsTextNormalizerIndex impl v) where
     put (IntAsTextNIx i) = put i
     get = get >>= return . mkIntAsTextNIx
- 
-         
+
 -- ----------------------------------------------------------------------------
 
 -- | NOTE: Validation need to be performed before this proxy is applied

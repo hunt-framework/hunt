@@ -75,8 +75,8 @@ import           Holumbus.Interpreter.Command      (CmdError(..))
 
 import qualified System.Log.Logger                as Log
 
-import           Holumbus.Utility.Log
-
+-- ----------------------------------------------------------------------------
+-- Logging
 
 -- | Name of the module for logging purposes.
 modName :: String
@@ -176,13 +176,13 @@ getContextSchema c = getSchema >>= return . fromJust . M.lookup c
 normQueryCx :: QueryIndexCon ix => Context -> Text -> Processor ix Text
 normQueryCx c t = do
   s <- getContextSchema c
-  if typeValidator (ct s) t 
+  if typeValidator (ct s) t
     then do
-       liftIO . debugM $ concat [ "query normalizer: ", T.unpack c, ": [", T.unpack t, "=>", T.unpack $ n s, "]"] 
-       return $ n s 
+       liftIO . debugM $ concat [ "query normalizer: ", T.unpack c, ": [", T.unpack t, "=>", T.unpack $ n s, "]"]
+       return $ n s
     else processError 400 $ T.concat ["value incompatible with context type: ", c, ":", t, "(", T.pack . show $ ct s,")"]
   where
-  n s = normalizeByType s t 
+  n s = normalizeByType s t
   ct s = cxType s
 
 -- | normalizes search text in respect of multiple contexts

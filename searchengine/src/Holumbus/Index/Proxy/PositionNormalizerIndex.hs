@@ -3,8 +3,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Holumbus.Index.Proxy.PositionNormalizerIndex
-( 
-  -- normalized position in textual representation to interal format
+(
+  -- normalized position in textual representation to internal format
   PositionNormalizerIndex(..)
 )
 where
@@ -38,8 +38,7 @@ mkPosNIx v = PosNIx $! v
 instance Binary (impl v) => Binary (PositionNormalizerIndex impl v) where
     put (PosNIx i) = put i
     get = get >>= return . mkPosNIx
- 
-         
+
 -- ----------------------------------------------------------------------------
 
 -- | NOTE: Validation need to be performed before this proxy is applied

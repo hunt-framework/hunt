@@ -13,41 +13,41 @@ import           Holumbus.Common.BasicTypes
 -- ----------------------------------------------------------------------------
 
 normalizeToInt :: Text -> Int
-normalizeToInt t 
+normalizeToInt t
   = case getInt t of
       (Right int) -> int
       _           -> error "if this fails, a validation is missing"
 
 denormalizeFromInt :: Int -> Text
 denormalizeFromInt = T.pack . show
-         
+
 
 -- ----------------------------------------------------------------------------
 -- normalize Int as Text
 -- ----------------------------------------------------------------------------
 
 normalizeToText' :: Word -> Word
-normalizeToText' i 
-  = T.concat [pfx, zeros, nr] 
+normalizeToText' i
+  = T.concat [pfx, zeros, nr]
   where
-  (pfx,nr) = if T.take 1 i == "-"  
-             then ("0", T.drop 1 i) 
+  (pfx,nr) = if T.take 1 i == "-"
+             then ("0", T.drop 1 i)
              else ("1", i)
   elems    = 20 - (T.length nr)
   zeros    = T.pack $ foldr (\_ xs -> '0':xs) "" [1..elems]
-   
+
 
 normalizeToText :: Text -> Text
-normalizeToText t 
+normalizeToText t
   = if isInt t
     then normalizeToText' t
     else error "if this fails, a validation is missing"
 
 denormalizeFromText :: Text -> Text
-denormalizeFromText i 
-  = T.concat [ sign, raw ] 
+denormalizeFromText i
+  = T.concat [ sign, raw ]
   where
-  sign = if T.take 1 i == "1" then "" else "-" 
+  sign = if T.take 1 i == "1" then "" else "-"
   raw  = T.dropWhile (== '0') $ T.drop 1 i
 
 
@@ -58,16 +58,16 @@ denormalizeFromText i
 -- | this is basic validation - but valiation needs to be
 --   done before this proxy! otherwise normalization will
 --   throw error.
-getInt :: Text -> Either () Int          
-getInt v 
+getInt :: Text -> Either () Int
+getInt v
   = if isJust mv && v == smv
     then Right pv
-    else Left () 
-  where   
+    else Left ()
+  where
   -- check for parseable int
   mv  = readMaybe (T.unpack v) :: Maybe Int
   pv  = fromMaybe 0 mv
-  -- check for overflows       
+  -- check for overflows
   smv = T.pack . show $ pv
 
 -- | Check if value is a valid position
@@ -77,4 +77,3 @@ isInt :: Text -> Bool
 isInt v = case getInt v of
             (Right _) -> True
             _         -> False
-

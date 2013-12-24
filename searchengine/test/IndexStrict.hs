@@ -156,9 +156,9 @@ prop_textix
 -- ----------------------------------------------------------------------------
 prop_simple :: Property
 prop_simple = monadicIO $ do
-                          x <- pick arbitrary
-                          passed <- run $ isNF $! mkTuple x
-                          assert passed
+  x <- pick arbitrary
+  passed <- run $ isNF $! mkTuple x
+  assert passed
 
 inc :: Int -> Int
 inc x = 1 + x

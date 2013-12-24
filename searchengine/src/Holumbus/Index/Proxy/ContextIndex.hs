@@ -98,7 +98,7 @@ searchWithCxsNormalized :: (ContextIxCon i v)
                            -> [(Context, Ix.IKey i v)]
                            -> ContextIndex i v
                            -> [(Context, [(Ix.IKey i v, Ix.IVal i v)])]
-searchWithCxsNormalized op cks ix 
+searchWithCxsNormalized op cks ix
   = parMap rseq (\(c,k) -> (c, searchWithCx op c k ix)) cks
 
 

@@ -1,6 +1,5 @@
 module Holumbus.Index.Schema.Normalize.Date where
 
-
 import           Control.Applicative
 import           Control.Monad
 
@@ -38,9 +37,9 @@ normalize t = fromMaybe t
 --   We don't transform it back to the original representation, since that
 --   is never used, but to a general readable date format
 denormalize :: Text -> Text
-denormalize i = T.concat [y1, y2, "-", m, "-", d, " ", h, ":", i, ":", s] 
+denormalize t = T.concat [y1, y2, "-", m, "-", d, " ", h, ":", i, ":", s]
   where
-  [y1,y2,m,d,h,i,s] = T.chunksOf 2 i
+  [y1,y2,m,d,h,i,s] = T.chunksOf 2 t
 
 -- ----------------------------------------------------------------------------
 

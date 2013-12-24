@@ -91,7 +91,7 @@ errorM = Log.errorM modName
 
 -- | Log formated values that get inserted into a context
 debugContext :: Context -> Words -> IO ()
-debugContext c ws = debugM $ concat ["insert in", T.unpack c, show . M.toList $ fromMaybe M.empty $ M.lookup c ws]  
+debugContext c ws = debugM $ concat ["insert in", T.unpack c, show . M.toList $ fromMaybe M.empty $ M.lookup c ws]
 
 -- ----------------------------------------------------------------------------
 
@@ -313,7 +313,7 @@ execInsert doc ixx@(_ix, _dt, schema) = do
     -- apidoc should not exist
     checkApiDocExistence False doc ixx
     let (docs, ws) = toDocAndWords schema doc
-    
+
     liftIO $ debugContext "contextgeo" ws
     liftIO $ debugContext "contextint" ws
     liftIO $ debugContext "contextdate" ws

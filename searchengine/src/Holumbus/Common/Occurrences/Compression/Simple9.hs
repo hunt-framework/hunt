@@ -2,6 +2,12 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
+-- ----------------------------------------------------------------------------
+{-
+  Occurrences compression on the Simple-9 encoding scheme.
+-}
+-- ----------------------------------------------------------------------------
+
 module Holumbus.Common.Occurrences.Compression.Simple9
   (
   -- * Compression types

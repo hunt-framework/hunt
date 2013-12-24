@@ -3,8 +3,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Holumbus.Index.Proxy.DateNormalizerIndex
-( 
-  -- normalized date in textual representation to interal format
+(
+  -- normalized date in textual representation to internal format
   DateNormalizerIndex(..)
 )
 where
@@ -38,8 +38,7 @@ mkDateNIx v = DateNIx $! v
 instance Binary (impl v) => Binary (DateNormalizerIndex impl v) where
     put (DateNIx i) = put i
     get = get >>= return . mkDateNIx
- 
-         
+
 -- ----------------------------------------------------------------------------
 
 -- | NOTE: Validation need to be performed before this proxy is applied

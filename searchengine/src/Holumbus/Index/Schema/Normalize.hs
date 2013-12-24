@@ -43,7 +43,7 @@ typeValidator :: CType -> Text -> Bool
 typeValidator t = case t of
     CText     -> const True
     CInt      -> Int.isInt
-    CPosition -> Pos.isPosition 
+    CPosition -> Pos.isPosition
     CDate     -> Date.isAnyDate . T.unpack
 
 -- ----------------------------------------------------------------------------

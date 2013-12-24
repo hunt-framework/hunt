@@ -2,6 +2,21 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
+-- ----------------------------------------------------------------------------
+{-
+  Occurrences compression using Google's Snappy library
+    https://code.google.com/p/snappy/
+
+  Haskell-Bindings
+    http://hackage.haskell.org/package/snappy
+
+  Requires the Snappy C library
+    source: https://code.google.com/p/snappy/
+    deb: apt-get install libsnappy-dev
+    rpm: yum install libsnappy-devel
+-}
+-- ----------------------------------------------------------------------------
+
 module Holumbus.Common.Occurrences.Compression.Snappy
   (
   -- * Compression types
@@ -27,19 +42,19 @@ type CompressedOccurrences = OccOSerialized
 
 -- ----------------------------------------------------------------------------
 
-newtype OccOSerialized  = OccOBs { unOccOBs :: ByteString }
-                          deriving (Eq, Show, NFData)
+newtype OccOSerialized = OccOBs { unOccOBs :: ByteString }
+  deriving (Eq, Show, NFData)
 
 mkOccOBs :: ByteString -> OccOSerialized
 mkOccOBs b = OccOBs $! b
 
 -- ----------------------------------------------------------------------------
 
-newtype ByteString      = Bs { unBs :: BL.ByteString }
-                          deriving (Eq, Show)
+newtype ByteString = Bs { unBs :: BL.ByteString }
+  deriving (Eq, Show)
 
-mkBs                    :: BL.ByteString -> ByteString
-mkBs s                  = Bs $!! s
+mkBs :: BL.ByteString -> ByteString
+mkBs s = Bs $!! s
 
 -- ----------------------------------------------------------------------------
 

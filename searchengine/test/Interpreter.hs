@@ -26,7 +26,7 @@ import           Holumbus.Query.Ranking
 import           Holumbus.Utility
 import           Holumbus.Index.InvertedIndex                (InvertedIndex)
 import           Holumbus.DocTable.HashedDocTable            (Documents)
-import           Holumbus.Index.Schema.Normalize.Date        (rexDates)
+--import           Holumbus.Index.Schema.Normalize.Date        (rexDates)
 
 -- ----------------------------------------------------------------------------
 
