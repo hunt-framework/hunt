@@ -53,6 +53,7 @@ import qualified Data.Map                  as M
 
 import           Holumbus.Common
 import qualified Holumbus.Common.DocIdMap  as DM
+import           Holumbus.Common.Document  (DocumentWrapper(..))
 import           Holumbus.Common.Positions as Pos
 import           Holumbus.Query.Result
 
@@ -80,7 +81,7 @@ type ContextWeights = Map Context Weight
 -- ----------------------------------------------------------------------------
 
 -- | The configuration of the ranking mechanism.
-defaultRankConfig :: RankConfig e
+defaultRankConfig :: DocumentWrapper e => RankConfig e
 defaultRankConfig = RankConfig
   { docRanking  = docRankByCount
   , wordRanking = wordRankByCount

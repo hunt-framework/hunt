@@ -15,6 +15,8 @@ import           Test.HUnit
 --import           Test.QuickCheck
 
 import           Holumbus.Common
+import           Holumbus.Common.Document
+import           Holumbus.Common.Document.Compression
 import           Holumbus.Common.ApiDocument          as ApiDoc
 --import           Holumbus.Common.BasicTypes
 import           Holumbus.Interpreter.Command
@@ -28,10 +30,10 @@ import           Holumbus.Index.Schema.Normalize.Date (rexDates)
 
 -- ----------------------------------------------------------------------------
 
-type TestEnv = Env InvertedIndex (Documents Document)
-type TestCM a = CM InvertedIndex (Documents Document) a
+type TestEnv = Env InvertedIndex (Documents CompressedDoc)
+type TestCM a = CM InvertedIndex (Documents CompressedDoc) a
 
-rankConfig :: RankConfig e
+rankConfig :: DocumentWrapper e => RankConfig e
 rankConfig = defaultRankConfig
 
 main :: IO ()

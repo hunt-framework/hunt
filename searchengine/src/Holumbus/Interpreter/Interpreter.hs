@@ -11,43 +11,45 @@ import           Control.Applicative
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
-import qualified Data.Binary                       as Bin
-import           Data.Function                     (on)
-import           Data.List                         (groupBy, sortBy)
-import qualified Data.Map                          as M
-import           Data.Set                          (Set)
-import qualified Data.Set                          as S
-import           Data.Text                         (Text)
-import qualified Data.Text                         as T
-import           Data.Maybe                        (fromMaybe)
+import qualified Data.Binary                          as Bin
+import           Data.Function                        (on)
+import           Data.List                            (groupBy, sortBy)
+import qualified Data.Map                             as M
+import           Data.Maybe                           (fromMaybe)
+import           Data.Set                             (Set)
+import qualified Data.Set                             as S
+import           Data.Text                            (Text)
+import qualified Data.Text                            as T
 
 import           Holumbus.Common
-import           Holumbus.Common.ApiDocument       as ApiDoc
-import qualified Holumbus.Common.DocIdMap          as DM
+import           Holumbus.Common.ApiDocument          as ApiDoc
+import qualified Holumbus.Common.DocIdMap             as DM
+import           Holumbus.Common.Document             (DocumentWrapper, unwrap)
+import           Holumbus.Common.Document.Compression (CompressedDoc)
 
 import           Holumbus.Index.Schema.Analyze
 
-import           Holumbus.Indexer.TextIndexer      (ContextTextIndexer,
-                                                    TextIndexerCon)
-import qualified Holumbus.Indexer.TextIndexer      as Ixx
+import           Holumbus.Indexer.TextIndexer         (ContextTextIndexer,
+                                                       TextIndexerCon)
+import qualified Holumbus.Indexer.TextIndexer         as Ixx
 
 import           Holumbus.Index.InvertedIndex
-import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
-import qualified Holumbus.Index.Proxy.ContextIndex as CIx
+import           Holumbus.Index.Proxy.ContextIndex    (ContextIndex)
+import qualified Holumbus.Index.Proxy.ContextIndex    as CIx
 
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
 --import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Ranking
-import           Holumbus.Query.Result             as QRes
+import           Holumbus.Query.Result                as QRes
 
-import qualified Holumbus.DocTable.DocTable       as Dt
-import           Holumbus.DocTable.HashedDocTable as HDt
+import qualified Holumbus.DocTable.DocTable           as Dt
+import           Holumbus.DocTable.HashedDocTable     as HDt
 
 import           Holumbus.Interpreter.Command
 
-import qualified System.Log.Logger                as Log
+import qualified System.Log.Logger                    as Log
 
 import           Holumbus.Utility.Log
 import           Holumbus.Utility.XMVar
@@ -94,7 +96,7 @@ debugContext c ws = debugM $ concat ["insert in", T.unpack c, show . M.toList $ 
 
 type IpIndexer ix dt = ContextTextIndexer ix dt
 
-emptyIndexer :: IpIndexer InvertedIndex (Documents Document)
+emptyIndexer :: IpIndexer InvertedIndex (Documents CompressedDoc)
 emptyIndexer = (CIx.empty, HDt.empty, M.empty)
 
 -- ----------------------------------------------------------------------------
@@ -112,11 +114,11 @@ emptyOptions = Options
 
 data Env ix dt = Env
     { evIndexer :: TextIndexerCon ix dt => XMVar (IpIndexer ix dt)
-    , evRanking :: RankConfig Document
+    , evRanking :: RankConfig (Dt.DValue dt)
     , evOptions :: Options
     }
 
-initEnv :: TextIndexerCon ix dt => IpIndexer ix dt -> RankConfig Document -> Options -> IO (Env ix dt)
+initEnv :: TextIndexerCon ix dt => IpIndexer ix dt -> RankConfig (Dt.DValue dt) -> Options -> IO (Env ix dt)
 initEnv ixx rnk opt = do
   ixref <- newXMVar ixx
   return $ Env ixref rnk opt
@@ -172,7 +174,7 @@ askOpts :: TextIndexerCon ix dt => CM ix dt Options
 askOpts
     = asks evOptions
 
-askRanking :: TextIndexerCon ix dt => CM ix dt (RankConfig Document)
+askRanking :: TextIndexerCon ix dt => CM ix dt (RankConfig (Dt.DValue dt))
 askRanking
     = asks evRanking
 
@@ -364,8 +366,8 @@ checkApiDocExistence switch apidoc ixx = do
             else "document does not exist: ") `T.append` u
 
 
-execSearch' :: TextIndexerCon ix dt
-            => (Result Document -> CmdResult)
+execSearch' :: (TextIndexerCon ix dt, e ~ Dt.DValue dt)
+            => (Result e -> CmdResult)
             -> Query
             -> IpIndexer ix dt
             -> CM ix dt CmdResult
@@ -378,13 +380,14 @@ execSearch' f q (ix, dt, s)
         (Left  err) -> throwError err
         (Right res) -> return . f . rank rc cw $ res
 
-wrapSearch :: Int -> Int -> Result Document -> CmdResult
+-- FIXME: signature to result
+wrapSearch :: (DocumentWrapper e) => Int -> Int -> Result e -> CmdResult
 wrapSearch offset mx
     = ResSearch
       . mkLimitedResult offset mx
       . map fst -- remove score from result
       . sortBy (descending `on` snd) -- sort by score
-      . map (\(_did, (di, _dch)) -> (document di, docScore di))
+      . map (\(_did, (di, _dch)) -> (unwrap . document $ di, docScore di))
       . DM.toList
       . docHits
 
@@ -428,7 +431,7 @@ runQueryM       :: TextIndexerCon ix dt
                 -> Schema
                 -> dt
                 -> Query
-                -> IO (Either CmdError (QRes.Result (Dt.DValue (Documents Document))))
+                -> IO (Either CmdError (QRes.Result (Dt.DValue dt)))
 runQueryM ix s dt q = processQuery st dt q
    where
    st = initState queryConfig ix s 2

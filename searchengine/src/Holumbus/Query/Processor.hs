@@ -188,7 +188,7 @@ normQueryCx c t = do
 -- | normalizes search text in respect of multiple contexts
 normQueryCxs :: QueryIndexCon ix => [Context] -> Text -> Processor ix [(Context, Text)]
 normQueryCxs cs t  = mapM (\c -> normQueryCx c t >>= \nt -> return (c, nt)) cs
- 
+
 --withState' :: QueryIndexCon ix => (ProcessState ix -> Processor ix a) -> Processor ix a
 --withState' f = get >>= f
 
@@ -218,7 +218,7 @@ initState cfg ix s dtSize
 -- | processor code
 -- ----------------------------------------------------------------------------
 
-processQuery :: (QueryIndexCon i, DocTable d, Dt.DValue d ~ e, e ~ Document)
+processQuery :: (QueryIndexCon i, DocTable d, Dt.DValue d ~ e)
               => ProcessState i -> d -> Query -> IO (Either CmdError (Result e))
 processQuery st d q = runErrorT . evalStateT (runProcessor processToRes) $ st
     where

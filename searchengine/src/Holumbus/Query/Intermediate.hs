@@ -65,6 +65,7 @@ import           Holumbus.Query.Result      hiding (null)
 
 import           Holumbus.Common
 import qualified Holumbus.Common.DocIdMap   as DM
+import           Holumbus.Common.Document   (DocumentWrapper(..))
 import qualified Holumbus.Common.Positions  as Pos
 
 import           Holumbus.DocTable.DocTable (DocTable)
@@ -135,7 +136,7 @@ fromListCx :: Word -> [Context] -> RawResult -> Intermediate
 fromListCx t cs os = unions $ map (\c -> fromList t c os) cs
 
 -- | Convert to a @Result@ by generating the 'WordHits' structure.
-toResult :: (Applicative m, Monad m, DocTable d, e ~ Dt.DValue d, e ~ Document) =>
+toResult :: (Applicative m, Monad m, DocTable d, e ~ Dt.DValue d) =>
             d -> Intermediate -> m (Result e)
 toResult d im = do
     dh <- createDocHits d im
@@ -152,13 +153,13 @@ unionsDocLimited n = takeOne ((>= n) . size) . scanl union empty
 
 
 -- | Create the doc hits structure from an intermediate result.
-createDocHits :: (Applicative m, Monad m, DocTable d, e ~ Dt.DValue d, e ~ Document) =>
+createDocHits :: (Applicative m, Monad m, DocTable d, e ~ Dt.DValue d) =>
                  d -> Intermediate -> m (DocHits e)
 createDocHits d = DM.traverseWithKey transformDocs
   where
   transformDocs did (ic,db)
     = let doc   = fromMaybe dummy <$> (Dt.lookup d did)
-          dummy = Document "" M.empty
+          dummy = wrap (Document "" M.empty)
       in (\doc' -> (DocInfo doc' db 0.0, M.map (M.map snd) ic)) <$> doc
 
 -- | Create the word hits structure from an intermediate result.

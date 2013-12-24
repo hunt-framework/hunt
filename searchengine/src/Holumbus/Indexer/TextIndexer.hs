@@ -19,6 +19,7 @@ import qualified Holumbus.DocTable.DocTable        as Dt
 
 import           Holumbus.Common                   hiding (delete)
 import           Holumbus.Common.DocIdMap          (toDocIdSet)
+import qualified Holumbus.Common.Document          as Doc
 
 import qualified Holumbus.Index.Index              as Ix
 import qualified Holumbus.Index.TextIndex          as TIx
@@ -34,8 +35,6 @@ type TextIndexerCon i dt
       -- we need this for load and store, but i dont like these constraints here
       , Bin.Binary dt
       , Bin.Binary (i Occurrences)
-      -- hm maybe we need the document wrapper back :/
-      , Dt.DValue dt ~ Document
       )
 
 type TextIndexer        i dt = Indexer        i Occurrences dt
@@ -104,7 +103,7 @@ member u (_ii, dt, _s) = do
 
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
-modifyWithDescription :: (Monad m, TextIndexerCon i dt, Dt.DValue dt ~ Document)
+modifyWithDescription :: (Monad m, TextIndexerCon i dt)
                       => Description -> Words -> DocId
                       -> ContextTextIndexer i dt -> m (ContextTextIndexer i dt)
 modifyWithDescription descr wrds dId (ii, dt, s) = do
@@ -113,7 +112,7 @@ modifyWithDescription descr wrds dId (ii, dt, s) = do
     return (newIndex, newDocTable, s)
     where
     -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
-    mergeDescr d = return d{ desc = flip M.union (desc d) descr }
+    mergeDescr = return . Doc.update (\d' -> d'{ desc = flip M.union (desc d') descr })
 
 -- ----------------------------------------------------------------------------
 

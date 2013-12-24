@@ -39,6 +39,7 @@ data Document = Document
     deriving (Show, Eq, Ord)
 
 -- ------------------------------------------------------------
+
 instance ToJSON Document where
   toJSON (Document u d) = object
     [ "uri"   .= u
@@ -54,6 +55,7 @@ instance FromJSON Document where
       , desc    = parsedDesc
       }
   parseJSON _ = mzero
+
 -- ------------------------------------------------------------
 
 instance Binary Document where
@@ -62,3 +64,15 @@ instance Binary Document where
 
 instance NFData Document where
     rnf (Document t d) = rnf t `seq` rnf d
+
+-- ------------------------------------------------------------
+
+class DocumentWrapper e where
+  unwrap :: e -> Document
+  wrap   :: Document -> e
+  update :: (Document -> Document) -> e -> e
+  update f = wrap . f . unwrap
+
+instance DocumentWrapper Document where
+  unwrap = id
+  wrap   = id

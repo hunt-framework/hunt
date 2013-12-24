@@ -6,18 +6,21 @@ module Holumbus.Index.Schema.Analyze
   )
 where
 
-import           Data.DList                   (DList)
-import qualified Data.DList                   as DL
-import           Data.Map                     (Map)
-import qualified Data.Map                     as M
-import           Data.Maybe                   (fromJust)
-import           Data.Text                    (Text)
-import qualified Data.Text                    as T
+import           Control.Arrow                   (first)
+
+import           Data.DList                      (DList)
+import qualified Data.DList                      as DL
+import           Data.Map                        (Map)
+import qualified Data.Map                        as M
+import           Data.Maybe                      (fromJust)
+import           Data.Text                       (Text)
+import qualified Data.Text                       as T
 
 import           Text.Regex.XMLSchema.String
 
 import           Holumbus.Common.BasicTypes
-import           Holumbus.Common.Document     (Document (..))
+import           Holumbus.Common.Document        (Document (..),
+                                                  DocumentWrapper (..))
 
 import           Holumbus.Common.ApiDocument
 import           Holumbus.Index.Schema
@@ -38,10 +41,15 @@ analyzerMapping o = case o of
     DefaultAnalyzer -> scanTextDefault
 -}
 
+-- | 'ApiDocument' to 'Document' (instance of 'DocumentWrapper') and 'Words' mapping.
+--   /Note/: Contexts mentioned in the ApiDoc need to exist.
+toDocAndWords :: DocumentWrapper e => Schema -> ApiDocument -> (e, Words)
+toDocAndWords s = first wrap . toDocAndWords' s
+
 -- | ApiDocument to Document and Words mapping.
 --   /Note/: Contexts mentioned in the ApiDoc need to exist.
-toDocAndWords :: Schema -> ApiDocument -> (Document, Words)
-toDocAndWords schema apiDoc = (doc, ws)
+toDocAndWords' :: Schema -> ApiDocument -> (Document, Words)
+toDocAndWords' schema apiDoc = (doc, ws)
   where
   indexMap = apiDocIndexMap apiDoc
   descrMap = apiDocDescrMap apiDoc

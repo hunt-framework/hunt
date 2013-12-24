@@ -18,12 +18,13 @@ import           Holumbus.Common.BasicTypes (URI)
 import           Holumbus.Common.DocId      (DocId)
 import           Holumbus.Common.DocIdMap   (DocIdMap (..), DocIdSet,
                                              toDocIdSet)
+import           Holumbus.Common.Document   (DocumentWrapper)
 
 -- ----------------------------------------------------------------------------
 
 -- | The doc-table data type which contains all functions used on the implementation.
 --   The type parameter @i@ is the implementation.
-class DocTable i where
+class (DocumentWrapper (DValue i)) => DocTable i where
     type DValue i :: *
 
     -- | Test whether the doc table is empty.
