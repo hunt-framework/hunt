@@ -14,7 +14,7 @@ import           Data.Binary                                     (Binary (..))
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Occurrences                     (Occurrences)
 import qualified Holumbus.Common.Occurrences                     as Occ
-import           Holumbus.Common.Occurrences.Compression.BZip
+import           Holumbus.Common.Occurrences.Compression.Snappy
 
 import           Holumbus.Index.ComprPrefixTreeIndex
 import           Holumbus.Index.Index                            as Ix
