@@ -22,8 +22,8 @@ import           Holumbus.Utility
 -- ----------------------------------------------------------------------------
 
 -- | Normalize a date representation to store in the index or search for.
-normalizeDate :: Text -> Text
-normalizeDate t = fromMaybe t
+normalize :: Text -> Text
+normalize t = fromMaybe t
     (T.pack . normDateRep . showDateTime . toUTC <$> (readAnyDateM . T.unpack $ t))
   where
   -- XXX: no proper support for dates before year 0 (1 BCE) this way
@@ -33,6 +33,14 @@ normalizeDate t = fromMaybe t
       then ('-':) . fil . tail $ s
       else fil s
     where fil = filter (not . (`elem` "-T:"))
+
+-- | Function takes normalized Date and transforms it back a readable form.
+--   We don't transform it back to the original representation, since that
+--   is never used, but to a general readable date format
+denormalize :: Text -> Text
+denormalize i = T.concat [y1, y2, "-", m, "-", d, " ", h, ":", i, ":", s] 
+  where
+  [y1,y2,m,d,h,i,s] = T.chunksOf 2 i
 
 -- ----------------------------------------------------------------------------
 

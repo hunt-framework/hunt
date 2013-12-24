@@ -15,7 +15,7 @@ import           Holumbus.Index.Schema
 import           Holumbus.Utility
 
 import           Holumbus.Index.Schema.Normalize.Position (normalizePosition, isPosition)
-import           Holumbus.Index.Schema.Normalize.Date     (normalizeDate, isAnyDate)
+import           Holumbus.Index.Schema.Normalize.Date     as Date
 import qualified Holumbus.Index.Schema.Normalize.Int      as Int
 
 -- ----------------------------------------------------------------------------
@@ -24,7 +24,7 @@ contextNormalizer :: CNormalizer -> Word -> Word
 contextNormalizer o = case o of
     NormUpperCase   -> T.toUpper
     NormLowerCase   -> T.toLower
-    NormDate        -> normalizeDate
+    NormDate        -> Date.normalize
     NormPosition    -> normalizePosition
     NormIntZeroFill -> Int.normalizeToText
 
@@ -44,7 +44,7 @@ typeValidator t = case t of
     CText     -> const True
     CInt      -> Int.isInt
     CPosition -> isPosition 
-    CDate     -> isAnyDate . T.unpack
+    CDate     -> Date.isAnyDate . T.unpack
 
 -- ----------------------------------------------------------------------------
 
