@@ -1,21 +1,26 @@
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
+-- ----------------------------------------------------------------------------
+{-
+  Document compression using Google's Snappy library
+    https://code.google.com/p/snappy/
 
+  Haskell-Bindings
+    http://hackage.haskell.org/package/snappy
+
+  Requires the Snappy C library
+    source: https://code.google.com/p/snappy/
+    deb: apt-get install libsnappy-dev
+    rpm: yum install libsnappy-devel
+-}
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Common.Document.Compression
+module Holumbus.Common.Document.Compression.Snappy
 where
 
--- http://hackage.haskell.org/package/bzlib
-import qualified Codec.Compression.BZip         as ZIP
--- http://hackage.haskell.org/package/snappy
---import qualified Codec.Compression.Snappy       as ZIP
+import qualified Codec.Compression.Snappy.Lazy  as ZIP
 
 import           Control.DeepSeq
 
---import           Data.ByteString                (ByteString)
 import           Data.ByteString.Lazy           (ByteString)
---import qualified Data.ByteString                as BS
 import qualified Data.ByteString.Lazy           as BL
 
 import           Data.Binary                    (Binary(..))
@@ -41,19 +46,16 @@ instance Binary CompressedDoc where
 instance NFData CompressedDoc where
     rnf (CDoc s)
         = BL.length s `seq` ()
---        = BS.length s `seq` ()
 
 -- ----------------------------------------------------------------------------
 
 -- | 'CompressedDoc' to 'Document' conversion.
 decompress  :: CompressedDoc -> Document
 decompress  = B.decode . ZIP.decompress . unCDoc
--- decompress  = B.decode . BL.fromStrict . ZIP.decompress . unCDoc
 
 -- | 'Document' to 'CompressedDoc' conversion.
 compress    :: Document -> CompressedDoc
 compress    = mkCDoc . ZIP.compress . B.encode
--- compress    = mkCDoc . ZIP.compress . BL.toStrict . B.encode
 
 -- ----------------------------------------------------------------------------
 

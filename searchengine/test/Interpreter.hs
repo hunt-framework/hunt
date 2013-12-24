@@ -2,11 +2,11 @@ module Main where
 
 import           Control.Applicative
 import           Control.Monad.Error
---import           Control.Monad.Trans                  (liftIO)
+--import           Control.Monad.Trans                         (liftIO)
 
-import qualified Data.Map                             as M
+import qualified Data.Map                                    as M
 --import           Data.Monoid
-import qualified Data.Set                             as S
+import qualified Data.Set                                    as S
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -16,17 +16,17 @@ import           Test.HUnit
 
 import           Holumbus.Common
 import           Holumbus.Common.Document
-import           Holumbus.Common.Document.Compression
-import           Holumbus.Common.ApiDocument          as ApiDoc
+import           Holumbus.Common.Document.Compression.BZip
+import           Holumbus.Common.ApiDocument                 as ApiDoc
 --import           Holumbus.Common.BasicTypes
 import           Holumbus.Interpreter.Command
 import           Holumbus.Interpreter.Interpreter
 import           Holumbus.Query.Language.Grammar
 import           Holumbus.Query.Ranking
 import           Holumbus.Utility
-import           Holumbus.Index.InvertedIndex         (InvertedIndex)
-import           Holumbus.DocTable.HashedDocTable     (Documents)
-import           Holumbus.Index.Schema.Normalize.Date (rexDates)
+import           Holumbus.Index.InvertedIndex                (InvertedIndex)
+import           Holumbus.DocTable.HashedDocTable            (Documents)
+import           Holumbus.Index.Schema.Normalize.Date        (rexDates)
 
 -- ----------------------------------------------------------------------------
 

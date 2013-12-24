@@ -47,6 +47,7 @@ library
                , text                   >= 0.11 && < 1
                , time                   >= 1.4 && < 2
                , unix                   >= 2.3 && < 3
+               , snappy                 >= 0.1 && < 1
 
   exposed-modules:
     Data.Text.Binary
@@ -59,7 +60,8 @@ library
     Holumbus.Common.DocId
     Holumbus.Common.DocIdMap
     Holumbus.Common.Document
-    Holumbus.Common.Document.Compression
+    Holumbus.Common.Document.Compression.BZip
+    Holumbus.Common.Document.Compression.Snappy
     Holumbus.Common.Occurrences
     Holumbus.Common.Occurrences.Compression
     Holumbus.Common.Positions

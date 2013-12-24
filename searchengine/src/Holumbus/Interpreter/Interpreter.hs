@@ -11,45 +11,46 @@ import           Control.Applicative
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
-import qualified Data.Binary                          as Bin
-import           Data.Function                        (on)
-import           Data.List                            (groupBy, sortBy)
-import qualified Data.Map                             as M
-import           Data.Maybe                           (fromMaybe)
-import           Data.Set                             (Set)
-import qualified Data.Set                             as S
-import           Data.Text                            (Text)
-import qualified Data.Text                            as T
+import qualified Data.Binary                                 as Bin
+import           Data.Function                               (on)
+import           Data.List                                   (groupBy, sortBy)
+import qualified Data.Map                                    as M
+import           Data.Maybe                                  (fromMaybe)
+import           Data.Set                                    (Set)
+import qualified Data.Set                                    as S
+import           Data.Text                                   (Text)
+import qualified Data.Text                                   as T
 
 import           Holumbus.Common
-import           Holumbus.Common.ApiDocument          as ApiDoc
-import qualified Holumbus.Common.DocIdMap             as DM
-import           Holumbus.Common.Document             (DocumentWrapper, unwrap)
-import           Holumbus.Common.Document.Compression (CompressedDoc)
+import           Holumbus.Common.ApiDocument                 as ApiDoc
+import qualified Holumbus.Common.DocIdMap                    as DM
+import           Holumbus.Common.Document                    (DocumentWrapper,
+                                                              unwrap)
+import           Holumbus.Common.Document.Compression.BZip   (CompressedDoc)
 
 import           Holumbus.Index.Schema.Analyze
 
-import           Holumbus.Indexer.TextIndexer         (ContextTextIndexer,
-                                                       TextIndexerCon)
-import qualified Holumbus.Indexer.TextIndexer         as Ixx
+import           Holumbus.Indexer.TextIndexer                (ContextTextIndexer,
+                                                              TextIndexerCon)
+import qualified Holumbus.Indexer.TextIndexer                as Ixx
 
 import           Holumbus.Index.InvertedIndex
-import           Holumbus.Index.Proxy.ContextIndex    (ContextIndex)
-import qualified Holumbus.Index.Proxy.ContextIndex    as CIx
+import           Holumbus.Index.Proxy.ContextIndex           (ContextIndex)
+import qualified Holumbus.Index.Proxy.ContextIndex           as CIx
 
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
 --import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Ranking
-import           Holumbus.Query.Result                as QRes
+import           Holumbus.Query.Result                       as QRes
 
-import qualified Holumbus.DocTable.DocTable           as Dt
-import           Holumbus.DocTable.HashedDocTable     as HDt
+import qualified Holumbus.DocTable.DocTable                  as Dt
+import           Holumbus.DocTable.HashedDocTable            as HDt
 
 import           Holumbus.Interpreter.Command
 
-import qualified System.Log.Logger                    as Log
+import qualified System.Log.Logger                           as Log
 
 import           Holumbus.Utility.Log
 import           Holumbus.Utility.XMVar
