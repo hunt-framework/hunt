@@ -43,7 +43,7 @@ import qualified Holumbus.Index.InvertedIndex                    as InvIx
 import qualified Holumbus.Index.PrefixTreeIndex                  as PIx
 
 import qualified Holumbus.Index.Proxy.CachedIndex                as CacheProxy
-import qualified Holumbus.Index.Proxy.TextKeyIndex               as TextProxy
+import qualified Holumbus.Index.Proxy.KeyIndex                   as KeyProxy
 --import qualified Holumbus.Index.Proxy.CompressedIndex            as ComprProxy
 
 import           GHC.AssertNF
@@ -144,7 +144,7 @@ prop_cachedix
 prop_textix :: Property
 prop_textix
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (TextProxy.TextKeyProxyIndex (PIx.DmPrefixTree) Positions)
+    ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree) Positions)
     passed <- run $ isNF $! ix
     assert passed
   where

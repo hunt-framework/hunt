@@ -10,6 +10,7 @@ import           Prelude                                         as P
 
 import           Control.DeepSeq
 import           Data.Binary                                     (Binary (..))
+import           Data.Bijection.Instances                        ()
 
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Occurrences                     (Occurrences)
@@ -21,12 +22,14 @@ import           Holumbus.Index.Index                            as Ix
 
 import           Holumbus.Index.Proxy.CachedIndex
 import           Holumbus.Index.Proxy.CompressedIndex
-import           Holumbus.Index.Proxy.TextKeyIndex
+import           Holumbus.Index.Proxy.KeyIndex
+
+import           Data.Text (Text)
 
 -- ----------------------------------------------------------------------------
 
 newtype InvertedIndex _v
-    = InvIx { invIx :: TextKeyProxyIndex ComprOccPrefixTree CompressedOccurrences }
+    = InvIx { invIx :: KeyProxyIndex Text ComprOccPrefixTree CompressedOccurrences }
     deriving (Eq, Show, NFData)
 
 --mkInvIx :: CachedIndex (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions

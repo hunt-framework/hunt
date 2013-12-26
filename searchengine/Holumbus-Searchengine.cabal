@@ -51,6 +51,8 @@ library
 
   exposed-modules:
     Data.Text.Binary
+    Data.Bijection
+    Data.Bijection.Instances
     Holumbus.Data.Crunch
 
     Holumbus.Common
@@ -86,9 +88,9 @@ library
     Holumbus.Index.Proxy.ContextIndex
     Holumbus.Index.Proxy.CompressedIndex
     Holumbus.Index.Proxy.CachedIndex
-    Holumbus.Index.Proxy.TextKeyIndex
-    Holumbus.Index.Proxy.IntNormalizerIndex
     Holumbus.Index.Proxy.DateNormalizerIndex
+    Holumbus.Index.Proxy.IntNormalizerIndex
+    Holumbus.Index.Proxy.KeyIndex
     Holumbus.Index.Proxy.PositionNormalizerIndex
 
     Holumbus.DocTable.DocTable
