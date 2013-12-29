@@ -103,10 +103,15 @@ emptyIndexer = (CIx.empty, HDt.empty, M.empty)
 
 -- ----------------------------------------------------------------------------
 
-data Options = Options
+type ContextTypes = M.Map CType (Ix.IndexImpl Occurrences)
 
-emptyOptions :: Options
-emptyOptions = Options
+contextTypes :: ContextTypes
+contextTypes  = M.fromList $
+                [ (CText,     Ix.IndexImpl $ (Ix.empty :: InvertedIndex Occurrences))
+                , (CInt,      Ix.IndexImpl $ (Ix.empty :: InvertedIndex Occurrences))
+                , (CDate,     Ix.IndexImpl $ (Ix.empty :: InvertedIndex Occurrences))
+                , (CPosition, Ix.IndexImpl $ (Ix.empty :: InvertedIndex Occurrences)) 
+                ]
 
 -- ----------------------------------------------------------------------------
 --
@@ -117,10 +122,10 @@ emptyOptions = Options
 data Env dt = Env
     { evIndexer :: TextIndexerCon dt => XMVar (IpIndexer dt)
     , evRanking :: RankConfig (Dt.DValue dt)
-    , evOptions :: Options
+    , evCxTypes :: ContextTypes
     }
 
-initEnv :: TextIndexerCon dt => IpIndexer dt -> RankConfig (Dt.DValue dt) -> Options -> IO (Env dt)
+initEnv :: TextIndexerCon dt => IpIndexer dt -> RankConfig (Dt.DValue dt) -> ContextTypes -> IO (Env dt)
 initEnv ixx rnk opt = do
   ixref <- newXMVar ixx
   return $ Env ixref rnk opt
@@ -172,9 +177,9 @@ withIx :: TextIndexerCon dt => (IpIndexer dt -> CM dt a) -> CM dt a
 withIx f
     = askIx >>= f
 
-askOpts :: TextIndexerCon dt => CM dt Options
-askOpts
-    = asks evOptions
+askTypes :: TextIndexerCon dt => CM dt ContextTypes
+askTypes
+    = asks evCxTypes
 
 askRanking :: TextIndexerCon dt => CM dt (RankConfig (Dt.DValue dt))
 askRanking

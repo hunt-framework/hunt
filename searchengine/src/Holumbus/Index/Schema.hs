@@ -48,7 +48,7 @@ data CType
   | CInt
   | CDate
   | CPosition
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- | Regular expression.
 type CRegex  = Text

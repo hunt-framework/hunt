@@ -79,7 +79,7 @@ start = do
   debugM "Application start"
 
   -- init interpreter
-  env <- initEnv emptyIndexer defaultRankConfig emptyOptions
+  env <- initEnv emptyIndexer defaultRankConfig contextTypes
 
   -- start schrotty
   schrotty 3000 $ do
