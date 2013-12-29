@@ -29,73 +29,72 @@ import           Holumbus.Indexer.Indexer
 
 -- ----------------------------------------------------------------------------
 
-type TextIndexerCon i dt
-    = ( TIx.TextIndex i Occurrences
-      , DocTable dt
+type TextIndexerCon dt
+    = ( 
+        DocTable dt
       -- we need this for load and store, but i dont like these constraints here
       , Bin.Binary dt
-      , Bin.Binary (i Occurrences)
       )
 
 type TextIndexer        i dt = Indexer        i Occurrences dt
-type ContextTextIndexer i dt = ContextIndexer i Occurrences dt
+type ContextTextIndexer   dt = ContextIndexer   Occurrences dt
 
 -- ----------------------------------------------------------------------------
 
 -- | Insert a Document and Words.
-insert :: (Monad m, TextIndexerCon i dt)
-       => (Dt.DValue dt) -> Words -> ContextTextIndexer i dt -> m (ContextTextIndexer i dt)
+insert :: (Monad m, TextIndexerCon dt)
+       => (Dt.DValue dt) -> Words -> ContextTextIndexer dt -> m (ContextTextIndexer dt)
 insert doc wrds (ix, dt, s) = do
     (did, newDt) <- Dt.insert dt doc
     let newIx = TIx.addWords wrds did ix
     return (newIx, newDt, s)
 
 -- | Update elements
-update :: (Monad m, TextIndexerCon i dt)
+update :: (Monad m, TextIndexerCon dt)
        => DocId -> Dt.DValue dt -> Words
-       -> ContextTextIndexer i dt -> m (ContextTextIndexer i dt)
+       -> ContextTextIndexer dt -> m (ContextTextIndexer dt)
 update docId doc' w ix = do
     ix' <- delete ix (IS.singleton docId)
     insert doc' w ix'
 
 
 -- | Modify elements
-modify :: (Monad m, TextIndexerCon i dt)
+modify :: (Monad m, TextIndexerCon dt)
        => (Dt.DValue dt -> m (Dt.DValue dt))
-       -> Words -> DocId -> ContextTextIndexer i dt -> m (ContextTextIndexer i dt)
+       -> Words -> DocId -> ContextTextIndexer dt -> m (ContextTextIndexer dt)
 modify f wrds dId (ii, dt, s) = do
   newDocTable <- Dt.adjust f dId dt
   let newIndex = TIx.addWords wrds dId ii
   return (newIndex, newDocTable, s)
 
 -- | Delete a set of documents by 'URI'.
-deleteDocsByURI :: (Monad m, TextIndexerCon i dt)
-                => Set URI -> ContextTextIndexer i dt -> m (ContextTextIndexer i dt)
+deleteDocsByURI :: (Monad m, TextIndexerCon dt)
+                => Set URI -> ContextTextIndexer dt -> m (ContextTextIndexer dt)
 deleteDocsByURI us ixx@(_ix,dt,_) = do
     docIds <- liftM (toDocIdSet . catMaybes) . mapM (Dt.lookupByURI dt) . S.toList $ us
     delete ixx docIds
 
 -- | Delete a set of documents by 'DocId'.
-delete :: (Monad m, TextIndexerCon i dt)
-       => ContextTextIndexer i dt -> DocIdSet -> m (ContextTextIndexer i dt)
+delete :: (Monad m, TextIndexerCon dt)
+       => ContextTextIndexer dt -> DocIdSet -> m (ContextTextIndexer dt)
 delete (ix,dt,s) dIds = do
-    let newIx = CIx.map (Ix.batchDelete dIds) ix
+    let newIx = CIx.deleteWithAllCxs dIds ix
     newDt <- Dt.difference dIds dt
     return (newIx, newDt, s)
 
 -- | All contexts.
-contexts :: (Monad m, TextIndexerCon i dt)
-         => ContextTextIndexer i dt -> m [Context]
+contexts :: (Monad m, TextIndexerCon dt)
+         => ContextTextIndexer dt -> m [Context]
 contexts (ix,_dt,_s) = return $ CIx.contexts ix
 
 -- | Does the context exist?
-hasContext :: (Monad m, TextIndexerCon i dt)
-           => Context -> ContextTextIndexer i dt -> m Bool
+hasContext :: (Monad m, TextIndexerCon dt)
+           => Context -> ContextTextIndexer dt -> m Bool
 hasContext c (ix,_dt,_s) = return $ CIx.hasContext c ix
 
 -- | Is the document part of the index?
-member :: (Monad m, TextIndexerCon i dt)
-       => URI -> ContextTextIndexer i dt -> m Bool
+member :: (Monad m, TextIndexerCon dt)
+       => URI -> ContextTextIndexer dt -> m Bool
 member u (_ii, dt, _s) = do
   mem <- Dt.lookupByURI dt u
   return $ isJust mem
@@ -103,9 +102,9 @@ member u (_ii, dt, _s) = do
 
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
-modifyWithDescription :: (Monad m, TextIndexerCon i dt)
+modifyWithDescription :: (Monad m, TextIndexerCon dt)
                       => Description -> Words -> DocId
-                      -> ContextTextIndexer i dt -> m (ContextTextIndexer i dt)
+                      -> ContextTextIndexer dt -> m (ContextTextIndexer dt)
 modifyWithDescription descr wrds dId (ii, dt, s) = do
     newDocTable <- Dt.adjust mergeDescr dId dt
     let newIndex = TIx.addWords wrds dId ii

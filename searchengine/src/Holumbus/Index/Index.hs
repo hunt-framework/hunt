@@ -1,3 +1,5 @@
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE RankNTypes #-}
 module Holumbus.Index.Index
 where
 
@@ -5,10 +7,43 @@ import           GHC.Exts                       (Constraint)
 
 import           Control.DeepSeq
 import qualified Data.IntSet                    as IS
+import           Data.Text                      (Text)
+import           Data.Binary
 
 import           Holumbus.Common
 
 -- ----------------------------------------------------------------------------
+
+type IndexImplCon i v = ( Index i
+                        , IKey i v ~ Text
+                        , IVal i v ~ v
+                        , ICon i v
+                        -- XXX there is really no way we could
+                        -- use this searchop type dynamicly.
+                        , ISearchOp i v ~ TextSearchOp
+                        , Binary (i v)
+                        )
+
+data IndexImpl v 
+  = forall i. IndexImplCon i v => IndexImpl { ixImpl :: i v } 
+
+-- | XXX actually implement instance
+instance Show (IndexImpl i) where
+  show _ = "x" 
+
+-- | XXX actually implement instance
+instance Binary (IndexImpl i) where
+  put (IndexImpl i) = put i 
+  get = undefined
+
+
+-- | IndexImpl is the Wrapper for external access
+--   we set the key to Text here, but allow internal
+--   Key in all haskell types. For conversion we have
+--   could imagine a normalization proxy implemented
+--   with the KeyIndex Proxy
+mkIndex      :: IndexImplCon i v  => i v -> IndexImpl v 
+mkIndex i    = IndexImpl $! i
 
 class Index i where
     type IKey      i v :: *

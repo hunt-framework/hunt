@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE Rank2Types        #-}
 {-# LANGUAGE TypeFamilies      #-}
-
+{-# LANGUAGE ExistentialQuantification #-}
 module Holumbus.Index.TextIndex
 ( TextIndex
 , ContextTextIndex
@@ -18,7 +18,7 @@ import qualified Holumbus.Common.Occurrences       as Occ
 import           Holumbus.Common
 
 import           Holumbus.Index.Index
-import           Holumbus.Index.Proxy.ContextIndex (ContextIndex, ContextIxCon)
+import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 
 -- ----------------------------------------------------------------------------
@@ -33,20 +33,17 @@ type TextIndex i v
     , ISearchOp i v ~ TextSearchOp
     )
 
-type ContextTextIndex i v
-  = ( ContextIxCon i v
-    , Index i
-    , ICon i Occurrences
-    , IKey i Occurrences ~ Word
-    , TextIndex i v
+type ContextTextIndex 
+  = forall i. 
+    ( IndexImplCon i Occurrences
+    , TextIndex i Occurrences
     )
 
 -- ----------------------------------------------------------------------------
 
 -- | Add words for a document to the 'Index'.
 --   /NOTE/: adds words to /existing/ 'Context's.
-addWords :: TextIndex i Occurrences
-         => Words -> DocId -> ContextIndex i Occurrences -> ContextIndex i Occurrences
+addWords :: Words -> DocId -> ContextIndex Occurrences -> ContextIndex Occurrences
 addWords wrds dId i
   = M.foldrWithKey (\c wl acc ->
       M.foldrWithKey (\w ps acc' ->

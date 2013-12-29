@@ -32,8 +32,8 @@ newtype InvertedIndex _v
     = InvIx { invIx :: KeyProxyIndex Text ComprOccPrefixTree CompressedOccurrences }
     deriving (Eq, Show, NFData)
 
---mkInvIx :: CachedIndex (TextKeyProxyIndex (ComprOccIndex DmPrefixTree CompressedPositions)) Positions
---        -> InvertedIndex v_
+mkInvIx :: KeyProxyIndex Text ComprOccPrefixTree CompressedOccurrences
+        -> InvertedIndex v_
 mkInvIx x = InvIx $! x
 
 -- ----------------------------------------------------------------------------
