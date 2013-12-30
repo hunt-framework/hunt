@@ -131,11 +131,3 @@ contexts (ContextIx m) = M.keys m
 -- | Check if the context exists.
 hasContext :: Context -> ContextIndex v -> Bool
 hasContext c (ContextIx m) = M.member c m
-
--- | Map a function iver all values of the 'ContextIndex'.
-map :: Ix.IndexImplCon i v
-    => (i v -> i v) -> ContextIndex v -> ContextIndex v
---map f (ContextIx m) = ContextIx $ M.map (\(Ix.IndexImpl ix) -> Ix.mkIndex $ f ix) m
-map = undefined
-
-
