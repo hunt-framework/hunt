@@ -30,8 +30,8 @@ import           Holumbus.DocTable.HashedDocTable            (Documents)
 
 -- ----------------------------------------------------------------------------
 
-type TestEnv = Env InvertedIndex (Documents CompressedDoc)
-type TestCM a = CM InvertedIndex (Documents CompressedDoc) a
+type TestEnv = Env (Documents CompressedDoc)
+type TestCM a = CM (Documents CompressedDoc) a
 
 rankConfig :: DocumentWrapper e => RankConfig e
 rankConfig = defaultRankConfig
@@ -60,7 +60,7 @@ test_insertEmpty = do
 
 testRunCmd :: Command -> IO (Either CmdError CmdResult, TestEnv)
 testRunCmd cmd = do
-  env <- initEnv emptyIndexer rankConfig emptyOptions
+  env <- initEnv emptyIndexer rankConfig contextTypes
   res <- runCmd env cmd
   return (res, env)
 
@@ -120,19 +120,19 @@ brainDocMerged :: ApiDocument
 brainDocMerged = brainDocUpdate { apiDocDescrMap = (apiDocDescrMap brainDocUpdate) `M.union` (apiDocDescrMap brainDoc) }
 
 defaultContextInfo :: (Context, ContextSchema)
-defaultContextInfo = ("default", ContextSchema CText "[^ \t\n\r]*" [] 1 True)
+defaultContextInfo = ("default", ContextSchema "text" "[^ \t\n\r]*" [] 1 True (Just CText))
 
 insertDefaultContext :: Command
 insertDefaultContext = uncurry InsertContext defaultContextInfo
 
 dateContextInfo :: (Context, ContextSchema)
-dateContextInfo = ("datecontext", ContextSchema CDate "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))"   [] 1 True)
+dateContextInfo = ("datecontext", ContextSchema "date" "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))"   [] 1 True (Just CDate))
 
 insertDateContext :: Command
 insertDateContext = uncurry InsertContext dateContextInfo
 
 geoContextInfo :: (Context, ContextSchema)
-geoContextInfo = ("datecontext", ContextSchema CPosition "" [] 1 True)
+geoContextInfo = ("datecontext", ContextSchema "position" "" [] 1 True (Just CPosition))
 
 insertGeoContext :: Command
 insertGeoContext = uncurry InsertContext geoContextInfo
@@ -143,7 +143,7 @@ insertGeoContext = uncurry InsertContext geoContextInfo
 -- evaluate CM and check the result
 testCM' :: Bool -> TestCM () -> Assertion
 testCM' b int = do
-  env <- initEnv emptyIndexer rankConfig emptyOptions
+  env <- initEnv emptyIndexer rankConfig contextTypes
   res <- runCM int env
   (if b then isRight else isLeft) res @? "unexpected interpreter result: " ++ show res
 

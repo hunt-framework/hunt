@@ -23,6 +23,7 @@ import qualified Holumbus.Index.PrefixTreeIndex       as PIx
 import qualified Holumbus.Index.Proxy.CompressedIndex as CPIx
 import qualified Holumbus.Index.Proxy.ContextIndex    as ConIx
 import           Holumbus.Index.TextIndex
+import           Holumbus.Index.IndexImpl
 
 -- ----------------------------------------------------------------------------
 
@@ -99,15 +100,15 @@ insertTestContextIx
   newElem = singleton 1 1
   [(_, insertedElem)] = ConIx.searchWithCx PrefixNoCase "context" "word"
                             $ ConIx.insertWithCx "context" "word" newElem emptyIndex
-  emptyIndex :: ConIx.ContextIndex InvIx.InvertedIndex Occurrences
+  emptyIndex :: ConIx.ContextIndex Occurrences
   emptyIndex = ConIx.empty
 
 insertTestContext :: Assertion
 insertTestContext = "test" @?= insertedContext
   where
   [insertedContext] = ConIx.contexts ix
-  ix :: ConIx.ContextIndex InvIx.InvertedIndex Occurrences
-  ix = ConIx.insertContext "test" ConIx.empty
+  ix :: ConIx.ContextIndex Occurrences
+  ix = ConIx.insertContext "test" (mkIndex (Ix.empty :: InvIx.InvertedIndex Occurrences)) ConIx.empty
 
 -- ----------------------------------------------------------------------------
 -- check helper functions
@@ -118,7 +119,7 @@ addWordsTest = True @?= length resList == 1
   where
   resList = ConIx.searchWithCx PrefixNoCase "default" "word" $ resIx
   resIx = addWords (wrds "default") 1 emptyIndex
-  emptyIndex :: ConIx.ContextIndex InvIx.InvertedIndex Occurrences
+  emptyIndex :: ConIx.ContextIndex Occurrences
   emptyIndex =  ConIx.empty
 
 -- ----------------------------------------------------------------------------
