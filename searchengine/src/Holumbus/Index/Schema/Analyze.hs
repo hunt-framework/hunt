@@ -1,7 +1,6 @@
 module Holumbus.Index.Schema.Analyze
   ( toDocAndWords
   , normalize
-  , normalizeByType
   , scanTextRE
   )
 where
@@ -63,21 +62,14 @@ toDocAndWords' schema apiDoc = (doc, ws)
                     -> let cSchema  = fromJust $ M.lookup context schema
                            cType    = fromMaybe CText $ cxType cSchema
                            cNorm    = cxNormalizer cSchema
-                           tNorm    = typeNormalizer cType
                            scan = filter (typeValidator cType) . scanTextRE (cxRegEx cSchema)
                        -- XXX: simple concat without nub
-                       in toWordList scan (normalize (tNorm ++ cNorm)) content)) indexMap
+                       in toWordList scan (normalize cNorm) content)) indexMap
 
 
 -- | Apply the normalizers to a Word.
 normalize :: [CNormalizer] -> Word -> Word
 normalize cType = chainFuns . map contextNormalizer $ cType
-
-
--- | Get normalizers from Schema and apply them to a Word.
-normalizeByType :: ContextSchema -> Word -> Word
-normalizeByType s = normalize $ cxNormalizer s
-
 
 -- | Chain a list of functions.
 chainFuns :: [a -> a] -> a -> a

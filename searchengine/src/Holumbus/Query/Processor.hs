@@ -182,7 +182,7 @@ normQueryCx c t = do
        return $ n s
     else processError 400 $ T.concat ["value incompatible with context type: ", c, ":", t, "(", T.pack . show $ ct s,")"]
   where
-  n s = normalizeByType s t
+  n s = normalize (cxNormalizer s) t
   ct s = case cxType s of 
            (Just c') -> c'
            _        -> error "context type not set"

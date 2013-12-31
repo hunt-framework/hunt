@@ -1,6 +1,5 @@
 module Holumbus.Index.Schema.Normalize
   ( contextNormalizer
-  , typeNormalizer
   , typeValidator
   , rangeValidator
   )
@@ -28,14 +27,6 @@ contextNormalizer o = case o of
     NormPosition    -> Pos.normalize
     NormIntZeroFill -> Int.normalizeToText
 
--- ----------------------------------------------------------------------------
-
-typeNormalizer :: CType -> [CNormalizer]
-typeNormalizer o = case o of
-    CText     -> []
-    CInt      -> [NormIntZeroFill]
-    CDate     -> [NormDate]
-    CPosition -> [NormPosition]
 -- ----------------------------------------------------------------------------
 
 -- | Checks if value is valid for a context type.
