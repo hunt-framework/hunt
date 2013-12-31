@@ -3,6 +3,9 @@
 
 module Holumbus.Index.InvertedIndex
 ( InvertedIndex(..)
+, InvertedIndexDate
+, InvertedIndexInt
+, InvertedIndexPosition
 )
 where
 
@@ -23,10 +26,17 @@ import           Holumbus.Index.Index                            as Ix
 import           Holumbus.Index.Proxy.CachedIndex
 import           Holumbus.Index.Proxy.CompressedIndex
 import           Holumbus.Index.Proxy.KeyIndex
+import           Holumbus.Index.Proxy.DateNormalizerIndex
+import           Holumbus.Index.Proxy.IntNormalizerIndex
+import           Holumbus.Index.Proxy.PositionNormalizerIndex
 
 import           Data.Text (Text)
 
 -- ----------------------------------------------------------------------------
+
+type InvertedIndexInt v      = IntAsTextNormalizerIndex InvertedIndex v
+type InvertedIndexDate v     = DateNormalizerIndex InvertedIndex v
+type InvertedIndexPosition v = PositionNormalizerIndex InvertedIndex v
 
 newtype InvertedIndex _v
     = InvIx { invIx :: KeyProxyIndex Text ComprOccPrefixTree CompressedOccurrences }

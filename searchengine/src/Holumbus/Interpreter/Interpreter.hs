@@ -109,13 +109,22 @@ type ContextTypes = M.Map Text Impl.ContextMeta
 contextTypes :: ContextTypes
 contextTypes  = M.fromList 
               $ [ ("text",     Impl.CxMeta CText     defaultInv)
-                , ("int",      Impl.CxMeta CInt      defaultInv)
-                , ("date",     Impl.CxMeta CDate     defaultInv)
-                , ("position", Impl.CxMeta CPosition defaultInv)
+                , ("int",      Impl.CxMeta CInt      intInv)
+                , ("date",     Impl.CxMeta CDate     dateInv)
+                , ("position", Impl.CxMeta CPosition positionInv)
                 ]
 
 defaultInv :: Impl.IndexImpl Occurrences
 defaultInv = Impl.IndexImpl (Ix.empty :: InvertedIndex Occurrences)
+
+intInv :: Impl.IndexImpl Occurrences
+intInv = Impl.IndexImpl (Ix.empty :: InvertedIndexInt Occurrences)
+
+dateInv :: Impl.IndexImpl Occurrences
+dateInv = Impl.IndexImpl (Ix.empty :: InvertedIndexDate Occurrences)
+
+positionInv :: Impl.IndexImpl Occurrences
+positionInv = Impl.IndexImpl (Ix.empty :: InvertedIndexPosition Occurrences)
 
 
 -- ----------------------------------------------------------------------------
