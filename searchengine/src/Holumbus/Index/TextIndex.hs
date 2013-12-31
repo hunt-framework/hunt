@@ -20,6 +20,7 @@ import           Holumbus.Common
 import           Holumbus.Index.Index
 import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
+import           Holumbus.Index.IndexImpl
 
 -- ----------------------------------------------------------------------------
 

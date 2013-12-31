@@ -15,6 +15,7 @@ import qualified Data.Map                        as M
 import           Data.Maybe                      (fromJust)
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
+import           Data.Maybe                      (fromMaybe)
 
 import           Text.Regex.XMLSchema.String
 
@@ -60,7 +61,7 @@ toDocAndWords' schema apiDoc = (doc, ws)
   ws = M.mapWithKey (\context ->
                 (\(content)
                     -> let cSchema  = fromJust $ M.lookup context schema
-                           cType    = cxType cSchema
+                           cType    = fromMaybe CText $ cxType cSchema
                            cNorm    = cxNormalizer cSchema
                            tNorm    = typeNormalizer cType
                            scan = filter (typeValidator cType) . scanTextRE (cxRegEx cSchema)
@@ -75,10 +76,7 @@ normalize cType = chainFuns . map contextNormalizer $ cType
 
 -- | Get normalizers from Schema and apply them to a Word.
 normalizeByType :: ContextSchema -> Word -> Word
-normalizeByType s = normalize (tNorm ++ cNorm)
-  where
-  cNorm    = cxNormalizer s
-  tNorm    = typeNormalizer . cxType $ s
+normalizeByType s = normalize $ cxNormalizer s
 
 
 -- | Chain a list of functions.

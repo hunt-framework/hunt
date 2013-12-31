@@ -183,7 +183,9 @@ normQueryCx c t = do
     else processError 400 $ T.concat ["value incompatible with context type: ", c, ":", t, "(", T.pack . show $ ct s,")"]
   where
   n s = normalizeByType s t
-  ct s = cxType s
+  ct s = case cxType s of 
+           (Just c') -> c'
+           _        -> error "context type not set"
 
 -- | normalizes search text in respect of multiple contexts
 normQueryCxs ::   [Context] -> Text -> Processor [(Context, Text)]
@@ -333,7 +335,6 @@ processPhraseFuzzy q = do
 processPhraseInternal :: (Text -> RawResult) -> Text -> [Context]
                       -> Processor Intermediate
 processPhraseInternal f q c = do
-  cq <- normQueryCxs c q
   if DM.null result
     then return $ I.empty
     else return $ I.fromListCx q c [(q, processPhrase' ws 1 result)]
@@ -360,7 +361,9 @@ processRange l h = forAllContexts' range
   range c = do
     cSchema <- getContextSchema c
     -- compatible with context
-    let cType       = cxType   cSchema
+    let cType       = case cxType cSchema of 
+                         (Just t) -> t
+                         _        -> error "context not set"
         rangeText   = T.pack . show $ [l,h]
         scan        = scanTextRE (cxRegEx      cSchema)
         norm        = normalize  (cxNormalizer cSchema)

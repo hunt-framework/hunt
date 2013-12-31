@@ -1,6 +1,6 @@
 module Holumbus.Index.Schema where
 
-import           Control.Monad              (liftM5, mzero)
+import           Control.Monad              (mzero)
 
 import           Data.Aeson
 import           Data.Binary
@@ -35,12 +35,16 @@ type Schema
 --   The first  regexp/normalizer is type-specific and is applied first (forced)
 --   The second regexp/normalizer is context-specific (defined/chosen by user)
 data ContextSchema = ContextSchema
-  { cxType        :: CType
+  { cxName        :: Text
   , cxRegEx       :: CRegex
   , cxNormalizer  :: [CNormalizer]
   , cxWeight      :: CWeight
   , cxDefault     :: Bool
+  , cxType        :: Maybe CType 
   } deriving (Show, Eq)
+
+
+
 
 -- | Types for values in a context.
 data CType
@@ -107,12 +111,12 @@ instance FromJSON ContextSchema where
     n <- o .: "normalizers"
     w <- o .: "weight"
     d <- o .:? "default" .!= True
-    return $ ContextSchema t r n w d
+    return $ ContextSchema t r n w d Nothing
 
   parseJSON _ = mzero
 
 instance ToJSON ContextSchema where
-  toJSON (ContextSchema t r n w d) = object
+  toJSON (ContextSchema t r n w d _) = object
     [ "type"        .= t
     , "regexp"      .= r
     , "normalizers" .= n
@@ -157,5 +161,12 @@ instance Binary CNormalizer where
       _ -> fail "get(CNormalizer) out of bounds"
 
 instance Binary ContextSchema where
-  get = liftM5 ContextSchema get get get get get
-  put (ContextSchema a b c d e) = put a >> put b >> put c >> put d >> put e
+  get = liftM6 ContextSchema get get get get get get
+  put (ContextSchema a b c d e f) = put a >> put b >> put c >> put d >> put e >> put f
+
+liftM6  :: (Monad m) => (a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> r)
+           -> m a1 -> m a2 -> m a3 -> m a4 -> m a5 -> m a6 -> m r
+liftM6 f m1 m2 m3 m4 m5 m6
+  = do { x1 <- m1; x2 <- m2; x3 <- m3; x4 <- m4; x5 <- m5; x6 <- m6
+       ; return (f x1 x2 x3 x4 x5 x6)
+       }

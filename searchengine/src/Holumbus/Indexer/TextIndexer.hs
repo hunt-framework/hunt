@@ -21,7 +21,6 @@ import           Holumbus.Common
 import           Holumbus.Common.DocIdMap          (toDocIdSet)
 import qualified Holumbus.Common.Document          as Doc
 
-import qualified Holumbus.Index.Index              as Ix
 import qualified Holumbus.Index.TextIndex          as TIx
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 

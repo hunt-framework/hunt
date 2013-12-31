@@ -11,6 +11,7 @@ import qualified Data.Map.Strict              as M
 import           Holumbus.Common
 import qualified Holumbus.Index.Index         as Ix
 import           Data.Text                    (Text)
+import qualified Holumbus.Index.IndexImpl     as Impl
 
 -- ----------------------------------------------------------------------------
 
@@ -18,7 +19,7 @@ import           Data.Text                    (Text)
 --   and hides their implementation. The API enforces
 --   usage of a Text key.
 newtype ContextIndex v = ContextIx 
-    { contextIx :: Map Context (Ix.IndexImpl v) }
+    { contextIx :: Map Context (Impl.IndexImpl v) }
     deriving (Show)
 
 instance (Binary (impl v), Binary v) => Binary (ContextIndex v) where
@@ -29,9 +30,13 @@ instance (Binary (impl v), Binary v) => Binary (ContextIndex v) where
 
 -- | Insert a new context.
 --   Note: If context already exists this function does nothing.
-insertContext :: Ix.IndexImplCon ix v  
+insertContext' :: Impl.IndexImplCon ix v  
               => Context -> ix v -> ContextIndex v -> ContextIndex v
-insertContext c ix (ContextIx m) = ContextIx $ M.insertWith (const id) c (Ix.mkIndex ix) m
+insertContext' c ix (ContextIx m) = ContextIx $ M.insertWith (const id) c (Impl.mkIndex ix) m
+
+insertContext :: Context -> Impl.IndexImpl v -> ContextIndex v -> ContextIndex v
+insertContext c ix (ContextIx m) = ContextIx $ M.insertWith (const id) c ix m
+
 
 -- | Removes context including attached index from ContextIndex.
 deleteContext :: Context -> ContextIndex v -> ContextIndex v
@@ -44,7 +49,7 @@ insertWithCx c w v (ContextIx m)
       (Just _) -> ContextIx $ M.adjust adjust' c m
       _        -> error "context does not exist"
   where
-  adjust' (Ix.IndexImpl ix) = Ix.mkIndex $ Ix.insert w v ix
+  adjust' (Impl.IndexImpl ix) = Impl.mkIndex $ Ix.insert w v ix
 
 -- | Insert an element to one Context.
 deleteWithCx :: Context -> DocIdSet -> ContextIndex v -> ContextIndex v
@@ -53,7 +58,7 @@ deleteWithCx c dIds (ContextIx m)
       (Just _) -> ContextIx $ M.adjust adjust' c m
       _        -> error "context does not exist"
   where
-  adjust' (Ix.IndexImpl ix) = Ix.mkIndex $ Ix.batchDelete dIds ix
+  adjust' (Impl.IndexImpl ix) = Impl.mkIndex $ Ix.batchDelete dIds ix
 
 
 -- | Insert an element to a list of contexts.
@@ -69,7 +74,7 @@ deleteWithAllCxs :: DocIdSet -> ContextIndex v -> ContextIndex v
 deleteWithAllCxs dIds (ContextIx m)
   = ContextIx $ M.map adjust' m
   where
-  adjust' (Ix.IndexImpl ix) = Ix.mkIndex $ Ix.batchDelete dIds ix
+  adjust' (Impl.IndexImpl ix) = Impl.mkIndex $ Ix.batchDelete dIds ix
 
 
 
@@ -82,21 +87,21 @@ search :: TextSearchOp -> Text -> ContextIndex v -> [(Context, [(Text, v)])]
 search op k (ContextIx m) 
   = M.toList $ M.map search' m
   where
-  search' (Ix.IndexImpl ix) = Ix.search op k ix
+  search' (Impl.IndexImpl ix) = Ix.search op k ix
 
 lookupRange :: Text -> Text -> ContextIndex v
             -> [(Context, [(Text, v)])]
 lookupRange k1 k2 (ContextIx m) 
   = M.toList $ M.map range' m
   where
-  range' (Ix.IndexImpl ix) = Ix.lookupRange k1 k2 ix
+  range' (Impl.IndexImpl ix) = Ix.lookupRange k1 k2 ix
 
 searchWithCx :: TextSearchOp 
              -> Context -> Text -> ContextIndex v -> [(Text, v)]
 searchWithCx op c k (ContextIx m)
   = case M.lookup c m of
-      (Just (Ix.IndexImpl cm)) -> Ix.search op k cm
-      _                        -> []
+      (Just (Impl.IndexImpl cm)) -> Ix.search op k cm
+      _                          -> []
   
 
 -- | XXX we actually do not have any parallelism here at the moment
@@ -107,8 +112,8 @@ searchWithCxs op cs k (ContextIx m)
   = parMap rseq search' cs
   where
   search' c = case M.lookup c m of
-      (Just (Ix.IndexImpl cm)) -> (c, Ix.search op k cm)
-      _                        -> (c, [])
+      (Just (Impl.IndexImpl cm)) -> (c, Ix.search op k cm)
+      _                          -> (c, [])
 
 
 -- | search in different contexts with key already normalized in respect
@@ -121,8 +126,8 @@ searchWithCxsNormalized op cks (ContextIx m)
   = parMap rseq search' cks
   where
   search' (c, k) = case M.lookup c m of
-      (Just (Ix.IndexImpl cm)) -> (c, Ix.search op k cm)
-      _                        -> (c, [])
+      (Just (Impl.IndexImpl cm)) -> (c, Ix.search op k cm)
+      _                          -> (c, [])
 
 -- | Contexts/keys of 'ContextIndex'.
 contexts :: ContextIndex v -> [Context]

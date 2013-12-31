@@ -38,6 +38,7 @@ import           Holumbus.Index.InvertedIndex
 import           Holumbus.Index.Proxy.ContextIndex           (ContextIndex)
 import qualified Holumbus.Index.Proxy.ContextIndex           as CIx
 import qualified Holumbus.Index.Index                        as Ix
+import qualified Holumbus.Index.IndexImpl                    as Impl
 
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
@@ -103,15 +104,19 @@ emptyIndexer = (CIx.empty, HDt.empty, M.empty)
 
 -- ----------------------------------------------------------------------------
 
-type ContextTypes = M.Map CType (Ix.IndexImpl Occurrences)
+type ContextTypes = M.Map Text Impl.ContextMeta
 
 contextTypes :: ContextTypes
-contextTypes  = M.fromList $
-                [ (CText,     Ix.IndexImpl $ (Ix.empty :: InvertedIndex Occurrences))
-                , (CInt,      Ix.IndexImpl $ (Ix.empty :: InvertedIndex Occurrences))
-                , (CDate,     Ix.IndexImpl $ (Ix.empty :: InvertedIndex Occurrences))
-                , (CPosition, Ix.IndexImpl $ (Ix.empty :: InvertedIndex Occurrences)) 
+contextTypes  = M.fromList 
+              $ [ ("text",     Impl.CxMeta CText     defaultInv)
+                , ("int",      Impl.CxMeta CInt      defaultInv)
+                , ("date",     Impl.CxMeta CDate     defaultInv)
+                , ("position", Impl.CxMeta CPosition defaultInv)
                 ]
+
+defaultInv :: Impl.IndexImpl Occurrences
+defaultInv = Impl.IndexImpl (Ix.empty :: InvertedIndex Occurrences)
+
 
 -- ----------------------------------------------------------------------------
 --
@@ -180,6 +185,22 @@ withIx f
 askTypes :: TextIndexerCon dt => CM dt ContextTypes
 askTypes
     = asks evCxTypes
+
+askType :: TextIndexerCon dt => Text -> CM dt CType
+askType cn = do
+    t <- asks evCxTypes
+    case M.lookup cn t of
+      (Just (Impl.CxMeta t ix)) -> return $ t
+      _                         -> throwResError 410 "used unavailable context type"
+
+
+
+askIndex :: TextIndexerCon dt => Text -> CM dt (Impl.IndexImpl Occurrences)
+askIndex cn = do
+    t <- asks evCxTypes
+    case M.lookup cn t of
+      (Just (Impl.CxMeta t ix)) -> return $ ix
+      _                         -> throwResError 410 "used unavailable context type"
 
 askRanking :: TextIndexerCon dt => CM dt (RankConfig (Dt.DValue dt))
 askRanking
@@ -291,16 +312,22 @@ execInsertContext :: TextIndexerCon dt
 execInsertContext cx ct ixx@(ix, dt, s)
     = do
       contextExists        <- Ixx.hasContext cx ixx
+      cType                <- askType . cxName $ ct
+      newIx                <- askIndex . cxName $ ct
+      let newCt            = ct { cxType = Just cType }
+
       unless' (not contextExists)
              409 $ "context already exists: " `T.append` cx
-      return (ixx', ResOK)
+      return (ixx' newIx newCt, ResOK)
     where
-    ixx' = ( CIx.insertContext cx newIx ix
-           , dt
-           , M.insert cx ct s)
+    ixx' i c = ( CIx.insertContext cx i ix
+               , dt
+               , M.insert cx c s
+               )
+  
 
-    -- create contexttype dependend index here for insertion
-    newIx = Ix.empty :: InvertedIndex Occurrences
+    
+
 
 -- | Deletes the context and the schema associated with it.
 execDeleteContext :: TextIndexerCon dt
@@ -315,7 +342,7 @@ execDeleteContext cx (ix, dt, s)
 -- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs must not exist.
 execInsert :: TextIndexerCon dt
-           => ApiDocument -> IpIndexer dt -> CM dt(IpIndexer dt, CmdResult)
+           => ApiDocument -> IpIndexer dt -> CM dt (IpIndexer dt, CmdResult)
 execInsert doc ixx@(_ix, _dt, schema) = do
     let contexts = M.keys $ apiDocIndexMap doc
     checkContextsExistence contexts ixx
