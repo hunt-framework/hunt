@@ -1,0 +1,16 @@
+.navbar-nav>li>form {
+    padding-top: 15px;
+    /*padding-bottom: 15px;*/
+}
+
+  .ui-autocomplete-loading {
+    background: white url('http://jqueryui.com/resources/demos/autocomplete/images/ui-anim_basic_16x16.gif') right center no-repeat;
+  }
+
+  .ui-autocomplete .ui-menu {
+      z-index: 10
+  }
+
+  .navbar {
+      z-index: 0
+  }
