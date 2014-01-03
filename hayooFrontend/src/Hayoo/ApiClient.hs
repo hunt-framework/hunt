@@ -16,10 +16,10 @@ autocomplete w = do
 -}
 
 import Network.HTTP.Conduit
-import qualified Data.ByteString.Lazy as L
+--import qualified Data.ByteString.Lazy as L
 import Data.Text
-import Data.Functor
-import Control.Applicative
+--import Data.Functor
+--import Control.Applicative
 
 
 import           Data.Aeson
@@ -30,15 +30,15 @@ data JsonResponse r =
     deriving (Show)
 
 instance (ToJSON r) => ToJSON (JsonResponse r) where
-  toJSON (JsonSuccess msg) = object
-    [ "code"  .= (0 :: Int)
-    , "msg"   .= msg
-    ]
+    toJSON (JsonSuccess msg) = object
+        [ "code"  .= (0 :: Int)
+        , "msg"   .= msg
+        ]
 
-  toJSON (JsonFailure n msg) = object
-    [ "code"  .= n
-    , "msg"   .= msg
-    ]
+    toJSON (JsonFailure n msg) = object
+        [ "code"  .= n
+        , "msg"   .= msg
+        ]
 
 instance (FromJSON r) => FromJSON (JsonResponse r) where
     parseJSON (Object v) = do
