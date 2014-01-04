@@ -183,7 +183,7 @@ normQueryCx c t = do
     else processError 400 $ T.concat ["value incompatible with context type: ", c, ":", t, "(", T.pack . show $ ct s,")"]
   where
   n s = normalize (cxNormalizer s) t
-  ct s = case cxType s of 
+  ct s = case cxType s of
            (Just c') -> c'
            _        -> error "context type not set"
 
@@ -361,7 +361,7 @@ processRange l h = forAllContexts' range
   range c = do
     cSchema <- getContextSchema c
     -- compatible with context
-    let cType       = case cxType cSchema of 
+    let cType       = case cxType cSchema of
                          (Just t) -> t
                          _        -> error "context not set"
         rangeText   = T.pack . show $ [l,h]

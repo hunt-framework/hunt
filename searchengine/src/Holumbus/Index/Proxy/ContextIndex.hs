@@ -18,7 +18,7 @@ import qualified Holumbus.Index.IndexImpl     as Impl
 -- | ContextIndex stores different kinds of indexes
 --   and hides their implementation. The API enforces
 --   usage of a Text key.
-newtype ContextIndex v = ContextIx 
+newtype ContextIndex v = ContextIx
     { contextIx :: Map Context (Impl.IndexImpl v) }
     deriving (Show)
 
@@ -30,7 +30,7 @@ instance (Binary (impl v), Binary v) => Binary (ContextIndex v) where
 
 -- | Insert a new context.
 --   Note: If context already exists this function does nothing.
-insertContext' :: Impl.IndexImplCon ix v  
+insertContext' :: Impl.IndexImplCon ix v
               => Context -> ix v -> ContextIndex v -> ContextIndex v
 insertContext' c ix (ContextIx m) = ContextIx $ M.insertWith (const id) c (Impl.mkIndex ix) m
 
@@ -84,31 +84,31 @@ empty :: ContextIndex v
 empty = ContextIx $ M.empty
 
 search :: TextSearchOp -> Text -> ContextIndex v -> [(Context, [(Text, v)])]
-search op k (ContextIx m) 
+search op k (ContextIx m)
   = M.toList $ M.map search' m
   where
   search' (Impl.IndexImpl ix) = Ix.search op k ix
 
 lookupRange :: Text -> Text -> ContextIndex v
             -> [(Context, [(Text, v)])]
-lookupRange k1 k2 (ContextIx m) 
+lookupRange k1 k2 (ContextIx m)
   = M.toList $ M.map range' m
   where
   range' (Impl.IndexImpl ix) = Ix.lookupRange k1 k2 ix
 
-searchWithCx :: TextSearchOp 
+searchWithCx :: TextSearchOp
              -> Context -> Text -> ContextIndex v -> [(Text, v)]
 searchWithCx op c k (ContextIx m)
   = case M.lookup c m of
       (Just (Impl.IndexImpl cm)) -> Ix.search op k cm
       _                          -> []
-  
+
 
 -- | XXX we actually do not have any parallelism here at the moment
 --   because everything is evalutated lazy!
 searchWithCxs :: TextSearchOp -> [Context] -> Text -> ContextIndex v
               -> [(Context, [(Text, v)])]
-searchWithCxs op cs k (ContextIx m) 
+searchWithCxs op cs k (ContextIx m)
   = parMap rseq search' cs
   where
   search' c = case M.lookup c m of

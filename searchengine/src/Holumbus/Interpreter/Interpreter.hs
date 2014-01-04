@@ -107,7 +107,7 @@ emptyIndexer = (CIx.empty, HDt.empty, M.empty)
 type ContextTypes = M.Map Text Impl.ContextMeta
 
 contextTypes :: ContextTypes
-contextTypes  = M.fromList 
+contextTypes  = M.fromList
               $ [ ("text",     Impl.CxMeta CText     defaultInv)
                 , ("int",      Impl.CxMeta CInt      intInv)
                 , ("date",     Impl.CxMeta CDate     dateInv)
@@ -333,9 +333,6 @@ execInsertContext cx ct ixx@(ix, dt, s)
                , dt
                , M.insert cx c s
                )
-  
-
-    
 
 
 -- | Deletes the context and the schema associated with it.
