@@ -16,7 +16,9 @@
 module Holumbus.Common.Document.Compression.Snappy
 where
 
+#if  __GLASGOW_HASKELL__ >= 770
 import qualified Codec.Compression.Snappy.Lazy  as ZIP
+#endif
 
 import           Control.DeepSeq
 
@@ -51,12 +53,20 @@ instance NFData CompressedDoc where
 
 -- | 'CompressedDoc' to 'Document' conversion.
 decompress  :: CompressedDoc -> Document
+#if  __GLASGOW_HASKELL__ >= 770
 decompress  = B.decode . ZIP.decompress . unCDoc
+#else
+#warning snappy is disabled if GHC < 7.7
+decompress  = B.decode . unCDoc
+#endif
 
 -- | 'Document' to 'CompressedDoc' conversion.
 compress    :: Document -> CompressedDoc
+#if  __GLASGOW_HASKELL__ >= 770
 compress    = mkCDoc . ZIP.compress . B.encode
-
+#else
+compress    = mkCDoc . B.encode
+#endif
 -- ----------------------------------------------------------------------------
 
 instance DocumentWrapper CompressedDoc where

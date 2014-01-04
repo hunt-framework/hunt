@@ -31,8 +31,9 @@ import           Control.DeepSeq
 import           Data.Binary                             (Binary)
 import qualified Data.Binary                             as B
 import           Data.ByteString.Lazy                    (ByteString)
-
+#if  __GLASGOW_HASKELL__ >= 770
 import qualified Codec.Compression.Snappy.Lazy           as BZ
+#endif
 
 import           Holumbus.Common.Occurrences.Compression
 
@@ -49,12 +50,19 @@ mkOccOBs :: ByteString -> OccOSerialized
 mkOccOBs b = OccOBs $! b
 
 -- ----------------------------------------------------------------------------
-
+#if  __GLASGOW_HASKELL__ >= 770
 instance OccCompression CompressedOccurrences where
   compressOcc           = mkOccOBs . BZ.compress . B.encode
   decompressOcc         = B.decode . BZ.decompress . unOccOBs
   differenceWithKeySet  = undefined
+#else
+#warning snappy is disabled if GHC < 7.7
+instance OccCompression CompressedOccurrences where
+  compressOcc           = mkOccOBs . B.encode
+  decompressOcc         = B.decode . unOccOBs
+  differenceWithKeySet  = undefined
 
+#endif
 -- ----------------------------------------------------------------------------
 
 instance Binary OccOSerialized where
