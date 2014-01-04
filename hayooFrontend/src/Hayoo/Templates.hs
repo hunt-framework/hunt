@@ -1,6 +1,7 @@
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+
 module Hayoo.Templates where
 
 import qualified Text.Hamlet as Hamlet (HtmlUrl, hamlet)
@@ -10,16 +11,18 @@ import qualified Text.Blaze.Html.Renderer.String as Blaze (renderHtml)
 import Data.Text (Text)
 import qualified Data.Text.Lazy as TextL
 
-data MyRoute = Home | HayooJs | HayooCSS | Autocomplete
+import Hayoo.ApiClient
 
-render :: MyRoute -> [(Text, Text)] -> Text
+data Routes = Home | HayooJs | HayooCSS | Autocomplete
+
+render :: Routes -> [(Text, Text)] -> Text
 render Home _ = "/"
 render HayooJs _ = "/hayoo.js"
 render HayooCSS _ = "/hayoo.css"
 render Autocomplete _ = "/autocomplete"
 
 --header :: Blaze.Html
-header :: Hamlet.HtmlUrl MyRoute
+header :: Hamlet.HtmlUrl Routes
 header = [Hamlet.hamlet|
   <head>
     <title>Hayoo Cabal API Search
@@ -36,19 +39,18 @@ header = [Hamlet.hamlet|
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 |]
 
-footer :: Hamlet.HtmlUrl MyRoute
+footer :: Hamlet.HtmlUrl Routes
 footer = [Hamlet.hamlet|
 <footer>
-    Return to #
-    <a href=@{Home}>Homepage#
-    .
+    <a href=@{Home}> Hayoo Frontend#
+    by Sebastian Philipp
 |]
 
 
 
 
-body :: String 
-body = Blaze.renderHtml $ [Hamlet.hamlet|
+body :: String -> Hamlet.HtmlUrl Routes -> TextL.Text 
+body query content = TextL.pack $ Blaze.renderHtml $ [Hamlet.hamlet|
 $doctype 5
 <html lang="en">
     ^{header}
@@ -63,7 +65,7 @@ $doctype 5
                 <li .active>
                     <form action="." method="get" id="search">
                         <div .ui-widget>
-                            <input name="query" #hayoo type="text" autocomplete="off" accesskey="1" value="">
+                            <input name="query" #hayoo type="text" autocomplete="off" accesskey="1" value="#{query}">
                             <input #submit type="submit" value="Search">
                 <li>
                     <a href="#about">About
@@ -77,15 +79,42 @@ $doctype 5
                     <a href="./">Static top
                 <li>
                     <a href="../navbar-fixed-top/">Fixed top
-
-        <p>This is my page.
-         
-
+        
+        ^{content}
         
         ^{footer}
 |] render
 
+renderResult :: SearchResult -> Hamlet.HtmlUrl Routes
+renderResult (FunctionResult u p m n s d) = [Hamlet.hamlet|
+<div .panel .panel-default>
+    <div .panel-heading>
+        <a href=#{u}>
+            #{n}
+    <div .panel-body>
+        <p>
+            #{p} - #{m}
+    <div .panel-body>
+        <p>
+            #{d}
+|]
 
-hayooJs :: TextL.Text -- Julius.JavascriptUrl MyRoute
+renderLimitedRestults :: LimitedResult SearchResult -> Hamlet.HtmlUrl Routes
+renderLimitedRestults limitedRes = [Hamlet.hamlet|
+<ul .list-group>
+    $forall result <- lrResult limitedRes
+        <li>^{renderResult result} 
+|]
+
+mainPage :: Hamlet.HtmlUrl Routes
+mainPage = [Hamlet.hamlet|
+<div .jumbotron>
+  <h1>
+      Welcome!
+|]
+
+hayooJs :: TextL.Text -- Julius.JavascriptUrl Routes
 hayooJs = Julius.renderJavascript $ 
     $(Julius.juliusFileReload "/home/privat/holumbus/hayooFrontend/data/hayoo.lucius") render
+
+

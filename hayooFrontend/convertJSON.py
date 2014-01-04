@@ -18,6 +18,7 @@ def main():
             newDoc = {}
             newDoc["uri"] = doc["uri"]
             newDoc["description"] = {}
+            newDoc["description"]["type"] = "function"
             if len(doc["description"]) > 6:
                 raise Exception(str((doc["description"].keys())))
             if "fct-descr" in doc["description"]:

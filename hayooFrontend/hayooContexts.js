@@ -13,12 +13,24 @@
 ,
 {
     "cmd": "insert-context",
+    "context": "type",
+    "schema": {
+        "weight": 0.0,
+        "default": true,
+        "normalizers": [],
+        "regexp": "\\w*",
+        "type": "text"
+    }
+}
+,
+{
+    "cmd": "insert-context",
     "context": "function-module",
     "schema": {
         "weight": 0.5,
         "default": true,
         "normalizers": [],
-        "regexp": "*",
+        "regexp": "\\w*",
         "type": "text"
     }
 }
@@ -42,19 +54,19 @@
         "weight": 1.0,
         "default": true,
         "normalizers": [],
-        "regexp": "*",
+        "regexp": "\\w*",
         "type": "text"
     }
 }
 ,
-{ // don't add to index
+{
     "cmd": "insert-context",
     "context": "function-source",
     "schema": {
         "weight": 0.1,
         "default": true,
         "normalizers": [],
-        "regexp": "*",
+        "regexp": "\\w*",
         "type": "text"
     }
 }
@@ -66,7 +78,7 @@
         "weight": 3.0,
         "default": true,
         "normalizers": [],
-        "regexp": "*",
+        "regexp": "\\w*",
         "type": "text"
     }
 }

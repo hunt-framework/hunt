@@ -80,6 +80,10 @@ insertJokes:
 	curl -X POST -d @data/jokes/contexts.js $(SERVER)/eval
 	curl -X POST -d @data/jokes/FussballerSprueche.js $(SERVER)/document/insert
 
+insertHayoo:
+	curl -X POST -d @hayooFrontend/hayooContexts.js $(SERVER)/eval
+	curl -X POST -d @hayooFrontend/functions.js $(SERVER)/document/insert
+
 random:
 	$(MAKE) -C data/random
 

@@ -13,7 +13,7 @@ import qualified System.Log.Handler.Simple as Log (streamHandler)
 import qualified System.IO as System (stdout)
 
 import qualified Hayoo.Templates as Templates
-import Data.Text.Lazy (pack)
+--import Data.Text.Lazy (pack)
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.Encoding as T
 import           Data.Aeson.Types ()
@@ -34,14 +34,18 @@ start = do
 
 dispatcher :: Scotty.ScottyM ()
 dispatcher = do
-    Scotty.get "/" $ Scotty.html $ pack Templates.body
+    Scotty.get "/" $ (do
+        q <- Scotty.param "query" :: Scotty.ActionM String
+        value <- liftIO $ query "localhost:3000" q
+        Scotty.html $ Templates.body q (Templates.renderLimitedRestults $ jsonValue value)
+        ) `Scotty.rescue` (\_ -> Scotty.html $ Templates.body "" Templates.mainPage)
     Scotty.get "/hayoo.js" $ javascript $ Templates.hayooJs
     Scotty.get "/hayoo.css" $ do
         Scotty.setHeader "Content-Type" "text/css"
         Scotty.file "/home/privat/holumbus/hayooFrontend/data/hayoo.css"
     Scotty.get "/autocomplete"$ do
-        query <- Scotty.param "term"
-        value <- liftIO $ autocomplete "localhost:3000" query
+        q <- Scotty.param "term"
+        value <- liftIO $ autocomplete "localhost:3000" q
         Scotty.json $ jsonValue $ value
 
     --Scotty.get "/autocomplete" $ Scotty.html $ pack Templates.body
