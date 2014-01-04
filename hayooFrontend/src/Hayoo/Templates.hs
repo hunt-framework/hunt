@@ -11,7 +11,7 @@ import qualified Text.Blaze.Html.Renderer.String as Blaze (renderHtml)
 import Data.Text (Text)
 import qualified Data.Text.Lazy as TextL
 
-import Hayoo.ApiClient
+import qualified Hayoo.ApiClient as Api
 
 data Routes = Home | HayooJs | HayooCSS | Autocomplete
 
@@ -21,11 +21,16 @@ render HayooJs _ = "/hayoo.js"
 render HayooCSS _ = "/hayoo.css"
 render Autocomplete _ = "/autocomplete"
 
+renderTitle :: String -> String
+renderTitle query
+    | null query = "Hayoo! Haskell API Search"
+    | otherwise = query ++ " - Hayoo!"
+
 --header :: Blaze.Html
-header :: Hamlet.HtmlUrl Routes
-header = [Hamlet.hamlet|
+header :: String -> Hamlet.HtmlUrl Routes
+header query = [Hamlet.hamlet|
   <head>
-    <title>Hayoo Cabal API Search
+    <title>#{renderTitle query}
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js">
     <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js">
     <link href="//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" rel="stylesheet">
@@ -39,58 +44,65 @@ header = [Hamlet.hamlet|
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 |]
 
-footer :: Hamlet.HtmlUrl Routes
-footer = [Hamlet.hamlet|
-<footer>
-    <a href=@{Home}> Hayoo Frontend#
-    by Sebastian Philipp
+navigation :: String -> Hamlet.HtmlUrl Routes
+navigation query = [Hamlet.hamlet|
+<div .navbar .navbar-default .navbar-static-top role="navigation">
+
+    <div .navbar-header .navbar-left>
+        <a href=@{Home}>
+            <img .logo src="//holumbus.fh-wedel.de/hayoo/hayoo.png" alt="Hayoo! logo" >
+        <button type="button" .navbar-toggle data-toggle="collapse" data-target="#hayoo-navbar-collapse">
+            <span .sr-only>Toggle navigation
+            <span .icon-bar>
+            <span .icon-bar>
+            <span .icon-bar>
+       
+    <div .navbar-collapse .collapse #hayoo-navbar-collapse>
+        <ul .nav .navbar-nav .navbar-left>
+            <li .active>
+                <form .navbar-form .navbar-left action="." method="get" id="search" role="search">
+                    <div .form-group>
+                        <input .form-control placeholder="Search" name="query" #hayoo type="text" autocomplete="off" accesskey="1" value="#{query}">
+                    <input .btn .btn-default #submit type="submit" value="Search">
+
+        <ul .nav .navbar-nav .navbar-right>
+            <li .active>
+                <a href="/help">Help
+            <li >
+                <a href="/examples">Examples
+            <li>
+                <a href="/About">About
 |]
 
 
-
+footer :: Hamlet.HtmlUrl Routes
+footer = [Hamlet.hamlet|
+<footer>
+    <a href=@{Home}> Hayoo Frontend #
+    by Sebastian Philipp
+|]
 
 body :: String -> Hamlet.HtmlUrl Routes -> TextL.Text 
 body query content = TextL.pack $ Blaze.renderHtml $ [Hamlet.hamlet|
 $doctype 5
 <html lang="en">
-    ^{header}
+    ^{header query}
     <body>
-        <div .navbar .navbar-default .navbar-static-top role="navigation">
-          <div .container>
-            <div .navbar-header>
-              <a navbar-brand href=@{Home}>
-                <img .logo src="//holumbus.fh-wedel.de/hayoo/hayoo.png" alt="Hayoo! logo" >
-            <div .navbar-collapse .collapse>
-              <ul .nav .navbar-nav>
-                <li .active>
-                    <form action="." method="get" id="search">
-                        <div .ui-widget>
-                            <input name="query" #hayoo type="text" autocomplete="off" accesskey="1" value="#{query}">
-                            <input #submit type="submit" value="Search">
-                <li>
-                    <a href="#about">About
-                <li>
-                    <a href="#contact">Contact
-                
-              <ul .nav .navbar-nav .n.avbar-right>
-                <li>
-                    <a href="../navbar/">Default
-                <li .active>
-                    <a href="./">Static top
-                <li>
-                    <a href="../navbar-fixed-top/">Fixed top
+        ^{navigation query}
         
-        ^{content}
+        <div class="container">
+            ^{content}
         
         ^{footer}
 |] render
 
-renderResult :: SearchResult -> Hamlet.HtmlUrl Routes
-renderResult (FunctionResult u p m n s d) = [Hamlet.hamlet|
+renderResult :: Api.SearchResult -> Hamlet.HtmlUrl Routes
+renderResult (Api.FunctionResult u p m n s d) = [Hamlet.hamlet|
 <div .panel .panel-default>
     <div .panel-heading>
         <a href=#{u}>
             #{n}
+        :: #{s}
     <div .panel-body>
         <p>
             #{p} - #{m}
@@ -99,11 +111,12 @@ renderResult (FunctionResult u p m n s d) = [Hamlet.hamlet|
             #{d}
 |]
 
-renderLimitedRestults :: LimitedResult SearchResult -> Hamlet.HtmlUrl Routes
+renderLimitedRestults :: Api.LimitedResult Api.SearchResult -> Hamlet.HtmlUrl Routes
 renderLimitedRestults limitedRes = [Hamlet.hamlet|
 <ul .list-group>
-    $forall result <- lrResult limitedRes
-        <li>^{renderResult result} 
+    $forall result <- Api.lrResult limitedRes
+        <li .list-group-item>
+            ^{renderResult result} 
 |]
 
 mainPage :: Hamlet.HtmlUrl Routes

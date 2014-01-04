@@ -94,13 +94,13 @@ instance (FromJSON x) => FromJSON (LimitedResult x) where
 
 
 autocomplete :: String -> String  -> IO (JsonResponse [String])
-autocomplete server query = do
-    d <- HTTP.simpleHttp $ "http://"++ server ++ "/completion/" ++ query ++ "/20"
+autocomplete server q = do
+    d <- HTTP.simpleHttp $ "http://"++ server ++ "/completion/" ++ q ++ "/20"
     Just r <- return $ decode d
     return r
 
 query :: String -> String -> IO (JsonResponse (LimitedResult SearchResult))
-query server query = do
-    d <- HTTP.simpleHttp $ "http://" ++ server ++ "/search/" ++ query ++ "/0/20"
+query server q = do
+    d <- HTTP.simpleHttp $ "http://" ++ server ++ "/search/" ++ q ++ "/0/20"
     Just r <- return $ decode d
     return r
