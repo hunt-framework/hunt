@@ -271,11 +271,12 @@ forAllContexts' f = getContexts >>= mapM (\c -> get >>= f c) >>= return . I.unio
 --   which contain the word as prefix.
 processWord :: TextSearchOp -> Text -> [Context]
             -> Processor Intermediate
-processWord op q c = do
+processWord op q cs = do
   st <- get
   ix <- getIx
-  cq <- normQueryCxs c q
-  return . I.fromListCx q c . limitWords st . toRawResult $ CIx.searchWithCxsNormalized op cq ix
+  cq <- normQueryCxs cs q
+  -- TODO: limitWords on context-basis?
+  return . I.fromListCxs q . map (second (limitWords st)) $ CIx.searchWithCxsNormalized op cq ix
 
 -- | Case Sensitive variant of process Word
 processWordCase :: Text -> [Context]
@@ -308,13 +309,13 @@ processFuzzyWord q = do
 processPhrase :: TextSearchOp
               -> Text -> [Context]
               -> Processor Intermediate
-processPhrase op q c = do
-    ix <- getIx
-    processPhraseInternal (meaningfulName ix) q c
+processPhrase op q cs = do
+    ix  <- getIx
+    ims <- mapM (\c -> processPhraseInternal (meaningfulName ix c) q c) cs
+    return . I.merges $ ims
     where
-    c2 :: Text
-    c2 = "test"
-    meaningfulName ix t = toRawResult $ CIx.searchWithCxs op c c2 ix
+    -- XXX: no limit for phrase queries? a phrase query is already really restrictive...
+    meaningfulName ix c t = CIx.searchWithCx op c t ix
 
 processPhraseCase   ::   Text -> [Context] -> Processor Intermediate
 processPhraseCase   = processPhrase Case
@@ -332,12 +333,12 @@ processPhraseFuzzy q = do
 
 
 -- | Process a phrase query by searching for every word of the phrase and comparing their positions.
-processPhraseInternal :: (Text -> RawResult) -> Text -> [Context]
+processPhraseInternal :: (Text -> RawResult) -> Text -> Context
                       -> Processor Intermediate
 processPhraseInternal f q c = do
   if DM.null result
     then return $ I.empty
-    else return $ I.fromListCx q c [(q, processPhrase' ws 1 result)]
+    else return $ I.fromList q c [(q, processPhrase' ws 1 result)]
   where
   result = mergeOccurrencesList $ map snd $ f w
   (w:ws) = T.words q
@@ -383,8 +384,9 @@ processRange l h = forAllContexts' range
   processRange' lo hi c = do
     st <- get
     ix <- getIx
-    return . I.fromList lo c . limitWords st . toRawResult -- FIXME: check I.fromList
-      $ CIx.lookupRange lo hi ix
+    -- TODO: limit on context basis
+    return . I.fromList lo c . limitWords st -- FIXME: check I.fromList - correct term
+      $ CIx.lookupRangeCx c lo hi ix
 
 {-
 -- | 'rangeString' with 'Text'.
@@ -487,8 +489,12 @@ limitWords s r          = cutW . cutD $ r
                         = map snd . take limitW . L.sortBy (compare `on` fst) . map calcScore
       | otherwise       = id
 
+  -- FIXME: this is not what the description says it is!?
+  --        'psTotal' is the number of docs and not set atm.
+  --        looks like an unnecessary normalisation?
   calcScore             :: (Word, Occurrences) -> (Double, (Word, Occurrences))
-  calcScore w@(_, o)    = (log (fromIntegral (psTotal s) / fromIntegral (DM.size o)), w)
+  --calcScore w@(_, o)    = (log (fromIntegral (psTotal s) / fromIntegral (DM.size o)), w)
+  calcScore w@(_, o)    = (fromIntegral $ DM.size o, w) --(log (fromIntegral (psTotal s) / fromIntegral (DM.size o)), w)
 
 -- ----------------------------------------------------------------------------
 
@@ -506,7 +512,3 @@ mergeOccurrencesList    :: [Occurrences] -> Occurrences
 mergeOccurrencesList    = DM.unionsWith Pos.union
 
 -- ----------------------------------------------------------------------------
-
--- XXX: no merging - just for results with a single context
-toRawResult :: [(Context, [(Word, Occurrences)])] -> RawResult
-toRawResult = concatMap snd

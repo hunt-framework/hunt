@@ -96,6 +96,32 @@ lookupRange k1 k2 (ContextIx m)
   where
   range' (Impl.IndexImpl ix) = Ix.lookupRange k1 k2 ix
 
+-- XXX: code duplication? - see searchwithcx...
+lookupRangeCx :: Context -> Text -> Text -> ContextIndex v
+            -> [(Text, v)]
+lookupRangeCx c k1 k2 (ContextIx m)
+  = case M.lookup c m of
+      (Just (Impl.IndexImpl cm)) -> Ix.lookupRange k1 k2 cm
+      _                          -> []
+
+lookupRangeCxs :: [Context] -> Text -> Text -> ContextIndex v
+            -> [(Context, [(Text, v)])]
+lookupRangeCxs cs k1 k2 (ContextIx m)
+  = parMap rseq search' cs
+  where
+  search' c = case M.lookup c m of
+      (Just (Impl.IndexImpl cm)) -> (c, Ix.lookupRange k1 k2 cm)
+      _                          -> (c, [])
+
+{-
+lookupRange :: Text -> Text -> ContextIndex v
+            -> [(Context, [(Text, v)])]
+  = M.toList $ M.map range' m
+  where
+  range' (Impl.IndexImpl ix) = Ix.lookupRange k1 k2 ix
+-}
+
+
 searchWithCx :: TextSearchOp
              -> Context -> Text -> ContextIndex v -> [(Text, v)]
 searchWithCx op c k (ContextIx m)
