@@ -1,5 +1,5 @@
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE UndecidableInstances #-}
+
 module Holumbus.Index.Proxy.ContextIndex where
 
 import           Control.Parallel.Strategies
@@ -28,6 +28,10 @@ instance (Binary (impl v), Binary v) => Binary (ContextIndex v) where
 
 -- ----------------------------------------------------------------------------
 
+-- | Empty ContextIndex.
+empty :: ContextIndex v
+empty = ContextIx $ M.empty
+
 -- | Insert a new context.
 --   Note: If context already exists this function does nothing.
 insertContext' :: Impl.IndexImplCon ix v
@@ -51,50 +55,23 @@ insertWithCx c w v (ContextIx m)
   where
   adjust' (Impl.IndexImpl ix) = Impl.mkIndex $ Ix.insert w v ix
 
--- | Insert an element to one Context.
-deleteWithCx :: Context -> DocIdSet -> ContextIndex v -> ContextIndex v
-deleteWithCx c dIds (ContextIx m)
-  = case M.lookup c m of
-      (Just _) -> ContextIx $ M.adjust adjust' c m
-      _        -> error "context does not exist"
-  where
-  adjust' (Impl.IndexImpl ix) = Impl.mkIndex $ Ix.batchDelete dIds ix
-
 
 -- | Insert an element to a list of contexts.
 insertWithCxs :: [Context] -> Text -> v -> ContextIndex v -> ContextIndex v
 insertWithCxs cs w v i = foldr (\c ix -> insertWithCx c w v ix) i cs
 
--- | Insert an element to a list of contexts.
-deleteWithCxs :: [Context] -> DocIdSet -> ContextIndex v -> ContextIndex v
-deleteWithCxs cs dIds i = foldr (\c ix -> deleteWithCx c dIds ix) i cs
-
 -- | Insert an element to one Context.
-deleteWithAllCxs :: DocIdSet -> ContextIndex v -> ContextIndex v
-deleteWithAllCxs dIds (ContextIx m)
+delete :: DocIdSet -> ContextIndex v -> ContextIndex v
+delete dIds (ContextIx m)
   = ContextIx $ M.map adjust' m
   where
   adjust' (Impl.IndexImpl ix) = Impl.mkIndex $ Ix.batchDelete dIds ix
-
-
-
-
--- | Empty ContextIndex.
-empty :: ContextIndex v
-empty = ContextIx $ M.empty
 
 search :: TextSearchOp -> Text -> ContextIndex v -> [(Context, [(Text, v)])]
 search op k (ContextIx m)
   = M.toList $ M.map search' m
   where
   search' (Impl.IndexImpl ix) = Ix.search op k ix
-
-lookupRange :: Text -> Text -> ContextIndex v
-            -> [(Context, [(Text, v)])]
-lookupRange k1 k2 (ContextIx m)
-  = M.toList $ M.map range' m
-  where
-  range' (Impl.IndexImpl ix) = Ix.lookupRange k1 k2 ix
 
 -- XXX: code duplication? - see searchwithcx...
 lookupRangeCx :: Context -> Text -> Text -> ContextIndex v
@@ -104,8 +81,7 @@ lookupRangeCx c k1 k2 (ContextIx m)
       (Just (Impl.IndexImpl cm)) -> Ix.lookupRange k1 k2 cm
       _                          -> []
 
-lookupRangeCxs :: [Context] -> Text -> Text -> ContextIndex v
-            -> [(Context, [(Text, v)])]
+lookupRangeCxs :: [Context] -> Text -> Text -> ContextIndex v -> [(Context, [(Text, v)])]
 lookupRangeCxs cs k1 k2 (ContextIx m)
   = parMap rseq search' cs
   where
@@ -113,27 +89,15 @@ lookupRangeCxs cs k1 k2 (ContextIx m)
       (Just (Impl.IndexImpl cm)) -> (c, Ix.lookupRange k1 k2 cm)
       _                          -> (c, [])
 
-{-
-lookupRange :: Text -> Text -> ContextIndex v
-            -> [(Context, [(Text, v)])]
-  = M.toList $ M.map range' m
-  where
-  range' (Impl.IndexImpl ix) = Ix.lookupRange k1 k2 ix
--}
-
-
-searchWithCx :: TextSearchOp
-             -> Context -> Text -> ContextIndex v -> [(Text, v)]
+searchWithCx :: TextSearchOp -> Context -> Text -> ContextIndex v -> [(Text, v)]
 searchWithCx op c k (ContextIx m)
   = case M.lookup c m of
       (Just (Impl.IndexImpl cm)) -> Ix.search op k cm
       _                          -> []
 
-
 -- | XXX we actually do not have any parallelism here at the moment
 --   because everything is evalutated lazy!
-searchWithCxs :: TextSearchOp -> [Context] -> Text -> ContextIndex v
-              -> [(Context, [(Text, v)])]
+searchWithCxs :: TextSearchOp -> [Context] -> Text -> ContextIndex v -> [(Context, [(Text, v)])]
 searchWithCxs op cs k (ContextIx m)
   = parMap rseq search' cs
   where
@@ -141,19 +105,16 @@ searchWithCxs op cs k (ContextIx m)
       (Just (Impl.IndexImpl cm)) -> (c, Ix.search op k cm)
       _                          -> (c, [])
 
-
--- | search in different contexts with key already normalized in respect
---   to each context type
-searchWithCxsNormalized :: TextSearchOp
-                        -> [(Context, Text)]
-                        -> ContextIndex v
-                        -> [(Context, [(Text, v)])]
+-- | search in different contexts with key already normalized in respect to each context type
+searchWithCxsNormalized :: TextSearchOp -> [(Context, Text)] -> ContextIndex v -> [(Context, [(Text, v)])]
 searchWithCxsNormalized op cks (ContextIx m)
   = parMap rseq search' cks
   where
   search' (c, k) = case M.lookup c m of
       (Just (Impl.IndexImpl cm)) -> (c, Ix.search op k cm)
       _                          -> (c, [])
+
+-- ----------------------------------------------------------------------------
 
 -- | Contexts/keys of 'ContextIndex'.
 contexts :: ContextIndex v -> [Context]
@@ -162,3 +123,27 @@ contexts (ContextIx m) = M.keys m
 -- | Check if the context exists.
 hasContext :: Context -> ContextIndex v -> Bool
 hasContext c (ContextIx m) = M.member c m
+
+-- ----------------------------------------------------------------------------
+-- probably unnecessary functions
+
+{-
+deleteWithCx :: Context -> DocIdSet -> ContextIndex v -> ContextIndex v
+deleteWithCx c dIds (ContextIx m)
+  = case M.lookup c m of
+      (Just _) -> ContextIx $ M.adjust adjust' c m
+      _        -> error "context does not exist"
+  where
+  adjust' (Impl.IndexImpl ix) = Impl.mkIndex $ Ix.batchDelete dIds ix
+
+
+deleteWithCxs :: [Context] -> DocIdSet -> ContextIndex v -> ContextIndex v
+deleteWithCxs cs dIds i = foldr (\c ix -> deleteWithCx c dIds ix) i cs
+
+
+lookupRange :: Text -> Text -> ContextIndex v
+            -> [(Context, [(Text, v)])]
+  = M.toList $ M.map range' m
+  where
+  range' (Impl.IndexImpl ix) = Ix.lookupRange k1 k2 ix
+-}

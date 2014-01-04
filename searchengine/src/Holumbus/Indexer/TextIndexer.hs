@@ -77,7 +77,7 @@ deleteDocsByURI us ixx@(_ix,dt,_) = do
 delete :: (Monad m, TextIndexerCon dt)
        => ContextTextIndexer dt -> DocIdSet -> m (ContextTextIndexer dt)
 delete (ix,dt,s) dIds = do
-    let newIx = CIx.deleteWithAllCxs dIds ix
+    let newIx = CIx.delete dIds ix
     newDt <- Dt.difference dIds dt
     return (newIx, newDt, s)
 
