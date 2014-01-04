@@ -6,6 +6,8 @@ module Holumbus.Server {-(start)-} where
 
 import           Control.Monad.Error
 
+import           Data.Text                            (Text)
+
 import           Network.Wai.Middleware.RequestLogger
 
 import           Holumbus.Common
@@ -27,6 +29,9 @@ import           System.Log.Handler                   (setFormatter)
 import           System.Log.Handler.Simple            (streamHandler)
 import           System.Log.Logger                    hiding (debugM, warningM, errorM)
 import qualified System.Log.Logger                    as Log
+
+import           GHC.Stats
+import           GHC.Stats.Json                       ()
 
 -- ----------------------------------------------------------------------------
 -- Application launch options
@@ -99,13 +104,13 @@ start = do
             throw $ InterpreterError res'
           Right res' ->
             case res' of
-              ResOK               -> json $ JsonSuccess ("ok"::String)
+              ResOK               -> json $ JsonSuccess ("ok" :: Text)
               ResSearch docs      -> json $ JsonSuccess docs
               ResCompletion wrds  -> json $ JsonSuccess wrds
 
     let evalQuery mkCmd q = case parseQuery q of
           Right qry -> eval $ mkCmd qry
-          Left  err -> json $ JsonFailure 700 err
+          Left  err -> throw $ Json 700 err
 
     let batch cmd = Sequence . map cmd
 
@@ -167,5 +172,11 @@ start = do
       filename  <- param "filename"
       eval $ StoreIx filename
 
+    -- garbage collection and memory usage statistics
+    get "/gcstats" $ do
+      statsEnabled <- liftIO getGCStatsEnabled
+      if statsEnabled
+        then liftIO getGCStats >>= json . JsonSuccess
+        else throw $ Json 404 ("GC stats not enabled. Use `+RTS -T -RTS' to enable them." :: Text)
 
     notFound $ throw NotFound

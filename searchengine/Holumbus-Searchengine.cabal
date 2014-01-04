@@ -24,7 +24,7 @@ source-repository head
   location:    https://github.com/UlfS/holumbus.git
 
 library
-  build-depends: base                   >= 4   && < 5
+  build-depends: base                   >= 4.5 && < 5
                , aeson                  >= 0.6
                , binary                 >= 0.5 && < 1
                , bytestring             >= 0.9 && < 1
