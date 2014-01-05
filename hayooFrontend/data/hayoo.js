@@ -9,7 +9,7 @@
           return;
         }
  
-        $.getJSON( "@{Autocomplete}", request, function( data, status, xhr ) {
+        $.getJSON( "/autocomplete", request, function( data, status, xhr ) {
           cache[ term ] = data;
           response( data );
         });

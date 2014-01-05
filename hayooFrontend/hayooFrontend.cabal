@@ -15,7 +15,8 @@ category:            Web
 build-type:          Simple
 cabal-version:       >=1.8
 
-data-files: hayoo.css hayoo.lucius
+data-files: hayoo.css
+            hayoo.js
 data-dir: data
 
 source-repository head

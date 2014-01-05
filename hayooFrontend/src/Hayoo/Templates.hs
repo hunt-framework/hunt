@@ -5,30 +5,30 @@
 module Hayoo.Templates where
 
 import qualified Text.Hamlet as Hamlet (HtmlUrl, hamlet)
-import qualified Text.Julius as Julius
 import qualified Text.Blaze.Html.Renderer.String as Blaze (renderHtml)
 --import qualified Text.Blaze.Html as Blaze (Html)
-import Data.Text (Text)
-import qualified Data.Text.Lazy as TextL
+import Data.Text.Lazy (Text)
+import qualified Data.Text as TS
+import qualified Data.Text.Lazy as T
 
 import qualified Hayoo.ApiClient as Api
 
 data Routes = Home | HayooJs | HayooCSS | Autocomplete | Examples
 
-render :: Routes -> [(Text, Text)] -> Text
+render :: Routes -> [(TS.Text, TS.Text)] -> TS.Text
 render Home _ = "/"
 render HayooJs _ = "/hayoo.js"
 render HayooCSS _ = "/hayoo.css"
 render Autocomplete _ = "/autocomplete"
 render Examples _ = "/examples"
 
-renderTitle :: String -> String
+renderTitle :: Text -> Text
 renderTitle query
-    | null query = "Hayoo! Haskell API Search"
-    | otherwise = query ++ " - Hayoo!"
+    | T.null query = "Hayoo! Haskell API Search"
+    | otherwise = query `T.append` " - Hayoo!"
 
 --header :: Blaze.Html
-header :: String -> Hamlet.HtmlUrl Routes
+header :: Text -> Hamlet.HtmlUrl Routes
 header query = [Hamlet.hamlet|
   <head>
     <title>#{renderTitle query}
@@ -45,7 +45,7 @@ header query = [Hamlet.hamlet|
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 |]
 
-navigation :: String -> Hamlet.HtmlUrl Routes
+navigation :: Text -> Hamlet.HtmlUrl Routes
 navigation query = [Hamlet.hamlet|
 <div .navbar .navbar-default .navbar-static-top role="navigation">
 
@@ -79,12 +79,13 @@ navigation query = [Hamlet.hamlet|
 footer :: Hamlet.HtmlUrl Routes
 footer = [Hamlet.hamlet|
 <footer>
-    <a href=@{Home}> Hayoo Frontend #
-    by Sebastian Philipp
+
+    <a href=@{Home}> Hayoo Frontend
+    &copy; 2014 Sebastian Philipp
 |]
 
-body :: String -> Hamlet.HtmlUrl Routes -> TextL.Text 
-body query content = TextL.pack $ Blaze.renderHtml $ [Hamlet.hamlet|
+body :: Text -> Hamlet.HtmlUrl Routes -> T.Text 
+body query content = T.pack $ Blaze.renderHtml $ [Hamlet.hamlet|
 $doctype 5
 <html lang="en">
     ^{header query}
@@ -98,7 +99,7 @@ $doctype 5
 |] render
 
 renderResult :: Api.SearchResult -> Hamlet.HtmlUrl Routes
-renderResult (Api.FunctionResult u p m n s d) = [Hamlet.hamlet|
+renderResult (Api.FunctionResult u p m n s d _) = [Hamlet.hamlet|
 <div .panel .panel-default>
     <div .panel-heading>
         <a href=#{u}>
@@ -125,10 +126,6 @@ mainPage = [Hamlet.hamlet|
   <h1>
       Welcome!
 |]
-
-hayooJs :: TextL.Text -- Julius.JavascriptUrl Routes
-hayooJs = Julius.renderJavascript $ 
-    $(Julius.juliusFileReload "/home/privat/holumbus/hayooFrontend/data/hayoo.lucius") render
 
 examples :: Hamlet.HtmlUrl Routes
 examples = [Hamlet.hamlet|
@@ -162,7 +159,7 @@ examples = [Hamlet.hamlet|
             <a href="@{Home}?query=package%3Abase%20mapM">package:base mapM
             searches for the function name mapM in the base package
         <p>
-            <a href="@{Home}?query=mapM%20OR%20foldM">package:base
+            <a href="@{Home}?query=mapM%20OR%20foldM">MapM or foldM
             searches will give a list of either MapM or foldM
 
 

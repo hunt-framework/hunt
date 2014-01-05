@@ -24,3 +24,8 @@
   font-size: small;
   color: grey;
 }
+
+
+footer {
+  border-top: lightgrey 1px solid;
+}

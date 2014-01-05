@@ -17,9 +17,10 @@ import qualified Hayoo.Templates as Templates
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.Encoding as T
 import           Data.Aeson.Types ()
+import Control.Monad.IO.Class (liftIO)
 
 import Hayoo.ApiClient
-import Control.Monad.IO.Class (liftIO)
+import Paths_hayooFrontend
 
 start :: IO ()
 start = do 
@@ -34,24 +35,36 @@ start = do
 
 dispatcher :: Scotty.ScottyM ()
 dispatcher = do
-    Scotty.get "/" $ (do
-        q <- Scotty.param "query" :: Scotty.ActionM String
-        value <- liftIO $ query "localhost:3000" q
-        Scotty.html $ Templates.body q (Templates.renderLimitedRestults $ jsonValue value)
-        ) `Scotty.rescue` (\_ -> Scotty.html $ Templates.body "" Templates.mainPage)
-    Scotty.get "/hayoo.js" $ javascript $ Templates.hayooJs
+    Scotty.get "/" $ do
+        params <- Scotty.params
+        renderRoot params
+    Scotty.get "/hayoo.js" $ do
+        Scotty.setHeader "Content-Type" "text/javascript"
+        jsPath <- liftIO $ getDataFileName "hayoo.js"
+        Scotty.file jsPath
     Scotty.get "/hayoo.css" $ do
         Scotty.setHeader "Content-Type" "text/css"
-        Scotty.file "/home/privat/holumbus/hayooFrontend/data/hayoo.css"
+        cssPath <- liftIO $ getDataFileName "hayoo.css"
+        Scotty.file cssPath
     Scotty.get "/autocomplete"$ do
         q <- Scotty.param "term"
-        value <- liftIO $ autocomplete "localhost:3000" q
-        Scotty.json $ jsonValue $ value
+        value <- autocomplete "localhost:3000" q >>= raiseOnLeft
+        Scotty.json $ value
     Scotty.get "/examples" $ Scotty.html $ Templates.body "" Templates.examples
 
-    --Scotty.get "/autocomplete" $ Scotty.html $ pack Templates.body
 
+renderRoot :: [Scotty.Param] -> Scotty.ActionM ()
+renderRoot params = renderRoot' $ lookup (T.pack "query") params
+    where 
+    renderRoot' Nothing = Scotty.html $ Templates.body "" Templates.mainPage
+    renderRoot' (Just q) = do
+        value <- query "localhost:3000" q >>= raiseOnLeft
+        Scotty.html $ Templates.body q $ Templates.renderLimitedRestults value
 
+raiseOnLeft :: Either T.Text a -> Scotty.ActionM a
+raiseOnLeft (Left err) = Scotty.raise err
+raiseOnLeft (Right x) = return x
+    
 -- | Set the body of the response to the given 'T.Text' value. Also sets \"Content-Type\"
 -- header to \"text/html\".
 javascript :: T.Text -> Scotty.ActionM ()
