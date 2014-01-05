@@ -13,13 +13,14 @@ import qualified Data.Text.Lazy as TextL
 
 import qualified Hayoo.ApiClient as Api
 
-data Routes = Home | HayooJs | HayooCSS | Autocomplete
+data Routes = Home | HayooJs | HayooCSS | Autocomplete | Examples
 
 render :: Routes -> [(Text, Text)] -> Text
 render Home _ = "/"
 render HayooJs _ = "/hayoo.js"
 render HayooCSS _ = "/hayoo.css"
 render Autocomplete _ = "/autocomplete"
+render Examples _ = "/examples"
 
 renderTitle :: String -> String
 renderTitle query
@@ -69,7 +70,7 @@ navigation query = [Hamlet.hamlet|
             <li .active>
                 <a href="/help">Help
             <li >
-                <a href="/examples">Examples
+                <a href=@{Examples}>Examples
             <li>
                 <a href="/About">About
 |]
@@ -129,4 +130,40 @@ hayooJs :: TextL.Text -- Julius.JavascriptUrl Routes
 hayooJs = Julius.renderJavascript $ 
     $(Julius.juliusFileReload "/home/privat/holumbus/hayooFrontend/data/hayoo.lucius") render
 
+examples :: Hamlet.HtmlUrl Routes
+examples = [Hamlet.hamlet|
+<div .page-header>
+  <h1>
+      Example Search Queries
 
+<div .panel .panel-default>
+    <div .panel-heading>
+        <h3 .panel-title>
+            If you don't find what you searched for by just searching for the name, you can try to search for specific propterties by perfixing them
+    <div .panel-body>
+        <p>
+            <a href="@{Home}?query=name%3AmapM">name:mapM
+            searches for the function name mapM in all packages
+        <p>
+            <a href="@{Home}?query=package%3Abase">package:base
+            searches for the base package.
+        <p>
+            <a href="@{Home}?query=signature%3Aa%20-%3E%20a">signature:a -&gt; a
+            searches for all functions with this siganture in all packages.
+        <p>
+            <a href="@{Home}?query=module%3AControl.Exception">module:Control.Exception
+            searches for a specific module in all packages.
+<div .panel .panel-default>
+    <div .panel-heading>
+        <h3 .panel-title>
+            It is also possible to combine search queries
+    <div .panel-body>
+        <p>
+            <a href="@{Home}?query=package%3Abase%20mapM">package:base mapM
+            searches for the function name mapM in the base package
+        <p>
+            <a href="@{Home}?query=mapM%20OR%20foldM">package:base
+            searches will give a list of either MapM or foldM
+
+
+|]

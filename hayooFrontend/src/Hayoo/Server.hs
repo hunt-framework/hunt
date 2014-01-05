@@ -47,6 +47,7 @@ dispatcher = do
         q <- Scotty.param "term"
         value <- liftIO $ autocomplete "localhost:3000" q
         Scotty.json $ jsonValue $ value
+    Scotty.get "/examples" $ Scotty.html $ Templates.body "" Templates.examples
 
     --Scotty.get "/autocomplete" $ Scotty.html $ pack Templates.body
 
