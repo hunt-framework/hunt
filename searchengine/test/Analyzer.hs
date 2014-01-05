@@ -51,11 +51,9 @@ main = defaultMain
 
        -- Normalizer position
        , testProperty "Normlizer:pos double"       prop_isPosition_d
-       , testProperty "Normlizer:pos int"          prop_isPosition_i
        , testProperty "Normlizer:pos text"         prop_isPosition_t
        , testCase     "Normlizer:norm pos int"     test_norm_pos
        , testCase     "Normlizer:norm pos dbl"     test_norm_pos4
-       , testProperty "Normlizer:norm denorm int"  prop_norm_pos2
        , testProperty "Normlizer:norm denorm dbl"  prop_norm_pos3
 
        -- Normalizer int
@@ -144,17 +142,17 @@ test_normInt4 = assertEqual "" "009223372036854775808" (NI.normalizeToText "-922
 
 -- ----------------------------------------------------------------------------
 -- normalizer position tests
+
+genPos :: Gen String
+genPos = do
+  lat  <- choose (-89,89)  :: Gen Int
+  long <- choose (-179,179) :: Gen Int
+  return $ concat [ show lat, ".000001-", show long, ".000002" ]
+
 prop_isPosition_d :: Gen Bool
 prop_isPosition_d = do
-  long <- arbitrary :: Gen Double
-  lat  <- arbitrary :: Gen Double
-  return . NP.isPosition $ T.concat [ T.pack . show $ long, "-", T.pack . show $ lat]
-
-prop_isPosition_i :: Gen Bool
-prop_isPosition_i = do
-  long <- arbitrary :: Gen Int
-  lat  <- arbitrary :: Gen Int
-  return . NP.isPosition $ T.concat [ T.pack . show $ long, "-", T.pack . show $ lat]
+  pos  <- genPos
+  return . NP.isPosition $ T.pack pos
 
 prop_isPosition_t :: Gen Bool
 prop_isPosition_t = do
@@ -168,18 +166,10 @@ test_norm_pos = assertEqual "" "110000111100000011000011001111001100000000000000
 test_norm_pos4 :: Assertion
 test_norm_pos4 = assertEqual "" "110000111100000011000011001111001100000000000000" (NP.normalize "1.000000-1.000000")
 
-prop_norm_pos2 :: Gen Bool
-prop_norm_pos2 = do
-  long <- arbitrary :: Gen Int
-  lat  <- arbitrary :: Gen Int
-  let pos = T.concat [ T.pack . show $ long, "-", T.pack . show $ lat]
-  return $ pos == (NP.denormalize . NP.normalize $ pos)
-
 prop_norm_pos3 :: Gen Bool
 prop_norm_pos3 = do
-  long <- arbitrary :: Gen Double
-  lat  <- arbitrary :: Gen Double
-  let pos = T.concat [ T.pack . show $ long, "-", T.pack . show $ lat]
+  p <- genPos
+  let pos = T.pack p 
   return $ pos == (NP.denormalize . NP.normalize $ pos)
 
 -- ----------------------------------------------------------------------------
