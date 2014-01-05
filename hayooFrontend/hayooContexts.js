@@ -1,9 +1,9 @@
 [
 {
     "cmd": "insert-context",
-    "context": "function-description",
+    "context": "description",
     "schema": {
-        "weight": 1.0,
+        "weight": 0.3,
         "default": true,
         "normalizers": [],
         "regexp": "\\w*",
@@ -25,19 +25,19 @@
 ,
 {
     "cmd": "insert-context",
-    "context": "function-module",
+    "context": "module",
     "schema": {
         "weight": 0.5,
         "default": true,
         "normalizers": [],
-        "regexp": "\\w*",
+        "regexp": ".*",
         "type": "text"
     }
 }
 ,
 {
     "cmd": "insert-context",
-    "context": "function-package",
+    "context": "package",
     "schema": {
         "weight": 1.0,
         "default": true,
@@ -49,31 +49,31 @@
 ,
 {
     "cmd": "insert-context",
-    "context": "function-signature",
+    "context": "signature",
     "schema": {
         "weight": 1.0,
         "default": true,
         "normalizers": [],
-        "regexp": "\\w*",
+        "regexp": ".*",
         "type": "text"
     }
 }
 ,
 {
     "cmd": "insert-context",
-    "context": "function-source",
+    "context": "source",
     "schema": {
         "weight": 0.1,
         "default": true,
         "normalizers": [],
-        "regexp": "\\w*",
+        "regexp": ".*",
         "type": "text"
     }
 }
 ,
 {
     "cmd": "insert-context",
-    "context": "function-name",
+    "context": "name",
     "schema": {
         "weight": 3.0,
         "default": true,

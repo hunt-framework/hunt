@@ -66,11 +66,11 @@ instance FromJSON SearchResult where
     parseJSON (Object v) = do
         u <- v .: "uri" 
         (Object descr) <- v .: "desc"
-        p  <- descr .: "function-package"
-        m  <- descr .: "function-module"
-        n  <- descr .: "function-name"
-        s  <- descr .: "function-signature"
-        d  <- descr .: "function-description"
+        p  <- descr .: "package"
+        m  <- descr .: "module"
+        n  <- descr .: "name"
+        s  <- descr .: "signature"
+        d  <- descr .: "description"
         return $ FunctionResult u p m n s d
     parseJSON _ = mzero
 

@@ -19,3 +19,8 @@
 .navbar {
     z-index: 0
 }
+
+.description {
+  font-size: small;
+  color: grey;
+}

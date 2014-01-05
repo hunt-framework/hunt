@@ -106,8 +106,7 @@ renderResult (Api.FunctionResult u p m n s d) = [Hamlet.hamlet|
     <div .panel-body>
         <p>
             #{p} - #{m}
-    <div .panel-body>
-        <p>
+        <p .description>
             #{d}
 |]
 
