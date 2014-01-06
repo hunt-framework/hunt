@@ -26,8 +26,10 @@ import           Control.Monad                    (liftM2, mzero)
 import           Data.Aeson
 import           Data.Binary                      (Binary (..))
 import           Data.Text.Binary                 ()
+import           Data.Text                        as T
 
 import           Holumbus.Common.BasicTypes
+import           Holumbus.Utility.Log
 
 -- ------------------------------------------------------------
 
@@ -76,3 +78,8 @@ class DocumentWrapper e where
 instance DocumentWrapper Document where
   unwrap = id
   wrap   = id
+
+-- ------------------------------------------------------------
+
+instance LogShow Document where
+  logShow o = "Document {uri = \"" ++ (T.unpack . uri $ o) ++ "\", ..}"

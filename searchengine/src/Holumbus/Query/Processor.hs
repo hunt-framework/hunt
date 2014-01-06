@@ -250,7 +250,7 @@ forAllContexts :: ([Context] -> Processor Intermediate) -> Processor Intermediat
 forAllContexts f = getContexts >>= f
 
 forAllContexts' :: (Context -> Processor Intermediate) -> Processor Intermediate
-forAllContexts' f = getContexts >>= mapM f >>= return . I.unions
+forAllContexts' f = getContexts >>= mapM f >>= return . I.merges
 
 
 {-
@@ -260,7 +260,7 @@ forAllContexts' :: (QueryIndexCon)
 --   version with implizit state
                => (Context -> ProcessState i -> Processor Intermediate)
                -> Processor Intermediate
-forAllContexts' f = getContexts >>= mapM (\c -> get >>= f c) >>= return . I.unions
+forAllContexts' f = getContexts >>= mapM (\c -> get >>= f c) >>= return . I.merges
 -}
 
 -- ----------------------------------------------------------------------------
@@ -297,7 +297,7 @@ processFuzzyWord ::   Text -> Processor Intermediate
 processFuzzyWord q = do
   cfg <- getFuzzyConfig
   is <- mapM (forAllContexts . processWordNoCase . fst) $ fuzzySet cfg
-  return . I.unions $ is
+  return . I.merges $ is
   where
   fuzzySet cfg = (q,0):(F.toList $ F.fuzz cfg q)
 
@@ -327,7 +327,7 @@ processPhraseFuzzy  ::   Text -> Processor Intermediate
 processPhraseFuzzy q = do
   cfg <- getFuzzyConfig
   is <- mapM (forAllContexts . processPhraseNoCase . fst) $ fuzzySet cfg
-  return . I.unions $ is
+  return . I.merges $ is
   where
   fuzzySet cfg = (q,0):(F.toList $ F.fuzz cfg q)
 

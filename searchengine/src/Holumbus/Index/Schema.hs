@@ -40,11 +40,8 @@ data ContextSchema = ContextSchema
   , cxNormalizer  :: [CNormalizer]
   , cxWeight      :: CWeight
   , cxDefault     :: Bool
-  , cxType        :: Maybe CType 
+  , cxType        :: Maybe CType
   } deriving (Show, Eq)
-
-
-
 
 -- | Types for values in a context.
 data CType

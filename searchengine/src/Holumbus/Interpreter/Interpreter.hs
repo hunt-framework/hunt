@@ -265,7 +265,7 @@ optimizeCmd c = c
 
 execCmd :: (Bin.Binary dt) => TextIndexerCon dt => Command -> CM dt CmdResult
 execCmd cmd = do
-  liftIO $ debugM $ "Executing command: " ++ logShow cmd
+  liftIO $ debugM $ "Exec: " ++ logShow cmd
   execCmd' . optimizeCmd $ cmd
 
 execCmd' :: (Bin.Binary dt, TextIndexerCon dt) => Command -> CM dt CmdResult

@@ -11,11 +11,11 @@ import           Text.Blaze                       (Markup, ToMarkup)
 
 -- | main page
 index :: Int -> LT.Text
-index docs =
+index _docs =
   -- generate html with hamlet
   (renderHtml . defaultLayout $ [xshamlet|
 <h1>
-  Search Documents (#{docs})
+  Search Documents
 <hr>
 <div .row>
   <div .span8>
@@ -337,7 +337,7 @@ defaultLayout content = [xshamlet|
   <head>
     <meta charset="utf-8">
     <title>Holumbus Server
-    <script src="http://code.jquery.com/jquery-1.10.0.min.js">
+    <script src="http://code.jquery.com/jquery-1.10.2.min.js">
     <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js" type="text/javascript">
     <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
   <body>

@@ -202,7 +202,7 @@ createWordHits = DM.foldrWithKey transformDoc M.empty
 -- | Combine two tuples with score and context hits.
 combineWordHits :: (WordInfo, WordContextHits) -> (WordInfo, WordContextHits) -> (WordInfo, WordContextHits)
 combineWordHits (i1, c1) (i2, c2)
-  = ( combineWordInfo i1 i2
+  = ( mergeWordInfo i1 i2
     , M.unionWith (DM.unionWith Pos.union) c1 c2
     )
 
@@ -240,7 +240,8 @@ combineScore s1 s2 = (s1 + s2) / 2.0
 -- XXX: code duplication - maybe branch in unionContexts with op
 
 mergeContexts :: IntermediateContexts -> IntermediateContexts -> IntermediateContexts
-mergeContexts (ic1,db1) (ic2,db2) = (M.unionWith (M.unionWith merge') ic1 ic2, db1 ++ db2) -- XXX: db merge
+mergeContexts (ic1,db1) (ic2,_db2) = (M.unionWith (M.unionWith merge') ic1 ic2, db1)
+-- doc boosts are not context-sensitive and should be the same for Intermediates that are merged
   where
   merge' (i1, p1) (i2, p2)
     = ( mergeWordInfo i1 i2

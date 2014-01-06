@@ -1,3 +1,5 @@
+{-# LANGUAGE StandaloneDeriving #-}
+
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -73,7 +75,8 @@ data Result e
     { docHits   :: DocHits e  -- ^ The documents matching the query.
     , wordHits  :: WordHits   -- ^ The words which are completions of the query terms.
     }
-    --deriving (Eq, Show)
+deriving instance Show e => Show (Result e)
+
 
 -- | Information about an document.
 data DocInfo e
@@ -82,7 +85,7 @@ data DocInfo e
     , docBoost :: [Float]
     , docScore :: Score      -- ^ The score for the document (initial score for all documents is @0.0@).
     }
-    --deriving (Eq, Show)
+deriving instance Show e => Show (DocInfo e)
 
 -- | Information about a word.
 data WordInfo
