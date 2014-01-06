@@ -8,6 +8,7 @@
 module Holumbus.Interpreter.Interpreter where
 
 import           Control.Applicative
+import           Control.Concurrent.XMVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
@@ -55,7 +56,6 @@ import           Holumbus.Interpreter.Command
 import qualified System.Log.Logger                           as Log
 
 import           Holumbus.Utility.Log
-import           Holumbus.Utility.XMVar
 
 -- ----------------------------------------------------------------------------
 --
