@@ -13,7 +13,7 @@ import           Network.Wai.Middleware.RequestLogger
 import           Holumbus.Common
 
 import           Holumbus.Interpreter.Command
-import           Holumbus.Interpreter.Interpreter     hiding (Options, modName, debugM)
+import           Holumbus.Interpreter.Interpreter     hiding (modName, debugM)
 
 import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Ranking
