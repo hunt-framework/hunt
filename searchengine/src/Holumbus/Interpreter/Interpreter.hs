@@ -8,6 +8,7 @@
 module Holumbus.Interpreter.Interpreter where
 
 import           Control.Applicative
+import           Control.Concurrent.XMVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
@@ -55,7 +56,6 @@ import           Holumbus.Interpreter.Command
 import qualified System.Log.Logger                           as Log
 
 import           Holumbus.Utility.Log
-import           Holumbus.Utility.XMVar
 
 -- ----------------------------------------------------------------------------
 --
@@ -265,7 +265,7 @@ optimizeCmd c = c
 
 execCmd :: (Bin.Binary dt) => TextIndexerCon dt => Command -> CM dt CmdResult
 execCmd cmd = do
-  liftIO $ debugM $ "Executing command: " ++ logShow cmd
+  liftIO $ debugM $ "Exec: " ++ logShow cmd
   execCmd' . optimizeCmd $ cmd
 
 execCmd' :: (Bin.Binary dt, TextIndexerCon dt) => Command -> CM dt CmdResult

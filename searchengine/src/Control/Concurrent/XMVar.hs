@@ -1,4 +1,4 @@
-module Holumbus.Utility.XMVar
+module Control.Concurrent.XMVar
   ( XMVar
   , newXMVar
   , readXMVar, modifyXMVar, modifyXMVar_

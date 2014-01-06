@@ -52,9 +52,12 @@ library
     build-depends: snappy               >= 0.1 && < 1
 
   exposed-modules:
-    Data.Text.Binary
+    Control.Concurrent.XMVar
+
     Data.Bijection
     Data.Bijection.Instances
+    Data.Text.Binary
+
     Holumbus.Data.Crunch
 
     Holumbus.Common
@@ -116,7 +119,6 @@ library
 
     Holumbus.Utility
     Holumbus.Utility.Log
-    Holumbus.Utility.XMVar
 
   hs-source-dirs: src
 
