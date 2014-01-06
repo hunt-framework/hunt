@@ -102,7 +102,7 @@ dateDoc = emptyApiDoc
 geoDoc :: ApiDocument
 geoDoc = emptyApiDoc
   { apiDocUri      = uri
-  , apiDocIndexMap = M.insert "geocontext" "53.60000 10.00000" ix
+  , apiDocIndexMap = M.insert "geocontext" "53.60000-10.00000" ix
   , apiDocDescrMap = dt
   }
   where
@@ -132,7 +132,7 @@ insertDateContext :: Command
 insertDateContext = uncurry InsertContext dateContextInfo
 
 geoContextInfo :: (Context, ContextSchema)
-geoContextInfo = ("datecontext", ContextSchema "position" "" [] 1 True (Just CPosition))
+geoContextInfo = ("geocontext", ContextSchema "position" "" [] 1 True (Just CPosition))
 
 insertGeoContext :: Command
 insertGeoContext = uncurry InsertContext geoContextInfo
@@ -213,7 +213,7 @@ test_geo = testCM $ do
   -- insert date containing document
   Insert geoDoc          @@= ResOK
   -- searching for date
-  Search (QContext ["geocontext"] (QWord QNoCase "53.60000 10.00000")) 0 10
+  Search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
     @@@ ((@?= ["test://0"]) . searchResultUris)
 
 
