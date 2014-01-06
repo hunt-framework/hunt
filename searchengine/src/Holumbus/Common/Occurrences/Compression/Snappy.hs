@@ -47,7 +47,7 @@ newtype OccOSerialized = OccOBs { unOccOBs :: ByteString }
   deriving (Eq, Show, NFData)
 
 mkOccOBs :: ByteString -> OccOSerialized
-mkOccOBs b = OccOBs $! b
+mkOccOBs b = OccOBs $!! b
 
 -- ----------------------------------------------------------------------------
 #if  __GLASGOW_HASKELL__ >= 770
@@ -67,6 +67,6 @@ instance OccCompression CompressedOccurrences where
 
 instance Binary OccOSerialized where
   put = B.put . unOccOBs
-  get = B.get >>= return . OccOBs
+  get = B.get >>= return . mkOccOBs
 
 -- ----------------------------------------------------------------------------

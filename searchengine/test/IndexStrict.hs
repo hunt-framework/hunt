@@ -34,6 +34,7 @@ import           Holumbus.Common
 import qualified Holumbus.Common.Occurrences                     as Occ
 import qualified Holumbus.Common.Occurrences.Compression.BZip    as ZB
 import qualified Holumbus.Common.Occurrences.Compression.Simple9 as Z9
+import qualified Holumbus.Common.Occurrences.Compression.Snappy  as ZS
 import qualified Holumbus.Common.Positions                       as Pos
 
 
@@ -44,6 +45,10 @@ import qualified Holumbus.Index.PrefixTreeIndex                  as PIx
 
 import qualified Holumbus.Index.Proxy.CachedIndex                as CacheProxy
 import qualified Holumbus.Index.Proxy.KeyIndex                   as KeyProxy
+import qualified Holumbus.Index.Proxy.IntNormalizerIndex         as IntProxy
+import qualified Holumbus.Index.Proxy.DateNormalizerIndex        as DateProxy
+import qualified Holumbus.Index.Proxy.PositionNormalizerIndex    as GeoProxy
+
 --import qualified Holumbus.Index.Proxy.CompressedIndex            as ComprProxy
 
 import           GHC.AssertNF
@@ -60,14 +65,21 @@ main = do
                 testProperty "prop_strictness_occurrences"               prop_occs
 
               , testProperty "prop_strictness_prefixtreeindex"           prop_ptix
-              , testProperty "prop_strictness_invindex"                  prop_invix
+              , testProperty "prop_strictness_invindex textkey"          prop_invix1
+              , testProperty "prop_strictness_invindex intkey"           prop_invix2
+              , testProperty "prop_strictness_invindex datekey"          prop_invix3
+              , testProperty "prop_strictness_invindex geokey"           prop_invix4
 --            test failing right now because compressedoccurrences are not strict
 --            but we are not using them at the moment at probably won't in the future
 --              , testProperty "prop_strictness_comprprefixtreeindex comp" prop_cptix
-              , testProperty "prop_strictness_comprprefixtreeindex seri" prop_cptix2
+              , testProperty "prop_strictness_comprprefixtreeindex bzip" prop_cptix2
+              , testProperty "prop_strictness_comprprefixtreeindex snap" prop_cptix3
               , testProperty "prop_strictness_proxy_cache"               prop_cachedix
-
-              ]
+              , testProperty "prop_strictness_proxy_textkey"             prop_textix
+              , testProperty "prop_strictness_proxy_intkey"              prop_intix
+              , testProperty "prop_strictness_proxy_datekey"             prop_dateix
+              , testProperty "prop_strictness_proxy_geokey"              prop_geoix
+           ]
 
 -- ----------------------------------------------------------------------------
 -- test data structures
@@ -114,15 +126,51 @@ prop_cptix2
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
--- this is failing atm - not implemented seq here
-prop_invix :: Property
-prop_invix
+prop_cptix3 :: Property
+prop_cptix3
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (CPIx.ComprOccPrefixTree ZS.CompressedOccurrences)
+    passed <- run $ isNF $! ix
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
+
+
+prop_invix1 :: Property
+prop_invix1
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex Positions)
     passed <- run $ isNF $! ix
     assert passed
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
+
+prop_invix2 :: Property
+prop_invix2
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexInt Positions)
+    passed <- run $ isNF $! ix
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1" val Ix.empty
+
+prop_invix3 :: Property
+prop_invix3
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexDate Positions)
+    passed <- run $ isNF $! ix
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "2013-01-01" val Ix.empty
+
+prop_invix4 :: Property
+prop_invix4
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Positions)
+    passed <- run $ isNF $! ix
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
 
 
 -- ----------------------------------------------------------------------------
@@ -149,6 +197,36 @@ prop_textix
     assert passed
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
+
+-- int proxy
+prop_intix :: Property
+prop_intix
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (IntProxy.IntAsTextNormalizerIndex (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree)) Positions)
+    passed <- run $ isNF $! ix
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1" val Ix.empty
+
+-- date proxy
+prop_dateix :: Property
+prop_dateix
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (DateProxy.DateNormalizerIndex (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree)) Positions)
+    passed <- run $ isNF $! ix
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "2013-01-01" val Ix.empty
+
+-- geo proxy
+prop_geoix :: Property
+prop_geoix
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (GeoProxy.PositionNormalizerIndex (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree)) Positions)
+    passed <- run $ isNF $! ix
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
 
 
 -- ----------------------------------------------------------------------------

@@ -74,7 +74,7 @@ update f                = DM.foldrWithKey
 
 -- | Merge two occurrences.
 merge                   :: Occurrences -> Occurrences -> Occurrences
-merge                   = DM.unionWith IS.union
+merge                   = DM.unionWith Pos.union
 
 -- | Difference of occurrences.
 difference              :: Occurrences -> Occurrences -> Occurrences

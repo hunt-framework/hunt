@@ -41,7 +41,8 @@ newtype OccOSerialized = OccOBs { unOccOBs :: ByteString }
   deriving (Eq, Show, NFData)
 
 mkOccOBs :: ByteString -> OccOSerialized
-mkOccOBs b = OccOBs $! b
+-- | XXX deepseq - fix if possible!
+mkOccOBs b = OccOBs $!! b
 
 -- ----------------------------------------------------------------------------
 
@@ -54,6 +55,6 @@ instance OccCompression CompressedOccurrences where
 
 instance Binary OccOSerialized where
   put = B.put . unOccOBs
-  get = B.get >>= return . OccOBs
+  get = B.get >>= return . mkOccOBs
 
 -- ----------------------------------------------------------------------------
