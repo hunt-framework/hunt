@@ -53,6 +53,7 @@ main = defaultMain
        , testProperty "Normlizer:pos double"       prop_isPosition_d
        , testProperty "Normlizer:pos text"         prop_isPosition_t
        , testCase     "Normlizer:norm pos int"     test_norm_pos
+       , testCase     "Normlizer:norm pos int"     test_norm_pos2
        , testCase     "Normlizer:norm pos dbl"     test_norm_pos4
        , testProperty "Normlizer:norm denorm dbl"  prop_norm_pos3
 
@@ -147,7 +148,7 @@ genPos :: Gen String
 genPos = do
   lat  <- choose (-89,89)  :: Gen Int
   long <- choose (-179,179) :: Gen Int
-  return $ concat [ show lat, ".000001-", show long, ".000002" ]
+  return $ concat [ show lat, ".0000001-", show long, ".0000002" ]
 
 prop_isPosition_d :: Gen Bool
 prop_isPosition_d = do
@@ -161,16 +162,23 @@ prop_isPosition_t = do
   return $ False == NP.isPosition (T.concat [ long, "-", lat ])
 
 test_norm_pos :: Assertion
-test_norm_pos = assertEqual "" "110000111100000011000011001111001100000000000000" (NP.normalize "1-1")
+test_norm_pos = assertEqual "" "1100000000000000110000111100000011000011001111001100000000000000" (NP.normalize "1-1")
+
+
+test_norm_pos2 :: Assertion
+test_norm_pos2 = assertEqual "" "0000000000000000110000111100000011000011001111001100000000000000" (NP.normalize "-1.00--1.000")
 
 test_norm_pos4 :: Assertion
-test_norm_pos4 = assertEqual "" "110000111100000011000011001111001100000000000000" (NP.normalize "1.000000-1.000000")
+test_norm_pos4 = assertEqual "" "1100000000000000110000111100000011000011001111001100000000000000" (NP.normalize "1.000000-1.000000")
 
 prop_norm_pos3 :: Gen Bool
 prop_norm_pos3 = do
   p <- genPos
-  let pos = T.pack p 
-  return $ pos == (NP.denormalize . NP.normalize $ pos)
+  let pos  = T.pack p
+  let pos' = (NP.denormalize . NP.normalize $ pos)
+  if not $ pos == pos'
+    then error . concat $ [p, "!=", T.unpack pos']
+    else return True
 
 -- ----------------------------------------------------------------------------
 -- normalizer date tests

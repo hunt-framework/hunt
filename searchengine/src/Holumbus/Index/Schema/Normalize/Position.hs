@@ -1,14 +1,15 @@
 module Holumbus.Index.Schema.Normalize.Position
-( isPosition
+{--( isPosition
 , normalize
 , denormalize
-)
+)--}
 where
 
 import qualified Data.Text           as T
 import           Data.Text           (Text)
 import qualified Data.List           as L
 import           Data.Either         (lefts)
+import           Numeric
 
 import           Text.Parsec
 import           Control.Applicative hiding ((<|>))
@@ -67,7 +68,7 @@ normalize pos
 -- a valid position has a format like "double-double" aka. "latitude-longitude"
 denormalize :: Text -> Text
 denormalize pos
-  = T.concat [ T.pack . show $ d1, "-", T.pack . show $ d2 ]
+  = T.concat [ show' d1, "-", show' d2 ]
   where
   (d1,d2) = ( fromIntegral i1 / 10000000
             , fromIntegral i2 / 10000000
@@ -82,19 +83,32 @@ denormalize pos
   evens xs = odds (drop 1 xs)
   sPos = T.unpack pos
 
+  show' d = T.pack $ Numeric.showFFloat (Just 7) d ""
+
 -- ----------------------------------------------------------------------------
 -- normalizer helper
 
 bin2dec :: String -> Integer
-bin2dec = foldr (\c s -> s * 2 + c) 0 . reverse . map c2i
+bin2dec s = sign * dec 
     where
+    dec = foldr (\c s -> s * 2 + c) 0 . reverse . map c2i $ drop 1 s
+    sign = if take 1 s == "0" then -1 else 1    
     c2i c = if c == '0' then 0 else 1
 
+
+-- | Convert Integer to Binary and normalize result
+--   with leading zeros to a length of 32 characters
+--   the first character stands for signing
 dec2bin :: Integer -> String
-dec2bin = map i2c . reverse . L.unfoldr decomp
+dec2bin i = concat $ [sign, zeros, bin] 
     where
+    (sign,n) = if i < 0 then ("0", -i) else ("1",i) 
+    bin      = map i2c . reverse . L.unfoldr decomp $ n
     decomp n = if n == 0 then Nothing else Just(n `mod` 2, n `div` 2)
-    i2c i = if i == 0 then '0' else '1'
+    i2c i    = if i == 0 then '0' else '1'
+    --- XXX :/
+    elems    = 31 - length bin
+    zeros    = foldr (\_ xs -> '0':xs) "" [1..elems]
 
 intersectPos :: String -> String -> String
 intersectPos la lo = foldPos' la lo ""
