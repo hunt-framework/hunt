@@ -27,8 +27,6 @@ import           Holumbus.Common.Occurrences.Compression.Snappy
 import           Holumbus.Index.ComprPrefixTreeIndex
 import           Holumbus.Index.Index                           as Ix
 
-import           Holumbus.Index.Proxy.CachedIndex
-import           Holumbus.Index.Proxy.CompressedIndex
 import           Holumbus.Index.Proxy.DateNormalizerIndex
 import           Holumbus.Index.Proxy.IntNormalizerIndex
 import           Holumbus.Index.Proxy.KeyIndex
@@ -38,9 +36,9 @@ import           Data.Text                                      (Text)
 
 -- ----------------------------------------------------------------------------
 
-type InvertedIndexInt v      = IntAsTextNormalizerIndex InvertedIndex v
-type InvertedIndexDate v     = DateNormalizerIndex InvertedIndex v
-type InvertedIndexPosition v = PositionNormalizerIndex InvertedIndex v
+type InvertedIndexInt      v = IntAsTextNormalizerIndex InvertedIndex v
+type InvertedIndexDate     v = DateNormalizerIndex      InvertedIndex v
+type InvertedIndexPosition v = PositionNormalizerIndex  InvertedIndex v
 
 newtype InvertedIndex _v
     = InvIx { invIx :: KeyProxyIndex Text ComprOccPrefixTree CompressedOccurrences }
@@ -53,7 +51,7 @@ mkInvIx x = InvIx $! x
 -- ----------------------------------------------------------------------------
 
 instance Binary (InvertedIndex v) where
-    put (InvIx i) = put i
+    put = put . invIx
     get = get >>= return . mkInvIx
 
 -- ----------------------------------------------------------------------------

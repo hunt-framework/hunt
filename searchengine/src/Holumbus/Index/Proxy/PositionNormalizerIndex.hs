@@ -38,7 +38,7 @@ mkPosNIx v = PosNIx $! v
 -- ----------------------------------------------------------------------------
 
 instance Binary (impl v) => Binary (PositionNormalizerIndex impl v) where
-    put (PosNIx i) = put i
+    put = put . posNIx
     get = get >>= return . mkPosNIx
 
 -- ----------------------------------------------------------------------------

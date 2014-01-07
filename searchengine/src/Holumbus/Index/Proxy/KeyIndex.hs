@@ -18,7 +18,6 @@ import           Control.Arrow                           (first)
 
 import           Data.Bijection
 import           Data.Binary                             (Binary (..))
---import           Data.Text                                  (Text, pack, unpack)
 
 import           Holumbus.Index.Index
 import qualified Holumbus.Index.Index                    as Ix

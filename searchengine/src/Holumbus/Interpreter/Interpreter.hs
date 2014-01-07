@@ -113,21 +113,22 @@ emptyIndexer = (CIx.empty, HDt.empty, M.empty)
 type ContextTypes = M.Map Text Impl.ContextMeta
 
 contextTypes :: ContextTypes
-contextTypes  = M.fromList
-              $ [ ("text",     Impl.CxMeta CText     defaultInv)
-                , ("int",      Impl.CxMeta CInt      intInv)
-                , ("date",     Impl.CxMeta CDate     dateInv)
-                , ("position", Impl.CxMeta CPosition positionInv)
-                ]
+contextTypes
+  = M.fromList $
+      [ ("text",     Impl.CxMeta CText     defaultInv)
+      , ("int",      Impl.CxMeta CInt      intInv)
+      , ("date",     Impl.CxMeta CDate     dateInv)
+      , ("position", Impl.CxMeta CPosition positionInv)
+      ]
 
 defaultInv :: Impl.IndexImpl Occurrences
-defaultInv = Impl.IndexImpl (Ix.empty :: InvertedIndex Occurrences)
+defaultInv  = Impl.IndexImpl (Ix.empty :: InvertedIndex Occurrences)
 
 intInv :: Impl.IndexImpl Occurrences
-intInv = Impl.IndexImpl (Ix.empty :: InvertedIndexInt Occurrences)
+intInv      = Impl.IndexImpl (Ix.empty :: InvertedIndexInt Occurrences)
 
 dateInv :: Impl.IndexImpl Occurrences
-dateInv = Impl.IndexImpl (Ix.empty :: InvertedIndexDate Occurrences)
+dateInv     = Impl.IndexImpl (Ix.empty :: InvertedIndexDate Occurrences)
 
 positionInv :: Impl.IndexImpl Occurrences
 positionInv = Impl.IndexImpl (Ix.empty :: InvertedIndexPosition Occurrences)
@@ -138,12 +139,11 @@ positionInv = Impl.IndexImpl (Ix.empty :: InvertedIndexPosition Occurrences)
 -- the environment
 -- with a MVar for storing the index
 -- so the MVar acts as a global state (within IO)
-
 data Env dt = Env
-    { evIndexer :: TextIndexerCon dt => XMVar (IpIndexer dt)
-    , evRanking :: RankConfig (Dt.DValue dt)
-    , evCxTypes :: ContextTypes
-    }
+  { evIndexer :: TextIndexerCon dt => XMVar (IpIndexer dt)
+  , evRanking :: RankConfig (Dt.DValue dt)
+  , evCxTypes :: ContextTypes
+  }
 
 initEnv :: TextIndexerCon dt => IpIndexer dt -> RankConfig (Dt.DValue dt) -> ContextTypes -> IO (Env dt)
 initEnv ixx rnk opt = do
@@ -207,8 +207,6 @@ askType cn = do
     case M.lookup cn ty of
       (Just (Impl.CxMeta t _ix)) -> return $ t
       _                         -> throwResError 410 "used unavailable context type"
-
-
 
 askIndex :: TextIndexerCon dt => Text -> CM dt (Impl.IndexImpl Occurrences)
 askIndex cn = do
@@ -487,7 +485,7 @@ runQueryM       :: TextIndexerCon dt
                 -> IO (Either CmdError (QRes.Result (Dt.DValue dt)))
 runQueryM ix s dt q = processQuery st dt q
    where
-   st = initState queryConfig ix s 2
+   st = initState queryConfig ix s
 
 -- ----------------------------------------------------------------------------
 

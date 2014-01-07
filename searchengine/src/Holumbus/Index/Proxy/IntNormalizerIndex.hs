@@ -40,7 +40,7 @@ mkIntNIx v = IntNIx $! v
 -- ----------------------------------------------------------------------------
 
 instance Binary (impl v) => Binary (IntNormalizerIndex impl v) where
-    put (IntNIx i) = put i
+    put = put . intNIx
     get = get >>= return . mkIntNIx
 
 -- ----------------------------------------------------------------------------

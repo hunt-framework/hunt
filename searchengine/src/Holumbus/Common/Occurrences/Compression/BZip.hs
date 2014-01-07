@@ -16,7 +16,6 @@ module Holumbus.Common.Occurrences.Compression.BZip
   (
   -- * Compression types
     CompressedOccurrences
-  , OccOSerialized(..)
   , OccCompression(..)
   )
 where
@@ -29,32 +28,38 @@ import           Data.ByteString.Lazy                    (ByteString)
 
 import qualified Codec.Compression.BZip                  as BZ
 
+import qualified Holumbus.Common.DocIdMap                as DM
+import           Holumbus.Common.Occurrences
 import           Holumbus.Common.Occurrences.Compression
 
 -- ----------------------------------------------------------------------------
 
-type CompressedOccurrences = OccOSerialized
-
--- ----------------------------------------------------------------------------
-
-newtype OccOSerialized = OccOBs { unOccOBs :: ByteString }
+newtype CompressedOccurrences = ComprOccs { unComprOccs :: ByteString }
   deriving (Eq, Show, NFData)
 
-mkOccOBs :: ByteString -> OccOSerialized
+mkComprOccs :: ByteString -> CompressedOccurrences
 -- | XXX deepseq - fix if possible!
-mkOccOBs b = OccOBs $!! b
+mkComprOccs b = ComprOccs $!! b
 
 -- ----------------------------------------------------------------------------
 
 instance OccCompression CompressedOccurrences where
-  compressOcc           = mkOccOBs . BZ.compress . B.encode
-  decompressOcc         = B.decode . BZ.decompress . unOccOBs
-  differenceWithKeySet  = undefined
+  compressOcc   = compress
+  decompressOcc = decompress
+  differenceWithKeySet ks = compress . (flip DM.diffWithSet) ks . decompress
 
 -- ----------------------------------------------------------------------------
 
-instance Binary OccOSerialized where
-  put = B.put . unOccOBs
-  get = B.get >>= return . mkOccOBs
+instance Binary CompressedOccurrences where
+  put = B.put . unComprOccs
+  get = B.get >>= return . mkComprOccs
 
 -- ----------------------------------------------------------------------------
+
+--compress :: Binary a => a -> CompressedOccurrences
+compress :: Occurrences -> CompressedOccurrences
+compress = mkComprOccs . BZ.compress . B.encode
+
+--decompress :: Binary a => CompressedOccurrences -> a
+decompress :: CompressedOccurrences -> Occurrences
+decompress = B.decode . BZ.decompress . unComprOccs

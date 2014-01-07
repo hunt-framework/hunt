@@ -69,7 +69,7 @@ modName = "Holumbus.Query.Processor"
 -- | Log a message at 'DEBUG' priority.
 debugM :: String -> IO ()
 debugM = Log.debugM modName
-
+{-
 -- | Log a message at 'WARNING' priority.
 warningM :: String -> IO ()
 warningM = Log.warningM modName
@@ -77,7 +77,7 @@ warningM = Log.warningM modName
 -- | Log a message at 'ERROR' priority.
 errorM :: String -> IO ()
 errorM = Log.errorM modName
-
+-}
 -- ----------------------------------------------------------------------------
 -- | The configuration and State for the query processor.
 -- ----------------------------------------------------------------------------
@@ -103,7 +103,6 @@ data ProcessState
     , psContexts :: ! [Context]        -- ^ The current list of contexts.
     , psIndex    ::   ContextIndex Occurrences  -- ^ The index to search.
     , psSchema   ::   Schema           -- ^ Schema / Schemas for the contexts.
-    , psTotal    :: ! Int              -- ^ The number of documents in the index.
     }
 
 -- ----------------------------------------------------------------------------
@@ -187,14 +186,14 @@ putContexts cs = do
     else processError 404 $ "mentioned context(s) do not exist: " -- schema to be precise
                           `T.append` (T.pack . show $ invalidContexts)
   where
-  setCx (ProcessState cfg _ ix s dts) = ProcessState cfg cs ix s dts
+  setCx (ProcessState cfg _ ix s) = ProcessState cfg cs ix s
 
 
 -- | Initialize the state of the processor.
-initState :: ProcessConfig -> QueryIndex -> Schema -> Int
+initState :: ProcessConfig -> QueryIndex -> Schema
           -> ProcessState
-initState cfg ix s dtSize
-  = ProcessState cfg cxs ix s dtSize
+initState cfg ix s
+  = ProcessState cfg cxs ix s
   where -- XXX: kind of inefficient
   cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault) $ CIx.contexts ix
 

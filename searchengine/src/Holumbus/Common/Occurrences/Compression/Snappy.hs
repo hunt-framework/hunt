@@ -22,7 +22,6 @@ module Holumbus.Common.Occurrences.Compression.Snappy
   (
   -- * Compression types
     CompressedOccurrences
-  , OccOSerialized(..)
   , OccCompression(..)
   )
 where
@@ -36,38 +35,49 @@ import           Data.ByteString.Lazy                    (ByteString)
 import qualified Codec.Compression.Snappy.Lazy           as BZ
 #endif
 
+import qualified Holumbus.Common.DocIdMap                as DM
+import           Holumbus.Common.Occurrences
 import           Holumbus.Common.Occurrences.Compression
 
 -- ----------------------------------------------------------------------------
 
-type CompressedOccurrences = OccOSerialized
-
--- ----------------------------------------------------------------------------
-
-newtype OccOSerialized = OccOBs { unOccOBs :: ByteString }
+newtype CompressedOccurrences = ComprOccs { unComprOccs :: ByteString }
   deriving (Eq, Show, NFData)
 
-mkOccOBs :: ByteString -> OccOSerialized
-mkOccOBs b = OccOBs $!! b
+mkComprOccs :: ByteString -> CompressedOccurrences
+mkComprOccs b = ComprOccs $!! b
 
 -- ----------------------------------------------------------------------------
-#if  __GLASGOW_HASKELL__ >= 770
+
 instance OccCompression CompressedOccurrences where
-  compressOcc           = mkOccOBs . BZ.compress . B.encode
-  decompressOcc         = B.decode . BZ.decompress . unOccOBs
-  differenceWithKeySet  = undefined
+  compressOcc           = compress
+  decompressOcc         = decompress
+  differenceWithKeySet ks = compress . (flip DM.diffWithSet) ks . decompress
+
+-- ----------------------------------------------------------------------------
+
+instance Binary CompressedOccurrences where
+  put = B.put . unComprOccs
+  get = B.get >>= return . mkComprOccs
+
+-- ----------------------------------------------------------------------------
+
+#if  __GLASGOW_HASKELL__ >= 770
+--compress :: Binary a => a -> CompressedOccurrences
+compress :: Occurrences -> CompressedOccurrences
+compress = mkComprOccs . BZ.compress . B.encode
+
+--decompress :: Binary a => CompressedOccurrences -> a
+decompress :: CompressedOccurrences -> Occurrences
+decompress = B.decode . BZ.decompress . unComprOccs
+
 #else
 #warning snappy is disabled if GHC < 7.7
-instance OccCompression CompressedOccurrences where
-  compressOcc           = mkOccOBs . B.encode
-  decompressOcc         = B.decode . unOccOBs
-  differenceWithKeySet  = undefined
+--compress :: Binary a => a -> CompressedOccurrences
+compress :: Occurrences -> CompressedOccurrences
+compress = mkComprOccs . B.encode
 
+--decompress :: Binary a => CompressedOccurrences -> a
+decompress :: CompressedOccurrences -> Occurrences
+decompress = B.decode . unComprOccs
 #endif
--- ----------------------------------------------------------------------------
-
-instance Binary OccOSerialized where
-  put = B.put . unOccOBs
-  get = B.get >>= return . mkOccOBs
-
--- ----------------------------------------------------------------------------

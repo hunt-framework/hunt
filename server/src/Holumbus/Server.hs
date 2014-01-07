@@ -30,10 +30,6 @@ import           System.Log.Handler.Simple            (streamHandler)
 import           System.Log.Logger                    hiding (debugM, warningM, errorM)
 import qualified System.Log.Logger                    as Log
 
--- old stuff
--- import           GHC.Stats
--- import           GHC.Stats.Json                       ()
-
 -- ----------------------------------------------------------------------------
 -- Application launch options
 
@@ -180,16 +176,5 @@ start = do
 
     get "/status/index" $ do
       eval $ Status StatusIndex         -- status of search index
-
-    -- just for compatibility
-    get "/gcstats" $ do
-      eval $ Status StatusGC            -- garbage collector status
-
-{- old stuff
-      statsEnabled <- liftIO getGCStatsEnabled
-      if statsEnabled
-        then liftIO getGCStats >>= json . JsonSuccess
-        else throw $ Json 404 ("GC stats not enabled. Use `+RTS -T -RTS' to enable them." :: Text)
--}
 
     notFound $ throw NotFound

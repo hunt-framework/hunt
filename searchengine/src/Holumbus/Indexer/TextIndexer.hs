@@ -8,7 +8,7 @@ module Holumbus.Indexer.TextIndexer where
 
 import           Control.Monad
 
-import qualified Data.Binary                       as Bin
+import           Data.Binary                       (Binary(..))
 import qualified Data.IntSet                       as IS
 import qualified Data.Map                          as M
 import           Data.Maybe
@@ -30,10 +30,9 @@ import           Holumbus.Indexer.Indexer
 -- ----------------------------------------------------------------------------
 
 type TextIndexerCon dt
-    = (
-        DocTable dt
-      -- we need this for load and store, but i dont like these constraints here
-      , Bin.Binary dt
+    = ( DocTable dt
+      -- FIXME: we need this for load and store, but i don't like these constraints here
+      , Binary dt
       )
 
 type TextIndexer        i dt = Indexer        i Occurrences dt

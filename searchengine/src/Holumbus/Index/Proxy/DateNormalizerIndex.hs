@@ -38,7 +38,7 @@ mkDateNIx v = DateNIx $! v
 -- ----------------------------------------------------------------------------
 
 instance Binary (impl v) => Binary (DateNormalizerIndex impl v) where
-    put (DateNIx i) = put i
+    put = put . dateNIx
     get = get >>= return . mkDateNIx
 
 -- ----------------------------------------------------------------------------

@@ -22,12 +22,14 @@ import qualified Holumbus.Index.IndexImpl    as Impl
 -- | ContextIndex stores different kinds of indexes
 --   and hides their implementation. The API enforces
 --   usage of a Text key.
-newtype ContextIndex v = ContextIx
-    { contextIx :: Map Context (Impl.IndexImpl v) }
-    deriving (Show)
+newtype ContextIndex v
+  = ContextIx { contextIx :: Map Context (Impl.IndexImpl v) }
+  deriving (Show)
+
+-- ----------------------------------------------------------------------------
 
 instance (Binary (impl v), Binary v) => Binary (ContextIndex v) where
-  put (ContextIx i) = put i
+  put = put . contextIx
   get = get >>= return . ContextIx
 
 -- ----------------------------------------------------------------------------

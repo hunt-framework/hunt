@@ -75,14 +75,24 @@ import qualified Holumbus.Common.DocId       as DId
 
 -- ------------------------------------------------------------
 
-type DocIdSet           = S.IntSet
+type DocIdSet = S.IntSet
 
 toDocIdSet              :: [DocId] -> DocIdSet
 toDocIdSet              = S.fromList
 
-newtype DocIdMap v      = DIM { unDIM :: IM.IntMap v }
-                          deriving
-                          (Eq, Show, Foldable, Traversable, Functor, NFData)
+-- ------------------------------------------------------------
+
+newtype DocIdMap v
+  = DIM { unDIM :: IM.IntMap v }
+  deriving (Eq, Show, Foldable, Traversable, Functor, NFData)
+
+-- ------------------------------------------------------------
+
+instance Binary v => Binary (DocIdMap v) where
+  put = B.put . toList
+  get = B.get >>= return . fromList
+
+-- ------------------------------------------------------------
 
 liftDIM                 :: (IM.IntMap v -> IM.IntMap r) ->
                            DocIdMap v -> DocIdMap r
@@ -191,10 +201,6 @@ keys                    = IM.keys . unDIM
 
 elems                   :: DocIdMap v -> [v]
 elems                   = IM.elems . unDIM
-
-instance Binary v => Binary (DocIdMap v) where
-    put                 = B.put . toList
-    get                 = B.get >>= return . fromList
 
 -- ------------------------------------------------------------
 

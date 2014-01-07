@@ -36,4 +36,5 @@ import           Holumbus.Common.Occurrences hiding (delete)
 class OccCompression cv where
     compressOcc          :: Occurrences -> cv
     decompressOcc        :: cv -> Occurrences
+    -- XXX: not sure if this is needed/used anymore
     differenceWithKeySet :: DM.DocIdSet -> cv -> cv
