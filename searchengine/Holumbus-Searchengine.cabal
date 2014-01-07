@@ -105,8 +105,7 @@ library
     Holumbus.DocTable.DocTable
     Holumbus.DocTable.HashedDocTable
 
-    Holumbus.Indexer.Indexer
-    Holumbus.Indexer.TextIndexer
+    Holumbus.IndexHandler
 
     Holumbus.Interpreter.Interpreter
     Holumbus.Interpreter.Command

@@ -34,9 +34,9 @@ import           Holumbus.Common.Document.Compression.BZip (CompressedDoc)
 
 import           Holumbus.Index.Schema.Analyze
 
-import           Holumbus.Indexer.TextIndexer              (ContextTextIndexer,
-                                                            TextIndexerCon)
-import qualified Holumbus.Indexer.TextIndexer              as Ixx
+import           Holumbus.IndexHandler                     (IndexHandler,
+                                                            IndexHandlerCon)
+import qualified Holumbus.IndexHandler                     as Ixx
 
 import qualified Holumbus.Index.Index                      as Ix
 import qualified Holumbus.Index.IndexImpl                  as Impl
@@ -103,9 +103,7 @@ debugContext c ws = debugM $ concat ["insert in", T.unpack c, show . M.toList $ 
 
 -- ----------------------------------------------------------------------------
 
-type IpIndexer dt = ContextTextIndexer dt
-
-emptyIndexer :: IpIndexer (Documents CompressedDoc)
+emptyIndexer :: IndexHandler (Documents CompressedDoc)
 emptyIndexer = (CIx.empty, HDt.empty, M.empty)
 
 -- ----------------------------------------------------------------------------
@@ -140,12 +138,12 @@ positionInv = Impl.IndexImpl (Ix.empty :: InvertedIndexPosition Occurrences)
 -- with a MVar for storing the index
 -- so the MVar acts as a global state (within IO)
 data Env dt = Env
-  { evIndexer :: TextIndexerCon dt => XMVar (IpIndexer dt)
+  { evIndexer :: IndexHandlerCon dt => XMVar (IndexHandler dt)
   , evRanking :: RankConfig (Dt.DValue dt)
   , evCxTypes :: ContextTypes
   }
 
-initEnv :: TextIndexerCon dt => IpIndexer dt -> RankConfig (Dt.DValue dt) -> ContextTypes -> IO (Env dt)
+initEnv :: IndexHandlerCon dt => IndexHandler dt -> RankConfig (Dt.DValue dt) -> ContextTypes -> IO (Env dt)
 initEnv ixx rnk opt = do
   ixref <- newXMVar ixx
   return $ Env ixref rnk opt
@@ -163,21 +161,21 @@ type CM dt = CMT dt IO
 
 -- ----------------------------------------------------------------------------
 
-runCM :: TextIndexerCon dt => CMT dt m a -> Env dt -> m (Either CmdError a)
+runCM :: IndexHandlerCon dt => CMT dt m a -> Env dt -> m (Either CmdError a)
 runCM env = runErrorT . runReaderT (runCMT env)
 
-runCmd :: TextIndexerCon dt => Env dt -> Command -> IO (Either CmdError CmdResult)
+runCmd :: IndexHandlerCon dt => Env dt -> Command -> IO (Either CmdError CmdResult)
 runCmd env cmd
     = runErrorT . runReaderT (runCMT . execCmd $ cmd) $ env
 
-askIx :: TextIndexerCon dt => CM dt (IpIndexer dt)
+askIx :: IndexHandlerCon dt => CM dt (IndexHandler dt)
 askIx
     = do ref <- asks evIndexer
          liftIO $ readXMVar ref
 
 -- FIXME: io exception-safe?
-modIx :: TextIndexerCon dt
-      => (IpIndexer dt-> CM dt (IpIndexer dt, a)) -> CM dt a
+modIx :: IndexHandlerCon dt
+      => (IndexHandler dt-> CM dt (IndexHandler dt, a)) -> CM dt a
 modIx f
     = do ref <- asks evIndexer
          ix <- liftIO $ takeXMVarWrite ref
@@ -189,46 +187,46 @@ modIx f
         liftIO $ putXMVarWrite ref i
         throwError e
 
-modIx_ :: TextIndexerCon dt => (IpIndexer dt -> CM dt (IpIndexer dt)) -> CM dt()
+modIx_ :: IndexHandlerCon dt => (IndexHandler dt -> CM dt (IndexHandler dt)) -> CM dt()
 modIx_ f = modIx f'
     where f' i = f i >>= \r -> return (r, ())
 
-withIx :: TextIndexerCon dt => (IpIndexer dt -> CM dt a) -> CM dt a
+withIx :: IndexHandlerCon dt => (IndexHandler dt -> CM dt a) -> CM dt a
 withIx f
     = askIx >>= f
 
-askTypes :: TextIndexerCon dt => CM dt ContextTypes
+askTypes :: IndexHandlerCon dt => CM dt ContextTypes
 askTypes
     = asks evCxTypes
 
-askType :: TextIndexerCon dt => Text -> CM dt CType
+askType :: IndexHandlerCon dt => Text -> CM dt CType
 askType cn = do
     ty <- asks evCxTypes
     case M.lookup cn ty of
       (Just (Impl.CxMeta t _ix)) -> return $ t
       _                         -> throwResError 410 "used unavailable context type"
 
-askIndex :: TextIndexerCon dt => Text -> CM dt (Impl.IndexImpl Occurrences)
+askIndex :: IndexHandlerCon dt => Text -> CM dt (Impl.IndexImpl Occurrences)
 askIndex cn = do
     ty <- asks evCxTypes
     case M.lookup cn ty of
       (Just (Impl.CxMeta _t ix)) -> return $ ix
       _                         -> throwResError 410 "used unavailable context type"
 
-askRanking :: TextIndexerCon dt => CM dt (RankConfig (Dt.DValue dt))
+askRanking :: IndexHandlerCon dt => CM dt (RankConfig (Dt.DValue dt))
 askRanking
     = asks evRanking
 
 -- TODO: meh
-askContextsWeights :: TextIndexerCon dt => CM dt(M.Map Context CWeight)
+askContextsWeights :: IndexHandlerCon dt => CM dt(M.Map Context CWeight)
 askContextsWeights
     = withIx (\(_,_,schema) -> return $ M.map cxWeight schema)
 
-throwResError :: TextIndexerCon dt => Int -> Text -> CM dt a
+throwResError :: IndexHandlerCon dt => Int -> Text -> CM dt a
 throwResError n msg
     = throwError $ ResError n msg
 
-throwNYI :: TextIndexerCon dt => String -> CM dt a
+throwNYI :: IndexHandlerCon dt => String -> CM dt a
 throwNYI c = throwResError 501 $ "command not yet implemented: " `T.append` T.pack c
 
 descending :: Ord a => a -> a -> Ordering
@@ -269,12 +267,12 @@ optimizeCmd (Delete u) = BatchDelete $ S.singleton u
 optimizeCmd c = c
 
 
-execCmd :: (Bin.Binary dt) => TextIndexerCon dt => Command -> CM dt CmdResult
+execCmd :: (Bin.Binary dt) => IndexHandlerCon dt => Command -> CM dt CmdResult
 execCmd cmd = do
   liftIO $ debugM $ "Exec: " ++ logShow cmd
   execCmd' . optimizeCmd $ cmd
 
-execCmd' :: (Bin.Binary dt, TextIndexerCon dt) => Command -> CM dt CmdResult
+execCmd' :: (Bin.Binary dt, IndexHandlerCon dt) => Command -> CM dt CmdResult
 execCmd' (Search q offset mx)
     = withIx $ execSearch' (wrapSearch offset mx) q
 
@@ -316,16 +314,16 @@ execCmd' (DeleteContext cx)
 
 -- ----------------------------------------------------------------------------
 
-execSequence :: TextIndexerCon dt => [Command] -> CM dt CmdResult
+execSequence :: IndexHandlerCon dt => [Command] -> CM dt CmdResult
 execSequence []       = execCmd NOOP
 execSequence [c]      = execCmd c
 execSequence (c : cs) = execCmd c >> execSequence cs
 
-execInsertContext :: TextIndexerCon dt
+execInsertContext :: IndexHandlerCon dt
                   => Context
                   -> ContextSchema
-                  -> IpIndexer dt
-                  -> CM dt (IpIndexer dt, CmdResult)
+                  -> IndexHandler dt
+                  -> CM dt (IndexHandler dt, CmdResult)
 execInsertContext cx ct ixx@(ix, dt, s)
     = do
       contextExists        <- Ixx.hasContext cx ixx
@@ -344,10 +342,10 @@ execInsertContext cx ct ixx@(ix, dt, s)
 
 
 -- | Deletes the context and the schema associated with it.
-execDeleteContext :: TextIndexerCon dt
+execDeleteContext :: IndexHandlerCon dt
                   => Context
-                  -> IpIndexer dt
-                  -> CM dt(IpIndexer dt, CmdResult)
+                  -> IndexHandler dt
+                  -> CM dt(IndexHandler dt, CmdResult)
 execDeleteContext cx (ix, dt, s)
   = return ((CIx.deleteContext cx ix, dt, M.delete cx s), ResOK)
 
@@ -355,8 +353,8 @@ execDeleteContext cx (ix, dt, s)
 -- | Inserts an 'ApiDocument' into the index.
 -- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs must not exist.
-execInsert :: TextIndexerCon dt
-           => ApiDocument -> IpIndexer dt -> CM dt (IpIndexer dt, CmdResult)
+execInsert :: IndexHandlerCon dt
+           => ApiDocument -> IndexHandler dt -> CM dt (IndexHandler dt, CmdResult)
 execInsert doc ixx@(_ix, _dt, schema) = do
     let contexts = M.keys $ apiDocIndexMap doc
     checkContextsExistence contexts ixx
@@ -375,8 +373,8 @@ execInsert doc ixx@(_ix, _dt, schema) = do
 -- | Updates an 'ApiDocument'.
 -- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs need to exist.
-execUpdate :: TextIndexerCon dt
-           => ApiDocument -> IpIndexer dt -> CM dt(IpIndexer dt, CmdResult)
+execUpdate :: IndexHandlerCon dt
+           => ApiDocument -> IndexHandler dt -> CM dt(IndexHandler dt, CmdResult)
 execUpdate doc ixx@(_ix, dt, schema) = do
     let contexts = M.keys $ apiDocIndexMap doc
     checkContextsExistence contexts ixx
@@ -390,13 +388,13 @@ execUpdate doc ixx@(_ix, dt, schema) = do
         throwResError 409 $ "document for update not found: " `T.append` uri docs
 
 
-unless' :: TextIndexerCon dt
+unless' :: IndexHandlerCon dt
        => Bool -> Int -> Text -> CM dt()
 unless' b code text = unless b $ throwResError code text
 
 
-checkContextsExistence :: TextIndexerCon dt
-                       => [Context] -> IpIndexer dt -> CM dt()
+checkContextsExistence :: IndexHandlerCon dt
+                       => [Context] -> IndexHandler dt -> CM dt()
 checkContextsExistence cs ixx = do
   ixxContexts        <- S.fromList <$> Ixx.contexts ixx
   let docContexts     = S.fromList cs
@@ -406,8 +404,8 @@ checkContextsExistence cs ixx = do
             `T.append` (T.pack . show . S.toList) invalidContexts
 
 
-checkApiDocExistence :: TextIndexerCon dt
-                     => Bool -> ApiDocument -> IpIndexer dt -> CM dt()
+checkApiDocExistence :: IndexHandlerCon dt
+                     => Bool -> ApiDocument -> IndexHandler dt -> CM dt()
 checkApiDocExistence switch apidoc ixx = do
   let u = apiDocUri apidoc
   mem <- Ixx.member u ixx
@@ -417,10 +415,10 @@ checkApiDocExistence switch apidoc ixx = do
             else "document does not exist: ") `T.append` u
 
 
-execSearch' :: (TextIndexerCon dt, e ~ Dt.DValue dt)
+execSearch' :: (IndexHandlerCon dt, e ~ Dt.DValue dt)
             => (Result e -> CmdResult)
             -> Query
-            -> IpIndexer dt
+            -> IndexHandler dt
             -> CM dt CmdResult
 execSearch' f q (ix, dt, s)
     = do
@@ -453,20 +451,20 @@ wrapCompletion mx
       . wordHits
 
 
-execBatchDelete :: TextIndexerCon dt => Set URI -> IpIndexer dt -> CM dt(IpIndexer dt, CmdResult)
+execBatchDelete :: IndexHandlerCon dt => Set URI -> IndexHandler dt -> CM dt(IndexHandler dt, CmdResult)
 execBatchDelete d ix = do
     ix' <- lift $ Ixx.deleteDocsByURI d ix
     return (ix', ResOK)
 
 
-execStore :: (Bin.Binary a, TextIndexerCon dt) =>
+execStore :: (Bin.Binary a, IndexHandlerCon dt) =>
              FilePath -> a -> CM dt CmdResult
 execStore filename x = do
     liftIO $ Bin.encodeFile filename x
     return ResOK
 
 
-execLoad :: (Bin.Binary a, TextIndexerCon dt) =>
+execLoad :: (Bin.Binary a, IndexHandlerCon dt) =>
              FilePath -> CM dt (a, CmdResult)
 execLoad filename = do
     x <- liftIO $ Bin.decodeFile filename
@@ -477,7 +475,7 @@ execLoad filename = do
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
-runQueryM       :: TextIndexerCon dt
+runQueryM       :: IndexHandlerCon dt
                 => ContextIndex Occurrences
                 -> Schema
                 -> dt
@@ -489,7 +487,7 @@ runQueryM ix s dt q = processQuery st dt q
 
 -- ----------------------------------------------------------------------------
 
-execStatus :: TextIndexerCon dt => StatusCmd -> CM dt CmdResult
+execStatus :: IndexHandlerCon dt => StatusCmd -> CM dt CmdResult
 execStatus StatusGC
     = do statsEnabled <- liftIO getGCStatsEnabled
          if statsEnabled
