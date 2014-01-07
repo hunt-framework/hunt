@@ -1,4 +1,8 @@
+{-# LANGUAGE ConstraintKinds           #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE TypeFamilies              #-}
+
 module Holumbus.Index.IndexImpl where
 
 import           Holumbus.Index.Index

@@ -96,10 +96,13 @@ denormalize pos
 --   /NOTE/: The input needs to be valid.
 --           @length input >= 2 && all (`elem` "01") input@
 bin2dec :: String -> Int
-bin2dec (s:i) = sign dec
-  where
-  dec = fst . head . readInt 2 isbc c2b $ i
-  sign = if s == '0' then negate else id
+bin2dec (s:i)
+  = sign dec
+    where
+      dec = fst . head . readInt 2 isbc c2b $ i
+      sign = if s == '0' then negate else id
+bin2dec []
+  = error "bin2dec: empty String"
 
 -- | Convert Integer to Binary and normalize result
 --   with leading zeros to a length of 32 characters.

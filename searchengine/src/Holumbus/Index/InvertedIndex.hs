@@ -1,5 +1,9 @@
-{-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverlappingInstances       #-}
+{-# LANGUAGE TypeFamilies               #-}
+
 
 module Holumbus.Index.InvertedIndex
 ( InvertedIndex(..)
@@ -9,28 +13,28 @@ module Holumbus.Index.InvertedIndex
 )
 where
 
-import           Prelude                                         as P
+import           Prelude                                        as P
 
 import           Control.DeepSeq
-import           Data.Binary                                     (Binary (..))
-import           Data.Bijection.Instances                        ()
+import           Data.Bijection.Instances                       ()
+import           Data.Binary                                    (Binary (..))
 
 import           Holumbus.Common.BasicTypes
-import           Holumbus.Common.Occurrences                     (Occurrences)
-import qualified Holumbus.Common.Occurrences                     as Occ
+import           Holumbus.Common.Occurrences                    (Occurrences)
+import qualified Holumbus.Common.Occurrences                    as Occ
 import           Holumbus.Common.Occurrences.Compression.Snappy
 
 import           Holumbus.Index.ComprPrefixTreeIndex
-import           Holumbus.Index.Index                            as Ix
+import           Holumbus.Index.Index                           as Ix
 
 import           Holumbus.Index.Proxy.CachedIndex
 import           Holumbus.Index.Proxy.CompressedIndex
-import           Holumbus.Index.Proxy.KeyIndex
 import           Holumbus.Index.Proxy.DateNormalizerIndex
 import           Holumbus.Index.Proxy.IntNormalizerIndex
+import           Holumbus.Index.Proxy.KeyIndex
 import           Holumbus.Index.Proxy.PositionNormalizerIndex
 
-import           Data.Text (Text)
+import           Data.Text                                      (Text)
 
 -- ----------------------------------------------------------------------------
 

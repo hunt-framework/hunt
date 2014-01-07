@@ -58,6 +58,8 @@ library
     Data.Bijection.Instances
     Data.Text.Binary
 
+    GHC.Stats.Json
+
     Holumbus.Data.Crunch
 
     Holumbus.Common

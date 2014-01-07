@@ -1,28 +1,11 @@
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RankNTypes                 #-}
--- ----------------------------------------------------------------------------
+{-# LANGUAGE TypeFamilies               #-}
 
-{- |
-  Module     : Holumbus.Query.Processor
-  Copyright  : Copyright (C) 2007, 2008 Timo B. Huebel
-  License    : MIT
-
-  Maintainer : Timo B. Huebel (tbh@holumbus.org)
-  Stability  : experimental
-  Portability: portable
-
-  The Holumbus query processor. Supports exact word or phrase queries as well
-  as fuzzy word and case-insensitive word and phrase queries. Boolean
-  operators like AND, OR and NOT are supported. Context specifiers and
-  priorities are supported, too.
-
--}
-
--- ----------------------------------------------------------------------------
 
 module Holumbus.Query.Processor
 (
@@ -72,9 +55,9 @@ import qualified Holumbus.DocTable.DocTable        as Dt
 
 import           Holumbus.Index.Schema.Analyze
 import           Holumbus.Index.Schema.Normalize
-import           Holumbus.Interpreter.Command      (CmdError(..))
+import           Holumbus.Interpreter.Command      (CmdError (..))
 
-import qualified System.Log.Logger                as Log
+import qualified System.Log.Logger                 as Log
 
 -- ----------------------------------------------------------------------------
 -- Logging

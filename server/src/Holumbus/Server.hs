@@ -30,8 +30,9 @@ import           System.Log.Handler.Simple            (streamHandler)
 import           System.Log.Logger                    hiding (debugM, warningM, errorM)
 import qualified System.Log.Logger                    as Log
 
-import           GHC.Stats
-import           GHC.Stats.Json                       ()
+-- old stuff
+-- import           GHC.Stats
+-- import           GHC.Stats.Json                       ()
 
 -- ----------------------------------------------------------------------------
 -- Application launch options
@@ -107,6 +108,7 @@ start = do
               ResOK               -> json $ JsonSuccess ("ok" :: Text)
               ResSearch docs      -> json $ JsonSuccess docs
               ResCompletion wrds  -> json $ JsonSuccess wrds
+              ResGeneric val      -> json $ JsonSuccess val
 
     let evalQuery mkCmd q = case parseQuery q of
           Right qry -> eval $ mkCmd qry
@@ -172,11 +174,22 @@ start = do
       filename  <- param "filename"
       eval $ StoreIx filename
 
-    -- garbage collection and memory usage statistics
+    -- status commands
+    get "/status/gc" $ do
+      eval $ Status StatusGC            -- garbage collector status
+
+    get "/status/index" $ do
+      eval $ Status StatusIndex         -- status of search index
+
+    -- just for compatibility
     get "/gcstats" $ do
+      eval $ Status StatusGC            -- garbage collector status
+
+{- old stuff
       statsEnabled <- liftIO getGCStatsEnabled
       if statsEnabled
         then liftIO getGCStats >>= json . JsonSuccess
         else throw $ Json 404 ("GC stats not enabled. Use `+RTS -T -RTS' to enable them." :: Text)
+-}
 
     notFound $ throw NotFound

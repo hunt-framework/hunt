@@ -1,6 +1,7 @@
-{-# LANGUAGE TypeSynonymInstances       #-}
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
 
 -- ----------------------------------------------------------------------------
 {-

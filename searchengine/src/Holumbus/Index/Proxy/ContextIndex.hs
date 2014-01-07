@@ -1,17 +1,21 @@
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 module Holumbus.Index.Proxy.ContextIndex where
 
 import           Control.Parallel.Strategies
 
-import           Data.Binary                  (Binary(..))
-import           Data.Text.Binary             ()
-import           Data.Map.Strict              (Map)
-import qualified Data.Map.Strict              as M
+import           Data.Binary                 (Binary (..))
+import           Data.Map.Strict             (Map)
+import qualified Data.Map.Strict             as M
+import           Data.Text                   (Text)
+import           Data.Text.Binary            ()
 import           Holumbus.Common
-import qualified Holumbus.Index.Index         as Ix
-import           Data.Text                    (Text)
-import qualified Holumbus.Index.IndexImpl     as Impl
+import qualified Holumbus.Index.Index        as Ix
+import qualified Holumbus.Index.IndexImpl    as Impl
 
 -- ----------------------------------------------------------------------------
 

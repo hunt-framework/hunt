@@ -1,4 +1,6 @@
+{-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 module Holumbus.Index.ComprPrefixTreeIndex
 ( ComprOccPrefixTree(..)
@@ -19,7 +21,7 @@ import qualified Holumbus.Index.Index                    as Ix
 import qualified Data.StringMap.Strict                   as SM
 
 
-import           Holumbus.Common.BasicTypes              (TextSearchOp(..))
+import           Holumbus.Common.BasicTypes              (TextSearchOp (..))
 --import           Holumbus.Common.DocIdMap                (DocIdMap)
 import qualified Holumbus.Common.DocIdMap                as DM
 import           Holumbus.Common.Occurrences             (Occurrences)

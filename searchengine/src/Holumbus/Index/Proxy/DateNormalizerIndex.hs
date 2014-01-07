@@ -1,6 +1,8 @@
-{-# LANGUAGE OverlappingInstances #-}
-{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE OverlappingInstances       #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleContexts           #-}
 
 module Holumbus.Index.Proxy.DateNormalizerIndex
 (

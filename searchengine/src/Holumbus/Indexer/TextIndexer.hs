@@ -1,18 +1,19 @@
+{-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE Rank2Types        #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module Holumbus.Indexer.TextIndexer where
 
 import           Control.Monad
 
-import           Data.Set                          (Set)
-import qualified Data.Set                          as S
+import qualified Data.Binary                       as Bin
 import qualified Data.IntSet                       as IS
 import qualified Data.Map                          as M
 import           Data.Maybe
-import qualified Data.Binary                       as Bin
+import           Data.Set                          (Set)
+import qualified Data.Set                          as S
 
 import           Holumbus.DocTable.DocTable        (DocTable)
 import qualified Holumbus.DocTable.DocTable        as Dt
@@ -21,15 +22,15 @@ import           Holumbus.Common
 import           Holumbus.Common.DocIdMap          (toDocIdSet)
 import qualified Holumbus.Common.Document          as Doc
 
-import qualified Holumbus.Index.TextIndex          as TIx
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
+import qualified Holumbus.Index.TextIndex          as TIx
 
 import           Holumbus.Indexer.Indexer
 
 -- ----------------------------------------------------------------------------
 
 type TextIndexerCon dt
-    = ( 
+    = (
         DocTable dt
       -- we need this for load and store, but i dont like these constraints here
       , Bin.Binary dt

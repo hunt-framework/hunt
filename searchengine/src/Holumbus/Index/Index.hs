@@ -1,5 +1,8 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes                #-}
+{-# LANGUAGE TypeFamilies              #-}
+{-# LANGUAGE ConstraintKinds           #-}
+
 module Holumbus.Index.Index
 where
 
@@ -10,6 +13,7 @@ import qualified Data.IntSet                    as IS
 import           Holumbus.Common
 
 -- ----------------------------------------------------------------------------
+
 class Index i where
     type IKey      i v :: *
 

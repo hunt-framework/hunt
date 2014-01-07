@@ -1,7 +1,7 @@
 {-# OPTIONS -fno-warn-orphans     #-}
-
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE OverlappingInstances #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverlappingInstances  #-}
 
 module Data.Bijection.Instances where
 

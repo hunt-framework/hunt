@@ -1,24 +1,8 @@
-{-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies      #-}
 
--- ----------------------------------------------------------------------------
-
-{- |
-  Module     : Holumbus.Query.Intermediate
-  Copyright  : Copyright (C) 2007, 2008 Timo B. Huebel
-  License    : MIT
-
-  Maintainer : Timo B. Huebel (tbh@holumbus.org)
-  Stability  : experimental
-  Portability: portable
-  Version    : 0.3
-
-  The data type for intermediate results occuring during query processing.
-
--}
-
--- ----------------------------------------------------------------------------
 
 module Holumbus.Query.Intermediate
 (
@@ -68,7 +52,7 @@ import           Holumbus.Query.Result      hiding (null)
 
 import           Holumbus.Common
 import qualified Holumbus.Common.DocIdMap   as DM
-import           Holumbus.Common.Document   (DocumentWrapper(..))
+import           Holumbus.Common.Document   (DocumentWrapper (..))
 import qualified Holumbus.Common.Positions  as Pos
 
 import           Holumbus.DocTable.DocTable (DocTable)

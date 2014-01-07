@@ -1,23 +1,4 @@
--- ----------------------------------------------------------------------------
-
-{- |
-  Module     : Holumbus.Query.Language.Grammar
-  Copyright  : Copyright (C) 2007, 2008 Timo B. Huebel
-  License    : MIT
-
-  Maintainer : Timo B. Huebel (tbh@holumbus.org)
-  Stability  : experimental
-  Portability: portable
-  Version    : 0.2
-
-  The Holumbus query language definition.
-
-  The specific syntax of any query language can be designed independently
-  by creating appropriate parsers. Also see "Holumbus.Query.Language.Parser".
-
--}
-
--- ----------------------------------------------------------------------------
+{-# LANGUAGE OverloadedStrings #-}
 
 module Holumbus.Query.Language.Grammar
   (

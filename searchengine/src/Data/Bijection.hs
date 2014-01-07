@@ -1,3 +1,5 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+
 --{-# LANGUAGE FlexibleInstances    #-}
 --{-# LANGUAGE UndecidableInstances #-}
 

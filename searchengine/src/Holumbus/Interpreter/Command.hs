@@ -1,9 +1,12 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Holumbus.Interpreter.Command where
 
 import           Control.Monad                   (mzero)
 import           Control.Monad.Error             (Error (..))
 
 import           Data.Aeson
+import qualified Data.Aeson                      as JS (Value (..))
 import           Data.Set                        (Set)
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
@@ -11,8 +14,8 @@ import qualified Data.Text                       as T
 import           Holumbus.Common.ApiDocument
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Document        (Document)
-import           Holumbus.Query.Language.Grammar (Query (..))
 import           Holumbus.Index.Schema
+import           Holumbus.Query.Language.Grammar (Query (..))
 
 import           Holumbus.Utility.Log
 
@@ -29,28 +32,41 @@ data Command
   | Completion    { icPrefixCR :: Query
                   , icMaxCR    :: Int
                   }
+
   -- | Index manipulation
-  | Insert        { icDoc      :: ApiDocument }
-  | Update        { icDoc      :: ApiDocument }
-  | Delete        { icUri      :: URI }
-  | BatchDelete   { icUris     :: Set URI }
+  | Insert        { icDoc :: ApiDocument }
+  | Update        { icDoc :: ApiDocument }
+  | Delete        { icUri :: URI }
+  | BatchDelete   { icUris :: Set URI }
+
   -- | context manipulation
-  | InsertContext { icICon     :: Context
-                  , icSchema   :: ContextSchema
+  | InsertContext { icICon   :: Context
+                  , icSchema :: ContextSchema
                   }
-  | DeleteContext { icDCon     :: Context }
+  | DeleteContext { icDCon :: Context }
+
   -- | persistent commands
-  | LoadIx        { icPath     :: FilePath }
-  | StoreIx       { icPath     :: FilePath }
+  | LoadIx        { icPath :: FilePath }
+  | StoreIx       { icPath :: FilePath }
+
+  -- | status
+  | Status        { icStatus :: StatusCmd }
+
   -- | general
-  | Sequence      { icCmdSeq   :: [Command] }
+  | Sequence      { icCmdSeq :: [Command] }
   | NOOP
   deriving (Show)
 
+data StatusCmd
+  = StatusGC
+  | StatusIndex
+    deriving (Show)
+
 data CmdResult
   = ResOK
-  | ResSearch       { crRes   :: LimitedResult Document }
+  | ResSearch       { crRes :: LimitedResult Document }
   | ResCompletion   { crWords :: [Text] }
+  | ResGeneric      { crGen :: Value }
   deriving (Show, Eq)
 
 data CmdError
@@ -81,6 +97,7 @@ instance ToJSON Command where
     BatchDelete us    -> object . cmd "delete-batch"   $ [ "uris" .= us ] -- not used in fromJSON instance
     LoadIx  f         -> object . cmd "load"           $ [ "path" .= f ]
     StoreIx f         -> object . cmd "store"          $ [ "path" .= f ]
+    Status  sc        -> object . cmd "status"         $ [ "status" .= sc ]
     NOOP              -> object . cmd "noop"           $ []
     Sequence cs       -> toJSON cs
     where
@@ -110,14 +127,25 @@ instance FromJSON Command where
       "load"           -> o .: "path"    >>= return . LoadIx
       "store"          -> o .: "path"    >>= return . StoreIx
       "noop"           ->                    return NOOP
+      "status"         -> o .: "status"  >>= return . Status
       _                -> mzero
   parseJSON o = parseJSON o >>= return . Sequence
+
+instance ToJSON StatusCmd where
+    toJSON StatusGC    = JS.String "gc"
+    toJSON StatusIndex = JS.String "index"
+
+instance FromJSON StatusCmd where
+    parseJSON (JS.String "gc"   ) = return StatusGC
+    parseJSON (JS.String "index") = return StatusIndex
+    parseJSON _                   = mzero
 
 instance ToJSON CmdResult where
   toJSON o = case o of
     ResOK           -> object . code 0 $ []
     ResSearch r     -> object . code 0 $ [ "res" .= r ]
     ResCompletion w -> object . code 0 $ [ "res" .= w ]
+    ResGeneric v    -> object . code 0 $ [ "res" .= v ]
     where
     code i = (:) ("code" .= (i :: Int))
 

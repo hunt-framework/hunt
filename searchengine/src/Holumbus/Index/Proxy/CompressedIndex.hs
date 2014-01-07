@@ -1,4 +1,7 @@
+{-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 module Holumbus.Index.Proxy.CompressedIndex
 ( ComprOccIndex (..)

@@ -1,3 +1,7 @@
+{-# LANGUAGE TypeFamilies              #-}
+{-# LANGUAGE ConstraintKinds           #-}
+{-# LANGUAGE FlexibleContexts          #-}
+
 module Holumbus.Index.Proxy.CachedIndex
 where
 

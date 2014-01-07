@@ -1,5 +1,7 @@
-{-# LANGUAGE OverlappingInstances #-}
-{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE OverlappingInstances       #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Holumbus.Index.Proxy.PositionNormalizerIndex

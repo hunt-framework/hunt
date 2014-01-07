@@ -1,12 +1,14 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Holumbus.Index.Schema.Normalize.Date where
 
 import           Control.Applicative
 import           Control.Monad
 
+import           Data.List
 import           Data.Maybe
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
-import           Data.List
 
 import           Data.Char                   (isDigit)
 import           Data.Function               (on)

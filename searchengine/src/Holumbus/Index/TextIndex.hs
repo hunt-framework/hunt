@@ -1,9 +1,12 @@
-{-# LANGUAGE ConstraintKinds   #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE Rank2Types        #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE ConstraintKinds           #-}
+{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE FlexibleInstances         #-}
+{-# LANGUAGE Rank2Types                #-}
+{-# LANGUAGE TypeFamilies              #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE ConstraintKinds           #-}
+
+
 module Holumbus.Index.TextIndex
 ( TextIndex
 , ContextTextIndex

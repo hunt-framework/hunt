@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Holumbus.Index.Schema.Normalize.Int
 where
 

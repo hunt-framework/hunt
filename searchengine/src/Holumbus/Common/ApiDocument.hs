@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Holumbus.Common.ApiDocument where
 
 import           Control.Monad              (mzero)

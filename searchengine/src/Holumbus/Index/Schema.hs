@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Holumbus.Index.Schema where
 
 import           Control.Monad              (mzero)
@@ -35,12 +37,12 @@ type Schema
 --   The first  regexp/normalizer is type-specific and is applied first (forced)
 --   The second regexp/normalizer is context-specific (defined/chosen by user)
 data ContextSchema = ContextSchema
-  { cxName        :: Text
-  , cxRegEx       :: CRegex
-  , cxNormalizer  :: [CNormalizer]
-  , cxWeight      :: CWeight
-  , cxDefault     :: Bool
-  , cxType        :: Maybe CType
+  { cxName       :: Text
+  , cxRegEx      :: CRegex
+  , cxNormalizer :: [CNormalizer]
+  , cxWeight     :: CWeight
+  , cxDefault    :: Bool
+  , cxType       :: Maybe CType
   } deriving (Show, Eq)
 
 -- | Types for values in a context.

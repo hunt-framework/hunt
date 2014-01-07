@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS -fno-warn-orphans #-}
 
 module GHC.Stats.Json where
@@ -29,3 +30,5 @@ instance ToJSON GCStats where
     , "parTotBytesCopied"       .= parTotBytesCopied o
     , "parMaxBytesCopied"       .= parMaxBytesCopied o
     ]
+
+-- ----------------------------------------------------------------------------

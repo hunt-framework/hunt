@@ -1,6 +1,8 @@
-{-# LANGUAGE OverlappingInstances       #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverlappingInstances       #-}
+{-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
 module Holumbus.Index.Proxy.KeyIndex
@@ -8,18 +10,18 @@ module Holumbus.Index.Proxy.KeyIndex
 )
 where
 
-import           Prelude                                    as P
 import           Control.DeepSeq
+import           Prelude                                 as P
 
-import           Control.Applicative                        ((<$>))
-import           Control.Arrow                              (first)
+import           Control.Applicative                     ((<$>))
+import           Control.Arrow                           (first)
 
-import           Data.Binary                                (Binary (..))
 import           Data.Bijection
+import           Data.Binary                             (Binary (..))
 --import           Data.Text                                  (Text, pack, unpack)
 
 import           Holumbus.Index.Index
-import qualified Holumbus.Index.Index                       as Ix
+import qualified Holumbus.Index.Index                    as Ix
 
 import           Holumbus.Index.Proxy.CompressedIndex
 

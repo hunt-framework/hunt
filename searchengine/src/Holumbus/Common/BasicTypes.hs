@@ -1,30 +1,15 @@
--- ----------------------------------------------------------------------------
-
-{- |
-  Module     : Holumbus.Index.Common.BasicTypes
-  Copyright  : Copyright (C) 2011 Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
-  License    : MIT
-
-  Maintainer : Timo B. Huebel (tbh@holumbus.org)
-  Stability  : experimental
-  Portability: none portable
-
-  Basic data types for index
-
--}
-
--- ----------------------------------------------------------------------------
+{-# LANGUAGE OverloadedStrings #-}
 
 module Holumbus.Common.BasicTypes
 where
 
-import           Control.Monad       (mzero)
+import           Control.Monad (mzero)
 
 import           Data.Map
 import           Data.Text
 
 import           Data.Aeson
-import           Data.Binary         hiding (Word)
+import           Data.Binary   hiding (Word)
 
 -- ------------------------------------------------------------
 
