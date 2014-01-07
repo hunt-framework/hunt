@@ -99,9 +99,12 @@ insertTestContextIx
   where
   newElem = singleton 1 1
   [(_, insertedElem)] = ConIx.searchWithCx PrefixNoCase "context" "word"
-                            $ ConIx.insertWithCx "context" "word" newElem emptyIndex
+                            $ ConIx.insertWithCx "context" "word" newElem 
+                            $ ConIx.insertContext "context" (mkIndex impl) emptyIndex
   emptyIndex :: ConIx.ContextIndex Occurrences
   emptyIndex = ConIx.empty
+  impl       :: InvIx.InvertedIndex Occurrences
+  impl       = Ix.empty
 
 insertTestContext :: Assertion
 insertTestContext = "test" @?= insertedContext
@@ -120,7 +123,9 @@ addWordsTest = True @?= length resList == 1
   resList = ConIx.searchWithCx PrefixNoCase "default" "word" $ resIx
   resIx = addWords (wrds "default") 1 emptyIndex
   emptyIndex :: ConIx.ContextIndex Occurrences
-  emptyIndex =  ConIx.empty
+  emptyIndex =  ConIx.insertContext "default" (mkIndex impl) ConIx.empty
+  impl       :: InvIx.InvertedIndex Occurrences
+  impl       = Ix.empty
 
 -- ----------------------------------------------------------------------------
 -- helper
