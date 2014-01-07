@@ -1,15 +1,12 @@
 module Holumbus.Index.Schema.Normalize.Int
 where
 
-import           Data.Maybe          (isJust, fromMaybe)
-import qualified Data.Text           as T
-import           Data.Text           (Text)
-import           Text.Read
+import           Data.Text                     (Text)
+import qualified Data.Text                     as T
 
+import           Control.Applicative           hiding ((<|>))
 import           Holumbus.Common.BasicTypes
 import           Text.ParserCombinators.Parsec
-import           Text.Parsec
-import           Control.Applicative hiding ((<|>))
 
 -- ----------------------------------------------------------------------------
 -- normalize Int to actual Int
@@ -33,21 +30,20 @@ normalizeToText' i
   (pfx,nr) = if T.take 1 i == "-"
              then ("0", T.drop 1 i)
              else ("1", i)
-  elems    = 20 - (T.length nr)
-  zeros    = T.pack $ foldr (\_ xs -> '0':xs) "" [1..elems]
-
+  elems    = 20 - T.length nr
+  zeros    = T.replicate elems "0"
 
 normalizeToText :: Text -> Text
 normalizeToText t
   = if isInt t
     then normalizeToText' t
-    else error "if this fails, a validation is missing"
+    else error "normalizeToText: invalid input"
 
 denormalizeFromText :: Text -> Text
 denormalizeFromText i
-  = T.concat [ sign, raw ]
+  = sign raw
   where
-  sign = if T.take 1 i == "1" then "" else "-"
+  sign = if T.take 1 i == "1" then id else ('-' `T.cons`)
   raw  = T.dropWhile (== '0') $ T.drop 1 i
 
 
@@ -60,18 +56,19 @@ denormalizeFromText i
 --   throw error.
 getInt :: Text -> Int
 getInt int = case parse integer "" $ T.unpack int of
-      (Right int) -> int
-      _           -> error "integer normalizor: not a valid integer"
+  Right pint -> pint
+  _          -> error "getInt: invalid input"
 
 -- | validates int values with boundary check
 isInt :: Text -> Bool
 isInt int = case parse integer "" $ T.unpack int of
-      (Right pint) -> int == (T.pack . show $ pint)
-      _            -> False
+  Right pint -> int == (T.pack . show $ pint)
+  _          -> False
 
 integer :: Parser Int
 integer = rd <$> (plus <|> minus <|> number)
-    where rd     = read :: String -> Int
-          plus   = char '+' *> number
-          minus  = (:) <$> char '-' <*> number
-          number = many1 digit
+  where
+  rd     = read :: String -> Int
+  plus   = char '+' *> number
+  minus  = (:) <$> char '-' <*> number
+  number = many1 digit

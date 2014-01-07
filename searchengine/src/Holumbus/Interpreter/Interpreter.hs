@@ -197,18 +197,18 @@ askTypes
 
 askType :: TextIndexerCon dt => Text -> CM dt CType
 askType cn = do
-    t <- asks evCxTypes
-    case M.lookup cn t of
-      (Just (Impl.CxMeta t ix)) -> return $ t
+    ty <- asks evCxTypes
+    case M.lookup cn ty of
+      (Just (Impl.CxMeta t _ix)) -> return $ t
       _                         -> throwResError 410 "used unavailable context type"
 
 
 
 askIndex :: TextIndexerCon dt => Text -> CM dt (Impl.IndexImpl Occurrences)
 askIndex cn = do
-    t <- asks evCxTypes
-    case M.lookup cn t of
-      (Just (Impl.CxMeta t ix)) -> return $ ix
+    ty <- asks evCxTypes
+    case M.lookup cn ty of
+      (Just (Impl.CxMeta _t ix)) -> return $ ix
       _                         -> throwResError 410 "used unavailable context type"
 
 askRanking :: TextIndexerCon dt => CM dt (RankConfig (Dt.DValue dt))
