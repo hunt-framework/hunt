@@ -7,6 +7,7 @@ import           Control.Monad.Error
 import qualified Data.Map                                    as M
 --import           Data.Monoid
 import qualified Data.Set                                    as S
+import           Data.Text                                   (Text)
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -24,7 +25,7 @@ import           Holumbus.Interpreter.Interpreter
 import           Holumbus.Query.Language.Grammar
 import           Holumbus.Query.Ranking
 import           Holumbus.Utility
-import           Holumbus.Index.InvertedIndex                (InvertedIndex)
+--import           Holumbus.Index.InvertedIndex                (InvertedIndex)
 import           Holumbus.DocTable.HashedDocTable            (Documents)
 --import           Holumbus.Index.Schema.Normalize.Date        (rexDates)
 
@@ -92,21 +93,21 @@ brainDoc = emptyApiDoc
 
 dateDoc :: ApiDocument
 dateDoc = emptyApiDoc
-  { apiDocUri      = uri
+  { apiDocUri      = u
   , apiDocIndexMap = M.insert "datecontext" "2013-01-01" ix
   , apiDocDescrMap = dt
   }
   where
-  ApiDocument uri ix dt = brainDoc
+  ApiDocument u ix dt = brainDoc
 
 geoDoc :: ApiDocument
 geoDoc = emptyApiDoc
-  { apiDocUri      = uri
+  { apiDocUri      = u
   , apiDocIndexMap = M.insert "geocontext" "53.60000-10.00000" ix
   , apiDocDescrMap = dt
   }
   where
-  ApiDocument uri ix dt = brainDoc
+  ApiDocument u ix dt = brainDoc
 
 
 
@@ -131,13 +132,17 @@ dateContextInfo = ("datecontext", ContextSchema "date" "[0-9]{4}-((0[1-9])|(1[0-
 insertDateContext :: Command
 insertDateContext = uncurry InsertContext dateContextInfo
 
+-- XXX: regex ok? examples:
+--      correct: 90-180, -90--180, 0.-0., 0.0-0.0, 0.00-0.00
+--      wrong:   91-181, -91--181, 01-01
+geoRex :: Text
+geoRex = "-?(90(\\.0*)?|[1-7]?[0-9](\\.[0-9]*)?)--?((180(.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?"
+
 geoContextInfo :: (Context, ContextSchema)
-geoContextInfo = ("geocontext", ContextSchema "position" "" [] 1 True (Just CPosition))
+geoContextInfo = ("geocontext", ContextSchema "position" geoRex [] 1 True (Just CPosition))
 
 insertGeoContext :: Command
 insertGeoContext = uncurry InsertContext geoContextInfo
-
-
 
 
 -- evaluate CM and check the result

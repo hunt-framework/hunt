@@ -62,7 +62,7 @@ normalize pos
      Left _        -> error "normalize positon: invalid position"
   where
   format   :: Double -> String
-  format v = dec2bin $ floor (v * 10000000)
+  format v = dec2bin $ round (v * 10000000)
 
 
 -- | Denormalizes internal position into valid position.

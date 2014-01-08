@@ -19,7 +19,7 @@ import           Holumbus.Utility
 -- ----------------------------------------------------------------------------
 
 newtype DmPrefixTree v
-    = DmPT (SM.StringMap (DocIdMap v))
+    = DmPT { dmPT :: SM.StringMap (DocIdMap v) }
     deriving (Eq, Show, NFData)
 
 mkDmPT :: NFData v => SM.StringMap (DocIdMap v) -> DmPrefixTree v
@@ -28,7 +28,7 @@ mkDmPT v = DmPT $! v
 -- ----------------------------------------------------------------------------
 
 instance (NFData v,Binary v) => Binary (DmPrefixTree v) where
-    put (DmPT i) = put i
+    put = put . dmPT
     get = get >>= return . mkDmPT
 
 -- ----------------------------------------------------------------------------

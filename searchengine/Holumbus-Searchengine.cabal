@@ -147,11 +147,11 @@ test-suite Holumbus-Index
   build-depends: base                         >= 4.6 && < 5
                , containers
                , HUnit
+               , Holumbus-Searchengine
                , QuickCheck
                , test-framework
                , test-framework-hunit
                , test-framework-quickcheck2
-               , Holumbus-Searchengine
 
 Test-suite Holumbus-Interpreter
   hs-source-dirs:       test
@@ -163,12 +163,13 @@ Test-suite Holumbus-Interpreter
   build-depends: base                         >= 4.6 && < 5
                , containers
                , HUnit
+               , Holumbus-Searchengine
                , mtl                          >= 1.1 && < 3
                , QuickCheck
                , test-framework
                , test-framework-hunit
                , test-framework-quickcheck2
-               , Holumbus-Searchengine
+               , text
 
 Test-suite Holumbus-Query-Parser
   hs-source-dirs:       test
@@ -180,12 +181,12 @@ Test-suite Holumbus-Query-Parser
   build-depends: base                         >= 4.6 && < 5
                , containers
                , HUnit
+               , Holumbus-Searchengine
                , mtl                          >= 1.1 && < 3
                , QuickCheck
                , test-framework
                , test-framework-hunit
                , test-framework-quickcheck2
-               , Holumbus-Searchengine
                , text
 
 
@@ -198,17 +199,17 @@ Test-suite Holumbus-IndexStrictess
 
   build-depends: base                         >= 4.6 && < 5
                , containers
+               , deepseq                      >= 1.2
+               , ghc-heap-view                >= 0.5
                , HUnit
+               , Holumbus-Searchengine
                , mtl                          >= 1.1 && < 3
                , QuickCheck
+               , random                       >= 1.0
                , test-framework
                , test-framework-hunit
                , test-framework-quickcheck2
-               , Holumbus-Searchengine
                , text
-               , ghc-heap-view                >= 0.5
-               , deepseq                      >= 1.2
-               , random                       >= 1.0
 
 
 Test-suite Holumbus-Analyzer
@@ -220,16 +221,14 @@ Test-suite Holumbus-Analyzer
 
   build-depends: base                         >= 4.6 && < 5
                , containers
+               , Holumbus-Searchengine
                , HUnit
                , mtl                          >= 1.1 && < 3
+               , old-locale
                , QuickCheck
+               , random                       >= 1.0
                , test-framework
                , test-framework-hunit
                , test-framework-quickcheck2
-               , Holumbus-Searchengine
                , text
-               , ghc-heap-view                >= 0.5
-               , deepseq                      >= 1.2
-               , random                       >= 1.0
-               , old-locale
                , time

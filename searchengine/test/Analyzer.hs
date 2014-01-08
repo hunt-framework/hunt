@@ -45,36 +45,37 @@ main = defaultMain
        , testProperty "typeValidator: date inv"    prop_validate_date2
 
        -- Normalizer data - isAnyDate
-       , testProperty "Normalizer:date YYYYMMDD"            prop_isAnyDate
-       , testProperty "Normalizer:date 2013-01-01T21:12:12" prop_isAnyDate2
-       , testProperty "Normalizer:date 2013"                prop_isAnyDate3
+       , testProperty "Normalizer: date YYYYMMDD"            prop_isAnyDate
+       , testProperty "Normalizer: date 2013-01-01T21:12:12" prop_isAnyDate2
+       , testProperty "Normalizer: date 2013"                prop_isAnyDate3
 
        -- Normalizer position
-       , testProperty "Normlizer:pos double"       prop_isPosition_d
-       , testProperty "Normlizer:pos text"         prop_isPosition_t
-       , testCase     "Normlizer:norm pos int"     test_norm_pos
-       , testCase     "Normlizer:norm pos int"     test_norm_pos2
-       , testCase     "Normlizer:norm pos dbl"     test_norm_pos4
-       , testProperty "Normlizer:norm denorm dbl"  prop_norm_pos3
+       , testProperty "Normalizer: pos double"       prop_isPosition_d
+       , testProperty "Normalizer: pos text"         prop_isPosition_t
+       , testCase     "Normalizer: norm pos int1"    test_norm_pos
+       , testCase     "Normalizer: norm pos int2"    test_norm_pos2
+       , testCase     "Normalizer: norm pos dbl1"    test_norm_pos4
+       , testCase     "Normalizer: norm pos dbl2"    test_norm_pos5
+       , testProperty "Normalizer: norm denorm dbl"  prop_norm_pos3
 
        -- Normalizer int
-       , testProperty "Normlizer:isInt Int"        prop_isInt_int
-       , testProperty "Normlizer:isInt Integer"    prop_isInt_integer
-       , testProperty "Normlizer:isInt text"       prop_isInt_text
-       , testProperty "Normlizer:isInt double"     prop_isInt_double
-       , testCase     "Normlizer:isInt overflow"   test_isInt_overflow
-       , testCase     "Normlizer:isInt nooverflow" test_isInt_overflow2
-       , testCase     "Normlizer:isInt maxBound"   test_isInt_upper1
-       , testCase     "Normlizer:isInt maxBound"   test_isInt_upper2
-       , testCase     "Normlizer:isInt minBound"   test_isInt_lower1
-       , testCase     "Normlizer:isInt minBound"   test_isInt_lower2
+       , testProperty "Normalizer: isInt Int"         prop_isInt_int
+       , testProperty "Normalizer: isInt Integer"     prop_isInt_integer
+       , testProperty "Normalizer: isInt text"        prop_isInt_text
+       , testProperty "Normalizer: isInt double"      prop_isInt_double
+       , testCase     "Normalizer: isInt overflow"    test_isInt_overflow
+       , testCase     "Normalizer: isInt nooverflow"  test_isInt_overflow2
+       , testCase     "Normalizer: isInt maxBound1"   test_isInt_upper1
+       , testCase     "Normalizer: isInt maxBound2"   test_isInt_upper2
+       , testCase     "Normalizer: isInt minBound1"   test_isInt_lower1
+       , testCase     "Normalizer: isInt minBound2"   test_isInt_lower2
 
-       , testProperty "Normlizer:normInt int"      prop_normInt_int
-       , testProperty "Normlizer:normInt integer"  prop_normInt_integer
-       , testCase     "Normlizer:isInt 1"          test_normInt1
-       , testCase     "Normlizer:isInt -1"         test_normInt2
-       , testCase     "Normlizer:isInt maxBound"   test_normInt3
-       , testCase     "Normlizer:isInt minBound"   test_normInt4
+       , testProperty "Normalizer: normInt int"      prop_normInt_int
+       , testProperty "Normalizer: normInt integer"  prop_normInt_integer
+       , testCase     "Normalizer: isInt 1"          test_normInt1
+       , testCase     "Normalizer: isInt -1"         test_normInt2
+       , testCase     "Normalizer: isInt maxBound"   test_normInt3
+       , testCase     "Normalizer: isInt minBound"   test_normInt4
        ]
 
 -- ----------------------------------------------------------------------------
@@ -164,21 +165,21 @@ prop_isPosition_t = do
 test_norm_pos :: Assertion
 test_norm_pos = assertEqual "" "1100000000000000110000111100000011000011001111001100000000000000" (NP.normalize "1-1")
 
-
 test_norm_pos2 :: Assertion
 test_norm_pos2 = assertEqual "" "0000000000000000110000111100000011000011001111001100000000000000" (NP.normalize "-1.00--1.000")
 
 test_norm_pos4 :: Assertion
 test_norm_pos4 = assertEqual "" "1100000000000000110000111100000011000011001111001100000000000000" (NP.normalize "1.000000-1.000000")
 
-prop_norm_pos3 :: Gen Bool
+test_norm_pos5 :: Assertion
+test_norm_pos5 = let pos = "-25.0000001-1.0000002" in assertEqual "" pos . NP.denormalize . NP.normalize $ pos
+
+prop_norm_pos3 :: Gen Property
 prop_norm_pos3 = do
   p <- genPos
   let pos  = T.pack p
-  let pos' = (NP.denormalize . NP.normalize $ pos)
-  if not $ pos == pos'
-    then error . concat $ [p, "!=", T.unpack pos']
-    else return True
+  let pos' = NP.denormalize . NP.normalize $ pos
+  return $ printTestCase (p ++ " != " ++ T.unpack pos') $ pos == pos'
 
 -- ----------------------------------------------------------------------------
 -- normalizer date tests

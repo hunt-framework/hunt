@@ -35,7 +35,7 @@ mkComprIx v = ComprIx $! v
 -- ----------------------------------------------------------------------------
 
 instance Binary (impl v) => Binary (ComprOccIndex impl v from) where
-    put (ComprIx i) = put i
+    put = put . comprIx
     get = get >>= return . mkComprIx
 
 -- ----------------------------------------------------------------------------
