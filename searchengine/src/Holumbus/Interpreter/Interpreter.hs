@@ -34,7 +34,7 @@ import           Holumbus.Common.Document.Compression.BZip (CompressedDoc)
 
 import           Holumbus.Index.Schema.Analyze
 
-import           Holumbus.IndexHandler                     (IndexHandler)
+import           Holumbus.IndexHandler                     (IndexHandler(..))
 import qualified Holumbus.IndexHandler                     as Ixx
 
 import qualified Holumbus.Index.Index                      as Ix
@@ -104,7 +104,7 @@ debugContext c ws = debugM $ concat ["insert in", T.unpack c, show . M.toList $ 
 -- ----------------------------------------------------------------------------
 
 emptyIndexer :: IndexHandler (Documents CompressedDoc)
-emptyIndexer = (CIx.empty, HDt.empty, M.empty)
+emptyIndexer = IXH CIx.empty HDt.empty M.empty
 
 -- ----------------------------------------------------------------------------
 
@@ -220,7 +220,7 @@ askRanking
 -- TODO: meh
 askContextsWeights :: DocTable dt => CM dt(M.Map Context CWeight)
 askContextsWeights
-    = withIx (\(_,_,schema) -> return $ M.map cxWeight schema)
+    = withIx (\(IXH _ _ schema) -> return $ M.map cxWeight schema)
 
 throwResError :: DocTable dt => Int -> Text -> CM dt a
 throwResError n msg
@@ -267,7 +267,7 @@ optimizeCmd (Delete u) = BatchDelete $ S.singleton u
 optimizeCmd c = c
 
 
-execCmd :: (Bin.Binary dt) => DocTable dt => Command -> CM dt CmdResult
+execCmd :: (Bin.Binary dt, DocTable dt) => Command -> CM dt CmdResult
 execCmd cmd = do
   liftIO $ debugM $ "Exec: " ++ logShow cmd
   execCmd' . optimizeCmd $ cmd
@@ -301,10 +301,10 @@ execCmd' (BatchDelete uris)
     = modIx $ execBatchDelete uris
 
 execCmd' (StoreIx filename)
-    = undefined -- withIx $ execStore filename
+    = undefined --withIx $ execStore filename
 
 execCmd' (LoadIx filename)
-    = undefined -- modIx $ \_ix -> execLoad filename
+    = undefined --modIx $ \_ix -> execLoad filename
 
 execCmd' (InsertContext cx ct)
     = modIx $ execInsertContext cx ct
@@ -324,7 +324,7 @@ execInsertContext :: DocTable dt
                   -> ContextSchema
                   -> IndexHandler dt
                   -> CM dt (IndexHandler dt, CmdResult)
-execInsertContext cx ct ixx@(ix, dt, s)
+execInsertContext cx ct ixx@(IXH ix dt s)
     = do
       contextExists        <- Ixx.hasContext cx ixx
       cType                <- askType . cxName $ ct
@@ -335,10 +335,7 @@ execInsertContext cx ct ixx@(ix, dt, s)
              409 $ "context already exists: " `T.append` cx
       return (ixx' newIx newCt, ResOK)
     where
-    ixx' i c = ( CIx.insertContext cx i ix
-               , dt
-               , M.insert cx c s
-               )
+    ixx' i c = IXH (CIx.insertContext cx i ix) dt (M.insert cx c s)
 
 
 -- | Deletes the context and the schema associated with it.
@@ -346,8 +343,8 @@ execDeleteContext :: DocTable dt
                   => Context
                   -> IndexHandler dt
                   -> CM dt(IndexHandler dt, CmdResult)
-execDeleteContext cx (ix, dt, s)
-  = return ((CIx.deleteContext cx ix, dt, M.delete cx s), ResOK)
+execDeleteContext cx (IXH ix dt s)
+  = return ((IXH (CIx.deleteContext cx ix) dt (M.delete cx s)), ResOK)
 
 
 -- | Inserts an 'ApiDocument' into the index.
@@ -355,7 +352,7 @@ execDeleteContext cx (ix, dt, s)
 -- Documents/URIs must not exist.
 execInsert :: DocTable dt
            => ApiDocument -> IndexHandler dt -> CM dt (IndexHandler dt, CmdResult)
-execInsert doc ixx@(_ix, _dt, schema) = do
+execInsert doc ixx@(IXH _ix _dt schema) = do
     let contexts = M.keys $ apiDocIndexMap doc
     checkContextsExistence contexts ixx
     -- apidoc should not exist
@@ -375,7 +372,7 @@ execInsert doc ixx@(_ix, _dt, schema) = do
 -- Documents/URIs need to exist.
 execUpdate :: DocTable dt
            => ApiDocument -> IndexHandler dt -> CM dt(IndexHandler dt, CmdResult)
-execUpdate doc ixx@(_ix, dt, schema) = do
+execUpdate doc ixx@(IXH _ix dt schema) = do
     let contexts = M.keys $ apiDocIndexMap doc
     checkContextsExistence contexts ixx
     let (docs, ws) = toDocAndWords schema doc
@@ -420,7 +417,7 @@ execSearch' :: (DocTable dt, e ~ Dt.DValue dt)
             -> Query
             -> IndexHandler dt
             -> CM dt CmdResult
-execSearch' f q (ix, dt, s)
+execSearch' f q (IXH ix dt s)
     = do
       r <- lift $ runQueryM ix s dt q
       rc <- askRanking

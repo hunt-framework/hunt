@@ -26,17 +26,21 @@ import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
 
 -- ----------------------------------------------------------------------------
 
-type IndexHandler   dt = (CIx.ContextIndex Occurrences, dt, Schema)
+data IndexHandler dt = IXH 
+  { ixhIndex  :: CIx.ContextIndex Occurrences
+  , ixhDocs   :: dt
+  , ixhSchema :: Schema
+  }
 
 -- ----------------------------------------------------------------------------
 
 -- | Insert a Document and Words.
 insert :: (Monad m, DocTable dt)
        => (Dt.DValue dt) -> Words -> IndexHandler dt -> m (IndexHandler dt)
-insert doc wrds (ix, dt, s) = do
+insert doc wrds (IXH ix dt s) = do
     (did, newDt) <- Dt.insert dt doc
     let newIx = addWords wrds did ix
-    return (newIx, newDt, s)
+    return $ IXH newIx newDt s
 
 -- | Update elements
 update :: (Monad m,DocTable dt)
@@ -51,53 +55,53 @@ update docId doc' w ix = do
 modify :: (Monad m,DocTable dt)
        => (Dt.DValue dt -> m (Dt.DValue dt))
        -> Words -> DocId -> IndexHandler dt -> m (IndexHandler dt)
-modify f wrds dId (ii, dt, s) = do
+modify f wrds dId (IXH ii dt s) = do
   newDocTable <- Dt.adjust f dId dt
   let newIndex = addWords wrds dId ii
-  return (newIndex, newDocTable, s)
+  return $ IXH newIndex newDocTable s
 
 -- | Delete a set of documents by 'URI'.
 deleteDocsByURI :: (Monad m,DocTable dt)
                 => Set URI -> IndexHandler dt -> m (IndexHandler dt)
-deleteDocsByURI us ixx@(_ix,dt,_) = do
+deleteDocsByURI us ixx@(IXH _ix dt _) = do
     docIds <- liftM (toDocIdSet . catMaybes) . mapM (Dt.lookupByURI dt) . S.toList $ us
     delete ixx docIds
 
 -- | Delete a set of documents by 'DocId'.
 delete :: (Monad m,DocTable dt)
        => IndexHandler dt -> DocIdSet -> m (IndexHandler dt)
-delete (ix,dt,s) dIds = do
+delete (IXH ix dt s) dIds = do
     let newIx = CIx.delete dIds ix
     newDt <- Dt.difference dIds dt
-    return (newIx, newDt, s)
+    return $ IXH newIx newDt s
 
 -- | All contexts.
 contexts :: (Monad m,DocTable dt)
          => IndexHandler dt -> m [Context]
-contexts (ix,_dt,_s) = return $ CIx.contexts ix
+contexts (IXH ix _dt _s) = return $ CIx.contexts ix
 
 -- | Does the context exist?
 hasContext :: (Monad m,DocTable dt)
            => Context -> IndexHandler dt -> m Bool
-hasContext c (ix,_dt,_s) = return $ CIx.hasContext c ix
+hasContext c (IXH ix _dt _s) = return $ CIx.hasContext c ix
 
 -- | Is the document part of the index?
 member :: (Monad m,DocTable dt)
        => URI -> IndexHandler dt -> m Bool
-member u (_ii, dt, _s) = do
+member u (IXH _ii dt _s) = do
   mem <- Dt.lookupByURI dt u
   return $ isJust mem
 -- ----------------------------------------------------------------------------
 
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
-modifyWithDescription :: (Monad m,DocTable dt)
+modifyWithDescription :: (Monad m, DocTable dt)
                       => Description -> Words -> DocId
                       -> IndexHandler dt -> m (IndexHandler dt)
-modifyWithDescription descr wrds dId (ii, dt, s) = do
+modifyWithDescription descr wrds dId (IXH ii dt s) = do
     newDocTable <- Dt.adjust mergeDescr dId dt
     let newIndex = addWords wrds dId ii
-    return (newIndex, newDocTable, s)
+    return $ IXH newIndex newDocTable s
     where
     -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
     mergeDescr = return . Doc.update (\d' -> d'{ desc = flip M.union (desc d') descr })
