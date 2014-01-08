@@ -301,10 +301,10 @@ execCmd' (BatchDelete uris)
     = modIx $ execBatchDelete uris
 
 execCmd' (StoreIx filename)
-    = undefined --withIx $ execStore filename
+    = withIx $ execStore filename
 
 execCmd' (LoadIx filename)
-    = undefined --modIx $ \_ix -> execLoad filename
+    = modIx $ \_ix -> execLoad filename
 
 execCmd' (InsertContext cx ct)
     = modIx $ execInsertContext cx ct

@@ -12,6 +12,8 @@ import qualified Data.Set                          as S
 import qualified Data.IntSet                       as IS
 import qualified Data.Map                          as M
 import           Data.Maybe
+import qualified Data.Binary                       as Bin
+import           Data.Binary                       (Binary)
 
 import           Holumbus.DocTable.DocTable        (DocTable)
 import qualified Holumbus.DocTable.DocTable        as Dt
@@ -31,6 +33,8 @@ data IndexHandler dt = IXH
   , ixhDocs   :: dt
   , ixhSchema :: Schema
   }
+
+instance Bin.Binary (IndexHandler dt) where
 
 -- ----------------------------------------------------------------------------
 
