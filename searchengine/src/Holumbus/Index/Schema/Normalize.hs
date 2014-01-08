@@ -41,8 +41,10 @@ typeValidator t = case t of
 
 -- | Checks if a range is valid for a context type.
 rangeValidator :: CType -> [Text] -> [Text] -> Bool
-rangeValidator t = case t of
-    _     -> defaultCheck
+rangeValidator t from to = case t of
+   -- XXX TODO real range check for positions
+   CPosition -> True
+   _         -> defaultCheck from to
   where
   defaultCheck xs ys = fromMaybe False $ do
     x <- unboxM xs

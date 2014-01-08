@@ -39,18 +39,19 @@ rankConfig = defaultRankConfig
 
 main :: IO ()
 main = defaultMain
-       [ testCase "Interpreter: insert"
-          test_insertEmpty
-       , testCase "Interpreter: insertAndSearch"
-          test_insertAndSearch
-       , testCase "Interpreter: alot"
-          test_alot
-       , testCase "Interpreter: fancy"
-          test_fancy
-       , testCase "Interpreter: date context"
-          test_dates
-       , testCase "Interpreter: geo context"
-          test_geo
+       -- general test cases
+       [ testCase "Interpreter: insert"                     test_insertEmpty
+       , testCase "Interpreter: insertAndSearch"            test_insertAndSearch
+       , testCase "Interpreter: alot"                       test_alot
+       , testCase "Interpreter: fancy"                      test_fancy
+       
+       -- date search specific tests
+       , testCase "Interpreter: date context"               test_dates
+
+       -- postion search specifix tests
+       , testCase "Interpreter: geo context"                test_geo
+       , testCase "Interpreter: geo context range"          test_geo2
+       , testCase "Interpreter: geo context range2"         test_geo3
        ]
 
 -- | check DmPrefixTree
@@ -221,7 +222,31 @@ test_geo = testCM $ do
   Search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
     @@@ ((@?= ["test://0"]) . searchResultUris)
 
+test_geo2 :: Assertion
+test_geo2 = testCM $ do
+  -- create contexts
+  insertGeoContext       @@= ResOK
+  insertDefaultContext   @@= ResOK
+  -- insert date containing document
+  Insert geoDoc          @@= ResOK
+  -- searching for date
+  Search (QContext ["geocontext"] (QRange "1-1" "80-80")) 0 10
+    @@@ ((@?= ["test://0"]) . searchResultUris)
 
+
+test_geo3 :: Assertion
+test_geo3 = testCM $ do
+  -- create contexts
+  insertGeoContext       @@= ResOK
+  insertDefaultContext   @@= ResOK
+  -- insert date containing document
+  Insert geoDoc          @@= ResOK
+  -- searching for date
+  Search (QContext ["geocontext"] (QRange "-80--80" "1-1")) 0 10
+    @@@ ((@?= []) . searchResultUris)
+
+  Search (QContext ["geocontext"] (QRange "60--80" "70--80")) 0 10
+    @@@ ((@?= []) . searchResultUris)
 
 -- fancy - equivalent to 'test_alot' plus additional tests
 test_fancy :: Assertion
