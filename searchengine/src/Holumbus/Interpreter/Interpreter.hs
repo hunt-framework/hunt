@@ -34,8 +34,7 @@ import           Holumbus.Common.Document.Compression.BZip (CompressedDoc)
 
 import           Holumbus.Index.Schema.Analyze
 
-import           Holumbus.IndexHandler                     (IndexHandler,
-                                                            IndexHandlerCon)
+import           Holumbus.IndexHandler                     (IndexHandler)
 import qualified Holumbus.IndexHandler                     as Ixx
 
 import qualified Holumbus.Index.Index                      as Ix
@@ -52,6 +51,7 @@ import           Holumbus.Query.Ranking
 import           Holumbus.Query.Result                     as QRes
 
 import qualified Holumbus.DocTable.DocTable                as Dt
+import           Holumbus.DocTable.DocTable                (DocTable)
 import           Holumbus.DocTable.HashedDocTable          as HDt
 
 import           Holumbus.Interpreter.Command
@@ -138,12 +138,12 @@ positionInv = Impl.IndexImpl (Ix.empty :: InvertedIndexPosition Occurrences)
 -- with a MVar for storing the index
 -- so the MVar acts as a global state (within IO)
 data Env dt = Env
-  { evIndexer :: IndexHandlerCon dt => XMVar (IndexHandler dt)
+  { evIndexer :: DocTable dt => XMVar (IndexHandler dt)
   , evRanking :: RankConfig (Dt.DValue dt)
   , evCxTypes :: ContextTypes
   }
 
-initEnv :: IndexHandlerCon dt => IndexHandler dt -> RankConfig (Dt.DValue dt) -> ContextTypes -> IO (Env dt)
+initEnv :: DocTable dt => IndexHandler dt -> RankConfig (Dt.DValue dt) -> ContextTypes -> IO (Env dt)
 initEnv ixx rnk opt = do
   ixref <- newXMVar ixx
   return $ Env ixref rnk opt
@@ -161,20 +161,20 @@ type CM dt = CMT dt IO
 
 -- ----------------------------------------------------------------------------
 
-runCM :: IndexHandlerCon dt => CMT dt m a -> Env dt -> m (Either CmdError a)
+runCM :: DocTable dt => CMT dt m a -> Env dt -> m (Either CmdError a)
 runCM env = runErrorT . runReaderT (runCMT env)
 
-runCmd :: IndexHandlerCon dt => Env dt -> Command -> IO (Either CmdError CmdResult)
+runCmd :: (DocTable dt, Bin.Binary dt) => Env dt -> Command -> IO (Either CmdError CmdResult)
 runCmd env cmd
     = runErrorT . runReaderT (runCMT . execCmd $ cmd) $ env
 
-askIx :: IndexHandlerCon dt => CM dt (IndexHandler dt)
+askIx :: DocTable dt => CM dt (IndexHandler dt)
 askIx
     = do ref <- asks evIndexer
          liftIO $ readXMVar ref
 
 -- FIXME: io exception-safe?
-modIx :: IndexHandlerCon dt
+modIx :: DocTable dt
       => (IndexHandler dt-> CM dt (IndexHandler dt, a)) -> CM dt a
 modIx f
     = do ref <- asks evIndexer
@@ -187,46 +187,46 @@ modIx f
         liftIO $ putXMVarWrite ref i
         throwError e
 
-modIx_ :: IndexHandlerCon dt => (IndexHandler dt -> CM dt (IndexHandler dt)) -> CM dt()
+modIx_ :: DocTable dt => (IndexHandler dt -> CM dt (IndexHandler dt)) -> CM dt()
 modIx_ f = modIx f'
     where f' i = f i >>= \r -> return (r, ())
 
-withIx :: IndexHandlerCon dt => (IndexHandler dt -> CM dt a) -> CM dt a
+withIx :: DocTable dt => (IndexHandler dt -> CM dt a) -> CM dt a
 withIx f
     = askIx >>= f
 
-askTypes :: IndexHandlerCon dt => CM dt ContextTypes
+askTypes :: DocTable dt => CM dt ContextTypes
 askTypes
     = asks evCxTypes
 
-askType :: IndexHandlerCon dt => Text -> CM dt CType
+askType :: DocTable dt => Text -> CM dt CType
 askType cn = do
     ty <- asks evCxTypes
     case M.lookup cn ty of
       (Just (Impl.CxMeta t _ix)) -> return $ t
       _                         -> throwResError 410 "used unavailable context type"
 
-askIndex :: IndexHandlerCon dt => Text -> CM dt (Impl.IndexImpl Occurrences)
+askIndex :: DocTable dt => Text -> CM dt (Impl.IndexImpl Occurrences)
 askIndex cn = do
     ty <- asks evCxTypes
     case M.lookup cn ty of
       (Just (Impl.CxMeta _t ix)) -> return $ ix
       _                         -> throwResError 410 "used unavailable context type"
 
-askRanking :: IndexHandlerCon dt => CM dt (RankConfig (Dt.DValue dt))
+askRanking :: DocTable dt => CM dt (RankConfig (Dt.DValue dt))
 askRanking
     = asks evRanking
 
 -- TODO: meh
-askContextsWeights :: IndexHandlerCon dt => CM dt(M.Map Context CWeight)
+askContextsWeights :: DocTable dt => CM dt(M.Map Context CWeight)
 askContextsWeights
     = withIx (\(_,_,schema) -> return $ M.map cxWeight schema)
 
-throwResError :: IndexHandlerCon dt => Int -> Text -> CM dt a
+throwResError :: DocTable dt => Int -> Text -> CM dt a
 throwResError n msg
     = throwError $ ResError n msg
 
-throwNYI :: IndexHandlerCon dt => String -> CM dt a
+throwNYI :: DocTable dt => String -> CM dt a
 throwNYI c = throwResError 501 $ "command not yet implemented: " `T.append` T.pack c
 
 descending :: Ord a => a -> a -> Ordering
@@ -267,12 +267,12 @@ optimizeCmd (Delete u) = BatchDelete $ S.singleton u
 optimizeCmd c = c
 
 
-execCmd :: (Bin.Binary dt) => IndexHandlerCon dt => Command -> CM dt CmdResult
+execCmd :: (Bin.Binary dt) => DocTable dt => Command -> CM dt CmdResult
 execCmd cmd = do
   liftIO $ debugM $ "Exec: " ++ logShow cmd
   execCmd' . optimizeCmd $ cmd
 
-execCmd' :: (Bin.Binary dt, IndexHandlerCon dt) => Command -> CM dt CmdResult
+execCmd' :: (Bin.Binary dt, DocTable dt) => Command -> CM dt CmdResult
 execCmd' (Search q offset mx)
     = withIx $ execSearch' (wrapSearch offset mx) q
 
@@ -314,12 +314,12 @@ execCmd' (DeleteContext cx)
 
 -- ----------------------------------------------------------------------------
 
-execSequence :: IndexHandlerCon dt => [Command] -> CM dt CmdResult
+execSequence :: (DocTable dt, Bin.Binary dt)=> [Command] -> CM dt CmdResult
 execSequence []       = execCmd NOOP
 execSequence [c]      = execCmd c
 execSequence (c : cs) = execCmd c >> execSequence cs
 
-execInsertContext :: IndexHandlerCon dt
+execInsertContext :: DocTable dt
                   => Context
                   -> ContextSchema
                   -> IndexHandler dt
@@ -342,7 +342,7 @@ execInsertContext cx ct ixx@(ix, dt, s)
 
 
 -- | Deletes the context and the schema associated with it.
-execDeleteContext :: IndexHandlerCon dt
+execDeleteContext :: DocTable dt
                   => Context
                   -> IndexHandler dt
                   -> CM dt(IndexHandler dt, CmdResult)
@@ -353,7 +353,7 @@ execDeleteContext cx (ix, dt, s)
 -- | Inserts an 'ApiDocument' into the index.
 -- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs must not exist.
-execInsert :: IndexHandlerCon dt
+execInsert :: DocTable dt
            => ApiDocument -> IndexHandler dt -> CM dt (IndexHandler dt, CmdResult)
 execInsert doc ixx@(_ix, _dt, schema) = do
     let contexts = M.keys $ apiDocIndexMap doc
@@ -373,7 +373,7 @@ execInsert doc ixx@(_ix, _dt, schema) = do
 -- | Updates an 'ApiDocument'.
 -- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs need to exist.
-execUpdate :: IndexHandlerCon dt
+execUpdate :: DocTable dt
            => ApiDocument -> IndexHandler dt -> CM dt(IndexHandler dt, CmdResult)
 execUpdate doc ixx@(_ix, dt, schema) = do
     let contexts = M.keys $ apiDocIndexMap doc
@@ -388,12 +388,12 @@ execUpdate doc ixx@(_ix, dt, schema) = do
         throwResError 409 $ "document for update not found: " `T.append` uri docs
 
 
-unless' :: IndexHandlerCon dt
+unless' :: DocTable dt
        => Bool -> Int -> Text -> CM dt()
 unless' b code text = unless b $ throwResError code text
 
 
-checkContextsExistence :: IndexHandlerCon dt
+checkContextsExistence :: DocTable dt
                        => [Context] -> IndexHandler dt -> CM dt()
 checkContextsExistence cs ixx = do
   ixxContexts        <- S.fromList <$> Ixx.contexts ixx
@@ -404,7 +404,7 @@ checkContextsExistence cs ixx = do
             `T.append` (T.pack . show . S.toList) invalidContexts
 
 
-checkApiDocExistence :: IndexHandlerCon dt
+checkApiDocExistence :: DocTable dt
                      => Bool -> ApiDocument -> IndexHandler dt -> CM dt()
 checkApiDocExistence switch apidoc ixx = do
   let u = apiDocUri apidoc
@@ -415,7 +415,7 @@ checkApiDocExistence switch apidoc ixx = do
             else "document does not exist: ") `T.append` u
 
 
-execSearch' :: (IndexHandlerCon dt, e ~ Dt.DValue dt)
+execSearch' :: (DocTable dt, e ~ Dt.DValue dt)
             => (Result e -> CmdResult)
             -> Query
             -> IndexHandler dt
@@ -451,20 +451,20 @@ wrapCompletion mx
       . wordHits
 
 
-execBatchDelete :: IndexHandlerCon dt => Set URI -> IndexHandler dt -> CM dt(IndexHandler dt, CmdResult)
+execBatchDelete :: DocTable dt => Set URI -> IndexHandler dt -> CM dt(IndexHandler dt, CmdResult)
 execBatchDelete d ix = do
     ix' <- lift $ Ixx.deleteDocsByURI d ix
     return (ix', ResOK)
 
 
-execStore :: (Bin.Binary a, IndexHandlerCon dt) =>
+execStore :: (Bin.Binary a, DocTable dt) =>
              FilePath -> a -> CM dt CmdResult
 execStore filename x = do
     liftIO $ Bin.encodeFile filename x
     return ResOK
 
 
-execLoad :: (Bin.Binary a, IndexHandlerCon dt) =>
+execLoad :: (Bin.Binary a, DocTable dt) =>
              FilePath -> CM dt (a, CmdResult)
 execLoad filename = do
     x <- liftIO $ Bin.decodeFile filename
@@ -475,7 +475,7 @@ execLoad filename = do
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
-runQueryM       :: IndexHandlerCon dt
+runQueryM       :: DocTable dt
                 => ContextIndex Occurrences
                 -> Schema
                 -> dt
@@ -487,7 +487,7 @@ runQueryM ix s dt q = processQuery st dt q
 
 -- ----------------------------------------------------------------------------
 
-execStatus :: IndexHandlerCon dt => StatusCmd -> CM dt CmdResult
+execStatus :: DocTable dt => StatusCmd -> CM dt CmdResult
 execStatus StatusGC
     = do statsEnabled <- liftIO getGCStatsEnabled
          if statsEnabled
