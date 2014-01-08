@@ -25,7 +25,7 @@ import           Control.DeepSeq
 import           Data.ByteString.Lazy           (ByteString)
 import qualified Data.ByteString.Lazy           as BL
 
-import           Data.Binary                    (Binary(..))
+import           Data.Binary                    (Binary (..))
 import qualified Data.Binary                    as B
 
 import           Holumbus.Common.Document
@@ -42,8 +42,8 @@ mkCDoc v = CDoc $!! v
 -- ----------------------------------------------------------------------------
 
 instance Binary CompressedDoc where
-    put = B.put . unCDoc
-    get = B.get >>= return . mkCDoc
+    put = put . unCDoc
+    get = get >>= return . mkCDoc
 
 instance NFData CompressedDoc where
     rnf (CDoc s)

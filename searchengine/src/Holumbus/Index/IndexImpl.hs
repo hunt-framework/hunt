@@ -5,10 +5,11 @@
 
 module Holumbus.Index.IndexImpl where
 
-import           Holumbus.Index.Index
-import           Holumbus.Common
-import           Data.Text                      (Text)
 import           Data.Binary
+import           Data.Text                      (Text)
+
+import           Holumbus.Common
+import           Holumbus.Index.Index
 
 -- ------------------------------------------------------------
 
@@ -33,11 +34,11 @@ data ContextMeta = CxMeta
 -- ------------------------------------------------------------
 
 -- | FIXME: actually implement instance
-instance Show (IndexImpl i) where
+instance Show (IndexImpl v) where
   show _ = "x"
 
 -- | FIXME: actually implement instance
-instance Binary (IndexImpl i) where
+instance Binary (IndexImpl v) where
   put (IndexImpl i) = put i
   get = undefined
 

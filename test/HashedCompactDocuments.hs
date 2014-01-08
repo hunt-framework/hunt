@@ -40,7 +40,7 @@ import qualified Codec.Compression.BZip                          as BZ
 import           Control.Arrow                                   (second)
 import           Control.DeepSeq
 
-import           Data.Binary                                     (Binary)
+import           Data.Binary                                     (Binary (..))
 import qualified Data.Binary                                     as B
 import           Data.Set                                        (Set)
 import qualified Data.Set                                        as S
@@ -264,14 +264,14 @@ mapKeys' f                  = fromMap' . DM.foldrWithKey (DM.insert . f) DM.empt
 -- ----------------------------------------------------------------------------
 
 instance Binary Documents where
-    put = B.put . idToDoc
-    get = fmap Documents B.get
+    put = put . idToDoc
+    get = fmap Documents get
 
 -- ----------------------------------------------------------------------------
 
 instance Binary CompressedDoc where
-    put = B.put . unCDoc
-    get = B.get >>= return . CDoc
+    put = put . unCDoc
+    get = get >>= return . CDoc
 
 -- ----------------------------------------------------------------------------
 

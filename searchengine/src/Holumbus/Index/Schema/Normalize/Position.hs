@@ -152,7 +152,7 @@ c2b :: Char -> Int
 c2b o = case o of
   '0' -> 0
   '1' -> 1
-  _ -> error "c2b with c `notElem` \"01\""
+  _ -> error "c2b c with c `notElem` \"01\""
 
 -- | Is the character a binary number.
 isbc :: Char -> Bool

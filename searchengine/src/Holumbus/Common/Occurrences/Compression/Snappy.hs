@@ -28,7 +28,7 @@ where
 
 import           Control.DeepSeq
 
-import           Data.Binary                             (Binary)
+import           Data.Binary                             (Binary (..))
 import qualified Data.Binary                             as B
 import           Data.ByteString.Lazy                    (ByteString)
 #if  __GLASGOW_HASKELL__ >= 770
@@ -57,8 +57,8 @@ instance OccCompression CompressedOccurrences where
 -- ----------------------------------------------------------------------------
 
 instance Binary CompressedOccurrences where
-  put = B.put . unComprOccs
-  get = B.get >>= return . mkComprOccs
+  put = put . unComprOccs
+  get = get >>= return . mkComprOccs
 
 -- ----------------------------------------------------------------------------
 

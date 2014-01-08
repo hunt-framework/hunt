@@ -1,8 +1,8 @@
-{-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE OverlappingInstances       #-}
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE OverlappingInstances       #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 module Holumbus.Index.Proxy.DateNormalizerIndex
 (
@@ -12,10 +12,10 @@ module Holumbus.Index.Proxy.DateNormalizerIndex
 where
 
 import           Prelude                                    as P
-import           Control.DeepSeq
 
 import           Control.Applicative                        ((<$>))
 import           Control.Arrow                              (first)
+import           Control.DeepSeq
 
 import           Data.Binary                                (Binary (..))
 import           Data.Text                                  (Text)

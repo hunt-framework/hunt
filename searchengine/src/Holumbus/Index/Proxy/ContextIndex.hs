@@ -13,6 +13,7 @@ import           Data.Map.Strict             (Map)
 import qualified Data.Map.Strict             as M
 import           Data.Text                   (Text)
 import           Data.Text.Binary            ()
+
 import           Holumbus.Common
 import qualified Holumbus.Index.Index        as Ix
 import qualified Holumbus.Index.IndexImpl    as Impl

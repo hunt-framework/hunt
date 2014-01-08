@@ -64,7 +64,6 @@ import           Control.Applicative         (Applicative(..), (<*>), pure)
 import           Control.DeepSeq
 
 import           Data.Binary                 (Binary (..))
-import qualified Data.Binary                 as B
 import           Data.Foldable               hiding (fold, foldr, toList)
 import           Data.Traversable
 import qualified Data.IntMap.Strict          as IM
@@ -89,8 +88,8 @@ newtype DocIdMap v
 -- ------------------------------------------------------------
 
 instance Binary v => Binary (DocIdMap v) where
-  put = B.put . toList
-  get = B.get >>= return . fromList
+  put = put . toList
+  get = get >>= return . fromList
 
 -- ------------------------------------------------------------
 

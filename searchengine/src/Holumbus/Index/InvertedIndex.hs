@@ -16,8 +16,10 @@ where
 import           Prelude                                        as P
 
 import           Control.DeepSeq
+
 import           Data.Bijection.Instances                       ()
 import           Data.Binary                                    (Binary (..))
+import           Data.Text                                      (Text)
 
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Occurrences                    (Occurrences)
@@ -31,8 +33,6 @@ import           Holumbus.Index.Proxy.DateNormalizerIndex
 import           Holumbus.Index.Proxy.IntNormalizerIndex
 import           Holumbus.Index.Proxy.KeyIndex
 import           Holumbus.Index.Proxy.PositionNormalizerIndex
-
-import           Data.Text                                      (Text)
 
 -- ----------------------------------------------------------------------------
 

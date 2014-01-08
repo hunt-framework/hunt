@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE Rank2Types        #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module Holumbus.IndexHandler where
 
@@ -12,8 +12,7 @@ import qualified Data.Set                          as S
 import qualified Data.IntSet                       as IS
 import qualified Data.Map                          as M
 import           Data.Maybe
-import qualified Data.Binary                       as Bin
-import           Data.Binary                       (Binary)
+import           Data.Binary                       (Binary (..))
 
 import           Holumbus.DocTable.DocTable        (DocTable)
 import qualified Holumbus.DocTable.DocTable        as Dt
@@ -28,13 +27,16 @@ import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
 
 -- ----------------------------------------------------------------------------
 
-data IndexHandler dt = IXH 
+data IndexHandler dt = IXH
   { ixhIndex  :: CIx.ContextIndex Occurrences
   , ixhDocs   :: dt
   , ixhSchema :: Schema
   }
 
-instance Bin.Binary (IndexHandler dt) where
+-- ----------------------------------------------------------------------------
+
+-- FIXME: implement
+instance Binary dt => Binary (IndexHandler dt) where
 
 -- ----------------------------------------------------------------------------
 
