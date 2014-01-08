@@ -89,7 +89,6 @@ library
 
     Holumbus.Index.Index
     Holumbus.Index.IndexImpl
-    Holumbus.Index.TextIndex
     Holumbus.Index.PrefixTreeIndex
     Holumbus.Index.ComprPrefixTreeIndex
     Holumbus.Index.InvertedIndex

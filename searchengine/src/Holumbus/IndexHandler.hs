@@ -20,9 +20,10 @@ import qualified Holumbus.DocTable.DocTable        as Dt
 import           Holumbus.Common
 import           Holumbus.Common.DocIdMap          (toDocIdSet)
 import qualified Holumbus.Common.Document          as Doc
+import qualified Holumbus.Common.Occurrences       as Occ
 
-import qualified Holumbus.Index.TextIndex          as TIx
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
+import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
 
 -- ----------------------------------------------------------------------------
 
@@ -40,7 +41,7 @@ insert :: (Monad m, IndexHandlerCon dt)
        => (Dt.DValue dt) -> Words -> IndexHandler dt -> m (IndexHandler dt)
 insert doc wrds (ix, dt, s) = do
     (did, newDt) <- Dt.insert dt doc
-    let newIx = TIx.addWords wrds did ix
+    let newIx = addWords wrds did ix
     return (newIx, newDt, s)
 
 -- | Update elements
@@ -58,7 +59,7 @@ modify :: (Monad m,IndexHandlerCon dt)
        -> Words -> DocId -> IndexHandler dt -> m (IndexHandler dt)
 modify f wrds dId (ii, dt, s) = do
   newDocTable <- Dt.adjust f dId dt
-  let newIndex = TIx.addWords wrds dId ii
+  let newIndex = addWords wrds dId ii
   return (newIndex, newDocTable, s)
 
 -- | Delete a set of documents by 'URI'.
@@ -101,7 +102,7 @@ modifyWithDescription :: (Monad m,IndexHandlerCon dt)
                       -> IndexHandler dt -> m (IndexHandler dt)
 modifyWithDescription descr wrds dId (ii, dt, s) = do
     newDocTable <- Dt.adjust mergeDescr dId dt
-    let newIndex = TIx.addWords wrds dId ii
+    let newIndex = addWords wrds dId ii
     return (newIndex, newDocTable, s)
     where
     -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
@@ -119,3 +120,20 @@ addDocDescription descr did (Indexer i d)
   mergeDescr doc = doc{ desc = M.union (desc doc) descr }
 -}
 ----------------------------------------------------------------------------
+-- helper
+
+-- | Add words for a document to the 'Index'.
+--   /NOTE/: adds words to /existing/ 'Context's.
+addWords :: Words -> DocId -> ContextIndex Occurrences -> ContextIndex Occurrences
+addWords wrds dId i
+  = M.foldrWithKey (\c wl acc ->
+      M.foldrWithKey (\w ps acc' ->
+        CIx.insertWithCx c w (mkOccs dId ps) acc')
+      acc wl)
+      i wrds
+  where
+  mkOccs            :: DocId -> [Position] -> Occurrences
+  mkOccs did pl     = positionsIntoOccs did pl Occ.empty
+
+  positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
+  positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws
