@@ -353,7 +353,7 @@ processRange l h = forAllContexts' range
         rs@[ls, hs] = [scan l, scan h]
     -- all range values are valid
     unless' (all (typeValidator cType) $ concat rs)
-            400 $ "range value(s) incompatible with context type: " `T.append` rangeText
+            400 $ T.concat ["range value(s) (", rangeText, ") incompatible with context type ", T.pack . show $ cType]
     let (ls', hs') = (map norm $ ls, map norm $ hs)
     -- values form a valid range
     unless' (rangeValidator cType ls' hs')
