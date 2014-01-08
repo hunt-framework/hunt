@@ -22,9 +22,8 @@ import qualified Holumbus.Index.InvertedIndex         as InvIx
 import qualified Holumbus.Index.PrefixTreeIndex       as PIx
 import qualified Holumbus.Index.Proxy.CompressedIndex as CPIx
 import qualified Holumbus.Index.Proxy.ContextIndex    as ConIx
-import           Holumbus.Index.TextIndex
 import           Holumbus.Index.IndexImpl
-
+import           Holumbus.IndexHandler                (addWords)
 -- ----------------------------------------------------------------------------
 
 main :: IO ()
