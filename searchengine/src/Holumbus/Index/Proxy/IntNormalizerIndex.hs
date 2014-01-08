@@ -49,7 +49,6 @@ instance Binary (impl v) => Binary (IntNormalizerIndex impl v) where
 instance Index (IntNormalizerIndex impl) where
     type IKey      (IntNormalizerIndex impl) v = Text
     type IVal      (IntNormalizerIndex impl) v = IVal impl v
-    type ISearchOp (IntNormalizerIndex impl) v = ISearchOp impl v
     type ICon      (IntNormalizerIndex impl) v =
         ( Index impl
         , ICon impl v
@@ -110,7 +109,6 @@ instance Binary (impl v) => Binary (IntAsTextNormalizerIndex impl v) where
 instance Index (IntAsTextNormalizerIndex impl) where
     type IKey      (IntAsTextNormalizerIndex impl) v = Text
     type IVal      (IntAsTextNormalizerIndex impl) v = IVal impl v
-    type ISearchOp (IntAsTextNormalizerIndex impl) v = ISearchOp impl v
     type ICon      (IntAsTextNormalizerIndex impl) v =
         ( Index impl
         , ICon impl v

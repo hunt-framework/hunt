@@ -47,7 +47,6 @@ instance Binary (impl v) => Binary (DateNormalizerIndex impl v) where
 instance Index (DateNormalizerIndex impl) where
     type IKey      (DateNormalizerIndex impl) v = Text
     type IVal      (DateNormalizerIndex impl) v = IVal impl v
-    type ISearchOp (DateNormalizerIndex impl) v = ISearchOp impl v
     type ICon      (DateNormalizerIndex impl) v =
         ( Index impl
         , ICon impl v

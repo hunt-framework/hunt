@@ -23,11 +23,8 @@ class Index i where
     type ICon      i v :: Constraint
     type ICon      i v =  NFData v
 
-    type ISearchOp i v :: *
-    type ISearchOp i v = TextSearchOp
-
     -- | General lookup function.
-    search       :: ICon i v => ISearchOp i v -> IKey i v -> i v -> [(IKey i v, IVal i v)]
+    search       :: ICon i v => TextSearchOp -> IKey i v -> i v -> [(IKey i v, IVal i v)]
 
     -- | Search within a range.
     lookupRange  :: ICon i v => IKey i v -> IKey i v -> i v -> [(IKey i v, IVal i v)]

@@ -50,7 +50,6 @@ instance Binary (impl v) => Binary (CachedIndex impl v) where
 instance Index (CachedIndex impl) where
     type IKey      (CachedIndex impl) v = IKey      impl v
     type IVal      (CachedIndex impl) v = IVal      impl v
-    type ISearchOp (CachedIndex impl) v = ISearchOp impl v
     type ICon      (CachedIndex impl) v
         = ( Index impl
           , ICon impl v

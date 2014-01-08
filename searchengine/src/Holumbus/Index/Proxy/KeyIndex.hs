@@ -46,7 +46,6 @@ instance Binary (impl v) => Binary (KeyProxyIndex from impl v) where
 instance Index (KeyProxyIndex from impl) where
     type IKey      (KeyProxyIndex from impl) v = from
     type IVal      (KeyProxyIndex from impl) v = IVal impl v
-    type ISearchOp (KeyProxyIndex from impl) v = ISearchOp impl v
     type ICon      (KeyProxyIndex from impl) v =
         ( Index impl
         , ICon impl v
@@ -91,7 +90,6 @@ instance Index (KeyProxyIndex from impl) where
 instance Index (KeyProxyIndex from (ComprOccIndex impl to)) where
     type IKey      (KeyProxyIndex from (ComprOccIndex impl to)) v = from
     type IVal      (KeyProxyIndex from (ComprOccIndex impl to)) v = IVal      (ComprOccIndex impl to) v
-    type ISearchOp (KeyProxyIndex from (ComprOccIndex impl to)) v = ISearchOp (ComprOccIndex impl to) v
     type ICon      (KeyProxyIndex from (ComprOccIndex impl to)) v =
         ( Index (ComprOccIndex impl to)
         , ICon  (ComprOccIndex impl to) v

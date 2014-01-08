@@ -47,7 +47,6 @@ instance Binary (impl v) => Binary (PositionNormalizerIndex impl v) where
 instance Index (PositionNormalizerIndex impl) where
     type IKey      (PositionNormalizerIndex impl) v = Text
     type IVal      (PositionNormalizerIndex impl) v = IVal impl v
-    type ISearchOp (PositionNormalizerIndex impl) v = ISearchOp impl v
     type ICon      (PositionNormalizerIndex impl) v =
         ( Index impl
         , ICon impl v

@@ -43,7 +43,6 @@ instance Binary (impl v) => Binary (ComprOccIndex impl v from) where
 instance Index (ComprOccIndex impl to) where
     type IKey      (ComprOccIndex impl to) from = IKey impl to
     type IVal      (ComprOccIndex impl to) from = Occurrences
-    type ISearchOp (ComprOccIndex impl to) from = ISearchOp impl to
     type ICon      (ComprOccIndex impl to) from =
         ( Index impl
         , ICon impl to

@@ -17,7 +17,6 @@ type IndexImplCon i v
     , IKey i v ~ Text
     , IVal i v ~ v
     , ICon i v
-    , ISearchOp i v ~ TextSearchOp
     , Binary (i v)
     )
 
