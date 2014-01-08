@@ -1,6 +1,7 @@
 {-# LANGUAGE ConstraintKinds           #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE StandaloneDeriving        #-}
 {-# LANGUAGE TypeFamilies              #-}
 
 module Holumbus.Index.IndexImpl where
@@ -18,6 +19,7 @@ type IndexImplCon i v
     , IKey i v ~ Text
     , IVal i v ~ v
     , ICon i v
+    , Show (i v)
     , Binary (i v)
     )
 
@@ -33,9 +35,7 @@ data ContextMeta = CxMeta
 
 -- ------------------------------------------------------------
 
--- | FIXME: actually implement instance
-instance Show (IndexImpl v) where
-  show _ = "x"
+deriving instance Show (IndexImpl v)
 
 -- | FIXME: actually implement instance
 instance Binary (IndexImpl v) where
