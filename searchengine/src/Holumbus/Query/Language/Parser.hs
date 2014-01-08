@@ -62,17 +62,9 @@ parseQuery = result . parse query ""
 
 -- | A query may always be surrounded by whitespace
 query :: Parser Query
-query = spaces >> boostQuery
+query = spaces >> andQuery
 
 -- TODO: this might need some work for lists
-boostQuery :: Parser Query
-boostQuery = do t <- andQuery
-                try (boostOp' t) <|> return t
-  where
-  boostOp' r = do char '^'
-                  b <- simpleFloat
-                  return (QBoost b r)
-
 -- | Parse an and query.
 andQuery :: Parser Query
 andQuery = do t <- orQuery
@@ -99,7 +91,7 @@ contextQuery = try contextQuery' <|> parQuery
                      char ':'
                      spaces
                      t <- parQuery
-                     return (QContext cs t)
+                     tryBoost (QContext cs t)
 
 
 
@@ -109,10 +101,10 @@ parQuery = parQuery' <|> rangeQuery
   where
   parQuery' = do char '('
                  spaces
-                 q <- boostQuery
+                 q <- andQuery
                  spaces
                  char ')'
-                 return q
+                 tryBoost q
 
 rangeQuery :: Parser Query
 rangeQuery = rangeQuery' <|> caseQuery
@@ -126,7 +118,7 @@ rangeQuery = rangeQuery' <|> caseQuery
                    u <- word
                    spaces
                    char ']'
-                   return $ QRange (T.pack l) (T.pack u)
+                   tryBoost $ QRange (T.pack l) (T.pack u)
 
 -- | Parse a case-sensitive query.
 caseQuery :: Parser Query
@@ -146,13 +138,14 @@ fuzzyQuery = fuzzyQuery' <|> phraseQuery (QPhrase QNoCase) <|> wordQuery (QWord 
 
 -- | Parse a word query.
 wordQuery :: (Text -> Query) -> Parser Query
-wordQuery c = do w <- word
-                 return (c $ T.pack w)
+wordQuery c = do 
+              w <- word
+              tryBoost (c $ T.pack w)
 
 -- | Parse a phrase query.
 phraseQuery :: (Text -> Query) -> Parser Query
 phraseQuery c = do p <- phrase
-                   return (c $ T.pack p)
+                   tryBoost (c $ T.pack p)
 
 -- | Parse an and operator.
 andOp :: Parser BinOp
@@ -189,6 +182,15 @@ phrase = do char '"'
             p <- many1 phraseChar
             char '"'
             return p
+
+tryBoost :: Query -> Parser Query
+tryBoost q = try boost <|> return q
+  where
+  boost = do
+          char '^'
+          b <- simpleFloat
+          return (QBoost b q)
+
 
 -- | Parse a character of a word.
 wordChar :: Parser Char
