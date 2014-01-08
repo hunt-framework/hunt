@@ -40,7 +40,7 @@ main = defaultMainWithOpts
 -- check if element is inserted in insert operation
 
 -- | general check function
-insertTest :: (Ix.ISearchOp i v ~ TextSearchOp, Ix.Index i, Eq (Ix.IVal i v), (Ix.ICon i v)) =>
+insertTest :: (Ix.Index i, Eq (Ix.IVal i v), (Ix.ICon i v)) =>
               i v -> Ix.IKey i v -> Ix.IVal i v -> Bool
 insertTest emptyIndex k v = v == nv
   where
@@ -48,7 +48,7 @@ insertTest emptyIndex k v = v == nv
 
 
 -- v1 and v2 need the have the same id
-mergeTest :: (Ix.ICon i v, Ix.Index i, Ix.ISearchOp i v ~ TextSearchOp
+mergeTest :: (Ix.ICon i v, Ix.Index i
              , Ix.IVal i v ~ DocIdMap Positions) =>
              i v -> Ix.IKey i v -> Occurrences -> Occurrences -> Bool
 mergeTest emptyIndex k v1 v2 = length res == 1 && merge v1 v2 == nv
