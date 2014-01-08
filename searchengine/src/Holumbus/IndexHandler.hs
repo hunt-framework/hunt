@@ -35,8 +35,9 @@ data IndexHandler dt = IXH
 
 -- ----------------------------------------------------------------------------
 
--- FIXME: implement
 instance Binary dt => Binary (IndexHandler dt) where
+  get = liftM3 IXH get get get
+  put (IXH a b c) = put a >> put b >> put c
 
 -- ----------------------------------------------------------------------------
 

@@ -29,7 +29,7 @@ newtype ContextIndex v
 
 -- ----------------------------------------------------------------------------
 
-instance (Binary (impl v), Binary v) => Binary (ContextIndex v) where
+instance Binary v => Binary (ContextIndex v) where
   put = put . contextIx
   get = get >>= return . ContextIx
 
