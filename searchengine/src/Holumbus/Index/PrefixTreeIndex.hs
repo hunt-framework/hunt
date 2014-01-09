@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 module Holumbus.Index.PrefixTreeIndex
 ( DmPrefixTree(..)
@@ -6,12 +7,12 @@ module Holumbus.Index.PrefixTreeIndex
 where
 
 import           Control.DeepSeq
-import           Data.Binary                       (Binary (..))
+import           Data.Binary                (Binary (..))
 
-import qualified Data.StringMap.Strict             as SM
+import qualified Data.StringMap.Strict      as SM
 
 import           Holumbus.Common.BasicTypes
-import           Holumbus.Common.DocIdMap          as DM
+import           Holumbus.Common.DocIdMap   as DM
 import           Holumbus.Index.Index
 
 import           Holumbus.Utility
