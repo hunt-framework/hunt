@@ -51,6 +51,7 @@ dispatcher = do
         value <- autocomplete "localhost:3000" q >>= raiseOnLeft
         Scotty.json $ value
     Scotty.get "/examples" $ Scotty.html $ Templates.body "" Templates.examples
+    Scotty.get "/about" $ Scotty.html $ Templates.body "" Templates.about
 
 
 renderRoot :: [Scotty.Param] -> Scotty.ActionM ()

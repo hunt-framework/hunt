@@ -13,7 +13,7 @@ import qualified Data.Text.Lazy as T
 
 import qualified Hayoo.ApiClient as Api
 
-data Routes = Home | HayooJs | HayooCSS | Autocomplete | Examples
+data Routes = Home | HayooJs | HayooCSS | Autocomplete | Examples | About
 
 render :: Routes -> [(TS.Text, TS.Text)] -> TS.Text
 render Home _ = "/"
@@ -21,6 +21,7 @@ render HayooJs _ = "/hayoo.js"
 render HayooCSS _ = "/hayoo.css"
 render Autocomplete _ = "/autocomplete"
 render Examples _ = "/examples"
+render About _ = "/about"
 
 renderTitle :: Text -> Text
 renderTitle query
@@ -31,6 +32,7 @@ renderTitle query
 header :: Text -> Hamlet.HtmlUrl Routes
 header query = [Hamlet.hamlet|
   <head>
+  
     <title>#{renderTitle query}
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js">
     <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js">
@@ -67,12 +69,10 @@ navigation query = [Hamlet.hamlet|
                     <input .btn .btn-default #submit type="submit" value="Search">
 
         <ul .nav .navbar-nav .navbar-right>
-            <li .active>
-                <a href="/help">Help
             <li >
                 <a href=@{Examples}>Examples
             <li>
-                <a href="/About">About
+                <a href=@{About}>About
 |]
 
 
@@ -108,7 +108,7 @@ renderResult (Api.FunctionResult u p m n s d _) = [Hamlet.hamlet|
     <div .panel-body>
         <p>
             #{p} - #{m}
-        <p .description>
+        <p .description .more>
             #{d}
 |]
 
@@ -125,6 +125,13 @@ mainPage = [Hamlet.hamlet|
 <div .jumbotron>
   <h1>
       Welcome!
+|]
+
+about :: Hamlet.HtmlUrl Routes
+about = [Hamlet.hamlet|
+<div .page-header>
+  <h1>
+      About Hayoo!
 |]
 
 examples :: Hamlet.HtmlUrl Routes
@@ -161,6 +168,22 @@ examples = [Hamlet.hamlet|
         <p>
             <a href="@{Home}?query=mapM%20OR%20foldM">MapM or foldM
             searches will give a list of either MapM or foldM
-
+        <p>
+            <a href="@{Home}?query=map%20BUT%20package%3Abase">map BUT package:base
+            searches for map except, except for package base
+<div .panel .panel-default>
+    <div .panel-heading>
+        <h3 .panel-title>
+            You can also modify search queries
+    <div .panel-body>
+        <p>
+            <a href="@{Home}?query=%22Map%20each%20element%22">"Map each element"
+            searches for the string "Map each element"
+        <p>
+            <a href="@{Home}?query=%21mapM">!mapM
+            searches case sensitive for mapM
+        <p>
+            <a href="@{Home}?query=~maMpaybe">~maMpaybe
+            is a fuzzy search and will show mapMaybe
 
 |]

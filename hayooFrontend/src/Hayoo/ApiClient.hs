@@ -17,6 +17,7 @@ import qualified Network.HTTP.Conduit as HTTP
 --import qualified Data.ByteString.Lazy as L
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
+import qualified Data.Text.Encoding as TE
 --import qualified Data.Text.Lazy.Encoding as T
 --import Data.Functor
 --import Control.Applicative
@@ -24,9 +25,11 @@ import qualified Data.Text.Lazy as T
 import Control.Monad
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
-import Data.String (IsString)
 import Data.ByteString.Lazy (ByteString) 
+import qualified Data.ByteString.Lazy as BL
 import Data.Either ()
+import Data.Char (isSpace)
+import Data.String ()
 
 data JsonResponse r = 
     JsonSuccess {jsonValue :: r}
@@ -101,12 +104,15 @@ instance (FromJSON x) => FromJSON (LimitedResult x) where
 
 -- ------------------------------
 
--- autocomplete :: String -> String  -> IO (JsonResponse [String])
--- autocomplete:: forall (m :: * -> *) b. (MonadIO m, FromJSON b) => [Char] -> [Char] -> m b
 autocomplete :: (MonadIO m) => Text -> Text  -> m (Either Text [Text])
 autocomplete server q = do
     d <- HTTP.simpleHttp $ T.unpack $ T.concat [ "http://", server, "/completion/", q, "/20"]
-    return $ (decodeEither >=> handleJsonResponse) d
+    let prefix = T.reverse $ T.dropWhile (\ c -> (not $ isSpace c) && (c /= ':') && (c /= '!') && (c /= '~')) $ T.reverse q
+    return $ (decodeEither >=> handleJsonResponse >=> (prefixWith prefix)) d
+    where
+        prefixWith :: Text -> [Text] -> Either Text [Text]
+        prefixWith p = ((return .) . fmap) $ (p `T.append`)
+        
 
 query :: (MonadIO m) => Text -> Text -> m (Either Text (LimitedResult SearchResult))
 query server q = do
@@ -117,8 +123,8 @@ handleJsonResponse :: (FromJSON b) => JsonResponse b -> Either Text b
 handleJsonResponse (JsonSuccess r) = Right r
 handleJsonResponse (JsonFailure c err) = Left $ T.concat $ ["Code: ", T.pack $ show c, " "] ++ err
 
-decodeEither :: (IsString a, FromJSON b) => ByteString -> Either a b
+decodeEither :: (FromJSON b) => ByteString -> Either Text b
 decodeEither j = 
     case decode j of
-        Nothing -> Left "failed to parse JSON"
+        Nothing -> Left ("failed to parse JSON " `T.append` (T.take 20 $ T.fromStrict $ TE.decodeUtf8 $ BL.toStrict j))
         Just d -> Right d
