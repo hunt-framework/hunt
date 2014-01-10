@@ -1,5 +1,5 @@
 name:          hayooCrawler
-version:       0.0.0.3
+version:       0.0.0.4
 license:       MIT
 license-file:  LICENSE
 author:        Uwe Schmidt
@@ -9,12 +9,13 @@ stability:     experimental
 category:      Text, Data
 synopsis:      The Hayoo! crawler for indexing hackage documentation
 description:   The Hayoo! crawler for indexing hackage documentation
+               Version 0.0.0.4: Type field in FunctionInfo added
                .
                Version 0.0.0.3: Hackage2 changes
                .
                Version 0.0.0.2: Error handling in crawler added
                .
-	       Version 0.0.0.1: Support for JSON output
+               Version 0.0.0.1: Support for JSON output
                .
                Initial version: Derived from holumbus repo
 cabal-version: >=1.10
@@ -79,6 +80,8 @@ executable hayooCrawler
                  , bytestring             >= 0.9
                  , bzlib                  >= 0.4   && < 1
                  , containers             >= 0.4.2
+                 , data-size              >= 0.1.1
+                 , data-stringmap         >= 0.9.1 && < 2
                  , deepseq                >= 1.2
                  , directory              >= 1.1
                  , filepath               >= 1     && < 2
@@ -102,11 +105,10 @@ executable hayooCrawler
                  , process                >= 1     && < 2
                  , tar                    >= 0.3   && < 1
                  , text                   >= 0.11
-                 , zlib                   >= 0.5   && < 1 
                  , SHA                    >= 1.4   && < 2
-                 , data-stringmap         >= 0.9.1 && < 2
                  , unix                   >= 2.3   && < 3
                  , unordered-containers   >= 0.2
+                 , zlib                   >= 0.5   && < 1 
 
   hs-source-dirs: src
 
