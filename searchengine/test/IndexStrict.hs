@@ -11,9 +11,7 @@ import           Control.DeepSeq
 import           Control.Monad                                   (foldM)
 
 import           Test.Framework
---import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
---import           Test.HUnit
 import           System.Random
 import           Test.QuickCheck
 import           Test.QuickCheck.Gen
@@ -27,10 +25,8 @@ import           Data.Map                                        (Map)
 import qualified Data.Map                                        as M
 import           Data.Text                                       (Text)
 import qualified Data.Text                                       as T
---import qualified Data.IntSet                                     as IS
 
 import           Holumbus.Common
---import qualified Holumbus.Common.DocIdMap                        as DM
 import qualified Holumbus.Common.Occurrences                     as Occ
 import qualified Holumbus.Common.Occurrences.Compression.BZip    as ZB
 import qualified Holumbus.Common.Occurrences.Compression.Simple9 as Z9
@@ -42,13 +38,14 @@ import qualified Holumbus.Index.ComprPrefixTreeIndex             as CPIx
 import qualified Holumbus.Index.Index                            as Ix
 import qualified Holumbus.Index.InvertedIndex                    as InvIx
 import qualified Holumbus.Index.PrefixTreeIndex                  as PIx
+import           Holumbus.Index.IndexImpl
 
 import qualified Holumbus.Index.Proxy.CachedIndex                as CacheProxy
 import qualified Holumbus.Index.Proxy.KeyIndex                   as KeyProxy
 import qualified Holumbus.Index.Proxy.IntNormalizerIndex         as IntProxy
 import qualified Holumbus.Index.Proxy.DateNormalizerIndex        as DateProxy
 import qualified Holumbus.Index.Proxy.PositionNormalizerIndex    as GeoProxy
-
+import qualified Holumbus.Index.Proxy.ContextIndex               as CIx
 --import qualified Holumbus.Index.Proxy.CompressedIndex            as ComprProxy
 
 import           GHC.AssertNF
@@ -62,23 +59,39 @@ main = do
 --  putStrLn $ show bool
   defaultMain [
 
+              -- strictness property for in index data structures
                 testProperty "prop_strictness_occurrences"               prop_occs
 
+              -- strictness property for index implementations
               , testProperty "prop_strictness_prefixtreeindex"           prop_ptix
               , testProperty "prop_strictness_invindex textkey"          prop_invix1
               , testProperty "prop_strictness_invindex intkey"           prop_invix2
               , testProperty "prop_strictness_invindex datekey"          prop_invix3
               , testProperty "prop_strictness_invindex geokey"           prop_invix4
---            test failing right now because compressedoccurrences are not strict
---            but we are not using them at the moment at probably won't in the future
---              , testProperty "prop_strictness_comprprefixtreeindex comp" prop_cptix
+              
+              -- strictness property for compression implementations
               , testProperty "prop_strictness_comprprefixtreeindex bzip" prop_cptix2
               , testProperty "prop_strictness_comprprefixtreeindex snap" prop_cptix3
+--            test failing right now because compressedoccurrences are not strict
+--            but we are not using them at the moment and probably won't in the future
+--              , testProperty "prop_strictness_comprprefixtreeindex comp" prop_cptix
+              
+              -- strictness property for proxies
               , testProperty "prop_strictness_proxy_cache"               prop_cachedix
               , testProperty "prop_strictness_proxy_textkey"             prop_textix
               , testProperty "prop_strictness_proxy_intkey"              prop_intix
               , testProperty "prop_strictness_proxy_datekey"             prop_dateix
               , testProperty "prop_strictness_proxy_geokey"              prop_geoix
+
+              -- strictness property for contextindex
+              , testProperty "prop_strictness_contextindex empty "       prop_contextix_empty
+              , testProperty "prop_strictness_contextindex empty ix"     prop_contextix_emptyix
+              , testProperty "prop_strictness_contextindex"              prop_contextix
+              , testProperty "prop_strictness_contextindex2"             prop_contextix2
+
+              -- strictness property of IndexImpl container
+              , testProperty "prop_strictness_indeximpl emptyix"         prop_impl_empty
+              , testProperty "prop_strictness_indeximpl fullix"          prop_impl_full
            ]
 
 -- ----------------------------------------------------------------------------
@@ -227,6 +240,81 @@ prop_geoix
     assert passed
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
+
+-- ----------------------------------------------------------------------------
+-- test property contextindex
+-- ----------------------------------------------------------------------------
+
+prop_contextix_empty :: Property
+prop_contextix_empty
+  = monadicIO $ do
+    passed <- run $ isNF $! CIx.empty
+    assert passed
+
+
+prop_contextix_emptyix :: Property
+prop_contextix_emptyix
+   = monadicIO $ do
+    val     <- pick arbitrary :: PropertyM IO Occurrences
+    let ix  = Ix.empty :: (InvIx.InvertedIndexPosition Occurrences)
+    let ix2 = Ix.empty :: (InvIx.InvertedIndex Occurrences)
+    let cix = CIx.insertContext "text" (mkIndex ix2) 
+            $ CIx.insertContext "geo" (mkIndex ix) 
+            $ CIx.empty 
+    passed <- run $ isNF $! cix
+    assert passed
+
+
+
+prop_contextix :: Property
+prop_contextix
+  = monadicIO $ do
+    val     <- pick arbitrary :: PropertyM IO Occurrences
+    let ix  = Ix.empty :: (InvIx.InvertedIndexPosition Occurrences)
+    let ix2 = Ix.empty :: (InvIx.InvertedIndex Occurrences)
+    let cix = CIx.insertWithCx "text" "word" val
+            $ CIx.insertContext "text" (mkIndex ix2) 
+            $ CIx.insertContext "geo" (mkIndex ix) 
+            $ CIx.empty 
+    passed <- run $ isNF $! cix
+    assert passed
+
+
+prop_contextix2 :: Property
+prop_contextix2
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Occurrences)
+    ix2 <- pickIx2 :: PropertyM IO (InvIx.InvertedIndex Occurrences)
+    let cix = CIx.insertContext "text" (mkIndex ix2) 
+            $ CIx.insertContext "geo" (mkIndex ix) 
+            $ CIx.empty 
+    passed <- run $ isNF $! cix
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
+  pickIx2 = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
+
+-- ----------------------------------------------------------------------------
+-- test property indeximpl
+-- ----------------------------------------------------------------------------
+
+prop_impl_full :: Property
+prop_impl_full
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Occurrences)
+    passed <- run $ isNF $! (mkIndex ix)
+    assert passed
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
+
+
+prop_impl_empty :: Property
+prop_impl_empty
+  = monadicIO $ do
+    let ix = Ix.empty  :: (InvIx.InvertedIndexPosition Occurrences)
+    passed <- run $ isNF $! (mkIndex ix)
+    assert passed
+
 
 
 -- ----------------------------------------------------------------------------
