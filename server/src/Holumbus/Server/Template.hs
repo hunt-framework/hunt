@@ -69,7 +69,7 @@ index _docs =
          <td>AND, OR, NOT, BUT
        <tr>
          <td>query boosting
-         <td>data list<strong>^</strong>1.5 (set OR map)<strong>^</strong>2
+         <td>toAscList<strong>^</strong>1.5 OR toList
 
 |]) `LT.append`
   -- generate javascript
@@ -178,7 +178,7 @@ index _docs =
           globalPage    = pager.offset / pager.max + 1;
           globalPerPage = pager.max;
           globalResults = pager.count;
-          globalPages   = Math.ceil(globalResults / globalPerPage);
+          globalPages   = Math.max(Math.ceil(globalResults / globalPerPage),1);
           simpleSearchCompletedHandler({code:0, msg:pager.result});
 
           $("#result-count").html(globalResults + " documents found");
