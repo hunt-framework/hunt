@@ -47,25 +47,29 @@ index _docs =
      <table .table .table-condensed .table-bordered .table-striped>
        <tr>
          <td>case-sensitive query
-         <td><strong>!</strong>chris<br /><strong>!</strong>Chris
+         <td><strong>!</strong>chris<br />
+            <strong>!</strong>Chris
        <tr>
          <td>fuzzy query
-         <td><strong>~</strong>chris <br /> <strong>~</strong>hcris
+         <td><strong>~</strong>chris<br />
+            <strong>~</strong>hcris
        <tr>
          <td>phrase query
          <td><strong>"</strong>this is a phrase<strong>"</strong>
        <tr>
-         <td>using brackets
+         <td>brackets
          <td><strong>(</strong>...<strong>)</strong>
        <tr>
          <td>context-sensitive query
-         <td>context<strong>:</strong>query<br />people<strong>:</strong>chris
-       <tr>
-         <td>mutli-context query
-         <td>developer<strong>,</strong>students<strong>,</strong>people:chris
+         <td>context<strong>:</strong>query<br />
+            people<strong>:</strong>chris<br />
+            developer<strong>,</strong>students<strong>,</strong>people:chris
        <tr>
          <td>query combinators
          <td>AND, OR, NOT, BUT
+       <tr>
+         <td>query boosting
+         <td>data list<strong>^</strong>1.5 (set OR map)<strong>^</strong>2
 
 |]) `LT.append`
   -- generate javascript
