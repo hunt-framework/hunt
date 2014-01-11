@@ -99,18 +99,39 @@ $doctype 5
         ^{footer}
 |] render
 
+renderResultHeading :: Api.SearchResult -> Hamlet.HtmlUrl Routes
+renderResultHeading (Api.SearchResult u _ _ n s _ _ Api.Function) = [Hamlet.hamlet|
+<div .panel-heading>
+    <a href=#{u}>
+        #{n}
+    :: #{s}
+|]
+
+renderResultHeading (Api.SearchResult u _ _ n s _ _ Api.Method) = [Hamlet.hamlet|
+<div .panel-heading>
+    <a href=#{u}>
+        #{n}
+    :: #{s}
+    <span .label .label-default>
+        Class Method
+|]
+
+renderResultHeading (Api.SearchResult u _ _ n _ _ _ t) = [Hamlet.hamlet|
+<div .panel-heading>
+    #{show t}
+    <a href=#{u}>
+        #{n}
+|]
+
 renderResult :: Api.SearchResult -> Hamlet.HtmlUrl Routes
-renderResult (Api.FunctionResult u p m n s d _) = [Hamlet.hamlet|
+renderResult result = [Hamlet.hamlet|
 <div .panel .panel-default>
-    <div .panel-heading>
-        <a href=#{u}>
-            #{n}
-        :: #{s}
+    ^{renderResultHeading result} 
     <div .panel-body>
         <p>
-            #{p} - #{m}
+            #{Api.resultPackage result} - #{Api.resultModule result}
         <p .description .more>
-            #{d}
+            #{Api.resultDescription result}
 |]
 
 renderLimitedRestults :: Api.LimitedResult Api.SearchResult -> Hamlet.HtmlUrl Routes

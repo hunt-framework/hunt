@@ -2,7 +2,7 @@
 
 module Holumbus.Server.Client where
 
-import Control.Lens (over, both)
+import Control.Lens (over, both, _Left)
 
 import qualified Network.HTTP.Conduit as HTTP
 --import qualified Data.ByteString.Lazy as L
@@ -75,7 +75,7 @@ instance (FromJSON x) => FromJSON (LimitedResult x) where
 autocomplete :: (MonadIO m) => Text -> Text  -> m (Either Text [Text])
 autocomplete server q = do
     d <- HTTP.simpleHttp $ T.unpack $ T.concat [ "http://", server, "/completion/", q, "/20"]
-    return $ (decodeEither >=> handleJsonResponse >=> filterByRest >=> prefixWith) d
+    return $ (eitherDecodeT >=> handleJsonResponse >=> filterByRest >=> prefixWith) d
     where
         (rest, prefix) = over both T.reverse $ T.span (\ c -> (not $ isSpace c) && (c /= ':') && (c /= '!') && (c /= '~')) $ T.reverse q
 
@@ -89,14 +89,11 @@ autocomplete server q = do
 query :: (MonadIO m, FromJSON r) => Text -> Text -> m (Either Text (LimitedResult r))
 query server q = do
     d <- HTTP.simpleHttp $ T.unpack $ T.concat ["http://" , server, "/search/", q, "/0/20"]
-    return $ (decodeEither >=> handleJsonResponse) d
+    return $ (eitherDecodeT >=> handleJsonResponse) d
 
 handleJsonResponse :: (FromJSON b) => JsonResponse b -> Either Text b
 handleJsonResponse (JsonSuccess r) = Right r
 handleJsonResponse (JsonFailure c err) = Left $ T.concat $ ["Code: ", T.pack $ show c, " "] ++ err
 
-decodeEither :: (FromJSON b) => ByteString -> Either Text b
-decodeEither j = 
-    case decode j of
-        Nothing -> Left ("failed to parse JSON " `T.append` (T.take 20 $ T.fromStrict $ TE.decodeUtf8 $ BL.toStrict j))
-        Just d -> Right d
+eitherDecodeT :: FromJSON a => ByteString -> Either Text a
+eitherDecodeT =  over _Left (("Json decode error: " `T.append`) . T.pack) . eitherDecode

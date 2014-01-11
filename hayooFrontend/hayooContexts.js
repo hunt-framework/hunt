@@ -51,7 +51,7 @@
     "cmd": "insert-context",
     "context": "signature",
     "schema": {
-        "weight": 1.0,
+        "weight": 0.2,
         "default": true,
         "normalizers": [],
         "regexp": ".*",

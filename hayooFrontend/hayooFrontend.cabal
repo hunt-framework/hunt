@@ -40,4 +40,5 @@ executable hayooFrontend
                      http-conduit >= 2.0.0,
                      bytestring >= 0.10,
                      transformers >= 0.3,
-                     Holumbus-Server >= 2
+                     Holumbus-Server >= 2,
+                     lens >= 3.10

@@ -19,18 +19,21 @@ def main():
             newDoc = {}
             newDoc["uri"] = doc["uri"]
             newDoc["description"] = {}
-            newDoc["description"]["type"] = "function"
-            if len(doc["description"]) > 6:
+            
+            if len(doc["description"]) > 7:
                 raise Exception(str((doc["description"].keys())))
-            if "fct-descr" in doc["description"]:
-                newDoc["description"]["description"] = doc["description"]["fct-descr"]
             newDoc["description"]["module"] = doc["description"]["fct-module"]
             newDoc["description"]["package"] = doc["description"]["fct-package"]
             newDoc["description"]["signature"] = doc["description"]["fct-signature"]
             newDoc["description"]["name"] = doc["description"]["title"]
+            newDoc["description"]["type"] = doc["description"]["fct-type"]
+            
             newDoc["index"] = dict(newDoc["description"])
+            
             if "fct-source" in doc["description"]:
                 newDoc["description"]["source"] = doc["description"]["fct-source"]
+            if "fct-descr" in doc["description"]:
+                newDoc["description"]["description"] = doc["description"]["fct-descr"]
             allFuncs.append(newDoc)
     with open(_outFile, 'wb') as allf:
         allf.write(bytes(json.dumps(allFuncs, indent=4), 'UTF-8'))

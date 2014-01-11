@@ -1,25 +1,56 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE FlexibleContexts #-}
+
+
 module Hayoo.HolumbusClient where
 
+import GHC.Generics (Generic)
+
+import Data.Char
 import Control.Monad (mzero)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Text.Lazy (Text)
 -- import qualified Data.Text.Lazy as T
 
+import Control.Lens
+
 import Data.Aeson
+import Data.Aeson.Types
 
 import qualified Holumbus.Server.Client as H
 
+data ResultType = Function | Class | Data | Module | Package | Newtype | Type | Method
+    deriving (Eq, Show, Generic)
 
 
-data SearchResult = FunctionResult {
+
+capitalize :: String -> String
+capitalize = over _head toUpper . over (_tail.each) toLower
+
+lowercase :: Each Mutator s t Char Char => s -> t
+lowercase = over (each) toLower
+
+instance FromJSON ResultType where
+     parseJSON = genericParseJSON Options { 
+     fieldLabelModifier      = id
+     , constructorTagModifier  = lowercase
+     , allNullaryToStringTag   = True
+     , omitNothingFields       = False
+     , sumEncoding             = defaultTaggedObject
+ }
+
+
+data SearchResult = SearchResult {
     uri :: Text, 
-    functionPackage :: Text,
-    functionModule :: Text,
-    functionName :: Text,
-    functionSignature :: Text,
-    functionDescription :: Text,
-    functionSource :: Text
+    resultPackage :: Text,
+    resultModule :: Text,
+    resultName :: Text,
+    resultSignature :: Text,
+    resultDescription :: Text,
+    resultSource :: Text,
+    resultType :: ResultType
 } deriving (Show, Eq)
 
 instance FromJSON SearchResult where
@@ -32,7 +63,8 @@ instance FromJSON SearchResult where
         s  <- descr .: "signature"
         d  <- descr .:? "description" .!= ""
         c  <- descr .:? "source" .!= ""
-        return $ FunctionResult u p m n s d c
+        t  <- descr .:? "type" .!= Function
+        return $ SearchResult u p m n s d c t
     parseJSON _ = mzero
 
 autocomplete :: (MonadIO m) => Text -> Text  -> m (Either Text [Text])
