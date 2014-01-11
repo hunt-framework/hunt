@@ -28,7 +28,7 @@ executable hayooFrontend
   main-is:           Server.hs
 
   -- other-modules:       
-  build-depends:     base ==4.6.*,
+  build-depends:     base == 4.6.*,
                      scotty >= 0.5 && < 0.7,
                      text >= 0.11 && < 1,
                      blaze-html >= 0.6 && < 0.7,
@@ -39,4 +39,5 @@ executable hayooFrontend
                      aeson >= 0.6,
                      http-conduit >= 2.0.0,
                      bytestring >= 0.10,
-                     transformers >= 0.3
+                     transformers >= 0.3,
+                     Holumbus-Server >= 2

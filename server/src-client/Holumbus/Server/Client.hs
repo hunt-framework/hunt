@@ -1,17 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hayoo.ApiClient where
+module Holumbus.Server.Client where
 
-{-
-import qualified Network.HTTP.Client as HTTP
-
-newManager :: String -> IO HTTP.Manager
-newManager host = do
-    HTTP.newManager HTTP.defaultManagerSettings
-
-autocomplete :: String -> HTTP.Manager-> IO [String]
-autocomplete w = do
--}
+import Control.Lens (over, both)
 
 import qualified Network.HTTP.Conduit as HTTP
 --import qualified Data.ByteString.Lazy as L
@@ -22,7 +13,7 @@ import qualified Data.Text.Encoding as TE
 --import Data.Functor
 --import Control.Applicative
 
-import Control.Monad
+import Control.Monad (mzero, (>=>))
 import Control.Monad.IO.Class (MonadIO)
 import Data.Aeson
 import Data.ByteString.Lazy (ByteString) 
@@ -61,29 +52,6 @@ instance (FromJSON r) => FromJSON (JsonResponse r) where
                 return $ JsonFailure code msg
     parseJSON _ = mzero
 
-data SearchResult = FunctionResult {
-    uri :: Text, 
-    functionPackage :: Text,
-    functionModule :: Text,
-    functionName :: Text,
-    functionSignature :: Text,
-    functionDescription :: Text,
-    functionSource :: Text
-} deriving (Show, Eq)
-
-instance FromJSON SearchResult where
-    parseJSON (Object v) = do
-        u <- v .: "uri" 
-        (Object descr) <- v .: "desc"
-        p  <- descr .: "package"
-        m  <- descr .: "module"
-        n  <- descr .: "name"
-        s  <- descr .: "signature"
-        d  <- descr .:? "description" .!= ""
-        c  <- descr .:? "source" .!= ""
-        return $ FunctionResult u p m n s d c
-    parseJSON _ = mzero
-
 -- TODO: join with ApiDocument.hs
 data LimitedResult x = LimitedResult
     { lrResult :: [x]
@@ -107,14 +75,18 @@ instance (FromJSON x) => FromJSON (LimitedResult x) where
 autocomplete :: (MonadIO m) => Text -> Text  -> m (Either Text [Text])
 autocomplete server q = do
     d <- HTTP.simpleHttp $ T.unpack $ T.concat [ "http://", server, "/completion/", q, "/20"]
-    let prefix = T.reverse $ T.dropWhile (\ c -> (not $ isSpace c) && (c /= ':') && (c /= '!') && (c /= '~')) $ T.reverse q
-    return $ (decodeEither >=> handleJsonResponse >=> (prefixWith prefix)) d
+    return $ (decodeEither >=> handleJsonResponse >=> filterByRest >=> prefixWith) d
     where
-        prefixWith :: Text -> [Text] -> Either Text [Text]
-        prefixWith p = ((return .) . fmap) $ (p `T.append`)
+        (rest, prefix) = over both T.reverse $ T.span (\ c -> (not $ isSpace c) && (c /= ':') && (c /= '!') && (c /= '~')) $ T.reverse q
+
+        filterByRest :: [(Text, [Text])] -> Either Text [Text]
+        filterByRest = return . map fst . filter (\(_, rs) -> rest `elem` rs)
+
+        prefixWith :: [Text] -> Either Text [Text]
+        prefixWith = ((return .) . fmap) $ (prefix `T.append`)
         
 
-query :: (MonadIO m) => Text -> Text -> m (Either Text (LimitedResult SearchResult))
+query :: (MonadIO m, FromJSON r) => Text -> Text -> m (Either Text (LimitedResult r))
 query server q = do
     d <- HTTP.simpleHttp $ T.unpack $ T.concat ["http://" , server, "/search/", q, "/0/20"]
     return $ (decodeEither >=> handleJsonResponse) d

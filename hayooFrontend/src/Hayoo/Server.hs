@@ -19,7 +19,7 @@ import qualified Data.Text.Lazy.Encoding as T
 import           Data.Aeson.Types ()
 import Control.Monad.IO.Class (liftIO)
 
-import Hayoo.ApiClient
+import Hayoo.HolumbusClient
 import Paths_hayooFrontend
 
 start :: IO ()

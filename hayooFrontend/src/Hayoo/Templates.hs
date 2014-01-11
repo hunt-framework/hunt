@@ -11,7 +11,8 @@ import Data.Text.Lazy (Text)
 import qualified Data.Text as TS
 import qualified Data.Text.Lazy as T
 
-import qualified Hayoo.ApiClient as Api
+import qualified Hayoo.HolumbusClient as Api
+import qualified Holumbus.Server.Client as Api
 
 data Routes = Home | HayooJs | HayooCSS | Autocomplete | Examples | About
 
