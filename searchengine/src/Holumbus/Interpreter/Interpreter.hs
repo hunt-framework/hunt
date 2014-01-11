@@ -13,6 +13,7 @@ import           Control.Applicative
 import           Control.Concurrent.XMVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
+import           Control.Monad
 
 import qualified Data.Aeson                                as JS
 import qualified Data.Binary                               as Bin
@@ -24,6 +25,7 @@ import           Data.Set                                  (Set)
 import qualified Data.Set                                  as S
 import           Data.Text                                 (Text)
 import qualified Data.Text                                 as T
+import qualified Data.ByteString.Lazy                      as L
 
 import           Holumbus.Common
 import           Holumbus.Common.ApiDocument               as ApiDoc
@@ -34,10 +36,11 @@ import           Holumbus.Common.Document.Compression.BZip (CompressedDoc)
 
 import           Holumbus.Index.Schema.Analyze
 
-import           Holumbus.IndexHandler                     (IndexHandler(..))
+import           Holumbus.IndexHandler                     (IndexHandler(..),decodeIXH)
 import qualified Holumbus.IndexHandler                     as Ixx
 
 import qualified Holumbus.Index.Index                      as Ix
+import           Holumbus.Index.IndexImpl                  (ContextTypes)
 import qualified Holumbus.Index.IndexImpl                  as Impl
 import           Holumbus.Index.InvertedIndex
 import           Holumbus.Index.Proxy.ContextIndex         (ContextIndex)
@@ -108,8 +111,6 @@ emptyIndexer = IXH CIx.empty HDt.empty M.empty
 
 -- ----------------------------------------------------------------------------
 
-type ContextTypes = M.Map Text Impl.ContextMeta
-
 contextTypes :: ContextTypes
 contextTypes
   = M.fromList $
@@ -123,13 +124,13 @@ defaultInv :: Impl.IndexImpl Occurrences
 defaultInv  = Impl.IndexImpl (Ix.empty :: InvertedIndex Occurrences)
 
 intInv :: Impl.IndexImpl Occurrences
-intInv      = Impl.IndexImpl (Ix.empty :: InvertedIndexInt Occurrences)
+intInv      = Impl.IndexImpl (Ix.empty :: InvertedIndex{-Int-} Occurrences)
 
 dateInv :: Impl.IndexImpl Occurrences
-dateInv     = Impl.IndexImpl (Ix.empty :: InvertedIndexDate Occurrences)
+dateInv     = Impl.IndexImpl (Ix.empty :: InvertedIndex{-Date-} Occurrences)
 
 positionInv :: Impl.IndexImpl Occurrences
-positionInv = Impl.IndexImpl (Ix.empty :: InvertedIndexPosition Occurrences)
+positionInv = Impl.IndexImpl (Ix.empty :: InvertedIndex{-Position-} Occurrences)
 
 
 -- ----------------------------------------------------------------------------
@@ -453,6 +454,10 @@ execBatchDelete d ix = do
     ix' <- lift $ Ixx.deleteDocsByURI d ix
     return (ix', ResOK)
 
+-- ----------------------------------------------------------------------------
+-- general load and store methods
+-- XXX do we still need them? do we load/store structure other than the
+-- IndexHandler, including ix,doctable,schema?
 
 execStore :: (Bin.Binary a, DocTable dt) =>
              FilePath -> a -> CM dt CmdResult
@@ -461,11 +466,25 @@ execStore filename x = do
     return ResOK
 
 
-execLoad :: (Bin.Binary a, DocTable dt) =>
+execLoad' :: (Bin.Binary a, DocTable dt) =>
              FilePath -> CM dt (a, CmdResult)
-execLoad filename = do
+execLoad' filename = do
     x <- liftIO $ Bin.decodeFile filename
     return (x, ResOK)
+
+-- ----------------------------------------------------------------------------
+-- more specific load and store functions needed to unserialize our homogenious index
+
+execLoad :: (Bin.Binary dt, DocTable dt) => FilePath -> CM dt (IndexHandler dt, CmdResult)
+execLoad filename = do
+    ts <- askTypes
+    x <- liftIO $ decodeFile' ts filename
+    return (x, ResOK)
+    where
+    decodeFile' ts f = do
+       bs <- (L.readFile f)
+       return $ decodeIXH ts bs
+
 
 -- ----------------------------------------------------------------------------
 

@@ -3,7 +3,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverlappingInstances       #-}
 {-# LANGUAGE TypeFamilies               #-}
-
+{-# LANGUAGE DeriveDataTypeable         #-}
 
 module Holumbus.Index.InvertedIndex
 ( InvertedIndex(..)
@@ -20,6 +20,7 @@ import           Control.DeepSeq
 import           Data.Bijection.Instances                       ()
 import           Data.Binary                                    (Binary (..))
 import           Data.Text                                      (Text)
+import           Data.Typeable
 
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Occurrences                    (Occurrences)
@@ -42,7 +43,7 @@ type InvertedIndexPosition v = PositionNormalizerIndex  InvertedIndex v
 
 newtype InvertedIndex _v
     = InvIx { invIx :: KeyProxyIndex Text ComprOccPrefixTree CompressedOccurrences }
-    deriving (Eq, Show, NFData)
+    deriving (Eq, Show, NFData, Typeable)
 
 mkInvIx :: KeyProxyIndex Text ComprOccPrefixTree CompressedOccurrences
         -> InvertedIndex v_
