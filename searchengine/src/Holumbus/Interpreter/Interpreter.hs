@@ -441,9 +441,9 @@ wrapCompletion :: Int -> Result e -> CmdResult
 wrapCompletion mx
     = ResCompletion
       . take mx
-      . map fst -- remove score from result
-      . sortBy (descending `on` snd) -- sort by score
-      . map (\(c, (wi, _wch)) -> (c, wordScore wi))
+      . map (\(word,_score,terms') -> (word, terms')) -- remove score from result
+      . sortBy (descending `on` (\(_,score,_) -> score)) -- sort by score
+      . map (\(c, (wi, _wch)) -> (c, wordScore wi, terms wi))
       . M.toList
       . wordHits
 

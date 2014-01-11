@@ -65,7 +65,7 @@ data StatusCmd
 data CmdResult
   = ResOK
   | ResSearch       { crRes :: LimitedResult Document }
-  | ResCompletion   { crWords :: [Text] }
+  | ResCompletion   { crWords :: [(Text, [Text])] }
   | ResGeneric      { crGen :: Value }
   deriving (Show, Eq)
 
