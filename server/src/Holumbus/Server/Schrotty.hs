@@ -45,7 +45,7 @@ type Schrotty = ScottyT WebErrorM
 data WebError
   = InterpreterError CmdError
   | NotFound
-  | JsonInvalid
+  | JsonInvalid      String
   | MissingParam     ByteString
   | Other            ByteString
   | Text             Int ByteString
@@ -65,8 +65,8 @@ handleCustomError code bs = return $ plainResponse (toEnum code) bs
 handleError :: WebError -> IO Response
 handleError (NotFound)
   = return $ plainResponse status404 $ "Not found."
-handleError (JsonInvalid)
-  = return $ jsonResponse status400 $ JsonFailure 400 ("json invalid"::String)
+handleError (JsonInvalid s)
+  = return $ jsonResponse status400 $ JsonFailure 400 ("json invalid: " ++ s)
 handleError (MissingParam bs)
   = return $ plainResponse status404 $ "Query parameter missing " `BSL.append` bs
 handleError (Other bs)
@@ -97,8 +97,11 @@ jsonPretty v = do
 
 -- | Replacement for 'Web.Scotty.jsonData' with custom error.
 jsonData :: FromJSON a => ActionT WebErrorM a
-jsonData = Scotty.jsonData
-            `rescue` (\_ -> throw JsonInvalid)
+jsonData = do 
+    b <- body
+    case A.eitherDecode b of
+      (Right j) -> return j
+      (Left e) -> throw (JsonInvalid e)
 
 -- | Replacement for 'Web.Scotty.param' with custom error.
 param :: Parsable a => TL.Text -> ActionT WebErrorM a

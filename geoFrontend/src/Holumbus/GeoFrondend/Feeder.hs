@@ -13,7 +13,10 @@ import Control.Lens (over, mapped, both)
 import Data.Maybe (isJust, fromJust)
 import Data.List (intersect)
 import qualified Data.Set as Set
+
 import Data.Text (Text, pack)
+import qualified Data.Text as T
+
 import qualified Data.ByteString.Char8 as B (unpack)
 import qualified Data.ByteString.Lazy as BL
 
@@ -71,19 +74,23 @@ getCommon nwr
 
 
 data GeoDocument = GeoDocument {
+    osmId :: Integer,
     name :: Text,
-    lon  :: Text,
-    lat  :: Text,
+    lon  :: Double,
+    lat  :: Double,
     kind :: OSMType,
     tags :: [(Text, Text)]
 } deriving (Eq, Ord)
 
 instance ToJSON GeoDocument where
-    toJSON d = object $ [ "name" .= name d,
-                        "lon" .= lon d,
-                        "lat" .= lat d,
-                        "kind" .= kind d
-                        ] ++ (map (uncurry (.=)) $ tags d)
+    toJSON d = object $ [ "uri" .= uri, "index" .= o, "description" .= o ]
+        where
+            o = object $ [ "name" .= name d,
+                           "position" .= ((fromShow $ lon d) `T.append` "-" `T.append` (fromShow $ lat d)),
+                           "kind" .= kind d
+                         ] ++ (map (uncurry (.=)) $ tags d)
+            uri = "osm://" ++ (show $ osmId d)
+
 
 data OSMType = Way | Node
     deriving (Show, Eq, Generic, Ord)
@@ -91,20 +98,21 @@ data OSMType = Way | Node
 instance ToJSON OSMType
 
 nwrToGeoDocument :: NodeWayRelation -> GeoDocument
-nwrToGeoDocument nwr = GeoDocument nameTag nwrLon nwrLat kind' (filter (\(k,_) -> k /= "name") tags')
+nwrToGeoDocument nwr = GeoDocument osmId' nameTag nwrLon nwrLat kind' (filter (\(k,_) -> k /= "name") tags')
     where
+        osmId' = read $ nwrCommonGetId $ getCommon nwr
         tags' :: [(Text,Text)]
         tags' = over (mapped.both) pack $ filterIndexedTags $ fmap tagToPair $ nwrCommonGetTags $ getCommon nwr
         nameTag :: Text
         nameTag = fromJust $ lookup "name" tags'
-        (nwrLon, nwrLat) = over both pack $ nwrGetCoords nwr
+        (nwrLon, nwrLat) = nwrGetCoords nwr
         kind' = foldNodeWayRelation nwr (const Node) (const Way) undefined
 
-nwrGetCoords :: NodeWayRelation -> (String, String)
+nwrGetCoords :: NodeWayRelation -> (Double, Double)
 nwrGetCoords nwr = foldNodeWayRelation nwr fNode fWay undefined
     where
-        fNode n = (nodeGetLon n, nodeGetLat n)
-        fWay _ = ("", "")
+        fNode n = over both read $ (nodeGetLon n, nodeGetLat n)
+        fWay _ = (0.0, 0.0)
 
 indexedTags :: [String]
 indexedTags = [
@@ -116,15 +124,17 @@ indexedTags = [
     , "tourism"
     , "leisure"
     , "website"
-    , "wikipedia"
+--    , "wikipedia"
 
     , "place"
     , "memorial:type"
     , "contact:website"
     , "cuisine"
     , "operator"
-    , "phone"
-    , "fax"]
+    , "phone"]
 
 filterIndexedTags :: [(String, String)] -> [(String, String)]
 filterIndexedTags tags' = filter (\(k,_) -> k `elem` indexedTags) tags'
+
+fromShow :: (Show a) => a -> Text 
+fromShow = T.pack . show 
