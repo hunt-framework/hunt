@@ -80,7 +80,10 @@ insertJokes:
 	curl -X POST -d @data/jokes/contexts.js $(SERVER)/eval
 	curl -X POST -d @data/jokes/FussballerSprueche.js $(SERVER)/document/insert
 
-insertHayoo:
+hayooFrontend/functions.js:
+	cd hayooFrontend && ./convertJSON.py
+	
+insertHayoo: hayooFrontend/functions.js
 	curl -X POST -d @hayooFrontend/hayooContexts.js $(SERVER)/eval
 	curl -X POST -d @hayooFrontend/functions.js $(SERVER)/document/insert
 
