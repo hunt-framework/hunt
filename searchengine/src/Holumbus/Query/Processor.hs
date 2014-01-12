@@ -33,7 +33,7 @@ import           Data.Maybe
 import           Data.Text                         (Text)
 import qualified Data.Text                         as T
 
-import           Holumbus.Utility
+--import           Holumbus.Utility
 
 import           Holumbus.Common
 import qualified Holumbus.Common.DocIdMap          as DM
@@ -54,7 +54,7 @@ import           Holumbus.DocTable.DocTable        (DocTable)
 import qualified Holumbus.DocTable.DocTable        as Dt
 
 import           Holumbus.Index.Schema.Analyze
-import           Holumbus.Index.Schema.Normalize
+--import           Holumbus.Index.Schema.Normalize
 import           Holumbus.Interpreter.Command      (CmdError (..))
 
 import qualified System.Log.Logger                 as Log
@@ -150,31 +150,34 @@ getSchema = get >>= return . psSchema
 -- | Get the schema associated with that context/index.
 --   /NOTE/: This fails if the schema does not exist.
 getContextSchema ::   Context -> Processor ContextSchema
-getContextSchema c = getSchema >>= return . fromJust . M.lookup c
+getContextSchema c = do 
+  schema <- getSchema 
+  case M.lookup c schema of
+    (Just cs) -> return cs
+    _         -> processError 420 ("Context does not exist in schema: " `T.append` c)
+
 
 -- | normalizes search text in respect of schema context type
 --   first runs validator that throws error for invalid values
 --   then runs normalizers attached to the given context
-normQueryCx ::   Context -> Text -> Processor Text
+normQueryCx :: Context -> Text -> Processor Text
 normQueryCx c t = do
   s <- getContextSchema c
-  if typeValidator (ct s) t
+  -- applying context type validator
+  if (validate . ctValidate . cxType $ s) t
     then do
-       liftIO . debugM $ concat [ "query normalizer: ", T.unpack c, ": [", T.unpack t, "=>", T.unpack $ n s, "]"]
-       return $ n s
-    else processError 400 $ T.concat ["value incompatible with context type: ", c, ":", t, "(", T.pack . show $ ct s,")"]
-  where
-  n s = normalize (cxNormalizer s) t
-  ct s = case cxType s of
-           (Just c') -> c'
-           _        -> error "context type not set"
+      liftIO . debugM . debugMsg $ s 
+      -- applying context schema normalizer
+      return $ norm s    
+    else processError 400 $ errorMsg s
+    where
+  norm s     = normalize (cxNormalizer s) t
+  debugMsg s = T.unpack $ T.concat [ "query normalizer: ", c, ": [", t, "=>", norm s, "]"]
+  errorMsg s = T.concat ["value incompatible with context type: ", c, ":", t, "(", T.pack . show $ ctName . cxType $ s,")"]
 
 -- | normalizes search text in respect of multiple contexts
 normQueryCxs ::   [Context] -> Text -> Processor [(Context, Text)]
 normQueryCxs cs t  = mapM (\c -> normQueryCx c t >>= \nt -> return (c, nt)) cs
-
---withState' ::   (ProcessState ix -> Processor a) -> Processor a
---withState' f = get >>= f
 
 -- | Set the contexts to be used for the query. Checks if the contexts exist.
 putContexts ::   [Context] -> Processor ()
@@ -342,25 +345,17 @@ processRange ::   Text -> Text -> Processor Intermediate
 processRange l h = forAllContexts' range
   where
   range c = do
-    cSchema <- getContextSchema c
-    -- compatible with context
-    let cType       = case cxType cSchema of
-                         (Just t) -> t
-                         _        -> error "context not set"
-        rangeText   = T.pack . show $ [l,h]
-        scan        = scanTextRE (cxRegEx      cSchema)
-        norm        = normalize  (cxNormalizer cSchema)
-        rs@[ls, hs] = [scan l, scan h]
-    -- all range values are valid
-    unless' (all (typeValidator cType) $ concat rs)
-            400 $ T.concat ["range value(s) (", rangeText, ") incompatible with context type ", T.pack . show $ cType]
-    let (ls', hs') = (map norm $ ls, map norm $ hs)
+    low     <- normQueryCx c l
+    high    <- normQueryCx c h
+    -- range validation is not that easy because of different types.
     -- values form a valid range
-    unless' (rangeValidator cType ls' hs')
-            400 $ "invalid range for context: " `T.append` rangeText
-    -- type determines the processing
-    case cType of
-      _ -> processRange' (unbox ls') (unbox hs') c
+    --unless' (rangeValidator cType ls' hs'
+    --  400 $ "invalid range for context: " `T.append` rangeText
+
+    -- range processing here should always be the same
+    -- different behaviours for special cases like location 
+    -- search should be implemented in an own index proxy
+    processRange' low high c
 
   processRange' ::   Text -> Text -> Context -> Processor Intermediate
   processRange' lo hi c = do

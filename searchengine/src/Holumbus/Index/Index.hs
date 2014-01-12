@@ -10,7 +10,9 @@ import           GHC.Exts                       (Constraint)
 
 import           Control.DeepSeq
 import qualified Data.IntSet                    as IS
-import           Holumbus.Common
+import           Holumbus.Common.BasicTypes
+import           Holumbus.Common.DocIdMap
+import           Holumbus.Common.DocId
 
 -- ----------------------------------------------------------------------------
 

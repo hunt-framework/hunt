@@ -19,6 +19,7 @@ import           Data.Text.Binary            ()
 import           Holumbus.Common
 import qualified Holumbus.Index.Index        as Ix
 import qualified Holumbus.Index.IndexImpl    as Impl
+import           Holumbus.Index.IndexImpl    (IndexImpl)
 
 -- ----------------------------------------------------------------------------
 
@@ -31,7 +32,7 @@ newtype ContextIndex v
 
 -- ----------------------------------------------------------------------------
 
-get' :: Impl.ContextTypes -> Get (ContextIndex Occurrences)
+get' :: [IndexImpl Occurrences] -> Get (ContextIndex Occurrences)
 get' ts = liftM M.fromDistinctAscList (Impl.get' ts) >>= return . ContextIx
 
 instance Binary v => Binary (ContextIndex v) where

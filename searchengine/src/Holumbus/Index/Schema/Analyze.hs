@@ -14,7 +14,6 @@ import qualified Data.Map                        as M
 import           Data.Maybe                      (fromJust)
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
-import           Data.Maybe                      (fromMaybe)
 
 import           Text.Regex.XMLSchema.String
 
@@ -59,13 +58,12 @@ toDocAndWords' schema apiDoc = (doc, ws)
           }
   ws = M.mapWithKey (\context ->
                 (\(content)
-                    -> let cSchema  = fromJust $ M.lookup context schema
-                           cType    = fromMaybe CText $ cxType cSchema
-                           cNorm    = cxNormalizer cSchema
-                           scan = filter (typeValidator cType) . scanTextRE (cxRegEx cSchema)
+                    -> let (ContextSchema _ regex normalizers _ _ cType) 
+                             = fromJust $ M.lookup context schema
+                           (CType _ _ validator _) = cType 
+                           scan = filter (validate validator) . scanTextRE regex
                        -- XXX: simple concat without nub
-                       in toWordList scan (normalize cNorm) content)) indexMap
-
+                       in toWordList scan (normalize normalizers) content)) indexMap
 
 -- | Apply the normalizers to a Word.
 normalize :: [CNormalizer] -> Word -> Word

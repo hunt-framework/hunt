@@ -26,7 +26,7 @@ import qualified Holumbus.Common.Occurrences       as Occ
 
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
-import           Holumbus.Index.IndexImpl          (ContextTypes)
+import           Holumbus.Index.IndexImpl          (IndexImpl)
 
 -- ----------------------------------------------------------------------------
 
@@ -37,10 +37,10 @@ data IndexHandler dt = IXH
   }
 
 -- ----------------------------------------------------------------------------
-decodeIXH :: (Binary dt, DocTable dt) => ContextTypes -> ByteString -> IndexHandler dt
+decodeIXH :: (Binary dt, DocTable dt) => [IndexImpl Occurrences] -> ByteString -> IndexHandler dt
 decodeIXH ts = runGet (get' ts)
 
-get' :: Binary dt => ContextTypes -> Get (IndexHandler dt)
+get' :: Binary dt => [IndexImpl Occurrences] -> Get (IndexHandler dt)
 get' ts = liftM3 IXH (CIx.get' ts) get get
 
 instance Binary dt => Binary (IndexHandler dt) where

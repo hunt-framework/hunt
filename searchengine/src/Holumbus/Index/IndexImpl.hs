@@ -7,9 +7,8 @@
 module Holumbus.Index.IndexImpl where
 
 import qualified Data.List                      as L
-import qualified Data.Map                       as M
-import           Data.ByteString.Lazy           (ByteString)
 import           Data.Binary
+import           Data.Text.Binary               ()             
 import           Data.Text                      (Text)
 import           Control.Monad
 import           Control.Applicative            ((<$>), (<*>))
@@ -17,9 +16,9 @@ import           Data.Typeable
 import           Data.Typeable.Internal         (TypeRep(..), TyCon(..))
 import           GHC.Fingerprint.Type           (Fingerprint(..))
 
-import           Holumbus.Common
 import           Holumbus.Index.Index
-
+import           Holumbus.Common.Occurrences    (Occurrences)
+import           Holumbus.Common.BasicTypes
 -- ------------------------------------------------------------
 
 type IndexImplCon i v
@@ -37,15 +36,6 @@ type IndexImplCon i v
 data IndexImpl v
   = forall i. IndexImplCon i v => IndexImpl { ixImpl :: i v }
 
-
-
-
-type ContextTypes = M.Map Text ContextMeta
-
-data ContextMeta = CxMeta
-  { cmType   :: CType
-  , cmIxImpl :: IndexImpl Occurrences
-  }
 
 -- ------------------------------------------------------------
 
@@ -65,26 +55,24 @@ instance Binary TyCon where
   get = TyCon <$> get <*> get <*> get <*> get
 
 
-get' :: ContextTypes -> Get [(Context, IndexImpl Occurrences)]
+get' :: [IndexImpl Occurrences] -> Get [(Context, IndexImpl Occurrences)]
 get' ts = do 
           n <- get :: Get Int
           getMany' ts n
 
-getMany' :: ContextTypes -> Int -> Get [(Context, IndexImpl Occurrences)]
+getMany' :: [IndexImpl Occurrences] -> Int -> Get [(Context, IndexImpl Occurrences)]
 getMany' ts n = go [] n
  where
     go xs 0 = return $! reverse xs
     go xs i = do x <- liftM2 (,) get (get'' ts)
                  x `seq` go (x:xs) (i-1)
 
-get'' :: ContextTypes -> Get (IndexImpl Occurrences)
+get'' :: [IndexImpl Occurrences] -> Get (IndexImpl Occurrences)
 get'' ts = do
         t <- get :: Get TypeRep
-        case L.find (\(IndexImpl i) -> t == typeOf i) (impls ts) of
+        case L.find (\(IndexImpl i) -> t == typeOf i) ts of
           (Just (IndexImpl x)) -> IndexImpl <$> get `asTypeOf` return x
           Nothing          -> error $ "Unable to load index of type: " -- ++ show t
-        where
-        impls ts = L.map (cmIxImpl . snd) (M.toAscList ts)
 
 -- | FIXME: actually implement instance
 instance Binary (IndexImpl v) where

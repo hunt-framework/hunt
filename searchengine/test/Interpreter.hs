@@ -102,7 +102,7 @@ dateDoc = emptyApiDoc
   , apiDocDescrMap = dt
   }
   where
-  ApiDocument u ix dt = brainDoc
+  ApiDocument _ ix dt = brainDoc
 
 geoDoc :: ApiDocument
 geoDoc = emptyApiDoc
@@ -111,7 +111,7 @@ geoDoc = emptyApiDoc
   , apiDocDescrMap = dt
   }
   where
-  ApiDocument u ix dt = brainDoc
+  ApiDocument _ ix dt = brainDoc
 
 
 
@@ -125,13 +125,13 @@ brainDocMerged :: ApiDocument
 brainDocMerged = brainDocUpdate { apiDocDescrMap = (apiDocDescrMap brainDocUpdate) `M.union` (apiDocDescrMap brainDoc) }
 
 defaultContextInfo :: (Context, ContextSchema)
-defaultContextInfo = ("default", ContextSchema "text" "[^ \t\n\r]*" [] 1 True (Just CText))
+defaultContextInfo = ("default", ContextSchema "text" "[^ \t\n\r]*" [] 1 True ctText)
 
 insertDefaultContext :: Command
 insertDefaultContext = uncurry InsertContext defaultContextInfo
 
 dateContextInfo :: (Context, ContextSchema)
-dateContextInfo = ("datecontext", ContextSchema "date" "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))"   [] 1 True (Just CDate))
+dateContextInfo = ("datecontext", ContextSchema "date" "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))"   [] 1 True ctDate)
 
 insertDateContext :: Command
 insertDateContext = uncurry InsertContext dateContextInfo
@@ -143,7 +143,7 @@ geoRex :: Text
 geoRex = "-?(90(\\.0*)?|[1-7]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?"
 
 geoContextInfo :: (Context, ContextSchema)
-geoContextInfo = ("geocontext", ContextSchema "position" geoRex [] 1 True (Just CPosition))
+geoContextInfo = ("geocontext", ContextSchema "position" geoRex [] 1 True ctPosition)
 
 insertGeoContext :: Command
 insertGeoContext = uncurry InsertContext geoContextInfo
