@@ -124,13 +124,13 @@ defaultInv :: Impl.IndexImpl Occurrences
 defaultInv  = Impl.IndexImpl (Ix.empty :: InvertedIndex Occurrences)
 
 intInv :: Impl.IndexImpl Occurrences
-intInv      = Impl.IndexImpl (Ix.empty :: InvertedIndex{-Int-} Occurrences)
+intInv      = Impl.IndexImpl (Ix.empty :: InvertedIndexInt Occurrences)
 
 dateInv :: Impl.IndexImpl Occurrences
-dateInv     = Impl.IndexImpl (Ix.empty :: InvertedIndex{-Date-} Occurrences)
+dateInv     = Impl.IndexImpl (Ix.empty :: InvertedIndexDate Occurrences)
 
 positionInv :: Impl.IndexImpl Occurrences
-positionInv = Impl.IndexImpl (Ix.empty :: InvertedIndex{-Position-} Occurrences)
+positionInv = Impl.IndexImpl (Ix.empty :: InvertedIndexPosition Occurrences)
 
 
 -- ----------------------------------------------------------------------------
