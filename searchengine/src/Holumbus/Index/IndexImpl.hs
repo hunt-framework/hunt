@@ -88,7 +88,7 @@ get'' ts = do
 
 -- | FIXME: actually implement instance
 instance Binary (IndexImpl v) where
-  put (IndexImpl i) = put i
+  put (IndexImpl i) = put (typeOf x) >> put x
   get = error "existential types cannot be derialized this way. Use special get' functions"
 
 -- ------------------------------------------------------------
