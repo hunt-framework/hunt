@@ -17,11 +17,10 @@ import           Control.DeepSeq
 
 import           Data.Binary                             (Binary (..))
 
-import           Holumbus.Index.Index
-import qualified Holumbus.Index.Index                    as Ix
-
 import           Holumbus.Common.Occurrences             (Occurrences)
 import           Holumbus.Common.Occurrences.Compression
+import           Holumbus.Index.Index
+import qualified Holumbus.Index.Index                    as Ix
 
 -- ----------------------------------------------------------------------------
 
@@ -78,3 +77,5 @@ instance Index (ComprOccIndex impl to) where
 
     keys (ComprIx i)
         = keys i
+
+-- ----------------------------------------------------------------------------
