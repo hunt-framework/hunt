@@ -1,17 +1,20 @@
+{-# LANGUAGE DeriveDataTypeable        #-}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE DeriveDataTypeable #-}
---import GHC.AssertNF
---import Control.DeepSeq
-import           Data.Map.Strict (Map)
-import qualified Data.Map.Strict as M
+
+--import           GHC.AssertNF
+--import           Control.DeepSeq
 import           Control.Applicative
 import           Data.Binary
-import           Data.IORef
+--import           Data.IORef
+import qualified Data.List              as L
+import           Data.Map.Strict        (Map)
+import qualified Data.Map.Strict        as M
 import           Data.Typeable
-import           System.IO.Unsafe
-import           Data.Typeable.Internal (TypeRep(..), TyCon(..))
-import           GHC.Fingerprint.Type (Fingerprint(..))
-import qualified Data.List       as L
+import           Data.Typeable.Internal (TyCon (..), TypeRep (..))
+import           GHC.Fingerprint.Type   (Fingerprint (..))
+--import           System.IO.Unsafe
+
+------------------------------------------------------------------------
 
 -- index implementations
 class IsIndex x where
@@ -43,7 +46,7 @@ data Index = forall a . (IsIndex a, Typeable a, Binary a) => Index a
 -- general typeable binary instances
 instance Binary Fingerprint where
   put (Fingerprint hi lo) = put hi >> put lo
-  get = Fingerprint <$> get <*> get 
+  get = Fingerprint <$> get <*> get
 
 instance Binary TypeRep where
   put (TypeRep fp tyCon ts) = put fp >> put tyCon >> put ts
@@ -56,14 +59,14 @@ instance Binary TyCon where
 
 -- list of all current index implementations
 ix :: [Index]
-ix = [ Index $ Ix1 M.empty 
+ix = [ Index $ Ix1 M.empty
      , Index $ Ix2 []
      ]
 
 -- existential types binary instnace
 instance Binary Index where
   put (Index x) = put (typeOf x) >> put x
-  get = do 
+  get = do
      t <- get
      case L.find (\(Index i) -> t == typeOf i) ix  of
        (Just (Index x)) -> Index <$> get `asTypeOf` return x
@@ -75,8 +78,8 @@ instance Binary Index where
 data ContextIndex = ContextIx { contextIx :: Map String Index }
 
 instance Show ContextIndex where
-  show (ContextIx m) = L.intercalate "\n" 
-                     $ map (\(k,v) -> k ++ ":" ++ show'' v) 
+  show (ContextIx m) = L.intercalate "\n"
+                     $ map (\(k,v) -> k ++ ":" ++ show'' v)
                      $ M.toList m
 
 instance Binary ContextIndex where
@@ -90,11 +93,11 @@ main :: IO ()
 main = do
   let i1 = buildIx
   putStrLn "Before serialization/deserialisation"
-  putStrLn . show $ i1 
+  print i1
   execStore file1 i1
   i3 <- execLoad file1
   putStrLn "After Store => Load"
-  putStrLn . show $ i3 
+  print i3
   return ()
   where
   file1 = "/tmp/cx1"
@@ -105,9 +108,7 @@ execStore filename x = do
     return ()
 
 execLoad :: FilePath -> IO ContextIndex
-execLoad filename = do
-    x <- decodeFile filename
-    return x
+execLoad = decodeFile
 
 -- unpack index and run show
 show'' :: Index -> String
@@ -121,13 +122,12 @@ buildIx = ContextIx $ M.fromList [("cx1", mkIx1), ("cx2", mkIx2)]
 mkIx1 :: Index
 mkIx1 = Index $ i1
   where
-  i1 :: Impl1 
+  i1 :: Impl1
   i1 = Ix1 $ M.fromList [(1, "test"), (2, "test2")]
 
 -- mk index with impl2
 mkIx2 :: Index
 mkIx2 = Index $ i1
   where
-  i1 :: Impl2 
+  i1 :: Impl2
   i1 = Ix2 ["asd", "xyz"]
-

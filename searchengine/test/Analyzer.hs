@@ -27,56 +27,55 @@ import qualified Holumbus.Index.Schema.Normalize.Int      as NI
 
 main :: IO ()
 main = defaultMain
-       [
-       -- Analyzer tests
-         testCase "scanTextRE: text1 "             test_scan_text1
-       , testCase "scanTextRE: date inv"           test_scan_date1
-       , testCase "scanTextRE: date val"           test_scan_date2
-       , testCase "scanTextRE: date val multiple"  test_scan_date3
-       , testCase "scanTextRE: date val + inval"   test_scan_date4
-       , testCase "scanTextRE: date val short   "  test_scan_date5
-       , testCase "scanTextRE: date val shorter"   test_scan_date6
+  -- Analyzer tests
+  [ testCase "scanTextRE: text1 "             test_scan_text1
+  , testCase "scanTextRE: date inv"           test_scan_date1
+  , testCase "scanTextRE: date val"           test_scan_date2
+  , testCase "scanTextRE: date val multiple"  test_scan_date3
+  , testCase "scanTextRE: date val + inval"   test_scan_date4
+  , testCase "scanTextRE: date val short   "  test_scan_date5
+  , testCase "scanTextRE: date val shorter"   test_scan_date6
 
-       -- Normalizer tests - validation
-       , testProperty "typeValidator: text"        prop_validate_text
-       , testProperty "typeValidator: int val"     prop_validate_int
-       , testProperty "typeValidator: int inv"     prop_validate_int2
-       , testProperty "typeValidator: date val"    prop_validate_date
-       , testProperty "typeValidator: date inv"    prop_validate_date2
+  -- Normalizer tests - validation
+  , testProperty "typeValidator: text"        prop_validate_text
+  , testProperty "typeValidator: int val"     prop_validate_int
+  , testProperty "typeValidator: int inv"     prop_validate_int2
+  , testProperty "typeValidator: date val"    prop_validate_date
+  , testProperty "typeValidator: date inv"    prop_validate_date2
 
-       -- Normalizer data - isAnyDate
-       , testProperty "Normalizer: date YYYYMMDD"            prop_isAnyDate
-       , testProperty "Normalizer: date 2013-01-01T21:12:12" prop_isAnyDate2
-       , testProperty "Normalizer: date 2013"                prop_isAnyDate3
+  -- Normalizer data - isAnyDate
+  , testProperty "Normalizer: date YYYYMMDD"            prop_isAnyDate
+  , testProperty "Normalizer: date 2013-01-01T21:12:12" prop_isAnyDate2
+  , testProperty "Normalizer: date 2013"                prop_isAnyDate3
 
-       -- Normalizer position
-       , testProperty "Normalizer: pos double"       prop_isPosition_d
-       , testProperty "Normalizer: pos text"         prop_isPosition_t
-       , testCase     "Normalizer: norm pos int1"    test_norm_pos
-       , testCase     "Normalizer: norm pos int2"    test_norm_pos2
-       , testCase     "Normalizer: norm pos dbl1"    test_norm_pos4
-       , testCase     "Normalizer: norm pos dbl2"    test_norm_pos5
-       , testProperty "Normalizer: norm denorm dbl"  prop_norm_pos3
+  -- Normalizer position
+  , testProperty "Normalizer: pos double"       prop_isPosition_d
+  , testProperty "Normalizer: pos text"         prop_isPosition_t
+  , testCase     "Normalizer: norm pos int1"    test_norm_pos
+  , testCase     "Normalizer: norm pos int2"    test_norm_pos2
+  , testCase     "Normalizer: norm pos dbl1"    test_norm_pos4
+  , testCase     "Normalizer: norm pos dbl2"    test_norm_pos5
+  , testProperty "Normalizer: norm denorm dbl"  prop_norm_pos3
 
-       -- Normalizer int
-       , testProperty "Normalizer: isInt Int"         prop_isInt_int
-       , testProperty "Normalizer: isInt Integer"     prop_isInt_integer
-       , testProperty "Normalizer: isInt text"        prop_isInt_text
-       , testProperty "Normalizer: isInt double"      prop_isInt_double
-       , testCase     "Normalizer: isInt overflow"    test_isInt_overflow
-       , testCase     "Normalizer: isInt nooverflow"  test_isInt_overflow2
-       , testCase     "Normalizer: isInt maxBound1"   test_isInt_upper1
-       , testCase     "Normalizer: isInt maxBound2"   test_isInt_upper2
-       , testCase     "Normalizer: isInt minBound1"   test_isInt_lower1
-       , testCase     "Normalizer: isInt minBound2"   test_isInt_lower2
+  -- Normalizer int
+  , testProperty "Normalizer: isInt Int"         prop_isInt_int
+  , testProperty "Normalizer: isInt Integer"     prop_isInt_integer
+  , testProperty "Normalizer: isInt text"        prop_isInt_text
+  , testProperty "Normalizer: isInt double"      prop_isInt_double
+  , testCase     "Normalizer: isInt overflow"    test_isInt_overflow
+  , testCase     "Normalizer: isInt nooverflow"  test_isInt_overflow2
+  , testCase     "Normalizer: isInt maxBound1"   test_isInt_upper1
+  , testCase     "Normalizer: isInt maxBound2"   test_isInt_upper2
+  , testCase     "Normalizer: isInt minBound1"   test_isInt_lower1
+  , testCase     "Normalizer: isInt minBound2"   test_isInt_lower2
 
-       , testProperty "Normalizer: normInt int"      prop_normInt_int
-       , testProperty "Normalizer: normInt integer"  prop_normInt_integer
-       , testCase     "Normalizer: isInt 1"          test_normInt1
-       , testCase     "Normalizer: isInt -1"         test_normInt2
-       , testCase     "Normalizer: isInt maxBound"   test_normInt3
-       , testCase     "Normalizer: isInt minBound"   test_normInt4
-       ]
+  , testProperty "Normalizer: normInt int"      prop_normInt_int
+  , testProperty "Normalizer: normInt integer"  prop_normInt_integer
+  , testCase     "Normalizer: isInt 1"          test_normInt1
+  , testCase     "Normalizer: isInt -1"         test_normInt2
+  , testCase     "Normalizer: isInt maxBound"   test_normInt3
+  , testCase     "Normalizer: isInt minBound"   test_normInt4
+  ]
 
 -- ----------------------------------------------------------------------------
 -- normalizer position tests
@@ -281,5 +280,3 @@ dateYYYYMMDD :: Gen Text
 dateYYYYMMDD = arbitrary >>= \x -> return . T.pack $ formatTime defaultTimeLocale "%Y-%m-%d" (newDate x)
   where
   newDate x = addDays (-x) (fromGregorian 2013 12 31)
-
-

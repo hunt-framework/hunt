@@ -28,14 +28,14 @@ import           Holumbus.IndexHandler                (addWords)
 
 main :: IO ()
 main = defaultMainWithOpts
-       [ testCase "DmPrefixTree:            insert"        insertTestPIx
-       , testCase "InvertedIndex:           insert"        insertTestInvIx
-       , testCase "InvertedIndex:           merge"         mergeTestInvIx
-       , testCase "ComprOccPrefixTree:      insert"        insertTestCPIx
-       , testCase "ContextIndex Inverted:   insert"        insertTestContextIx
-       , testCase "ContextIndex Inverted:   insertContext" insertTestContext
-       , testCase "TextIndex:               addWords"      addWordsTest
-       ] mempty
+  [ testCase "DmPrefixTree:            insert"        insertTestPIx
+  , testCase "InvertedIndex:           insert"        insertTestInvIx
+  , testCase "InvertedIndex:           merge"         mergeTestInvIx
+  , testCase "ComprOccPrefixTree:      insert"        insertTestCPIx
+  , testCase "ContextIndex Inverted:   insert"        insertTestContextIx
+  , testCase "ContextIndex Inverted:   insertContext" insertTestContext
+  , testCase "TextIndex:               addWords"      addWordsTest
+  ] mempty
 
 -- check if element is inserted in insert operation
 

@@ -1,9 +1,9 @@
-{-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE ConstraintKinds   #-}
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ConstraintKinds      #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-{-# LANGUAGE FlexibleInstances #-}
 
 module Main where
 
@@ -19,7 +19,6 @@ import           Test.QuickCheck.Monadic                         (PropertyM,
                                                                   assert,
                                                                   monadicIO,
                                                                   pick, run)
-
 
 import           Data.Map                                        (Map)
 import qualified Data.Map                                        as M
@@ -50,49 +49,44 @@ import qualified Holumbus.Index.Proxy.ContextIndex               as CIx
 
 import           GHC.AssertNF
 
-
 -- ----------------------------------------------------------------------------
+
 main :: IO ()
-main = do
---  assertNF $! y
---  bool <- isNF $! y
---  putStrLn $ show bool
-  defaultMain [
+main = defaultMain
+  -- strictness property for in index data structures
+  [ testProperty "prop_strictness_occurrences"               prop_occs
 
-              -- strictness property for in index data structures
-                testProperty "prop_strictness_occurrences"               prop_occs
+  -- strictness property for index implementations
+  , testProperty "prop_strictness_prefixtreeindex"           prop_ptix
+  , testProperty "prop_strictness_invindex textkey"          prop_invix1
+  , testProperty "prop_strictness_invindex intkey"           prop_invix2
+  , testProperty "prop_strictness_invindex datekey"          prop_invix3
+  , testProperty "prop_strictness_invindex geokey"           prop_invix4
 
-              -- strictness property for index implementations
-              , testProperty "prop_strictness_prefixtreeindex"           prop_ptix
-              , testProperty "prop_strictness_invindex textkey"          prop_invix1
-              , testProperty "prop_strictness_invindex intkey"           prop_invix2
-              , testProperty "prop_strictness_invindex datekey"          prop_invix3
-              , testProperty "prop_strictness_invindex geokey"           prop_invix4
-              
-              -- strictness property for compression implementations
-              , testProperty "prop_strictness_comprprefixtreeindex bzip" prop_cptix2
-              , testProperty "prop_strictness_comprprefixtreeindex snap" prop_cptix3
---            test failing right now because compressedoccurrences are not strict
---            but we are not using them at the moment and probably won't in the future
---              , testProperty "prop_strictness_comprprefixtreeindex comp" prop_cptix
-              
-              -- strictness property for proxies
-              , testProperty "prop_strictness_proxy_cache"               prop_cachedix
-              , testProperty "prop_strictness_proxy_textkey"             prop_textix
-              , testProperty "prop_strictness_proxy_intkey"              prop_intix
-              , testProperty "prop_strictness_proxy_datekey"             prop_dateix
-              , testProperty "prop_strictness_proxy_geokey"              prop_geoix
+  -- strictness property for compression implementations
+  , testProperty "prop_strictness_comprprefixtreeindex bzip" prop_cptix2
+  , testProperty "prop_strictness_comprprefixtreeindex snap" prop_cptix3
+  --            test failing right now because compressedoccurrences are not strict
+  --            but we are not using them at the moment and probably won't in the future
+  --              , testProperty "prop_strictness_comprprefixtreeindex comp" prop_cptix
 
-              -- strictness property for contextindex
-              , testProperty "prop_strictness_contextindex empty "       prop_contextix_empty
-              , testProperty "prop_strictness_contextindex empty ix"     prop_contextix_emptyix
-              , testProperty "prop_strictness_contextindex"              prop_contextix
-              , testProperty "prop_strictness_contextindex2"             prop_contextix2
+  -- strictness property for proxies
+  , testProperty "prop_strictness_proxy_cache"               prop_cachedix
+  , testProperty "prop_strictness_proxy_textkey"             prop_textix
+  , testProperty "prop_strictness_proxy_intkey"              prop_intix
+  , testProperty "prop_strictness_proxy_datekey"             prop_dateix
+  , testProperty "prop_strictness_proxy_geokey"              prop_geoix
 
-              -- strictness property of IndexImpl container
-              , testProperty "prop_strictness_indeximpl emptyix"         prop_impl_empty
-              , testProperty "prop_strictness_indeximpl fullix"          prop_impl_full
-           ]
+  -- strictness property for contextindex
+  , testProperty "prop_strictness_contextindex empty "       prop_contextix_empty
+  , testProperty "prop_strictness_contextindex empty ix"     prop_contextix_emptyix
+  , testProperty "prop_strictness_contextindex"              prop_contextix
+  , testProperty "prop_strictness_contextindex2"             prop_contextix2
+
+  -- strictness property of IndexImpl container
+  , testProperty "prop_strictness_indeximpl emptyix"         prop_impl_empty
+  , testProperty "prop_strictness_indeximpl fullix"          prop_impl_full
+  ]
 
 -- ----------------------------------------------------------------------------
 -- test data structures
@@ -100,10 +94,10 @@ main = do
 
 prop_occs :: Property
 prop_occs = monadicIO $ do
-              x <- pick arbitrary :: PropertyM IO Occurrences
-              -- $!! needed here - $! does not evaluate everything of course
-              passed <- run $ isNF $!! x
-              assert passed
+  x <- pick arbitrary :: PropertyM IO Occurrences
+  -- $!! needed here - $! does not evaluate everything of course
+  passed <- run $ isNF $!! x
+  assert passed
 
 -- ----------------------------------------------------------------------------
 -- test with simple index
@@ -258,9 +252,9 @@ prop_contextix_emptyix
     val     <- pick arbitrary :: PropertyM IO Occurrences
     let ix  = Ix.empty :: (InvIx.InvertedIndexPosition Occurrences)
     let ix2 = Ix.empty :: (InvIx.InvertedIndex Occurrences)
-    let cix = CIx.insertContext "text" (mkIndex ix2) 
-            $ CIx.insertContext "geo" (mkIndex ix) 
-            $ CIx.empty 
+    let cix = CIx.insertContext "text" (mkIndex ix2)
+            $ CIx.insertContext "geo" (mkIndex ix)
+            $ CIx.empty
     passed <- run $ isNF $! cix
     assert passed
 
@@ -273,9 +267,9 @@ prop_contextix
     let ix  = Ix.empty :: (InvIx.InvertedIndexPosition Occurrences)
     let ix2 = Ix.empty :: (InvIx.InvertedIndex Occurrences)
     let cix = CIx.insertWithCx "text" "word" val
-            $ CIx.insertContext "text" (mkIndex ix2) 
-            $ CIx.insertContext "geo" (mkIndex ix) 
-            $ CIx.empty 
+            $ CIx.insertContext "text" (mkIndex ix2)
+            $ CIx.insertContext "geo" (mkIndex ix)
+            $ CIx.empty
     passed <- run $ isNF $! cix
     assert passed
 
@@ -285,9 +279,9 @@ prop_contextix2
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Occurrences)
     ix2 <- pickIx2 :: PropertyM IO (InvIx.InvertedIndex Occurrences)
-    let cix = CIx.insertContext "text" (mkIndex ix2) 
-            $ CIx.insertContext "geo" (mkIndex ix) 
-            $ CIx.empty 
+    let cix = CIx.insertContext "text" (mkIndex ix2)
+            $ CIx.insertContext "geo" (mkIndex ix)
+            $ CIx.empty
     passed <- run $ isNF $! cix
     assert passed
   where
@@ -407,4 +401,3 @@ mkIndexData i d = M.fromList
   prefixx n = T.intercalate " " . map (T.take n . T.filter (/=' ') . snd) . M.toList $ d
 
 -- ------------------------------------------------------------
-

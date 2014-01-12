@@ -39,20 +39,20 @@ rankConfig = defaultRankConfig
 
 main :: IO ()
 main = defaultMain
-       -- general test cases
-       [ testCase "Interpreter: insert"                     test_insertEmpty
-       , testCase "Interpreter: insertAndSearch"            test_insertAndSearch
-       , testCase "Interpreter: alot"                       test_alot
-       , testCase "Interpreter: fancy"                      test_fancy
-       
-       -- date search specific tests
-       , testCase "Interpreter: date context"               test_dates
+  -- general test cases
+  [ testCase "Interpreter: insert"                      test_insertEmpty
+  , testCase "Interpreter: insertAndSearch"             test_insertAndSearch
+  , testCase "Interpreter: alot"                        test_alot
+  , testCase "Interpreter: fancy"                       test_fancy
 
-       -- postion search specifix tests
-       , testCase "Interpreter: geo context"                test_geo
-       , testCase "Interpreter: geo context range"          test_geo2
-       , testCase "Interpreter: geo context range2"         test_geo3
-       ]
+  -- date search specific tests
+  , testCase "Interpreter: date context"                test_dates
+
+  -- postion search specifix tests
+  , testCase "Interpreter: geo context"                 test_geo
+  , testCase "Interpreter: geo context range"           test_geo2
+  , testCase "Interpreter: geo context range2"          test_geo3
+  ]
 
 -- | check DmPrefixTree
 test_insertEmpty :: Assertion
