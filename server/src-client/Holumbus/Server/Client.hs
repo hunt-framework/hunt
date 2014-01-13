@@ -1,26 +1,29 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, FlexibleContexts #-}
 
 module Holumbus.Server.Client where
 
-import Control.Lens (over, both, _Left)
-
-import qualified Network.HTTP.Conduit as HTTP
---import qualified Data.ByteString.Lazy as L
-import Data.Text.Lazy (Text)
-import qualified Data.Text.Lazy as T
-import qualified Data.Text.Encoding as TE
---import qualified Data.Text.Lazy.Encoding as T
---import Data.Functor
---import Control.Applicative
+import Data.Either ()
+import Data.Char (isSpace, toUpper, toLower)
+import Data.String ()
 
 import Control.Monad (mzero, (>=>))
 import Control.Monad.IO.Class (MonadIO)
-import Data.Aeson
+
+import Data.Text.Lazy (Text)
+import qualified Data.Text.Lazy as T
+-- import qualified Data.Text.Encoding as TE
+
 import Data.ByteString.Lazy (ByteString) 
-import qualified Data.ByteString.Lazy as BL
-import Data.Either ()
-import Data.Char (isSpace)
-import Data.String ()
+-- import qualified Data.ByteString.Lazy as BL
+
+import Data.Aeson (FromJSON, ToJSON, (.=), (.:))
+import qualified Data.Aeson as JSON
+import qualified Data.Aeson.Types as JSON
+
+import Control.Lens (over, both, _Left, _head, _tail, each, Mutator, Each)
+
+import qualified Network.HTTP.Conduit as HTTP
+
 
 data JsonResponse r = 
     JsonSuccess {jsonValue :: r}
@@ -30,18 +33,18 @@ data JsonResponse r =
 
 
 instance (ToJSON r) => ToJSON (JsonResponse r) where
-    toJSON (JsonSuccess msg) = object
+    toJSON (JsonSuccess msg) = JSON.object
         [ "code"  .= (0 :: Int)
         , "msg"   .= msg
         ]
 
-    toJSON (JsonFailure n msg) = object
+    toJSON (JsonFailure n msg) = JSON.object
         [ "code"  .= n
         , "msg"   .= msg
         ]
 
 instance (FromJSON r) => FromJSON (JsonResponse r) where
-    parseJSON (Object v) = do
+    parseJSON (JSON.Object v) = do
         code <- v .: "code"   
         case code of 
             0 -> do
@@ -62,7 +65,7 @@ data LimitedResult x = LimitedResult
     deriving (Show, Eq)
 
 instance (FromJSON x) => FromJSON (LimitedResult x) where
-    parseJSON (Object v) = do
+    parseJSON (JSON.Object v) = do
         r <- v .: "result" 
         o <- v .: "offset"
         m <- v .: "max"
@@ -96,4 +99,19 @@ handleJsonResponse (JsonSuccess r) = Right r
 handleJsonResponse (JsonFailure c err) = Left $ T.concat $ ["Code: ", T.pack $ show c, " "] ++ err
 
 eitherDecodeT :: FromJSON a => ByteString -> Either Text a
-eitherDecodeT =  over _Left (("Json decode error: " `T.append`) . T.pack) . eitherDecode
+eitherDecodeT =  over _Left (("Json decode error: " `T.append`) . T.pack) . JSON.eitherDecode
+
+capitalize :: String -> String
+capitalize = over _head toUpper . over (_tail.each) toLower
+
+lowercase :: Each Mutator s t Char Char => s -> t
+lowercase = over (each) toLower
+
+-- lowercaseConstructorsOptions :: JSON.Options
+lowercaseConstructorsOptions = JSON.Options { 
+     JSON.fieldLabelModifier      = id
+     , JSON.constructorTagModifier  = lowercase
+     , JSON.allNullaryToStringTag   = True
+     , JSON.omitNothingFields       = False
+     , JSON.sumEncoding             = JSON.defaultTaggedObject
+ }

@@ -8,16 +8,16 @@ module Hayoo.HolumbusClient where
 
 import GHC.Generics (Generic)
 
-import Data.Char
+--import Data.Char
 import Control.Monad (mzero)
 import Control.Monad.IO.Class (MonadIO)
 import Data.Text.Lazy (Text)
 -- import qualified Data.Text.Lazy as T
 
-import Control.Lens
+--import Control.Lens
 
 import Data.Aeson
-import Data.Aeson.Types
+--import Data.Aeson.Types
 
 import qualified Holumbus.Server.Client as H
 
@@ -25,21 +25,8 @@ data ResultType = Function | Class | Data | Module | Package | Newtype | Type | 
     deriving (Eq, Show, Generic)
 
 
-
-capitalize :: String -> String
-capitalize = over _head toUpper . over (_tail.each) toLower
-
-lowercase :: Each Mutator s t Char Char => s -> t
-lowercase = over (each) toLower
-
 instance FromJSON ResultType where
-     parseJSON = genericParseJSON Options { 
-     fieldLabelModifier      = id
-     , constructorTagModifier  = lowercase
-     , allNullaryToStringTag   = True
-     , omitNothingFields       = False
-     , sumEncoding             = defaultTaggedObject
- }
+     parseJSON = genericParseJSON H.lowercaseConstructorsOptions
 
 
 data SearchResult = SearchResult {

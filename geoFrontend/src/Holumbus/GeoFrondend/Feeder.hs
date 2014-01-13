@@ -5,8 +5,6 @@
 
 module Holumbus.GeoFrondend.Feeder where
 
-import GHC.Generics (Generic)
-
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Lens (over, mapped, both)
 
@@ -20,10 +18,13 @@ import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as B (unpack)
 import qualified Data.ByteString.Lazy as BL
 
-import Data.Aeson (FromJSON, ToJSON, decode, encode, Object, object, toJSON, (.=))
+--import Data.Aeson (FromJSON, ToJSON, decode, encode, Object, object, toJSON, (.=))
+import qualified Data.Aeson as JSON
 
 import Data.Geo.OSM
 import Data.Geo.OSM.NWRCommon
+
+import Holumbus.GeoFrondend.Common
 
 
 {-}
@@ -39,7 +40,7 @@ writeJSON :: MonadIO m => FilePath -> m ()
 writeJSON p = do
     nwrs <- readXML p
     let docs = Set.fromList $ map nwrToGeoDocument nwrs
-    liftIO $ writeFile "map.json" (B.unpack $ BL.toStrict $ encode docs)
+    liftIO $ writeFile "map.json" (B.unpack $ BL.toStrict $ JSON.encode docs)
 
 
 
@@ -72,30 +73,6 @@ getCommon nwr
     | isJust $ asRelation nwr = relGetCommon $ fromJust $ asRelation nwr
     | otherwise = error "getCommon: Please Report a bug"
 
-
-data GeoDocument = GeoDocument {
-    osmId :: Integer,
-    name :: Text,
-    lon  :: Double,
-    lat  :: Double,
-    kind :: OSMType,
-    tags :: [(Text, Text)]
-} deriving (Eq, Ord)
-
-instance ToJSON GeoDocument where
-    toJSON d = object $ [ "uri" .= uri, "index" .= o, "description" .= o ]
-        where
-            o = object $ [ "name" .= name d,
-                           "position" .= ((fromShow $ lon d) `T.append` "-" `T.append` (fromShow $ lat d)),
-                           "kind" .= kind d
-                         ] ++ (map (uncurry (.=)) $ tags d)
-            uri = "osm://" ++ (show $ osmId d)
-
-
-data OSMType = Way | Node
-    deriving (Show, Eq, Generic, Ord)
-
-instance ToJSON OSMType
 
 nwrToGeoDocument :: NodeWayRelation -> GeoDocument
 nwrToGeoDocument nwr = GeoDocument osmId' nameTag nwrLon nwrLat kind' (filter (\(k,_) -> k /= "name") tags')
@@ -135,6 +112,3 @@ indexedTags = [
 
 filterIndexedTags :: [(String, String)] -> [(String, String)]
 filterIndexedTags tags' = filter (\(k,_) -> k `elem` indexedTags) tags'
-
-fromShow :: (Show a) => a -> Text 
-fromShow = T.pack . show 
