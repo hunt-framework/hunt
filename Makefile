@@ -8,6 +8,7 @@ A       = 8
 K       = 200
 RTSPROF =
 RUNOPTS = +RTS -N$(N) -s $(RTSPROF) -K$(K)M -A$(A)M -H$(H)M -RTS
+PATTERN =
 
 SERVER  = http://localhost:3000
 EXE     = $(shell [ -d ".cabal-sandbox" ] && echo ".cabal-sandbox/bin/holumbusServer" || echo "holumbusServer")
@@ -20,6 +21,12 @@ SIZEMAX = 200
 # number of documents
 NUMDOCS = 1000
 
+# set test pattern
+ifdef PATTERN
+	ifeq ($(action),test)
+        pattern = --test-options='-t $(PATTERN)'
+	endif
+endif
 
 
 action		= install
@@ -43,16 +50,16 @@ sandbox:
 	cd hayooCrawler   && cabal sandbox init --sandbox ../.cabal-sandbox
 
 searchengine:
-	cd searchengine && cabal $(action)
+	cd searchengine && cabal $(action) $(pattern)
 
 server: stopServer
-	cd server       && cabal $(action)
+	cd server       && cabal $(action) $(pattern)
 
 searchengine-profiling:
-	cd searchengine && cabal $(action) --enable-library-profiling --ghc-option=-auto-all
+	cd searchengine && cabal $(action) --enable-library-profiling --ghc-option=-auto-all $(pattern)
 
 server-profiling: stopServer
-	cd server       && cabal $(action) --enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
+	cd server       && cabal $(action) --enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all $(pattern)
 
 hayooCrawler:
 	$(MAKE) -C hayooCrawler
