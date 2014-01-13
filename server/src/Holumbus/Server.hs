@@ -163,12 +163,12 @@ start = do
     -- write the indexer to disk
     get "/binary/save/:filename" $ do
       filename  <- param "filename"
-      eval $ LoadIx filename
+      eval $ StoreIx filename
 
     -- load indexer from disk
     get "/binary/load/:filename" $ do
       filename  <- param "filename"
-      eval $ StoreIx filename
+      eval $ LoadIx filename
 
     -- status commands
     get "/status/gc" $ do
