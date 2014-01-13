@@ -2,15 +2,23 @@
 
 module Holumbus.Index.Schema where
 
-import           Control.Monad              (mzero)
+import           Control.Monad                           (mzero)
 
 import           Data.Aeson
 import           Data.Binary
 import           Data.Map
-import           Data.Text
-import           Data.Text.Binary           ()
+import           Data.Text 
+import           Data.Text.Binary                         ()
 
 import           Holumbus.Common.BasicTypes
+import           Holumbus.Common.Occurrences              (Occurrences)
+import           Holumbus.Index.IndexImpl                 (IndexImpl, mkIndex)
+import qualified Holumbus.Index.Index                     as Ix
+import           Holumbus.Index.InvertedIndex 
+
+import qualified Holumbus.Index.Schema.Normalize.Position as Pos
+import qualified Holumbus.Index.Schema.Normalize.Int      as Int
+import qualified Holumbus.Index.Schema.Normalize.Date     as Date
 
 -- ----------------------------------------------------------------------------
 
@@ -37,21 +45,97 @@ type Schema
 --   The first  regexp/normalizer is type-specific and is applied first (forced)
 --   The second regexp/normalizer is context-specific (defined/chosen by user)
 data ContextSchema = ContextSchema
+  -- name of the context
   { cxName       :: Text
+  -- XXX regex change to maybe - optional since we have a default within contexttype
   , cxRegEx      :: CRegex
+  -- normalizers to apply
   , cxNormalizer :: [CNormalizer]
+  -- context weight
   , cxWeight     :: CWeight
+  -- should this context used in non-context queries?
   , cxDefault    :: Bool
-  , cxType       :: Maybe CType
-  } deriving (Show, Eq)
+  -- contexttype
+  , cxType       :: ContextType
+  }
+  deriving Show
 
--- | Types for values in a context.
-data CType
-  = CText
-  | CInt
-  | CDate
-  | CPosition
-  deriving (Show, Eq, Ord)
+type ContextTypes = [ContextType]
+
+data ContextType = CType 
+  -- name of the context type
+  { ctName     :: Text
+  -- default regex used when no user defined regex is given in ContextSchema
+  , ctRegEx    :: CRegex
+  -- validator function which checks values
+  , ctValidate :: CValidator
+  -- index implementation used for this context type
+  , ctIxImpl   :: IndexImpl Occurrences
+  }
+  deriving Show
+
+ctEmpty :: ContextType
+ctEmpty = CType
+  { ctName     = ""
+  , ctRegEx    = ""
+  , ctValidate = defValid
+  , ctIxImpl   = defaultInv
+  }
+
+
+defValid :: CValidator
+defValid = CValidator $ \_ -> True
+
+-- XXX TODO fix default validater and regex in all impls!
+ctText :: ContextType
+ctText = CType 
+  { ctName     = "text"
+  , ctRegEx    = "\\w*"
+  , ctValidate = defValid
+  , ctIxImpl   = defaultInv
+  }
+
+ctInt :: ContextType
+ctInt = CType 
+  { ctName     = "int"
+  , ctRegEx    = "\\w*"
+  , ctValidate = CValidator $ Int.isInt
+  , ctIxImpl   = intInv
+  }
+
+ctDate :: ContextType
+ctDate = CType 
+  { ctName     = "date"
+  , ctRegEx    = "\\w*"
+  , ctValidate = CValidator $ Date.isAnyDate . unpack
+  , ctIxImpl   = dateInv
+  }
+
+ctPosition :: ContextType
+ctPosition = CType 
+  { ctName     = "position"
+  , ctRegEx    = "\\w*"
+  , ctValidate = CValidator $ Pos.isPosition
+  , ctIxImpl   = positionInv
+  }
+
+defaultInv :: IndexImpl Occurrences
+defaultInv = mkIndex (Ix.empty :: InvertedIndex Occurrences)
+
+intInv :: IndexImpl Occurrences
+intInv = mkIndex (Ix.empty :: InvertedIndexInt Occurrences)
+
+dateInv :: IndexImpl Occurrences
+dateInv = mkIndex (Ix.empty :: InvertedIndexDate Occurrences)
+
+positionInv :: IndexImpl Occurrences
+positionInv = mkIndex (Ix.empty :: InvertedIndexPosition Occurrences)
+
+data CValidator = CValidator { validate :: Text -> Bool }
+
+instance Show CValidator where
+  show _ = "CValidator"
+
 
 -- | Regular expression.
 type CRegex  = Text
@@ -67,6 +151,7 @@ type CWeight = Float
 -- JSON instances
 -- ----------------------------------------------------------------------------
 
+{--
 instance FromJSON CType where
   parseJSON (String s)
     = case s of
@@ -83,6 +168,16 @@ instance ToJSON CType where
     CInt      -> "int"
     CDate     -> "date"
     CPosition -> "position"
+--}
+--
+
+-- | Note that this is only parting serialization
+instance FromJSON ContextType where
+  parseJSON (String s) = return $ ctEmpty { ctName = s }
+  parseJSON _          = mzero
+
+instance ToJSON ContextType where
+  toJSON (CType n _ _ _) = String n
 
 instance FromJSON CNormalizer where
   parseJSON (String s)
@@ -110,23 +205,26 @@ instance FromJSON ContextSchema where
     n <- o .: "normalizers"
     w <- o .: "weight"
     d <- o .:? "default" .!= True
-    return $ ContextSchema t r n w d Nothing
+    ct <- o .: "type"
+    return $ ContextSchema t r n w d ct
 
   parseJSON _ = mzero
 
 instance ToJSON ContextSchema where
-  toJSON (ContextSchema t r n w d _) = object
+  toJSON (ContextSchema t r n w d ct) = object
     [ "type"        .= t
     , "regexp"      .= r
     , "normalizers" .= n
     , "weight"      .= w
     , "default"     .= d
+    , "ctype"       .= ct
     ]
 
 -- ----------------------------------------------------------------------------
 -- Binary instances
 -- ----------------------------------------------------------------------------
 
+{--
 instance Binary CType where
   put (CText)     = put (0 :: Word8)
   put (CInt)      = put (1 :: Word8)
@@ -141,6 +239,7 @@ instance Binary CType where
       2 -> return CDate
       3 -> return CPosition
       _ -> fail "get(CType) out of bounds"
+--}
 
 instance Binary CNormalizer where
   put (NormUpperCase)   = put (0 :: Word8)
@@ -158,6 +257,11 @@ instance Binary CNormalizer where
       3 -> return NormPosition
       4 -> return NormIntZeroFill
       _ -> fail "get(CNormalizer) out of bounds"
+
+instance Binary ContextType where
+  put (CType n _ _ _) = put n
+  get = get >>= \n -> return $ ctEmpty { ctName = n }
+
 
 instance Binary ContextSchema where
   get = liftM6 ContextSchema get get get get get get

@@ -13,6 +13,8 @@ import qualified Data.IntSet                       as IS
 import qualified Data.Map                          as M
 import           Data.Maybe
 import           Data.Binary                       (Binary (..))
+import           Data.Binary.Get
+import           Data.ByteString.Lazy              (ByteString)
 
 import           Holumbus.DocTable.DocTable        (DocTable)
 import qualified Holumbus.DocTable.DocTable        as Dt
@@ -24,6 +26,7 @@ import qualified Holumbus.Common.Occurrences       as Occ
 
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
+import           Holumbus.Index.IndexImpl          (IndexImpl)
 
 -- ----------------------------------------------------------------------------
 
@@ -34,6 +37,11 @@ data IndexHandler dt = IXH
   }
 
 -- ----------------------------------------------------------------------------
+decodeIXH :: (Binary dt, DocTable dt) => [IndexImpl Occurrences] -> ByteString -> IndexHandler dt
+decodeIXH ts = runGet (get' ts)
+
+get' :: Binary dt => [IndexImpl Occurrences] -> Get (IndexHandler dt)
+get' ts = liftM3 IXH (CIx.get' ts) get get
 
 instance Binary dt => Binary (IndexHandler dt) where
   get = liftM3 IXH get get get

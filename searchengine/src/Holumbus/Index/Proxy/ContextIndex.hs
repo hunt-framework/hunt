@@ -6,9 +6,11 @@
 
 module Holumbus.Index.Proxy.ContextIndex where
 
+import           Control.Monad
 import           Control.Parallel.Strategies
 
 import           Data.Binary                 (Binary (..))
+import           Data.Binary.Get
 import           Data.Map.Strict             (Map)
 import qualified Data.Map.Strict             as M
 import           Data.Text                   (Text)
@@ -17,6 +19,7 @@ import           Data.Text.Binary            ()
 import           Holumbus.Common
 import qualified Holumbus.Index.Index        as Ix
 import qualified Holumbus.Index.IndexImpl    as Impl
+import           Holumbus.Index.IndexImpl    (IndexImpl)
 
 -- ----------------------------------------------------------------------------
 
@@ -28,6 +31,9 @@ newtype ContextIndex v
   deriving (Show)
 
 -- ----------------------------------------------------------------------------
+
+get' :: [IndexImpl Occurrences] -> Get (ContextIndex Occurrences)
+get' ts = liftM M.fromDistinctAscList (Impl.get' ts) >>= return . ContextIx
 
 instance Binary v => Binary (ContextIndex v) where
   put = put . contextIx

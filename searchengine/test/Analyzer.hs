@@ -16,9 +16,9 @@ import           Test.HUnit
 import           Test.QuickCheck
 --import qualified Test.QuickCheck.Monadic                as QM
 
-import qualified Holumbus.Index.Schema                    as S
+--import qualified Holumbus.Index.Schema                    as S
 import qualified Holumbus.Index.Schema.Analyze            as A
-import qualified Holumbus.Index.Schema.Normalize          as N
+--import qualified Holumbus.Index.Schema.Normalize          as N
 import qualified Holumbus.Index.Schema.Normalize.Date     as ND
 import qualified Holumbus.Index.Schema.Normalize.Position as NP
 import qualified Holumbus.Index.Schema.Normalize.Int      as NI
@@ -27,8 +27,8 @@ import qualified Holumbus.Index.Schema.Normalize.Int      as NI
 
 main :: IO ()
 main = defaultMain
-  -- Analyzer tests
-  [ testCase "scanTextRE: text1 "             test_scan_text1
+  [-- Analyzer tests
+   testCase "scanTextRE: text1 "             test_scan_text1
   , testCase "scanTextRE: date inv"           test_scan_date1
   , testCase "scanTextRE: date val"           test_scan_date2
   , testCase "scanTextRE: date val multiple"  test_scan_date3
@@ -37,11 +37,12 @@ main = defaultMain
   , testCase "scanTextRE: date val shorter"   test_scan_date6
 
   -- Normalizer tests - validation
-  , testProperty "typeValidator: text"        prop_validate_text
-  , testProperty "typeValidator: int val"     prop_validate_int
-  , testProperty "typeValidator: int inv"     prop_validate_int2
-  , testProperty "typeValidator: date val"    prop_validate_date
-  , testProperty "typeValidator: date inv"    prop_validate_date2
+  -- typeValidator does not exist anymore
+  --       , testProperty "typeValidator: text"        prop_validate_text
+  --       , testProperty "typeValidator: int val"     prop_validate_int
+  --       , testProperty "typeValidator: int inv"     prop_validate_int2
+  --       , testProperty "typeValidator: date val"    prop_validate_date
+  --       , testProperty "typeValidator: date inv"    prop_validate_date2
 
   -- Normalizer data - isAnyDate
   , testProperty "Normalizer: date YYYYMMDD"            prop_isAnyDate
@@ -201,7 +202,7 @@ prop_norm_date = undefined
 
 -- ----------------------------------------------------------------------------
 -- normalizer tests - validation
-
+{-- depricated
 -- | every random text should be a valid text
 prop_validate_text :: Gen Bool
 prop_validate_text = niceText1 >>= return . (N.typeValidator S.CText)
@@ -223,7 +224,7 @@ prop_validate_date = dateYYYYMMDD >>= return . (N.typeValidator S.CDate)
 -- | random text should not be considered a valid date
 prop_validate_date2 :: Gen Bool
 prop_validate_date2 = niceText1 >>= \d -> return $ False == N.typeValidator S.CDate d
-
+--}
 -- ----------------------------------------------------------------------------
 -- scan tests
 

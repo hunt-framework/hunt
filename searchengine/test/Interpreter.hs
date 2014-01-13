@@ -40,18 +40,22 @@ rankConfig = defaultRankConfig
 main :: IO ()
 main = defaultMain
   -- general test cases
-  [ testCase "Interpreter: insert"                      test_insertEmpty
-  , testCase "Interpreter: insertAndSearch"             test_insertAndSearch
-  , testCase "Interpreter: alot"                        test_alot
-  , testCase "Interpreter: fancy"                       test_fancy
+  [ testCase "Interpreter: insert"                     test_insertEmpty
+  , testCase "Interpreter: insertAndSearch"            test_insertAndSearch
+  , testCase "Interpreter: alot"                       test_alot
+  , testCase "Interpreter: fancy"                      test_fancy
 
   -- date search specific tests
-  , testCase "Interpreter: date context"                test_dates
+  , testCase "Interpreter: date context"               test_dates
 
   -- postion search specifix tests
-  , testCase "Interpreter: geo context"                 test_geo
-  , testCase "Interpreter: geo context range"           test_geo2
-  , testCase "Interpreter: geo context range2"          test_geo3
+  , testCase "Interpreter: geo context"                test_geo
+  , testCase "Interpreter: geo context range"          test_geo2
+  , testCase "Interpreter: geo context range2"         test_geo3
+
+  -- test binary serialization
+  , testCase "Interpreter: store/load index"           test_binary
+  , testCase "Interpreter: store/load schema"          test_binary2
   ]
 
 -- | check DmPrefixTree
@@ -94,21 +98,21 @@ brainDoc = emptyApiDoc
 
 dateDoc :: ApiDocument
 dateDoc = emptyApiDoc
-  { apiDocUri      = u
+  { apiDocUri      = "test://1"
   , apiDocIndexMap = M.insert "datecontext" "2013-01-01" ix
   , apiDocDescrMap = dt
   }
   where
-  ApiDocument u ix dt = brainDoc
+  ApiDocument _ ix dt = brainDoc
 
 geoDoc :: ApiDocument
 geoDoc = emptyApiDoc
-  { apiDocUri      = u
+  { apiDocUri      = "test://2"
   , apiDocIndexMap = M.insert "geocontext" "53.60000-10.00000" ix
   , apiDocDescrMap = dt
   }
   where
-  ApiDocument u ix dt = brainDoc
+  ApiDocument _ ix dt = brainDoc
 
 
 
@@ -122,13 +126,13 @@ brainDocMerged :: ApiDocument
 brainDocMerged = brainDocUpdate { apiDocDescrMap = (apiDocDescrMap brainDocUpdate) `M.union` (apiDocDescrMap brainDoc) }
 
 defaultContextInfo :: (Context, ContextSchema)
-defaultContextInfo = ("default", ContextSchema "text" "[^ \t\n\r]*" [] 1 True (Just CText))
+defaultContextInfo = ("default", ContextSchema "text" "[^ \t\n\r]*" [] 1 True ctText)
 
 insertDefaultContext :: Command
 insertDefaultContext = uncurry InsertContext defaultContextInfo
 
 dateContextInfo :: (Context, ContextSchema)
-dateContextInfo = ("datecontext", ContextSchema "date" "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))"   [] 1 True (Just CDate))
+dateContextInfo = ("datecontext", ContextSchema "date" "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))"   [] 1 True ctDate)
 
 insertDateContext :: Command
 insertDateContext = uncurry InsertContext dateContextInfo
@@ -140,7 +144,7 @@ geoRex :: Text
 geoRex = "-?(90(\\.0*)?|[1-7]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?"
 
 geoContextInfo :: (Context, ContextSchema)
-geoContextInfo = ("geocontext", ContextSchema "position" geoRex [] 1 True (Just CPosition))
+geoContextInfo = ("geocontext", ContextSchema "position" geoRex [] 1 True ctPosition)
 
 insertGeoContext :: Command
 insertGeoContext = uncurry InsertContext geoContextInfo
@@ -198,6 +202,64 @@ a @@@ f = execCmd a >>= liftIO . f
 (@@=) :: Command -> CmdResult -> TestCM ()
 a @@= b = a @@@ (@?=b)
 
+test_binary :: Assertion
+test_binary = testCM $ do
+  -- create contexts
+  insertDateContext       @@= ResOK
+  insertDefaultContext    @@= ResOK
+  insertGeoContext        @@= ResOK
+  -- insert two docuemnts
+  Insert dateDoc          @@= ResOK
+  Insert geoDoc           @@= ResOK
+  -- searching for documents - expecting to find them
+  Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
+    @@@ ((@?= ["test://1"]) . searchResultUris)
+  Search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
+    @@@ ((@?= ["test://2"]) . searchResultUris)
+  -- store index
+  StoreIx "/tmp/ix"       @@= ResOK
+  -- reset index 
+  Delete "test://1"       @@= ResOK
+  Delete "test://2"       @@= ResOK
+  -- searching for documents - expecting to find none 
+  Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
+    @@@ ((@?= []) . searchResultUris)
+  Search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
+    @@@ ((@?= []) . searchResultUris)
+  -- loading previously stored index
+  LoadIx "/tmp/ix"        @@= ResOK
+  -- searching for documents - expecting to find them,
+  -- since we found them before we stored the index
+  Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
+    @@@ ((@?= ["test://1"]) . searchResultUris)
+  Search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
+    @@@ ((@?= ["test://2"]) . searchResultUris)
+
+test_binary2 :: Assertion
+test_binary2 = testCM $ do
+  -- create contexts
+  insertDateContext       @@= ResOK
+  insertDefaultContext    @@= ResOK
+  insertGeoContext        @@= ResOK
+  -- insert two docuemnts
+  Insert dateDoc          @@= ResOK
+  -- searching for documents - first should be valid second should be invalid
+  Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
+    @@@ ((@?= ["test://1"]) . searchResultUris)
+  (Search (QContext ["datecontext"] (QWord QNoCase "invalid")) 0 10     
+    @@@ const (assertFailure "date validation failed"))
+        `catchError` const (return ())
+ 
+  -- store index
+  StoreIx "/tmp/ix"       @@= ResOK
+  LoadIx "/tmp/ix"        @@= ResOK
+
+  -- searching for documents - first should be valid second should be invalid
+  Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
+    @@@ ((@?= ["test://1"]) . searchResultUris)
+  (Search (QContext ["datecontext"] (QWord QNoCase "invalid")) 0 10     
+    @@@ const (assertFailure "date validation failed after store/load index"))
+        `catchError` const (return ())
 
 test_dates :: Assertion
 test_dates = testCM $ do
@@ -208,7 +270,7 @@ test_dates = testCM $ do
   Insert dateDoc          @@= ResOK
   -- searching for date
   Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
-    @@@ ((@?= ["test://0"]) . searchResultUris)
+    @@@ ((@?= ["test://1"]) . searchResultUris)
 
 
 test_geo :: Assertion
@@ -220,7 +282,7 @@ test_geo = testCM $ do
   Insert geoDoc          @@= ResOK
   -- searching for date
   Search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
-    @@@ ((@?= ["test://0"]) . searchResultUris)
+    @@@ ((@?= ["test://2"]) . searchResultUris)
 
 test_geo2 :: Assertion
 test_geo2 = testCM $ do
@@ -231,7 +293,7 @@ test_geo2 = testCM $ do
   Insert geoDoc          @@= ResOK
   -- searching for date
   Search (QContext ["geocontext"] (QRange "1-1" "80-80")) 0 10
-    @@@ ((@?= ["test://0"]) . searchResultUris)
+    @@@ ((@?= ["test://2"]) . searchResultUris)
 
 
 test_geo3 :: Assertion

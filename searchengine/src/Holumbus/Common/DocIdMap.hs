@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
+{-# LANGUAGE DeriveDataTypeable         #-}
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -68,6 +68,7 @@ import           Data.Foldable               hiding (fold, foldr, toList)
 import           Data.Traversable
 import qualified Data.IntMap.Strict          as IM
 import qualified Data.IntSet                 as S
+import           Data.Typeable
 
 import           Holumbus.Common.DocId
 import qualified Holumbus.Common.DocId       as DId
@@ -83,7 +84,7 @@ toDocIdSet              = S.fromList
 
 newtype DocIdMap v
   = DIM { unDIM :: IM.IntMap v }
-  deriving (Eq, Show, Foldable, Traversable, Functor, NFData)
+  deriving (Eq, Show, Foldable, Traversable, Functor, NFData, Typeable)
 
 -- ------------------------------------------------------------
 

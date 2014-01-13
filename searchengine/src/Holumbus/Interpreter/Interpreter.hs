@@ -24,6 +24,9 @@ import           Data.Set                                  (Set)
 import qualified Data.Set                                  as S
 import           Data.Text                                 (Text)
 import qualified Data.Text                                 as T
+import qualified Data.ByteString.Lazy                      as BL
+import qualified Data.List                                 as L
+import qualified Data.Traversable                          as TV                         
 
 import           Holumbus.Common
 import           Holumbus.Common.ApiDocument               as ApiDoc
@@ -32,14 +35,14 @@ import           Holumbus.Common.Document                  (DocumentWrapper,
                                                             unwrap)
 import           Holumbus.Common.Document.Compression.BZip (CompressedDoc)
 
+import qualified Holumbus.Index.Index                      as Ix
 import           Holumbus.Index.Schema.Analyze
 
-import           Holumbus.IndexHandler                     (IndexHandler(..))
+import           Holumbus.IndexHandler                     (IndexHandler(..),decodeIXH)
 import qualified Holumbus.IndexHandler                     as Ixx
 
-import qualified Holumbus.Index.Index                      as Ix
+import           Holumbus.Index.IndexImpl                  (IndexImpl(..), mkIndex)
 import qualified Holumbus.Index.IndexImpl                  as Impl
-import           Holumbus.Index.InvertedIndex
 import           Holumbus.Index.Proxy.ContextIndex         (ContextIndex)
 import qualified Holumbus.Index.Proxy.ContextIndex         as CIx
 
@@ -108,9 +111,7 @@ emptyIndexer = IXH CIx.empty HDt.empty M.empty
 
 -- ----------------------------------------------------------------------------
 
-type ContextTypes = M.Map Text Impl.ContextMeta
-
-contextTypes :: ContextTypes
+{--contextTypes :: ContextTypes
 contextTypes
   = M.fromList $
       [ ("text",     Impl.CxMeta CText     defaultInv)
@@ -118,18 +119,10 @@ contextTypes
       , ("date",     Impl.CxMeta CDate     dateInv)
       , ("position", Impl.CxMeta CPosition positionInv)
       ]
+--}
 
-defaultInv :: Impl.IndexImpl Occurrences
-defaultInv  = Impl.IndexImpl (Ix.empty :: InvertedIndex Occurrences)
-
-intInv :: Impl.IndexImpl Occurrences
-intInv      = Impl.IndexImpl (Ix.empty :: InvertedIndexInt Occurrences)
-
-dateInv :: Impl.IndexImpl Occurrences
-dateInv     = Impl.IndexImpl (Ix.empty :: InvertedIndexDate Occurrences)
-
-positionInv :: Impl.IndexImpl Occurrences
-positionInv = Impl.IndexImpl (Ix.empty :: InvertedIndexPosition Occurrences)
+contextTypes :: ContextTypes
+contextTypes = [ctText, ctInt, ctDate, ctPosition]
 
 
 -- ----------------------------------------------------------------------------
@@ -199,19 +192,17 @@ askTypes :: DocTable dt => CM dt ContextTypes
 askTypes
     = asks evCxTypes
 
-askType :: DocTable dt => Text -> CM dt CType
+askType :: DocTable dt => Text -> CM dt ContextType
 askType cn = do
-    ty <- asks evCxTypes
-    case M.lookup cn ty of
-      (Just (Impl.CxMeta t _ix)) -> return $ t
-      _                         -> throwResError 410 "used unavailable context type"
+    ts <- askTypes
+    case L.find (\t -> cn == ctName t) ts of
+      (Just t) -> return t
+      _        -> throwResError 410 ("used unavailable context type: " `T.append` cn)
 
 askIndex :: DocTable dt => Text -> CM dt (Impl.IndexImpl Occurrences)
 askIndex cn = do
-    ty <- asks evCxTypes
-    case M.lookup cn ty of
-      (Just (Impl.CxMeta _t ix)) -> return $ ix
-      _                         -> throwResError 410 "used unavailable context type"
+    t <- askType cn
+    return $ ctIxImpl t
 
 askRanking :: DocTable dt => CM dt (RankConfig (Dt.DValue dt))
 askRanking
@@ -326,17 +317,23 @@ execInsertContext :: DocTable dt
                   -> CM dt (IndexHandler dt, CmdResult)
 execInsertContext cx ct ixx@(IXH ix dt s)
     = do
+      -- check if context already exists
       contextExists        <- Ixx.hasContext cx ixx
-      cType                <- askType . cxName $ ct
-      newIx                <- askIndex . cxName $ ct
-      let newCt            = ct { cxType = Just cType }
-
       unless' (not contextExists)
              409 $ "context already exists: " `T.append` cx
-      return (ixx' newIx newCt, ResOK)
-    where
-    ixx' i c = IXH (CIx.insertContext cx i ix) dt (M.insert cx c s)
 
+      -- check if type exists in this interpreter instance
+      cType                <- askType . cxName $ ct
+      impl                 <- askIndex . cxName $ ct
+
+      -- create new index instance and insert it with context 
+      return ( IXH { ixhIndex = CIx.insertContext cx (newIx impl) ix
+                   , ixhDocs   = dt
+                   , ixhSchema = M.insert cx (ct {cxType = cType}) s
+                   } 
+             , ResOK )
+      where
+      newIx (IndexImpl i) = mkIndex $ Ix.empty `asTypeOf` i
 
 -- | Deletes the context and the schema associated with it.
 execDeleteContext :: DocTable dt
@@ -453,19 +450,31 @@ execBatchDelete d ix = do
     ix' <- lift $ Ixx.deleteDocsByURI d ix
     return (ix', ResOK)
 
+-- ----------------------------------------------------------------------------
 
+-- | general binary serialzation function 
 execStore :: (Bin.Binary a, DocTable dt) =>
              FilePath -> a -> CM dt CmdResult
 execStore filename x = do
     liftIO $ Bin.encodeFile filename x
     return ResOK
 
-
-execLoad :: (Bin.Binary a, DocTable dt) =>
-             FilePath -> CM dt (a, CmdResult)
+-- | deserialization needs to be more specific because of our existential typed index
+execLoad :: (Bin.Binary dt, DocTable dt) => FilePath -> CM dt (IndexHandler dt, CmdResult)
 execLoad filename = do
-    x <- liftIO $ Bin.decodeFile filename
-    return (x, ResOK)
+    ts <- askTypes
+    let ix = map (ctIxImpl) ts
+    (IXH ix dt s) <- liftIO $ decodeFile' ix filename
+    ls <- TV.mapM reloadSchema s
+    return ((IXH ix dt ls), ResOK)
+    where
+    decodeFile' ts f = do
+       bs <- (BL.readFile f)
+       return $ decodeIXH ts bs
+
+    reloadSchema s = (askType . ctName . cxType) s >>= \t -> return $ s { cxType = t }
+                     
+      
 
 -- ----------------------------------------------------------------------------
 
