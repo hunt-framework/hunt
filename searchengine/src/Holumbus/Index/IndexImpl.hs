@@ -1,12 +1,8 @@
-{-# LANGUAGE ConstraintKinds           #-}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE FlexibleContexts          #-}
-{-# LANGUAGE StandaloneDeriving        #-}
-{-# LANGUAGE TypeFamilies              #-}
 
 module Holumbus.Index.IndexImpl where
 
-import           Control.Applicative         ((<$>), (<*>))
+import           Control.Applicative         ((<$>))
 import           Control.Monad
 
 import           Data.Binary
@@ -14,9 +10,7 @@ import qualified Data.List                   as L
 import           Data.Text                   (Text)
 import           Data.Text.Binary            ()
 import           Data.Typeable
-import           Data.Typeable.Internal      (TyCon (..), TypeRep (..))
-
-import           GHC.Fingerprint.Type        (Fingerprint (..))
+import           Data.Typeable.Binary        ()
 
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Occurrences (Occurrences)
@@ -44,18 +38,7 @@ data IndexImpl v
 instance Show (IndexImpl v) where
   show (IndexImpl v) = show v
 
-instance Binary Fingerprint where
-  put (Fingerprint hi lo) = put hi >> put lo
-  get = Fingerprint <$> get <*> get
-
-instance Binary TypeRep where
-  put (TypeRep fp tyCon ts) = put fp >> put tyCon >> put ts
-  get = TypeRep <$> get <*> get <*> get
-
-instance Binary TyCon where
-  put (TyCon hash package modul name) = put hash >> put package >> put modul >> put name
-  get = TyCon <$> get <*> get <*> get <*> get
-
+-- ------------------------------------------------------------
 
 get' :: [IndexImpl Occurrences] -> Get [(Context, IndexImpl Occurrences)]
 get' ts = do
@@ -73,8 +56,8 @@ get'' :: [IndexImpl Occurrences] -> Get (IndexImpl Occurrences)
 get'' ts = do
         t <- get :: Get TypeRep
         case L.find (\(IndexImpl i) -> t == typeOf i) ts of
-          (Just (IndexImpl x)) -> IndexImpl <$> get `asTypeOf` return x
-          Nothing          -> error $ "Unable to load index of type: " -- ++ show t
+          Just (IndexImpl x) -> IndexImpl <$> get `asTypeOf` return x
+          Nothing            -> error $ "Unable to load index of type: " -- ++ show t
 
 -- | FIXME: actually implement instance
 instance Binary (IndexImpl v) where
@@ -88,5 +71,5 @@ instance Binary (IndexImpl v) where
 --   Key in all haskell types. For conversion we have
 --   could imagine a normalization proxy implemented
 --   with the KeyIndex Proxy
-mkIndex :: IndexImplCon i v  => i v -> IndexImpl v
+mkIndex :: IndexImplCon i v => i v -> IndexImpl v
 mkIndex i = IndexImpl $! i

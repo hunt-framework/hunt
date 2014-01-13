@@ -57,7 +57,9 @@ library
     Data.Bijection
     Data.Bijection.Instances
     Data.Text.Binary
+    Data.Typeable.Binary
 
+    GHC.Fingerprint.Binary
     GHC.Stats.Json
 
     Holumbus.Data.Crunch
