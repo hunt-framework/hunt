@@ -26,7 +26,7 @@ import           Data.Text                                 (Text)
 import qualified Data.Text                                 as T
 import qualified Data.ByteString.Lazy                      as BL
 import qualified Data.List                                 as L
-import qualified Data.Traversable                          as TV                         
+import qualified Data.Traversable                          as TV
 
 import           Holumbus.Common
 import           Holumbus.Common.ApiDocument               as ApiDoc
@@ -326,11 +326,11 @@ execInsertContext cx ct ixx@(IXH ix dt s)
       cType                <- askType . cxName $ ct
       impl                 <- askIndex . cxName $ ct
 
-      -- create new index instance and insert it with context 
+      -- create new index instance and insert it with context
       return ( IXH { ixhIndex = CIx.insertContext cx (newIx impl) ix
                    , ixhDocs   = dt
                    , ixhSchema = M.insert cx (ct {cxType = cType}) s
-                   } 
+                   }
              , ResOK )
       where
       newIx (IndexImpl i) = mkIndex $ Ix.empty `asTypeOf` i
@@ -341,7 +341,7 @@ execDeleteContext :: DocTable dt
                   -> IndexHandler dt
                   -> CM dt(IndexHandler dt, CmdResult)
 execDeleteContext cx (IXH ix dt s)
-  = return ((IXH (CIx.deleteContext cx ix) dt (M.delete cx s)), ResOK)
+  = return (IXH (CIx.deleteContext cx ix) dt (M.delete cx s), ResOK)
 
 
 -- | Inserts an 'ApiDocument' into the index.
@@ -452,7 +452,7 @@ execBatchDelete d ix = do
 
 -- ----------------------------------------------------------------------------
 
--- | general binary serialzation function 
+-- | general binary serialzation function
 execStore :: (Bin.Binary a, DocTable dt) =>
              FilePath -> a -> CM dt CmdResult
 execStore filename x = do
@@ -463,18 +463,16 @@ execStore filename x = do
 execLoad :: (Bin.Binary dt, DocTable dt) => FilePath -> CM dt (IndexHandler dt, CmdResult)
 execLoad filename = do
     ts <- askTypes
-    let ix = map (ctIxImpl) ts
-    (IXH ix dt s) <- liftIO $ decodeFile' ix filename
+    let ix = map ctIxImpl ts
+    ixh@(IXH _ _ s) <- liftIO $ decodeFile' ix filename
     ls <- TV.mapM reloadSchema s
-    return ((IXH ix dt ls), ResOK)
+    return (ixh{ ixhSchema = ls }, ResOK)
     where
     decodeFile' ts f = do
-       bs <- (BL.readFile f)
+       bs <- BL.readFile f
        return $ decodeIXH ts bs
 
     reloadSchema s = (askType . ctName . cxType) s >>= \t -> return $ s { cxType = t }
-                     
-      
 
 -- ----------------------------------------------------------------------------
 

@@ -7,14 +7,14 @@ import           Control.Monad                           (mzero)
 import           Data.Aeson
 import           Data.Binary
 import           Data.Map
-import           Data.Text 
+import           Data.Text
 import           Data.Text.Binary                         ()
 
 import           Holumbus.Common.BasicTypes
 import           Holumbus.Common.Occurrences              (Occurrences)
 import           Holumbus.Index.IndexImpl                 (IndexImpl, mkIndex)
 import qualified Holumbus.Index.Index                     as Ix
-import           Holumbus.Index.InvertedIndex 
+import           Holumbus.Index.InvertedIndex
 
 import qualified Holumbus.Index.Schema.Normalize.Position as Pos
 import qualified Holumbus.Index.Schema.Normalize.Int      as Int
@@ -62,7 +62,7 @@ data ContextSchema = ContextSchema
 
 type ContextTypes = [ContextType]
 
-data ContextType = CType 
+data ContextType = CType
   -- name of the context type
   { ctName     :: Text
   -- default regex used when no user defined regex is given in ContextSchema
@@ -82,13 +82,12 @@ ctEmpty = CType
   , ctIxImpl   = defaultInv
   }
 
-
 defValid :: CValidator
 defValid = CValidator $ \_ -> True
 
 -- XXX TODO fix default validater and regex in all impls!
 ctText :: ContextType
-ctText = CType 
+ctText = CType
   { ctName     = "text"
   , ctRegEx    = "\\w*"
   , ctValidate = defValid
@@ -96,7 +95,7 @@ ctText = CType
   }
 
 ctInt :: ContextType
-ctInt = CType 
+ctInt = CType
   { ctName     = "int"
   , ctRegEx    = "\\w*"
   , ctValidate = CValidator $ Int.isInt
@@ -104,7 +103,7 @@ ctInt = CType
   }
 
 ctDate :: ContextType
-ctDate = CType 
+ctDate = CType
   { ctName     = "date"
   , ctRegEx    = "\\w*"
   , ctValidate = CValidator $ Date.isAnyDate . unpack
@@ -112,7 +111,7 @@ ctDate = CType
   }
 
 ctPosition :: ContextType
-ctPosition = CType 
+ctPosition = CType
   { ctName     = "position"
   , ctRegEx    = "\\w*"
   , ctValidate = CValidator $ Pos.isPosition

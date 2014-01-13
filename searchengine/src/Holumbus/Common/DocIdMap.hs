@@ -137,10 +137,10 @@ maxKey                  = maybe DId.mkNull (fst . fst) . IM.maxViewWithKey . unD
 
 isIntervall             :: DocIdMap v -> Bool
 isIntervall m           = null m
-                                  ||
-                                  ( maxKey m - minKey m
-                                    == size m - 1
-                                  )
+                            ||
+                            ( maxKey m - minKey m
+                              == size m - 1
+                            )
 
 union                   :: DocIdMap v -> DocIdMap v -> DocIdMap v
 union                   = liftDIM2 $ IM.union

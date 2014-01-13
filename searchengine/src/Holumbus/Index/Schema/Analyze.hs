@@ -56,14 +56,13 @@ toDocAndWords' schema apiDoc = (doc, ws)
           { uri   = apiDocUri apiDoc
           , desc  = descrMap
           }
-  ws = M.mapWithKey (\context ->
-                (\(content)
-                    -> let (ContextSchema _ regex normalizers _ _ cType) 
-                             = fromJust $ M.lookup context schema
-                           (CType _ _ validator _) = cType 
-                           scan = filter (validate validator) . scanTextRE regex
-                       -- XXX: simple concat without nub
-                       in toWordList scan (normalize normalizers) content)) indexMap
+  ws = M.mapWithKey (\context content ->
+                        let (ContextSchema _ regex normalizers _ _ cType)
+                              = fromJust $ M.lookup context schema
+                            (CType _ _ validator _) = cType
+                            scan = filter (validate validator) . scanTextRE regex
+                        -- XXX: simple concat without nub
+                        in toWordList scan (normalize normalizers) content) indexMap
 
 -- | Apply the normalizers to a Word.
 normalize :: [CNormalizer] -> Word -> Word

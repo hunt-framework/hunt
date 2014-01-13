@@ -218,10 +218,10 @@ test_binary = testCM $ do
     @@@ ((@?= ["test://2"]) . searchResultUris)
   -- store index
   StoreIx "/tmp/ix"       @@= ResOK
-  -- reset index 
+  -- reset index
   Delete "test://1"       @@= ResOK
   Delete "test://2"       @@= ResOK
-  -- searching for documents - expecting to find none 
+  -- searching for documents - expecting to find none
   Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
     @@@ ((@?= []) . searchResultUris)
   Search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
@@ -246,10 +246,10 @@ test_binary2 = testCM $ do
   -- searching for documents - first should be valid second should be invalid
   Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
     @@@ ((@?= ["test://1"]) . searchResultUris)
-  (Search (QContext ["datecontext"] (QWord QNoCase "invalid")) 0 10     
+  (Search (QContext ["datecontext"] (QWord QNoCase "invalid")) 0 10
     @@@ const (assertFailure "date validation failed"))
         `catchError` const (return ())
- 
+
   -- store index
   StoreIx "/tmp/ix"       @@= ResOK
   LoadIx "/tmp/ix"        @@= ResOK
@@ -257,7 +257,7 @@ test_binary2 = testCM $ do
   -- searching for documents - first should be valid second should be invalid
   Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
     @@@ ((@?= ["test://1"]) . searchResultUris)
-  (Search (QContext ["datecontext"] (QWord QNoCase "invalid")) 0 10     
+  (Search (QContext ["datecontext"] (QWord QNoCase "invalid")) 0 10
     @@@ const (assertFailure "date validation failed after store/load index"))
         `catchError` const (return ())
 
@@ -346,14 +346,14 @@ test_fancy = testCM $ do
         `catchError` const (return ())
   -- search yields the old description
   Search (QWord QCase "Brain") os pp
-    @@@ ((@?= (apiDocDescrMap brainDoc)) . desc . head . lrResult . crRes)
+    @@@ ((@?= apiDocDescrMap brainDoc) . desc . head . lrResult . crRes)
 
   -- update the description
   Update brainDocUpdate
     @@= ResOK
   -- search yields >merged< description
   Search (QWord QCase "Brain") os pp
-    @@@ ((@?= (apiDocDescrMap brainDocMerged)) . desc . head . lrResult . crRes)
+    @@@ ((@?= apiDocDescrMap brainDocMerged) . desc . head . lrResult . crRes)
 
   -- delete return the correct result value
   BatchDelete (S.singleton "test://0")

@@ -51,7 +51,7 @@ instance Binary dt => Binary (IndexHandler dt) where
 
 -- | Insert a Document and Words.
 insert :: (Monad m, DocTable dt)
-       => (Dt.DValue dt) -> Words -> IndexHandler dt -> m (IndexHandler dt)
+       => Dt.DValue dt -> Words -> IndexHandler dt -> m (IndexHandler dt)
 insert doc wrds (IXH ix dt s) = do
     (did, newDt) <- Dt.insert dt doc
     let newIx = addWords wrds did ix

@@ -6,7 +6,6 @@
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-
 module Holumbus.Query.Processor
 (
    processQuery
@@ -129,8 +128,10 @@ processError ::   Int -> Text -> Processor a
 processError n msg
     = throwError $ ResError n msg
 
+{-
 unless' ::   Bool -> Int -> Text -> Processor ()
 unless' b code text = unless b $ processError code text
+-}
 
 getContexts ::   Processor [Context]
 getContexts = get >>= return . psContexts
@@ -150,8 +151,8 @@ getSchema = get >>= return . psSchema
 -- | Get the schema associated with that context/index.
 --   /NOTE/: This fails if the schema does not exist.
 getContextSchema ::   Context -> Processor ContextSchema
-getContextSchema c = do 
-  schema <- getSchema 
+getContextSchema c = do
+  schema <- getSchema
   case M.lookup c schema of
     (Just cs) -> return cs
     _         -> processError 420 ("Context does not exist in schema: " `T.append` c)
@@ -166,9 +167,9 @@ normQueryCx c t = do
   -- applying context type validator
   if (validate . ctValidate . cxType $ s) t
     then do
-      liftIO . debugM . debugMsg $ s 
+      liftIO . debugM . debugMsg $ s
       -- applying context schema normalizer
-      return $ norm s    
+      return $ norm s
     else processError 400 $ errorMsg s
     where
   norm s     = normalize (cxNormalizer s) t
@@ -353,7 +354,7 @@ processRange l h = forAllContexts' range
     --  400 $ "invalid range for context: " `T.append` rangeText
 
     -- range processing here should always be the same
-    -- different behaviours for special cases like location 
+    -- different behaviours for special cases like location
     -- search should be implemented in an own index proxy
     processRange' low high c
 
@@ -364,57 +365,6 @@ processRange l h = forAllContexts' range
     -- TODO: limit on context basis
     return . I.fromList lo c . limitWords st -- FIXME: check I.fromList - correct term
       $ CIx.lookupRangeCx c lo hi ix
-
-{-
--- | 'rangeString' with 'Text'.
-rangeText :: Text -> Text -> [Text]
-rangeText l h = map T.pack $ rangeString (T.unpack l) (T.unpack h)
-
--- [str0..str1]
-rangeString :: String -> String -> [String]
-rangeString start0 end = rangeString' start0
-  where
-  len = length end
-  rangeString' start
-    = let succ' = succString len start
-    in if start == end
-       then [start]
-       else start:rangeString' succ'
-
-{-
--- tail-recursive version
--- NOTE: order is reversed.
-rangeString' :: String -> String -> [String]
-rangeString' start0 end = range [] start0
-  where
-  len = length end
-  range acc start
-    = let succ' = succString len start
-      in if start == end
-         then start:acc
-         else range (start:acc) succ'
--}
-
-
--- | Computes the string successor with a length restriction.
---   NOTE: characters need to be in range of minBound'..maxBound'.
-succString :: Int -> String -> String
-succString = succString'
-  where
-  succString' :: Int -> String -> String
-  succString' m s
-    | length s < m   = s ++ [minBound']
-    | null s         = s
-    | l == maxBound' = succString' (m - 1) i
-    | otherwise      = i ++ [succ l]
-    where
-    (i, l) = (init s, last s)
-    minBound' = '!'
-    maxBound' = '~'
-    -- TODO: appropriate bounds?
-    --minBound' = 'a'
-    --maxBound' = 'z'
--}
 
 -- ----------------------------------------------------------------------------
 -- Operators
@@ -489,3 +439,55 @@ mergeOccurrencesList    :: [Occurrences] -> Occurrences
 mergeOccurrencesList    = DM.unionsWith Pos.union
 
 -- ----------------------------------------------------------------------------
+-- old range stuff
+
+{-
+-- | 'rangeString' with 'Text'.
+rangeText :: Text -> Text -> [Text]
+rangeText l h = map T.pack $ rangeString (T.unpack l) (T.unpack h)
+
+-- [str0..str1]
+rangeString :: String -> String -> [String]
+rangeString start0 end = rangeString' start0
+  where
+  len = length end
+  rangeString' start
+    = let succ' = succString len start
+    in if start == end
+       then [start]
+       else start:rangeString' succ'
+
+{-
+-- tail-recursive version
+-- NOTE: order is reversed.
+rangeString' :: String -> String -> [String]
+rangeString' start0 end = range [] start0
+  where
+  len = length end
+  range acc start
+    = let succ' = succString len start
+      in if start == end
+         then start:acc
+         else range (start:acc) succ'
+-}
+
+
+-- | Computes the string successor with a length restriction.
+--   NOTE: characters need to be in range of minBound'..maxBound'.
+succString :: Int -> String -> String
+succString = succString'
+  where
+  succString' :: Int -> String -> String
+  succString' m s
+    | length s < m   = s ++ [minBound']
+    | null s         = s
+    | l == maxBound' = succString' (m - 1) i
+    | otherwise      = i ++ [succ l]
+    where
+    (i, l) = (init s, last s)
+    minBound' = '!'
+    maxBound' = '~'
+    -- TODO: appropriate bounds?
+    --minBound' = 'a'
+    --maxBound' = 'z'
+-}

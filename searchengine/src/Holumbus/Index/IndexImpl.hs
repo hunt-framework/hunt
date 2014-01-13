@@ -6,19 +6,22 @@
 
 module Holumbus.Index.IndexImpl where
 
-import qualified Data.List                      as L
-import           Data.Binary
-import           Data.Text.Binary               ()             
-import           Data.Text                      (Text)
+import           Control.Applicative         ((<$>), (<*>))
 import           Control.Monad
-import           Control.Applicative            ((<$>), (<*>))
-import           Data.Typeable
-import           Data.Typeable.Internal         (TypeRep(..), TyCon(..))
-import           GHC.Fingerprint.Type           (Fingerprint(..))
 
-import           Holumbus.Index.Index
-import           Holumbus.Common.Occurrences    (Occurrences)
+import           Data.Binary
+import qualified Data.List                   as L
+import           Data.Text                   (Text)
+import           Data.Text.Binary            ()
+import           Data.Typeable
+import           Data.Typeable.Internal      (TyCon (..), TypeRep (..))
+
+import           GHC.Fingerprint.Type        (Fingerprint (..))
+
 import           Holumbus.Common.BasicTypes
+import           Holumbus.Common.Occurrences (Occurrences)
+import           Holumbus.Index.Index
+
 -- ------------------------------------------------------------
 
 type IndexImplCon i v
@@ -36,7 +39,6 @@ type IndexImplCon i v
 data IndexImpl v
   = forall i. IndexImplCon i v => IndexImpl { ixImpl :: i v }
 
-
 -- ------------------------------------------------------------
 
 instance Show (IndexImpl v) where
@@ -44,11 +46,11 @@ instance Show (IndexImpl v) where
 
 instance Binary Fingerprint where
   put (Fingerprint hi lo) = put hi >> put lo
-  get = Fingerprint <$> get <*> get 
+  get = Fingerprint <$> get <*> get
 
 instance Binary TypeRep where
-  put (TypeRep fp tyCon ts) = put fp >> put tyCon >> put ts 
-  get = TypeRep <$> get <*> get <*> get 
+  put (TypeRep fp tyCon ts) = put fp >> put tyCon >> put ts
+  get = TypeRep <$> get <*> get <*> get
 
 instance Binary TyCon where
   put (TyCon hash package modul name) = put hash >> put package >> put modul >> put name
@@ -56,7 +58,7 @@ instance Binary TyCon where
 
 
 get' :: [IndexImpl Occurrences] -> Get [(Context, IndexImpl Occurrences)]
-get' ts = do 
+get' ts = do
           n <- get :: Get Int
           getMany' ts n
 
@@ -77,7 +79,7 @@ get'' ts = do
 -- | FIXME: actually implement instance
 instance Binary (IndexImpl v) where
   put (IndexImpl i) = put (typeOf i) >> put i
-  get = error "existential types cannot be derialized this way. Use special get' functions"
+  get = error "existential types cannot be deserialized this way. Use special get' functions"
 
 -- ------------------------------------------------------------
 
