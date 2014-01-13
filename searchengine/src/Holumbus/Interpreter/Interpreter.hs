@@ -26,6 +26,7 @@ import           Data.Text                                 (Text)
 import qualified Data.Text                                 as T
 import qualified Data.ByteString.Lazy                      as BL
 import qualified Data.List                                 as L
+import qualified Data.Traversable                          as TV                         
 
 import           Holumbus.Common
 import           Holumbus.Common.ApiDocument               as ApiDoc
@@ -463,13 +464,17 @@ execLoad :: (Bin.Binary dt, DocTable dt) => FilePath -> CM dt (IndexHandler dt, 
 execLoad filename = do
     ts <- askTypes
     let ix = map (ctIxImpl) ts
-    x <- liftIO $ decodeFile' ix filename
-    return (x, ResOK)
+    (IXH ix dt s) <- liftIO $ decodeFile' ix filename
+    ls <- TV.mapM reloadSchema s
+    return ((IXH ix dt ls), ResOK)
     where
     decodeFile' ts f = do
        bs <- (BL.readFile f)
        return $ decodeIXH ts bs
 
+    reloadSchema s = (askType . ctName . cxType) s >>= \t -> return $ s { cxType = t }
+                     
+      
 
 -- ----------------------------------------------------------------------------
 
