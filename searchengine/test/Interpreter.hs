@@ -55,6 +55,7 @@ main = defaultMain
 
        -- test binary serialization
        , testCase "Interpreter: store/load index"           test_binary
+       , testCase "Interpreter: store/load schema"          test_binary2
        ]
 
 -- | check DmPrefixTree
@@ -201,8 +202,6 @@ a @@@ f = execCmd a >>= liftIO . f
 (@@=) :: Command -> CmdResult -> TestCM ()
 a @@= b = a @@@ (@?=b)
 
-
-
 test_binary :: Assertion
 test_binary = testCM $ do
   -- create contexts
@@ -235,7 +234,32 @@ test_binary = testCM $ do
     @@@ ((@?= ["test://1"]) . searchResultUris)
   Search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
     @@@ ((@?= ["test://2"]) . searchResultUris)
+
+test_binary2 :: Assertion
+test_binary2 = testCM $ do
+  -- create contexts
+  insertDateContext       @@= ResOK
+  insertDefaultContext    @@= ResOK
+  insertGeoContext        @@= ResOK
+  -- insert two docuemnts
+  Insert dateDoc          @@= ResOK
+  -- searching for documents - first should be valid second should be invalid
+  Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
+    @@@ ((@?= ["test://1"]) . searchResultUris)
+  (Search (QContext ["datecontext"] (QWord QNoCase "invalid")) 0 10     
+    @@@ const (assertFailure "date validation failed"))
+        `catchError` const (return ())
  
+  -- store index
+  StoreIx "/tmp/ix"       @@= ResOK
+  LoadIx "/tmp/ix"        @@= ResOK
+
+  -- searching for documents - first should be valid second should be invalid
+  Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
+    @@@ ((@?= ["test://1"]) . searchResultUris)
+  (Search (QContext ["datecontext"] (QWord QNoCase "invalid")) 0 10     
+    @@@ const (assertFailure "date validation failed after store/load index"))
+        `catchError` const (return ())
 
 test_dates :: Assertion
 test_dates = testCM $ do
