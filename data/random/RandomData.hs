@@ -194,9 +194,9 @@ descriptionGen :: Gen Description
 descriptionGen = do
   tuples <- vectorOf 3 kvTuples
   dates  <- cxDate
-  pos    <- cxp 
+  pos    <- cxp
   int    <- cxi
-  return $ M.fromList ([int, pos, dates] ++ tuples) 
+  return $ M.fromList ([int, pos, dates] ++ tuples)
   where
   kvTuples = do
     a <- resize 15 niceText1 -- keys are short
@@ -206,13 +206,13 @@ descriptionGen = do
     ds <- vectorOf 3 date >>= \l -> return $ T.intercalate " " l
     return ("dates", ds)
   cxp = do
-    lo <- choose (-70,70)   :: Gen Integer -- could be -90-90 
+    lo <- choose (-70,70)   :: Gen Integer -- could be -90-90
     la <- choose (-150,150) :: Gen Integer -- could be .180-180
     return ("location", T.concat [ T.pack . show $ lo, "-" , T.pack . show $ la])
   cxi = do
     i <- arbitrary :: Gen Int
     return ("points", T.pack . show $ i)
-    
+
 
 date :: Gen Text
 date = arbitrary >>= \x -> return . T.pack $ formatTime defaultTimeLocale "%Y-%m-%d" (newDate x)

@@ -63,11 +63,10 @@ deleteContext c (ContextIx m) = ContextIx $ M.delete c m
 insertWithCx :: Context -> Text -> v -> ContextIndex v -> ContextIndex v
 insertWithCx c w v (ContextIx m)
   = case M.lookup c m of
-      (Just _) -> ContextIx $ M.adjust adjust' c m
-      _        -> error "context does not exist"
+      Just _ -> ContextIx $ M.adjust adjust' c m
+      _      -> error "context does not exist"
   where
   adjust' (Impl.IndexImpl ix) = Impl.mkIndex $ Ix.insert w v ix
-
 
 -- | Insert an element to a list of contexts.
 insertWithCxs :: [Context] -> Text -> v -> ContextIndex v -> ContextIndex v
@@ -91,22 +90,22 @@ lookupRangeCx :: Context -> Text -> Text -> ContextIndex v
             -> [(Text, v)]
 lookupRangeCx c k1 k2 (ContextIx m)
   = case M.lookup c m of
-      (Just (Impl.IndexImpl cm)) -> Ix.lookupRange k1 k2 cm
-      _                          -> []
+      Just (Impl.IndexImpl cm) -> Ix.lookupRange k1 k2 cm
+      _                        -> []
 
 lookupRangeCxs :: [Context] -> Text -> Text -> ContextIndex v -> [(Context, [(Text, v)])]
 lookupRangeCxs cs k1 k2 (ContextIx m)
   = parMap rseq search' cs
   where
   search' c = case M.lookup c m of
-      (Just (Impl.IndexImpl cm)) -> (c, Ix.lookupRange k1 k2 cm)
-      _                          -> (c, [])
+      Just (Impl.IndexImpl cm) -> (c, Ix.lookupRange k1 k2 cm)
+      _                        -> (c, [])
 
 searchWithCx :: TextSearchOp -> Context -> Text -> ContextIndex v -> [(Text, v)]
 searchWithCx op c k (ContextIx m)
   = case M.lookup c m of
-      (Just (Impl.IndexImpl cm)) -> Ix.search op k cm
-      _                          -> []
+      Just (Impl.IndexImpl cm) -> Ix.search op k cm
+      _                        -> []
 
 -- | XXX we actually do not have any parallelism here at the moment
 --   because everything is evalutated lazy!
@@ -115,8 +114,8 @@ searchWithCxs op cs k (ContextIx m)
   = parMap rseq search' cs
   where
   search' c = case M.lookup c m of
-      (Just (Impl.IndexImpl cm)) -> (c, Ix.search op k cm)
-      _                          -> (c, [])
+      Just (Impl.IndexImpl cm) -> (c, Ix.search op k cm)
+      _                        -> (c, [])
 
 -- | search in different contexts with key already normalized in respect to each context type
 searchWithCxsNormalized :: TextSearchOp -> [(Context, Text)] -> ContextIndex v -> [(Context, [(Text, v)])]
@@ -124,8 +123,8 @@ searchWithCxsNormalized op cks (ContextIx m)
   = parMap rseq search' cks
   where
   search' (c, k) = case M.lookup c m of
-      (Just (Impl.IndexImpl cm)) -> (c, Ix.search op k cm)
-      _                          -> (c, [])
+      Just (Impl.IndexImpl cm) -> (c, Ix.search op k cm)
+      _                        -> (c, [])
 
 -- ----------------------------------------------------------------------------
 

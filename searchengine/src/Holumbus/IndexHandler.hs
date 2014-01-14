@@ -65,7 +65,6 @@ update docId doc' w ix = do
     ix' <- delete ix (IS.singleton docId)
     insert doc' w ix'
 
-
 -- | Modify elements
 modify :: (Monad m,DocTable dt)
        => (Dt.DValue dt -> m (Dt.DValue dt))

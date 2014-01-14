@@ -92,7 +92,7 @@ index _docs =
     });
 
     // auto completion for search box
-    // XXX should be improved or removed
+    // TODO: should be improved or removed
     $("#txt-search").typeahead({
       source: function(query, callback) {
         $.get("/completion/" + query + "/" + globalCompletionMax, function(data) {

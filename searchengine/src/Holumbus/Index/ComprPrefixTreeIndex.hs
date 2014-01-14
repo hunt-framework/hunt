@@ -51,7 +51,7 @@ instance Index ComprOccPrefixTree where
     insert k v (ComprPT i)
         = mkComprPT $ SM.insert k (compressOcc v) i
 
-    -- XXX not the best solution, but is there really another solution?
+    -- XXX: not the best solution, but is there really another solution?
     batchDelete ks i
         = Ix.map (\m -> DM.diffWithSet m ks) i
 

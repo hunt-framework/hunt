@@ -47,7 +47,7 @@ type Schema
 data ContextSchema = ContextSchema
   -- name of the context
   { cxName       :: Text
-  -- XXX regex change to maybe - optional since we have a default within contexttype
+  -- XXX: regex change to maybe - optional since we have a default within contexttype
   , cxRegEx      :: CRegex
   -- normalizers to apply
   , cxNormalizer :: [CNormalizer]
@@ -85,7 +85,7 @@ ctEmpty = CType
 defValid :: CValidator
 defValid = CValidator $ \_ -> True
 
--- XXX TODO fix default validater and regex in all impls!
+-- TODO: fix default validator and regex in all impls!
 ctText :: ContextType
 ctText = CType
   { ctName     = "text"
