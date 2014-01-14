@@ -18,12 +18,18 @@ import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Monadic                         (PropertyM,
                                                                   assert,
                                                                   monadicIO,
+                                                                  monitor,
                                                                   pick, run)
 
 import           Data.Map                                        (Map)
 import qualified Data.Map                                        as M
 import           Data.Text                                       (Text)
 import qualified Data.Text                                       as T
+
+import           GHC.AssertNF
+import           GHC.HeapView
+import qualified System.Mem
+
 
 import           Holumbus.Common
 import qualified Holumbus.Common.Occurrences                     as Occ
@@ -46,8 +52,6 @@ import qualified Holumbus.Index.Proxy.DateNormalizerIndex        as DateProxy
 import qualified Holumbus.Index.Proxy.PositionNormalizerIndex    as GeoProxy
 import qualified Holumbus.Index.Proxy.ContextIndex               as CIx
 --import qualified Holumbus.Index.Proxy.CompressedIndex            as ComprProxy
-
-import           GHC.AssertNF
 
 -- ----------------------------------------------------------------------------
 
@@ -96,8 +100,7 @@ prop_occs :: Property
 prop_occs = monadicIO $ do
   x <- pick arbitrary :: PropertyM IO Occurrences
   -- $!! needed here - $! does not evaluate everything of course
-  passed <- run $ isNF $!! x
-  assert passed
+  assertNF' $!! x
 
 -- ----------------------------------------------------------------------------
 -- test with simple index
@@ -110,8 +113,7 @@ prop_ptix :: Property
 prop_ptix
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Positions)
-    passed <- run $ isNF $! ix
-    assert passed
+    assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
@@ -119,8 +121,7 @@ prop_cptix :: Property
 prop_cptix
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (CPIx.ComprOccPrefixTree Z9.CompressedOccurrences)
-    passed <- run $ isNF $! ix
-    assert passed
+    assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
@@ -128,8 +129,7 @@ prop_cptix2 :: Property
 prop_cptix2
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (CPIx.ComprOccPrefixTree ZB.CompressedOccurrences)
-    passed <- run $ isNF $! ix
-    assert passed
+    assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
@@ -137,8 +137,7 @@ prop_cptix3 :: Property
 prop_cptix3
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (CPIx.ComprOccPrefixTree ZS.CompressedOccurrences)
-    passed <- run $ isNF $! ix
-    assert passed
+    assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
@@ -147,8 +146,7 @@ prop_invix1 :: Property
 prop_invix1
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex Positions)
-    passed <- run $ isNF $! ix
-    assert passed
+    assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
@@ -156,8 +154,7 @@ prop_invix2 :: Property
 prop_invix2
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexInt Positions)
-    passed <- run $ isNF $! ix
-    assert passed
+    assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1" val Ix.empty
 
@@ -165,8 +162,7 @@ prop_invix3 :: Property
 prop_invix3
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexDate Positions)
-    passed <- run $ isNF $! ix
-    assert passed
+    assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "2013-01-01" val Ix.empty
 
@@ -174,8 +170,7 @@ prop_invix4 :: Property
 prop_invix4
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Positions)
-    passed <- run $ isNF $! ix
-    assert passed
+    assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
 
@@ -189,8 +184,7 @@ prop_cachedix :: Property
 prop_cachedix
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (CacheProxy.CachedIndex (PIx.DmPrefixTree) Positions)
-    passed <- run $ isNF $! ix
-    assert passed
+    assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
@@ -200,8 +194,7 @@ prop_textix :: Property
 prop_textix
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree) Positions)
-    passed <- run $ isNF $! ix
-    assert passed
+    assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
@@ -210,8 +203,7 @@ prop_intix :: Property
 prop_intix
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (IntProxy.IntAsTextNormalizerIndex (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree)) Positions)
-    passed <- run $ isNF $! ix
-    assert passed
+    assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1" val Ix.empty
 
@@ -220,8 +212,7 @@ prop_dateix :: Property
 prop_dateix
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (DateProxy.DateNormalizerIndex (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree)) Positions)
-    passed <- run $ isNF $! ix
-    assert passed
+    assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "2013-01-01" val Ix.empty
 
@@ -230,8 +221,7 @@ prop_geoix :: Property
 prop_geoix
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (GeoProxy.PositionNormalizerIndex (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree)) Positions)
-    passed <- run $ isNF $! ix
-    assert passed
+    assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
 
@@ -242,8 +232,7 @@ prop_geoix
 prop_contextix_empty :: Property
 prop_contextix_empty
   = monadicIO $ do
-    passed <- run $ isNF $! CIx.empty
-    assert passed
+    assertNF' CIx.empty
 
 
 prop_contextix_emptyix :: Property
@@ -255,8 +244,7 @@ prop_contextix_emptyix
     let cix = CIx.insertContext "text" (mkIndex ix2)
             $ CIx.insertContext "geo" (mkIndex ix)
             $ CIx.empty
-    passed <- run $ isNF $! cix
-    assert passed
+    assertNF' cix
 
 
 
@@ -270,8 +258,7 @@ prop_contextix
             $ CIx.insertContext "text" (mkIndex ix2)
             $ CIx.insertContext "geo" (mkIndex ix)
             $ CIx.empty
-    passed <- run $ isNF $! cix
-    assert passed
+    assertNF' cix
 
 
 prop_contextix2 :: Property
@@ -282,8 +269,7 @@ prop_contextix2
     let cix = CIx.insertContext "text" (mkIndex ix2)
             $ CIx.insertContext "geo" (mkIndex ix)
             $ CIx.empty
-    passed <- run $ isNF $! cix
-    assert passed
+    assertNF' cix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
   pickIx2 = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
@@ -296,20 +282,15 @@ prop_impl_full :: Property
 prop_impl_full
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Occurrences)
-    passed <- run $ isNF $! (mkIndex ix)
-    assert passed
+    assertNF' $ mkIndex ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
-
 
 prop_impl_empty :: Property
 prop_impl_empty
   = monadicIO $ do
     let ix = Ix.empty  :: (InvIx.InvertedIndexPosition Occurrences)
-    passed <- run $ isNF $! (mkIndex ix)
-    assert passed
-
-
+    assertNF' $ mkIndex ix
 
 -- ----------------------------------------------------------------------------
 -- test property
@@ -401,3 +382,28 @@ mkIndexData i d = M.fromList
   prefixx n = T.intercalate " " . map (T.take n . T.filter (/=' ') . snd) . M.toList $ d
 
 -- ------------------------------------------------------------
+
+heapGraph :: Int -> a -> IO String
+heapGraph d x = do
+  let box = asBox x
+  graph <- buildHeapGraph d () box
+  return $ ppHeapGraph graph
+
+isNFWithGraph :: Int -> a -> IO (Bool, String)
+isNFWithGraph d x = do
+  b <- isNF $! x
+  -- XXX: does gc need a delay?
+  System.Mem.performGC
+  g <- heapGraph d x
+  return (b,g)
+
+-- depth is a constant
+assertNF' :: a -> PropertyM IO ()
+assertNF' = assertNF'' 5
+
+assertNF'' :: Int -> a -> PropertyM IO ()
+assertNF'' d x = do
+  (b,g) <- run $ isNFWithGraph d x
+  monitor $ const $ printTestCase g b
+
+-- ----------------------------------------------------------------------------
