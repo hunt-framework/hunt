@@ -1,5 +1,6 @@
 module Holumbus.Index.Schema.Analyze
   ( toDocAndWords
+  , toDocAndWords'
   , normalize
   , scanTextRE
   )
