@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies               #-}
 
@@ -14,6 +15,7 @@ import           Control.Arrow                           (second)
 import           Control.DeepSeq
 
 import           Data.Binary                             (Binary (..))
+import           Data.Typeable
 
 import           Holumbus.Index.Index
 import qualified Holumbus.Index.Index                    as Ix
@@ -30,7 +32,7 @@ import           Holumbus.Utility
 
 newtype ComprOccPrefixTree cv
     = ComprPT { comprPT :: SM.StringMap cv}
-    deriving (Eq, Show, NFData)
+    deriving (Eq, Show, NFData, Typeable)
 
 mkComprPT :: NFData cv => SM.StringMap cv -> ComprOccPrefixTree cv
 mkComprPT cv = ComprPT $! cv

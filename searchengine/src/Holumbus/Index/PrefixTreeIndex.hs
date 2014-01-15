@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies               #-}
 
@@ -8,6 +9,7 @@ where
 
 import           Control.DeepSeq
 import           Data.Binary                (Binary (..))
+import           Data.Typeable
 
 import qualified Data.StringMap.Strict      as SM
 
@@ -21,7 +23,7 @@ import           Holumbus.Utility
 
 newtype DmPrefixTree v
     = DmPT { dmPT :: SM.StringMap (DocIdMap v) }
-    deriving (Eq, Show, NFData)
+    deriving (Eq, Show, NFData, Typeable)
 
 mkDmPT :: NFData v => SM.StringMap (DocIdMap v) -> DmPrefixTree v
 mkDmPT v = DmPT $! v
