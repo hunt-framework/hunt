@@ -232,27 +232,3 @@ test-suite Holumbus-Analyzer
                , test-framework-quickcheck2
                , text
                , time
-
--- TODO: move to separate cabal project since it needs to be called
---       multiple times for accurate results - switch via args
-benchmark bench-memory-index
---  if os(windows)
---    hs-source-dirs: bench/memory
---    main-is:        NoWindows.hs
---    type:           exitcode-stdio-1.0
---    build-depends:  base
---  else
-    hs-source-dirs: bench/memory
-    main-is:        Index.hs
-    type:           exitcode-stdio-1.0
-    ghc-options:    -with-rtsopts=-T
-    build-depends: base
-                 , containers
-                 , aeson
-                 , aeson-pretty
-                 , bytestring
-                 , Holumbus-Searchengine
-                 , process
-                 , text
-                 , time
-                 , unix

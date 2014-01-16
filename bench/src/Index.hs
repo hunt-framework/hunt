@@ -12,11 +12,14 @@ import           Prelude                                         as P
 
 import           GHC.Stats
 import           GHC.Stats.Json                                  ()
+import           System.Environment
 import           System.Mem
 import           System.Posix.Process
 import           System.Process
 
+import           Control.Applicative
 import           Control.Concurrent
+import           Control.Monad
 
 import           Data.Map                                        (Map)
 import qualified Data.Map                                        as M
@@ -189,11 +192,12 @@ testIndex dataSet (IndexAll ix f) = do
 
 main :: IO ()
 main = do
+  [n] <- map read <$> getArgs
   -- XXX: cycling through without restart leads to inaccurate results
   --mapM_ (\(ds, ix) -> testIndex ds ix) $ zip (repeat dsRandom) (reverse indexes)
-  -- test index 0 with dataset random
-  -- >> testIndex dsRandom (indexes !! 0)
-  testIndex dsRandom (indexes !! 3)
+
+  guard $ n < length indexes
+  testIndex dsRandom (indexes !! n)
   --threadDelay (5 * 10^6)
 
 -- ----------------------------------------------------------------------------

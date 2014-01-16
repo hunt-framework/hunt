@@ -13,6 +13,8 @@ PATTERN =
 SERVER  = http://localhost:3000
 EXE     = $(shell [ -d ".cabal-sandbox" ] && echo ".cabal-sandbox/bin/holumbusServer" || echo "holumbusServer")
 
+PROFOPTS=--enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
+
 
 # RandomData options
 # min/max size of a document
@@ -48,6 +50,29 @@ sandbox:
 	cd server         && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd server         && cabal sandbox add-source ../searchengine/
 	cd hayooCrawler   && cabal sandbox init --sandbox ../.cabal-sandbox
+
+membench-sandbox:
+	cd bench && cabal sandbox init --sandbox .cabal-sandbox
+	cd bench && cabal sandbox add-source ../searchengine/
+
+membench-configure:
+	cd bench && \
+		cabal configure --enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
+
+membench-install:
+	cd bench && \
+		cabal install --enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
+
+membench: membench-install
+
+bench-%:
+	cd bench && \
+		./.cabal-sandbox/bin/holumbusMemBench $*
+
+bench:
+	for i in $$(seq 0 4); do \
+		$(MAKE) bench-$$i; \
+	done
 
 searchengine:
 	cd searchengine && cabal $(action) $(pattern)
@@ -120,4 +145,27 @@ runtimeHeapProfile:
 stringmap:
 	git clone https://github.com/sebastian-philipp/StringMap.git tmpstringmap && cd searchengine && cabal install ../tmpstringmap && cd .. && rm -rf tmpstringmap
 
-.PHONY: target clean configure build install test all searchengine server insertJokes startServer stopServer sandbox hayooCrawler benchmark benchmark2 runtimeHeapProfile startServer profiling searchengine-profiling server-profiling stringmap
+membench-sandbox-delete:
+	cd bench && cabal sandbox delete
+
+# requires ghc-profiling libs
+#   e.g. apt-get install ghc-prof
+# profiling enabled
+# text < 1, github data-size, github data-stringmap
+# data-size 0.1.3.0 not on hackage yet
+membench-deps:
+	cd bench && \
+		cabal install $(PROFOPTS) text --constraint=text\<1
+	git clone https://github.com/UweSchmidt/data-size.git tmpdatasize \
+		&& cd bench && cabal install $(PROFOPTS) ../tmpdatasize \
+		; cd .. && rm -rf tmpdatasize
+	git clone https://github.com/sebastian-philipp/StringMap.git tmpstringmap \
+		&& cd bench \
+		&& cabal install $(PROFOPTS) ../tmpstringmap \
+		; cd .. && rm -rf tmpstringmap
+
+.PHONY: target clean configure build install test all searchengine server insertJokes startServer \
+		stopServer sandbox hayooCrawler benchmark benchmark2 runtimeHeapProfile startServer \
+		profiling searchengine-profiling server-profiling stringmap \
+		membench-sandbox membench-configure membench-deps membench-install membench \
+		membench-sandbox-delete bench bench-*

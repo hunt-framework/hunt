@@ -1,0 +1,39 @@
+name:          Holumbus-MemBench
+version:       0.0.0.1
+license:       MIT
+-- license-file:  LICENSE
+author:
+copyright:
+maintainer:
+stability:     experimental
+category:      Test, Benchmark
+synopsis:      Memory benchmarks for the Holumbus packages.
+homepage:      http://holumbus.fh-wedel.de
+description:   Memory benchmarks for the Holumbus packages.
+cabal-version: >=1.8
+build-type:    Simple
+
+source-repository head
+  type:        git
+  location:    https://github.com/UlfS/holumbus.git
+
+executable holumbusMemBench
+  main-is:        Index.hs
+  hs-source-dirs: src
+  other-modules:
+  build-depends:   base >= 4.5  && < 5
+                 , containers             >= 0.5
+                 , aeson
+                 , aeson-pretty
+                 , bytestring                             < 1
+                 , Holumbus-Searchengine  >= 2
+                 , process                >= 1    && < 2
+                 , text                   >= 0.11 && < 1
+                 , time                   >= 1.4  && < 2
+                 , unix                   >= 2.3  && < 3
+  ghc-options:   -threaded
+                 -Wall
+                 -with-rtsopts=-T
+                 -rtsopts
+                 -fwarn-tabs
+  extensions:
