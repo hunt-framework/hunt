@@ -34,6 +34,7 @@ import           Data.Binary                             (Binary (..))
 import qualified Data.Binary                             as B
 import qualified Data.ByteString                         as BS
 import qualified Data.ByteString.Lazy                    as BL
+import qualified Data.ByteString.Short                   as Short
 import           Data.Typeable
 
 #if  __GLASGOW_HASKELL__ >= 770
@@ -51,10 +52,10 @@ import           Holumbus.Common.Occurrences.Compression
 -- The BS.ByteString is a candidate for a BS.ShortByteString available with bytestring 0.10.4,
 -- then 5 machine words can be saved per value
 
-newtype CompressedOccurrences = ComprOccs { unComprOccs :: BS.ByteString }
+newtype CompressedOccurrences = ComprOccs { unComprOccs :: Short.ShortByteString }
   deriving (Eq, Show, Typeable)
 
-mkComprOccs :: BS.ByteString -> CompressedOccurrences
+mkComprOccs :: Short.ShortByteString -> CompressedOccurrences
 mkComprOccs b = ComprOccs $!! b
 
 -- ----------------------------------------------------------------------------
@@ -72,8 +73,8 @@ instance OccCompression CompressedOccurrences where
 -- ----------------------------------------------------------------------------
 
 instance Binary CompressedOccurrences where
-  put = put . unComprOccs
-  get = mkComprOccs . BS.copy <$> get
+  put = put . Short.fromShort . unComprOccs
+  get = mkComprOccs . Short.toShort . BS.copy <$> get
 
 -- to avoid sharing the data with the input the ByteString is physically copied
 -- before return. This should be the single place where sharing is introduced,
@@ -85,19 +86,19 @@ instance Binary CompressedOccurrences where
 #if  __GLASGOW_HASKELL__ >= 770
 --compress :: Binary a => a -> CompressedOccurrences
 compress :: Occurrences -> CompressedOccurrences
-compress = mkComprOccs . BL.toStrict . BZ.compress . B.encode
+compress = mkComprOccs . Short.toShort . BL.toStrict . BZ.compress . B.encode
 
 --decompress :: Binary a => CompressedOccurrences -> a
 decompress :: CompressedOccurrences -> Occurrences
-decompress = B.decode . BZ.decompress . BL.fromStrict . unComprOccs
+decompress = B.decode . BZ.decompress . BL.fromStrict . Short.fromShort . unComprOccs
 
 #else
 #warning snappy is disabled if GHC < 7.7
 --compress :: Binary a => a -> CompressedOccurrences
 compress :: Occurrences -> CompressedOccurrences
-compress = mkComprOccs . BL.toStrict . B.encode
+compress = mkComprOccs . Short.toShort . BL.toStrict . B.encode
 
 --decompress :: Binary a => CompressedOccurrences -> a
 decompress :: CompressedOccurrences -> Occurrences
-decompress = B.decode . BL.fromStrict . unComprOccs
+decompress = B.decode . BL.fromStrict . Short.fromShort . unComprOccs
 #endif

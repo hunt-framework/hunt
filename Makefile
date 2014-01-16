@@ -65,6 +65,11 @@ membench-install:
 	cd bench && \
 		cabal install --enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
 
+membench-force-install:
+	cd bench && \
+		cabal install --enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all --reinstall --force-reinstalls
+
+
 membench: membench-install
 
 membench-gen:
@@ -163,7 +168,8 @@ membench-sandbox-delete:
 # profiling enabled
 # text < 1, github data-size, github data-stringmap
 # data-size 0.1.3.0 not on hackage yet
-membench-deps:
+membench-deps: 
+	cd bench && cabal install $(PROFOPTS) bytestring
 	cd bench && \
 		cabal install $(PROFOPTS) text --constraint=text\<1
 	git clone https://github.com/UweSchmidt/data-size.git tmpdatasize \
@@ -173,6 +179,22 @@ membench-deps:
 		&& cd bench \
 		&& cabal install $(PROFOPTS) ../tmpstringmap \
 		; cd .. && rm -rf tmpstringmap
+
+installwithbs:
+	rm -rf .cabal-sandbox
+	$(MAKE) sandbox
+	cd searchengine && cabal install bytestring
+	cd searchengine && \
+		cabal install text --constraint=text\<1
+	git clone https://github.com/UweSchmidt/data-size.git tmpdatasize \
+		&& cd searchengine && cabal install ../tmpdatasize \
+		; cd .. && rm -rf tmpdatasize
+	git clone https://github.com/sebastian-philipp/StringMap.git tmpstringmap \
+		&& cd searchengine \
+		&& cabal install ../tmpstringmap \
+		; cd .. && rm -rf tmpstringmap
+	cd searchengine && cabal install --reinstall --force-reinstalls
+
 
 .PHONY: target clean configure build install test all searchengine server insertJokes startServer \
 		stopServer sandbox hayooCrawler benchmark benchmark2 runtimeHeapProfile startServer \
