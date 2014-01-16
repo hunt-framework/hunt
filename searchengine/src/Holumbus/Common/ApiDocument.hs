@@ -2,8 +2,11 @@
 
 module Holumbus.Common.ApiDocument where
 
+import           Control.Applicative
 import           Control.Monad              (mzero)
 
+import           Data.Binary                (Binary (..))
+import           Data.Text.Binary           ()
 import           Data.Aeson
 import           Data.Map                   (Map ())
 import qualified Data.Map                   as M
@@ -44,6 +47,8 @@ data LimitedResult x = LimitedResult
   }
   deriving (Show, Eq)
 
+-- ----------------------------------------------------------------------------
+
 mkLimitedResult :: Int -> Int -> [x] -> LimitedResult x
 mkLimitedResult offset mx xs = LimitedResult
   { lrResult = take mx . drop offset $ xs
@@ -61,6 +66,12 @@ emptyApiDocDescrMap = M.empty
 
 emptyApiDoc :: ApiDocument
 emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescrMap
+
+-- ----------------------------------------------------------------------------
+
+instance Binary ApiDocument where
+  put (ApiDocument a b c) = put a >> put b >> put c
+  get = ApiDocument <$> get <*> get <*> get
 
 -- ----------------------------------------------------------------------------
 
