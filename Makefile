@@ -52,6 +52,7 @@ sandbox:
 	cd server         && cabal sandbox add-source ../searchengine/
 	cd hayooCrawler   && cabal sandbox init --sandbox ../.cabal-sandbox
 
+# TODO: move bench stuff to separate Makefile
 membench-sandbox:
 	cd bench && cabal sandbox init --sandbox .cabal-sandbox
 	cd bench && cabal sandbox add-source ../searchengine/
@@ -66,10 +67,17 @@ membench-install:
 
 membench: membench-install
 
-# ./.cabal-sandbox/bin/holumbusMemBench $*
+membench-gen:
+	cd bench && (\
+		./.cabal-sandbox/bin/holumbusMemBenchBin '../data/jokes/FussballerSprueche.js'; \
+		./.cabal-sandbox/bin/holumbusMemBenchBin '../data/random/RandomData.js'         \
+		)
+
 bench-%:
+# XXX: dataset hardcoded
+# 	./.cabal-sandbox/bin/holumbusMemBench $*
 	cd bench && \
-		$(PROFSH) $*
+		$(PROFSH) 1 $*
 
 bench:
 	for i in $$(seq 0 4); do \

@@ -47,7 +47,7 @@ function move() {
 }
 
 function run() {
-  "$CABAL_BIN/$PROG" $1 $FLAGS +RTS -p $FLAGS_PROF -s${PROG}.summary
+  "$CABAL_BIN/$PROG" $@ $FLAGS +RTS -p $FLAGS_PROF -s${PROG}.summary
 }
 
 function view_dir() {
@@ -60,10 +60,10 @@ function view_dir() {
 
 # ######################################
 
-ARGS="$1"
+ARGS="$@"
 
 # ######################################
-run "$ARGS"            && \
+run $ARGS            && \
 post                   && \
 data_dir=$(move)       && \
 view_dir "$data_dir"

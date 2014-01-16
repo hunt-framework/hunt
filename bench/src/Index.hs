@@ -1,8 +1,8 @@
+{-# LANGUAGE BangPatterns              #-}
 {-# LANGUAGE ConstraintKinds           #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE OverloadedStrings         #-}
-{-# LANGUAGE RecordWildCards           #-}
 {-# LANGUAGE TypeFamilies              #-}
 
 module Main where
@@ -21,8 +21,10 @@ import           Control.Applicative
 import           Control.Concurrent
 import           Control.Monad
 
+import qualified Data.Binary                                     as Bin
 import           Data.Map                                        (Map)
 import qualified Data.Map                                        as M
+import           Data.Maybe
 import           Data.Monoid
 import           Data.Text                                       (Text)
 import qualified Data.Text                                       as T
@@ -38,6 +40,7 @@ import qualified Holumbus.Index.PrefixTreeIndex                  as PIx
 
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
+--import qualified Data.ByteString                                 as BS
 import qualified Data.ByteString.Lazy                            as BL
 import qualified Data.ByteString.Lazy.Char8                      as B8
 import qualified Data.List                                       as L
@@ -57,40 +60,82 @@ import qualified Holumbus.Index.ComprPrefixTreeIndex             as CPIx
 
 data DataSet = DataSet
   { tdName   :: String
-  , tdPath   :: FilePath
+  , tdType   :: FileType
+  , tdPath   :: FilePath -- the path needs an extension!
   , tdSchema :: Schema
   }
+
+data FileType = Binary | Json
 
 -- ----------------------------------------------------------------------------
 -- datasets
 
 dsJokes, dsRandom :: DataSet
 
+-- NOTE: path need an extension!
 dsJokes = DataSet
   { tdName   = "jokes"
+  , tdType   = Json
   , tdPath   = "../data/jokes/FussballerSprueche.js"
   , tdSchema = schemaJokes
   }
 
 dsRandom = DataSet
   { tdName   = "random"
+  , tdType   = Json
   , tdPath   = "../data/random/RandomData.js"
   , tdSchema = schemaRandom
   }
 
-dataSets :: Map String DataSet
-dataSets = M.fromList . map (\x -> (tdName x, x)) $ [dsJokes, dsRandom]
+--dataSets :: Map String DataSet
+--dataSets = M.fromList . map (\x -> (tdName x, x)) $ [dsJokes, dsRandom]
+
+dataSetsJs :: [DataSet]
+dataSetsJs = [dsJokes, dsRandom]
+
+dataSetsBin = map (transType Binary) dataSetsJs
+
+dataSets = dataSetsJs ++ dataSetsBin
+
+-- ----------------------------------------------------------------------------
+
+fileTypeExt :: FileType -> String
+fileTypeExt o = case o of
+  Json   -> ".js"
+  Binary -> ".bin"
+
+transType :: FileType -> DataSet -> DataSet
+transType ft ds = ds
+  { tdName   = tdName ds ++ ex
+  , tdType   = ft
+  , tdPath   = dropExt (tdPath ds) ++ ex
+  }
+  where
+  ex   = fileTypeExt ft
 
 -- ----------------------------------------------------------------------------
 -- IO
 
-getDataSet :: DataSet -> IO ApiDocuments
-getDataSet DataSet{..} = do
-  content <- BL.readFile tdPath
+getJson :: (FromJSON a) => FilePath -> IO a
+getJson file = do
+  content <- BL.readFile file
   return . fromLeft . eitherDecode $ content
   where
   fromLeft (Left msg) = error msg
   fromLeft (Right x)  = x
+
+decodeFile :: FilePath -> IO ApiDocuments
+decodeFile = Bin.decodeFile
+--decodeFile x = fmap (Bin.decode . BL.fromChunks . return) $ BS.readFile x
+
+getDataSet :: DataSet -> IO ApiDocuments
+getDataSet ds = do
+  x <- rf $ tdPath ds
+  return $! x
+  where
+  rf = case tdType ds of
+    Binary -> decodeFile
+    Json   -> getJson
 
 -- ----------------------------------------------------------------------------
 -- Schema
@@ -177,7 +222,8 @@ typeName x
 
 testIndex :: DataSet -> IndexAll -> IO ()
 testIndex dataSet (IndexAll ix f) = do
-  apiDocs  <- getDataSet dataSet :: IO ApiDocuments
+  !apiDocs  <- getDataSet dataSet :: IO ApiDocuments
+  --threadDelay (5 * 10^6)
   let docs = P.map (toDocAndWords' (tdSchema dataSet)) apiDocs
 
   start <- getCurrentTime
@@ -192,12 +238,12 @@ testIndex dataSet (IndexAll ix f) = do
 
 main :: IO ()
 main = do
-  [n] <- map read <$> getArgs
+  [m,n] <- map read <$> getArgs
   -- XXX: cycling through without restart leads to inaccurate results
   --mapM_ (\(ds, ix) -> testIndex ds ix) $ zip (repeat dsRandom) (reverse indexes)
 
   guard $ n < length indexes
-  testIndex dsRandom (indexes !! n)
+  testIndex (dataSets !! m) (indexes !! n)
   --threadDelay (5 * 10^6)
 
 -- ----------------------------------------------------------------------------
@@ -212,7 +258,7 @@ printStats titleM x tdiff = do
   stats <- getGCStats
   sep
   -- who knew?
-  T.sequence . fmap (putStrLn . (++) ">> ") $ titleM
+  _ <- T.sequence . fmap (putStrLn . (++) ">> ") $ titleM
   putStrLn $ ">> " ++ typeName x
   ssep
   putStrLn $ "time: " ++ show tdiff
@@ -246,3 +292,13 @@ printTop = do
   pid <- getProcessID
   res <- readProcess "top" ["-cbn", "1" ,"-p", show pid] []
   putStrLn res
+
+-- XXX: hack
+dropExt :: FilePath -> FilePath
+dropExt path
+  = if '/' `elem` rExt
+    then path
+    else reverse $ tail' rBase
+  where
+  (rExt,rBase) = break (=='.') $ reverse path
+  tail' xs = if null xs then xs else tail xs
