@@ -12,7 +12,7 @@ FLAGS=""
 FLAGS_PROF="-h -S -xt"
 CABAL_BIN="$DIR/.cabal-sandbox/bin"
 # extend to support more viewers
-VIEWER=$(which okular | head -1)
+VIEWER=$(which okular evince | head -1)
 CONFIG_FILE="prof.sh.config"
 
 
