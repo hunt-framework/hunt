@@ -12,6 +12,7 @@ PATTERN =
 
 SERVER  = http://localhost:3000
 EXE     = $(shell [ -d ".cabal-sandbox" ] && echo ".cabal-sandbox/bin/holumbusServer" || echo "holumbusServer")
+PROFSH  = ./prof.sh
 
 PROFOPTS=--enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
 
@@ -65,9 +66,10 @@ membench-install:
 
 membench: membench-install
 
+# ./.cabal-sandbox/bin/holumbusMemBench $*
 bench-%:
 	cd bench && \
-		./.cabal-sandbox/bin/holumbusMemBench $*
+		$(PROFSH) $*
 
 bench:
 	for i in $$(seq 0 4); do \
