@@ -20,6 +20,7 @@ source-repository head
   type:        git
   location:    https://github.com/UlfS/holumbus.git
 
+{-
 library
   hs-source-dirs:   src-client
   exposed-modules:
@@ -31,6 +32,7 @@ library
                 , http-conduit >= 2.0.0
                 , transformers >= 0.3
                 , lens >= 3.10
+-}
 
 executable holumbusServer
   main-is:      Server.hs

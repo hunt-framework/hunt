@@ -13,21 +13,32 @@ PATTERN =
 SERVER  = http://localhost:3000
 EXE     = $(shell [ -d ".cabal-sandbox" ] && echo ".cabal-sandbox/bin/holumbusServer" || echo "holumbusServer")
 PROFSH  = ./prof.sh
-
-PROFOPTS=--enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
+# profiling on/off
+export PROF=0
 
 
 # RandomData options
 # min/max size of a document
-SIZEMIN = 200
-SIZEMAX = 200
+export RD_SIZEMIN = 200
+export RD_SIZEMAX = 200
 # number of documents
-NUMDOCS = 1000
+export RD_NUMDOCS = 1000
 
 # set test pattern
 ifdef PATTERN
 	ifeq ($(action),test)
         pattern = --test-options='-t $(PATTERN)'
+	endif
+endif
+
+# default profiling options
+PROFOPTS_DEFAULT=--enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
+
+ifndef PROFOPTS
+	ifeq ($(PROF),1)
+	    PROFOPTS=$(PROFOPTS_DEFAULT)
+	else
+	    PROFOPTS=
 	endif
 endif
 
@@ -37,11 +48,17 @@ action		= install
 all:		install
 profiling:      searchengine-profiling server-profiling
 
-clean: 		; $(MAKE) target action=clean
-configure: 	; $(MAKE) target action=configure
-build:		; $(MAKE) target action=build
-install:	; $(MAKE) target action=install
-test:		; $(MAKE) target action=test
+clean:
+	$(MAKE) -e -C data/random clean
+	$(MAKE) target action=clean PROFOPTS=''
+
+delete: clean
+	- rm -rf .cabal-sandbox/
+
+configure: 	; $(MAKE) -e target action=configure
+build:		; $(MAKE) -e target action=build PROFOPTS=''
+install:	; $(MAKE) -e target action=install
+test:		; $(MAKE) -e target action=test PROFOPTS=''
 
 target: searchengine server
 
@@ -52,70 +69,21 @@ sandbox:
 	cd server         && cabal sandbox add-source ../searchengine/
 	cd hayooCrawler   && cabal sandbox init --sandbox ../.cabal-sandbox
 
-# TODO: move bench stuff to separate Makefile
-membench-sandbox:
-	cd bench && cabal sandbox init --sandbox .cabal-sandbox
-	cd bench && cabal sandbox add-source ../searchengine/
-
-membench-configure:
-	cd bench && \
-		cabal configure --enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
-
-membench-install:
-	cd bench && \
-		cabal install --enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
-
-membench-force-install:
-	cd bench && \
-		cabal install --enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all --reinstall --force-reinstalls
-
-
-membench: membench-install
-
-membench-gen:
-	cd bench && (\
-		./.cabal-sandbox/bin/holumbusMemBenchBin '../data/jokes/FussballerSprueche.js'; \
-		./.cabal-sandbox/bin/holumbusMemBenchBin '../data/random/RandomData.js'         \
-		)
-
-bench-%:
-# XXX: dataset hardcoded
-# 	./.cabal-sandbox/bin/holumbusMemBench $*
-	cd bench && \
-		$(PROFSH) 1 $*
-
-bench:
-	for i in $$(seq 0 4); do \
-		$(MAKE) bench-$$i; \
-	done
-
 searchengine:
-	cd searchengine && cabal $(action) $(pattern)
+	cd searchengine && cabal $(action) $(PROFOPTS) $(pattern)
 
 server: stopServer
-	cd server       && cabal $(action) $(pattern)
+	cd server       && cabal $(action) $(PROFOPTS) $(pattern)
 
-searchengine-profiling:
-	cd searchengine && cabal $(action) --enable-library-profiling --ghc-option=-auto-all $(pattern)
-
-server-profiling: stopServer
-	cd server       && cabal $(action) --enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all $(pattern)
+searchengine-profiling server-profiling: PROFOPTS=$(PROFOPTS_DEFAULT)
+searchengine-profiling: searchengine
+server-profiling: server
 
 hayooCrawler:
 	$(MAKE) -C hayooCrawler
 
-hayooCrawler-data: hayooCrawler
-	$(MAKE) -C hayooCrawler/data
-hayooCrawler-cache: hayooCrawler
-	$(MAKE) -C hayooCrawler/data cache
-hayooCrawler-pkg: hayooCrawler
-	$(MAKE) -C hayooCrawler/data pkg
-hayooCrawler-rnk: hayooCrawler
-	$(MAKE) -C hayooCrawler/data rnk
-hayooCrawler-fct: hayooCrawler
-	$(MAKE) -C hayooCrawler/data fct
-hayooCrawler-clean:
-	$(MAKE) -C hayooCrawler/data clean
+hayooCrawler-%: hayooCrawler
+	$(MAKE) -C hayooCrawler/data $*
 
 startServer: stopServer
 	$(EXE) $(RUNOPTS) &
@@ -138,17 +106,21 @@ random:
 	$(MAKE) -C data/random
 
 generateRandom:
-	-$(MAKE) -C data/random cleanData
-	$(MAKE) -C data/random generate SIZEMIN=$(SIZEMIN) SIZEMAX=$(SIZEMAX) NUMDOCS=$(NUMDOCS)
+	$(MAKE) -e -C data/random cleanData generate
 
-insertRandom: generateRandom
+data/random/RandomData.js:
+	$(MAKE) -e -C data/random generate
+
+insertRandom:  data/random/RandomData.js
 	curl -X POST -d @data/random/contexts.js $(SERVER)/eval
 	curl -X POST -d @data/random/RandomData.js $(SERVER)/document/insert
 
-benchmark: generateRandom
+# ab - Apache HTTP server benchmarking tool
+benchmark-ab:
 	ab -k -n 1000 -c 5 http://localhost:3000/search/esta
 
-benchmark2: generateRandom
+# siege - http load testing and benchmarking utility
+benchmark-siege:
 	siege -c50 -d10 -t3M -f data/random/urls
 
 # able to read heap profile at runtime
@@ -158,46 +130,32 @@ runtimeHeapProfile:
 
 # github data-stringmap install
 stringmap:
-	git clone https://github.com/sebastian-philipp/StringMap.git tmpstringmap && cd searchengine && cabal install ../tmpstringmap && cd .. && rm -rf tmpstringmap
+	git clone https://github.com/sebastian-philipp/StringMap.git tmpgithubdir && cd searchengine && cabal install $(PROFOPTS) ../tmpgithubdir && cd .. && rm -rf tmpgithubdir
 
-membench-sandbox-delete:
-	cd bench && cabal sandbox delete
-
-# requires ghc-profiling libs
-#   e.g. apt-get install ghc-prof
-# profiling enabled
-# text < 1, github data-size, github data-stringmap
-# data-size 0.1.3.0 not on hackage yet
-membench-deps: 
-	cd bench && cabal install $(PROFOPTS) bytestring
-	cd bench && \
-		cabal install $(PROFOPTS) text --constraint=text\<1
-	git clone https://github.com/UweSchmidt/data-size.git tmpdatasize \
-		&& cd bench && cabal install $(PROFOPTS) ../tmpdatasize \
-		; cd .. && rm -rf tmpdatasize
-	git clone https://github.com/sebastian-philipp/StringMap.git tmpstringmap \
-		&& cd bench \
-		&& cabal install $(PROFOPTS) ../tmpstringmap \
-		; cd .. && rm -rf tmpstringmap
+membench:
+	$(MAKE) -C bench $@
+membench-%:
+	$(MAKE) -C bench $*
+bench-%:
+	$(MAKE) -C bench $@
 
 installwithbs:
 	rm -rf .cabal-sandbox
 	$(MAKE) sandbox
-	cd searchengine && cabal install bytestring
-	cd searchengine && \
-		cabal install text --constraint=text\<1
-	git clone https://github.com/UweSchmidt/data-size.git tmpdatasize \
-		&& cd searchengine && cabal install ../tmpdatasize \
-		; cd .. && rm -rf tmpdatasize
-	git clone https://github.com/sebastian-philipp/StringMap.git tmpstringmap \
-		&& cd searchengine \
-		&& cabal install ../tmpstringmap \
-		; cd .. && rm -rf tmpstringmap
-	cd searchengine && cabal install --reinstall --force-reinstalls
+	cd searchengine \
+	 	&& cabal install $(PROFOPTS) bytestring \
+		&& cabal install $(PROFOPTS) text --constraint=text\<1
+	git clone https://github.com/UweSchmidt/data-size.git tmpgithubdir \
+		&& ( cd searchengine && cabal install $(PROFOPTS) ../tmpgithubdir ) \
+		; rm -rf tmpgithubdir
+	git clone https://github.com/sebastian-philipp/StringMap.git tmpgithubdir \
+		&& ( cd searchengine && cabal install $(PROFOPTS) ../tmpgithubdir ) \
+		; rm -rf tmpgithubdir
+	cd searchengine && cabal install $(PROFOPTS) --reinstall --force-reinstalls
 
 
 .PHONY: target clean configure build install test all searchengine server insertJokes startServer \
-		stopServer sandbox hayooCrawler benchmark benchmark2 runtimeHeapProfile startServer \
+		stopServer sandbox benchmark-ab benchmark-siege runtimeHeapProfile startServer \
+		hayooCrawler hayooCrawler-% \
 		profiling searchengine-profiling server-profiling stringmap \
-		membench-sandbox membench-configure membench-deps membench-install membench \
-		membench-sandbox-delete bench bench-*
+		bench bench-* membench membench-*
