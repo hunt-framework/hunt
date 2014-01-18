@@ -1,13 +1,15 @@
 # the -A option is important for garbage collection performance,
 # a good value is about the size of the L2 cache of the cpu
 # the default is set to 8M
+# more info on rts opts below
 
 N       = 1
 H       = 500
 A       = 8
 K       = 200
 RTSPROF =
-RUNOPTS = +RTS -N$(N) -s $(RTSPROF) -K$(K)M -A$(A)M -H$(H)M -RTS
+#RUNOPTS = +RTS -N$(N) -s $(RTSPROF) -K$(K)M -A$(A)M -H$(H)M -RTS
+RUNOPTS = +RTS -s $(RTSPROF) -K$(K)M -RTS
 PATTERN =
 
 SERVER  = http://localhost:3000
@@ -30,6 +32,18 @@ ifdef PATTERN
         pattern = --test-options='-t $(PATTERN)'
 	endif
 endif
+
+# RTS options
+# http://www.haskell.org/ghc/docs/latest/html/users_guide/runtime-control.html
+# ------------------
+# -N[<n>]   Use <n> processors (default: 1,	-N alone determines the number of
+#           processors to use automatically)
+# -H<size> Sets the minimum heap size (default 0M)   Egs: -H24m  -H1G
+# -A<size> Sets the minimum allocation area size (default 512k) Egs: -A1m -A10k
+# -K<size> Sets the maximum stack size (default 8M)  Egs: -K32k   -K512k
+# -t[<file>] One-line GC statistics (if <file> omitted, uses stderr)
+# -s[<file>] Summary  GC statistics (if <file> omitted, uses stderr)
+# -S[<file>] Detailed GC statistics (if <file> omitted, uses stderr)
 
 # default profiling options
 PROFOPTS_DEFAULT=--enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
