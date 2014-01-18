@@ -30,6 +30,7 @@ import           Data.Binary                             (Binary (..))
 import qualified Data.Binary                             as B
 --import qualified Data.ByteString                         as BS
 import qualified Data.ByteString.Lazy                    as BL
+import           Data.ByteString.Short                   (ShortByteString)
 import qualified Data.ByteString.Short                   as Short
 import           Data.Typeable
 
@@ -39,15 +40,15 @@ import           Holumbus.Common.Occurrences.Compression
 
 -- ----------------------------------------------------------------------------
 
--- TODO
---
--- The BS.ByteString is a candidate for a BS.ShortByteString available with bytestring 0.10.4,
--- then 5 machine words can be saved per value
+-- ShortByteString: It has a lower memory overhead than a ByteString and and does not contribute to
+-- heapfragmentation. It can be converted to or from a ByteString (at the cost of copying the string
+-- data).
+-- https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1
 
-newtype CompressedOccurrences = ComprOccs { unComprOccs :: Short.ShortByteString }
+newtype CompressedOccurrences = ComprOccs { unComprOccs :: ShortByteString }
   deriving (Eq, Show, Typeable)
 
-mkComprOccs :: Short.ShortByteString -> CompressedOccurrences
+mkComprOccs :: ShortByteString -> CompressedOccurrences
 mkComprOccs b = ComprOccs $!! b
 
 -- ----------------------------------------------------------------------------
