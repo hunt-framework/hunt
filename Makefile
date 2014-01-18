@@ -56,11 +56,17 @@ ifndef PROFOPTS
 	endif
 endif
 
+# comma to use in functions
+comma := ,
+
 
 action		= install
 
 all:		install
-profiling:      searchengine-profiling server-profiling
+
+first-install: delete sandbox install
+
+first-install-bs: delete sandbox cabal-bytestring cabal-text data-size stringmap searchengine-force server
 
 clean:
 	$(MAKE) -e -C data/random clean
@@ -88,10 +94,6 @@ searchengine:
 
 server: stopServer
 	cd server       && cabal $(action) $(PROFOPTS) $(pattern)
-
-searchengine-profiling server-profiling: PROFOPTS=$(PROFOPTS_DEFAULT)
-searchengine-profiling: searchengine
-server-profiling: server
 
 hayooCrawler:
 	$(MAKE) -C hayooCrawler
@@ -153,9 +155,20 @@ runtimeHeapProfile:
 	head -`fgrep -n END_SAMPLE holumbusServer.hp | tail -1 | cut -d : -f 1` holumbusServer.hp | hp2ps -d -c > holumbusServer.ps
 	ps2pdf holumbusServer.ps
 
+cabal-%:
+	cd searchengine \
+		&& 	cabal install $(PROFOPTS) $* --constraint=text\<1
+
+github-%:
+	git clone https://github.com/$(subst !,/,$*).git tmpgithubdir \
+		&& ( cd searchengine && cabal install $(PROFOPTS) ../tmpgithubdir ) \
+		; rm -rf tmpgithubdir
+
 # github data-stringmap install
-stringmap:
-	git clone https://github.com/sebastian-philipp/StringMap.git tmpgithubdir && cd searchengine && cabal install $(PROFOPTS) ../tmpgithubdir && cd .. && rm -rf tmpgithubdir
+stringmap: github-sebastian-philipp!StringMap
+# github data-size install
+data-size: github-UweSchmidt!data-size
+
 
 membench:
 	$(MAKE) -C bench $@
@@ -164,23 +177,15 @@ membench-%:
 bench-%:
 	$(MAKE) -C bench $@
 
-installwithbs:
-	rm -rf .cabal-sandbox
-	$(MAKE) sandbox
+searchengine-force:
 	cd searchengine \
-	 	&& cabal install $(PROFOPTS) bytestring \
-		&& cabal install $(PROFOPTS) text --constraint=text\<1
-	git clone https://github.com/UweSchmidt/data-size.git tmpgithubdir \
-		&& ( cd searchengine && cabal install $(PROFOPTS) ../tmpgithubdir ) \
-		; rm -rf tmpgithubdir
-	git clone https://github.com/sebastian-philipp/StringMap.git tmpgithubdir \
-		&& ( cd searchengine && cabal install $(PROFOPTS) ../tmpgithubdir ) \
-		; rm -rf tmpgithubdir
-	cd searchengine && cabal install $(PROFOPTS) --reinstall --force-reinstalls
-
+		&& cabal install $(PROFOPTS) --reinstall --force-reinstalls
 
 .PHONY: target clean configure build install test all searchengine server insertJokes startServer \
+		first-install first-install-bs \
 		stopServer sandbox benchmark-ab benchmark-siege runtimeHeapProfile startServer \
 		hayooCrawler hayooCrawler-% \
-		profiling searchengine-profiling server-profiling stringmap \
-		bench bench-* membench membench-*
+		bench bench-* membench membench-* \
+		profServer profServer-fb profServer-rd
+		searchengine-force
+		github-* stringmap data-size cabal-*
