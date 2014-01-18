@@ -16,7 +16,7 @@ SERVER  = http://localhost:3000
 EXE     = $(shell [ -d ".cabal-sandbox" ] && echo ".cabal-sandbox/bin/holumbusServer" || echo "holumbusServer")
 PROFSH  = ./prof.sh
 # profiling on/off
-export PROF=0
+export PROF=1
 
 
 # RandomData options
