@@ -89,11 +89,22 @@ startServer: stopServer
 	$(EXE) $(RUNOPTS) &
 
 stopServer:
-	-killall $(notdir $(EXE))
+	-killall $(notdir $(EXE)) \
+		&& sleep 1 # wait for shutdown and socket release
 
 insertJokes:
 	curl -X POST -d @data/jokes/contexts.js $(SERVER)/eval
 	curl -X POST -d @data/jokes/FussballerSprueche.js $(SERVER)/document/insert
+
+# NOTE: profiling does not use the makefile target to start the server (RUNOPTS is discarded)
+profServer: stopServer
+	./server/prof.sh
+
+profServer-fb: stopServer
+	./server/prof.sh "make insertJokes"
+
+profServer-rd: stopServer
+	./server/prof.sh "make insertRandom"
 
 hayooFrontend/functions.js:
 	cd hayooFrontend && ./convertJSON.py
