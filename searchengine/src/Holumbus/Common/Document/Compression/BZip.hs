@@ -21,7 +21,7 @@ import           Control.DeepSeq
 
 import           Data.Binary              (Binary (..))
 import qualified Data.Binary              as B
-import qualified Data.ByteString          as BS
+--import qualified Data.ByteString          as BS
 import qualified Data.ByteString.Lazy     as BL
 import qualified Data.ByteString.Short    as Short
 import           Data.Typeable
@@ -44,7 +44,7 @@ mkCDoc v = CDoc $!! v
 
 instance Binary CompressedDoc where
     put = put . Short.fromShort . unCDoc
-    get = mkCDoc . Short.toShort . BS.copy <$> get
+    get = mkCDoc . Short.toShort <$> get
 
 -- to avoid sharing the data with the input, the ByteString is physically copied
 -- before return. This should be the single place where sharing is introduced,

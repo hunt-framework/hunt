@@ -28,7 +28,7 @@ import           Control.DeepSeq
 
 import           Data.Binary                             (Binary (..))
 import qualified Data.Binary                             as B
-import qualified Data.ByteString                         as BS
+--import qualified Data.ByteString                         as BS
 import qualified Data.ByteString.Lazy                    as BL
 import qualified Data.ByteString.Short                   as Short
 import           Data.Typeable
@@ -66,7 +66,7 @@ instance OccCompression CompressedOccurrences where
 
 instance Binary CompressedOccurrences where
   put = put . Short.fromShort . unComprOccs
-  get = mkComprOccs . Short.toShort . BS.copy <$> get
+  get = mkComprOccs . Short.toShort <$> get
 
 -- to avoid sharing the data with the input the ByteString is physically copied
 -- before return. This should be the single place where sharing is introduced,
