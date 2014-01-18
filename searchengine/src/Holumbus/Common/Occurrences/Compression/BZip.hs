@@ -21,7 +21,7 @@ module Holumbus.Common.Occurrences.Compression.BZip
   )
 where
 
-import qualified Codec.Compression.BZip                  as BZ
+import qualified Codec.Compression.BZip                  as ZIP
 
 import           Control.Applicative                     ((<$>))
 import           Control.DeepSeq
@@ -76,10 +76,10 @@ instance Binary CompressedOccurrences where
 
 --compress :: Binary a => a -> CompressedOccurrences
 compress :: Occurrences -> CompressedOccurrences
-compress = mkComprOccs . Short.toShort . BL.toStrict . BZ.compress . B.encode
+compress = mkComprOccs . Short.toShort . BL.toStrict . ZIP.compress . B.encode
 
 --decompress :: Binary a => CompressedOccurrences -> a
 decompress :: CompressedOccurrences -> Occurrences
-decompress = B.decode . BZ.decompress . BL.fromStrict . Short.fromShort . unComprOccs
+decompress = B.decode . ZIP.decompress . BL.fromStrict . Short.fromShort . unComprOccs
 
 -- ----------------------------------------------------------------------------
