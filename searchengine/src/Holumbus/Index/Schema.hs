@@ -2,7 +2,7 @@
 
 module Holumbus.Index.Schema where
 
-import           Control.Monad                           (mzero)
+import           Control.Monad                           (mzero, liftM5)
 
 import           Data.Aeson
 import           Data.Binary
@@ -45,10 +45,9 @@ type Schema
 --   The first  regexp/normalizer is type-specific and is applied first (forced)
 --   The second regexp/normalizer is context-specific (defined/chosen by user)
 data ContextSchema = ContextSchema
-  -- name of the context
-  { cxName       :: Text
+  { 
   -- XXX: regex change to maybe - optional since we have a default within contexttype
-  , cxRegEx      :: CRegex
+    cxRegEx      :: Maybe CRegex
   -- normalizers to apply
   , cxNormalizer :: [CNormalizer]
   -- context weight
@@ -170,7 +169,11 @@ instance ToJSON CType where
 --}
 --
 
--- | Note that this is only parting serialization
+-- | Note: This is only partional (de-)serialization.
+--   The other components are environment depending
+--   and cannot be (de-)serialized. We serialize the name
+--   and identify the other compontens of the type
+--   later.
 instance FromJSON ContextType where
   parseJSON (String s) = return $ ctEmpty { ctName = s }
   parseJSON _          = mzero
@@ -199,20 +202,18 @@ instance ToJSON CNormalizer where
 
 instance FromJSON ContextSchema where
   parseJSON (Object o) = do
-    t <- o .: "type"
-    r <- o .: "regexp"
-    n <- o .: "normalizers"
-    w <- o .: "weight"
-    d <- o .:? "default" .!= True
+    r <- o .:? "regexp"
+    n <- o .:? "normalizers" .!= []
+    w <- o .:? "weight"      .!= 1.0
+    d <- o .:? "default"     .!= True
     ct <- o .: "type"
-    return $ ContextSchema t r n w d ct
+    return $ ContextSchema r n w d ct
 
   parseJSON _ = mzero
 
 instance ToJSON ContextSchema where
-  toJSON (ContextSchema t r n w d ct) = object
-    [ "type"        .= t
-    , "regexp"      .= r
+  toJSON (ContextSchema r n w d ct) = object
+    [ "regexp"      .= r
     , "normalizers" .= n
     , "weight"      .= w
     , "default"     .= d
@@ -263,12 +264,5 @@ instance Binary ContextType where
 
 
 instance Binary ContextSchema where
-  get = liftM6 ContextSchema get get get get get get
-  put (ContextSchema a b c d e f) = put a >> put b >> put c >> put d >> put e >> put f
-
-liftM6  :: (Monad m) => (a1 -> a2 -> a3 -> a4 -> a5 -> a6 -> r)
-           -> m a1 -> m a2 -> m a3 -> m a4 -> m a5 -> m a6 -> m r
-liftM6 f m1 m2 m3 m4 m5 m6
-  = do { x1 <- m1; x2 <- m2; x3 <- m3; x4 <- m4; x5 <- m5; x6 <- m6
-       ; return (f x1 x2 x3 x4 x5 x6)
-       }
+  get = liftM5 ContextSchema get get get get get
+  put (ContextSchema a b c d e) = put a >> put b >> put c >> put d >> put e

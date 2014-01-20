@@ -172,8 +172,7 @@ schemaAll = M.unions [schemaJokes, schemaRandom]
 
 cSchemaDefault :: ContextSchema
 cSchemaDefault = ContextSchema
-  { cxName       = "default"
-  , cxRegEx      = "\\w*"
+  { cxRegEx      = Just "\\w*"
   , cxNormalizer = []
   , cxWeight     = 1
   , cxDefault    = True

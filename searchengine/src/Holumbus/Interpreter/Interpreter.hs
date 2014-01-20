@@ -326,8 +326,8 @@ execInsertContext cx ct ixx@(IXH ix dt s)
              409 $ "context already exists: " `T.append` cx
 
       -- check if type exists in this interpreter instance
-      cType                <- askType . cxName $ ct
-      impl                 <- askIndex . cxName $ ct
+      cType                <- askType . ctName . cxType  $ ct
+      impl                 <- askIndex . ctName . cxType $ ct
 
       -- create new index instance and insert it with context
       return ( IXH { ixhIndex = CIx.insertContext cx (newIx impl) ix
