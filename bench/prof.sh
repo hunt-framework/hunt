@@ -47,7 +47,7 @@ function move() {
 }
 
 function run() {
-  "$CABAL_BIN/$PROG" $@ $FLAGS +RTS -p $FLAGS_PROF -s${PROG}.summary
+  time "$CABAL_BIN/$PROG" $@ $FLAGS +RTS -p $FLAGS_PROF -s${PROG}.summary -sstderr
 }
 
 function view_dir() {

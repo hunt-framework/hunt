@@ -54,7 +54,7 @@ function move() {
 function mid() {
   local pid
 
-  "$CABAL_BIN/$PROG" $FLAGS +RTS -p $FLAGS_PROF -s${PROG}.summary &
+  "$CABAL_BIN/$PROG" $FLAGS +RTS -p $FLAGS_PROF -s${PROG}.summary -sstderr &
   pid="$!"
 
   trap "kill -INT $pid && sleep 1;post && data_dir=\$(move) && view_dir "\$data_dir"; exit $?" INT
