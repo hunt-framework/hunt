@@ -47,14 +47,18 @@ function move() {
 }
 
 function run() {
-  time "$CABAL_BIN/$PROG" $@ $FLAGS +RTS -p $FLAGS_PROF -s${PROG}.summary -sstderr
+  time "$CABAL_BIN/$PROG" $@ $FLAGS +RTS -p $FLAGS_PROF -s${PROG}.summary -RTS
 }
 
 function view_dir() {
-  local file="$1/${PROG}.pdf"
-  if [ -n "$VIEWER" -a -e "$file" ]
+  local pdffile="$1/${PROG}.pdf"
+  local sumfile="$1/${PROG}.summary"
+
+  [ -e "$sumfile" ] && cat "$sumfile"
+
+  if [ -n "$VIEWER" -a -e "$pdffile" ]
   then
-    nohup "$VIEWER" "$file" &>/dev/null &
+    nohup "$VIEWER" "$pdffile" &>/dev/null &
   fi
 }
 

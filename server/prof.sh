@@ -54,7 +54,7 @@ function move() {
 function mid() {
   local pid
 
-  "$CABAL_BIN/$PROG" $FLAGS +RTS -p $FLAGS_PROF -s${PROG}.summary -sstderr &
+  "$CABAL_BIN/$PROG" $FLAGS +RTS -p $FLAGS_PROF -s${PROG}.summary -RTS &
   pid="$!"
 
   trap "kill -INT $pid && sleep 1;post && data_dir=\$(move) && view_dir "\$data_dir"; exit $?" INT
@@ -82,8 +82,15 @@ function mid() {
 }
 
 function view_dir() {
-  local file="$1/${PROG}.pdf"
-  [ -n "$VIEWER" -a -e "$file" ] && $VIEWER "$file"
+  local pdffile="$1/${PROG}.pdf"
+  local sumfile="$1/${PROG}.summary"
+
+  [ -e "$sumfile" ] && cat "$sumfile"
+
+  if [ -n "$VIEWER" -a -e "$pdffile" ]
+  then
+    nohup "$VIEWER" "$pdffile" &>/dev/null &
+  fi
 }
 
 # ######################################
