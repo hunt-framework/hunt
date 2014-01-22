@@ -96,7 +96,7 @@ ctText = CType
 ctInt :: ContextType
 ctInt = CType
   { ctName     = "int"
-  , ctRegEx    = "\\w*"
+  , ctRegEx    = "([-]?[0-9]*)"
   , ctValidate = CValidator $ Int.isInt
   , ctIxImpl   = intInv
   }
@@ -104,7 +104,7 @@ ctInt = CType
 ctDate :: ContextType
 ctDate = CType
   { ctName     = "date"
-  , ctRegEx    = "\\w*"
+  , ctRegEx    = "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))"
   , ctValidate = CValidator $ Date.isAnyDate . unpack
   , ctIxImpl   = dateInv
   }
@@ -112,7 +112,7 @@ ctDate = CType
 ctPosition :: ContextType
 ctPosition = CType
   { ctName     = "position"
-  , ctRegEx    = "\\w*"
+  , ctRegEx    = "-?(90(\\.0*)?|[1-7]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?"
   , ctValidate = CValidator $ Pos.isPosition
   , ctIxImpl   = positionInv
   }
