@@ -16,6 +16,7 @@ import           Prelude                                    as P
 import           Control.Applicative                        ((<$>))
 import           Control.Arrow                              (first)
 import           Control.DeepSeq
+import           Control.Monad
 
 import           Data.Binary                                (Binary (..))
 import           Data.Text                                  (Text)
@@ -54,33 +55,33 @@ instance Index (DateNormalizerIndex impl) where
         )
 
     insert k v (DateNIx i)
-        = mkDateNIx $ insert (Date.normalize k) v i
+        = liftM mkDateNIx $ insert (Date.normalize k) v i
 
     batchDelete ks (DateNIx i)
-        = mkDateNIx $ batchDelete ks i
+        = liftM mkDateNIx $ batchDelete ks i
 
     empty
         = mkDateNIx $ empty
 
     fromList l
-        = mkDateNIx . fromList $ P.map (first Date.normalize) l
+        = liftM mkDateNIx . fromList $ P.map (first Date.normalize) l
 
     toList (DateNIx i)
-        = first Date.denormalize <$> toList i
+        = liftM (first Date.denormalize <$>) $ toList i
 
     search t k (DateNIx i)
-        = first Date.denormalize <$> search t (Date.normalize k) i
+        = liftM (first Date.denormalize <$>) $ search t (Date.normalize k) i
 
     lookupRange k1 k2 (DateNIx i)
-        = first Date.denormalize <$> lookupRange (Date.normalize k1) (Date.normalize k2) i
+        = liftM (first Date.denormalize <$>) $ lookupRange (Date.normalize k1) (Date.normalize k2) i
 
     unionWith op (DateNIx i1) (DateNIx i2)
-        = mkDateNIx $ unionWith op i1 i2
+        = liftM mkDateNIx $ unionWith op i1 i2
 
     map f (DateNIx i)
-        = mkDateNIx $ Ix.map f i
+        = liftM mkDateNIx $ Ix.map f i
 
     keys (DateNIx i)
-        = P.map Date.denormalize $ keys i
+        = liftM (P.map Date.denormalize) $ keys i
 
 -- ----------------------------------------------------------------------------

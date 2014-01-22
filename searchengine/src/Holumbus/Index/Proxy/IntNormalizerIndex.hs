@@ -18,6 +18,7 @@ import           Prelude                                    as P
 import           Control.Applicative                        ((<$>))
 import           Control.Arrow                              (first)
 import           Control.DeepSeq
+import           Control.Monad
 
 import           Data.Binary                                (Binary (..))
 import           Data.Text                                  (Text)
@@ -56,34 +57,34 @@ instance Index (IntNormalizerIndex impl) where
         )
 
     insert k v (IntNIx i)
-        = mkIntNIx $ insert (Int.normalizeToInt k) v i
+        = liftM mkIntNIx $ insert (Int.normalizeToInt k) v i
 
     batchDelete ks (IntNIx i)
-        = mkIntNIx $ batchDelete ks i
+        = liftM mkIntNIx $ batchDelete ks i
 
     empty
         = mkIntNIx $ empty
 
     fromList l
-        = mkIntNIx . fromList $ P.map (first Int.normalizeToInt) l
+        = liftM mkIntNIx . fromList $ P.map (first Int.normalizeToInt) l
 
     toList (IntNIx i)
-        = first Int.denormalizeFromInt <$> toList i
+        = liftM (first Int.denormalizeFromInt <$>) $ toList i
 
     search t k (IntNIx i)
-        = first Int.denormalizeFromInt <$> search t (Int.normalizeToInt k) i
+        = liftM (first Int.denormalizeFromInt <$>) $ search t (Int.normalizeToInt k) i
 
     lookupRange k1 k2 (IntNIx i)
-        = first Int.denormalizeFromInt <$> lookupRange (Int.normalizeToInt k1) (Int.normalizeToInt k2) i
+        = liftM (first Int.denormalizeFromInt <$>) $ lookupRange (Int.normalizeToInt k1) (Int.normalizeToInt k2) i
 
     unionWith op (IntNIx i1) (IntNIx i2)
-        = mkIntNIx $ unionWith op i1 i2
+        = liftM mkIntNIx $ unionWith op i1 i2
 
     map f (IntNIx i)
-        = mkIntNIx $ Ix.map f i
+        = liftM mkIntNIx $ Ix.map f i
 
     keys (IntNIx i)
-        = P.map Int.denormalizeFromInt $ keys i
+        = liftM (P.map Int.denormalizeFromInt) $ keys i
 
 
 -- ----------------------------------------------------------------------------
@@ -116,31 +117,31 @@ instance Index (IntAsTextNormalizerIndex impl) where
         )
 
     insert k v (IntAsTextNIx i)
-        = mkIntAsTextNIx $ insert (Int.normalizeToText k) v i
+        = liftM mkIntAsTextNIx $ insert (Int.normalizeToText k) v i
 
     batchDelete ks (IntAsTextNIx i)
-        = mkIntAsTextNIx $ batchDelete ks i
+        = liftM mkIntAsTextNIx $ batchDelete ks i
 
     empty
         = mkIntAsTextNIx $ empty
 
     fromList l
-        = mkIntAsTextNIx . fromList $ P.map (first Int.normalizeToText) l
+        = liftM mkIntAsTextNIx . fromList $ P.map (first Int.normalizeToText) l
 
     toList (IntAsTextNIx i)
-        = first Int.denormalizeFromText <$> toList i
+        = liftM (first Int.denormalizeFromText <$>) $ toList i
 
     search t k (IntAsTextNIx i)
-        = first Int.denormalizeFromText <$> search t (Int.normalizeToText k) i
+        = liftM (first Int.denormalizeFromText <$>) $ search t (Int.normalizeToText k) i
 
     lookupRange k1 k2 (IntAsTextNIx i)
-        = first Int.denormalizeFromText <$> lookupRange (Int.normalizeToText k1) (Int.normalizeToText k2) i
+        = liftM (first Int.denormalizeFromText <$>) $ lookupRange (Int.normalizeToText k1) (Int.normalizeToText k2) i
 
     unionWith op (IntAsTextNIx i1) (IntAsTextNIx i2)
-        = mkIntAsTextNIx $ unionWith op i1 i2
+        = liftM mkIntAsTextNIx $ unionWith op i1 i2
 
     map f (IntAsTextNIx i)
-        = mkIntAsTextNIx $ Ix.map f i
+        = liftM mkIntAsTextNIx $ Ix.map f i
 
     keys (IntAsTextNIx i)
-        = P.map Int.denormalizeFromText $ keys i
+        = liftM (P.map Int.denormalizeFromText) $ keys i

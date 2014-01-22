@@ -14,6 +14,7 @@ import           Prelude                                 as P
 import           Control.Applicative                     ((<$>))
 import           Control.Arrow                           (second)
 import           Control.DeepSeq
+import           Control.Monad
 
 import           Data.Binary                             (Binary (..))
 
@@ -49,31 +50,31 @@ instance Index (ComprOccIndex impl to) where
         )
 
     insert k v (ComprIx i)
-        = mkComprIx $ insert k (compressOcc v) i
+        = liftM mkComprIx $ insert k (compressOcc v) i
 
     batchDelete ks (ComprIx i)
-        = mkComprIx $ batchDelete ks i
+        = liftM mkComprIx $ batchDelete ks i
 
     empty
         = mkComprIx $ empty
 
     fromList l
-        = mkComprIx . fromList $ P.map (second compressOcc) l
+        = liftM mkComprIx . fromList $ P.map (second compressOcc) l
 
     toList (ComprIx i)
-        = second decompressOcc <$> toList i
+        = liftM (second decompressOcc <$>) $ toList i
 
     search t k (ComprIx i)
-        = second decompressOcc <$> search t k i
+        = liftM (second decompressOcc <$>) $ search t k i
 
     lookupRange k1 k2 (ComprIx i)
-        = second decompressOcc <$> lookupRange k1 k2 i
+        = liftM (second decompressOcc <$>) $ lookupRange k1 k2 i
 
     unionWith op (ComprIx i1) (ComprIx i2)
-        = mkComprIx $ unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
+        = liftM mkComprIx $ unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
 
     map f (ComprIx i)
-        = mkComprIx $ Ix.map (compressOcc . f . decompressOcc) i
+        = liftM mkComprIx $ Ix.map (compressOcc . f . decompressOcc) i
 
     keys (ComprIx i)
         = keys i

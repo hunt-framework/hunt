@@ -15,6 +15,7 @@ import           Prelude                                 as P
 
 import           Control.Applicative                     ((<$>))
 import           Control.Arrow                           (first)
+import           Control.Monad
 
 import           Data.Bijection
 import           Data.Binary                             (Binary (..))
@@ -53,34 +54,34 @@ instance Index (KeyProxyIndex from impl) where
         )
 
     insert k v (KPIx i)
-        = mkKPIx $ insert (to k) v i
+        = liftM mkKPIx $ insert (to k) v i
 
     batchDelete ks (KPIx i)
-        = mkKPIx $ batchDelete ks i
+        = liftM mkKPIx $ batchDelete ks i
 
     empty
         = mkKPIx $ empty
 
     fromList l
-        = mkKPIx . fromList $ P.map (first to) l
+        = liftM mkKPIx . fromList $ P.map (first to) l
 
     toList (KPIx i)
-        = first from <$> toList i
+        = liftM (first from <$>) $ toList i
 
     search t k (KPIx i)
-        = first from <$> search t (to k) i
+        = liftM (first from <$>) $ search t (to k) i
 
     lookupRange k1 k2 (KPIx i)
-        = first from <$> lookupRange (to k1) (to k2) i
+        = liftM (first from <$>) $ lookupRange (to k1) (to k2) i
 
     unionWith op (KPIx i1) (KPIx i2)
-        = mkKPIx $ unionWith op i1 i2
+        = liftM mkKPIx $ unionWith op i1 i2
 
     map f (KPIx i)
-        = mkKPIx $ Ix.map f i
+        = liftM mkKPIx $ Ix.map f i
 
     keys (KPIx i)
-        = P.map from $ keys i
+        = liftM (P.map from) $ keys i
 
 
 -- special instance for a CompressedOccurrences proxy within a TextKey proxy
@@ -97,32 +98,32 @@ instance Index (KeyProxyIndex from (ComprOccIndex impl to)) where
         )
     -- this is the only "special" function
     batchDelete docIds (KPIx (ComprIx pt))
-        = mkKPIx $ mkComprIx $ Ix.map (differenceWithKeySet docIds) pt
+        = liftM (mkKPIx . mkComprIx) $ Ix.map (differenceWithKeySet docIds) pt
 
     -- everything below is copied from the more general instance Index (KeyProxyIndex impl)
     insert k v (KPIx i)
-        = mkKPIx $ insert (to k) v i
+        = liftM mkKPIx $ insert (to k) v i
 
     empty
         = mkKPIx $ empty
 
     fromList l
-        = mkKPIx . fromList $ P.map (first to) l
+        = liftM mkKPIx . fromList $ P.map (first to) l
 
     toList (KPIx i)
-        = first from <$> toList i
+        = liftM (first from <$>) $ toList i
 
     search t k (KPIx i)
-        = first from <$> search t (to k) i
+        = liftM (first from <$>) $ search t (to k) i
 
     lookupRange k1 k2 (KPIx i)
-        = first from <$> lookupRange (to k1) (to k2) i
+        = liftM (first from <$>) $ lookupRange (to k1) (to k2) i
 
     unionWith op (KPIx i1) (KPIx i2)
-        = mkKPIx $ unionWith op i1 i2
+        = liftM mkKPIx $ unionWith op i1 i2
 
     map f (KPIx i)
-        = mkKPIx $ Ix.map f i
+        = liftM mkKPIx $ Ix.map f i
 
     keys (KPIx i)
-        = P.map from $ keys i
+        = liftM (P.map from) $ keys i

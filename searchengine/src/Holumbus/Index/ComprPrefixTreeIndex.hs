@@ -51,7 +51,7 @@ instance Index ComprOccPrefixTree where
     type ICon ComprOccPrefixTree v = (OccCompression v, NFData v)
 
     insert k v (ComprPT i)
-        = mkComprPT $ SM.insert k (compressOcc v) i
+        = return . mkComprPT $ SM.insert k (compressOcc v) i
 
     -- XXX: not the best solution, but is there really another solution?
     batchDelete ks i
@@ -61,13 +61,13 @@ instance Index ComprOccPrefixTree where
         = mkComprPT $ SM.empty
 
     fromList l
-        = mkComprPT . SM.fromList $ P.map (second compressOcc) l
+        = return . mkComprPT . SM.fromList $ P.map (second compressOcc) l
 
     toList (ComprPT i)
-        = second decompressOcc <$> SM.toList i
+        = return . (second decompressOcc <$>) $ SM.toList i
 
     search t k (ComprPT pt)
-        = case t of
+        = return $ case t of
             Case         -> case SM.lookup k pt of
                               Nothing -> []
                               Just xs -> [(k, decompressOcc xs)]
@@ -82,13 +82,13 @@ instance Index ComprOccPrefixTree where
 
 
     lookupRange k1 k2 (ComprPT pt)
-        = second decompressOcc <$> (SM.toList $ SM.lookupRange k1 k2 pt)
+        = return $ second decompressOcc <$> (SM.toList . SM.lookupRange k1 k2 $ pt)
 
     unionWith op (ComprPT i1) (ComprPT i2)
-        = mkComprPT $ SM.unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
+        = return . mkComprPT $ SM.unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
 
     map f (ComprPT i)
-        = mkComprPT $ SM.map (compressOcc . f . decompressOcc) i
+        = return . mkComprPT $ SM.map (compressOcc . f . decompressOcc) i
 
     keys (ComprPT i)
-        = SM.keys i
+        = return $ SM.keys i
