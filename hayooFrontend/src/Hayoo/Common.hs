@@ -1,23 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE PackageImports #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-
-module Hayoo.HolumbusClient where
+module Hayoo.Common where
 
 import GHC.Generics (Generic)
 
---import Data.Char
 import Control.Monad (mzero)
 import Control.Monad.IO.Class (MonadIO)
+
 import Data.Text.Lazy (Text)
--- import qualified Data.Text.Lazy as T
-
---import Control.Lens
-
 import Data.Aeson
---import Data.Aeson.Types
+
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Trans.Class (MonadTrans, lift)
+import "mtl" Control.Monad.Reader (ReaderT, MonadReader, ask, runReaderT)
 
 import qualified Holumbus.Server.Client as H
 
@@ -54,8 +52,23 @@ instance FromJSON SearchResult where
         return $ SearchResult u p m n s d c t
     parseJSON _ = mzero
 
-autocomplete :: (MonadIO m) => Text -> Text  -> m (Either Text [Text])
-autocomplete = H.autocomplete
+newtype HayooServer a = HayooServer { runHayooServer :: ReaderT H.ServerAndManager IO a }
+    deriving (Monad, MonadIO, MonadReader (H.ServerAndManager))
 
-query :: (MonadIO m) => Text -> Text -> m (Either Text (H.LimitedResult SearchResult))
-query = H.query
+hayooServer :: MonadTrans t => HayooServer a -> t HayooServer a
+hayooServer = lift 
+
+runHayooReader :: HayooServer a -> H.ServerAndManager -> IO a
+runHayooReader = runReaderT . runHayooServer
+
+withServerAndManager' :: H.HolumbusConnectionT IO b -> HayooServer b
+withServerAndManager' x = do
+    sm <- ask
+    --sm <- liftIO $ STM.readTVarIO var
+    liftIO $ H.withServerAndManager x sm
+
+autocomplete :: Text -> HayooServer (Either Text [Text])
+autocomplete q = withServerAndManager' $ H.autocomplete q
+
+query :: Text -> HayooServer (Either Text (H.LimitedResult SearchResult))
+query q = withServerAndManager' $ H.query q

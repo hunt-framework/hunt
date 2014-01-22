@@ -31,6 +31,9 @@ library
                 , http-conduit >= 2.0.0
                 , transformers >= 0.3
                 , lens >= 3.10
+                , conduit >= 1.0
+                , failure >= 0.2
+                , http-client >= 0.2 
 
 executable holumbusServer
   main-is:      Server.hs

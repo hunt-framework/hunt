@@ -2,8 +2,15 @@
 
 module Hayoo.Server where
 
-import qualified Web.Scotty as Scotty
---import qualified Web.Scotty.Trans as ScottyT
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Class (lift)
+
+import qualified Data.Text.Lazy as T
+import qualified Data.Text.Lazy.Encoding as T
+import           Data.Aeson.Types ()
+
+import qualified Web.Scotty.Trans as Scotty
+
 import qualified Network.Wai.Middleware.RequestLogger as Wai
 
 import qualified System.Log.Logger as Log
@@ -13,27 +20,30 @@ import qualified System.Log.Handler.Simple as Log (streamHandler)
 import qualified System.IO as System (stdout)
 
 import qualified Hayoo.Templates as Templates
---import Data.Text.Lazy (pack)
-import qualified Data.Text.Lazy as T
-import qualified Data.Text.Lazy.Encoding as T
-import           Data.Aeson.Types ()
-import Control.Monad.IO.Class (liftIO)
 
-import Hayoo.HolumbusClient
+import Hayoo.Common
+import Holumbus.Server.Client (newServerAndManager)
+
 import Paths_hayooFrontend
 
 start :: IO ()
-start = do 
+start = do
+    sm <- newServerAndManager "localhost:3000"
+
+    -- Note that 'runM' is only called once, at startup.
+    let runM m = runHayooReader m sm
+        -- 'runActionToIO' is called once per action.
+        runActionToIO = runM
+
     initLoggers $ optLogLevel defaultOptions
 
     Log.debugM modName "Application start"
 
-    Scotty.scotty 8080 $ do
+    Scotty.scottyT 8080 runM runActionToIO $ do
         Scotty.middleware Wai.logStdoutDev -- request / response logging
-        dispatcher
+        dispatcher      
 
-
-dispatcher :: Scotty.ScottyM ()
+dispatcher :: Scotty.ScottyT HayooServer ()
 dispatcher = do
     Scotty.get "/" $ do
         params <- Scotty.params
@@ -48,21 +58,20 @@ dispatcher = do
         Scotty.file cssPath
     Scotty.get "/autocomplete"$ do
         q <- Scotty.param "term"
-        value <- autocomplete "localhost:3000" q >>= raiseOnLeft
+        value <- (lift $ autocomplete q) >>= raiseOnLeft
         Scotty.json $ value
     Scotty.get "/examples" $ Scotty.html $ Templates.body "" Templates.examples
     Scotty.get "/about" $ Scotty.html $ Templates.body "" Templates.about
 
-
-renderRoot :: [Scotty.Param] -> Scotty.ActionM ()
+renderRoot :: [Scotty.Param] -> Scotty.ActionT HayooServer ()
 renderRoot params = renderRoot' $ lookup (T.pack "query") params
     where 
     renderRoot' Nothing = Scotty.html $ Templates.body "" Templates.mainPage
     renderRoot' (Just q) = do
-        value <- query "localhost:3000" q >>= raiseOnLeft
+        value <- (lift $ query q) >>= raiseOnLeft
         Scotty.html $ Templates.body q $ Templates.renderLimitedRestults value
 
-raiseOnLeft :: Either T.Text a -> Scotty.ActionM a
+raiseOnLeft :: Monad m => Either T.Text a -> Scotty.ActionT m a
 raiseOnLeft (Left err) = Scotty.raise err
 raiseOnLeft (Right x) = return x
     
