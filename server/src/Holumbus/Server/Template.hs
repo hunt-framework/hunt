@@ -95,7 +95,7 @@ index _docs =
     // TODO: should be improved or removed
     $("#txt-search").typeahead({
       source: function(query, callback) {
-        $.get("/completion/" + query + "/" + globalCompletionMax, function(data) {
+        $.get("/completion/" + encodeURIComponent(query) + "/" + globalCompletionMax, function(data) {
           var result = [];
           if (data.code === 0)
           {
@@ -211,7 +211,7 @@ index _docs =
          $("#result-body").html("<tr><td colspan=\"4\">No results.</td></tr>");
          return false;
       }
-      $.get("/search/" + query + "/" + ((globalPage-1) * globalPerPage) + "/" + globalPerPage, pagedSearchCompletedHandler);
+      $.get("/search/" + encodeURIComponent(query) + "/" + ((globalPage-1) * globalPerPage) + "/" + globalPerPage, pagedSearchCompletedHandler);
      };
   });
 </script>

@@ -14,57 +14,60 @@ import           Control.Concurrent.XMVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
-import qualified Data.Aeson                                as JS
-import qualified Data.Binary                               as Bin
-import           Data.Function                             (on)
-import           Data.List                                 (groupBy, sortBy)
-import qualified Data.Map                                  as M
-import           Data.Maybe                                (fromMaybe)
-import           Data.Set                                  (Set)
-import qualified Data.Set                                  as S
-import           Data.Text                                 (Text)
-import qualified Data.Text                                 as T
-import qualified Data.ByteString.Lazy                      as BL
-import qualified Data.List                                 as L
-import qualified Data.Traversable                          as TV
+import qualified Data.Aeson                                  as JS
+import qualified Data.Binary                                 as Bin
+import qualified Data.ByteString.Lazy                        as BL
+import           Data.Function                               (on)
+import           Data.List                                   (groupBy, sortBy)
+import qualified Data.List                                   as L
+import qualified Data.Map                                    as M
+import           Data.Maybe                                  (fromMaybe)
+import           Data.Set                                    (Set)
+import qualified Data.Set                                    as S
+import           Data.Text                                   (Text)
+import qualified Data.Text                                   as T
+import qualified Data.Traversable                            as TV
 
 import           Holumbus.Common
-import           Holumbus.Common.ApiDocument               as ApiDoc
-import qualified Holumbus.Common.DocIdMap                  as DM
-import           Holumbus.Common.Document                  (DocumentWrapper,
-                                                            unwrap)
-import           Holumbus.Common.Document.Compression.BZip (CompressedDoc)
+import           Holumbus.Common.ApiDocument                 as ApiDoc
+import qualified Holumbus.Common.DocIdMap                    as DM
+import           Holumbus.Common.Document                    (DocumentWrapper,
+                                                              unwrap)
+import           Holumbus.Common.Document.Compression.BZip   (CompressedDoc)
+--import           Holumbus.Common.Document.Compression.Snappy (CompressedDoc)
 
-import qualified Holumbus.Index.Index                      as Ix
+import qualified Holumbus.Index.Index                        as Ix
 import           Holumbus.Index.Schema.Analyze
 
-import           Holumbus.IndexHandler                     (IndexHandler(..),decodeIXH)
-import qualified Holumbus.IndexHandler                     as Ixx
+import           Holumbus.IndexHandler                       (IndexHandler (..),
+                                                              decodeIXH)
+import qualified Holumbus.IndexHandler                       as Ixx
 
-import           Holumbus.Index.IndexImpl                  (IndexImpl(..), mkIndex)
-import qualified Holumbus.Index.IndexImpl                  as Impl
-import           Holumbus.Index.Proxy.ContextIndex         (ContextIndex)
-import qualified Holumbus.Index.Proxy.ContextIndex         as CIx
+import           Holumbus.Index.IndexImpl                    (IndexImpl (..),
+                                                              mkIndex)
+import qualified Holumbus.Index.IndexImpl                    as Impl
+import           Holumbus.Index.Proxy.ContextIndex           (ContextIndex)
+import qualified Holumbus.Index.Proxy.ContextIndex           as CIx
 
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
 --import           Holumbus.Query.Language.Parser
 import           Holumbus.Query.Processor
 import           Holumbus.Query.Ranking
-import           Holumbus.Query.Result                     as QRes
+import           Holumbus.Query.Result                       as QRes
 
-import qualified Holumbus.DocTable.DocTable                as Dt
-import           Holumbus.DocTable.DocTable                (DocTable)
-import           Holumbus.DocTable.HashedDocTable          as HDt
+import           Holumbus.DocTable.DocTable                  (DocTable)
+import qualified Holumbus.DocTable.DocTable                  as Dt
+import           Holumbus.DocTable.HashedDocTable            as HDt
 
 import           Holumbus.Interpreter.Command
 
-import qualified System.Log.Logger                         as Log
+import qualified System.Log.Logger                           as Log
 
 import           Holumbus.Utility.Log
 
 import           GHC.Stats
-import           GHC.Stats.Json                            ()
+import           GHC.Stats.Json                              ()
 
 -- ----------------------------------------------------------------------------
 --
@@ -323,8 +326,8 @@ execInsertContext cx ct ixx@(IXH ix dt s)
              409 $ "context already exists: " `T.append` cx
 
       -- check if type exists in this interpreter instance
-      cType                <- askType . cxName $ ct
-      impl                 <- askIndex . cxName $ ct
+      cType                <- askType . ctName . cxType  $ ct
+      impl                 <- askIndex . ctName . cxType $ ct
 
       -- create new index instance and insert it with context
       return ( IXH { ixhIndex = CIx.insertContext cx (newIx impl) ix

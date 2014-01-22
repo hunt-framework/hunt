@@ -5,10 +5,10 @@ OUT     = $(MAIN)
 # hardcoded in RandomData.hs
 GENOUT  = RandomData.js
 # min/max size of a document
-SIZEMIN = 200
-SIZEMAX = 200
+RD_SIZEMIN = 200
+RD_SIZEMAX = 200
 # number of documents
-NUMDOCS = 1000
+RD_NUMDOCS = 1000
 
 
 all: install
@@ -16,16 +16,16 @@ all: install
 install: $(OUT)
 
 clean:
-	rm $(OUT) $(MAIN).hi $(MAIN).o $(GENOUT)
+	- rm -f $(OUT) $(MAIN).hi $(MAIN).o
 
 cleanData:
-	rm $(GENOUT)
+	- rm -f $(GENOUT)
 
 $(OUT): $(MAIN).hs
 	$(GHC) $(MAIN) -main-is $(MAIN) -o $(OUT)
 
 $(GENOUT): $(OUT)
-	./$(OUT) $(NUMDOCS) $(SIZEMAX) $(SIZEMIN)
+	./$(OUT) $(RD_NUMDOCS) $(RD_SIZEMAX) $(RD_SIZEMIN)
 
 generate: $(GENOUT)
 

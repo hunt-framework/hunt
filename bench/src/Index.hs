@@ -13,6 +13,7 @@ import           Prelude                                         as P
 import           GHC.Stats
 import           GHC.Stats.Json                                  ()
 import           System.Environment
+import           System.FilePath
 import           System.Mem
 import           System.Posix.Process
 import           System.Process
@@ -64,8 +65,10 @@ data DataSet = DataSet
   , tdPath   :: FilePath -- the path needs an extension!
   , tdSchema :: Schema
   }
+  deriving (Show)
 
 data FileType = Binary | Json
+  deriving (Show)
 
 -- ----------------------------------------------------------------------------
 -- datasets
@@ -90,7 +93,7 @@ dsRandom = DataSet
 --dataSets :: Map String DataSet
 --dataSets = M.fromList . map (\x -> (tdName x, x)) $ [dsJokes, dsRandom]
 
-dataSetsJs :: [DataSet]
+dataSets, dataSetsJs, dataSetsBin :: [DataSet]
 dataSetsJs = [dsJokes, dsRandom]
 
 dataSetsBin = map (transType Binary) dataSetsJs
@@ -101,8 +104,8 @@ dataSets = dataSetsJs ++ dataSetsBin
 
 fileTypeExt :: FileType -> String
 fileTypeExt o = case o of
-  Json   -> ".js"
-  Binary -> ".bin"
+  Json   -> "js"
+  Binary -> "bin"
 
 transType :: FileType -> DataSet -> DataSet
 transType ft ds = ds
@@ -111,7 +114,21 @@ transType ft ds = ds
   , tdPath   = dropExt (tdPath ds) ++ ex
   }
   where
-  ex   = fileTypeExt ft
+  ex   = '.':fileTypeExt ft
+
+mkDataSet :: FilePath -> DataSet
+mkDataSet path = DataSet
+  { tdName   = takeBaseName path
+  , tdType   = ty
+  , tdPath   = path
+  , tdSchema = schemaAll
+  }
+  where
+  ty = case takeExtension path of
+    ".bin" -> Binary
+    ".js"  -> Json
+    _      -> error "mkDataSet: invalid extension"
+
 
 -- ----------------------------------------------------------------------------
 -- IO
@@ -140,7 +157,7 @@ getDataSet ds = do
 -- ----------------------------------------------------------------------------
 -- Schema
 
-schemaJokes, schemaRandom :: Schema
+schemaAll, schemaJokes, schemaRandom :: Schema
 
 schemaJokes = M.fromList $ zip
   [ "wer", "was", "wo", "gruppe" ]
@@ -150,10 +167,12 @@ schemaRandom = M.fromList $ zip
   [ "id", "context1", "context2", "contextdate", "contextgeo", "contextint" ]
   (repeat cSchemaDefault)
 
+schemaAll = M.unions [schemaJokes, schemaRandom]
+
+
 cSchemaDefault :: ContextSchema
 cSchemaDefault = ContextSchema
-  { cxName       = "default"
-  , cxRegEx      = "\\w*"
+  { cxRegEx      = Just "\\w*"
   , cxNormalizer = []
   , cxWeight     = 1
   , cxDefault    = True
@@ -238,13 +257,14 @@ testIndex dataSet (IndexAll ix f) = do
 
 main :: IO ()
 main = do
-  [m,n] <- map read <$> getArgs
+  [dsPath,n] <- getArgs
   -- XXX: cycling through without restart leads to inaccurate results
   --mapM_ (\(ds, ix) -> testIndex ds ix) $ zip (repeat dsRandom) (reverse indexes)
-
-  guard $ n < length indexes
-  testIndex (dataSets !! m) (indexes !! n)
+  testIndex
+    (mkDataSet dsPath)
+    (indexes !! read n)
   --threadDelay (5 * 10^6)
+
 
 -- ----------------------------------------------------------------------------
 -- Utils

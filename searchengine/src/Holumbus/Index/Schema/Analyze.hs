@@ -12,7 +12,7 @@ import           Data.DList                      (DList)
 import qualified Data.DList                      as DL
 import           Data.Map                        (Map)
 import qualified Data.Map                        as M
-import           Data.Maybe                      (fromJust)
+import           Data.Maybe                      (fromJust, fromMaybe)
 import           Data.Text                       (Text)
 import qualified Data.Text                       as T
 
@@ -26,12 +26,6 @@ import           Holumbus.Common.ApiDocument
 import           Holumbus.Index.Schema
 
 import           Holumbus.Index.Schema.Normalize
-
-{--
- - since we have a very flexible index typeclass i think it would make sense
- - to have a typeclass for the analyzer as well that supports different output
- - types.
- -}
 
 -- ----------------------------------------------------------------------------
 
@@ -58,10 +52,10 @@ toDocAndWords' schema apiDoc = (doc, ws)
           , desc  = descrMap
           }
   ws = M.mapWithKey (\context content ->
-                        let (ContextSchema _ regex normalizers _ _ cType)
+                        let (ContextSchema rex normalizers _ _ cType)
                               = fromJust $ M.lookup context schema
-                            (CType _ _ validator _) = cType
-                            scan = filter (validate validator) . scanTextRE regex
+                            (CType _ defRex validator _) = cType
+                            scan = filter (validate validator) . scanTextRE (fromMaybe defRex rex)
                         -- XXX: simple concat without nub
                         in toWordList scan (normalize normalizers) content) indexMap
 

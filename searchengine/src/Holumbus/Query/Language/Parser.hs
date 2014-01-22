@@ -174,7 +174,20 @@ orOp = try orOp'
 
 -- | Parse a word.
 word :: Parser String
-word = many1 wordChar
+word = many1 (escapedChar <|> wordChar)
+
+-- | Parse an escape sequence. @\@ followed by the character, e.g. @\"@.
+escapedChar :: Parser Char
+escapedChar = char escapeChar *> decodeChar
+
+-- | Parse a single valid escape character, e.g. @"@.
+decodeChar :: Parser Char
+decodeChar = choice (zipWith decode notWordChar notWordChar)
+    where decode c r = r <$ char c
+
+-- | The character an escape sequence starts with.
+escapeChar :: Char
+escapeChar = '\\'
 
 -- | Parse a phrase.
 phrase :: Parser String
@@ -194,7 +207,11 @@ tryBoost q = try boost <|> return q
 
 -- | Parse a character of a word.
 wordChar :: Parser Char
-wordChar = noneOf "\")([]^ "
+wordChar = noneOf notWordChar
+
+-- | Characters that cannot occur in a word (and have to be escaped).
+notWordChar :: String
+notWordChar = escapeChar : "\")([]^ "
 
 -- | Parse a character of a phrases.
 phraseChar :: Parser Char

@@ -6,15 +6,16 @@
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-PROF_DIR="./prof"
-PROG="holumbusMemBench"
+PROF_DIR="$DIR/prof"
+PROG="holumbusServer"
 FLAGS=""
 FLAGS_PROF="-h -S -xt"
-CABAL_BIN="$DIR/.cabal-sandbox/bin"
+CABAL_BIN="$DIR/../.cabal-sandbox/bin"
 # extend to support more viewers
 VIEWER=$(which okular evince | head -1)
 CONFIG_FILE="prof.sh.config"
 
+INTERACTIVE="0"
 
 # use prof.sh.config to overwrite settings
 [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
@@ -29,6 +30,10 @@ function repairHpFile() {
   [ -z "$line_no" ] && echo ".hp file is too short" && return 1
   cp "$hp_file" "$hp_file_bak"
   head -n "$line_no" "$hp_file_bak" > "$hp_file"
+}
+
+function pre() {
+  make -C ../ PROF=1
 }
 
 function post() {
@@ -46,8 +51,34 @@ function move() {
   fi
 }
 
-function run() {
-  time "$CABAL_BIN/$PROG" $@ $FLAGS +RTS -p $FLAGS_PROF -s${PROG}.summary -RTS
+function mid() {
+  local pid
+
+  "$CABAL_BIN/$PROG" $FLAGS +RTS -p $FLAGS_PROF -s${PROG}.summary -RTS &
+  pid="$!"
+
+  trap "kill -INT $pid && sleep 1;post && data_dir=\$(move) && view_dir "\$data_dir"; exit $?" INT
+
+  if [ "$INTERACTIVE" == "1" ]
+  then
+    wait "$pid"
+    trap - INT
+  else
+    # wait for server to start
+    sleep 1
+
+    echo "Action start"
+    eval "$ACTION"
+    echo "Action end"
+
+    # wait for profiling sample end
+    sleep 1
+
+    # kill server and wait for stop
+    kill -INT $pid
+    trap - INT
+    sleep 1
+  fi
 }
 
 function view_dir() {
@@ -64,10 +95,13 @@ function view_dir() {
 
 # ######################################
 
-ARGS="$@"
+[ -z "$1" ] && INTERACTIVE="1" || INTERACTIVE="0"
+ACTION="$1"
 
 # ######################################
-run $ARGS            && \
-post                   && \
-data_dir=$(move)       && \
+
+#pre                                                         && \
+mid "$ACTION"                                               && \
+post                                                        && \
+data_dir=$(move)                                            && \
 view_dir "$data_dir"
