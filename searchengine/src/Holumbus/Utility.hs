@@ -22,7 +22,10 @@ module Holumbus.Utility where
 import           Data.Binary
 import qualified Data.ByteString.Lazy as B
 import           Data.Char
+import qualified Data.Foldable        as FB
 import qualified Data.List            as L
+import           Data.Map             (Map)
+import qualified Data.Map             as M
 import           Data.Maybe           (fromJust)
 import           Data.Set             (Set)
 import qualified Data.Set             as S
@@ -146,5 +149,14 @@ escape (c:cs)
   = if isAlphaNum c || isSpace c
       then c : escape cs
       else '%' : showHex (fromEnum c) "" ++ escape cs
+
+-- | 'FB.foldrM' for 'Map' with key.
+foldrWithKeyM :: (Monad m) => (k -> a -> b -> m b) -> b -> Map k a -> m b
+foldrWithKeyM f b = FB.foldrM (uncurry f) b . M.toList
+
+-- | 'FB.foldlM' for 'Map' with key.
+foldlWithKeyM :: (Monad m) => (b -> k -> a -> m b) -> b -> Map k a -> m b
+foldlWithKeyM f b = FB.foldlM f' b . M.toList
+  where f' a = uncurry (f a)
 
 -- ------------------------------------------------------------

@@ -29,6 +29,8 @@ import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
 import           Holumbus.Index.IndexImpl          (IndexImpl)
 
+import           Holumbus.Utility
+
 -- ----------------------------------------------------------------------------
 
 data IndexHandler dt = IXH
@@ -150,11 +152,3 @@ addWords wrds dId i
 
   positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
   positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws
-
--- required in 'addWords'
--- Data.Map has 'traverseWithKey' to supplement Data.Traversable
--- but apparently no 'fold_WithKeyM' to supplement Data.Foldable
--- this might help:
--- http://hackage.haskell.org/package/keys/docs/Data-Key.html#v:foldrWithKeyM
-foldrWithKeyM :: (Monad m) => (k -> a -> b -> m b) -> b -> Map k a -> m b
-foldrWithKeyM = error "foldrWithKeyM: not implemented"
