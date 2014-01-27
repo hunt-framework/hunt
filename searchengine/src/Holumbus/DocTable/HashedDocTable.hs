@@ -27,9 +27,6 @@ module Holumbus.DocTable.HashedDocTable
       Documents (..)
     , DocMap
 
-      -- * Construction
-    , empty
-
       -- * Conversion
     , fromMap
     )
@@ -71,8 +68,8 @@ instance (DocumentWrapper e, Binary e) => Binary (Documents e) where
 --- ----------------------------------------------------------------------------
 
 -- | An empty document table.
-empty :: (DocTable (Documents e), DocumentWrapper e) => Documents e
-empty = Documents DM.empty
+empty' :: (DocTable (Documents e), DocumentWrapper e) => Documents e
+empty' = Documents DM.empty
 
 -- | The hash function from URIs to DocIds
 docToId :: URI -> DocId
@@ -127,11 +124,14 @@ instance (DocumentWrapper e) =>
     -- Filters all documents that satisfy the predicate.
     filter      = return .:: filter'
 
-    -- Convert document table to a single map
+    -- Convert document table to a single map.
     toMap       = return . toMap'
 
-    -- Edit document ids
+    -- Edit document ids.
     mapKeys     = error "DocTable.mapKeys: HashedDocTable"
+
+    -- | Empty 'DocTable'.
+    empty       = empty'
 
 -- ----------------------------------------------------------------------------
 

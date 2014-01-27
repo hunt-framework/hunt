@@ -58,7 +58,7 @@ import           Holumbus.Query.Result                       as QRes
 
 import           Holumbus.DocTable.DocTable                  (DocTable)
 import qualified Holumbus.DocTable.DocTable                  as Dt
-import           Holumbus.DocTable.HashedDocTable            as HDt
+import           Holumbus.DocTable.HashedDocTable
 
 import           Holumbus.Interpreter.Command
 
@@ -110,7 +110,7 @@ debugContext c ws = debugM $ concat ["insert in", T.unpack c, show . M.toList $ 
 -- ----------------------------------------------------------------------------
 
 emptyIndexer :: IndexHandler (Documents CompressedDoc)
-emptyIndexer = IXH CIx.empty HDt.empty M.empty
+emptyIndexer = IXH CIx.empty Dt.empty M.empty
 
 -- ----------------------------------------------------------------------------
 

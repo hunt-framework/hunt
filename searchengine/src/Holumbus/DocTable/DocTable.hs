@@ -93,3 +93,6 @@ class (DocumentWrapper (DValue i)) => DocTable i where
 
     -- | Edit 'DocId's.
     mapKeys         :: Monad m => (DocId -> DocId) -> i -> m i
+
+    -- | Empty 'DocTable'.
+    empty           :: i
