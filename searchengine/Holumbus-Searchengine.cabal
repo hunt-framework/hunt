@@ -191,26 +191,26 @@ test-suite Holumbus-Query-Parser
                , test-framework-quickcheck2
                , text
 
-test-suite Holumbus-IndexStrictess
-  hs-source-dirs:       test
-  main-is:              IndexStrict.hs
-  type:                 exitcode-stdio-1.0
-  ghc-options:          -Wall
-  extensions:           OverloadedStrings
-
-  build-depends: base                         >= 4.6 && < 5
-               , containers
-               , deepseq                      >= 1.2
-               , ghc-heap-view                >= 0.5
-               , HUnit
-               , Holumbus-Searchengine
-               , mtl                          >= 1.1 && < 3
-               , QuickCheck
-               , random                       >= 1.0
-               , test-framework
-               , test-framework-hunit
-               , test-framework-quickcheck2
-               , text
+--test-suite Holumbus-IndexStrictess
+--  hs-source-dirs:       test
+--  main-is:              IndexStrict.hs
+--  type:                 exitcode-stdio-1.0
+--  ghc-options:          -Wall
+--  extensions:           OverloadedStrings
+--
+--  build-depends: base                         >= 4.6 && < 5
+--               , containers
+--               , deepseq                      >= 1.2
+--               , ghc-heap-view                >= 0.5
+--               , HUnit
+--               , Holumbus-Searchengine
+--               , mtl                          >= 1.1 && < 3
+--               , QuickCheck
+--               , random                       >= 1.0
+--               , test-framework
+--               , test-framework-hunit
+--               , test-framework-quickcheck2
+--               , text
 
 test-suite Holumbus-Analyzer
   hs-source-dirs:       test
