@@ -9,10 +9,10 @@
 module Holumbus.Query.Processor
 (
    processQuery
-,  initState
+,  initEnv
 
 ,  ProcessConfig (..)
-,  ProcessState
+,  ProcessEnv
 )
 
 where
@@ -21,7 +21,7 @@ import           Control.Applicative
 import           Control.Arrow                     (second)
 import           Control.Monad
 import           Control.Monad.Error
-import           Control.Monad.State
+import           Control.Monad.Reader
 
 import           Data.Binary                       (Binary)
 import qualified Data.Binary                       as Bin
@@ -96,8 +96,8 @@ instance Binary ProcessConfig where
     = liftM4 ProcessConfig Bin.get Bin.get Bin.get Bin.get
 
 -- | The internal state of the query processor.
-data ProcessState
-  = ProcessState
+data ProcessEnv
+  = ProcessEnv
     { psConfig   :: ! ProcessConfig    -- ^ The configuration for the query processor.
     , psContexts :: ! [Context]        -- ^ The current list of contexts.
     , psIndex    ::   ContextIndex Occurrences  -- ^ The index to search.
@@ -111,8 +111,8 @@ data ProcessState
 type QueryIndex    = ContextIndex     Occurrences
 
 -- | the processor monad
-newtype ProcessorT m a = PT { runProcessor :: StateT ProcessState (ErrorT CmdError m) a }
-  deriving (Applicative, Monad, MonadIO, Functor, MonadState ProcessState, MonadError CmdError)
+newtype ProcessorT m a = PT { runProcessor :: ReaderT ProcessEnv (ErrorT CmdError m) a }
+  deriving (Applicative, Monad, MonadIO, Functor, MonadReader ProcessEnv, MonadError CmdError)
 
 instance MonadTrans ProcessorT where
   lift = PT . lift . lift
@@ -134,19 +134,19 @@ unless' b code text = unless b $ processError code text
 -}
 
 getContexts ::   Processor [Context]
-getContexts = get >>= return . psContexts
+getContexts = ask >>= return . psContexts
 
 --getConfig ::   Processor ProcessConfig
 --getConfig = get >>= return . psConfig
 
 getFuzzyConfig ::   Processor FuzzyConfig
-getFuzzyConfig = get >>= return . fuzzyConfig . psConfig
+getFuzzyConfig = ask >>= return . fuzzyConfig . psConfig
 
 getIx ::   Processor QueryIndex
-getIx = get >>= return . psIndex
+getIx = ask >>= return . psIndex
 
 getSchema ::   Processor Schema
-getSchema = get >>= return . psSchema
+getSchema = ask >>= return . psSchema
 
 -- | Get the schema associated with that context/index.
 --   /NOTE/: This fails if the schema does not exist.
@@ -180,24 +180,11 @@ normQueryCx c t = do
 normQueryCxs ::   [Context] -> Text -> Processor [(Context, Text)]
 normQueryCxs cs t  = mapM (\c -> normQueryCx c t >>= \nt -> return (c, nt)) cs
 
--- | Set the contexts to be used for the query. Checks if the contexts exist.
-putContexts ::   [Context] -> Processor ()
-putContexts cs = do
-  schema <- getSchema
-  let invalidContexts = filter (not . flip M.member schema) cs
-  if null invalidContexts
-    then modify setCx
-    else processError 404 $ "mentioned context(s) do not exist: " -- schema to be precise
-                          `T.append` (T.pack . show $ invalidContexts)
-  where
-  setCx (ProcessState cfg _ ix s) = ProcessState cfg cs ix s
-
-
 -- | Initialize the state of the processor.
-initState :: ProcessConfig -> QueryIndex -> Schema
-          -> ProcessState
-initState cfg ix s
-  = ProcessState cfg cxs ix s
+initEnv :: ProcessConfig -> QueryIndex -> Schema
+          -> ProcessEnv
+initEnv cfg ix s
+  = ProcessEnv cfg cxs ix s
   where -- XXX: kind of inefficient
   cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault) $ CIx.contexts ix
 
@@ -206,8 +193,8 @@ initState cfg ix s
 -- ----------------------------------------------------------------------------
 
 processQuery :: (DocTable d, Dt.DValue d ~ e)
-              => ProcessState -> d -> Query -> IO (Either CmdError (Result e))
-processQuery st d q = runErrorT . evalStateT (runProcessor processToRes) $ st
+              => ProcessEnv -> d -> Query -> IO (Either CmdError (Result e))
+processQuery st d q = runErrorT . runReaderT (runProcessor processToRes) $ st
     where
     oq = if optimizeQuery (psConfig st) then optimize q else q
     processToRes = process oq >>= \ir -> I.toResult d ir
@@ -244,7 +231,7 @@ forAllContexts' f = getContexts >>= mapM f >>= return . I.merges
 forAllContexts' :: (QueryIndexCon)
 -- | Try to evaluate the query for all contexts in parallel.
 --   version with implizit state
-               => (Context -> ProcessState i -> Processor Intermediate)
+               => (Context -> ProcessEnv i -> Processor Intermediate)
                -> Processor Intermediate
 forAllContexts' f = getContexts >>= mapM (\c -> get >>= f c) >>= return . I.merges
 -}
@@ -258,7 +245,7 @@ forAllContexts' f = getContexts >>= mapM (\c -> get >>= f c) >>= return . I.merg
 processWord :: TextSearchOp -> Text -> [Context]
             -> Processor Intermediate
 processWord op q cs = do
-  st <- get
+  st <- ask
   ix <- getIx
   cq <- normQueryCxs cs q
   -- TODO: limitWords on context-basis?
@@ -368,7 +355,7 @@ processRange l h = forAllContexts' range
 
   processRange' ::   Text -> Text -> Context -> Processor Intermediate
   processRange' lo hi c = do
-    st <- get
+    st <- ask
     ix <- getIx
     -- TODO: limit on context basis
     res <- CIx.lookupRangeCx c lo hi ix
@@ -389,15 +376,17 @@ processBin AndNot i1 i2 = return $ I.difference   i1 i2
 processBoost :: Float -> Intermediate -> Processor Intermediate
 processBoost b i = return $ DM.map (second (b:)) i
 
--- XXX: maybe use Reader?
 -- | Process a context query.
 processContexts :: [Context] -> Query -> Processor Intermediate
 processContexts cs q = do
-  cs' <- getContexts
-  putContexts cs
-  res <- process q
-  putContexts cs'
-  return res
+  schema <- getSchema
+  let invalidContexts = filter (not . flip M.member schema) cs
+  if null invalidContexts
+    then local setCx $ process q
+    else processError 404 $ "mentioned context(s) do not exist: " -- schema to be precise
+                          `T.append` (T.pack . show $ invalidContexts)
+  where
+  setCx cfg = cfg { psContexts = cs}
 
 -- ----------------------------------------------------------------------------
 -- Helper
@@ -418,7 +407,7 @@ processContexts cs q = do
 -- The second heuristic isn't that expensive any more when the resul list is cut of by the heuristic
 --
 -- The limit 500 should be part of a configuration
-limitWords              :: ProcessState -> RawResult -> RawResult
+limitWords              :: ProcessEnv -> RawResult -> RawResult
 limitWords s r          = cutW . cutD $ r
   where
   limitD                = docLimit $ psConfig s

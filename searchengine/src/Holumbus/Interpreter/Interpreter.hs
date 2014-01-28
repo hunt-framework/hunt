@@ -52,7 +52,7 @@ import qualified Holumbus.Index.Proxy.ContextIndex           as CIx
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
 --import           Holumbus.Query.Language.Parser
-import           Holumbus.Query.Processor
+import           Holumbus.Query.Processor                    as QProc
 import           Holumbus.Query.Ranking
 import           Holumbus.Query.Result                       as QRes
 
@@ -490,7 +490,7 @@ runQueryM       :: DocTable dt
                 -> IO (Either CmdError (QRes.Result (Dt.DValue dt)))
 runQueryM ix s dt q = processQuery st dt q
    where
-   st = initState queryConfig ix s
+   st = QProc.initEnv queryConfig ix s
 
 -- ----------------------------------------------------------------------------
 
