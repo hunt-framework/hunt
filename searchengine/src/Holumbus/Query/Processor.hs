@@ -220,7 +220,7 @@ process o = case o of
   QPhrase QCase w     -> forAllContexts . processPhraseCase   $ w
   QPhrase QNoCase w   -> forAllContexts . processPhraseNoCase $ w
   QPhrase QFuzzy w    -> processPhraseFuzzy  $ w
-  QContext c q        -> putContexts c >> process q
+  QContext c q        -> processContexts c q
   QBinary op q1 q2    -> do -- XXX: maybe parallel
                           pq1 <- process q1
                           pq2 <- process q2
@@ -388,6 +388,16 @@ processBin AndNot i1 i2 = return $ I.difference   i1 i2
 -- | Process query boosting
 processBoost :: Float -> Intermediate -> Processor Intermediate
 processBoost b i = return $ DM.map (second (b:)) i
+
+-- XXX: maybe use Reader?
+-- | Process a context query.
+processContexts :: [Context] -> Query -> Processor Intermediate
+processContexts cs q = do
+  cs' <- getContexts
+  putContexts cs
+  res <- process q
+  putContexts cs'
+  return res
 
 -- ----------------------------------------------------------------------------
 -- Helper
