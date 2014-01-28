@@ -124,12 +124,15 @@ profServer-fb: stopServer
 profServer-rd: stopServer
 	./server/prof.sh "make insertRandom"
 
-hayooFrontend/functions.js:
+hayooFrontend/functions.js: hayooFrontend/convertJSON.py
 	cd hayooFrontend && ./convertJSON.py
 
 insertHayoo: hayooFrontend/functions.js
 	curl -X POST -d @hayooFrontend/hayooContexts.js $(SERVER)/eval
 	curl -X POST -d @hayooFrontend/functions.js $(SERVER)/document/insert
+
+startHayoo: hayooFrontend/functions.js insertHayoo
+	cd hayooFrontend && cabal run &
 
 random:
 	$(MAKE) -C data/random
@@ -144,6 +147,12 @@ insertRandom:  data/random/RandomData.js
 	curl -X POST -d @data/random/contexts.js $(SERVER)/eval
 	curl -X POST -d @data/random/RandomData.js $(SERVER)/document/insert
 
+data/dict/en_US.dict.js:
+	$(MAKE) -e -C data/dict en_US.dict.js
+
+insertenUSDict: data/dict/en_US.dict.js
+	curl -X POST -d @data/dict/en_US.dict.js $(SERVER)/eval
+	
 # ab - Apache HTTP server benchmarking tool
 benchmark-ab:
 	ab -k -n 1000 -c 5 http://localhost:3000/search/esta
