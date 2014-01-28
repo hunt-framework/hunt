@@ -10,6 +10,7 @@ import           Control.Monad
 import           Data.Set                          (Set)
 import qualified Data.Set                          as S
 import qualified Data.IntSet                       as IS
+import           Data.Map                          (Map)
 import qualified Data.Map                          as M
 import           Data.Maybe
 import           Data.Binary                       (Binary (..))
@@ -27,6 +28,8 @@ import qualified Holumbus.Common.Occurrences       as Occ
 import qualified Holumbus.Index.Proxy.ContextIndex as CIx
 import           Holumbus.Index.Proxy.ContextIndex (ContextIndex)
 import           Holumbus.Index.IndexImpl          (IndexImpl)
+
+import           Holumbus.Utility
 
 -- ----------------------------------------------------------------------------
 
@@ -54,7 +57,7 @@ insert :: (Monad m, DocTable dt)
        => Dt.DValue dt -> Words -> IndexHandler dt -> m (IndexHandler dt)
 insert doc wrds (IXH ix dt s) = do
     (did, newDt) <- Dt.insert dt doc
-    let newIx = addWords wrds did ix
+    newIx        <- addWords wrds did ix
     return $ IXH newIx newDt s
 
 -- | Update elements
@@ -71,7 +74,7 @@ modify :: (Monad m, DocTable dt)
        -> Words -> DocId -> IndexHandler dt -> m (IndexHandler dt)
 modify f wrds dId (IXH ii dt s) = do
   newDocTable <- Dt.adjust f dId dt
-  let newIndex = addWords wrds dId ii
+  newIndex    <- addWords wrds dId ii
   return $ IXH newIndex newDocTable s
 
 -- | Delete a set of documents by 'URI'.
@@ -85,7 +88,7 @@ deleteDocsByURI us ixx@(IXH _ix dt _) = do
 delete :: (Monad m, DocTable dt)
        => IndexHandler dt -> DocIdSet -> m (IndexHandler dt)
 delete (IXH ix dt s) dIds = do
-    let newIx = CIx.delete dIds ix
+    newIx <- CIx.delete dIds ix
     newDt <- Dt.difference dIds dt
     return $ IXH newIx newDt s
 
@@ -113,7 +116,7 @@ modifyWithDescription :: (Monad m, DocTable dt)
                       => Description -> Words -> DocId -> IndexHandler dt -> m (IndexHandler dt)
 modifyWithDescription descr wrds dId (IXH ii dt s) = do
     newDocTable <- Dt.adjust mergeDescr dId dt
-    let newIndex = addWords wrds dId ii
+    newIndex    <- addWords wrds dId ii
     return $ IXH newIndex newDocTable s
     where
     -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
@@ -135,10 +138,10 @@ addDocDescription descr did (Indexer i d)
 
 -- | Add words for a document to the 'Index'.
 --   /NOTE/: adds words to /existing/ 'Context's.
-addWords :: Words -> DocId -> ContextIndex Occurrences -> ContextIndex Occurrences
+addWords :: Monad m => Words -> DocId -> ContextIndex Occurrences -> m (ContextIndex Occurrences)
 addWords wrds dId i
-  = M.foldrWithKey (\c wl acc ->
-      M.foldrWithKey (\w ps acc' ->
+  = foldrWithKeyM (\c wl acc ->
+      foldrWithKeyM (\w ps acc' ->
         CIx.insertWithCx c w (mkOccs dId ps) acc')
       acc wl)
       i wrds

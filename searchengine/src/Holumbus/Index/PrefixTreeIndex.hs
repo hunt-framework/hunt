@@ -8,6 +8,7 @@ module Holumbus.Index.PrefixTreeIndex
 where
 
 import           Control.DeepSeq
+
 import           Data.Binary                (Binary (..))
 import           Data.Typeable
 
@@ -41,22 +42,22 @@ instance Index DmPrefixTree where
     type IVal DmPrefixTree v = DocIdMap v
 
     insert k v (DmPT pt)
-        = mkDmPT $ SM.insert k v pt
+        = return . mkDmPT $ SM.insert k v pt
 
     batchDelete ks (DmPT pt)
-        = mkDmPT $ SM.map (\m -> DM.diffWithSet m ks) pt
+        = return . mkDmPT $ SM.map (\m -> DM.diffWithSet m ks) pt
 
     empty
         = mkDmPT $ SM.empty
 
     fromList
-        = mkDmPT . SM.fromList
+        = return . mkDmPT . SM.fromList
 
     toList (DmPT pt)
-        = SM.toList pt
+        = return $ SM.toList pt
 
     search t k (DmPT pt)
-        = case t of
+        = return $ case t of
             Case         -> case SM.lookup k pt of
                               Nothing -> []
                               Just xs -> [(k,xs)]
@@ -70,13 +71,13 @@ instance Index DmPrefixTree where
         pfNoCase = toL .:: SM.prefixFilterNoCase
 
     lookupRange k1 k2 (DmPT pt)
-        = SM.toList $ SM.lookupRange k1 k2 pt
+        = return . SM.toList $ SM.lookupRange k1 k2 pt
 
     unionWith op (DmPT pt1) (DmPT pt2)
-        = mkDmPT $ SM.unionWith op pt1 pt2
+        = return . mkDmPT $ SM.unionWith op pt1 pt2
 
     map f (DmPT pt)
-        = mkDmPT $ SM.map f pt
+        = return . mkDmPT $ SM.map f pt
 
     keys (DmPT pt)
-        = SM.keys pt
+        = return $ SM.keys pt

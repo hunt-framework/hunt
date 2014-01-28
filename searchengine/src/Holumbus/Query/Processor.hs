@@ -262,7 +262,8 @@ processWord op q cs = do
   ix <- getIx
   cq <- normQueryCxs cs q
   -- TODO: limitWords on context-basis?
-  return . I.fromListCxs q . map (second (limitWords st)) $ CIx.searchWithCxsNormalized op cq ix
+  res <- CIx.searchWithCxsNormalized op cq ix
+  return . I.fromListCxs q . map (second (limitWords st)) $ res
 
 -- | Case Sensitive variant of process Word
 processWordCase :: Text -> [Context]
@@ -319,18 +320,25 @@ processPhraseFuzzy q = do
 
 
 -- | Process a phrase query by searching for every word of the phrase and comparing their positions.
-processPhraseInternal :: (Text -> RawResult) -> Text -> Context
+processPhraseInternal :: (Text -> Processor RawResult) -> Text -> Context
                       -> Processor Intermediate
 processPhraseInternal f q c = do
+  result <- resultM
   if DM.null result
-    then return $ I.empty
-    else return $ I.fromList q c [(q, processPhrase' ws 1 result)]
+    then return I.empty
+    else do
+      pph <- processPhrase' ws 1 result
+      return $ I.fromList q c [(q, pph)]
   where
-  result = mergeOccurrencesList $ map snd $ f w
+  resultM = do
+    fw <- f w
+    return . mergeOccurrencesList $ map snd fw
   (w:ws) = T.words q
-  processPhrase' :: [Text] -> Position -> Occurrences -> Occurrences
-  processPhrase' [] _ o = o
-  processPhrase' (x:xs) p o = processPhrase' xs (p+1) (DM.filterWithKey (nextWord $ map snd $ f x) o)
+  processPhrase' :: [Text] -> Position -> Occurrences -> Processor Occurrences
+  processPhrase' [] _ o = return o
+  processPhrase' (x:xs) p o = do
+    fx <- f x
+    processPhrase' xs (p+1) (DM.filterWithKey (nextWord $ map snd fx) o)
     where
       nextWord :: [Occurrences] -> DocId -> Positions -> Bool
       nextWord [] _ _  = False
@@ -363,8 +371,8 @@ processRange l h = forAllContexts' range
     st <- get
     ix <- getIx
     -- TODO: limit on context basis
-    return . I.fromList lo c . limitWords st -- FIXME: check I.fromList - correct term
-      $ CIx.lookupRangeCx c lo hi ix
+    res <- CIx.lookupRangeCx c lo hi ix
+    return . I.fromList lo c . limitWords st $ res -- FIXME: check I.fromList - correct term
 
 -- ----------------------------------------------------------------------------
 -- Operators

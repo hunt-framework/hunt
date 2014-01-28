@@ -9,6 +9,7 @@ import qualified Prelude                    as P
 
 import           Control.DeepSeq
 import           Control.Arrow              (second)
+import           Control.Monad
 
 import qualified Data.IntSet                as IS
 
@@ -57,33 +58,35 @@ instance Index (CachedIndex impl) where
           )
 
     insert k v (CachedIx c i)
-        = mkCachedIx c (insert k v i)
+        = liftM (mkCachedIx c) (insert k v i)
 
     batchDelete ks (CachedIx c i)
-        = mkCachedIx (IS.union c ks) i
+        = return $ mkCachedIx (IS.union c ks) i
 
     empty
         = mkCachedIx IS.empty empty
 
     fromList l
-        = mkCachedIx IS.empty (fromList l)
+        = liftM (mkCachedIx IS.empty) (fromList l)
 
     toList i
-        = let (CachedIx _ i') = flatten i
-          in toList i'
+        = do 
+            (CachedIx _ i') <- flatten i
+            toList i'
 
     search t k (CachedIx c i)
-        = filterResult c $ search t k i
+        = liftM (filterResult c) $ search t k i
 
     lookupRange k1 k2 (CachedIx c i)
-        = filterResult c $ lookupRange k1 k2 i
+        = liftM (filterResult c) $ lookupRange k1 k2 i
 
     unionWith op (CachedIx c1 i1) (CachedIx c2 i2)
-        = mkCachedIx (IS.union c1 c2) (unionWith op i1 i2)
+        = liftM (mkCachedIx (IS.union c1 c2)) (unionWith op i1 i2)
 
     map f i
-        = let (CachedIx c i') = flatten i
-          in mkCachedIx c (Ix.map f i')
+        = do
+            (CachedIx c i') <- flatten i
+            liftM (mkCachedIx c) (Ix.map f i')
 
     keys (CachedIx _c i)
         = keys i
@@ -94,5 +97,5 @@ filterResult :: IS.IntSet -> [(d, DocIdMap v)] -> [(d, DocIdMap v)]
 filterResult c = P.map (second (flip deleteIds c))
     where deleteIds = IS.foldr DM.delete
 
-flatten :: (ICon impl v, Index impl) => CachedIndex impl v -> CachedIndex impl v
-flatten (CachedIx c i) = mkCachedIx IS.empty (batchDelete c i)
+flatten :: (ICon impl v, Index impl, Monad m) => CachedIndex impl v -> m (CachedIndex impl v)
+flatten (CachedIx c i) = liftM (mkCachedIx IS.empty) $ (batchDelete c i)

@@ -16,6 +16,7 @@ import           Prelude                                    as P
 import           Control.Applicative                        ((<$>))
 import           Control.Arrow                              (first)
 import           Control.DeepSeq
+import           Control.Monad
 
 import           Data.Binary                                (Binary (..))
 import           Data.Text                                  (Text)
@@ -54,33 +55,33 @@ instance Index (PositionNormalizerIndex impl) where
         )
 
     insert k v (PosNIx i)
-        = mkPosNIx $ insert (Pos.normalize k) v i
+        = liftM mkPosNIx $ insert (Pos.normalize k) v i
 
     batchDelete ks (PosNIx i)
-        = mkPosNIx $ batchDelete ks i
+        = liftM mkPosNIx $ batchDelete ks i
 
     empty
         = mkPosNIx $ empty
 
     fromList l
-        = mkPosNIx . fromList $ P.map (first Pos.normalize) l
+        = liftM mkPosNIx . fromList $ P.map (first Pos.normalize) l
 
     toList (PosNIx i)
-        = first Pos.denormalize <$> toList i
+        = liftM (first Pos.denormalize <$>) $ toList i
 
     search t k (PosNIx i)
-        = first Pos.denormalize <$> search t (Pos.normalize k) i
+        = liftM (first Pos.denormalize <$>) $ search t (Pos.normalize k) i
 
     lookupRange k1 k2 (PosNIx i)
-        = first Pos.denormalize <$> lookupRange (Pos.normalize k1) (Pos.normalize k2) i
+        = liftM (first Pos.denormalize <$>) $ lookupRange (Pos.normalize k1) (Pos.normalize k2) i
 
     unionWith op (PosNIx i1) (PosNIx i2)
-        = mkPosNIx $ unionWith op i1 i2
+        = liftM mkPosNIx $ unionWith op i1 i2
 
     map f (PosNIx i)
-        = mkPosNIx $ Ix.map f i
+        = liftM mkPosNIx $ Ix.map f i
 
     keys (PosNIx i)
-        = P.map Pos.denormalize $ keys i
+        = liftM (P.map Pos.denormalize) $ keys i
 
 -- ----------------------------------------------------------------------------
