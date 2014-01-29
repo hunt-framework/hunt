@@ -27,14 +27,7 @@ import Data.Geo.OSM.NWRCommon
 import Holumbus.GeoFrondend.Common
 
 
-{-}
-import Control.Lens
 
--- Some nice lenses to go with it
-makeLenses ''OSM
-
-makePrisms ''OSM
--}
 
 writeJSON :: MonadIO m => FilePath -> m ()
 writeJSON p = do

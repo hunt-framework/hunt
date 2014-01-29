@@ -10,7 +10,7 @@ import GHC.Generics (Generic)
 import Control.Monad (mzero)
 import Control.Monad.IO.Class (MonadIO)
 
-import Data.Text.Lazy (Text)
+import Data.Text (Text)
 import Data.Aeson
 
 import Control.Monad.IO.Class (MonadIO, liftIO)

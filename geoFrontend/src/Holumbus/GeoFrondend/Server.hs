@@ -1,9 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hayoo.Server where
+module Holumbus.GeoFrondend.Server where
 
-import qualified Web.Scotty as Scotty
---import qualified Web.Scotty.Trans as ScottyT
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Class (lift)
+
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Encoding as TL
+import           Data.Aeson.Types ()
+
+import qualified Web.Scotty.Trans as Scotty
 import qualified Network.Wai.Middleware.RequestLogger as Wai
 
 import qualified System.Log.Logger as Log
@@ -12,27 +20,29 @@ import qualified System.Log.Handler as Log (setFormatter)
 import qualified System.Log.Handler.Simple as Log (streamHandler)
 import qualified System.IO as System (stdout)
 
-import qualified Hayoo.Templates as Templates
---import Data.Text.Lazy (pack)
-import qualified Data.Text.Lazy as T
-import qualified Data.Text.Lazy.Encoding as T
-import           Data.Aeson.Types ()
-import Control.Monad.IO.Class (liftIO)
+import qualified Holumbus.GeoFrondend.Templates as Templates
 
-import Holumbus.GeoFrondend.HolumbusClient
+import Holumbus.GeoFrondend.Common
+import Holumbus.Server.Client (newServerAndManager)
 import Paths_geoFrontend
 start :: IO ()
-start = do 
+start = do
+    sm <- newServerAndManager "localhost:3000"
+
+    -- Note that 'runM' is only called once, at startup.
+    let runM m = runGeoReader m sm
+        -- 'runActionToIO' is called once per action.
+        runActionToIO = runM
+
     initLoggers $ optLogLevel defaultOptions
 
     Log.debugM modName "Application start"
 
-    Scotty.scotty 8080 $ do
+    Scotty.scottyT 8080 runM runActionToIO $ do
         Scotty.middleware Wai.logStdoutDev -- request / response logging
         dispatcher
 
-
-dispatcher :: Scotty.ScottyM ()
+dispatcher :: Scotty.ScottyT GeoServer ()
 dispatcher = do
     Scotty.get "/" $ do
         params <- Scotty.params
@@ -51,16 +61,17 @@ dispatcher = do
         Scotty.json $ value
 
 
-renderRoot :: [Scotty.Param] -> Scotty.ActionM ()
-renderRoot params = renderRoot' $ lookup (T.pack "query") params
+renderRoot :: [Scotty.Param] -> Scotty.ActionT GeoServer ()
+renderRoot params = renderRoot' $ (fmap TL.toStrict) $ lookup "query" params
     where 
+    renderRoot' :: Maybe T.Text -> Scotty.ActionT GeoServer ()
     renderRoot' Nothing = Scotty.html $ Templates.body "" Templates.mainPage
     renderRoot' (Just q) = do
-        value <- query "localhost:3000" q >>= raiseOnLeft
-        Scotty.html $ Templates.body q $ Templates.renderLimitedRestults value
+        value <- (lift $ query q) >>= raiseOnLeft
+        Scotty.html $ Templates.body (TL.fromStrict q) $ Templates.renderLimitedRestults value
 
-raiseOnLeft :: Either T.Text a -> Scotty.ActionM a
-raiseOnLeft (Left err) = Scotty.raise err
+raiseOnLeft :: Monad m => Either T.Text a -> Scotty.ActionT m a
+raiseOnLeft (Left err) = Scotty.raise $ TL.fromStrict err
 raiseOnLeft (Right x) = return x
     
 -- | Set the body of the response to the given 'T.Text' value. Also sets \"Content-Type\"
@@ -68,7 +79,7 @@ raiseOnLeft (Right x) = return x
 javascript :: T.Text -> Scotty.ActionM ()
 javascript t = do
     Scotty.setHeader "Content-Type" "text/javascript"
-    Scotty.raw $ T.encodeUtf8 t
+    Scotty.raw $ TL.encodeUtf8 $ TL.fromStrict t
 
 
 -- | Initializes the loggers with the given priority.

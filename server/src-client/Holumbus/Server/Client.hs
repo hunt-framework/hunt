@@ -21,8 +21,8 @@ import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Class (MonadTrans, lift)
 import "mtl" Control.Monad.Reader (ReaderT, MonadReader, runReaderT, ask)
 
-import Data.Text.Lazy (Text)
-import qualified Data.Text.Lazy as T
+import Data.Text (Text)
+import qualified Data.Text as T
 -- import qualified Data.Text.Encoding as TE
 
 import Data.ByteString.Lazy (ByteString) 

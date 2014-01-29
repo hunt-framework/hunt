@@ -2,6 +2,9 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE PackageImports #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 
 module Holumbus.GeoFrondend.Common where
 
@@ -13,6 +16,7 @@ import Control.Lens hiding ((.=))
 
 import Data.Text (Text)
 import qualified Data.Text as T
+-- import qualified Data.Text.Lazy as TL
 
 import qualified Data.HashMap.Lazy as M
 
@@ -22,6 +26,10 @@ import qualified Data.Aeson.Types as JSON
 
 import qualified Holumbus.Server.Client as H
 import qualified Holumbus.Index.Schema.Normalize.Position as P
+
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Trans.Class (MonadTrans, lift)
+import "mtl" Control.Monad.Reader (ReaderT, MonadReader, ask, runReaderT)
 
 
 data OSMType = Way | Node
@@ -48,8 +56,10 @@ instance ToJSON GeoDocument where
             o = JSON.object $ [ "name" .= name d,
                            "position" .= ((fromShow $ lon d) `T.append` "-" `T.append` (fromShow $ lat d)),
                            "kind" .= kind d
-                         ] ++ (map (uncurry (.=)) $ tags d)
+                         ] ++ otherTags
             uri = "osm://" ++ (show $ osmId d)
+            otherTags :: [JSON.Pair]
+            otherTags = map (uncurry (.=)) $ tags d
 
 instance FromJSON GeoDocument where
     parseJSON (JSON.Object o) = do
@@ -64,11 +74,32 @@ instance FromJSON GeoDocument where
         let tags' = M.toList $ descr `M.difference` (M.fromList [("name", undefined), ("kind", undefined), ("position", undefined)])
         tags'' <- (mapM . traverse) JSON.parseJSON tags'
         let osmId' = read $ snd $ splitAt 6 u
-        return $ GeoDocument (osmId') n lon' lat' k tags''
+        return $ GeoDocument (osmId') n lon' lat' k (tags'')
             
 
     parseJSON _ = mzero
 
-
 fromShow :: (Show a) => a -> Text 
-fromShow = T.pack . show 
+fromShow = T.pack . show
+
+
+newtype GeoServer a = GeoServer { runGeoServer :: ReaderT H.ServerAndManager IO a }
+    deriving (Monad, MonadIO, MonadReader (H.ServerAndManager))
+
+geoServer :: MonadTrans t => GeoServer a -> t GeoServer a
+geoServer = lift 
+
+runGeoReader :: GeoServer a -> H.ServerAndManager -> IO a
+runGeoReader = runReaderT . runGeoServer
+
+withServerAndManager' :: H.HolumbusConnectionT IO b -> GeoServer b
+withServerAndManager' x = do
+    sm <- ask
+    --sm <- liftIO $ STM.readTVarIO var
+    liftIO $ H.withServerAndManager x sm
+
+autocomplete :: Text -> GeoServer (Either Text [Text])
+autocomplete q = withServerAndManager' $ H.autocomplete q
+
+query :: Text -> GeoServer (Either Text (H.LimitedResult GeoDocument))
+query q = withServerAndManager' $ H.query q

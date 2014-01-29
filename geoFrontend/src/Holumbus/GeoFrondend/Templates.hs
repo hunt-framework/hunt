@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Hayoo.Templates where
+module Holumbus.GeoFrondend.Templates where
 
 import qualified Text.Hamlet as Hamlet (HtmlUrl, hamlet)
 import qualified Text.Blaze.Html.Renderer.String as Blaze (renderHtml)
@@ -11,7 +11,7 @@ import Data.Text.Lazy (Text)
 import qualified Data.Text as TS
 import qualified Data.Text.Lazy as T
 
-import qualified Hayoo.HolumbusClient as Api
+import qualified Holumbus.GeoFrondend.Common as Api
 import qualified Holumbus.Server.Client as Api
 
 data Routes = Home | HayooJs | HayooCSS | Autocomplete | Examples | About
@@ -100,8 +100,13 @@ $doctype 5
 |] render
 
 
+renderResult :: Api.GeoDocument -> Hamlet.HtmlUrl Routes
+renderResult result = [Hamlet.hamlet|
+<div .panel .panel-default>
+    #{Api.name result}
+|]
 
-renderLimitedRestults :: Api.LimitedResult Api.SearchResult -> Hamlet.HtmlUrl Routes
+renderLimitedRestults :: Api.LimitedResult Api.GeoDocument -> Hamlet.HtmlUrl Routes
 renderLimitedRestults limitedRes = [Hamlet.hamlet|
 <ul .list-group>
     $forall result <- Api.lrResult limitedRes

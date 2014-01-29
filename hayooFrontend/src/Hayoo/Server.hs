@@ -5,8 +5,10 @@ module Hayoo.Server where
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
 
-import qualified Data.Text.Lazy as T
-import qualified Data.Text.Lazy.Encoding as T
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Encoding as TL
 import           Data.Aeson.Types ()
 
 import qualified Web.Scotty.Trans as Scotty
@@ -58,21 +60,22 @@ dispatcher = do
         Scotty.file cssPath
     Scotty.get "/autocomplete"$ do
         q <- Scotty.param "term"
-        value <- (lift $ autocomplete q) >>= raiseOnLeft
+        value <- (lift $ autocomplete $ TL.toStrict q) >>= raiseOnLeft
         Scotty.json $ value
     Scotty.get "/examples" $ Scotty.html $ Templates.body "" Templates.examples
     Scotty.get "/about" $ Scotty.html $ Templates.body "" Templates.about
 
 renderRoot :: [Scotty.Param] -> Scotty.ActionT HayooServer ()
-renderRoot params = renderRoot' $ lookup (T.pack "query") params
+renderRoot params = renderRoot' $ (fmap TL.toStrict) $ lookup "query" params
     where 
+    renderRoot' :: Maybe T.Text -> Scotty.ActionT HayooServer ()
     renderRoot' Nothing = Scotty.html $ Templates.body "" Templates.mainPage
     renderRoot' (Just q) = do
         value <- (lift $ query q) >>= raiseOnLeft
-        Scotty.html $ Templates.body q $ Templates.renderLimitedRestults value
+        Scotty.html $ Templates.body (TL.fromStrict q) $ Templates.renderLimitedRestults value
 
 raiseOnLeft :: Monad m => Either T.Text a -> Scotty.ActionT m a
-raiseOnLeft (Left err) = Scotty.raise err
+raiseOnLeft (Left err) = Scotty.raise $ TL.fromStrict err
 raiseOnLeft (Right x) = return x
     
 -- | Set the body of the response to the given 'T.Text' value. Also sets \"Content-Type\"
@@ -80,7 +83,7 @@ raiseOnLeft (Right x) = return x
 javascript :: T.Text -> Scotty.ActionM ()
 javascript t = do
     Scotty.setHeader "Content-Type" "text/javascript"
-    Scotty.raw $ T.encodeUtf8 t
+    Scotty.raw $ TL.encodeUtf8 $ TL.fromStrict t
 
 
 -- | Initializes the loggers with the given priority.
