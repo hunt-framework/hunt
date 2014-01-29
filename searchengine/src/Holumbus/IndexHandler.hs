@@ -10,7 +10,6 @@ import           Control.Monad
 import           Data.Set                          (Set)
 import qualified Data.Set                          as S
 import qualified Data.IntSet                       as IS
-import           Data.Map                          (Map)
 import qualified Data.Map                          as M
 import           Data.Maybe
 import           Data.Binary                       (Binary (..))

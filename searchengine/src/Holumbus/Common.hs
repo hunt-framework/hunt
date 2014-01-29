@@ -27,7 +27,6 @@ module Holumbus.Common
   , module Holumbus.Common.RawResult
   , module Holumbus.Common.ApiDocument
   , module Holumbus.Index.Schema
-  , module Holumbus.Interpreter.Command
   )
 where
 
@@ -40,5 +39,4 @@ import           Holumbus.Common.Document     (Document (..))
 import           Holumbus.Common.Occurrences  (Occurrences)
 import           Holumbus.Common.Positions    (Positions)
 import           Holumbus.Common.RawResult
-import           Holumbus.Interpreter.Command (Command (..))
 import           Holumbus.Index.Schema

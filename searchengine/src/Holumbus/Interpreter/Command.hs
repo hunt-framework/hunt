@@ -1,28 +1,36 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Holumbus.Interpreter.Command where
+module Holumbus.Interpreter.Command
+( Command (..) , StatusCmd (..)
+, CmdResult (..), CmdError (..)
+, toBasicCommand
+)
+where
 
-import           Control.Monad                   (mzero)
-import           Control.Monad.Error             (Error (..))
+import           Control.Monad                     (mzero)
+import           Control.Monad.Error               (Error (..))
 
 import           Data.Aeson
-import qualified Data.Aeson                      as JS (Value (..))
-import           Data.Set                        (Set)
-import           Data.Text                       (Text)
-import qualified Data.Text                       as T
+import           Data.List
+import qualified Data.Set                          as S
+import           Data.Text                         (Text)
+import qualified Data.Text                         as T
 
 import           Holumbus.Common.ApiDocument
 import           Holumbus.Common.BasicTypes
-import           Holumbus.Common.Document        (Document)
+import           Holumbus.Common.Document          (Document)
 import           Holumbus.Index.Schema
-import           Holumbus.Query.Language.Grammar (Query (..))
+import           Holumbus.Query.Language.Grammar   (Query (..))
+
+import           Holumbus.Interpreter.BasicCommand (BasicCommand, StatusCmd (..))
+import qualified Holumbus.Interpreter.BasicCommand as Cmd
 
 import           Holumbus.Utility.Log
 
 -- ----------------------------------------------------------------------------
 
-type UnparsedQuery = Text
-
+-- | The commands of the the 'Interpreter'.
+--   These are actually translated to 'BasicCommand's.
 data Command
   -- | Search
   = Search        { icQuery    :: Query
@@ -37,7 +45,6 @@ data Command
   | Insert        { icDoc :: ApiDocument }
   | Update        { icDoc :: ApiDocument }
   | Delete        { icUri :: URI }
-  | BatchDelete   { icUris :: Set URI }
 
   -- | context manipulation
   | InsertContext { icICon   :: Context
@@ -56,11 +63,6 @@ data Command
   | Sequence      { icCmdSeq :: [Command] }
   | NOOP
   deriving (Show)
-
-data StatusCmd
-  = StatusGC
-  | StatusIndex
-    deriving (Show)
 
 data CmdResult
   = ResOK
@@ -94,7 +96,6 @@ instance ToJSON Command where
     Delete u          -> object . cmd "delete"         $ [ "uri" .= u ]
     InsertContext c s -> object . cmd "insert-context" $ [ "context" .= c, "schema" .= s ]
     DeleteContext c   -> object . cmd "delete-context" $ [ "context" .= c ]
-    BatchDelete us    -> object . cmd "delete-batch"   $ [ "uris" .= us ] -- not used in fromJSON instance
     LoadIx  f         -> object . cmd "load"           $ [ "path" .= f ]
     StoreIx f         -> object . cmd "store"          $ [ "path" .= f ]
     Status  sc        -> object . cmd "status"         $ [ "status" .= sc ]
@@ -131,15 +132,6 @@ instance FromJSON Command where
       _                -> mzero
   parseJSON o = parseJSON o >>= return . Sequence
 
-instance ToJSON StatusCmd where
-    toJSON StatusGC    = JS.String "gc"
-    toJSON StatusIndex = JS.String "index"
-
-instance FromJSON StatusCmd where
-    parseJSON (JS.String "gc"   ) = return StatusGC
-    parseJSON (JS.String "index") = return StatusIndex
-    parseJSON _                   = mzero
-
 instance ToJSON CmdResult where
   toJSON o = case o of
     ResOK           -> object . code 0 $ []
@@ -164,3 +156,45 @@ instance FromJSON CmdError where
     m <- o .: "msg"
     return $ ResError c m
   parseJSON _ = mzero
+
+-- ----------------------------------------------------------------------------
+
+-- TODO: - flattening of 'Sequence's?
+--       - add BatchInsert?
+
+-- | Transform the supported input command into lower level commands which are actually interpreted.
+--   Transformations:
+--     - Multiple 'Cmd.Delete's into a single 'BatchDelete'.
+toBasicCommand :: Command -> BasicCommand
+toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
+  where
+  opt :: [Command] -> [BasicCommand]
+  opt cs' = concatMap optGroup $ groupBy equalHeads cs'
+  -- requires the commands to be grouped by constructor
+  optGroup :: [Command] -> [BasicCommand]
+  -- groups of delete to BatchDelete
+  optGroup cs'@(Delete{}:_)
+    = foldl (\(Cmd.BatchDelete us) (Delete u)
+                -> Cmd.BatchDelete (S.insert u us)) (Cmd.BatchDelete S.empty) cs' : []
+  optGroup cs'@(Sequence{}:_)
+    = map toBasicCommand cs'
+  optGroup cs'
+    = map toBasicCommand cs'
+  -- group by constructor
+  -- NOTE: just delete and sequence because that are the only optimizations for now
+  equalHeads :: Command -> Command -> Bool
+  equalHeads Delete{}   Delete{}   = True
+  equalHeads Sequence{} Sequence{} = True
+  equalHeads _ _                   = False
+
+toBasicCommand (Delete u)          = Cmd.BatchDelete $ S.singleton u
+toBasicCommand (Search a b c)      = Cmd.Search a b c
+toBasicCommand (Completion a b)    = Cmd.Completion a b
+toBasicCommand (Insert a)          = Cmd.Insert a
+toBasicCommand (Update a)          = Cmd.Update a
+toBasicCommand (InsertContext a b) = Cmd.InsertContext a b
+toBasicCommand (DeleteContext a)   = Cmd.DeleteContext a
+toBasicCommand (LoadIx a)          = Cmd.LoadIx a
+toBasicCommand (StoreIx a)         = Cmd.StoreIx a
+toBasicCommand (Status a)          = Cmd.Status a
+toBasicCommand (NOOP)              = Cmd.NOOP

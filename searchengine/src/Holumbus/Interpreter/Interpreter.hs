@@ -7,7 +7,13 @@
 {-# LANGUAGE TypeFamilies               #-}
 
 
-module Holumbus.Interpreter.Interpreter where
+module Holumbus.Interpreter.Interpreter
+( initEnv
+, runCmd
+, contextTypes
+, emptyIndexer
+)
+where
 
 import           Control.Applicative
 import           Control.Concurrent.XMVar
@@ -18,10 +24,9 @@ import qualified Data.Aeson                                  as JS
 import qualified Data.Binary                                 as Bin
 import qualified Data.ByteString.Lazy                        as BL
 import           Data.Function                               (on)
-import           Data.List                                   (groupBy, sortBy)
+import           Data.List                                   (sortBy)
 import qualified Data.List                                   as L
 import qualified Data.Map                                    as M
-import           Data.Maybe                                  (fromMaybe)
 import           Data.Set                                    (Set)
 import qualified Data.Set                                    as S
 import           Data.Text                                   (Text)
@@ -52,7 +57,8 @@ import qualified Holumbus.Index.Proxy.ContextIndex           as CIx
 import           Holumbus.Query.Fuzzy
 import           Holumbus.Query.Language.Grammar
 --import           Holumbus.Query.Language.Parser
-import           Holumbus.Query.Processor                    as QProc
+import           Holumbus.Query.Processor                    hiding (initEnv)
+import qualified Holumbus.Query.Processor                    as QProc
 import           Holumbus.Query.Ranking
 import           Holumbus.Query.Result                       as QRes
 
@@ -60,7 +66,9 @@ import           Holumbus.DocTable.DocTable                  (DocTable)
 import qualified Holumbus.DocTable.DocTable                  as Dt
 import           Holumbus.DocTable.HashedDocTable
 
-import           Holumbus.Interpreter.Command
+import           Holumbus.Interpreter.BasicCommand
+import           Holumbus.Interpreter.Command                (Command)
+import           Holumbus.Interpreter.Command                hiding (Command(..))
 
 import qualified System.Log.Logger                           as Log
 
@@ -94,7 +102,7 @@ modName = "Holumbus.Interpreter.Interpreter"
 -- | Log a message at 'DEBUG' priority.
 debugM :: String -> IO ()
 debugM = Log.debugM modName
-
+{-
 -- | Log a message at 'WARNING' priority.
 warningM :: String -> IO ()
 warningM = Log.warningM modName
@@ -105,7 +113,8 @@ errorM = Log.errorM modName
 
 -- | Log formated values that get inserted into a context
 debugContext :: Context -> Words -> IO ()
-debugContext c ws = debugM $ concat ["insert in", T.unpack c, show . M.toList $ fromMaybe M.empty $ M.lookup c ws]
+debugContext c ws = debugM $ concat ["insert in ", T.unpack c, show . M.toList $ fromMaybe M.empty $ M.lookup c ws]
+-}
 
 -- ----------------------------------------------------------------------------
 
@@ -162,7 +171,7 @@ runCM env = runErrorT . runReaderT (runCMT env)
 
 runCmd :: (DocTable dt, Bin.Binary dt) => Env dt -> Command -> IO (Either CmdError CmdResult)
 runCmd env cmd
-    = runErrorT . runReaderT (runCMT . execCmd $ cmd) $ env
+    = runErrorT . runReaderT (runCMT . execCommand $ cmd) $ env
 
 askIx :: DocTable dt => CM dt (IndexHandler dt)
 askIx
@@ -220,53 +229,23 @@ throwResError :: DocTable dt => Int -> Text -> CM dt a
 throwResError n msg
     = throwError $ ResError n msg
 
-throwNYI :: DocTable dt => String -> CM dt a
-throwNYI c = throwResError 501 $ "command not yet implemented: " `T.append` T.pack c
-
 descending :: Ord a => a -> a -> Ordering
 descending = flip compare
 
 -- ----------------------------------------------------------------------------
 
--- optimize a command/command sequence
--- delete and batchDelete are both part of the Command datatype, but only BatchDelete should be
--- present for execution
--- an intermediary type may be necessary to ensure that on type-level, e.g.
---   optimizeCmd :: Command -> ExecCommand  &&  execCmd :: ExecCommand -> CM CmdResult
+execCommand :: (Bin.Binary dt, DocTable dt) => Command -> CM dt CmdResult
+execCommand cmd = do
+  execCmd . toBasicCommand $ cmd
 
-optimizeCmd :: Command -> Command
-optimizeCmd (Sequence cs) = Sequence $ opt cs
-  where
-  opt :: [Command] -> [Command]
-  opt cs' = concatMap optGroup $ groupBy equalHeads cs'
-  -- requires the commands to be grouped by constructor
-  optGroup :: [Command] -> [Command]
-  -- groups of delete to BatchDelete
-  optGroup cs'@(Delete{}:_)
-    = foldl (\(BatchDelete us) (Delete u) -> BatchDelete (S.insert u us)) (BatchDelete S.empty) cs' : []
-  -- optimize nested sequences too
-  -- XXX: maybe flatten sequences
-  optGroup cs'@(Sequence{}:_)
-    = map optimizeCmd cs'
-  optGroup cs' = cs'
-  -- group by constructor
-  -- NOTE: just delete and sequence because that are the only optimizations for now
-  equalHeads :: Command -> Command -> Bool
-  equalHeads Delete{}   Delete{}   = True
-  equalHeads Sequence{} Sequence{} = True
-  equalHeads _ _                   = False
-
--- a single Delete is not allowed
-optimizeCmd (Delete u) = BatchDelete $ S.singleton u
-optimizeCmd c = c
-
-
-execCmd :: (Bin.Binary dt, DocTable dt) => Command -> CM dt CmdResult
+-- XXX: kind of obsolete now
+execCmd :: (Bin.Binary dt, DocTable dt) => BasicCommand -> CM dt CmdResult
 execCmd cmd = do
   liftIO $ debugM $ "Exec: " ++ logShow cmd
-  execCmd' . optimizeCmd $ cmd
+  execCmd' cmd
 
-execCmd' :: (Bin.Binary dt, DocTable dt) => Command -> CM dt CmdResult
+
+execCmd' :: (Bin.Binary dt, DocTable dt) => BasicCommand -> CM dt CmdResult
 execCmd' (Search q offset mx)
     = withIx $ execSearch' (wrapSearch offset mx) q
 
@@ -288,9 +267,6 @@ execCmd' (Insert doc)
 execCmd' (Update doc)
     = modIx $ execUpdate doc
 
-execCmd' (Delete _uri)
-    = error "execCmd' (Delete{})" --modIx $ execDelete uri
-
 execCmd' (BatchDelete uris)
     = modIx $ execBatchDelete uris
 
@@ -308,7 +284,7 @@ execCmd' (DeleteContext cx)
 
 -- ----------------------------------------------------------------------------
 
-execSequence :: (DocTable dt, Bin.Binary dt)=> [Command] -> CM dt CmdResult
+execSequence :: (DocTable dt, Bin.Binary dt)=> [BasicCommand] -> CM dt CmdResult
 execSequence []       = execCmd NOOP
 execSequence [c]      = execCmd c
 execSequence (c : cs) = execCmd c >> execSequence cs
@@ -358,11 +334,6 @@ execInsert doc ixx@(IXH _ix _dt schema) = do
     -- apidoc should not exist
     checkApiDocExistence False doc ixx
     let (docs, ws) = toDocAndWords schema doc
-
-    liftIO $ debugContext "contextgeo" ws
-    liftIO $ debugContext "contextint" ws
-    liftIO $ debugContext "contextdate" ws
-
     ixx' <- lift $ Ixx.insert docs ws ixx
     return (ixx', ResOK)
 

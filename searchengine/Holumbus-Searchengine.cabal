@@ -109,6 +109,7 @@ library
     Holumbus.IndexHandler
 
     Holumbus.Interpreter.Interpreter
+    Holumbus.Interpreter.BasicCommand
     Holumbus.Interpreter.Command
 
     Holumbus.Query.Fuzzy
