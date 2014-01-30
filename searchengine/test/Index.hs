@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies     #-}
+	{-# LANGUAGE TypeFamilies     #-}
 {-# LANGUAGE ConstraintKinds  #-}
 {-# LANGUAGE FlexibleContexts #-}
 
@@ -40,66 +40,65 @@ main = defaultMainWithOpts
 -- check if element is inserted in insert operation
 
 -- | general check function
-insertTest :: (Ix.Index i, Eq (Ix.IVal i v), (Ix.ICon i v)) =>
-              i v -> Ix.IKey i v -> Ix.IVal i v -> Bool
-insertTest emptyIndex k v = v == nv
-  where
-  [(_,nv)] = Ix.search PrefixNoCase k $ Ix.insert k v emptyIndex
+insertTest :: (Monad m, Ix.Index i, Eq (Ix.IVal i v), (Ix.ICon i v)) =>
+              i v -> Ix.IKey i v -> Ix.IVal i v -> m Bool
+insertTest emptyIndex k v = do
+  ix       <- Ix.insert k v emptyIndex
+  [(_,nv)] <- Ix.search PrefixNoCase k ix
+  return $ v == nv
 
 
 -- v1 and v2 need the have the same id
-mergeTest :: (Ix.ICon i v, Ix.Index i
+mergeTest :: (Monad m, Ix.ICon i v, Ix.Index i
              , Ix.IVal i v ~ DocIdMap Positions) =>
-             i v -> Ix.IKey i v -> Occurrences -> Occurrences -> Bool
-mergeTest emptyIndex k v1 v2 = length res == 1 && merge v1 v2 == nv
-  where
-  res@[(_,nv)] = Ix.search PrefixNoCase k $ Ix.insert k v1 . Ix.insert k v2 $ emptyIndex
+             i v -> Ix.IKey i v -> Occurrences -> Occurrences -> m Bool
+mergeTest emptyIndex k v1 v2 = do
+  mergeIx      <- Ix.insert k v1 emptyIndex >>= \ix -> Ix.insert k v2 ix
+  res@[(_,nv)] <- Ix.search PrefixNoCase k mergeIx
+  return $ length res == 1 && merge v1 v2 == nv
 
 
 -- | check DmPrefixTree
 insertTestPIx :: Assertion
-insertTestPIx
-  = True @?= insertTest
-    (Ix.empty::(PIx.DmPrefixTree Positions))
-    "test"
-    (singleton 1 1)
+insertTestPIx = do
+  result <- insertTest (Ix.empty::(PIx.DmPrefixTree Positions)) "test" (singleton 1 1)
+  True @?= result
 
 -- | check ComprOccPrefixTree
 insertTestCPIx :: Assertion
-insertTestCPIx
-  = True @?= insertTest
-    (Ix.empty::((CPIx.ComprOccIndex PIx.DmPrefixTree CompressedPositions) Positions))
-    "test"
-    (singleton 1 1)
+insertTestCPIx = do
+  result <- insertTest
+            (Ix.empty::((CPIx.ComprOccIndex PIx.DmPrefixTree CompressedPositions) Positions))
+            "test" (singleton 1 1)
+  True @?= result
 
 
 -- | check InvertedIndex
 insertTestInvIx :: Assertion
-insertTestInvIx
-  = True @?= insertTest
-    (Ix.empty::(InvIx.InvertedIndex Occurrences)) -- the Occurrences type is a dummy in this case
-    "test"
-    (singleton 1 1)
+insertTestInvIx = do
+  result <- insertTest
+            (Ix.empty::(InvIx.InvertedIndex Occurrences)) -- the Occurrences type is a dummy in this case
+            "test" (singleton 1 1)
+  True @?= result
 
 -- | test merging of occurrences in InvertedIndex
 mergeTestInvIx :: Assertion
-mergeTestInvIx
-  = True @?= mergeTest
-    (Ix.empty::(InvIx.InvertedIndex Occurrences)) -- the Occurrences type is a dummy in this case
-    "test"
-    (singleton 1 1)
-    (singleton 1 2)
+mergeTestInvIx = do
+  result <- mergeTest
+            (Ix.empty::(InvIx.InvertedIndex Occurrences)) -- the Occurrences type is a dummy in this case
+            "test" (singleton 1 1) (singleton 1 2)
+  True @?= result
 
 -- | check ContextIndex
 insertTestContextIx :: Assertion
 insertTestContextIx
   = do
+    let cix = ConIx.insertContext "context" (mkIndex impl) emptyIndex
+    cix2 <- ConIx.insertWithCx "context" "word" newElem cix
+    [(_, insertedElem)] <- ConIx.searchWithCx PrefixNoCase "context" "word" cix2
     True @?= newElem == insertedElem
   where
   newElem = singleton 1 1
-  [(_, insertedElem)] = ConIx.searchWithCx PrefixNoCase "context" "word"
-                            $ ConIx.insertWithCx "context" "word" newElem 
-                            $ ConIx.insertContext "context" (mkIndex impl) emptyIndex
   emptyIndex :: ConIx.ContextIndex Occurrences
   emptyIndex = ConIx.empty
   impl       :: InvIx.InvertedIndex Occurrences
@@ -117,10 +116,11 @@ insertTestContext = "test" @?= insertedContext
 -- ----------------------------------------------------------------------------
 
 addWordsTest :: Assertion
-addWordsTest = True @?= length resList == 1
+addWordsTest = do
+  resIx   <- addWords (wrds "default") 1 emptyIndex
+  resList <- ConIx.searchWithCx PrefixNoCase "default" "word" $ resIx
+  True @?= length resList == 1
   where
-  resList = ConIx.searchWithCx PrefixNoCase "default" "word" $ resIx
-  resIx = addWords (wrds "default") 1 emptyIndex
   emptyIndex :: ConIx.ContextIndex Occurrences
   emptyIndex =  ConIx.insertContext "default" (mkIndex impl) ConIx.empty
   impl       :: InvIx.InvertedIndex Occurrences
