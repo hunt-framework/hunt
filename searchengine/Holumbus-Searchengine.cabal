@@ -1,4 +1,4 @@
-name:          Holumbus-Searchengine
+name:          Hunt-Searchengine
 version:       2.0.0.0
 license:       MIT
 license-file:  LICENSE
@@ -9,7 +9,7 @@ stability:     experimental
 category:      Text, Data
 synopsis:      A search and indexing engine.
 homepage:      http://holumbus.fh-wedel.de
-description:   The Holumbus-Searchengine library provides a document indexer
+description:   The Hunt-Searchengine library provides a document indexer
                and crawler to build indexes over document collections
                as well as a sophisticated query interface for these indexes.
 cabal-version: >=1.8
@@ -140,7 +140,7 @@ library
 --              GeneralizedNewtypeDeriving
 --              TypeSynonymInstances
 
-test-suite Holumbus-Index
+test-suite Hunt-Index
   hs-source-dirs:       test
   main-is:              Index.hs
   type:                 exitcode-stdio-1.0
@@ -150,13 +150,13 @@ test-suite Holumbus-Index
   build-depends: base                         >= 4.6 && < 5
                , containers
                , HUnit
-               , Holumbus-Searchengine
+               , Hunt-Searchengine
                , QuickCheck
                , test-framework
                , test-framework-hunit
                , test-framework-quickcheck2
 
-test-suite Holumbus-Interpreter
+test-suite Hunt-Interpreter
   hs-source-dirs:       test
   main-is:              Interpreter.hs
   type:                 exitcode-stdio-1.0
@@ -166,7 +166,7 @@ test-suite Holumbus-Interpreter
   build-depends: base                         >= 4.6 && < 5
                , containers
                , HUnit
-               , Holumbus-Searchengine
+               , Hunt-Searchengine
                , mtl                          >= 1.1 && < 3
                , QuickCheck
                , test-framework
@@ -174,7 +174,7 @@ test-suite Holumbus-Interpreter
                , test-framework-quickcheck2
                , text
 
-test-suite Holumbus-Query-Parser
+test-suite Hunt-Query-Parser
   hs-source-dirs:       test
   main-is:              QueryParser.hs
   type:                 exitcode-stdio-1.0
@@ -184,7 +184,7 @@ test-suite Holumbus-Query-Parser
   build-depends: base                         >= 4.6 && < 5
                , containers
                , HUnit
-               , Holumbus-Searchengine
+               , Hunt-Searchengine
                , mtl                          >= 1.1 && < 3
                , QuickCheck
                , test-framework
@@ -192,7 +192,7 @@ test-suite Holumbus-Query-Parser
                , test-framework-quickcheck2
                , text
 
---test-suite Holumbus-IndexStrictess
+--test-suite Hunt-IndexStrictess
 --  hs-source-dirs:       test
 --  main-is:              IndexStrict.hs
 --  type:                 exitcode-stdio-1.0
@@ -204,7 +204,7 @@ test-suite Holumbus-Query-Parser
 --               , deepseq                      >= 1.2
 --               , ghc-heap-view                >= 0.5
 --               , HUnit
---               , Holumbus-Searchengine
+--               , Hunt-Searchengine
 --               , mtl                          >= 1.1 && < 3
 --               , QuickCheck
 --               , random                       >= 1.0
@@ -213,7 +213,7 @@ test-suite Holumbus-Query-Parser
 --               , test-framework-quickcheck2
 --               , text
 
-test-suite Holumbus-Analyzer
+test-suite Hunt-Analyzer
   hs-source-dirs:       test
   main-is:              Analyzer.hs
   type:                 exitcode-stdio-1.0
@@ -222,7 +222,7 @@ test-suite Holumbus-Analyzer
 
   build-depends: base                         >= 4.6 && < 5
                , containers
-               , Holumbus-Searchengine
+               , Hunt-Searchengine
                , HUnit
                , mtl                          >= 1.1 && < 3
                , old-locale

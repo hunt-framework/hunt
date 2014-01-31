@@ -1,4 +1,4 @@
-name:          Holumbus-MemBench
+name:          Hunt-MemBench
 version:       0.0.0.1
 license:       MIT
 -- license-file:  LICENSE
@@ -28,7 +28,7 @@ executable holumbusMemBench
                  , binary                 >= 0.5  && < 1
                  , bytestring                        < 1
                  , filepath
-                 , Holumbus-Searchengine  >= 2
+                 , Hunt-Searchengine  >= 2
                  , process                >= 1    && < 2
                  , text                   >= 0.11 && < 1
                  , time                   >= 1.4  && < 2
@@ -50,7 +50,7 @@ executable holumbusMemBenchBin
                  , aeson-pretty
                  , binary                 >= 0.5  && < 1
                  , bytestring                        < 1
-                 , Holumbus-Searchengine  >= 2
+                 , Hunt-Searchengine  >= 2
                  , process                >= 1    && < 2
                  , text                   >= 0.11 && < 1
                  , time                   >= 1.4  && < 2

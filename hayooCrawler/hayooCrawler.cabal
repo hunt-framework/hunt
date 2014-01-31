@@ -88,7 +88,7 @@ executable hayooCrawler
                  , ghc-heap-view          >= 0.5
                  , hslogger               >= 1     && < 2
                  , HTTP                   >= 4000
-                 -- , Holumbus-Searchengine  >= 2     && < 3
+                 -- , Hunt-Searchengine  >= 2     && < 3
                  , hxt                    >= 9.1   && < 10
                  , hxt-cache              >= 9     && < 10
                  , hxt-charproperties     >= 9     && < 10
