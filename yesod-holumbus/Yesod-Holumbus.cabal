@@ -27,8 +27,8 @@ library
                , text
 
   exposed-modules:
-    Yesod.Holumbus.SubSite
-    Yesod.Holumbus.Routes
+    Yesod.Hunt.SubSite
+    Yesod.Hunt.Routes
     Yesod.Holumbus
   hs-source-dirs: src
 

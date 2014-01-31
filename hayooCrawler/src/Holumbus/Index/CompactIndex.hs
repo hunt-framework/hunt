@@ -2,7 +2,7 @@
 
 -- ------------------------------------------------------------
 
-module Holumbus.Index.CompactIndex
+module Hunt.Index.CompactIndex
     ( Document
     , Documents
     , SmallDocuments
@@ -39,11 +39,11 @@ import           Data.Binary
 
 import           Data.Function.Selector         ( (.&&&.) )
 
-import           Holumbus.Crawler.Types
-import           Holumbus.Crawler.IndexerCore
-import           Holumbus.Crawler.Logger
+import           Hunt.Crawler.Types
+import           Hunt.Crawler.IndexerCore
+import           Hunt.Crawler.Logger
 
-import           Holumbus.Index.Common          ( Document(..)
+import           Hunt.Index.Common          ( Document(..)
                                                 , Occurrences
                                                 , defragmentDocIndex
                                                 , fromList
@@ -52,16 +52,16 @@ import           Holumbus.Index.Common          ( Document(..)
                                                 , mergeIndexes
                                                 )
 
-import           Holumbus.Index.CompactDocuments
+import           Hunt.Index.CompactDocuments
                                                 ( Documents(..)
                                                 , emptyDocuments
                                                 )
 
-import           Holumbus.Index.CompactSmallDocuments
+import           Hunt.Index.CompactSmallDocuments
                                                 ( SmallDocuments(..)
                                                 , docTable2smallDocTable
                                                 )
-import qualified Holumbus.Index.CompactSmallDocuments
+import qualified Hunt.Index.CompactSmallDocuments
                                                 as CSD
 
 import           Text.XML.HXT.Core
@@ -73,7 +73,7 @@ import           Text.XML.HXT.Core
    concerning efficiency this implementation is about the same as the 2. one,
    space and time are minimally better, the reason could be less code working with classes
 
-import           Holumbus.Index.Inverted.PrefixMem
+import           Hunt.Index.Inverted.PrefixMem
 
 -- -}
 -- ------------------------------------------------------------
@@ -84,7 +84,7 @@ import           Holumbus.Index.Inverted.PrefixMem
    but less efficient in time (1598s / 1038s) and space
    total mem use (2612MB / 2498MB) than .3
 
-import qualified Holumbus.Index.Inverted.CompressedPrefixMem    as PM
+import qualified Hunt.Index.Inverted.CompressedPrefixMem    as PM
 
 type Inverted                   = PM.InvertedCompressed
 
@@ -104,7 +104,7 @@ emptyInverted                   = PM.emptyInvertedCompressed
    in runtime and are not worth to be considered
 -}
 
-import qualified Holumbus.Index.Inverted.CompressedPrefixMem    as PM
+import qualified Hunt.Index.Inverted.CompressedPrefixMem    as PM
 
 type Inverted                   = PM.Inverted0
 

@@ -1,8 +1,8 @@
 module Yesod.Holumbus
-( module Yesod.Holumbus.SubSite
-, module Yesod.Holumbus.Routes
+( module Yesod.Hunt.SubSite
+, module Yesod.Hunt.Routes
 )
 where
 
-import Yesod.Holumbus.SubSite
-import Yesod.Holumbus.Routes
+import Yesod.Hunt.SubSite
+import Yesod.Hunt.Routes

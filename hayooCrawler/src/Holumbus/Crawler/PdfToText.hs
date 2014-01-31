@@ -2,7 +2,7 @@
 
 -- ------------------------------------------------------------
 
-module Holumbus.Crawler.PdfToText
+module Hunt.Crawler.PdfToText
 where
 
 import           Control.Concurrent.MVar

@@ -1,6 +1,6 @@
 module Main where
 
-import Holumbus.GeoFrondend.Server
+import Hunt.GeoFrondend.Server
 import Paths_geoFrontend (getDataFileName)
 
 main :: IO ()

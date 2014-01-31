@@ -9,7 +9,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.Common
+  Module     : Hunt.Index.Common
   Copyright  : Copyright (C) 2007-2012 Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
   License    : MIT
 
@@ -25,7 +25,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common 
+module Hunt.Index.Common 
   (
   -- * Common index types and classes
   HolIndex (..)
@@ -37,13 +37,13 @@ module Holumbus.Index.Common
   -- * Indexes and Documents
   -- , mergeAll
 
-  , module Holumbus.Index.Common.BasicTypes
-  , module Holumbus.Index.Common.Document
-  , module Holumbus.Index.Common.DocId
-  , module Holumbus.Index.Common.DocIdMap
-  , module Holumbus.Index.Common.Occurences
-  , module Holumbus.Index.Common.RawResult
-  , module Holumbus.Index.Common.LoadStore
+  , module Hunt.Index.Common.BasicTypes
+  , module Hunt.Index.Common.Document
+  , module Hunt.Index.Common.DocId
+  , module Hunt.Index.Common.DocIdMap
+  , module Hunt.Index.Common.Occurences
+  , module Hunt.Index.Common.RawResult
+  , module Hunt.Index.Common.LoadStore
 
   )
 where
@@ -53,13 +53,13 @@ import Control.Monad                    ( foldM )
 -- import Data.Binary                   ( Binary (..) )
 -- import Data.Maybe
 
-import Holumbus.Index.Common.BasicTypes
-import Holumbus.Index.Common.Document
-import Holumbus.Index.Common.DocId
-import Holumbus.Index.Common.DocIdMap
-import Holumbus.Index.Common.Occurences
-import Holumbus.Index.Common.RawResult
-import Holumbus.Index.Common.LoadStore
+import Hunt.Index.Common.BasicTypes
+import Hunt.Index.Common.Document
+import Hunt.Index.Common.DocId
+import Hunt.Index.Common.DocIdMap
+import Hunt.Index.Common.Occurences
+import Hunt.Index.Common.RawResult
+import Hunt.Index.Common.LoadStore
 
 -- ------------------------------------------------------------
 

@@ -21,9 +21,9 @@ data-dir:            data
 executable geoFrontend
   hs-source-dirs: src
   main-is:           GeoFrontend.hs
-  other-modules:     Holumbus.GeoFrondend.Feeder,
-                     Holumbus.GeoFrondend.Common,
-                     Holumbus.GeoFrondend.Server
+  other-modules:     Hunt.GeoFrondend.Feeder,
+                     Hunt.GeoFrondend.Common,
+                     Hunt.GeoFrondend.Server
   build-depends:       base == 4.6.*
                        , OSM >= 0.7
                        , transformers >= 0.3

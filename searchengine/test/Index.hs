@@ -13,17 +13,17 @@ import           Test.Framework.Providers.HUnit
 import           Test.HUnit
 --import          Test.QuickCheck
 
-import           Holumbus.Common
-import           Holumbus.Common.Occurrences          (merge, singleton)
-import           Holumbus.Common.Occurrences.Compression.Simple9
+import           Hunt.Common
+import           Hunt.Common.Occurrences          (merge, singleton)
+import           Hunt.Common.Occurrences.Compression.Simple9
 
-import qualified Holumbus.Index.Index                 as Ix
-import qualified Holumbus.Index.InvertedIndex         as InvIx
-import qualified Holumbus.Index.PrefixTreeIndex       as PIx
-import qualified Holumbus.Index.Proxy.CompressedIndex as CPIx
-import qualified Holumbus.Index.Proxy.ContextIndex    as ConIx
-import           Holumbus.Index.IndexImpl
-import           Holumbus.IndexHandler                (addWords)
+import qualified Hunt.Index.Index                 as Ix
+import qualified Hunt.Index.InvertedIndex         as InvIx
+import qualified Hunt.Index.PrefixTreeIndex       as PIx
+import qualified Hunt.Index.Proxy.CompressedIndex as CPIx
+import qualified Hunt.Index.Proxy.ContextIndex    as ConIx
+import           Hunt.Index.IndexImpl
+import           Hunt.IndexHandler                (addWords)
 -- ----------------------------------------------------------------------------
 
 main :: IO ()

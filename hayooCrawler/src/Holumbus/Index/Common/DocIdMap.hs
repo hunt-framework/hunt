@@ -3,7 +3,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.Common.DocIdMap
+  Module     : Hunt.Index.Common.DocIdMap
   Copyright  : Copyright (C) 2012 Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
   License    : MIT
 
@@ -17,7 +17,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.DocIdMap
+module Hunt.Index.Common.DocIdMap
     ( DocIdMap
     , emptyDocIdMap
     , singletonDocIdMap
@@ -58,7 +58,7 @@ import qualified Data.Binary              as B
 import qualified Data.IntMap.Strict       as IM
 import           Data.Foldable
 
-import           Holumbus.Index.Common.DocId
+import           Hunt.Index.Common.DocId
 
 -- ------------------------------------------------------------
 

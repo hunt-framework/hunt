@@ -41,37 +41,37 @@ executable hayooCrawler
                  , Hayoo.PackageRank
                  , Hayoo.Signature 
                  , Hayoo.URIConfig 
-                 , Holumbus.Crawler
-                 , Holumbus.Crawler.CacheCore
-                 , Holumbus.Crawler.Constants
-                 , Holumbus.Crawler.Core
-                 , Holumbus.Crawler.Html
-                 , Holumbus.Crawler.IndexerCore
-                 , Holumbus.Crawler.Logger
-                 , Holumbus.Crawler.PostToServer
-                 , Holumbus.Crawler.Robots
-                 , Holumbus.Crawler.RobotTypes
-                 , Holumbus.Crawler.Types
-                 , Holumbus.Crawler.URIs
-                 , Holumbus.Crawler.Util
-                 , Holumbus.Crawler.XmlArrows
-                 , Holumbus.Data.Crunch
-                 , Holumbus.Index.Common
-                 , Holumbus.Index.Common.BasicTypes
-                 , Holumbus.Index.Common.DiffList
-                 , Holumbus.Index.Common.DocId
-                 , Holumbus.Index.Common.DocIdMap
-                 , Holumbus.Index.Common.Document
-                 , Holumbus.Index.Common.LoadStore
-                 , Holumbus.Index.Common.Occurences
-                 , Holumbus.Index.Common.RawResult
-                 , Holumbus.Index.CompactDocuments
-                 , Holumbus.Index.CompactIndex
-                 , Holumbus.Index.CompactSmallDocuments
-                 , Holumbus.Index.Compression
-                 , Holumbus.Index.Inverted.CompressedPrefixMem
-                 , Holumbus.Query.Result
-                 , Holumbus.Utility
+                 , Hunt.Crawler
+                 , Hunt.Crawler.CacheCore
+                 , Hunt.Crawler.Constants
+                 , Hunt.Crawler.Core
+                 , Hunt.Crawler.Html
+                 , Hunt.Crawler.IndexerCore
+                 , Hunt.Crawler.Logger
+                 , Hunt.Crawler.PostToServer
+                 , Hunt.Crawler.Robots
+                 , Hunt.Crawler.RobotTypes
+                 , Hunt.Crawler.Types
+                 , Hunt.Crawler.URIs
+                 , Hunt.Crawler.Util
+                 , Hunt.Crawler.XmlArrows
+                 , Hunt.Data.Crunch
+                 , Hunt.Index.Common
+                 , Hunt.Index.Common.BasicTypes
+                 , Hunt.Index.Common.DiffList
+                 , Hunt.Index.Common.DocId
+                 , Hunt.Index.Common.DocIdMap
+                 , Hunt.Index.Common.Document
+                 , Hunt.Index.Common.LoadStore
+                 , Hunt.Index.Common.Occurences
+                 , Hunt.Index.Common.RawResult
+                 , Hunt.Index.CompactDocuments
+                 , Hunt.Index.CompactIndex
+                 , Hunt.Index.CompactSmallDocuments
+                 , Hunt.Index.Compression
+                 , Hunt.Index.Inverted.CompressedPrefixMem
+                 , Hunt.Query.Result
+                 , Hunt.Utility
 
   build-depends:   base                   >= 4     && < 5
                  , aeson                  >= 0.6

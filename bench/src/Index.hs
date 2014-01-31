@@ -33,11 +33,11 @@ import           Data.Time.Clock
 import qualified Data.Traversable                                as T
 import           Data.Typeable
 
-import           Holumbus.Common
+import           Hunt.Common
 
-import qualified Holumbus.Index.Index                            as Ix
-import qualified Holumbus.Index.InvertedIndex                    as InvIx
-import qualified Holumbus.Index.PrefixTreeIndex                  as PIx
+import qualified Hunt.Index.Index                            as Ix
+import qualified Hunt.Index.InvertedIndex                    as InvIx
+import qualified Hunt.Index.PrefixTreeIndex                  as PIx
 
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
@@ -46,16 +46,16 @@ import qualified Data.ByteString.Lazy                            as BL
 import qualified Data.ByteString.Lazy.Char8                      as B8
 import qualified Data.List                                       as L
 
-import           Holumbus.Common.ApiDocument
-import qualified Holumbus.Common.Occurrences                     as Occ
-import           Holumbus.Index.Schema.Analyze
+import           Hunt.Common.ApiDocument
+import qualified Hunt.Common.Occurrences                     as Occ
+import           Hunt.Index.Schema.Analyze
 
-import qualified Holumbus.Common.Occurrences.Compression.BZip    as ZB
-import qualified Holumbus.Common.Occurrences.Compression.Simple9 as Z9
-import qualified Holumbus.Common.Occurrences.Compression.Snappy  as ZS
+import qualified Hunt.Common.Occurrences.Compression.BZip    as ZB
+import qualified Hunt.Common.Occurrences.Compression.Simple9 as Z9
+import qualified Hunt.Common.Occurrences.Compression.Snappy  as ZS
 
 
-import qualified Holumbus.Index.ComprPrefixTreeIndex             as CPIx
+import qualified Hunt.Index.ComprPrefixTreeIndex             as CPIx
 
 -- ----------------------------------------------------------------------------
 

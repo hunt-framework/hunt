@@ -1,6 +1,6 @@
 {-# OPTIONS #-}
 
-module Holumbus.Index.Inverted.CompressedPrefixMem
+module Hunt.Index.Inverted.CompressedPrefixMem
     ( Inverted(..)
     , Parts
     , Part
@@ -53,8 +53,8 @@ import           Data.List              ( foldl', sortBy )
 import qualified Data.Map               as M
 import           Data.Maybe
 
-import           Holumbus.Index.Common
-import           Holumbus.Index.Compression
+import           Hunt.Index.Common
+import           Hunt.Index.Compression
 
 import qualified Data.StringMap         as SM
 
@@ -407,7 +407,7 @@ removeDocIdsInverted ids        = mapInverted $ M.map (removeDocIdsPart ids)
 
 -- ----------------------------------------------------------------------------
 --
--- copied from Holumbus.Index.Inverted.Memory
+-- copied from Hunt.Index.Inverted.Memory
 
 splitInverted                   :: (B.Binary i, ComprOccurrences i) => [(Int, Inverted i)] -> Int -> [Inverted i]
 splitInverted inp n             = allocate mergeIndexes stack buckets

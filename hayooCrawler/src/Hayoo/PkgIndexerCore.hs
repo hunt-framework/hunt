@@ -15,10 +15,10 @@ import           Data.Maybe
 import           Hayoo.IndexTypes
 import           Hayoo.PackageInfo
 
-import           Holumbus.Crawler
-import           Holumbus.Crawler.IndexerCore
-import           Holumbus.Crawler.PostToServer
-import           Holumbus.Index.Common         hiding (URI)
+import           Hunt.Crawler
+import           Hunt.Crawler.IndexerCore
+import           Hunt.Crawler.PostToServer
+import           Hunt.Index.Common         hiding (URI)
 
 import           System.Directory
 import           System.FilePath
@@ -140,7 +140,7 @@ flushRanksToServer url dt
 indexCrawlerConfig           :: ((URI, RawDoc PackageInfo) -> IO ())
                                 -> SysConfig                                    -- ^ document read options
                                 -> (URI -> Bool)                                -- ^ the filter for deciding, whether the URI shall be processed
-                                -> Maybe (IOSArrow XmlTree String)              -- ^ the document href collection filter, default is 'Holumbus.Crawler.Html.getHtmlReferences'
+                                -> Maybe (IOSArrow XmlTree String)              -- ^ the document href collection filter, default is 'Hunt.Crawler.Html.getHtmlReferences'
                                 -> Maybe (IOSArrow XmlTree XmlTree)             -- ^ the pre document filter, default is the this arrow
                                 -> Maybe (IOSArrow XmlTree String)              -- ^ the filter for computing the document title, default is empty string
                                 -> Maybe (IOSArrow XmlTree PackageInfo)         -- ^ the filter for the cutomized doc info, default Nothing

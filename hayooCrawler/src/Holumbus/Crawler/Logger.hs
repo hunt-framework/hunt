@@ -2,7 +2,7 @@
 
 -- ------------------------------------------------------------
 
-module Holumbus.Crawler.Logger
+module Hunt.Crawler.Logger
     ( hxtLoggerName
     , hxtSetTraceAndErrorLogger
     , hxtSetLogLevel

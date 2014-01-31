@@ -1,7 +1,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Data.Crunch
+  Module     : Hunt.Data.Crunch
   Copyright  : Copyright (C) 2008 Timo B. Huebel
   License    : MIT
   
@@ -27,7 +27,7 @@
 
 {-# OPTIONS -fno-warn-type-defaults #-}
 
-module Holumbus.Data.Crunch 
+module Hunt.Data.Crunch 
   (
   -- * Compression
   crunch8
@@ -102,7 +102,7 @@ width W60 = 60
 -- | Crunch some values by encoding several values into one 'Word64'. The values may not exceed
 -- the upper limit of @(2 ^ 60) - 1@. This precondition is not checked! The compression works
 -- best on small values, therefore a difference encoding (like the one in 
--- "Holumbus.Data.DiffList") prior to compression pays off well.
+-- "Hunt.Data.DiffList") prior to compression pays off well.
 crunch64 :: [Word64] -> [Word64]
 crunch64 [] = []
 crunch64 s = crunch' s (count W01) W01 []

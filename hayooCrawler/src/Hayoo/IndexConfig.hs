@@ -11,8 +11,8 @@ import           Hayoo.HackagePackage
 import           Hayoo.Haddock
 import           Hayoo.Signature
 
-import           Holumbus.Crawler
-import           Holumbus.Crawler.IndexerCore
+import           Hunt.Crawler
+import           Hunt.Crawler.IndexerCore
 
 import           Text.Regex.XMLSchema.String       (matchSubex)
 import           Text.XML.HXT.Core

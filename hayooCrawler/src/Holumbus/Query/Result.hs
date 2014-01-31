@@ -1,7 +1,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Query.Result
+  Module     : Hunt.Query.Result
   Copyright  : Copyright (C) 2007 Timo B. Huebel
   License    : MIT
 
@@ -19,7 +19,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Query.Result 
+module Hunt.Query.Result 
   (
   -- * Result data types
     Result (..)
@@ -65,8 +65,8 @@ import           Data.Map               ( Map )
 import qualified Data.Map               as M
 import qualified Data.List              as L
 
-import           Holumbus.Utility
-import           Holumbus.Index.Common
+import           Hunt.Utility
+import           Hunt.Index.Common
 
 import           Text.XML.HXT.Core
 

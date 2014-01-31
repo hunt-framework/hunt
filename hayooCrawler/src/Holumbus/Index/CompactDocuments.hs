@@ -4,19 +4,19 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.CompactDocuments
+  Module     : Hunt.Index.CompactDocuments
   Copyright  : Copyright (C) 2007- Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
   License    : MIT
 
   Maintainer : Uwe Schmidt (uwe@fh-wedel.de)
   Stability  : experimental
 
-  A more space efficient substitute for Holumbus.Index.Documents
+  A more space efficient substitute for Hunt.Index.Documents
 -}
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.CompactDocuments 
+module Hunt.Index.CompactDocuments 
 (
   -- * Documents type
   Documents (..)
@@ -49,7 +49,7 @@ import qualified Data.ByteString        as BS
 import           Data.Maybe             ( fromJust )
 
 import qualified Data.StringMap         as SM
-import           Holumbus.Index.Common
+import           Hunt.Index.Common
 
 import           Text.XML.HXT.Core
 

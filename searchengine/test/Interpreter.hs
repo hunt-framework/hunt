@@ -15,19 +15,19 @@ import           Test.Framework.Providers.HUnit
 import           Test.HUnit
 --import           Test.QuickCheck
 
-import           Holumbus.Common
-import           Holumbus.Common.Document
-import           Holumbus.Common.Document.Compression.BZip
-import           Holumbus.Common.ApiDocument                 as ApiDoc
---import           Holumbus.Common.BasicTypes
-import           Holumbus.Interpreter.Command
-import           Holumbus.Interpreter.Interpreter
-import           Holumbus.Query.Language.Grammar
-import           Holumbus.Query.Ranking
-import           Holumbus.Utility
---import           Holumbus.Index.InvertedIndex                (InvertedIndex)
-import           Holumbus.DocTable.HashedDocTable            (Documents)
---import           Holumbus.Index.Schema.Normalize.Date        (rexDates)
+import           Hunt.Common
+import           Hunt.Common.Document
+import           Hunt.Common.Document.Compression.BZip
+import           Hunt.Common.ApiDocument                 as ApiDoc
+--import           Hunt.Common.BasicTypes
+import           Hunt.Interpreter.Command
+import           Hunt.Interpreter.Interpreter
+import           Hunt.Query.Language.Grammar
+import           Hunt.Query.Ranking
+import           Hunt.Utility
+--import           Hunt.Index.InvertedIndex                (InvertedIndex)
+import           Hunt.DocTable.HashedDocTable            (Documents)
+--import           Hunt.Index.Schema.Normalize.Date        (rexDates)
 
 -- ----------------------------------------------------------------------------
 

@@ -1,7 +1,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Utility
+  Module     : Hunt.Utility
   Copyright  : Copyright (C) 2008 Timo B. Huebel
   License    : MIT
 
@@ -16,7 +16,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Utility where
+module Hunt.Utility where
 
 
 import           Control.Exception (bracket)

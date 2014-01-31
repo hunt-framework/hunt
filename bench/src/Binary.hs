@@ -10,7 +10,7 @@ import           Data.Aeson
 import qualified Data.Binary                 as Bin
 import qualified Data.ByteString.Lazy        as BL
 
-import           Holumbus.Common.ApiDocument
+import           Hunt.Common.ApiDocument
 
 -- ----------------------------------------------------------------------------
 

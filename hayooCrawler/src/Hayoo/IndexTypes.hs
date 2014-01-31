@@ -3,7 +3,7 @@
 
 module Hayoo.IndexTypes
     ( module Hayoo.IndexTypes
-    , module Holumbus.Index.CompactIndex
+    , module Hunt.Index.CompactIndex
     , FunctionInfo(..)
     , PackageInfo(..)
     , Score
@@ -23,18 +23,18 @@ import           Hayoo.FunctionInfo
 import           Hayoo.PackageInfo
 import           Hayoo.PackageRank
 
-import           Holumbus.Crawler
-import           Holumbus.Crawler.IndexerCore
+import           Hunt.Crawler
+import           Hunt.Crawler.IndexerCore
 import qualified Data.StringMap               as SM
-import           Holumbus.Index.Common        (Document (..), custom,
+import           Hunt.Index.Common        (Document (..), custom,
                                                elemsDocIdMap, emptyDocIdMap,
                                                emptyPos, foldWithKeyDocIdMap,
                                                insertDocIdMap, keysDocIdMap,
                                                removeById, toMap,
                                                updateDocuments)
-import           Holumbus.Index.CompactIndex
+import           Hunt.Index.CompactIndex
 
-import           Holumbus.Query.Result        (Score)
+import           Hunt.Query.Result        (Score)
 
 -- ------------------------------------------------------------
 

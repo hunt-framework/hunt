@@ -12,7 +12,7 @@ import qualified Data.Text as TS
 import qualified Data.Text.Lazy as T
 
 import qualified Hayoo.Common as Api
-import qualified Holumbus.Server.Client as Api
+import qualified Hunt.Server.Client as Api
 
 data Routes = Home | HayooJs | HayooCSS | Autocomplete | Examples | About
 

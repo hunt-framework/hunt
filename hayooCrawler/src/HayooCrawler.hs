@@ -27,9 +27,9 @@ import           Hayoo.PackageArchive
 import qualified Hayoo.PkgIndexerCore          as PJ
 import           Hayoo.URIConfig
 
-import           Holumbus.Crawler
-import           Holumbus.Crawler.CacheCore
-import           Holumbus.Crawler.PostToServer
+import           Hunt.Crawler
+import           Hunt.Crawler.CacheCore
+import           Hunt.Crawler.PostToServer
 
 import           System.Console.GetOpt
 import           System.Environment

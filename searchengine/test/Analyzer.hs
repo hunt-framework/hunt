@@ -16,12 +16,12 @@ import           Test.HUnit
 import           Test.QuickCheck
 --import qualified Test.QuickCheck.Monadic                as QM
 
---import qualified Holumbus.Index.Schema                    as S
-import qualified Holumbus.Index.Schema.Analyze            as A
---import qualified Holumbus.Index.Schema.Normalize          as N
-import qualified Holumbus.Index.Schema.Normalize.Date     as ND
-import qualified Holumbus.Index.Schema.Normalize.Position as NP
-import qualified Holumbus.Index.Schema.Normalize.Int      as NI
+--import qualified Hunt.Index.Schema                    as S
+import qualified Hunt.Index.Schema.Analyze            as A
+--import qualified Hunt.Index.Schema.Normalize          as N
+import qualified Hunt.Index.Schema.Normalize.Date     as ND
+import qualified Hunt.Index.Schema.Normalize.Position as NP
+import qualified Hunt.Index.Schema.Normalize.Int      as NI
 
 -- ----------------------------------------------------------------------------
 

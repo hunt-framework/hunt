@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings, FlexibleContexts, GeneralizedNewtypeDeriving, PackageImports #-}
 
-module Holumbus.Server.Client (
+module Hunt.Server.Client (
     withHolumbusServer
     , HolumbusConnectionT ()
     , ServerAndManager (..)

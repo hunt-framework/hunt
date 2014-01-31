@@ -26,9 +26,9 @@ where
 import           Control.DeepSeq
 import           Control.Monad                (foldM)
 
-import           Holumbus.Crawler
-import           Holumbus.Crawler.IndexerCore
-import           Holumbus.Index.Common        hiding (URI)
+import           Hunt.Crawler
+import           Hunt.Crawler.IndexerCore
+import           Hunt.Index.Common        hiding (URI)
 
 import           Text.XML.HXT.Core
 
@@ -47,7 +47,7 @@ indexCrawlerConfig             :: ( HolIndexM IO i
                                   ) =>
                                    SysConfig                                    -- ^ document read options
                                 -> (URI -> Bool)                                -- ^ the filter for deciding, whether the URI shall be processed
-                                -> Maybe (IOSArrow XmlTree String)              -- ^ the document href collection filter, default is 'Holumbus.Crawler.Html.getHtmlReferences'
+                                -> Maybe (IOSArrow XmlTree String)              -- ^ the document href collection filter, default is 'Hunt.Crawler.Html.getHtmlReferences'
                                 -> Maybe (IOSArrow XmlTree XmlTree)             -- ^ the pre document filter, default is the this arrow
                                 -> Maybe (IOSArrow XmlTree String)              -- ^ the filter for computing the document title, default is empty string
                                 -> Maybe (IOSArrow XmlTree c)                   -- ^ the filter for the cutomized doc info, default Nothing

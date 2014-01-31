@@ -3,7 +3,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.Common.RawResult
+  Module     : Hunt.Index.Common.RawResult
   Copyright  : Copyright (C) 2011 Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
   License    : MIT
 
@@ -17,15 +17,15 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.RawResult
+module Hunt.Index.Common.RawResult
 where
 
 import           Data.Map       (Map)
 import qualified Data.Map       as M
 
-import Holumbus.Index.Common.BasicTypes
-import Holumbus.Index.Common.DocIdMap
-import Holumbus.Index.Common.Occurences
+import Hunt.Index.Common.BasicTypes
+import Hunt.Index.Common.DocIdMap
+import Hunt.Index.Common.Occurences
 
 -- ------------------------------------------------------------
 

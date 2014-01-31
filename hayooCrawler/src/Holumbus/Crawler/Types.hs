@@ -2,7 +2,7 @@
 
 -- ------------------------------------------------------------
 
-module Holumbus.Crawler.Types
+module Hunt.Crawler.Types
 where
 
 import           Control.DeepSeq
@@ -18,10 +18,10 @@ import qualified Data.Binary                                 as B
 
 import           Data.Function.Selector
 
-import           Holumbus.Crawler.Constants
-import           Holumbus.Crawler.RobotTypes
-import           Holumbus.Crawler.URIs
-import           Holumbus.Crawler.XmlArrows                  (checkDocumentStatus)
+import           Hunt.Crawler.Constants
+import           Hunt.Crawler.RobotTypes
+import           Hunt.Crawler.URIs
+import           Hunt.Crawler.XmlArrows                  (checkDocumentStatus)
 
 import qualified Text.XML.HXT.Arrow.XmlState.RunIOStateArrow as HXT (theSysConfigComp)
 import qualified Text.XML.HXT.Arrow.XmlState.TypeDefs        as HXT (theInputOptions)

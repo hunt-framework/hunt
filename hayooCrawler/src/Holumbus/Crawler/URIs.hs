@@ -2,7 +2,7 @@
 
 -- ------------------------------------------------------------
 
-module Holumbus.Crawler.URIs
+module Hunt.Crawler.URIs
 where
 
 import qualified Data.StringMap as SM

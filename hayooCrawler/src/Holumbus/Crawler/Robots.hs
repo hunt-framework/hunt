@@ -1,6 +1,6 @@
 -- ------------------------------------------------------------
 
-module Holumbus.Crawler.Robots
+module Hunt.Crawler.Robots
 where
 
 import           Control.DeepSeq
@@ -11,10 +11,10 @@ import           Data.List
 import qualified Data.Map                       as M
 import           Data.Maybe
 
-import           Holumbus.Crawler.URIs
-import           Holumbus.Crawler.RobotTypes
-import           Holumbus.Crawler.Types
-import           Holumbus.Crawler.Logger
+import           Hunt.Crawler.URIs
+import           Hunt.Crawler.RobotTypes
+import           Hunt.Crawler.Types
+import           Hunt.Crawler.Logger
 
 import qualified Network.URI                    as N
 

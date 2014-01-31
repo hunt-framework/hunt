@@ -24,7 +24,7 @@ source-repository head
 library
   hs-source-dirs:   src-client
   exposed-modules:
-                Holumbus.Server.Client
+                Hunt.Server.Client
   build-depends:
                 base >= 4
                 , bytestring             >= 0.9.1

@@ -1,7 +1,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.Common.DiffList
+  Module     : Hunt.Index.Common.DiffList
   Copyright  : Copyright (C) 2011 Timo B. Huebel, Uwe Schmidt
   License    : MIT
 
@@ -11,7 +11,7 @@
   Version    : 0.1
 
   Providing space efficient difference encoding for lists of integers. The encoded
-  lists are compressed using "Holumbus.Data.Crunch" to save even more space. For
+  lists are compressed using "Hunt.Data.Crunch" to save even more space. For
   convenience, conversion functions for "Data.IntSet" are provided. Only works
   for non-negative integers.
 
@@ -19,7 +19,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.DiffList
+module Hunt.Index.Common.DiffList
   (
   -- * DiffList types
   DiffList
@@ -38,10 +38,10 @@ where
 import           Data.List
 import           Data.Word                        (Word32, Word64)
 
-import           Holumbus.Data.Crunch
+import           Hunt.Data.Crunch
 
-import           Holumbus.Index.Common.BasicTypes (Position)
-import           Holumbus.Index.Common.Occurences (Positions, fromListPos,
+import           Hunt.Index.Common.BasicTypes (Position)
+import           Hunt.Index.Common.Occurences (Positions, fromListPos,
                                                    toAscListPos)
 
 -- ----------------------------------------------------------------------------

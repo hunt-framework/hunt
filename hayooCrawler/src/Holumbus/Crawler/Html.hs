@@ -2,7 +2,7 @@
 
 -- ------------------------------------------------------------
 
-module Holumbus.Crawler.Html
+module Hunt.Crawler.Html
 where
 
 import           Data.Function.Selector
@@ -10,8 +10,8 @@ import           Data.Function.Selector
 import           Data.List
 import           Data.Maybe
 
-import           Holumbus.Crawler.Types
-import           Holumbus.Crawler.URIs
+import           Hunt.Crawler.Types
+import           Hunt.Crawler.URIs
 
 import           System.FilePath
 
@@ -109,7 +109,7 @@ toAbsRef base ref               = ( expandURIString ref                 -- here 
 --   given base element in the head element of a html page.
 --
 --   Stolen from Uwe Schmidt, http:\/\/www.haskell.org\/haskellwiki\/HXT
---   and then stolen back again by Uwe from Holumbus.Utility
+--   and then stolen back again by Uwe from Hunt.Utility
 
 computeDocBase                  :: ArrowXml a => a XmlTree String
 computeDocBase                  = ( ( ( getByPath ["html", "head", "base"]

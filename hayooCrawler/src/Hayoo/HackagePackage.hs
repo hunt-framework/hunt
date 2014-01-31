@@ -6,7 +6,7 @@ import           Data.List
 import           Hayoo.PackageInfo
 import           Hayoo.URIConfig
 
-import           Holumbus.Crawler.Html
+import           Hunt.Crawler.Html
 
 import           Text.XML.HXT.Core
 

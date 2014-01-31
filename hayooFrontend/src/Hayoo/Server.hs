@@ -24,7 +24,7 @@ import qualified System.IO as System (stdout)
 import qualified Hayoo.Templates as Templates
 
 import Hayoo.Common
-import Holumbus.Server.Client (newServerAndManager)
+import Hunt.Server.Client (newServerAndManager)
 
 import Paths_hayooFrontend
 

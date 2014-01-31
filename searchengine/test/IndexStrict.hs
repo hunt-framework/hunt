@@ -31,27 +31,27 @@ import           GHC.HeapView
 import qualified System.Mem
 
 
-import           Holumbus.Common
-import qualified Holumbus.Common.Occurrences                     as Occ
-import qualified Holumbus.Common.Occurrences.Compression.BZip    as ZB
-import qualified Holumbus.Common.Occurrences.Compression.Simple9 as Z9
-import qualified Holumbus.Common.Occurrences.Compression.Snappy  as ZS
-import qualified Holumbus.Common.Positions                       as Pos
+import           Hunt.Common
+import qualified Hunt.Common.Occurrences                     as Occ
+import qualified Hunt.Common.Occurrences.Compression.BZip    as ZB
+import qualified Hunt.Common.Occurrences.Compression.Simple9 as Z9
+import qualified Hunt.Common.Occurrences.Compression.Snappy  as ZS
+import qualified Hunt.Common.Positions                       as Pos
 
 
-import qualified Holumbus.Index.ComprPrefixTreeIndex             as CPIx
-import qualified Holumbus.Index.Index                            as Ix
-import qualified Holumbus.Index.InvertedIndex                    as InvIx
-import qualified Holumbus.Index.PrefixTreeIndex                  as PIx
-import           Holumbus.Index.IndexImpl
+import qualified Hunt.Index.ComprPrefixTreeIndex             as CPIx
+import qualified Hunt.Index.Index                            as Ix
+import qualified Hunt.Index.InvertedIndex                    as InvIx
+import qualified Hunt.Index.PrefixTreeIndex                  as PIx
+import           Hunt.Index.IndexImpl
 
-import qualified Holumbus.Index.Proxy.CachedIndex                as CacheProxy
-import qualified Holumbus.Index.Proxy.KeyIndex                   as KeyProxy
-import qualified Holumbus.Index.Proxy.IntNormalizerIndex         as IntProxy
-import qualified Holumbus.Index.Proxy.DateNormalizerIndex        as DateProxy
-import qualified Holumbus.Index.Proxy.PositionNormalizerIndex    as GeoProxy
-import qualified Holumbus.Index.Proxy.ContextIndex               as CIx
---import qualified Holumbus.Index.Proxy.CompressedIndex            as ComprProxy
+import qualified Hunt.Index.Proxy.CachedIndex                as CacheProxy
+import qualified Hunt.Index.Proxy.KeyIndex                   as KeyProxy
+import qualified Hunt.Index.Proxy.IntNormalizerIndex         as IntProxy
+import qualified Hunt.Index.Proxy.DateNormalizerIndex        as DateProxy
+import qualified Hunt.Index.Proxy.PositionNormalizerIndex    as GeoProxy
+import qualified Hunt.Index.Proxy.ContextIndex               as CIx
+--import qualified Hunt.Index.Proxy.CompressedIndex            as ComprProxy
 
 -- ----------------------------------------------------------------------------
 

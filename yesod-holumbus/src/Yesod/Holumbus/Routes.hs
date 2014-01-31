@@ -1,14 +1,14 @@
-module Yesod.Holumbus.Routes where
+module Yesod.Hunt.Routes where
 
 import           Data.Text
 
-import           Holumbus.Common
-import qualified Holumbus.Interpreter.Interpreter as Hol
+import           Hunt.Common
+import qualified Hunt.Interpreter.Interpreter as Hol
 
-import           Holumbus.Index.Index
-import           Holumbus.DocTable.DocTable
-import           Holumbus.Index.InvertedIndex
-import           Holumbus.DocTable.HashedDocuments
+import           Hunt.Index.Index
+import           Hunt.DocTable.DocTable
+import           Hunt.Index.InvertedIndex
+import           Hunt.DocTable.HashedDocuments
 
 import Yesod
 

@@ -17,7 +17,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (MonadTrans, lift)
 import "mtl" Control.Monad.Reader (ReaderT, MonadReader, ask, runReaderT)
 
-import qualified Holumbus.Server.Client as H
+import qualified Hunt.Server.Client as H
 
 data ResultType = Function | Class | Data | Module | Package | Newtype | Type | Method
     deriving (Eq, Show, Generic)

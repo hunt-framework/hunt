@@ -1,7 +1,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.Compression
+  Module     : Hunt.Index.Compression
   Copyright  : Copyright (C) 2008 Timo B. Huebel
   License    : MIT
   
@@ -18,7 +18,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Compression 
+module Hunt.Index.Compression 
   (
   -- * Compression types
   CompressedOccurrences
@@ -34,9 +34,9 @@ module Holumbus.Index.Compression
   )
 where
 
-import Holumbus.Index.Common.DocIdMap
-import Holumbus.Index.Common.Occurences
-import Holumbus.Index.Common.DiffList
+import Hunt.Index.Common.DocIdMap
+import Hunt.Index.Common.Occurences
+import Hunt.Index.Common.DiffList
 
 -- ----------------------------------------------------------------------------
 

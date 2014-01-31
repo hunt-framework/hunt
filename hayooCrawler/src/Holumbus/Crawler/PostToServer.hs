@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Holumbus.Crawler.PostToServer
+module Hunt.Crawler.PostToServer
 where
 
 import qualified Data.ByteString.Lazy as LB

@@ -6,9 +6,9 @@ module Main where
 import           Data.Map                          (Map)
 import qualified Data.Map                          as M
 import           Data.Text                         (Text)
-import           Holumbus.Common.Document
-import qualified Holumbus.Index.Proxy.ContextIndex as Ix
-import           Holumbus.Interpreter.Interpreter
+import           Hunt.Common.Document
+import qualified Hunt.Index.Proxy.ContextIndex as Ix
+import           Hunt.Interpreter.Interpreter
 
 -- ----------------------------------------------------------------------------
 

@@ -1,19 +1,19 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Yesod.Holumbus.SubSite where
+module Yesod.Hunt.SubSite where
 
 import           Data.Text                        (Text)
 import           Data.Aeson
 
 import           Control.Applicative              ((<$>))
 
-import           Holumbus.Common
+import           Hunt.Common
 
-import qualified Holumbus.Interpreter.Interpreter as Hol
-import           Holumbus.Interpreter.Command
-import           Holumbus.Query.Language.Parser
+import qualified Hunt.Interpreter.Interpreter as Hol
+import           Hunt.Interpreter.Command
+import           Hunt.Query.Language.Parser
 
 import           Yesod
-import           Yesod.Holumbus.Routes
+import           Yesod.Hunt.Routes
 
 -- |  some sort of json response format
 data JsonResponse r = JsonSuccess r | JsonFailure Int [Text]

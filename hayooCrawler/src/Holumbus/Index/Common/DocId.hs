@@ -1,7 +1,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.Common.DocId
+  Module     : Hunt.Index.Common.DocId
   Copyright  : Copyright (C) 2011 Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
   License    : MIT
 
@@ -15,7 +15,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.DocId
+module Hunt.Index.Common.DocId
 where
 
 import Text.XML.HXT.Core

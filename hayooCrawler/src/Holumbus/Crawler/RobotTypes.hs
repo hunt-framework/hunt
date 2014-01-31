@@ -1,6 +1,6 @@
 -- ------------------------------------------------------------
 
-module Holumbus.Crawler.RobotTypes
+module Hunt.Crawler.RobotTypes
 where
 
 import           Control.DeepSeq
@@ -10,7 +10,7 @@ import qualified Data.Binary                    as B
 import           Data.Char
 import qualified Data.Map                       as M
 
-import           Holumbus.Crawler.URIs
+import           Hunt.Crawler.URIs
 
 import           Text.XML.HXT.Core
 

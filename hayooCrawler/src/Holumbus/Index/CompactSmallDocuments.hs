@@ -4,7 +4,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.CompactDocuments
+  Module     : Hunt.Index.CompactDocuments
   Copyright  : Copyright (C) 2007-2010 Sebastian M. Schlatt, Timo B. Huebel
   License    : MIT
 
@@ -12,7 +12,7 @@
   Stability  : experimental
   Portability: MultiParamTypeClasses FlexibleInstances
 
-  A simple version of Holumbus.Index.Documents.
+  A simple version of Hunt.Index.Documents.
   This implementation is only for reading a document table in the search part of an application.
   The mapping of URIs to DocIds is only required during index building, not when accessing the index.
   So this 2. mapping is removed in this implementation for saving space
@@ -20,7 +20,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.CompactSmallDocuments 
+module Hunt.Index.CompactSmallDocuments 
 (
   -- * Documents type
   SmallDocuments (..)
@@ -39,8 +39,8 @@ import           Control.DeepSeq
 import           Data.Binary                            ( Binary )
 import qualified Data.Binary                            as B
 
-import           Holumbus.Index.Common
-import qualified Holumbus.Index.CompactDocuments        as CD
+import           Hunt.Index.Common
+import qualified Hunt.Index.CompactDocuments        as CD
 
 import           Text.XML.HXT.Core
 
@@ -52,7 +52,7 @@ import           Text.XML.HXT.Core
 -- this reverse map is only needed when crawling, not for searching the index.
 -- As a consequence, most of the indes operations are not implemented
 --
--- see also 'Holumbus.Index.CompactDocuments.Documents' data type
+-- see also 'Hunt.Index.CompactDocuments.Documents' data type
 
 newtype SmallDocuments a        = SmallDocuments
                                   { idToSmallDoc   :: CD.DocMap a -- ^ A mapping from a doc id

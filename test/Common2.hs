@@ -5,7 +5,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Holumbus.Index.Common2 where
+module Hunt.Index.Common2 where
 
 import           Prelude                   hiding (lookup)
 import           Control.Arrow             (first)
@@ -19,8 +19,8 @@ import qualified Data.Map                  as M
 import           Data.IntMap               (IntMap)
 import qualified Data.IntMap               as IM
 
-import           Holumbus.Index.Common     hiding (Occurrences, RawResult, HolIndex, Positions, DocId, insert, lookup)
-import qualified Holumbus.Index.Common     as CO
+import           Hunt.Index.Common     hiding (Occurrences, RawResult, HolIndex, Positions, DocId, insert, lookup)
+import qualified Hunt.Index.Common     as CO
 import qualified Data.StringMap            as SM
 
 import           Data.ByteString.Lazy      (ByteString)
@@ -30,7 +30,7 @@ import           Data.EnumSet              (EnumSet)
 import           Data.Maybe
 
 {- |
-  Module     : Holumbus.Index.Common
+  Module     : Hunt.Index.Common
 
   this module contains ideas and prototypes for a
   possible refactoring for  index / documents
@@ -109,7 +109,7 @@ instance Index Inverted where
 {--
  - combining documents and index:
  -
- - module Holumbus.Index.DocTable.Memory
+ - module Hunt.Index.DocTable.Memory
 
  -
  - or ... not using typeclasses at all ?? just working on

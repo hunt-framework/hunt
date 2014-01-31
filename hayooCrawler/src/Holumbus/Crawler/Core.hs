@@ -2,7 +2,7 @@
 
 -- ------------------------------------------------------------
 
-module Holumbus.Crawler.Core
+module Hunt.Crawler.Core
 where
 
 -- import           Control.Concurrent.MapFold             ( mapFold )
@@ -21,13 +21,13 @@ import           Data.Function.Selector
 
 import           Data.List
 
-import           Holumbus.Crawler.Constants
-import           Holumbus.Crawler.Logger
-import           Holumbus.Crawler.Robots
-import           Holumbus.Crawler.Types
-import           Holumbus.Crawler.URIs
-import           Holumbus.Crawler.Util            (mkTmpFile)
-import           Holumbus.Crawler.XmlArrows
+import           Hunt.Crawler.Constants
+import           Hunt.Crawler.Logger
+import           Hunt.Crawler.Robots
+import           Hunt.Crawler.Types
+import           Hunt.Crawler.URIs
+import           Hunt.Crawler.Util            (mkTmpFile)
+import           Hunt.Crawler.XmlArrows
 
 import           Text.XML.HXT.Core                hiding (getState, when)
 

@@ -24,7 +24,7 @@ where
 
 import           Data.List
 
-import           Holumbus.Crawler
+import           Hunt.Crawler
 
 import           Text.XML.HXT.Core
 

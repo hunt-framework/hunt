@@ -12,7 +12,7 @@ import           Data.Aeson
 import           Data.Binary           (Binary (..))
 import qualified Data.Binary           as B
 
-import           Holumbus.Query.Result (Score)
+import           Hunt.Query.Result (Score)
 
 import           Text.XML.HXT.Core
 

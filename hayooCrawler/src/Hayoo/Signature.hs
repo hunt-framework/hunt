@@ -9,7 +9,7 @@ import           Control.Arrow
 
 import           Data.List
 
-import           Holumbus.Crawler.Util  ( tokenize
+import           Hunt.Crawler.Util  ( tokenize
                                         , match
                                         , split
                                         )

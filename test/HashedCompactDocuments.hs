@@ -2,20 +2,20 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.HashedCompactDocuments
+  Module     : Hunt.Index.HashedCompactDocuments
   Copyright  : Copyright (C) 2012 Uwe Schmidt
   License    : MIT
 
   Maintainer : Uwe Schmidt (uwe@fh-wedel.de)
   Stability  : experimental
 
-  Like Holumbus.Index.HashedDocuments but using CompressedDoc directly.
+  Like Hunt.Index.HashedDocuments but using CompressedDoc directly.
   Conversion and exposing the Document interface is done by a proxy DocTable.
 -}
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.DocTable.HashedCompactDocuments
+module Hunt.DocTable.HashedCompactDocuments
     (
       -- * Documents type
       Documents (..)
@@ -50,13 +50,13 @@ import qualified Data.ByteString.Lazy                            as BS
 
 import           Data.Digest.Murmur64
 
-import           Holumbus.Index.Common                           hiding (empty)
-import qualified Holumbus.Index.Common.DocIdMap                  as DM
+import           Hunt.Index.Common                           hiding (empty)
+import qualified Hunt.Index.Common.DocIdMap                  as DM
 
-import           Holumbus.DocTable.DocTable                      hiding (map)
-import qualified Holumbus.DocTable.Proxy.ValueConversionDocTable as ValConvDt
+import           Hunt.DocTable.DocTable                      hiding (map)
+import qualified Hunt.DocTable.Proxy.ValueConversionDocTable as ValConvDt
 
-import           Holumbus.Utility                                ((.::))
+import           Hunt.Utility                                ((.::))
 
 -- ----------------------------------------------------------------------------
 

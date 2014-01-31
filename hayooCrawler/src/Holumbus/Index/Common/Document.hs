@@ -3,7 +3,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.Common.Document
+  Module     : Hunt.Index.Common.Document
   Copyright  : Copyright (C) 2011 Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
   License    : MIT
 
@@ -17,7 +17,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.Document
+module Hunt.Index.Common.Document
 where
 
 import Control.Monad                    ( liftM3 )
@@ -25,7 +25,7 @@ import Control.DeepSeq
 
 import Data.Binary                      ( Binary (..) )
 
-import Holumbus.Index.Common.BasicTypes
+import Hunt.Index.Common.BasicTypes
 
 import Text.XML.HXT.Core
 

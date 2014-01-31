@@ -2,7 +2,7 @@
 
 -- ------------------------------------------------------------
 
-module Holumbus.Crawler.XmlArrows
+module Hunt.Crawler.XmlArrows
 where
 
 import           Text.XML.HXT.Core

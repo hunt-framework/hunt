@@ -17,8 +17,8 @@ import           Hayoo.FunctionInfo
 import           Hayoo.Signature
 import           Hayoo.URIConfig
 
-import           Holumbus.Crawler.Html
-import           Holumbus.Utility
+import           Hunt.Crawler.Html
+import           Hunt.Utility
 
 import           Network.URI                 (unEscapeString)
 

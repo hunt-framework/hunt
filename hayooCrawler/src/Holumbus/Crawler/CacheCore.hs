@@ -2,7 +2,7 @@
 
 -- ------------------------------------------------------------
 
-module Holumbus.Crawler.CacheCore
+module Hunt.Crawler.CacheCore
 where
 
 import           Control.DeepSeq
@@ -14,7 +14,7 @@ import qualified Data.Binary                    as B
 
 import           Data.Function.Selector
 
-import           Holumbus.Crawler
+import           Hunt.Crawler
 
 import           Text.XML.HXT.Core
 import           Text.XML.HXT.Curl

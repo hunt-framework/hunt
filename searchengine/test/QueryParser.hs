@@ -19,8 +19,8 @@ import           Test.QuickCheck
 import           Control.Monad
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
-import qualified Holumbus.Query.Language.Parser       as P
-import           Holumbus.Query.Language.Grammar
+import qualified Hunt.Query.Language.Parser       as P
+import           Hunt.Query.Language.Grammar
 
 
 -- ----------------------------------------------------------------------------

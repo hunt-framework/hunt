@@ -2,7 +2,7 @@
 
 -- ------------------------------------------------------------
 
-module Holumbus.Crawler.Util
+module Hunt.Crawler.Util
 where
 
 import           Control.Applicative                            ( liftA2 )

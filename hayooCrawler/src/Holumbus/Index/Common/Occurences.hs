@@ -3,7 +3,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.Common.Occurences
+  Module     : Hunt.Index.Common.Occurences
   Copyright  : Copyright (C) 2011 Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
   License    : MIT
 
@@ -17,7 +17,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.Occurences
+module Hunt.Index.Common.Occurences
 where
 
 -- import           Control.DeepSeq
@@ -27,9 +27,9 @@ where
 
 import qualified Data.IntSet                      as IS
 
-import           Holumbus.Index.Common.BasicTypes
-import           Holumbus.Index.Common.DocId
-import           Holumbus.Index.Common.DocIdMap
+import           Hunt.Index.Common.BasicTypes
+import           Hunt.Index.Common.DocId
+import           Hunt.Index.Common.DocIdMap
 
 import           Text.XML.HXT.Core
 

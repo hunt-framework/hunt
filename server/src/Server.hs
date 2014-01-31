@@ -1,4 +1,4 @@
-import Holumbus.Server (start)
+import Hunt.Server (start)
 
 main :: IO ()
 main = start

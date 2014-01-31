@@ -3,7 +3,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.Common.LoadStore
+  Module     : Hunt.Index.Common.LoadStore
   Copyright  : Copyright (C) 2011 Sebastian M. Schlatt, Timo B. Huebel, UweSchmidt
   License    : MIT
 
@@ -17,7 +17,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.LoadStore
+module Hunt.Index.Common.LoadStore
 where
 
 import Data.Binary      ( Binary (..) )

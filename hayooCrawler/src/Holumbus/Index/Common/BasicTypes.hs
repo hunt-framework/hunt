@@ -3,7 +3,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Holumbus.Index.Common.BasicTypes
+  Module     : Hunt.Index.Common.BasicTypes
   Copyright  : Copyright (C) 2011 Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
   License    : MIT
 
@@ -17,7 +17,7 @@
 
 -- ----------------------------------------------------------------------------
 
-module Holumbus.Index.Common.BasicTypes
+module Hunt.Index.Common.BasicTypes
 where
 
 -- ------------------------------------------------------------
