@@ -98,7 +98,7 @@ bench-rd-%: ../data/random/RandomData.js
 bench-rdb-%: ../data/random/RandomData.bin
 		$(PROFSH) $(shell echo \'$<\' $*)
 
-bench: membench
+bench bench-rd: membench
 # XXX: random json dataset hardcoded
 	for i in $$(seq 0 $(IXMAX)); do \
 		$(MAKE) bench-rd-$$i; \
