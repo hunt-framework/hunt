@@ -13,7 +13,7 @@
   Portability: portable
   Version    : 0.2
 
-  The Holumbus query parser, based on the famous Parsec library.
+  The Hunt query parser, based on the famous Parsec library.
 
   The parser implements a default syntax for the query grammar which exposes
   all possible query types and operators to the user.
@@ -53,7 +53,7 @@ import           Hunt.Query.Language.Grammar
 
 -- ----------------------------------------------------------------------------
 
--- | Parse a query using the default syntax provided by the Holumbus framework.
+-- | Parse a query using the default syntax provided by the Hunt framework.
 parseQuery :: String -> Either Text Query
 parseQuery = result . parse query ""
   where

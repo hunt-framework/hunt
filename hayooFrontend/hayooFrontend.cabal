@@ -21,7 +21,7 @@ data-files:          hayoo.css
 
 source-repository head
   type:        git
-  location:    https://github.com/UlfS/holumbus.git
+  location:    https://github.com/hunt-framework/hunt
 
 executable hayooFrontend
   hs-source-dirs: src

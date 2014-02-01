@@ -31,7 +31,7 @@ simple_query = QM.monadicIO $ do
                           passed <- QM.run $ query (T.unpack w)
                           QM.assert True
 
--- runs http query on holumbus server
+-- runs http query on hunt server
 query  :: String -> IO ()
 query x = do
   rsp <- Network.HTTP.simpleHTTP (getRequest $ "http://localhost:3000/search/" ++ x)

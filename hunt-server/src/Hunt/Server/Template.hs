@@ -340,7 +340,7 @@ defaultLayout content = [xshamlet|
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Holumbus Server
+    <title>Hunt Server
     <script src="http://code.jquery.com/jquery-1.10.2.min.js">
     <script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js" type="text/javascript">
     <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
@@ -348,14 +348,14 @@ defaultLayout content = [xshamlet|
     <div .navbar .navbar-fixed-top>
       <div .navbar-inner>
         <div .container>
-          <a .brand href="/">Holumbus Server
+          <a .brand href="/">Hunt Server
           <ul .nav .nav-tabs>
             <li>
               <a href="/search">Search
             <li>
               <a href="/add">Add
             <li>
-              <a href="https://github.com/ulfs/holumbus" target="git" >Help
+              <a href="https://github.com/hunt-framework" target="git" >Help
     <div .container style="margin-top:70px">
       #{content}
 |]

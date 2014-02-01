@@ -5,7 +5,7 @@ name:                geoFrontend
 version:             0.1.0.0
 synopsis:            A simple frontend for searching in geo dbs
 -- description:         
-homepage:            https://github.com/UlfS/holumbus
+homepage:            https://github.com/hunt-framework
 license:             MIT
 license-file:        LICENSE
 author:              Sebastian Philipp

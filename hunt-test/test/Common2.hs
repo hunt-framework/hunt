@@ -90,7 +90,7 @@ test = do
   let mr = lookup "" (SimpleLookup key) x1
   print mr
 
--- | example2 - holumbus index like its currently defined
+-- | example2 - hunt index like its currently defined
 {--
  - type Occurrences        = Map Co.DocId Positions
 type Positions          = EnumSet Position
