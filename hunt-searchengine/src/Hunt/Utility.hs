@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns   #-}
 {-# LANGUAGE EmptyDataDecls #-}
 -- ----------------------------------------------------------------------------
 
@@ -149,6 +150,13 @@ escape (c:cs)
   = if isAlphaNum c || isSpace c
       then c : escape cs
       else '%' : showHex (fromEnum c) "" ++ escape cs
+
+-- | Strict version of 'foldM'.
+foldM' :: (Monad m) => (a -> b -> m a) -> a -> [b] -> m a
+foldM' _ acc [] = return acc
+foldM' f acc (x:xs) = do
+  !acc' <- f acc x
+  foldM' f acc' xs
 
 -- | 'FB.foldrM' for 'Map' with key.
 foldrWithKeyM :: (Monad m) => (k -> a -> b -> m b) -> b -> Map k a -> m b
