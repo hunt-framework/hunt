@@ -69,7 +69,7 @@ first-install: delete sandbox install
 first-install-bs: delete sandbox cabal-bytestring cabal-text data-size stringmap searchengine-force server
 
 clean:
-	$(MAKE) -e -C data/random clean
+	$(MAKE) -e -C hunt-test/data/random clean
 	$(MAKE) target action=clean PROFOPTS=''
 
 delete: clean
@@ -84,18 +84,18 @@ target: searchengine server
 
 sandbox:
 	cabal sandbox init --sandbox .cabal-sandbox
-	cd searchengine   && cabal sandbox init --sandbox ../.cabal-sandbox
-	cd server         && cabal sandbox init --sandbox ../.cabal-sandbox
-	cd server         && cabal sandbox add-source ../searchengine/
+	cd hunt-searchengine   && cabal sandbox init --sandbox ../.cabal-sandbox
+	cd hunt-server         && cabal sandbox init --sandbox ../.cabal-sandbox
+	cd hunt-server         && cabal sandbox add-source ../hunt-searchengine/
 	cd hayooCrawler   && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd hayooFrontend  && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd geoFrontend    && cabal sandbox init --sandbox ../.cabal-sandbox
 
 searchengine:
-	cd searchengine && cabal $(action) $(PROFOPTS) $(pattern)
+	cd hunt-searchengine && cabal $(action) $(PROFOPTS) $(pattern)
 
 server: stopServer
-	cd server       && cabal $(action) $(PROFOPTS) $(pattern)
+	cd hunt-server       && cabal $(action) $(PROFOPTS) $(pattern)
 
 hayooCrawler:
 	$(MAKE) -C hayooCrawler
@@ -135,17 +135,17 @@ startHayoo: hayooFrontend/functions.js insertHayoo
 	cd hayooFrontend && cabal run &
 
 random:
-	$(MAKE) -C data/random
+	$(MAKE) -C hunt-test/data/random
 
 generateRandom:
-	$(MAKE) -e -C data/random cleanData generate
+	$(MAKE) -e -C hunt-test/data/random cleanData generate
 
-data/random/RandomData.js:
-	$(MAKE) -e -C data/random generate
+hunt-test/data/random/RandomData.js:
+	$(MAKE) -e -C hunt-test/data/random generate
 
-insertRandom:  data/random/RandomData.js
-	curl -X POST -d @data/random/contexts.js $(SERVER)/eval
-	curl -X POST -d @data/random/RandomData.js $(SERVER)/document/insert
+insertRandom:  hunt-test/data/random/RandomData.js
+	curl -X POST -d @hunt-test/data/random/contexts.js $(SERVER)/eval
+	curl -X POST -d @hunt-test/data/random/RandomData.js $(SERVER)/document/insert
 
 data/dict/en_US.dict.js:
 	$(MAKE) -e -C data/dict en_US.dict.js
@@ -159,7 +159,7 @@ benchmark-ab:
 
 # siege - http load testing and benchmarking utility
 benchmark-siege:
-	siege -c50 -d10 -t3M -f data/random/urls
+	siege -c50 -d10 -t3M -f hunt-test/data/random/urls
 
 # able to read heap profile at runtime
 runtimeHeapProfile:
@@ -167,12 +167,12 @@ runtimeHeapProfile:
 	ps2pdf holumbusServer.ps
 
 cabal-%:
-	cd searchengine \
+	cd hunt-searchengine \
 		&& 	cabal install $(PROFOPTS) $* --constraint=text\<1
 
 github-%:
 	git clone https://github.com/$(subst !,/,$*).git tmpgithubdir \
-		&& ( cd searchengine && cabal install $(PROFOPTS) ../tmpgithubdir ) \
+		&& ( cd hunt-searchengine && cabal install $(PROFOPTS) ../tmpgithubdir ) \
 		; rm -rf tmpgithubdir
 
 # github data-stringmap install
@@ -191,7 +191,7 @@ bench-%:
 	$(MAKE) -C bench $@
 
 searchengine-force:
-	cd searchengine \
+	cd hunt-searchengine \
 		&& cabal install $(PROFOPTS) --reinstall --force-reinstalls
 
 .PHONY: target clean configure build install test all searchengine server insertJokes startServer \
