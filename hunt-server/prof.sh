@@ -7,7 +7,7 @@
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 PROF_DIR="$DIR/prof"
-PROG="holumbusServer"
+PROG="hunt-server"
 FLAGS=""
 FLAGS_PROF="-h -S -xt"
 CABAL_BIN="$DIR/../.cabal-sandbox/bin"

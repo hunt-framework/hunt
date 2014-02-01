@@ -13,7 +13,7 @@ RUNOPTS = +RTS -s$(RTSPROF) -K$(K)M -RTS
 PATTERN =
 
 SERVER  = http://localhost:3000
-EXE     = $(shell [ -d ".cabal-sandbox" ] && echo ".cabal-sandbox/bin/holumbusServer" || echo "holumbusServer")
+EXE     = $(shell [ -d ".cabal-sandbox" ] && echo ".cabal-sandbox/bin/hunt-server" || echo "hunt-server")
 PROFSH  = ./prof.sh
 # profiling on/off
 export PROF=1
@@ -163,8 +163,8 @@ benchmark-siege:
 
 # able to read heap profile at runtime
 runtimeHeapProfile:
-	head -`fgrep -n END_SAMPLE holumbusServer.hp | tail -1 | cut -d : -f 1` holumbusServer.hp | hp2ps -d -c > holumbusServer.ps
-	ps2pdf holumbusServer.ps
+	head -`fgrep -n END_SAMPLE hunt-server.hp | tail -1 | cut -d : -f 1` hunt-server.hp | hp2ps -d -c > hunt-server.ps
+	ps2pdf hunt-server.ps
 
 cabal-%:
 	cd hunt-searchengine \
