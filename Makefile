@@ -89,7 +89,7 @@ sandbox:
 	cd hunt-server         && cabal sandbox add-source ../hunt-searchengine/
 	cd hayooCrawler   && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd hayooFrontend  && cabal sandbox init --sandbox ../.cabal-sandbox
-	cd geoFrontend    && cabal sandbox init --sandbox ../.cabal-sandbox
+	cd hunt-demos/geoFrontend && cabal sandbox init --sandbox ../../.cabal-sandbox
 
 searchengine:
 	cd hunt-searchengine && cabal $(action) $(PROFOPTS) $(pattern)
