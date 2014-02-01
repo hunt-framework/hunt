@@ -24,7 +24,7 @@
 #
 # ######################################
 
-EXE     = $(shell [ which .cabal-sandbox/bin/holumbusMemBench holumbusMemBench | head -1)
+EXE     = $(shell [ which .cabal-sandbox/bin/hunt-membench hunt-membench | head -1)
 PROFSH  = ./prof.sh
 
 PROFOPTS=--enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
@@ -49,7 +49,7 @@ sandbox: .cabal-sandbox
 
 .cabal-sandbox:
 	cabal sandbox init --sandbox .cabal-sandbox && \
-	cabal sandbox add-source ../searchengine/
+	cabal sandbox add-source ../../hunt-searchengine/
 
 deps: sandbox
 #   bytestring
@@ -76,7 +76,7 @@ clean:
 
 # generate .bin from .js
 %.bin: %.js
-	./.cabal-sandbox/bin/holumbusMemBenchBin '$*.js'
+	./.cabal-sandbox/bin/hunt-membench-bin '$*.js'
 
 ../data/random/RandomData.js:
 	$(MAKE) -e -C ../data/random all generate clean

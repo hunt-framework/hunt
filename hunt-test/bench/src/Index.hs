@@ -18,14 +18,14 @@ import           System.Mem
 import           System.Posix.Process
 import           System.Process
 
-import           Control.Applicative
-import           Control.Concurrent
+--import           Control.Applicative
+--import           Control.Concurrent
 import           Control.Monad
 
 import qualified Data.Binary                                     as Bin
-import           Data.Map                                        (Map)
+--import           Data.Map                                        (Map)
 import qualified Data.Map                                        as M
-import           Data.Maybe
+--import           Data.Maybe
 import           Data.Monoid
 import           Data.Text                                       (Text)
 import qualified Data.Text                                       as T
@@ -44,7 +44,6 @@ import           Data.Aeson.Encode.Pretty
 --import qualified Data.ByteString                                 as BS
 import qualified Data.ByteString.Lazy                            as BL
 import qualified Data.ByteString.Lazy.Char8                      as B8
-import qualified Data.List                                       as L
 
 import           Hunt.Common.ApiDocument
 import qualified Hunt.Common.Occurrences                     as Occ
@@ -56,6 +55,8 @@ import qualified Hunt.Common.Occurrences.Compression.Snappy  as ZS
 
 
 import qualified Hunt.Index.ComprPrefixTreeIndex             as CPIx
+
+import           Hunt.Utility
 
 -- ----------------------------------------------------------------------------
 
@@ -136,10 +137,7 @@ mkDataSet path = DataSet
 getJson :: (FromJSON a) => FilePath -> IO a
 getJson file = do
   content <- BL.readFile file
-  return . fromLeft . eitherDecode $ content
-  where
-  fromLeft (Left msg) = error msg
-  fromLeft (Right x)  = x
+  return . fromRight . eitherDecode $ content
 
 decodeFile :: FilePath -> IO ApiDocuments
 decodeFile = Bin.decodeFile
@@ -187,10 +185,10 @@ type TextIndexSK i v = (TextIndex i v, Ix.IKey i v ~ String)
 type TextIndexTK i v = (TextIndex i v, Ix.IKey i v ~ Text)
 
 
-addWordsIx :: TextIndex i v => (Text -> Ix.IKey i v) -> Words -> DocId -> i v -> i v
+addWordsIx :: (Monad m, TextIndex i v) => (Text -> Ix.IKey i v) -> Words -> DocId -> i v -> m (i v)
 addWordsIx keyConv wrds dId i
-  = M.foldrWithKey (\_c wl acc ->
-      M.foldrWithKey (\w ps acc' ->
+  = foldrWithKeyM (\_c wl acc ->
+      foldrWithKeyM (\w ps acc' ->
         let ck = keyConv w in ck `seq` Ix.insert (keyConv w) (mkOccs dId ps) acc')
       acc wl)
       i wrds
@@ -244,9 +242,8 @@ testIndex dataSet (IndexAll ix f) = do
   !apiDocs  <- getDataSet dataSet :: IO ApiDocuments
   --threadDelay (5 * 10^6)
   let docs = P.map (toDocAndWords' (tdSchema dataSet)) apiDocs
-
   start <- getCurrentTime
-  let ix'  = L.foldl' (\i ((_d,w),did) -> addWordsIx f w did i) ix (zip docs [0..])
+  ix'   <- foldM (\i ((_d,w),did) -> addWordsIx f w did i) ix (zip docs [0..])
   end <- ix' `seq` getCurrentTime
 
   -- output

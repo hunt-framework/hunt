@@ -1,4 +1,4 @@
-name:          Hunt-MemBench
+name:          hunt-membench
 version:       0.0.0.1
 license:       MIT
 -- license-file:  LICENSE
@@ -7,28 +7,28 @@ copyright:
 maintainer:
 stability:     experimental
 category:      Test, Benchmark
-synopsis:      Memory benchmarks for the Holumbus packages.
-homepage:      http://holumbus.fh-wedel.de
-description:   Memory benchmarks for the Holumbus packages.
+synopsis:      Memory benchmarks for the Hunt packages.
+homepage:      http://github.com/hunt-framework
+description:   Memory benchmarks for the Hunt packages.
 cabal-version: >=1.8
 build-type:    Simple
 
 source-repository head
   type:        git
-  location:    https://github.com/UlfS/holumbus.git
+  location:    https://github.com/hunt-framework/hunt.git
 
-executable holumbusMemBench
+executable hunt-membench
   main-is:        Index.hs
   hs-source-dirs: src
   other-modules:
-  build-depends:   base >= 4.5  && < 5
+  build-depends:   base                   >= 4.5  && < 5
                  , containers             >= 0.5
                  , aeson
                  , aeson-pretty
                  , binary                 >= 0.5  && < 1
                  , bytestring                        < 1
                  , filepath
-                 , Hunt-Searchengine  >= 2
+                 , Hunt-Searchengine      >= 0.1
                  , process                >= 1    && < 2
                  , text                   >= 0.11 && < 1
                  , time                   >= 1.4  && < 2
@@ -40,17 +40,17 @@ executable holumbusMemBench
                  -fwarn-tabs
   extensions:
 
-executable holumbusMemBenchBin
+executable hunt-membench-bin
   main-is:        Binary.hs
   hs-source-dirs: src
   other-modules:
-  build-depends:   base >= 4.5  && < 5
+  build-depends:   base                   >= 4.5  && < 5
                  , containers             >= 0.5
                  , aeson
                  , aeson-pretty
                  , binary                 >= 0.5  && < 1
                  , bytestring                        < 1
-                 , Hunt-Searchengine  >= 2
+                 , Hunt-Searchengine      >= 0.1
                  , process                >= 1    && < 2
                  , text                   >= 0.11 && < 1
                  , time                   >= 1.4  && < 2

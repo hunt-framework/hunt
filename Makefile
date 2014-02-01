@@ -182,13 +182,13 @@ data-size: github-UweSchmidt!data-size
 
 
 membench:
-	$(MAKE) -C bench $@
+	$(MAKE) -C hunt-test/bench $@
 membench-%:
-	$(MAKE) -C bench $*
+	$(MAKE) -C hunt-test/bench $*
 bench:
-	$(MAKE) -C bench $@
+	$(MAKE) -C hunt-test/bench $@
 bench-%:
-	$(MAKE) -C bench $@
+	$(MAKE) -C hunt-test/bench $@
 
 searchengine-force:
 	cd hunt-searchengine \
