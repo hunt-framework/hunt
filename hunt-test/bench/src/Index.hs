@@ -243,7 +243,7 @@ testIndex dataSet (IndexAll ix f) = do
   --threadDelay (5 * 10^6)
   let docs = P.map (toDocAndWords' (tdSchema dataSet)) apiDocs
   start <- getCurrentTime
-  ix'   <- foldM (\i ((_d,w),did) -> addWordsIx f w did i) ix (zip docs [0..])
+  ix'   <- foldM' (\i ((_d,w),did) -> addWordsIx f w did i) ix (zip docs [0..])
   end <- ix' `seq` getCurrentTime
 
   -- output
