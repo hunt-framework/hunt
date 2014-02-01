@@ -88,7 +88,7 @@ sandbox:
 	cd hunt-server         && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd hunt-server         && cabal sandbox add-source ../hunt-searchengine/
 	cd hayooCrawler   && cabal sandbox init --sandbox ../.cabal-sandbox
-	cd hayooFrontend  && cabal sandbox init --sandbox ../.cabal-sandbox
+	cd ../hayoo/hayooFrontend  && cabal sandbox init --sandbox $(CURDIR)/.cabal-sandbox
 	cd hunt-demos/geoFrontend && cabal sandbox init --sandbox ../../.cabal-sandbox
 
 searchengine:
@@ -124,15 +124,11 @@ profServer-fb: stopServer
 profServer-rd: stopServer
 	./server/prof.sh "make insertRandom"
 
-hayooFrontend/functions.js: hayooFrontend/convertJSON.py
-	cd hayooFrontend && ./convertJSON.py
-
-insertHayoo: hayooFrontend/functions.js
-	curl -X POST -d @hayooFrontend/hayooContexts.js $(SERVER)/eval
-	curl -X POST -d @hayooFrontend/functions.js $(SERVER)/document/insert
+insertHayoo: ../hayoo/hayooFrontend/functions.js
+	$(MAKE) -e -C ../hayoo/hayoo-json insert SERVER=$(SERVER)
 
 startHayoo: hayooFrontend/functions.js insertHayoo
-	cd hayooFrontend && cabal run &
+	cd ../hayoo/hayooFrontend && cabal run &
 
 random:
 	$(MAKE) -C hunt-test/data/random
