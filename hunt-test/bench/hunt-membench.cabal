@@ -28,7 +28,7 @@ executable hunt-membench
                  , binary                 >= 0.5  && < 1
                  , bytestring                        < 1
                  , filepath
-                 , Hunt-Searchengine      >= 0.1
+                 , hunt-searchengine      >= 0.1
                  , process                >= 1    && < 2
                  , text                   >= 0.11 && < 1
                  , time                   >= 1.4  && < 2
@@ -50,7 +50,7 @@ executable hunt-membench-bin
                  , aeson-pretty
                  , binary                 >= 0.5  && < 1
                  , bytestring                        < 1
-                 , Hunt-Searchengine      >= 0.1
+                 , hunt-searchengine      >= 0.1
                  , process                >= 1    && < 2
                  , text                   >= 0.11 && < 1
                  , time                   >= 1.4  && < 2

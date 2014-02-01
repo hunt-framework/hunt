@@ -34,7 +34,7 @@ executable geoFrontend
                        , containers >= 0.5
                        , Hunt-Server
                        , unordered-containers >= 0.2
-                       , Hunt-Searchengine
+                       , hunt-searchengine
                        , hslogger >= 1.2
                        , mtl >= 2
                        , blaze-html >= 0.7
