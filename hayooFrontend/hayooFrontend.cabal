@@ -41,7 +41,7 @@ executable hayooFrontend
                      , http-conduit >= 2.0.0
                      , bytestring >= 0.10
                      , transformers >= 0.3
-                     , Hunt-Server >= 2
+                     , hunt-server >= 2
                      , lens >= 3.10
                      , mtl >= 2.1
 
