@@ -1,17 +1,16 @@
 name:          Hunt-Searchengine
-version:       2.0.0.0
+version:       0.1
 license:       MIT
 license-file:  LICENSE
-author:
-copyright:
-maintainer:
+author:        Chris Reumann, Ulf Sauer, Uwe Schmidt
+copyright:     Chris Reumann, Ulf Sauer, Uwe Schmidt
+maintainer:    Chris Reumann, Ulf Sauer, Uwe Schmidt
 stability:     experimental
 category:      Text, Data
 synopsis:      A search and indexing engine.
-homepage:      http://holumbus.fh-wedel.de
-description:   The Hunt-Searchengine library provides a document indexer
-               and crawler to build indexes over document collections
-               as well as a sophisticated query interface for these indexes.
+homepage:      http://github.com/hunt-framework/
+description:   The Hunt-Searchengine library provides a solid toolkit to
+               create fast and scaleable searchengines. 
 cabal-version: >=1.8
 build-type:    Simple
 -- tested-with:   ghc-7.0.3
@@ -21,7 +20,8 @@ build-type:    Simple
 
 source-repository head
   type:        git
-  location:    https://github.com/UlfS/holumbus.git
+  location:    https://github.com/hunt-framework/hunt-searchengine.git
+
 
 library
 
