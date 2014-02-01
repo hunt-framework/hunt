@@ -111,8 +111,8 @@ stopServer:
 		&& sleep 1 # wait for shutdown and socket release
 
 insertJokes:
-	curl -X POST -d @data/jokes/contexts.js $(SERVER)/eval
-	curl -X POST -d @data/jokes/FussballerSprueche.js $(SERVER)/document/insert
+	curl -X POST -d @hunt-test/data/jokes/contexts.js $(SERVER)/eval
+	curl -X POST -d @hunt-test/data/jokes/FussballerSprueche.js $(SERVER)/document/insert
 
 # NOTE: profiling does not use the makefile target to start the server (RUNOPTS is discarded)
 profServer: stopServer
@@ -147,11 +147,11 @@ insertRandom:  hunt-test/data/random/RandomData.js
 	curl -X POST -d @hunt-test/data/random/contexts.js $(SERVER)/eval
 	curl -X POST -d @hunt-test/data/random/RandomData.js $(SERVER)/document/insert
 
-data/dict/en_US.dict.js:
-	$(MAKE) -e -C data/dict en_US.dict.js
+hunt-test/data/dict/en_US.dict.js:
+	$(MAKE) -e -C hunt-test/data/dict
 
-insertenUSDict: data/dict/en_US.dict.js
-	curl -X POST -d @data/dict/en_US.dict.js $(SERVER)/eval
+insertenUSDict: hunt-test/data/dict/en_US.dict.js
+	curl -X POST -d @hunt-test/data/dict/en_US.dict.js $(SERVER)/eval
 	
 # ab - Apache HTTP server benchmarking tool
 benchmark-ab:
