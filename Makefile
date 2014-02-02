@@ -1,3 +1,6 @@
+# disable prarallel bulilds. 
+.NOTPARALLEL:
+
 # the -A option is important for garbage collection performance,
 # a good value is about the size of the L2 cache of the cpu
 # the default is set to 8M
@@ -86,21 +89,18 @@ sandbox:
 	cabal sandbox init --sandbox .cabal-sandbox
 	cd hunt-searchengine   && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd hunt-server         && cabal sandbox init --sandbox ../.cabal-sandbox
-	cd hunt-server         && cabal sandbox add-source ../hunt-searchengine/
+	cabal sandbox add-source hunt-searchengine
 	cd ../hayoo/hayooFrontend  && cabal sandbox init --sandbox $(CURDIR)/.cabal-sandbox
 	cd hunt-demos/geoFrontend && cabal sandbox init --sandbox ../../.cabal-sandbox
-
+	
 searchengine:
 	cd hunt-searchengine && cabal $(action) $(PROFOPTS) $(pattern)
 
 server: stopServer
 	cd hunt-server       && cabal $(action) $(PROFOPTS) $(pattern)
 
-hayooCrawler:
-	$(MAKE) -C hayooCrawler
-
-hayooCrawler-%: hayooCrawler
-	$(MAKE) -C hayooCrawler/data $*
+client:
+	cd hunt-client && cabal $(action) $(PROFOPTS) $(pattern)
 
 startServer: stopServer
 	$(EXE) $(RUNOPTS) &

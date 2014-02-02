@@ -1,10 +1,10 @@
-name:          hunt-server
+name:          hunt-client
 version:       0.1
 license:       MIT
 license-file:  LICENSE
-author:        Chris Reumann, Ulf Sauer
-copyright:     Chris Reumann, Ulf Sauer
-maintainer:    Chris Reumann, Ulf Sauer
+author:        Chris Reumann, Ulf Sauer, Sebastian Philipp
+copyright:     Chris Reumann, Ulf Sauer, Sebastian Philipp
+maintainer:    Chris Reumann, Ulf Sauer, Sebastian Philipp
 stability:     experimental
 category:      Text, Data
 synopsis:      A search and indexing engine server.
@@ -22,16 +22,18 @@ source-repository head
 
 
 library
-  hs-source-dirs:   src-client
+  hs-source-dirs: src
   exposed-modules:
                 Hunt.Server.Client
   build-depends:
                 base >= 4
                 , bytestring             >= 0.9.1
-                , text >= 0.11 && < 1
-                , http-conduit >= 2.0.0
-                , transformers >= 0.3
-                , lens >= 3.10
-                , conduit >= 1.0
-                , failure >= 0.2
-                , http-client >= 0.2 
+                , text                   >= 0.11 && < 1
+                , http-conduit           >= 2.0.0
+                , transformers           >= 0.3
+                , lens                   >= 3.10
+                , conduit                >= 1.0
+                , failure                >= 0.2
+                , http-client            >= 0.2 
+                , aeson                  >= 0.6
+                , mtl                    >= 1.1       && < 3
