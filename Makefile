@@ -87,7 +87,6 @@ sandbox:
 	cd hunt-searchengine   && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd hunt-server         && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd hunt-server         && cabal sandbox add-source ../hunt-searchengine/
-	cd hayooCrawler   && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd ../hayoo/hayooFrontend  && cabal sandbox init --sandbox $(CURDIR)/.cabal-sandbox
 	cd hunt-demos/geoFrontend && cabal sandbox init --sandbox ../../.cabal-sandbox
 
