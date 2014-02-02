@@ -22,9 +22,9 @@ import qualified Hunt.Server.Template             as Tmpl
 
 import           System.IO                            (stdout)
 
-import           System.Log.Formatter                 (simpleLogFormatter)
-import           System.Log.Handler                   (setFormatter)
-import           System.Log.Handler.Simple            (streamHandler)
+import           System.Log.Formatter
+import           System.Log.Handler
+import           System.Log.Handler.Simple
 import           System.Log.Logger                    hiding (debugM, warningM, errorM)
 import qualified System.Log.Logger                    as Log
 
@@ -47,6 +47,10 @@ defaultOptions = Options
 modName :: String
 modName = "Hunt.Server"
 
+-- | Location of the log file. 
+logPath :: String
+logPath = "hunt.log"
+
 -- | Log a message at 'DEBUG' priority.
 debugM :: String -> IO ()
 debugM = Log.debugM modName
@@ -59,15 +63,26 @@ warningM = Log.warningM modName
 errorM :: String -> IO ()
 errorM = Log.errorM modName
 
--- | Initializes the loggers with the given priority.
+-- | Convenience function to add a log formatter.
+withFormatter :: (Monad m, LogHandler r) => m r -> LogFormatter r -> m r
+withFormatter h f = liftM (flip setFormatter f) h
+
+-- | Initializes the loggers and sets the stdout logger to the given priority.
 initLoggers :: Priority -> IO ()
 initLoggers level = do
-    handlerBare <- streamHandler stdout DEBUG
-    let handler = setFormatter handlerBare $ simpleLogFormatter "[$time : $loggername : $prio] $msg"
+    -- formatter
+    let defFormatter = simpleLogFormatter "[$time : $loggername : $prio] $msg"
 
-    updateGlobalLogger "" (setLevel level . setHandlers [handler])
-    rl <- getRootLogger
-    saveGlobalLogger rl
+    -- root does not have a priority
+    updateGlobalLogger rootLoggerName clearLevel
+
+    -- stdout root logger
+    handlerBare <- streamHandler stdout level `withFormatter` defFormatter
+    updateGlobalLogger rootLoggerName (setHandlers [handlerBare])
+
+    -- file logger always at 'DEBUG' level
+    handlerFile <- fileHandler logPath DEBUG `withFormatter` defFormatter
+    updateGlobalLogger rootLoggerName (addHandler handlerFile)
 
 -- ----------------------------------------------------------------------------
 

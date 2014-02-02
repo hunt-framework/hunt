@@ -10,3 +10,4 @@ cabal.sandbox.config
 *~
 *.sublime*
 prof.sh.config
+hunt.log
