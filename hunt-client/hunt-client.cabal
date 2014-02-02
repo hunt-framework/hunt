@@ -1,0 +1,37 @@
+name:          hunt-server
+version:       0.1
+license:       MIT
+license-file:  LICENSE
+author:        Chris Reumann, Ulf Sauer
+copyright:     Chris Reumann, Ulf Sauer
+maintainer:    Chris Reumann, Ulf Sauer
+stability:     experimental
+category:      Text, Data
+synopsis:      A search and indexing engine server.
+homepage:      http://github.com/hunt-framework
+description:   Standalone search server based on hunt searchengine
+cabal-version: >=1.6
+build-type:    Simple
+
+extra-source-files:
+    README
+
+source-repository head
+  type:        git
+  location:    https://github.com/hunt-framework/hunt.git
+
+
+library
+  hs-source-dirs:   src-client
+  exposed-modules:
+                Hunt.Server.Client
+  build-depends:
+                base >= 4
+                , bytestring             >= 0.9.1
+                , text >= 0.11 && < 1
+                , http-conduit >= 2.0.0
+                , transformers >= 0.3
+                , lens >= 3.10
+                , conduit >= 1.0
+                , failure >= 0.2
+                , http-client >= 0.2 
