@@ -38,3 +38,10 @@ class OccCompression cv where
     decompressOcc        :: cv -> Occurrences
     -- XXX: not sure if this is needed/used anymore
     differenceWithKeySet :: DM.DocIdSet -> cv -> cv
+
+-- ------------------------------------------------------------
+
+instance OccCompression Occurrences where
+  compressOcc   = id
+  decompressOcc = id
+  differenceWithKeySet = flip DM.diffWithSet
