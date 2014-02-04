@@ -1,7 +1,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Hunt.Index.Common.Occurences
+  Module     : Hunt.Common.Occurrences
   Copyright  : Copyright (C) 2011 Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
   License    : MIT
 
@@ -9,7 +9,7 @@
   Stability  : experimental
   Portability: none portable
 
-  The Occurences data type
+  The Occurrences data type
 
 -}
 
@@ -18,22 +18,24 @@
 module Hunt.Common.Occurrences
 where
 
-import           Prelude                     hiding (subtract)
+import           Prelude                             hiding (subtract)
 
-import qualified Data.IntSet                 as IS
+import qualified Data.IntSet                         as IS
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap    (DocIdMap)
-import qualified Hunt.Common.DocIdMap    as DM
-import           Hunt.Common.Positions   (Positions)
-import qualified Hunt.Common.Positions   as Pos
+import           Hunt.Common.DocIdMap                (DocIdMap)
+import qualified Hunt.Common.DocIdMap                as DM
+import           Hunt.Common.Positions               (Positions)
+import qualified Hunt.Common.Positions               as Pos
 
 -- ------------------------------------------------------------
 
 -- | The occurrences in a number of documents.
--- A mapping from document ids to the positions in the document.
+--   A mapping from document ids to the positions in the document.
 type Occurrences        = DocIdMap Positions
+
+-- ------------------------------------------------------------
 
 -- | Create an empty set of positions.
 empty                   :: Occurrences
@@ -92,5 +94,3 @@ subtract                = DM.differenceWith subtractPositions
     diffPos = IS.difference p1 p2
 
 -- ------------------------------------------------------------
-
-

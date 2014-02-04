@@ -65,7 +65,7 @@ import           Control.DeepSeq
 
 import           Data.Binary                 (Binary (..))
 import           Data.Foldable               hiding (fold, foldr, toList)
-import           Data.Traversable
+--import           Data.Traversable
 import qualified Data.IntMap.Strict          as IM
 import qualified Data.IntSet                 as S
 import           Data.Typeable
