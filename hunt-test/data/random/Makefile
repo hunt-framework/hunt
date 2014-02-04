@@ -14,6 +14,7 @@ RD_NUMDOCS = 1000
 all: install
 
 install:
+	cabal sandbox init
 	cabal install
 
 clean:
@@ -23,7 +24,7 @@ cleanData:
 	- rm -f $(GENOUT)
 
 $(GENOUT): install
-	./../../../.cabal-sandbox/bin/$(OUT) $(RD_NUMDOCS) $(RD_SIZEMAX) $(RD_SIZEMIN)
+	./.cabal-sandbox/bin/$(OUT) $(RD_NUMDOCS) $(RD_SIZEMAX) $(RD_SIZEMIN)
 
 generate: $(GENOUT)
 
