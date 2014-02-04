@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module RandomData
+module Main
 where
 
 import           Control.Monad            (mzero)

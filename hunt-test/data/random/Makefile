@@ -13,7 +13,8 @@ RD_NUMDOCS = 1000
 
 all: install
 
-install: $(OUT)
+install:
+	cabal install
 
 clean:
 	- rm -f $(OUT) $(MAIN).hi $(MAIN).o
@@ -21,11 +22,8 @@ clean:
 cleanData:
 	- rm -f $(GENOUT)
 
-$(OUT): $(MAIN).hs
-	$(GHC) $(MAIN) -main-is $(MAIN) -o $(OUT)
-
-$(GENOUT): $(OUT)
-	./$(OUT) $(RD_NUMDOCS) $(RD_SIZEMAX) $(RD_SIZEMIN)
+$(GENOUT): install
+	./../../../.cabal-sandbox/bin/$(OUT) $(RD_NUMDOCS) $(RD_SIZEMAX) $(RD_SIZEMIN)
 
 generate: $(GENOUT)
 
