@@ -59,10 +59,8 @@ instance Index InvertedIndexInt where
     type IKey InvertedIndexInt v = Word
     type IVal InvertedIndexInt v = Occurrences
 
-    insert w o
-        = do
-            i' <- liftM mkInvIntIx $ insert w o empty
-            unionWith Occ.merge i' -- InvIntIx $ insert w o i
+    insert w o (InvIntIx i)
+        = liftM mkInvIntIx $ insert w o i
 
     batchDelete docIds (InvIntIx i)
         = liftM mkInvIntIx $ batchDelete docIds i
@@ -115,10 +113,8 @@ instance Index InvertedIndexDate where
     type IKey InvertedIndexDate v = Word
     type IVal InvertedIndexDate v = Occurrences
 
-    insert w o
-        = do
-            i' <- liftM mkInvDateIx $ insert w o empty
-            unionWith Occ.merge i' -- InvDateIx $ insert w o i
+    insert w o (InvDateIx i)
+        = liftM mkInvDateIx $ insert w o i
 
     batchDelete docIds (InvDateIx i)
         = liftM mkInvDateIx $ batchDelete docIds i
@@ -170,10 +166,8 @@ instance Index InvertedIndexPosition where
     type IKey InvertedIndexPosition v = Word
     type IVal InvertedIndexPosition v = Occurrences
 
-    insert w o
-        = do
-            i' <- liftM mkInvPosIx $ insert w o empty
-            unionWith Occ.merge i' -- InvPosIx $ insert w o i
+    insert w o (InvPosIx i)
+        = liftM mkInvPosIx $ insert w o i
 
     batchDelete docIds (InvPosIx i)
         = liftM mkInvPosIx $ batchDelete docIds i
@@ -227,10 +221,8 @@ instance Index InvertedIndex where
     type IKey InvertedIndex v = Word
     type IVal InvertedIndex v = Occurrences
 
-    insert w o
-        = do
-            i' <- liftM mkInvIx $ insert w o empty
-            unionWith Occ.merge i' -- InvIx $ insert w o i
+    insert w o (InvIx i)
+        = liftM mkInvIx $ insert w o i
 
     batchDelete docIds (InvIx i)
         = liftM mkInvIx $ batchDelete docIds i

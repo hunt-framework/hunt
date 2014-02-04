@@ -56,6 +56,10 @@ class Index i where
                  => (IVal i v -> IVal i v -> IVal i v)
                  -> i v -> i v -> m (i v)
 
+    unionWithConv:: (ICon i v, Monad m, ICon i v2)
+                 => (v2 -> v) -> (v -> v2 -> v)
+                 -> i v -> i v2 -> m (i v)
+
     -- TODO: non-rigid map
     map          :: (ICon i v, Monad m)
                  => (IVal i v -> IVal i v)
