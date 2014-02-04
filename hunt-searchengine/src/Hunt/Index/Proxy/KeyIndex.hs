@@ -10,18 +10,18 @@ module Hunt.Index.Proxy.KeyIndex
 )
 where
 
-import           Control.DeepSeq
 import           Prelude                                 as P
 
 import           Control.Applicative                     ((<$>))
 import           Control.Arrow                           (first)
+import           Control.DeepSeq
 import           Control.Monad
 
 import           Data.Bijection
 import           Data.Binary                             (Binary (..))
 
 import           Hunt.Index.Index
-import qualified Hunt.Index.Index                    as Ix
+import qualified Hunt.Index.Index                        as Ix
 
 import           Hunt.Index.Proxy.CompressedIndex
 
@@ -77,6 +77,9 @@ instance Index (KeyProxyIndex from impl) where
     unionWith op (KPIx i1) (KPIx i2)
         = liftM mkKPIx $ unionWith op i1 i2
 
+    unionWithConv t f (KPIx i1) (KPIx i2)
+        = liftM mkKPIx $ unionWithConv t f i1 i2
+
     map f (KPIx i)
         = liftM mkKPIx $ Ix.map f i
 
@@ -90,7 +93,7 @@ instance Index (KeyProxyIndex from impl) where
 -- TODO: can this be somehow generalized to a genric index containing a compression proxy?
 instance Index (KeyProxyIndex from (ComprOccIndex impl to)) where
     type IKey      (KeyProxyIndex from (ComprOccIndex impl to)) v = from
-    type IVal      (KeyProxyIndex from (ComprOccIndex impl to)) v = IVal      (ComprOccIndex impl to) v
+    type IVal      (KeyProxyIndex from (ComprOccIndex impl to)) v = IVal (ComprOccIndex impl to) v
     type ICon      (KeyProxyIndex from (ComprOccIndex impl to)) v =
         ( Index (ComprOccIndex impl to)
         , ICon  (ComprOccIndex impl to) v
@@ -121,6 +124,9 @@ instance Index (KeyProxyIndex from (ComprOccIndex impl to)) where
 
     unionWith op (KPIx i1) (KPIx i2)
         = liftM mkKPIx $ unionWith op i1 i2
+
+    unionWithConv t f (KPIx i1) (KPIx i2)
+        = liftM mkKPIx $ unionWithConv t f i1 i2
 
     map f (KPIx i)
         = liftM mkKPIx $ Ix.map f i

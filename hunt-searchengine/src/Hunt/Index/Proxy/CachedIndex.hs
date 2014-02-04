@@ -83,6 +83,9 @@ instance Index (CachedIndex impl) where
     unionWith op (CachedIx c1 i1) (CachedIx c2 i2)
         = liftM (mkCachedIx (IS.union c1 c2)) (unionWith op i1 i2)
 
+    unionWithConv to f (CachedIx c1 i1) (CachedIx c2 i2)
+        = liftM (mkCachedIx (IS.union c1 c2)) $ unionWithConv to f i1 i2
+
     map f i
         = do
             (CachedIx c i') <- flatten i

@@ -78,6 +78,9 @@ instance Index (PositionNormalizerIndex impl) where
     unionWith op (PosNIx i1) (PosNIx i2)
         = liftM mkPosNIx $ unionWith op i1 i2
 
+    unionWithConv to f (PosNIx i1) (PosNIx i2)
+        = liftM mkPosNIx $ unionWithConv to f i1 i2
+
     map f (PosNIx i)
         = liftM mkPosNIx $ Ix.map f i
 

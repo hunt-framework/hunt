@@ -13,19 +13,18 @@ module Hunt.Index.InvertedIndex
 )
 where
 
-import           Prelude                                        as P
+import           Prelude                                    as P
 
 import           Control.DeepSeq
 import           Control.Monad
 
-import           Data.Bijection.Instances                       ()
-import           Data.Binary                                    (Binary (..))
-import           Data.Text                                      (Text)
+import           Data.Bijection.Instances                   ()
+import           Data.Binary                                (Binary (..))
+import           Data.Text                                  (Text)
 import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences                    (Occurrences)
-import qualified Hunt.Common.Occurrences                    as Occ
 import           Hunt.Common.Occurrences.Compression.Snappy
 
 import           Hunt.Index.ComprPrefixTreeIndex
@@ -83,6 +82,9 @@ instance Index InvertedIndexInt where
     unionWith op (InvIntIx i1) (InvIntIx i2)
         = liftM mkInvIntIx $ unionWith op i1 i2
 
+    unionWithConv to f (InvIntIx i1) (InvIntIx i2)
+        = liftM mkInvIntIx $ unionWithConv to f i1 i2
+
     map f (InvIntIx i)
         = liftM mkInvIntIx $ Ix.map f i
 
@@ -137,6 +139,9 @@ instance Index InvertedIndexDate where
     unionWith op (InvDateIx i1) (InvDateIx i2)
         = liftM mkInvDateIx $ unionWith op i1 i2
 
+    unionWithConv to f (InvDateIx i1) (InvDateIx i2)
+        = liftM mkInvDateIx $ unionWithConv to f i1 i2
+
     map f (InvDateIx i)
         = liftM mkInvDateIx $ Ix.map f i
 
@@ -190,6 +195,9 @@ instance Index InvertedIndexPosition where
     unionWith op (InvPosIx i1) (InvPosIx i2)
         = liftM mkInvPosIx $ unionWith op i1 i2
 
+    unionWithConv to f (InvPosIx i1) (InvPosIx i2)
+        = liftM mkInvPosIx $ unionWithConv to f i1 i2
+
     map f (InvPosIx i)
         = liftM mkInvPosIx $ Ix.map f i
 
@@ -206,7 +214,7 @@ newtype InvertedIndex _v
     deriving (Eq, Show, NFData, Typeable)
 
 mkInvIx :: KeyProxyIndex Text ComprOccPrefixTree CompressedOccurrences
-        -> InvertedIndex v_
+        -> InvertedIndex _v
 mkInvIx x = InvIx $! x
 
 -- ----------------------------------------------------------------------------
@@ -244,6 +252,13 @@ instance Index InvertedIndex where
 
     unionWith op (InvIx i1) (InvIx i2)
         = liftM mkInvIx $ unionWith op i1 i2
+
+    unionWithConv
+        = error "InvertedIndex unionWithConv: cannot be used there because type variable v is fixed"
+{-
+    unionWithConv to f (InvIx i1) (InvIx i2)
+        = liftM mkInvIx $ unionWithConv to f i1 i2
+-}
 
     map f (InvIx i)
         = liftM mkInvIx $ Ix.map f i

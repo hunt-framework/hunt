@@ -73,6 +73,13 @@ instance Index (ComprOccIndex impl to) where
     unionWith op (ComprIx i1) (ComprIx i2)
         = liftM mkComprIx $ unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
 
+    unionWithConv
+        = error "ComprOccIndex unionWithConv: unused atm"
+{-
+    unionWithConv to f (ComprIx i1) (ComprIx i2)
+        = liftM mkComprIx $ unionWithConv to f i1 i2
+-}
+
     map f (ComprIx i)
         = liftM mkComprIx $ Ix.map (compressOcc . f . decompressOcc) i
 

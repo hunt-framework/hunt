@@ -78,6 +78,9 @@ instance Index (DateNormalizerIndex impl) where
     unionWith op (DateNIx i1) (DateNIx i2)
         = liftM mkDateNIx $ unionWith op i1 i2
 
+    unionWithConv to f (DateNIx i1) (DateNIx i2)
+        = liftM mkDateNIx $ unionWithConv to f i1 i2
+
     map f (DateNIx i)
         = liftM mkDateNIx $ Ix.map f i
 

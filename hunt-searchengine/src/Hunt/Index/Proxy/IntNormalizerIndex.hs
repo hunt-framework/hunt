@@ -80,6 +80,9 @@ instance Index (IntNormalizerIndex impl) where
     unionWith op (IntNIx i1) (IntNIx i2)
         = liftM mkIntNIx $ unionWith op i1 i2
 
+    unionWithConv to f (IntNIx i1) (IntNIx i2)
+        = liftM mkIntNIx $ unionWithConv to f i1 i2
+
     map f (IntNIx i)
         = liftM mkIntNIx $ Ix.map f i
 
@@ -139,6 +142,9 @@ instance Index (IntAsTextNormalizerIndex impl) where
 
     unionWith op (IntAsTextNIx i1) (IntAsTextNIx i2)
         = liftM mkIntAsTextNIx $ unionWith op i1 i2
+
+    unionWithConv to f (IntAsTextNIx i1) (IntAsTextNIx i2)
+        = liftM mkIntAsTextNIx $ unionWithConv to f i1 i2
 
     map f (IntAsTextNIx i)
         = liftM mkIntAsTextNIx $ Ix.map f i

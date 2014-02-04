@@ -8,6 +8,7 @@ module Hunt.Index.PrefixTreeIndex
 where
 
 import           Control.DeepSeq
+--import           Control.Monad
 
 import           Data.Binary                (Binary (..))
 import           Data.Typeable
@@ -75,6 +76,13 @@ instance Index DmPrefixTree where
 
     unionWith op (DmPT pt1) (DmPT pt2)
         = return . mkDmPT $ SM.unionWith op pt1 pt2
+
+    unionWithConv
+        = error "DmPrefixTree unionWithConv: unused atm"
+{-
+    unionWithConv to f (DmPT i1) (DmPT i2)
+        = liftM mkDmPT $ unionWithConv to f i1 i2
+-}
 
     map f (DmPT pt)
         = return . mkDmPT $ SM.map f pt
