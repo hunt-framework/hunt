@@ -89,8 +89,8 @@ newtype DocIdMap v
 -- ------------------------------------------------------------
 
 instance Binary v => Binary (DocIdMap v) where
-  put = put . toList
-  get = get >>= return . fromList
+  put = put . unDIM
+  get = get >>= return . DIM
 
 -- ------------------------------------------------------------
 
