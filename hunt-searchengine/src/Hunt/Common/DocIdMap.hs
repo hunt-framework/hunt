@@ -84,7 +84,7 @@ toDocIdSet              = S.fromList
 
 newtype DocIdMap v
   = DIM { unDIM :: IM.IntMap v }
-  deriving (Eq, Show, Foldable, Traversable, Functor, NFData, Typeable)
+  deriving (Eq, Show, Foldable, {-Traversable,-} Functor, NFData, Typeable)
 
 -- ------------------------------------------------------------
 

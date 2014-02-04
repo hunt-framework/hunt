@@ -312,6 +312,7 @@ execInsertContext cx ct ixx@(IXH ix dt s)
                    }
              , ResOK )
       where
+      newIx :: IndexImpl Occurrences -> IndexImpl Occurrences
       newIx (IndexImpl i) = mkIndex $ Ix.empty `asTypeOf` i
 
 -- | Deletes the context and the schema associated with it.
