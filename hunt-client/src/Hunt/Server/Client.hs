@@ -143,7 +143,7 @@ httpLbs request = do
 
 autocomplete :: (MonadIO m, Failure HTTP.HttpException m) => Text  -> HolumbusConnectionT m (Either Text [Text])
 autocomplete q = do
-    request <- makeRequest $ T.concat [ "/completion/", q, "/20"]
+    request <- makeRequest $ T.concat [ "completion/", q, "/20"]
     d <- httpLbs request
     return $ (eitherDecodeT >=> handleJsonResponse >=> filterByRest >=> prefixWith) d
     where
@@ -158,7 +158,7 @@ autocomplete q = do
 
 query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m) => Text -> HolumbusConnectionT m  (Either Text (LimitedResult r))
 query q = do
-    request <- makeRequest $ T.concat [ "/search/", q, "/0/20"]
+    request <- makeRequest $ T.concat [ "search/", q, "/0/20"]
     d <- httpLbs request
     return $ (eitherDecodeT >=> handleJsonResponse) d
 
