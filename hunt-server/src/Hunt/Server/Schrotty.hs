@@ -4,6 +4,7 @@
 module Hunt.Server.Schrotty
 ( module Web.Scotty.Trans
 , schrotty
+, schrottyOpts
 , throw
 , jsonData
 , param
@@ -109,12 +110,17 @@ param p = Scotty.param p
             `rescue` (\_ -> throw $ MissingParam $ TEnc.encodeUtf8 p)
 
 -- ----------------------------------------------------------------------------
+runM :: WebErrorM b -> IO b
+runM m = do
+  r <- runErrorT (runWebErrorM m)
+  either (\_ex -> fail $ "exception at startup") return r
+
+-- | 'runActionToIO' is called once per action
+runActionToIO :: WebErrorM Response -> IO Response
+runActionToIO m = runErrorT (runWebErrorM m) >>= either handleError return
 
 schrotty :: Port -> Schrotty () -> IO ()
 schrotty p = Scotty.scottyT p runM runActionToIO
-  where
-  runM m = do
-    r <- runErrorT (runWebErrorM m)
-    either (\_ex -> fail $ "exception at startup") return r
-  -- 'runActionToIO' is called once per action
-  runActionToIO m = runErrorT (runWebErrorM m) >>= either handleError return
+
+schrottyOpts :: Options -> Schrotty () -> IO ()
+schrottyOpts o = Scotty.scottyOptsT o runM runActionToIO

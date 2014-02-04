@@ -4,11 +4,13 @@
 
 module Hunt.Server {-(start)-} where
 
+import           Data.String (fromString)
 import           Control.Monad.Error
 
 import           Data.Text                            (Text)
 
 import           Network.Wai.Middleware.RequestLogger
+import qualified Network.Wai.Handler.Warp as W
 
 import           Hunt.Interpreter.Command
 import           Hunt.Interpreter.Interpreter
@@ -18,6 +20,7 @@ import           Hunt.Query.Ranking
 
 import           Hunt.Server.Common
 import           Hunt.Server.Schrotty             hiding (Options)
+import qualified Hunt.Server.Schrotty             as Schrotty 
 import qualified Hunt.Server.Template             as Tmpl
 
 import           System.IO                            (stdout)
@@ -86,8 +89,8 @@ initLoggers level = do
 
 -- ----------------------------------------------------------------------------
 
-start :: IO ()
-start = do
+start :: HuntServerConfiguration -> IO ()
+start config = do
   -- initialize loggers
   initLoggers $ optLogLevel defaultOptions
 
@@ -96,8 +99,23 @@ start = do
   -- init interpreter
   env <- initEnv emptyIndexer defaultRankConfig contextTypes
 
+  case readIndexOnStartup config of
+    Just filename -> do
+      res <- liftIO $ runCmd env $ LoadIx filename
+      case res of
+        Right ResOK -> debugM "index loaded."
+        Right _ -> fail "unexpected Result"
+        Left res' ->  fail $ show res'
+    Nothing -> return ()
+
+  let options = Schrotty.Options {
+      verbose = 1, settings 
+        = (W.defaultSettings { 
+          W.settingsPort = huntServerPort config, 
+          W.settingsHost = fromString $ huntServerHost config })
+    }
   -- start schrotty
-  schrotty 3000 $ do
+  schrottyOpts options $ do
 
     -- request / response logging
     middleware logStdoutDev

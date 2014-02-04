@@ -106,7 +106,7 @@ instance MonadTrans HolumbusConnectionT where
 newServerAndManager :: Text -> IO ServerAndManager
 newServerAndManager s = do
     m <- HTTP.newManager HTTP.defaultManagerSettings
-    return $ ServerAndManager s m
+    return $ ServerAndManager (checkServerUrl s) m
 
 -- | runs a HolumbusConnectionT with a ServerAndManager
 withServerAndManager :: MonadBaseControl IO m =>  HolumbusConnectionT m a -> ServerAndManager -> m a
@@ -114,17 +114,24 @@ withServerAndManager x = runResourceT . runReaderConnectionT x
 
 -- | runs a HolumbusConnectionT in a monad
 withHolumbusServer :: (MonadIO m, MonadBaseControl IO m) => HolumbusConnectionT m a -> Text -> m a
-withHolumbusServer x s = HTTP.withManager (runReaderConnectionT x . ServerAndManager s)
+withHolumbusServer x s = HTTP.withManager (runReaderConnectionT x . ServerAndManager (checkServerUrl s))
 
 
 runReaderConnectionT :: HolumbusConnectionT m a -> ServerAndManager -> ResourceT m a
 runReaderConnectionT x sm = (runReaderT . runHolumbusConnectionT) x sm
 
+checkServerUrl :: Text -> Text
+checkServerUrl s 
+    | T.null s = "http://localhost:3000/"
+    | '/' == T.last s = s
+    | otherwise = s `T.append` "/"
+
+
 
 makeRequest :: (MonadIO m, Failure HTTP.HttpException m) => Text -> HolumbusConnectionT m HTTP.Request
 makeRequest path = do
     sm <- ask
-    HTTP.parseUrl $ T.unpack $ T.concat [ "http://", unServer sm, path]
+    HTTP.parseUrl $ T.unpack $ T.concat [ unServer sm, path]
 
 httpLbs :: (MonadIO m) => HTTP.Request -> HolumbusConnectionT m ByteString
 httpLbs request = do

@@ -1,6 +1,10 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module Hunt.Server.Common where
+
+import Data.Typeable (Typeable)
+import Data.Data (Data)
 
 import Data.Aeson
 
@@ -21,3 +25,9 @@ instance ToJSON (JsonResponse r f) where
     [ "code"  .= n
     , "msg"   .= msg
     ]
+
+data HuntServerConfiguration = HuntServerConfiguration {
+    huntServerHost :: String, 
+    huntServerPort :: Int, 
+    readIndexOnStartup :: Maybe FilePath
+} deriving (Show, Data, Typeable)
