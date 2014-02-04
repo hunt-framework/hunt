@@ -174,7 +174,8 @@ github-%:
 stringmap: github-sebastian-philipp!StringMap
 # github data-size install
 data-size: github-UweSchmidt!data-size
-
+# use this on ghc 7.8 until version is bumped
+murmur78: github-chrisreu!murmur-hash
 
 membench:
 	$(MAKE) -C hunt-test/bench $@
