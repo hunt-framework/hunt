@@ -1,4 +1,4 @@
-# disable prarallel bulilds. 
+# disable prarallel builds. 
 .NOTPARALLEL:
 
 # the -A option is important for garbage collection performance,
@@ -116,13 +116,13 @@ insertJokes:
 
 # NOTE: profiling does not use the makefile target to start the server (RUNOPTS is discarded)
 profServer: stopServer
-	./server/prof.sh
+	./hunt-server/prof.sh
 
 profServer-fb: stopServer
-	./server/prof.sh "make insertJokes"
+	./hunt-server/prof.sh "make insertJokes"
 
 profServer-rd: stopServer
-	./server/prof.sh "make insertRandom"
+	./hunt-server/prof.sh "make insertRandom"
 
 insertHayoo: ../hayoo/hayooFrontend/functions.js
 	$(MAKE) -e -C ../hayoo/hayoo-json insert SERVER=$(SERVER)
@@ -194,7 +194,6 @@ searchengine-force:
 .PHONY: target clean configure build install test all searchengine server insertJokes startServer \
 		first-install first-install-bs \
 		stopServer sandbox benchmark-ab benchmark-siege runtimeHeapProfile startServer \
-		hayooCrawler hayooCrawler-% \
 		bench bench-* membench membench-* \
 		profServer profServer-fb profServer-rd
 		searchengine-force
