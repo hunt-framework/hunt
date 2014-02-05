@@ -47,6 +47,7 @@ library
 --               , SHA                    >= 1.4  && < 2
                , text                   >= 0.11
                , time                   >= 1.4  && < 2
+               , monad-parallel
 --               , unix                   >= 2.3  && < 3
   if impl( ghc >= 7.7 )
     build-depends: snappy               >= 0.1  && < 1
