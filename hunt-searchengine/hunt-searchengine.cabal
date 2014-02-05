@@ -54,6 +54,9 @@ library
   exposed-modules:
     Control.Concurrent.XMVar
 
+    Codec.Compression.BZip.Smart
+    Codec.Compression.Snappy.Lazy.Smart
+
     Data.Bijection
     Data.Bijection.Instances
     Data.Text.Binary

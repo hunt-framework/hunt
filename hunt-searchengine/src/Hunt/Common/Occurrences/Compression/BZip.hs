@@ -21,7 +21,7 @@ module Hunt.Common.Occurrences.Compression.BZip
   )
 where
 
-import qualified Codec.Compression.BZip                  as ZIP
+import qualified Codec.Compression.BZip.Smart            as ZIP
 
 import           Control.Applicative                     ((<$>))
 import           Control.DeepSeq
@@ -34,7 +34,7 @@ import           Data.ByteString.Short                   (ShortByteString)
 import qualified Data.ByteString.Short                   as Short
 import           Data.Typeable
 
-import qualified Hunt.Common.DocIdMap                as DM
+import qualified Hunt.Common.DocIdMap                    as DM
 import           Hunt.Common.Occurrences
 import           Hunt.Common.Occurrences.Compression
 

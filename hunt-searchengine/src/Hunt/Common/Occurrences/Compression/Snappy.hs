@@ -39,10 +39,10 @@ import qualified Data.ByteString.Short                   as Short
 import           Data.Typeable
 
 #if  __GLASGOW_HASKELL__ >= 770
-import qualified Codec.Compression.Snappy.Lazy           as ZIP
+import qualified Codec.Compression.Snappy.Lazy.Smart     as ZIP
 #endif
 
-import qualified Hunt.Common.DocIdMap                as DM
+import qualified Hunt.Common.DocIdMap                    as DM
 import           Hunt.Common.Occurrences
 import           Hunt.Common.Occurrences.Compression
 
