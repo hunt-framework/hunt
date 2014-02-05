@@ -39,8 +39,8 @@ import qualified Hunt.Common.DocIdMap          as DM
 import qualified Hunt.Common.Positions         as Pos
 --import           Hunt.Index.TextIndex
 
-import           Hunt.IndexHandler       (ContextMap)
-import qualified Hunt.IndexHandler       as CIx
+import           Hunt.ContextIndex             (ContextMap)
+import qualified Hunt.ContextIndex             as CIx
 
 import           Hunt.Query.Fuzzy              (FuzzyConfig)
 import qualified Hunt.Query.Fuzzy              as F

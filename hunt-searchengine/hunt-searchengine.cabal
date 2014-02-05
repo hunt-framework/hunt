@@ -95,7 +95,6 @@ library
     Hunt.Index.ComprPrefixTreeIndex
     Hunt.Index.InvertedIndex
 
---    Hunt.Index.Proxy.ContextIndex
     Hunt.Index.Proxy.CompressedIndex
     Hunt.Index.Proxy.CachedIndex
     Hunt.Index.Proxy.DateNormalizerIndex
@@ -106,7 +105,7 @@ library
     Hunt.DocTable.DocTable
     Hunt.DocTable.HashedDocTable
 
-    Hunt.IndexHandler
+    Hunt.ContextIndex
 
     Hunt.Interpreter.Interpreter
     Hunt.Interpreter.BasicCommand

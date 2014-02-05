@@ -6,7 +6,7 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
-module Hunt.IndexHandler where
+module Hunt.ContextIndex where
 
 import           Prelude
 import qualified Prelude                           as P

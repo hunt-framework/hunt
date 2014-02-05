@@ -44,9 +44,9 @@ import           Hunt.Common.Document.Compression.BZip   (CompressedDoc)
 import qualified Hunt.Index.Index                        as Ix
 import           Hunt.Index.Schema.Analyze
 
-import           Hunt.IndexHandler                       (ContextIndex (..),
+import           Hunt.ContextIndex                       (ContextIndex (..),
                                                               decodeCxIx)
-import qualified Hunt.IndexHandler                       as Ixx
+import qualified Hunt.ContextIndex                       as Ixx
 
 import           Hunt.Index.IndexImpl                    (IndexImpl (..),
                                                               mkIndex)
