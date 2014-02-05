@@ -160,12 +160,8 @@ addDocDescription descr did (Indexer i d)
 -- | Add words for a document to the 'Index'.
 --   /NOTE/: adds words to /existing/ 'Context's.
 addWords :: Monad m => Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
-addWords wrds dId i
-  = foldrWithKeyM (\c wl acc ->
-      foldrWithKeyM (\w ps acc' ->
-        insertWithCx c w (mkOccs dId ps) acc')
-      acc wl)
-      i wrds
+addWords wrds dId (ContextMap m)
+  = mapWithKeyM (\cx impl -> foldInsert cx impl wrds dId) m >>= return . ContextMap
   where
   mkOccs            :: DocId -> [Position] -> Occurrences
   mkOccs did pl     = positionsIntoOccs did pl Occ.empty
@@ -173,7 +169,22 @@ addWords wrds dId i
   positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
   positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws
 
+  getWsForCx :: Words -> Context -> WordList
+  getWsForCx ws c = fromMaybe M.empty (M.lookup c ws)
 
+  foldInsert :: Monad m => Context -> IndexImpl Occurrences -> Words -> DocId -> m (IndexImpl Occurrences)
+  foldInsert cx impl wrds dId
+    = foldrWithKeyM (\w ps (Impl.IndexImpl impl) -> 
+        (Ix.insert w (mkOccs dId ps) impl) >>= return . Impl.mkIndex
+      ) impl (getWsForCx wrds cx)
+
+mapWithKeyM :: (Monad m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
+mapWithKeyM f m =
+  (Prelude.mapM (\(k, a) -> do
+                  b <- f k a
+                  return (k, b)
+                ) $ M.toList m) >>=
+    return . M.fromList
 
 -- | Empty ContextMap.
 empty :: ContextMap v
@@ -203,12 +214,6 @@ insertWithCx c w v (ContextMap m)
       _      -> error "context does not exist"
   --where
   --adjust' (Impl.IndexImpl ix) = Impl.mkIndex $ 
-
-{-
--- | Insert an element to a list of contexts.
-insertWithCxs :: [Context] -> Text -> v -> ContextMap v -> ContextMap v
-insertWithCxs cs w v i = foldr (\c ix -> insertWithCx c w v ix) i cs
--}
 
 delete' :: Monad m => DocIdSet -> ContextMap v -> m (ContextMap v)
 delete' dIds (ContextMap m)

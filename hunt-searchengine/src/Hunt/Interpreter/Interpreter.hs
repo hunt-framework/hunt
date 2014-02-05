@@ -10,8 +10,13 @@
 module Hunt.Interpreter.Interpreter
 ( initEnv
 , runCmd
+, runCM
+, execCmd
+, CM (..)
 , contextTypes
 , emptyIndexer
+, Env (..)
+, DefaultEnv
 )
 where
 
@@ -142,6 +147,8 @@ contextTypes = [ctText, ctInt, ctDate, ctPosition]
 -- the environment
 -- with a MVar for storing the index
 -- so the MVar acts as a global state (within IO)
+type DefaultEnv = Env (Documents CompressedDoc)
+
 data Env dt = Env
   { evIndexer :: DocTable dt => XMVar (ContextIndex dt)
   , evRanking :: RankConfig (Dt.DValue dt)
