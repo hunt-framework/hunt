@@ -32,7 +32,7 @@ class Index i where
     lookupRange  :: (ICon i v, Monad m) => IKey i v -> IKey i v -> i v -> m [(IKey i v, IVal i v)]
 
     -- | Insert occurrences.
-    insert       :: (ICon i v, Monad m) => IKey i v -> IVal i v -> i v -> m (i v)
+    batchInsert  :: (ICon i v, Monad m) => [(IKey i v, IVal i v)] -> i v -> m (i v)
 
     -- | Delete as batch job
     batchDelete  :: (ICon i v, Monad m) => DocIdSet -> i v -> m (i v)

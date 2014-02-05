@@ -56,8 +56,8 @@ instance Index (IntNormalizerIndex impl) where
         , IKey impl v ~ Int
         )
 
-    insert k v (IntNIx i)
-        = liftM mkIntNIx $ insert (Int.normalizeToInt k) v i
+    batchInsert kvs (IntNIx i)
+        = liftM mkIntNIx $ batchInsert (P.map (first Int.normalizeToInt) kvs) i
 
     batchDelete ks (IntNIx i)
         = liftM mkIntNIx $ batchDelete ks i
@@ -119,8 +119,8 @@ instance Index (IntAsTextNormalizerIndex impl) where
         , IKey impl v ~ Text
         )
 
-    insert k v (IntAsTextNIx i)
-        = liftM mkIntAsTextNIx $ insert (Int.normalizeToText k) v i
+    batchInsert kvs (IntAsTextNIx i)
+        = liftM mkIntAsTextNIx $ batchInsert (P.map (first Int.normalizeToText) kvs) i
 
     batchDelete ks (IntAsTextNIx i)
         = liftM mkIntAsTextNIx $ batchDelete ks i

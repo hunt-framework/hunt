@@ -53,8 +53,8 @@ instance Index (KeyProxyIndex from impl) where
         , Bijection from (IKey impl v)
         )
 
-    insert k v (KPIx i)
-        = liftM mkKPIx $ insert (to k) v i
+    batchInsert kvs (KPIx i)
+        = liftM mkKPIx $ batchInsert (P.map (first to) kvs) i
 
     batchDelete ks (KPIx i)
         = liftM mkKPIx $ batchDelete ks i
@@ -104,8 +104,8 @@ instance Index (KeyProxyIndex from (ComprOccIndex impl to)) where
         = liftM (mkKPIx . mkComprIx) $ Ix.map (differenceWithKeySet docIds) pt
 
     -- everything below is copied from the more general instance Index (KeyProxyIndex impl)
-    insert k v (KPIx i)
-        = liftM mkKPIx $ insert (to k) v i
+    batchInsert kvs (KPIx i)
+        = liftM mkKPIx $ batchInsert (P.map (first to) kvs) i
 
     empty
         = mkKPIx $ empty

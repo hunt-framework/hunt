@@ -49,8 +49,8 @@ instance Index (ComprOccIndex impl to) where
         , OccCompression (IVal impl to)
         )
 
-    insert k v (ComprIx i)
-        = liftM mkComprIx $ insert k (compressOcc v) i
+    batchInsert kvs (ComprIx i)
+        = liftM mkComprIx $ batchInsert (P.map (second compressOcc) kvs) i
 
     batchDelete ks (ComprIx i)
         = liftM mkComprIx $ batchDelete ks i

@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE Rank2Types            #-}
-{-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
@@ -11,6 +10,7 @@ module Hunt.ContextIndex where
 import           Prelude
 import qualified Prelude                           as P
 import           Control.Monad
+import           Control.Arrow
 
 import           Data.Set                          (Set)
 import qualified Data.Set                          as S
@@ -36,7 +36,6 @@ import qualified Hunt.Index.Index                  as Ix
 import           Hunt.Index.IndexImpl              (IndexImpl)
 import qualified Hunt.Index.IndexImpl              as Impl
 
-import           Hunt.Utility
 import qualified Control.Monad.Parallel            as Par
 
 -- ----------------------------------------------------------------------------
@@ -179,10 +178,8 @@ addWords wrds dId _i@(ContextMap m)
   getWlForCx ws c = fromMaybe M.empty (M.lookup c ws)
 
   foldInsert :: Monad m => Context -> IndexImpl Occurrences -> Words -> DocId -> m (IndexImpl Occurrences)
-  foldInsert cx ix ws docId
-    = foldrWithKeyM (\w ps (Impl.IndexImpl impl) -> 
-        (Ix.insert w (mkOccs docId ps) impl) >>= return . Impl.mkIndex
-      ) ix (getWlForCx ws cx)
+  foldInsert cx (Impl.IndexImpl impl) ws docId
+    = Ix.batchInsert (map (second (mkOccs docId)) $ M.toList (getWlForCx ws cx)) impl >>= return . Impl.mkIndex
 
 mapWithKeyM :: (Monad m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
 mapWithKeyM f m =
@@ -229,7 +226,7 @@ insertWithCx :: Monad m => Context -> Text -> v -> ContextMap v -> m (ContextMap
 insertWithCx c w v (ContextMap m)
   = case M.lookup c m of
       Just (Impl.IndexImpl ix) -> do
-        ix' <- liftM Impl.mkIndex $ Ix.insert w v ix
+        ix' <- liftM Impl.mkIndex $ Ix.batchInsert [(w,v)] ix
         return $ ContextMap $ M.insert c ix' m
       _      -> error "context does not exist"
   --where

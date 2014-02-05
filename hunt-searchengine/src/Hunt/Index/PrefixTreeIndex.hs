@@ -42,8 +42,8 @@ instance Index DmPrefixTree where
     type IKey DmPrefixTree v = SM.Key
     type IVal DmPrefixTree v = DocIdMap v
 
-    insert k v (DmPT pt)
-        = return . mkDmPT $ SM.insert k v pt
+    batchInsert kvs (DmPT pt) =
+        return . mkDmPT $ SM.union pt (SM.fromList kvs)
 
     batchDelete ks (DmPT pt)
         = return . mkDmPT $ SM.map (\m -> DM.diffWithSet m ks) pt

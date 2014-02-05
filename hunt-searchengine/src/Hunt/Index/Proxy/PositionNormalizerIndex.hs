@@ -54,8 +54,8 @@ instance Index (PositionNormalizerIndex impl) where
         , IKey impl v ~ Text
         )
 
-    insert k v (PosNIx i)
-        = liftM mkPosNIx $ insert (Pos.normalize k) v i
+    batchInsert kvs (PosNIx i)
+        = liftM mkPosNIx $ batchInsert (P.map (first Pos.normalize) kvs) i
 
     batchDelete ks (PosNIx i)
         = liftM mkPosNIx $ batchDelete ks i

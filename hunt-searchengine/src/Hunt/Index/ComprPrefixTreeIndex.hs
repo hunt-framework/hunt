@@ -53,9 +53,9 @@ instance Index ComprOccPrefixTree where
     type IVal ComprOccPrefixTree v = Occurrences
     type ICon ComprOccPrefixTree v = (OccCompression v, NFData v)
 
-    insert k o i1
+    batchInsert kos i1
         = do
-            new' <- fromList [(k, o)] :: Monad m => m (ComprOccPrefixTree Occurrences)
+            new' <- fromList kos :: Monad m => m (ComprOccPrefixTree Occurrences)
             unionWithConv compressOcc (\a b -> compressOcc (Occ.merge (decompressOcc a) b)) i1 new'
 
     -- XXX: not the best solution, but is there really another solution?

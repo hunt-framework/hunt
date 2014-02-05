@@ -54,8 +54,8 @@ instance Index (DateNormalizerIndex impl) where
         , IKey impl v ~ Text
         )
 
-    insert k v (DateNIx i)
-        = liftM mkDateNIx $ insert (Date.normalize k) v i
+    batchInsert kvs (DateNIx i)
+        = liftM mkDateNIx $ batchInsert (P.map (first Date.normalize) kvs) i
 
     batchDelete ks (DateNIx i)
         = liftM mkDateNIx $ batchDelete ks i

@@ -57,8 +57,8 @@ instance Index (CachedIndex impl) where
           , IVal impl v ~ DocIdMap v
           )
 
-    insert k v (CachedIx c i)
-        = liftM (mkCachedIx c) (insert k v i)
+    batchInsert kvs (CachedIx c i)
+        = liftM (mkCachedIx c) (batchInsert kvs i)
 
     batchDelete ks (CachedIx c i)
         = return $ mkCachedIx (IS.union c ks) i
