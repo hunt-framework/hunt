@@ -37,6 +37,7 @@ import           Hunt.Index.IndexImpl              (IndexImpl)
 import qualified Hunt.Index.IndexImpl              as Impl
 
 import           Hunt.Utility
+import qualified Control.Monad.Parallel            as Par
 
 -- ----------------------------------------------------------------------------
 
@@ -74,7 +75,7 @@ instance Binary dt => Binary (ContextIndex dt) where
 -- ----------------------------------------------------------------------------
 
 -- | Insert a Document and Words.
-insert :: (Monad m, DocTable dt)
+insert :: (Par.MonadParallel m, DocTable dt)
        => Dt.DValue dt -> Words -> ContextIndex dt -> m (ContextIndex dt)
 insert doc wrds (ContextIx ix dt s) = do
     (did, newDt) <- Dt.insert dt doc
@@ -82,7 +83,7 @@ insert doc wrds (ContextIx ix dt s) = do
     return $ ContextIx newIx newDt s
 
 -- | Update elements
-update :: (Monad m, DocTable dt)
+update :: (Par.MonadParallel m, DocTable dt)
        => DocId -> Dt.DValue dt -> Words
        -> ContextIndex dt -> m (ContextIndex dt)
 update docId doc' w ix = do
@@ -90,7 +91,7 @@ update docId doc' w ix = do
     insert doc' w ix'
 
 -- | Modify elements
-modify :: (Monad m, DocTable dt)
+modify :: (Par.MonadParallel m, DocTable dt)
        => (Dt.DValue dt -> m (Dt.DValue dt))
        -> Words -> DocId -> ContextIndex dt -> m (ContextIndex dt)
 modify f wrds dId (ContextIx ii dt s) = do
@@ -133,7 +134,7 @@ member u (ContextIx _ii dt _s) = do
 
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
-modifyWithDescription :: (Monad m, DocTable dt)
+modifyWithDescription :: (Par.MonadParallel m, DocTable dt)
                       => Description -> Words -> DocId -> ContextIndex dt -> m (ContextIndex dt)
 modifyWithDescription descr wrds dId (ContextIx ii dt s) = do
     newDocTable <- Dt.adjust mergeDescr dId dt
@@ -159,7 +160,7 @@ addDocDescription descr did (Indexer i d)
 
 -- | Add words for a document to the 'Index'.
 --   /NOTE/: adds words to /existing/ 'Context's.
-addWords :: Monad m => Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
+addWords :: Par.MonadParallel m => Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
 addWords wrds dId (ContextMap m)
   = mapWithKeyM (\cx impl -> foldInsert cx impl wrds dId) m >>= return . ContextMap
   where
@@ -185,6 +186,20 @@ mapWithKeyM f m =
                   return (k, b)
                 ) $ M.toList m) >>=
     return . M.fromList
+
+-- | parallel map
+--   increasing cpu usage from 30% to 60% 
+--   but runtime is actually slower 
+mapWithKeyMP :: (Par.MonadParallel m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
+mapWithKeyMP f m =
+  (Par.mapM (\(k, a) -> do
+                  b <- f k a
+                  return (k, b)
+                ) $ M.toList m) >>=
+    return . M.fromList
+
+
+
 
 -- | Empty ContextMap.
 empty :: ContextMap v
