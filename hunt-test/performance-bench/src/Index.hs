@@ -67,7 +67,10 @@ main = do
   hunt <- initEnv emptyIndexer defaultRankConfig contextTypes
   docs <- (getJson "./../data/random/RandomData.js" :: IO [ApiDocument])
   _ <- mapM (\c -> monitorCmd hunt $ InsertContext c (ContextSchema Nothing [] 1.0 True ctText)) [ "id", "context1", "context2", "contextdate", "contextgeo", "contextint" ] 
+  start <- getCurrentTime  
   _ <- mapM (\doc -> monitorCmd hunt $ Insert doc) docs
+  end <- getCurrentTime
+  putStrLn $ "overall execution time: " ++ show (diffUTCTime end start)
   return ()
 
 monitorCmd hunt cmd = do
