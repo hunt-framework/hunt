@@ -7,14 +7,14 @@ module Hunt.Interpreter.Command
 )
 where
 
-import           Control.Monad                     (mzero)
-import           Control.Monad.Error               (Error (..))
+import           Control.Monad                 (mzero)
+import           Control.Monad.Error           (Error (..))
 
 import           Data.Aeson
 import           Data.List
-import qualified Data.Set                          as S
-import           Data.Text                         (Text)
-import qualified Data.Text                         as T
+import qualified Data.Set                      as S
+import           Data.Text                     (Text)
+import qualified Data.Text                     as T
 
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
