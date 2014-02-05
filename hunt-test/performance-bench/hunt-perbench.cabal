@@ -1,0 +1,41 @@
+name:          hunt-perbench
+version:       0.0.0.1
+license:       MIT
+-- license-file:  LICENSE
+author:
+copyright:
+maintainer:
+stability:     experimental
+category:      Test, Benchmark
+synopsis:      Memory benchmarks for the Hunt packages.
+homepage:      http://github.com/hunt-framework
+description:   Memory benchmarks for the Hunt packages.
+cabal-version: >=1.8
+build-type:    Simple
+
+source-repository head
+  type:        git
+  location:    https://github.com/hunt-framework/hunt.git
+
+executable hunt-perbench
+  main-is:        Index.hs
+  hs-source-dirs: src
+  other-modules:
+  build-depends:   base                   >= 4.5  && < 5
+                 , containers             >= 0.5
+                 , aeson
+                 , aeson-pretty
+                 , binary                 >= 0.5  && < 1
+                 , bytestring                        < 1
+                 , filepath
+                 , hunt-searchengine      >= 0.1
+                 , process                >= 1    && < 2
+                 , text                   >= 0.11 && < 1
+                 , time                   >= 1.4  && < 2
+                 , unix                   >= 2.3  && < 3
+  ghc-options:   -threaded
+                 -Wall
+                 -with-rtsopts=-T
+                 -rtsopts
+                 -fwarn-tabs
+  extensions:
