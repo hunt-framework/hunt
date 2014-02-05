@@ -161,8 +161,13 @@ addDocDescription descr did (Indexer i d)
 -- | Add words for a document to the 'Index'.
 --   /NOTE/: adds words to /existing/ 'Context's.
 addWords :: Par.MonadParallel m => Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
-addWords wrds dId (ContextMap m)
-  = mapWithKeyM (\cx impl -> foldInsert cx impl wrds dId) m >>= return . ContextMap
+addWords wrds dId i@(ContextMap m)
+--  = foldrWithKeyM (\c wl acc ->
+--      foldrWithKeyM (\w ps acc' ->
+--        insertWithCx c w (mkOccs dId ps) acc')
+--      acc wl) i wrds
+
+  = mapWithKeyMP (\cx impl -> foldInsert cx impl wrds dId) m >>= return . ContextMap
   where
   mkOccs            :: DocId -> [Position] -> Occurrences
   mkOccs did pl     = positionsIntoOccs did pl Occ.empty
