@@ -1,21 +1,26 @@
 module Main where
 
-import Hunt.Server (start)
-import Hunt.Server.Common
-import System.Console.CmdArgs (cmdArgs, (&=), explicit, name, help, summary, typFile)
+import           Hunt.Server            (start)
+import           Hunt.Server.Common
+import           System.Console.CmdArgs (cmdArgs, explicit, help, name, program,
+                                         summary, typFile, (&=))
 
-hayooConfiguration :: HuntServerConfiguration
-hayooConfiguration = HuntServerConfiguration {
+-- ----------------------------------------------------------------------------
+
+huntConfiguration :: HuntServerConfiguration
+huntConfiguration = HuntServerConfiguration {
         huntServerHost = "*"  &= explicit &= name "host" 
-            &= help "Which host to bind: * means any, *4 means any IPv4, *6 means any IPv6, you can also specify a specific host.",
+            &= help "Bind to altenate host (* = any, *4 = any IPv4, *6 = any IPv6)",
         huntServerPort = (3000::Int)  &= explicit &= name "port" 
-            &= help "Listen on this Port",
+            &= help "Listen on alternate port",
         readIndexOnStartup = Nothing &= explicit &= name "load-index" &= typFile
-            &= help "If given, this index will be loaded on startup"
-    } &= summary "Standalone search server based on hunt searchengine"
+            &= help "Load index on startup"
+    } &= summary "Standalone search server based on the hunt searchengine."
+      &= program "hunt-server"
+
+-- ----------------------------------------------------------------------------
 
 main :: IO ()
 main = do
-    config <- cmdArgs hayooConfiguration
+    config <- cmdArgs huntConfiguration
     start config
-    
