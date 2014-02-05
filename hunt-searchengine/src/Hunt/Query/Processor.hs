@@ -39,8 +39,8 @@ import qualified Hunt.Common.DocIdMap          as DM
 import qualified Hunt.Common.Positions         as Pos
 --import           Hunt.Index.TextIndex
 
-import           Hunt.Index.Proxy.ContextIndex (ContextIndex)
-import qualified Hunt.Index.Proxy.ContextIndex as CIx
+import           Hunt.IndexHandler       (ContextMap)
+import qualified Hunt.IndexHandler       as CIx
 
 import           Hunt.Query.Fuzzy              (FuzzyConfig)
 import qualified Hunt.Query.Fuzzy              as F
@@ -100,7 +100,7 @@ data ProcessEnv
   = ProcessEnv
     { psConfig   :: ! ProcessConfig    -- ^ The configuration for the query processor.
     , psContexts :: ! [Context]        -- ^ The current list of contexts.
-    , psIndex    ::   ContextIndex Occurrences  -- ^ The index to search.
+    , psIndex    ::   ContextMap Occurrences  -- ^ The index to search.
     , psSchema   ::   Schema           -- ^ Schema / Schemas for the contexts.
     }
 
@@ -108,7 +108,7 @@ data ProcessEnv
 -- | Processor monad
 -- ----------------------------------------------------------------------------
 
-type QueryIndex    = ContextIndex     Occurrences
+type QueryIndex    = ContextMap     Occurrences
 
 -- | the processor monad
 newtype ProcessorT m a = PT { runProcessor :: ReaderT ProcessEnv (ErrorT CmdError m) a }
@@ -181,12 +181,11 @@ normQueryCxs ::   [Context] -> Text -> Processor [(Context, Text)]
 normQueryCxs cs t  = mapM (\c -> normQueryCx c t >>= \nt -> return (c, nt)) cs
 
 -- | Initialize the state of the processor.
-initEnv :: ProcessConfig -> QueryIndex -> Schema
-          -> ProcessEnv
+initEnv :: ProcessConfig -> QueryIndex -> Schema -> ProcessEnv
 initEnv cfg ix s
   = ProcessEnv cfg cxs ix s
   where -- XXX: kind of inefficient
-  cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault) $ CIx.contexts ix
+  cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault) $ CIx.contexts' ix
 
 -- ----------------------------------------------------------------------------
 -- | processor code
@@ -204,8 +203,8 @@ process o = case o of
   QWord QCase w       -> forAllContexts . processWordCase      $ w
   QWord QNoCase w     -> forAllContexts . processWordNoCase    $ w
   QWord QFuzzy w      -> processFuzzyWord                      $ w
-  QPhrase QCase w     -> forAllContexts . processPhraseCase   $ w
-  QPhrase QNoCase w   -> forAllContexts . processPhraseNoCase $ w
+  QPhrase QCase w     -> forAllContexts . processPhraseCase    $ w
+  QPhrase QNoCase w   -> forAllContexts . processPhraseNoCase  $ w
   QPhrase QFuzzy w    -> processPhraseFuzzy  $ w
   QContext c q        -> processContexts c q
   QBinary op q1 q2    -> do -- XXX: maybe parallel
