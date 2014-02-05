@@ -161,7 +161,7 @@ addDocDescription descr did (Indexer i d)
 -- | Add words for a document to the 'Index'.
 --   /NOTE/: adds words to /existing/ 'Context's.
 addWords :: Par.MonadParallel m => Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
-addWords wrds dId i@(ContextMap m)
+addWords wrds dId _i@(ContextMap m)
 --  = foldrWithKeyM (\c wl acc ->
 --      foldrWithKeyM (\w ps acc' ->
 --        insertWithCx c w (mkOccs dId ps) acc')
@@ -175,18 +175,18 @@ addWords wrds dId i@(ContextMap m)
   positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
   positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws
 
-  getWsForCx :: Words -> Context -> WordList
-  getWsForCx ws c = fromMaybe M.empty (M.lookup c ws)
+  getWlForCx :: Words -> Context -> WordList
+  getWlForCx ws c = fromMaybe M.empty (M.lookup c ws)
 
   foldInsert :: Monad m => Context -> IndexImpl Occurrences -> Words -> DocId -> m (IndexImpl Occurrences)
-  foldInsert cx impl wrds dId
+  foldInsert cx ix ws docId
     = foldrWithKeyM (\w ps (Impl.IndexImpl impl) -> 
-        (Ix.insert w (mkOccs dId ps) impl) >>= return . Impl.mkIndex
-      ) impl (getWsForCx wrds cx)
+        (Ix.insert w (mkOccs docId ps) impl) >>= return . Impl.mkIndex
+      ) ix (getWlForCx ws cx)
 
 mapWithKeyM :: (Monad m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
 mapWithKeyM f m =
-  (Prelude.mapM (\(k, a) -> do
+  (P.mapM (\(k, a) -> do
                   b <- f k a
                   return (k, b)
                 ) $ M.toList m) >>=

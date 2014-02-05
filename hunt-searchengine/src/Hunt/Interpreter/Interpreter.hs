@@ -12,7 +12,8 @@ module Hunt.Interpreter.Interpreter
 , runCmd
 , runCM
 , execCmd
-, CM (..)
+, CM
+, CMT (..)
 , contextTypes
 , emptyIndexer
 , Env (..)
