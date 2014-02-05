@@ -37,6 +37,8 @@ type TestCM a = CM (Documents CompressedDoc) a
 rankConfig :: DocumentWrapper e => RankConfig e
 rankConfig = defaultRankConfig
 
+execCmd' cmd = execCmd (toBasicCommand cmd)
+
 main :: IO ()
 main = defaultMain
   -- general test cases
@@ -182,13 +184,13 @@ test_insertAndSearch = do
 test_alot :: Assertion
 test_alot = testCM $ do
   --throwNYI "user error"
-  insCR <- execCmd insertDefaultContext
+  insCR <- execCmd' insertDefaultContext
   liftIO $ ResOK @=? insCR
-  insR <- execCmd $ Insert brainDoc
+  insR <- execCmd' $ Insert brainDoc
   liftIO $ ResOK @=? insR
-  seaR <- execCmd $ Search (QWord QNoCase "Brain") os pp
+  seaR <- execCmd' $ Search (QWord QNoCase "Brain") os pp
   liftIO $ ["test://0"] @=? searchResultUris seaR
-  seaR2 <- execCmd $ Search (QWord QCase "brain") os pp
+  seaR2 <- execCmd' $ Search (QWord QCase "brain") os pp
   liftIO $ [] @=? searchResultUris seaR2
   where
   os = 0
@@ -198,7 +200,7 @@ test_alot = testCM $ do
 -- fancy functions
 -- characters were chosen without any reason
 (@@@) :: Command -> (CmdResult -> IO b) -> TestCM b
-a @@@ f = execCmd a >>= liftIO . f
+a @@@ f = execCmd' a >>= liftIO . f
 
 (@@=) :: Command -> CmdResult -> TestCM ()
 a @@= b = a @@@ (@?=b)
@@ -357,7 +359,7 @@ test_fancy = testCM $ do
     @@@ ((@?= apiDocDescrMap brainDocMerged) . desc . head . lrResult . crRes)
 
   -- delete return the correct result value
-  BatchDelete (S.singleton "test://0")
+  Delete ("test://0")
     @@= ResOK
   -- the doc is gone
   Search (QWord QNoCase "Brain") os pp

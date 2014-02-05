@@ -21,9 +21,9 @@ import qualified Hunt.Index.Index                 as Ix
 import qualified Hunt.Index.InvertedIndex         as InvIx
 import qualified Hunt.Index.PrefixTreeIndex       as PIx
 import qualified Hunt.Index.Proxy.CompressedIndex as CPIx
-import qualified Hunt.Index.Proxy.ContextIndex    as ConIx
 import           Hunt.Index.IndexImpl
-import           Hunt.IndexHandler                (addWords)
+import           Hunt.ContextIndex                (addWords)
+import qualified Hunt.ContextIndex                as ConIx
 -- ----------------------------------------------------------------------------
 
 main :: IO ()
@@ -32,8 +32,8 @@ main = defaultMainWithOpts
   , testCase "InvertedIndex:           insert"        insertTestInvIx
   , testCase "InvertedIndex:           merge"         mergeTestInvIx
   , testCase "ComprOccPrefixTree:      insert"        insertTestCPIx
-  , testCase "ContextIndex Inverted:   insert"        insertTestContextIx
-  , testCase "ContextIndex Inverted:   insertContext" insertTestContext
+  , testCase "ContextMap Inverted:   insert"        insertTestContextIx
+  , testCase "ContextMap Inverted:   insertContext" insertTestContext
   , testCase "TextIndex:               addWords"      addWordsTest
   ] mempty
 
@@ -89,7 +89,7 @@ mergeTestInvIx = do
             "test" (singleton 1 1) (singleton 1 2)
   True @?= result
 
--- | check ContextIndex
+-- | check ContextMap
 insertTestContextIx :: Assertion
 insertTestContextIx
   = do
@@ -99,7 +99,7 @@ insertTestContextIx
     True @?= newElem == insertedElem
   where
   newElem = singleton 1 1
-  emptyIndex :: ConIx.ContextIndex Occurrences
+  emptyIndex :: ConIx.ContextMap Occurrences
   emptyIndex = ConIx.empty
   impl       :: InvIx.InvertedIndex Occurrences
   impl       = Ix.empty
@@ -107,8 +107,8 @@ insertTestContextIx
 insertTestContext :: Assertion
 insertTestContext = "test" @?= insertedContext
   where
-  [insertedContext] = ConIx.contexts ix
-  ix :: ConIx.ContextIndex Occurrences
+  [insertedContext] = ConIx.contexts' ix
+  ix :: ConIx.ContextMap Occurrences
   ix = ConIx.insertContext "test" (mkIndex (Ix.empty :: InvIx.InvertedIndex Occurrences)) ConIx.empty
 
 -- ----------------------------------------------------------------------------
@@ -121,7 +121,7 @@ addWordsTest = do
   resList <- ConIx.searchWithCx PrefixNoCase "default" "word" $ resIx
   True @?= length resList == 1
   where
-  emptyIndex :: ConIx.ContextIndex Occurrences
+  emptyIndex :: ConIx.ContextMap Occurrences
   emptyIndex =  ConIx.insertContext "default" (mkIndex impl) ConIx.empty
   impl       :: InvIx.InvertedIndex Occurrences
   impl       = Ix.empty
