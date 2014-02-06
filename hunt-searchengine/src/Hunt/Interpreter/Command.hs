@@ -176,21 +176,26 @@ toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
   optGroup cs'@(Delete{}:_)
     = foldl (\(Cmd.BatchDelete us) (Delete u)
                 -> Cmd.BatchDelete (S.insert u us)) (Cmd.BatchDelete S.empty) cs' : []
+  -- groups of Insert to BatchInsert
+  optGroup cs'@(Insert{}:_)
+    = foldl (\(Cmd.BatchInsert us) (Insert u)
+                -> Cmd.BatchInsert (u:us)) (Cmd.BatchInsert []) cs' : []
   optGroup cs'@(Sequence{}:_)
     = map toBasicCommand cs'
   optGroup cs'
     = map toBasicCommand cs'
   -- group by constructor
-  -- NOTE: just delete and sequence because that are the only optimizations for now
+  -- NOTE: add constructors to use in optGroup
   equalHeads :: Command -> Command -> Bool
   equalHeads Delete{}   Delete{}   = True
+  equalHeads Insert{}   Insert{}   = True
   equalHeads Sequence{} Sequence{} = True
   equalHeads _ _                   = False
 
 toBasicCommand (Delete u)          = Cmd.BatchDelete $ S.singleton u
 toBasicCommand (Search a b c)      = Cmd.Search a b c
 toBasicCommand (Completion a b)    = Cmd.Completion a b
-toBasicCommand (Insert a)          = Cmd.Insert a
+toBasicCommand (Insert a)          = Cmd.BatchInsert [a]
 toBasicCommand (Update a)          = Cmd.Update a
 toBasicCommand (InsertContext a b) = Cmd.InsertContext a b
 toBasicCommand (DeleteContext a)   = Cmd.DeleteContext a

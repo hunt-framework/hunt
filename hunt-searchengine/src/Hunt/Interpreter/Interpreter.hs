@@ -269,8 +269,8 @@ execCmd' NOOP
 execCmd' (Status sc)
     = execStatus sc
 
-execCmd' (Insert doc)
-    = modIx $ execInsert doc
+execCmd' (BatchInsert docs)
+    = modIx $ execBatchInsert docs
 
 execCmd' (Update doc)
     = modIx $ execUpdate doc
@@ -331,7 +331,7 @@ execDeleteContext :: DocTable dt
 execDeleteContext cx (ContextIx ix dt s)
   = return (ContextIx (Ixx.deleteContext cx ix) dt (M.delete cx s), ResOK)
 
-
+{-
 -- | Inserts an 'ApiDocument' into the index.
 -- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs must not exist.
@@ -344,6 +344,22 @@ execInsert doc ixx@(ContextIx _ix _dt schema) = do
     checkApiDocExistence False doc ixx
     let (docs, ws) = toDocAndWords schema doc
     ixx' <- lift $ Ixx.insert docs ws ixx
+    return (ixx', ResOK)
+-}
+
+-- | Inserts an 'ApiDocument' into the index.
+-- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
+-- Documents/URIs must not exist.
+execBatchInsert :: DocTable dt
+                => [ApiDocument] -> ContextIndex dt -> CM dt (ContextIndex dt, CmdResult)
+execBatchInsert docs ixx@(ContextIx _ix _dt schema) = do
+    -- TODO: use set for undup
+    let contexts = concatMap (M.keys . apiDocIndexMap) docs
+    checkContextsExistence contexts ixx
+    -- apidoc should not exist
+    mapM_ (flip (checkApiDocExistence False) ixx) docs
+    let docsAndWords = map (toDocAndWords schema) docs
+    ixx' <- lift $ Ixx.batchInsert docsAndWords ixx
     return (ixx', ResOK)
 
 

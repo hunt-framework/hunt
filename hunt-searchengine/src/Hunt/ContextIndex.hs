@@ -9,8 +9,10 @@ module Hunt.ContextIndex where
 
 import           Prelude
 import qualified Prelude                           as P
-import           Control.Monad
+
 import           Control.Arrow
+import           Control.Monad
+import qualified Control.Monad.Parallel            as Par
 
 import           Data.Set                          (Set)
 import qualified Data.Set                          as S
@@ -36,7 +38,7 @@ import qualified Hunt.Index.Index                  as Ix
 import           Hunt.Index.IndexImpl              (IndexImpl)
 import qualified Hunt.Index.IndexImpl              as Impl
 
-import qualified Control.Monad.Parallel            as Par
+import           Hunt.Utility
 
 -- ----------------------------------------------------------------------------
 
@@ -74,11 +76,27 @@ instance Binary dt => Binary (ContextIndex dt) where
 -- ----------------------------------------------------------------------------
 
 -- | Insert a Document and Words.
+--   /NOTE/: For multiple inserts, use the more efficient 'batchInsert'.
 insert :: (Par.MonadParallel m, DocTable dt)
        => Dt.DValue dt -> Words -> ContextIndex dt -> m (ContextIndex dt)
 insert doc wrds (ContextIx ix dt s) = do
     (did, newDt) <- Dt.insert dt doc
     newIx        <- addWords wrds did ix
+    return $ ContextIx newIx newDt s
+
+-- | Insert multiple Documents and Words.
+--   This is more efficient than using fold and 'insert'.
+batchInsert :: (Par.MonadParallel m, DocTable dt)
+       => [(Dt.DValue dt, Words)] -> ContextIndex dt -> m (ContextIndex dt)
+batchInsert docAndWrds (ContextIx ix dt s) = do
+    (newDt, docIdsAndWrds)
+        <- foldM'
+              (\(docTable, wordAcc) (doc, wrds)
+                  -> Dt.insert docTable doc
+                      >>= \(dId, docTable') -> return (docTable', (dId, wrds):wordAcc))
+              (dt, [])
+              docAndWrds
+    newIx <- batchAddWords docIdsAndWrds ix
     return $ ContextIx newIx newDt s
 
 -- | Update elements
@@ -157,29 +175,42 @@ addDocDescription descr did (Indexer i d)
 ----------------------------------------------------------------------------
 -- helper
 
--- | Add words for a document to the 'Index'.
---   /NOTE/: adds words to /existing/ 'Context's.
+
 addWords :: Par.MonadParallel m => Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
 addWords wrds dId _i@(ContextMap m)
+  = mapWithKeyMP (\cx impl -> foldInsert cx impl wrds dId) m >>= return . ContextMap
 --  = foldrWithKeyM (\c wl acc ->
 --      foldrWithKeyM (\w ps acc' ->
 --        insertWithCx c w (mkOccs dId ps) acc')
 --      acc wl) i wrds
-
-  = mapWithKeyMP (\cx impl -> foldInsert cx impl wrds dId) m >>= return . ContextMap
   where
-  mkOccs            :: DocId -> [Position] -> Occurrences
-  mkOccs did pl     = positionsIntoOccs did pl Occ.empty
-
-  positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
-  positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws
-
-  getWlForCx :: Words -> Context -> WordList
-  getWlForCx ws c = fromMaybe M.empty (M.lookup c ws)
-
   foldInsert :: Monad m => Context -> IndexImpl Occurrences -> Words -> DocId -> m (IndexImpl Occurrences)
   foldInsert cx (Impl.IndexImpl impl) ws docId
-    = Ix.batchInsert (map (second (mkOccs docId)) $ M.toList (getWlForCx ws cx)) impl >>= return . Impl.mkIndex
+    = Ix.batchInsert (map (second (mkOccs docId)) $ M.toList (getWlForCx cx ws)) impl >>= return . Impl.mkIndex
+
+
+-- | Add words for a document to the 'Index'.
+--   /NOTE/: adds words to /existing/ 'Context's.
+batchAddWords :: Par.MonadParallel m => [(DocId, Words)] -> ContextMap Occurrences -> m (ContextMap Occurrences)
+batchAddWords wrdsAndDocIds _i@(ContextMap m)
+  = mapWithKeyMP (\cx impl -> foldBatchInsert cx impl wrdsAndDocIds) m >>= return . ContextMap
+  where
+  foldBatchInsert :: Monad m => Context -> IndexImpl Occurrences -> [(DocId, Words)] -> m (IndexImpl Occurrences)
+  foldBatchInsert cx (Impl.IndexImpl impl) docIdsAndWrds
+    = Ix.batchInsert (concat . map ((\(did, wl) -> map (second (mkOccs did)) $ M.toList wl) . second (getWlForCx cx)) $ docIdsAndWrds) impl
+        >>= return . Impl.mkIndex
+
+----------------------------------------------------------------------------
+-- addWords/batchAddWords functions
+
+positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
+positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws
+
+mkOccs            :: DocId -> [Position] -> Occurrences
+mkOccs did pl     = positionsIntoOccs did pl Occ.empty
+
+getWlForCx :: Context -> Words -> WordList
+getWlForCx cx ws = fromMaybe M.empty (M.lookup cx ws)
 
 mapWithKeyM :: (Monad m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
 mapWithKeyM f m =
@@ -190,8 +221,8 @@ mapWithKeyM f m =
     return . M.fromList
 
 -- | parallel map
---   increasing cpu usage from 30% to 60% 
---   but runtime is actually slower 
+--   increasing cpu usage from 30% to 60%
+--   but runtime is actually slower
 mapWithKeyMP :: (Par.MonadParallel m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
 mapWithKeyMP f m =
   (Par.mapM (\(k, a) -> do
@@ -200,8 +231,7 @@ mapWithKeyMP f m =
                 ) $ M.toList m) >>=
     return . M.fromList
 
-
-
+----------------------------------------------------------------------------
 
 -- | Empty ContextMap.
 empty :: ContextMap v
@@ -230,7 +260,7 @@ insertWithCx c w v (ContextMap m)
         return $ ContextMap $ M.insert c ix' m
       _      -> error "context does not exist"
   --where
-  --adjust' (Impl.IndexImpl ix) = Impl.mkIndex $ 
+  --adjust' (Impl.IndexImpl ix) = Impl.mkIndex $
 
 delete' :: Monad m => DocIdSet -> ContextMap v -> m (ContextMap v)
 delete' dIds (ContextMap m)
