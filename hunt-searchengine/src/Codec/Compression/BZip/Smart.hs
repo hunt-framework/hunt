@@ -49,7 +49,7 @@ compressSmartWithTrace :: BL.ByteString -> BL.ByteString
 compressSmartWithTrace = traceCompress compressSmart
 
 decompressSmart :: BL.ByteString -> BL.ByteString
-decompressSmart = decompressCond decompress
+decompressSmart = decompressCond decompress'
 
 {-# INLINE compressSmart #-}
 {-# INLINE decompressSmart #-}
