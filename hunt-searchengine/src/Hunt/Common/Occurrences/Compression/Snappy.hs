@@ -32,15 +32,12 @@ import           Control.DeepSeq
 
 import           Data.Binary                             (Binary (..))
 import qualified Data.Binary                             as B
---import qualified Data.ByteString                         as BS
 import qualified Data.ByteString.Lazy                    as BL
 import           Data.ByteString.Short                   (ShortByteString)
 import qualified Data.ByteString.Short                   as Short
 import           Data.Typeable
 
-#if  __GLASGOW_HASKELL__ >= 770
 import qualified Codec.Compression.Snappy.Lazy.Smart     as ZIP
-#endif
 
 import qualified Hunt.Common.DocIdMap                    as DM
 import           Hunt.Common.Occurrences
@@ -84,7 +81,6 @@ instance Binary CompressedOccurrences where
 
 -- ----------------------------------------------------------------------------
 
-#if  __GLASGOW_HASKELL__ >= 770
 --compress :: Binary a => a -> CompressedOccurrences
 compress :: Occurrences -> CompressedOccurrences
 compress = mkComprOccs . Short.toShort . BL.toStrict . ZIP.compress . B.encode
@@ -92,12 +88,3 @@ compress = mkComprOccs . Short.toShort . BL.toStrict . ZIP.compress . B.encode
 --decompress :: Binary a => CompressedOccurrences -> a
 decompress :: CompressedOccurrences -> Occurrences
 decompress = B.decode . ZIP.decompress . BL.fromStrict . Short.fromShort . unComprOccs
-
-#else
-#warning snappy is disabled if GHC < 7.7
-compress :: Occurrences -> CompressedOccurrences
-compress = mkComprOccs . Short.toShort . BL.toStrict . B.encode
-
-decompress :: CompressedOccurrences -> Occurrences
-decompress = B.decode . BL.fromStrict . Short.fromShort . unComprOccs
-#endif
