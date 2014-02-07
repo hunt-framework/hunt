@@ -4,6 +4,7 @@ module Hunt.Index.IndexImpl where
 
 import           Control.Applicative         ((<$>))
 import           Control.Monad
+import           Control.DeepSeq
 
 import           Data.Binary
 import qualified Data.List                   as L
@@ -37,6 +38,9 @@ data IndexImpl v
 
 instance Show (IndexImpl v) where
   show (IndexImpl v) = show v
+
+instance NFData (IndexImpl v) where
+  rnf (IndexImpl v) = v `seq` ()
 
 -- ------------------------------------------------------------
 
