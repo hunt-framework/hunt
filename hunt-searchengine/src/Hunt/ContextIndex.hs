@@ -186,7 +186,7 @@ addWords wrds dId _i@(ContextMap m)
   where
   foldInsert :: Monad m => Context -> IndexImpl Occurrences -> Words -> DocId -> m (IndexImpl Occurrences)
   foldInsert cx (Impl.IndexImpl impl) ws docId
-    = Ix.batchInsert (map (second (mkOccs docId)) $ M.toList (getWlForCx cx ws)) impl >>= return . Impl.mkIndex
+    = Ix.batchInsertM (map (second (mkOccs docId)) $ M.toList (getWlForCx cx ws)) impl >>= return . Impl.mkIndex
 
 
 -- | Add words for a document to the 'Index'.
@@ -197,7 +197,7 @@ batchAddWords wrdsAndDocIds _i@(ContextMap m)
   where
   foldBatchInsert :: Monad m => Context -> IndexImpl Occurrences -> [(DocId, Words)] -> m (IndexImpl Occurrences)
   foldBatchInsert cx (Impl.IndexImpl impl) docIdsAndWrds
-    = Ix.batchInsert (concat . map ((\(did, wl) -> map (second (mkOccs did)) $ M.toList wl) . second (getWlForCx cx)) $ docIdsAndWrds) impl
+    = Ix.batchInsertM (concat . map ((\(did, wl) -> map (second (mkOccs did)) $ M.toList wl) . second (getWlForCx cx)) $ docIdsAndWrds) impl
         >>= return . Impl.mkIndex
 
 ----------------------------------------------------------------------------
@@ -256,7 +256,7 @@ insertWithCx :: Monad m => Context -> Text -> v -> ContextMap v -> m (ContextMap
 insertWithCx c w v (ContextMap m)
   = case M.lookup c m of
       Just (Impl.IndexImpl ix) -> do
-        ix' <- liftM Impl.mkIndex $ Ix.batchInsert [(w,v)] ix
+        ix' <- liftM Impl.mkIndex $ Ix.batchInsertM [(w,v)] ix
         return $ ContextMap $ M.insert c ix' m
       _      -> error "context does not exist"
   --where
@@ -266,19 +266,19 @@ delete' :: Monad m => DocIdSet -> ContextMap v -> m (ContextMap v)
 delete' dIds (ContextMap m)
   = liftM ContextMap $ TV.mapM adjust' m
   where
-  adjust' (Impl.IndexImpl ix) = liftM Impl.mkIndex $ Ix.batchDelete dIds ix
+  adjust' (Impl.IndexImpl ix) = liftM Impl.mkIndex $ Ix.batchDeleteM dIds ix
 
 search :: Monad m => TextSearchOp -> Text -> ContextMap v -> m [(Context, [(Text, v)])]
 search op k (ContextMap m)
   = liftM M.toList $ TV.mapM search' m
   where
-  search' (Impl.IndexImpl ix) = Ix.search op k ix
+  search' (Impl.IndexImpl ix) = Ix.searchM op k ix
 
 -- XXX: code duplication? - see searchwithcx...
 lookupRangeCx :: Monad m => Context -> Text -> Text -> ContextMap v -> m [(Text, v)]
 lookupRangeCx c k1 k2 (ContextMap m)
   = case M.lookup c m of
-      Just (Impl.IndexImpl cm) -> Ix.lookupRange k1 k2 cm
+      Just (Impl.IndexImpl cm) -> Ix.lookupRangeM k1 k2 cm
       _                        -> return []
 
 lookupRangeCxs :: Monad m => [Context] -> Text -> Text -> ContextMap v -> m [(Context, [(Text, v)])]
@@ -287,14 +287,14 @@ lookupRangeCxs cs k1 k2 (ContextMap m)
   where
   search' c = case M.lookup c m of
       Just (Impl.IndexImpl cm) -> do
-        ix <- Ix.lookupRange k1 k2 cm
+        ix <- Ix.lookupRangeM k1 k2 cm
         return (c, ix)
       _ -> return (c, [])
 
 searchWithCx :: Monad m => TextSearchOp -> Context -> Text -> ContextMap v -> m [(Text, v)]
 searchWithCx op c k (ContextMap m)
   = case M.lookup c m of
-      Just (Impl.IndexImpl cm) -> Ix.search op k cm
+      Just (Impl.IndexImpl cm) -> Ix.searchM op k cm
       _                        -> return []
 
 -- | XXX we actually do not have any parallelism here at the moment
@@ -305,7 +305,7 @@ searchWithCxs op cs k (ContextMap m)
   where
   search' c = case M.lookup c m of
       Just (Impl.IndexImpl cm) -> do
-        ix <- Ix.search op k cm
+        ix <- Ix.searchM op k cm
         return (c, ix)
       _ -> return (c, [])
 
@@ -316,7 +316,7 @@ searchWithCxsNormalized op cks (ContextMap m)
   where
   search' (c, k) = case M.lookup c m of
       Just (Impl.IndexImpl cm) -> do
-        ix <- Ix.search op k cm
+        ix <- Ix.searchM op k cm
         return (c, ix)
       _ -> return (c, [])
 

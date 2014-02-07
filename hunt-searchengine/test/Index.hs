@@ -32,8 +32,8 @@ main = defaultMainWithOpts
   , testCase "InvertedIndex:           insert"        insertTestInvIx
   , testCase "InvertedIndex:           merge"         mergeTestInvIx
   , testCase "ComprOccPrefixTree:      insert"        insertTestCPIx
-  , testCase "ContextMap Inverted:   insert"        insertTestContextIx
-  , testCase "ContextMap Inverted:   insertContext" insertTestContext
+  , testCase "ContextMap Inverted:     insert"        insertTestContextIx
+  , testCase "ContextMap Inverted:     insertContext" insertTestContext
   , testCase "TextIndex:               addWords"      addWordsTest
   ] mempty
 
@@ -43,8 +43,8 @@ main = defaultMainWithOpts
 insertTest :: (Monad m, Ix.Index i, Eq (Ix.IVal i v), (Ix.ICon i v)) =>
               i v -> Ix.IKey i v -> Ix.IVal i v -> m Bool
 insertTest emptyIndex k v = do
-  ix       <- Ix.insert k v emptyIndex
-  [(_,nv)] <- Ix.search PrefixNoCase k ix
+  ix       <- Ix.insertM k v emptyIndex
+  [(_,nv)] <- Ix.searchM PrefixNoCase k ix
   return $ v == nv
 
 
@@ -53,8 +53,8 @@ mergeTest :: (Monad m, Ix.ICon i v, Ix.Index i
              , Ix.IVal i v ~ DocIdMap Positions) =>
              i v -> Ix.IKey i v -> Occurrences -> Occurrences -> m Bool
 mergeTest emptyIndex k v1 v2 = do
-  mergeIx      <- Ix.insert k v1 emptyIndex >>= \ix -> Ix.insert k v2 ix
-  res@[(_,nv)] <- Ix.search PrefixNoCase k mergeIx
+  mergeIx      <- Ix.insertM k v1 emptyIndex >>= \ix -> Ix.insertM k v2 ix
+  res@[(_,nv)] <- Ix.searchM PrefixNoCase k mergeIx
   return $ length res == 1 && merge v1 v2 == nv
 
 

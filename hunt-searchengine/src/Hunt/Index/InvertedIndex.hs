@@ -16,7 +16,6 @@ where
 import           Prelude                                    as P
 
 import           Control.DeepSeq
-import           Control.Monad
 
 import           Data.Bijection.Instances                   ()
 import           Data.Binary                                (Binary (..))
@@ -73,16 +72,16 @@ instance Index InvertedIndexInt where
     type IVal InvertedIndexInt v = Occurrences
 
     batchInsert wos (InvIntIx i)
-        = liftM mkInvIntIx $ batchInsert wos i
+        = mkInvIntIx $ batchInsert wos i
 
     batchDelete docIds (InvIntIx i)
-        = liftM mkInvIntIx $ batchDelete docIds i
+        = mkInvIntIx $ batchDelete docIds i
 
     empty
         = mkInvIntIx $ empty
 
     fromList l
-        = liftM mkInvIntIx $ fromList l
+        = mkInvIntIx $ fromList l
 
     toList (InvIntIx i)
         = toList i
@@ -94,13 +93,13 @@ instance Index InvertedIndexInt where
         = lookupRange k1 k2 i
 
     unionWith op (InvIntIx i1) (InvIntIx i2)
-        = liftM mkInvIntIx $ unionWith op i1 i2
+        = mkInvIntIx $ unionWith op i1 i2
 
     unionWithConv to' f (InvIntIx i1) (InvIntIx i2)
-        = liftM mkInvIntIx $ unionWithConv to' f i1 i2
+        = mkInvIntIx $ unionWithConv to' f i1 i2
 
     map f (InvIntIx i)
-        = liftM mkInvIntIx $ Ix.map f i
+        = mkInvIntIx $ Ix.map f i
 
     keys (InvIntIx i)
         = keys i
@@ -140,16 +139,16 @@ instance Index InvertedIndexDate where
     type IVal InvertedIndexDate v = Occurrences
 
     batchInsert wos (InvDateIx i)
-        = liftM mkInvDateIx $ batchInsert wos i
+        = mkInvDateIx $ batchInsert wos i
 
     batchDelete docIds (InvDateIx i)
-        = liftM mkInvDateIx $ batchDelete docIds i
+        = mkInvDateIx $ batchDelete docIds i
 
     empty
         = mkInvDateIx $ empty
 
     fromList l
-        = liftM mkInvDateIx $ fromList l
+        = mkInvDateIx $ fromList l
 
     toList (InvDateIx i)
         = toList i
@@ -161,13 +160,13 @@ instance Index InvertedIndexDate where
         = lookupRange k1 k2 i
 
     unionWith op (InvDateIx i1) (InvDateIx i2)
-        = liftM mkInvDateIx $ unionWith op i1 i2
+        = mkInvDateIx $ unionWith op i1 i2
 
     unionWithConv to' f (InvDateIx i1) (InvDateIx i2)
-        = liftM mkInvDateIx $ unionWithConv to' f i1 i2
+        = mkInvDateIx $ unionWithConv to' f i1 i2
 
     map f (InvDateIx i)
-        = liftM mkInvDateIx $ Ix.map f i
+        = mkInvDateIx $ Ix.map f i
 
     keys (InvDateIx i)
         = keys i
@@ -206,16 +205,16 @@ instance Index InvertedIndexPosition where
     type IVal InvertedIndexPosition v = Occurrences
 
     batchInsert wos (InvPosIx i)
-        = liftM mkInvPosIx $ batchInsert wos i
+        = mkInvPosIx $ batchInsert wos i
 
     batchDelete docIds (InvPosIx i)
-        = liftM mkInvPosIx $ batchDelete docIds i
+        = mkInvPosIx $ batchDelete docIds i
 
     empty
         = mkInvPosIx $ empty
 
     fromList l
-        = liftM mkInvPosIx $ fromList l
+        = mkInvPosIx $ fromList l
 
     toList (InvPosIx i)
         = toList i
@@ -227,13 +226,13 @@ instance Index InvertedIndexPosition where
         = lookupRange k1 k2 i
 
     unionWith op (InvPosIx i1) (InvPosIx i2)
-        = liftM mkInvPosIx $ unionWith op i1 i2
+        = mkInvPosIx $ unionWith op i1 i2
 
     unionWithConv to' f (InvPosIx i1) (InvPosIx i2)
-        = liftM mkInvPosIx $ unionWithConv to' f i1 i2
+        = mkInvPosIx $ unionWithConv to' f i1 i2
 
     map f (InvPosIx i)
-        = liftM mkInvPosIx $ Ix.map f i
+        = mkInvPosIx $ Ix.map f i
 
     keys (InvPosIx i)
         = keys i
@@ -264,16 +263,16 @@ instance Index InvertedIndex where
     type IVal InvertedIndex v = Occurrences
 
     batchInsert wos (InvIx i)
-        = liftM mkInvIx $ batchInsert wos i
+        = mkInvIx $ batchInsert wos i
 
     batchDelete docIds (InvIx i)
-        = liftM mkInvIx $ batchDelete docIds i
+        = mkInvIx $ batchDelete docIds i
 
     empty
         = mkInvIx $ empty
 
     fromList l
-        = liftM mkInvIx $ fromList l
+        = mkInvIx $ fromList l
 
     toList (InvIx i)
         = toList i
@@ -285,17 +284,17 @@ instance Index InvertedIndex where
         = lookupRange k1 k2 i
 
     unionWith op (InvIx i1) (InvIx i2)
-        = liftM mkInvIx $ unionWith op i1 i2
+        = mkInvIx $ unionWith op i1 i2
 
     unionWithConv
         = error "InvertedIndex unionWithConv: cannot be used there because type variable v is fixed"
 {-
     unionWithConv to f (InvIx i1) (InvIx i2)
-        = liftM mkInvIx $ unionWithConv to f i1 i2
+        = mkInvIx $ unionWithConv to f i1 i2
 -}
 
     map f (InvIx i)
-        = liftM mkInvIx $ Ix.map f i
+        = mkInvIx $ Ix.map f i
 
     keys (InvIx i)
         = keys i

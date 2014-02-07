@@ -58,38 +58,36 @@ instance Index (CachedIndex impl) where
           )
 
     batchInsert kvs (CachedIx c i)
-        = liftM (mkCachedIx c) (batchInsert kvs i)
+        = mkCachedIx c (batchInsert kvs i)
 
     batchDelete ks (CachedIx c i)
-        = return $ mkCachedIx (IS.union c ks) i
+        = mkCachedIx (IS.union c ks) i
 
     empty
         = mkCachedIx IS.empty empty
 
     fromList l
-        = liftM (mkCachedIx IS.empty) (fromList l)
+        = mkCachedIx IS.empty (fromList l)
 
     toList i
-        = do 
-            (CachedIx _ i') <- flatten i
-            toList i'
+        = let (CachedIx _ i') = flatten i
+          in toList i'
 
     search t k (CachedIx c i)
-        = liftM (filterResult c) $ search t k i
+        = filterResult c $ search t k i
 
     lookupRange k1 k2 (CachedIx c i)
-        = liftM (filterResult c) $ lookupRange k1 k2 i
+        = filterResult c $ lookupRange k1 k2 i
 
     unionWith op (CachedIx c1 i1) (CachedIx c2 i2)
-        = liftM (mkCachedIx (IS.union c1 c2)) (unionWith op i1 i2)
+        = mkCachedIx (IS.union c1 c2) (unionWith op i1 i2)
 
     unionWithConv to f (CachedIx c1 i1) (CachedIx c2 i2)
-        = liftM (mkCachedIx (IS.union c1 c2)) $ unionWithConv to f i1 i2
+        = (mkCachedIx (IS.union c1 c2)) $ unionWithConv to f i1 i2
 
     map f i
-        = do
-            (CachedIx c i') <- flatten i
-            liftM (mkCachedIx c) (Ix.map f i')
+        = let (CachedIx c i') = flatten i
+          in mkCachedIx c (Ix.map f i')
 
     keys (CachedIx _c i)
         = keys i
@@ -100,5 +98,5 @@ filterResult :: IS.IntSet -> [(d, DocIdMap v)] -> [(d, DocIdMap v)]
 filterResult c = P.map (second (flip deleteIds c))
     where deleteIds = IS.foldr DM.delete
 
-flatten :: (ICon impl v, Index impl, Monad m) => CachedIndex impl v -> m (CachedIndex impl v)
-flatten (CachedIx c i) = liftM (mkCachedIx IS.empty) $ (batchDelete c i)
+flatten :: (ICon impl v, Index impl) => CachedIndex impl v -> (CachedIndex impl v)
+flatten (CachedIx c i) = (mkCachedIx IS.empty) $ (batchDelete c i)

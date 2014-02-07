@@ -200,9 +200,9 @@ modIx f
         liftIO $ putXMVarWrite ref i
         throwError e
 
-modIx_ :: DocTable dt => (ContextIndex dt -> CM dt (ContextIndex dt)) -> CM dt()
-modIx_ f = modIx f'
-    where f' i = f i >>= \r -> return (r, ())
+--modIx_ :: DocTable dt => (ContextIndex dt -> CM dt (ContextIndex dt)) -> CM dt()
+--modIx_ f = modIx f'
+--    where f' i = f i >>= \r -> return (r, ())
 
 withIx :: DocTable dt => (ContextIndex dt -> CM dt a) -> CM dt a
 withIx f

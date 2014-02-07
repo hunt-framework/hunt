@@ -43,22 +43,22 @@ instance Index DmPrefixTree where
     type IVal DmPrefixTree v = DocIdMap v
 
     batchInsert kvs (DmPT pt) =
-        return . mkDmPT $ SM.union pt (SM.fromList kvs)
+        mkDmPT $ SM.union pt (SM.fromList kvs)
 
     batchDelete ks (DmPT pt)
-        = return . mkDmPT $ SM.map (\m -> DM.diffWithSet m ks) pt
+        = mkDmPT $ SM.map (\m -> DM.diffWithSet m ks) pt
 
     empty
         = mkDmPT $ SM.empty
 
     fromList
-        = return . mkDmPT . SM.fromList
+        = mkDmPT . SM.fromList
 
     toList (DmPT pt)
-        = return $ SM.toList pt
+        = SM.toList pt
 
     search t k (DmPT pt)
-        = return $ case t of
+        = case t of
             Case         -> case SM.lookup k pt of
                               Nothing -> []
                               Just xs -> [(k,xs)]
@@ -72,10 +72,10 @@ instance Index DmPrefixTree where
         pfNoCase = toL .:: SM.prefixFilterNoCase
 
     lookupRange k1 k2 (DmPT pt)
-        = return . SM.toList $ SM.lookupRange k1 k2 pt
+        = SM.toList $ SM.lookupRange k1 k2 pt
 
     unionWith op (DmPT pt1) (DmPT pt2)
-        = return . mkDmPT $ SM.unionWith op pt1 pt2
+        = mkDmPT $ SM.unionWith op pt1 pt2
 
     unionWithConv
         = error "DmPrefixTree unionWithConv: unused atm"
@@ -85,7 +85,7 @@ instance Index DmPrefixTree where
 -}
 
     map f (DmPT pt)
-        = return . mkDmPT $ SM.map f pt
+        = mkDmPT $ SM.map f pt
 
     keys (DmPT pt)
-        = return $ SM.keys pt
+        = SM.keys pt

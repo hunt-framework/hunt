@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE FlexibleInstances          #-}
 
 module Hunt.Index.Proxy.CompressedIndex
 ( ComprOccIndex (..)
@@ -14,7 +15,6 @@ import           Prelude                                 as P
 import           Control.Applicative                     ((<$>))
 import           Control.Arrow                           (second)
 import           Control.DeepSeq
-import           Control.Monad
 
 import           Data.Binary                             (Binary (..))
 
@@ -50,38 +50,34 @@ instance Index (ComprOccIndex impl to) where
         )
 
     batchInsert kvs (ComprIx i)
-        = liftM mkComprIx $ batchInsert (P.map (second compressOcc) kvs) i
+        = mkComprIx $ batchInsert (P.map (second compressOcc) kvs) i
 
     batchDelete ks (ComprIx i)
-        = liftM mkComprIx $ batchDelete ks i
+        = mkComprIx $ batchDelete ks i
 
     empty
         = mkComprIx $ empty
 
     fromList l
-        = liftM mkComprIx . fromList $ P.map (second compressOcc) l
+        = mkComprIx . fromList $ P.map (second compressOcc) l
 
     toList (ComprIx i)
-        = liftM (second decompressOcc <$>) $ toList i
+        = second decompressOcc <$> toList i
 
     search t k (ComprIx i)
-        = liftM (second decompressOcc <$>) $ search t k i
+        = second decompressOcc <$> search t k i
 
     lookupRange k1 k2 (ComprIx i)
-        = liftM (second decompressOcc <$>) $ lookupRange k1 k2 i
+        = second decompressOcc <$> lookupRange k1 k2 i
 
     unionWith op (ComprIx i1) (ComprIx i2)
-        = liftM mkComprIx $ unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
+        = mkComprIx $ unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
 
     unionWithConv
         = error "ComprOccIndex unionWithConv: unused atm"
-{-
-    unionWithConv to f (ComprIx i1) (ComprIx i2)
-        = liftM mkComprIx $ unionWithConv to f i1 i2
--}
 
     map f (ComprIx i)
-        = liftM mkComprIx $ Ix.map (compressOcc . f . decompressOcc) i
+        = mkComprIx $ Ix.map (compressOcc . f . decompressOcc) i
 
     keys (ComprIx i)
         = keys i

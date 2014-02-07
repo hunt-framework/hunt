@@ -55,12 +55,10 @@ instance Index ComprOccPrefixTree where
     -- FIXME: this is ugly
     -- a simple fromList does not work because there can be duplicates that need to be merged...
     batchInsert kos i1
-        = do
-            ixs <- mapM (fromList . (:[])) kos
-                    >>= foldM' (unionWith Occ.merge) empty
-                    :: Monad m => m (ComprOccPrefixTree Occurrences)
-            unionWithConv compressOcc (\a b -> compressOcc (Occ.merge (decompressOcc a) b)) i1 ixs
-
+        = unionWithConv compressOcc (\a b -> compressOcc (Occ.merge (decompressOcc a) b)) i1 ixs
+        where
+        ixs = foldr (unionWith Occ.merge) empty $ P.map (fromList . (:[])) kos
+           
     -- XXX: not the best solution, but is there really another solution?
     batchDelete ks i
         = Ix.map (\m -> DM.diffWithSet m ks) i
@@ -69,13 +67,13 @@ instance Index ComprOccPrefixTree where
         = mkComprPT $! SM.empty
 
     fromList l
-        = return . mkComprPT $! SM.fromList $ P.map (second compressOcc) l
+        = mkComprPT $! SM.fromList $ P.map (second compressOcc) l
 
     toList (ComprPT i)
-        = return . (second decompressOcc <$>) $ SM.toList i
+        = (second decompressOcc <$>) $ SM.toList i
 
     search t k (ComprPT pt)
-        = return $ case t of
+        = case t of
             Case         -> case SM.lookup k pt of
                               Nothing -> []
                               Just xs -> [(k, decompressOcc xs)]
@@ -90,16 +88,16 @@ instance Index ComprOccPrefixTree where
 
 
     lookupRange k1 k2 (ComprPT pt)
-        = return $ second decompressOcc <$> (SM.toList . SM.lookupRange k1 k2 $ pt)
+        = second decompressOcc <$> (SM.toList . SM.lookupRange k1 k2 $ pt)
 
     unionWith op (ComprPT i1) (ComprPT i2)
-        = return . mkComprPT $! SM.unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
+        = mkComprPT $! SM.unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
 
     unionWithConv to f (ComprPT i1) (ComprPT i2)
-        = return . mkComprPT $! SM.unionWithConv to f i1 i2
+        = mkComprPT $! SM.unionWithConv to f i1 i2
 
     map f (ComprPT i)
-        = return . mkComprPT $! SM.map (compressOcc . f . decompressOcc) i
+        = mkComprPT $! SM.map (compressOcc . f . decompressOcc) i
 
     keys (ComprPT i)
-        = return $ SM.keys i
+        = SM.keys i
