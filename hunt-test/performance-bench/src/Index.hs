@@ -69,12 +69,14 @@ main = do
   _ <- mapM (\c -> monitorCmd hunt $ InsertContext c (ContextSchema Nothing [] 1.0 True ctText)) [ "id", "context1", "context2", "contextdate", "contextgeo", "contextint" ] 
   putStrLn "sequence with batchInsert:"
   monitorCmd hunt $ Sequence $ map Insert docs
+  putStrLn "search word 'a' to check if everything evaluated"
   monitorCmd hunt $ Search (QWord QFuzzy "a") 1 1000
 --  putStrLn "single command for each insert:"
 --  start <- getCurrentTime  
 --  _ <- mapM (\doc -> monitorCmd hunt $ Insert doc) docs
 --  end <- getCurrentTime
 --  putStrLn $ "overall execution time: " ++ show (diffUTCTime end start)
+  l <- getLine
   return ()
 
 monitorCmd hunt cmd = do
