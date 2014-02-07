@@ -81,7 +81,7 @@ insert :: (Par.MonadParallel m, DocTable dt)
        => Dt.DValue dt -> Words -> ContextIndex dt -> m (ContextIndex dt)
 insert doc wrds (ContextIx ix dt s) = do
     (did, newDt) <- Dt.insert dt doc
-    newIx        <- addWords wrds did ix
+    newIx        <- addWordsM wrds did ix
     return $ ContextIx newIx newDt s
 
 -- | Insert multiple Documents and Words.
@@ -96,7 +96,7 @@ batchInsert docAndWrds (ContextIx ix dt s) = do
                       >>= \(dId, docTable') -> return (docTable', (dId, wrds):wordAcc))
               (dt, [])
               docAndWrds
-    newIx <- batchAddWords docIdsAndWrds ix
+    newIx <- batchAddWordsM docIdsAndWrds ix
     return $ ContextIx newIx newDt s
 
 -- | Update elements
@@ -113,7 +113,7 @@ modify :: (Par.MonadParallel m, DocTable dt)
        -> Words -> DocId -> ContextIndex dt -> m (ContextIndex dt)
 modify f wrds dId (ContextIx ii dt s) = do
   newDocTable <- Dt.adjust f dId dt
-  newIndex    <- addWords wrds dId ii
+  newIndex    <- addWordsM wrds dId ii
   return $ ContextIx newIndex newDocTable s
 
 -- | Delete a set of documents by 'URI'.
@@ -155,7 +155,7 @@ modifyWithDescription :: (Par.MonadParallel m, DocTable dt)
                       => Description -> Words -> DocId -> ContextIndex dt -> m (ContextIndex dt)
 modifyWithDescription descr wrds dId (ContextIx ii dt s) = do
     newDocTable <- Dt.adjust mergeDescr dId dt
-    newIndex    <- addWords wrds dId ii
+    newIndex    <- addWordsM wrds dId ii
     return $ ContextIx newIndex newDocTable s
     where
     -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
@@ -176,8 +176,8 @@ addDocDescription descr did (Indexer i d)
 -- helper
 
 
-addWords :: Par.MonadParallel m => Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
-addWords wrds dId _i@(ContextMap m)
+addWordsM :: Par.MonadParallel m => Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
+addWordsM wrds dId _i@(ContextMap m)
   = mapWithKeyMP (\cx impl -> foldInsert cx impl wrds dId) m >>= return . ContextMap
 --  = foldrWithKeyM (\c wl acc ->
 --      foldrWithKeyM (\w ps acc' ->
@@ -191,14 +191,26 @@ addWords wrds dId _i@(ContextMap m)
 
 -- | Add words for a document to the 'Index'.
 --   /NOTE/: adds words to /existing/ 'Context's.
-batchAddWords :: Par.MonadParallel m => [(DocId, Words)] -> ContextMap Occurrences -> m (ContextMap Occurrences)
-batchAddWords wrdsAndDocIds _i@(ContextMap m)
+batchAddWordsM :: Par.MonadParallel m => [(DocId, Words)] -> ContextMap Occurrences -> m (ContextMap Occurrences)
+batchAddWordsM wrdsAndDocIds _i@(ContextMap m)
   = mapWithKeyMP (\cx impl -> foldBatchInsert cx impl wrdsAndDocIds) m >>= return . ContextMap
   where
   foldBatchInsert :: Monad m => Context -> IndexImpl Occurrences -> [(DocId, Words)] -> m (IndexImpl Occurrences)
   foldBatchInsert cx (Impl.IndexImpl impl) docIdsAndWrds
     = Ix.batchInsertM (concat . map ((\(did, wl) -> map (second (mkOccs did)) $ M.toList wl) . second (getWlForCx cx)) $ docIdsAndWrds) impl
         >>= return . Impl.mkIndex
+
+-- | Add words for a document to the 'Index'.
+--   /NOTE/: adds words to /existing/ 'Context's.
+batchAddWords :: [(DocId, Words)] -> ContextMap Occurrences -> ContextMap Occurrences
+batchAddWords wrdsAndDocIds _i@(ContextMap m)
+  = ContextMap $ M.mapWithKey (\cx impl -> foldBatchInsert cx impl wrdsAndDocIds) m
+  where
+  foldBatchInsert :: Context -> IndexImpl Occurrences -> [(DocId, Words)] -> IndexImpl Occurrences
+  foldBatchInsert cx (Impl.IndexImpl impl) docIdsAndWrds
+    = Impl.mkIndex 
+    $ Ix.batchInsert (concat . map (wordsToOccs . second (getWlForCx cx)) $ docIdsAndWrds) impl
+  wordsToOccs (did, wl) = map (second (mkOccs did)) $ M.toList wl
 
 ----------------------------------------------------------------------------
 -- addWords/batchAddWords functions
