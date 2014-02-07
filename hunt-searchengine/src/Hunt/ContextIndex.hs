@@ -13,6 +13,8 @@ import qualified Prelude                           as P
 import           Control.Arrow
 import           Control.Monad
 import qualified Control.Monad.Parallel            as Par
+import           Control.Parallel
+import           Control.Parallel.Strategies
 
 import           Data.Set                          (Set)
 import qualified Data.Set                          as S
@@ -96,7 +98,8 @@ batchInsert docAndWrds (ContextIx ix dt s) = do
                       >>= \(dId, docTable') -> return (docTable', (dId, wrds):wordAcc))
               (dt, [])
               docAndWrds
-    newIx <- batchAddWordsM docIdsAndWrds ix
+    -- newIx <- batchAddWordsM docIdsAndWrds ix
+    let newIx = batchAddWords docIdsAndWrds ix
     return $ ContextIx newIx newDt s
 
 -- | Update elements
@@ -204,7 +207,7 @@ batchAddWordsM wrdsAndDocIds _i@(ContextMap m)
 --   /NOTE/: adds words to /existing/ 'Context's.
 batchAddWords :: [(DocId, Words)] -> ContextMap Occurrences -> ContextMap Occurrences
 batchAddWords wrdsAndDocIds _i@(ContextMap m)
-  = ContextMap $ M.mapWithKey (\cx impl -> foldBatchInsert cx impl wrdsAndDocIds) m
+  = ContextMap $ M.fromList $ parMap rpar (\(cx,impl) -> (cx,foldBatchInsert cx impl wrdsAndDocIds)) (M.toList m)
   where
   foldBatchInsert :: Context -> IndexImpl Occurrences -> [(DocId, Words)] -> IndexImpl Occurrences
   foldBatchInsert cx (Impl.IndexImpl impl) docIdsAndWrds
