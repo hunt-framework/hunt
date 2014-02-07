@@ -47,7 +47,7 @@ import           Hunt.Common.ApiDocument
 import qualified Hunt.Common.Occurrences                     as Occ
 import           Hunt.Index.Schema.Analyze
 import           Hunt.Query.Ranking
-
+import           Hunt.Query.Language.Grammar
 import           Hunt.Utility
 import           Hunt.Interpreter.Command
 
@@ -69,6 +69,7 @@ main = do
   _ <- mapM (\c -> monitorCmd hunt $ InsertContext c (ContextSchema Nothing [] 1.0 True ctText)) [ "id", "context1", "context2", "contextdate", "contextgeo", "contextint" ] 
   putStrLn "sequence with batchInsert:"
   monitorCmd hunt $ Sequence $ map Insert docs
+  monitorCmd hunt $ Search (QWord QFuzzy "a") 1 1000
 --  putStrLn "single command for each insert:"
 --  start <- getCurrentTime  
 --  _ <- mapM (\doc -> monitorCmd hunt $ Insert doc) docs
