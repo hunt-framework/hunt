@@ -182,7 +182,7 @@ addDocDescription descr did (Indexer i d)
 
 addWordsM :: Par.MonadParallel m => Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
 addWordsM wrds dId _i@(ContextMap m)
-  = mapWithKeyMP (\cx impl -> foldInsert cx impl wrds dId) m >>= return . ContextMap
+  = mapWithKeyMP (\cx impl -> foldInsert cx impl wrds dId) m >>= \v -> return . ContextMap $!! v
 --  = foldrWithKeyM (\c wl acc ->
 --      foldrWithKeyM (\w ps acc' ->
 --        insertWithCx c w (mkOccs dId ps) acc')
