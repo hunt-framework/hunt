@@ -101,10 +101,7 @@ library
 
     Hunt.Index.Proxy.CompressedIndex
     Hunt.Index.Proxy.CachedIndex
-    Hunt.Index.Proxy.DateNormalizerIndex
-    Hunt.Index.Proxy.IntNormalizerIndex
     Hunt.Index.Proxy.KeyIndex
-    Hunt.Index.Proxy.PositionNormalizerIndex
 
     Hunt.DocTable.DocTable
     Hunt.DocTable.HashedDocTable

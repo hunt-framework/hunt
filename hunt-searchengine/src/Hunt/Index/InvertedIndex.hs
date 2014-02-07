@@ -30,20 +30,34 @@ import           Hunt.Common.Occurrences.Compression.Snappy
 import           Hunt.Index.ComprPrefixTreeIndex
 import           Hunt.Index.Index                           as Ix
 
-import           Hunt.Index.Proxy.DateNormalizerIndex
-import           Hunt.Index.Proxy.IntNormalizerIndex
 import           Hunt.Index.Proxy.KeyIndex
-import           Hunt.Index.Proxy.PositionNormalizerIndex
 
+import qualified Hunt.Index.Schema.Normalize.Int            as Int        
+import qualified Hunt.Index.Schema.Normalize.Date           as Date
+import qualified Hunt.Index.Schema.Normalize.Position       as Pos
+
+import           Data.Bijection
 -- ----------------------------------------------------------------------------
 -- inverted index using int proxy for numeric data
 -- ----------------------------------------------------------------------------
 
+-- newtype required to enable different Text->Text Bijection instances
+newtype UnInt = UnInt { unInt :: Text }
+  deriving (Show, Eq, NFData) 
+
+instance Bijection UnInt Text where
+  to = Int.normalizeToText . unInt
+  from = UnInt . Int.denormalizeFromText
+
+instance Bijection Text UnInt where
+  to = UnInt
+  from = unInt
+
 newtype InvertedIndexInt v
-    = InvIntIx { invIntIx :: IntAsTextNormalizerIndex InvertedIndex v }
+    = InvIntIx { invIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt InvertedIndex) v }
     deriving (Eq, Show, NFData, Typeable)
 
-mkInvIntIx :: IntAsTextNormalizerIndex InvertedIndex v -> InvertedIndexInt v
+mkInvIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt InvertedIndex) v -> InvertedIndexInt v
 mkInvIntIx x = InvIntIx $! x
 
 -- ----------------------------------------------------------------------------
@@ -55,7 +69,7 @@ instance Binary (InvertedIndexInt v) where
 -- ----------------------------------------------------------------------------
 
 instance Index InvertedIndexInt where
-    type IKey InvertedIndexInt v = Word
+    type IKey InvertedIndexInt v = Text
     type IVal InvertedIndexInt v = Occurrences
 
     batchInsert wos (InvIntIx i)
@@ -82,8 +96,8 @@ instance Index InvertedIndexInt where
     unionWith op (InvIntIx i1) (InvIntIx i2)
         = liftM mkInvIntIx $ unionWith op i1 i2
 
-    unionWithConv to f (InvIntIx i1) (InvIntIx i2)
-        = liftM mkInvIntIx $ unionWithConv to f i1 i2
+    unionWithConv to' f (InvIntIx i1) (InvIntIx i2)
+        = liftM mkInvIntIx $ unionWithConv to' f i1 i2
 
     map f (InvIntIx i)
         = liftM mkInvIntIx $ Ix.map f i
@@ -95,12 +109,22 @@ instance Index InvertedIndexInt where
 -- ----------------------------------------------------------------------------
 -- inverted index using date proxy for date information
 -- ----------------------------------------------------------------------------
+newtype UnDate = UnDate { unDate :: Text }
+  deriving (Show, Eq, NFData) 
+
+instance Bijection UnDate Text where
+  to = Date.normalize . unDate
+  from = UnDate . Date.denormalize
+
+instance Bijection Text UnDate where
+  to = UnDate
+  from = unDate
 
 newtype InvertedIndexDate v
-    = InvDateIx { invDateIx :: DateNormalizerIndex InvertedIndex v }
+    = InvDateIx { invDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate InvertedIndex) v }
     deriving (Eq, Show, NFData, Typeable)
 
-mkInvDateIx :: DateNormalizerIndex InvertedIndex v -> InvertedIndexDate v
+mkInvDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate InvertedIndex) v -> InvertedIndexDate v
 mkInvDateIx x = InvDateIx $! x
 
 -- ----------------------------------------------------------------------------
@@ -139,8 +163,8 @@ instance Index InvertedIndexDate where
     unionWith op (InvDateIx i1) (InvDateIx i2)
         = liftM mkInvDateIx $ unionWith op i1 i2
 
-    unionWithConv to f (InvDateIx i1) (InvDateIx i2)
-        = liftM mkInvDateIx $ unionWithConv to f i1 i2
+    unionWithConv to' f (InvDateIx i1) (InvDateIx i2)
+        = liftM mkInvDateIx $ unionWithConv to' f i1 i2
 
     map f (InvDateIx i)
         = liftM mkInvDateIx $ Ix.map f i
@@ -151,12 +175,22 @@ instance Index InvertedIndexDate where
 -- ----------------------------------------------------------------------------
 -- inverted index using position proxy for geo coordinates
 -- ----------------------------------------------------------------------------
+newtype UnPos = UnPos { unPos :: Text }
+  deriving (Show, Eq, NFData) 
+
+instance Bijection UnPos Text where
+  to = Pos.normalize . unPos
+  from = UnPos . Pos.denormalize
+
+instance Bijection Text UnPos where
+  to = UnPos
+  from = unPos
 
 newtype InvertedIndexPosition v
-    = InvPosIx { invPosIx :: PositionNormalizerIndex  InvertedIndex v }
+    = InvPosIx { invPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex) v }
     deriving (Eq, Show, NFData, Typeable)
 
-mkInvPosIx :: PositionNormalizerIndex InvertedIndex v -> InvertedIndexPosition v
+mkInvPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex) v  -> InvertedIndexPosition v
 mkInvPosIx x = InvPosIx $! x
 
 -- ----------------------------------------------------------------------------
@@ -195,8 +229,8 @@ instance Index InvertedIndexPosition where
     unionWith op (InvPosIx i1) (InvPosIx i2)
         = liftM mkInvPosIx $ unionWith op i1 i2
 
-    unionWithConv to f (InvPosIx i1) (InvPosIx i2)
-        = liftM mkInvPosIx $ unionWithConv to f i1 i2
+    unionWithConv to' f (InvPosIx i1) (InvPosIx i2)
+        = liftM mkInvPosIx $ unionWithConv to' f i1 i2
 
     map f (InvPosIx i)
         = liftM mkInvPosIx $ Ix.map f i
