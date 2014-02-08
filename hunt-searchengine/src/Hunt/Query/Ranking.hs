@@ -41,19 +41,19 @@ module Hunt.Query.Ranking
   )
 where
 
-import           Prelude                   hiding (foldr)
+import           Prelude               hiding (foldr)
 
 --import           Data.Foldable
 --import           Data.Function
 import           Data.Maybe
 
 --import qualified Data.List                 as L
-import           Data.Map                  (Map)
-import qualified Data.Map                  as M
+import           Data.Map              (Map)
+import qualified Data.Map              as M
 
 import           Hunt.Common
 import qualified Hunt.Common.DocIdMap  as DM
-import           Hunt.Common.Document  (DocumentWrapper(..))
+import           Hunt.Common.Document  (DocumentWrapper (..))
 import           Hunt.Common.Positions as Pos
 import           Hunt.Query.Result
 

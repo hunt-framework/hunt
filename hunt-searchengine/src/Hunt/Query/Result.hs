@@ -65,7 +65,7 @@ import qualified Data.Map                 as M
 import           Data.Text                (Text)
 
 import           Hunt.Common
-import qualified Hunt.Common.DocIdMap as DM
+import qualified Hunt.Common.DocIdMap     as DM
 
 -- ----------------------------------------------------------------------------
 

@@ -6,21 +6,21 @@ module Hunt.Index.Schema.Analyze
   )
 where
 
-import           Control.Arrow                   (first)
+import           Control.Arrow               (first)
 
-import           Data.DList                      (DList)
-import qualified Data.DList                      as DL
-import           Data.Map                        (Map)
-import qualified Data.Map                        as M
-import           Data.Maybe                      (fromJust, fromMaybe)
-import           Data.Text                       (Text)
-import qualified Data.Text                       as T
+import           Data.DList                  (DList)
+import qualified Data.DList                  as DL
+import           Data.Map                    (Map)
+import qualified Data.Map                    as M
+import           Data.Maybe                  (fromJust, fromMaybe)
+import           Data.Text                   (Text)
+import qualified Data.Text                   as T
 
 import           Text.Regex.XMLSchema.String
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Document        (Document (..),
-                                                  DocumentWrapper (..))
+                                              DocumentWrapper (..))
 
 import           Hunt.Common.ApiDocument
 import           Hunt.Index.Schema
@@ -48,16 +48,18 @@ toDocAndWords' schema apiDoc = (doc, ws)
   indexMap = apiDocIndexMap apiDoc
   descrMap = apiDocDescrMap apiDoc
   doc = Document
-          { uri   = apiDocUri apiDoc
-          , desc  = descrMap
-          }
-  ws = M.mapWithKey (\context content ->
-                        let (ContextSchema rex normalizers _ _ cType)
-                              = fromJust $ M.lookup context schema
-                            (CType _ defRex validator _) = cType
-                            scan = filter (validate validator) . scanTextRE (fromMaybe defRex rex)
-                        -- XXX: simple concat without nub
-                        in toWordList scan (normalize normalizers) content) indexMap
+    { uri   = apiDocUri apiDoc
+    , desc  = descrMap
+    }
+  ws = M.mapWithKey
+        (\context content ->
+            let (ContextSchema rex normalizers _ _ cType)
+                  = fromJust $ M.lookup context schema
+                (CType _ defRex validator _) = cType
+                scan = filter (validate validator) . scanTextRE (fromMaybe defRex rex)
+            -- XXX: simple concat without nub
+            in toWordList scan (normalize normalizers) content)
+        indexMap
 
 -- | Apply the normalizers to a Word.
 normalize :: [CNormalizer] -> Word -> Word

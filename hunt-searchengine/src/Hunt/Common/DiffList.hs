@@ -36,7 +36,7 @@ module Hunt.Common.DiffList
 where
 
 import           Data.List
-import           Data.Word                  (Word32, Word64)
+import           Data.Word              (Word32, Word64)
 
 import           Hunt.Data.Crunch
 

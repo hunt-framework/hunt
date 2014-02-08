@@ -73,13 +73,13 @@ type FuzzyScore = Float
 
 -- | The configuration of a fuzzy query.
 data FuzzyConfig
-    = FuzzyConfig
-      { applyReplacements  :: Bool         -- ^ Indicates whether the replacements should be applied.
-      , applySwappings     :: Bool         -- ^ Indicates whether the swapping of adjacent characters should be applied.
-      , maxFuzziness       :: FuzzyScore   -- ^ The maximum allowed fuzziness.
-      , customReplacements :: Replacements -- ^ The replacements that should be applied.
-      }
-    deriving (Show)
+  = FuzzyConfig
+    { applyReplacements  :: Bool         -- ^ Indicates whether the replacements should be applied.
+    , applySwappings     :: Bool         -- ^ Indicates whether the swapping of adjacent characters should be applied.
+    , maxFuzziness       :: FuzzyScore   -- ^ The maximum allowed fuzziness.
+    , customReplacements :: Replacements -- ^ The replacements that should be applied.
+    }
+  deriving (Show)
 
 instance Binary FuzzyConfig where
   put (FuzzyConfig r s m f)

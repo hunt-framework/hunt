@@ -14,7 +14,7 @@ import           Data.Set                        (Set)
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
-import           Hunt.Query.Language.Grammar (Query (..))
+import           Hunt.Query.Language.Grammar     (Query (..))
 
 import           Hunt.Utility.Log
 
@@ -64,13 +64,13 @@ data StatusCmd
 -- XXX: maybe duplicate StatusCmd to keep this module clean
 
 instance ToJSON StatusCmd where
-    toJSON StatusGC    = JS.String "gc"
-    toJSON StatusIndex = JS.String "index"
+  toJSON StatusGC    = JS.String "gc"
+  toJSON StatusIndex = JS.String "index"
 
 instance FromJSON StatusCmd where
-    parseJSON (JS.String "gc"   ) = return StatusGC
-    parseJSON (JS.String "index") = return StatusIndex
-    parseJSON _                   = mzero
+  parseJSON (JS.String "gc"   ) = return StatusGC
+  parseJSON (JS.String "index") = return StatusIndex
+  parseJSON _                   = mzero
 
 -- ----------------------------------------------------------------------------
 

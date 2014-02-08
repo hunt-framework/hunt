@@ -4,13 +4,13 @@
 
 module Hunt.Server {-(start)-} where
 
-import           Data.String (fromString)
 import           Control.Monad.Error
+import           Data.String                          (fromString)
 
 import           Data.Text                            (Text)
 
+import qualified Network.Wai.Handler.Warp             as W
 import           Network.Wai.Middleware.RequestLogger
-import qualified Network.Wai.Handler.Warp as W
 
 import           Hunt.Interpreter.Command
 import           Hunt.Interpreter.Interpreter
@@ -19,16 +19,17 @@ import           Hunt.Query.Language.Parser
 import           Hunt.Query.Ranking
 
 import           Hunt.Server.Common
-import           Hunt.Server.Schrotty             hiding (Options)
-import qualified Hunt.Server.Schrotty             as Schrotty 
-import qualified Hunt.Server.Template             as Tmpl
+import           Hunt.Server.Schrotty                 hiding (Options)
+import qualified Hunt.Server.Schrotty                 as Schrotty
+import qualified Hunt.Server.Template                 as Tmpl
 
 import           System.IO                            (stdout)
 
 import           System.Log.Formatter
 import           System.Log.Handler
 import           System.Log.Handler.Simple
-import           System.Log.Logger                    hiding (debugM, warningM, errorM)
+import           System.Log.Logger                    hiding (debugM, errorM,
+                                                       warningM)
 import qualified System.Log.Logger                    as Log
 
 -- ----------------------------------------------------------------------------
@@ -50,7 +51,7 @@ defaultOptions = Options
 modName :: String
 modName = "Hunt.Server"
 
--- | Location of the log file. 
+-- | Location of the log file.
 logPath :: String
 logPath = "hunt.log"
 
@@ -73,19 +74,19 @@ withFormatter h f = liftM (flip setFormatter f) h
 -- | Initializes the loggers and sets the stdout logger to the given priority.
 initLoggers :: Priority -> IO ()
 initLoggers level = do
-    -- formatter
-    let defFormatter = simpleLogFormatter "[$time : $loggername : $prio] $msg"
+  -- formatter
+  let defFormatter = simpleLogFormatter "[$time : $loggername : $prio] $msg"
 
-    -- root does not have a priority
-    updateGlobalLogger rootLoggerName clearLevel
+  -- root does not have a priority
+  updateGlobalLogger rootLoggerName clearLevel
 
-    -- stdout root logger
-    handlerBare <- streamHandler stdout level `withFormatter` defFormatter
-    updateGlobalLogger rootLoggerName (setHandlers [handlerBare])
+  -- stdout root logger
+  handlerBare <- streamHandler stdout level `withFormatter` defFormatter
+  updateGlobalLogger rootLoggerName (setHandlers [handlerBare])
 
-    -- file logger always at 'DEBUG' level
-    handlerFile <- fileHandler logPath DEBUG `withFormatter` defFormatter
-    updateGlobalLogger rootLoggerName (addHandler handlerFile)
+  -- file logger always at 'DEBUG' level
+  handlerFile <- fileHandler logPath DEBUG `withFormatter` defFormatter
+  updateGlobalLogger rootLoggerName (addHandler handlerFile)
 
 -- ----------------------------------------------------------------------------
 
@@ -103,17 +104,17 @@ start config = do
     Just filename -> do
       res <- liftIO $ runCmd env $ LoadIx filename
       case res of
-        Right ResOK -> debugM "index loaded."
-        Right _ -> fail "unexpected Result"
-        Left res' ->  fail $ show res'
+        Right _  -> debugM $ "index loaded: " ++ filename
+        Left err -> fail $ show err
     Nothing -> return ()
 
-  let options = Schrotty.Options {
-      verbose = 1, settings 
-        = (W.defaultSettings { 
-          W.settingsPort = huntServerPort config, 
-          W.settingsHost = fromString $ huntServerHost config })
-    }
+  let options = Schrotty.Options
+        { verbose  = 1
+        , settings = W.defaultSettings
+            { W.settingsPort = huntServerPort config
+            ,  W.settingsHost = fromString $ huntServerHost config
+            }
+        }
   -- start schrotty
   schrottyOpts options $ do
 

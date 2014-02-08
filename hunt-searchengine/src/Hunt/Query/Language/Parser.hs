@@ -138,7 +138,7 @@ fuzzyQuery = fuzzyQuery' <|> phraseQuery (QPhrase QNoCase) <|> wordQuery (QWord 
 
 -- | Parse a word query.
 wordQuery :: (Text -> Query) -> Parser Query
-wordQuery c = do 
+wordQuery c = do
               w <- word
               tryBoost (c $ T.pack w)
 

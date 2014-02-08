@@ -2,13 +2,13 @@
 
 module Hunt.Index.Schema where
 
-import           Control.Monad                           (mzero, liftM5)
+import           Control.Monad                        (mzero, liftM5)
 
 import           Data.Aeson
 import           Data.Binary
 import           Data.Map
 import           Data.Text
-import           Data.Text.Binary                         ()
+import           Data.Text.Binary                     ()
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences              (Occurrences)
@@ -45,7 +45,7 @@ type Schema
 --   The first  regexp/normalizer is type-specific and is applied first (forced)
 --   The second regexp/normalizer is context-specific (defined/chosen by user)
 data ContextSchema = ContextSchema
-  { 
+  {
   -- XXX: regex change to maybe - optional since we have a default within contexttype
     cxRegEx      :: Maybe CRegex
   -- normalizers to apply
@@ -82,7 +82,7 @@ ctEmpty = CType
   }
 
 defValid :: CValidator
-defValid = CValidator $ \_ -> True
+defValid = CValidator $ const True
 
 -- TODO: fix default validator and regex in all impls!
 ctText :: ContextType
@@ -261,7 +261,6 @@ instance Binary CNormalizer where
 instance Binary ContextType where
   put (CType n _ _ _) = put n
   get = get >>= \n -> return $ ctEmpty { ctName = n }
-
 
 instance Binary ContextSchema where
   get = liftM5 ContextSchema get get get get get

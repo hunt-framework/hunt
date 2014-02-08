@@ -26,24 +26,24 @@ import           Control.Concurrent.XMVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
-import qualified Data.Aeson                                  as JS
-import qualified Data.Binary                                 as Bin
-import qualified Data.ByteString.Lazy                        as BL
-import           Data.Function                               (on)
-import           Data.List                                   (sortBy)
-import qualified Data.List                                   as L
-import qualified Data.Map                                    as M
-import           Data.Set                                    (Set)
-import qualified Data.Set                                    as S
-import           Data.Text                                   (Text)
-import qualified Data.Text                                   as T
-import qualified Data.Traversable                            as TV
+import qualified Data.Aeson                              as JS
+import qualified Data.Binary                             as Bin
+import qualified Data.ByteString.Lazy                    as BL
+import           Data.Function                           (on)
+import           Data.List                               (sortBy)
+import qualified Data.List                               as L
+import qualified Data.Map                                as M
+import           Data.Set                                (Set)
+import qualified Data.Set                                as S
+import           Data.Text                               (Text)
+import qualified Data.Text                               as T
+import qualified Data.Traversable                        as TV
 
 import           Hunt.Common
 import           Hunt.Common.ApiDocument                 as ApiDoc
 import qualified Hunt.Common.DocIdMap                    as DM
 import           Hunt.Common.Document                    (DocumentWrapper,
-                                                              unwrap)
+                                                          unwrap)
 import           Hunt.Common.Document.Compression.BZip   (CompressedDoc)
 --import           Hunt.Common.Document.Compression.Snappy (CompressedDoc)
 
@@ -51,11 +51,11 @@ import qualified Hunt.Index.Index                        as Ix
 import           Hunt.Index.Schema.Analyze
 
 import           Hunt.ContextIndex                       (ContextIndex (..),
-                                                              decodeCxIx)
+                                                          decodeCxIx)
 import qualified Hunt.ContextIndex                       as Ixx
 
 import           Hunt.Index.IndexImpl                    (IndexImpl (..),
-                                                              mkIndex)
+                                                          mkIndex)
 import qualified Hunt.Index.IndexImpl                    as Impl
 --import           Hunt.Index.Proxy.ContextIndex           (ContextIndex)
 --import qualified Hunt.Index.Proxy.ContextIndex           as CIx
@@ -74,14 +74,14 @@ import           Hunt.DocTable.HashedDocTable
 
 import           Hunt.Interpreter.BasicCommand
 import           Hunt.Interpreter.Command                (Command)
-import           Hunt.Interpreter.Command                hiding (Command(..))
+import           Hunt.Interpreter.Command                hiding (Command (..))
 
-import qualified System.Log.Logger                           as Log
+import qualified System.Log.Logger                       as Log
 
 import           Hunt.Utility.Log
 
 import           GHC.Stats
-import           GHC.Stats.Json                              ()
+import           GHC.Stats.Json                          ()
 
 -- ----------------------------------------------------------------------------
 --
@@ -179,26 +179,26 @@ runCM env = runErrorT . runReaderT (runCMT env)
 
 runCmd :: (DocTable dt, Bin.Binary dt) => Env dt -> Command -> IO (Either CmdError CmdResult)
 runCmd env cmd
-    = runErrorT . runReaderT (runCMT . execCommand $ cmd) $ env
+  = runErrorT . runReaderT (runCMT . execCommand $ cmd) $ env
 
 askIx :: DocTable dt => CM dt (ContextIndex dt)
-askIx
-    = do ref <- asks evIndexer
-         liftIO $ readXMVar ref
+askIx = do
+  ref <- asks evIndexer
+  liftIO $ readXMVar ref
 
 -- FIXME: io exception-safe?
 modIx :: DocTable dt
       => (ContextIndex dt-> CM dt (ContextIndex dt, a)) -> CM dt a
-modIx f
-    = do ref <- asks evIndexer
-         ix <- liftIO $ takeXMVarWrite ref
-         (i',a) <- f ix `catchError` putBack ref ix
-         liftIO $ putXMVarWrite ref i'
-         return a
-    where
-    putBack ref i e = do
-        liftIO $ putXMVarWrite ref i
-        throwError e
+modIx f = do
+  ref <- asks evIndexer
+  ix <- liftIO $ takeXMVarWrite ref
+  (i',a) <- f ix `catchError` putBack ref ix
+  liftIO $ putXMVarWrite ref i'
+  return a
+  where
+  putBack ref i e = do
+    liftIO $ putXMVarWrite ref i
+    throwError e
 
 --modIx_ :: DocTable dt => (ContextIndex dt -> CM dt (ContextIndex dt)) -> CM dt()
 --modIx_ f = modIx f'
@@ -206,36 +206,36 @@ modIx f
 
 withIx :: DocTable dt => (ContextIndex dt -> CM dt a) -> CM dt a
 withIx f
-    = askIx >>= f
+  = askIx >>= f
 
 askTypes :: DocTable dt => CM dt ContextTypes
 askTypes
-    = asks evCxTypes
+  = asks evCxTypes
 
 askType :: DocTable dt => Text -> CM dt ContextType
 askType cn = do
-    ts <- askTypes
-    case L.find (\t -> cn == ctName t) ts of
-      (Just t) -> return t
-      _        -> throwResError 410 ("used unavailable context type: " `T.append` cn)
+  ts <- askTypes
+  case L.find (\t -> cn == ctName t) ts of
+    (Just t) -> return t
+    _        -> throwResError 410 ("used unavailable context type: " `T.append` cn)
 
 askIndex :: DocTable dt => Text -> CM dt (Impl.IndexImpl Occurrences)
 askIndex cn = do
-    t <- askType cn
-    return $ ctIxImpl t
+  t <- askType cn
+  return $ ctIxImpl t
 
 askRanking :: DocTable dt => CM dt (RankConfig (Dt.DValue dt))
 askRanking
-    = asks evRanking
+  = asks evRanking
 
 -- TODO: meh
 askContextsWeights :: DocTable dt => CM dt(M.Map Context CWeight)
 askContextsWeights
-    = withIx (\(ContextIx _ _ schema) -> return $ M.map cxWeight schema)
+  = withIx (\(ContextIx _ _ schema) -> return $ M.map cxWeight schema)
 
 throwResError :: DocTable dt => Int -> Text -> CM dt a
 throwResError n msg
-    = throwError $ ResError n msg
+  = throwError $ ResError n msg
 
 descending :: Ord a => a -> a -> Ordering
 descending = flip compare
@@ -243,8 +243,8 @@ descending = flip compare
 -- ----------------------------------------------------------------------------
 
 execCommand :: (Bin.Binary dt, DocTable dt) => Command -> CM dt CmdResult
-execCommand cmd = do
-  execCmd . toBasicCommand $ cmd
+execCommand
+  = execCmd . toBasicCommand
 
 -- XXX: kind of obsolete now
 execCmd :: (Bin.Binary dt, DocTable dt) => BasicCommand -> CM dt CmdResult
@@ -255,40 +255,40 @@ execCmd cmd = do
 
 execCmd' :: (Bin.Binary dt, DocTable dt) => BasicCommand -> CM dt CmdResult
 execCmd' (Search q offset mx)
-    = withIx $ execSearch' (wrapSearch offset mx) q
+  = withIx $ execSearch' (wrapSearch offset mx) q
 
 execCmd' (Completion q mx)
-    = withIx $ execSearch' (wrapCompletion mx) q
+  = withIx $ execSearch' (wrapCompletion mx) q
 
 execCmd' (Sequence cs)
-    = execSequence cs
+  = execSequence cs
 
 execCmd' NOOP
-    = return ResOK  -- keep alive test
+  = return ResOK  -- keep alive test
 
 execCmd' (Status sc)
-    = execStatus sc
+  = execStatus sc
 
 execCmd' (BatchInsert docs)
-    = modIx $ execBatchInsert docs
+  = modIx $ execBatchInsert docs
 
 execCmd' (Update doc)
-    = modIx $ execUpdate doc
+  = modIx $ execUpdate doc
 
 execCmd' (BatchDelete uris)
-    = modIx $ execBatchDelete uris
+  = modIx $ execBatchDelete uris
 
 execCmd' (StoreIx filename)
-    = withIx $ execStore filename
+  = withIx $ execStore filename
 
 execCmd' (LoadIx filename)
-    = modIx $ \_ix -> execLoad filename
+  = modIx $ \_ix -> execLoad filename
 
 execCmd' (InsertContext cx ct)
-    = modIx $ execInsertContext cx ct
+  = modIx $ execInsertContext cx ct
 
 execCmd' (DeleteContext cx)
-    = modIx $ execDeleteContext cx
+  = modIx $ execDeleteContext cx
 
 -- ----------------------------------------------------------------------------
 
@@ -303,25 +303,25 @@ execInsertContext :: DocTable dt
                   -> ContextIndex dt
                   -> CM dt (ContextIndex dt, CmdResult)
 execInsertContext cx ct ixx@(ContextIx ix dt s)
-    = do
-      -- check if context already exists
-      contextExists        <- Ixx.hasContext cx ixx
-      unless' (not contextExists)
-             409 $ "context already exists: " `T.append` cx
+  = do
+    -- check if context already exists
+    contextExists        <- Ixx.hasContext cx ixx
+    unless' (not contextExists)
+           409 $ "context already exists: " `T.append` cx
 
-      -- check if type exists in this interpreter instance
-      cType                <- askType . ctName . cxType  $ ct
-      impl                 <- askIndex . ctName . cxType $ ct
+    -- check if type exists in this interpreter instance
+    cType                <- askType . ctName . cxType  $ ct
+    impl                 <- askIndex . ctName . cxType $ ct
 
-      -- create new index instance and insert it with context
-      return ( ContextIx { ixhIndex = Ixx.insertContext cx (newIx impl) ix
-                   , ixhDocs   = dt
-                   , ixhSchema = M.insert cx (ct {cxType = cType}) s
-                   }
-             , ResOK )
-      where
-      newIx :: IndexImpl Occurrences -> IndexImpl Occurrences
-      newIx (IndexImpl i) = mkIndex $ Ix.empty `asTypeOf` i
+    -- create new index instance and insert it with context
+    return ( ContextIx { ixhIndex = Ixx.insertContext cx (newIx impl) ix
+                 , ixhDocs   = dt
+                 , ixhSchema = M.insert cx (ct {cxType = cType}) s
+                 }
+           , ResOK )
+  where
+  newIx :: IndexImpl Occurrences -> IndexImpl Occurrences
+  newIx (IndexImpl i) = mkIndex $ Ix.empty `asTypeOf` i
 
 -- | Deletes the context and the schema associated with it.
 execDeleteContext :: DocTable dt
@@ -353,14 +353,14 @@ execInsert doc ixx@(ContextIx _ix _dt schema) = do
 execBatchInsert :: DocTable dt
                 => [ApiDocument] -> ContextIndex dt -> CM dt (ContextIndex dt, CmdResult)
 execBatchInsert docs ixx@(ContextIx _ix _dt schema) = do
-    -- TODO: use set for undup
-    let contexts = concatMap (M.keys . apiDocIndexMap) docs
-    checkContextsExistence contexts ixx
-    -- apidoc should not exist
-    mapM_ (flip (checkApiDocExistence False) ixx) docs
-    let docsAndWords = map (toDocAndWords schema) docs
-    ixx' <- lift $ Ixx.batchInsert docsAndWords ixx
-    return (ixx', ResOK)
+  -- TODO: use set for undup
+  let contexts = concatMap (M.keys . apiDocIndexMap) docs
+  checkContextsExistence contexts ixx
+  -- apidoc should not exist
+  mapM_ (flip (checkApiDocExistence False) ixx) docs
+  let docsAndWords = map (toDocAndWords schema) docs
+  ixx' <- lift $ Ixx.batchInsert docsAndWords ixx
+  return (ixx', ResOK)
 
 
 -- | Updates an 'ApiDocument'.
@@ -369,16 +369,16 @@ execBatchInsert docs ixx@(ContextIx _ix _dt schema) = do
 execUpdate :: DocTable dt
            => ApiDocument -> ContextIndex dt -> CM dt(ContextIndex dt, CmdResult)
 execUpdate doc ixx@(ContextIx _ix dt schema) = do
-    let contexts = M.keys $ apiDocIndexMap doc
-    checkContextsExistence contexts ixx
-    let (docs, ws) = toDocAndWords schema doc
-    docIdM <- lift $ Dt.lookupByURI dt (uri docs)
-    case docIdM of
-      Just docId -> do
-        ixx' <- lift $ Ixx.modifyWithDescription (desc docs) ws docId ixx
-        return (ixx', ResOK)
-      Nothing    ->
-        throwResError 409 $ "document for update not found: " `T.append` uri docs
+  let contexts = M.keys $ apiDocIndexMap doc
+  checkContextsExistence contexts ixx
+  let (docs, ws) = toDocAndWords schema doc
+  docIdM <- lift $ Dt.lookupByURI dt (uri docs)
+  case docIdM of
+    Just docId -> do
+      ixx' <- lift $ Ixx.modifyWithDescription (desc docs) ws docId ixx
+      return (ixx', ResOK)
+    Nothing    ->
+      throwResError 409 $ "document for update not found: " `T.append` uri docs
 
 
 unless' :: DocTable dt
@@ -414,40 +414,40 @@ execSearch' :: (DocTable dt, e ~ Dt.DValue dt)
             -> ContextIndex dt
             -> CM dt CmdResult
 execSearch' f q (ContextIx ix dt s)
-    = do
-      r <- lift $ runQueryM ix s dt q
-      rc <- askRanking
-      cw <- askContextsWeights
-      case r of
-        (Left  err) -> throwError err
-        (Right res) -> return . f . rank rc cw $ res
+  = do
+    r <- lift $ runQueryM ix s dt q
+    rc <- askRanking
+    cw <- askContextsWeights
+    case r of
+      (Left  err) -> throwError err
+      (Right res) -> return . f . rank rc cw $ res
 
 -- FIXME: signature to result
 wrapSearch :: (DocumentWrapper e) => Int -> Int -> Result e -> CmdResult
 wrapSearch offset mx
-    = ResSearch
-      . mkLimitedResult offset mx
-      . map fst -- remove score from result
-      . sortBy (descending `on` snd) -- sort by score
-      . map (\(_did, (di, _dch)) -> (unwrap . document $ di, docScore di))
-      . DM.toList
-      . docHits
+  = ResSearch
+    . mkLimitedResult offset mx
+    . map fst -- remove score from result
+    . sortBy (descending `on` snd) -- sort by score
+    . map (\(_did, (di, _dch)) -> (unwrap . document $ di, docScore di))
+    . DM.toList
+    . docHits
 
 wrapCompletion :: Int -> Result e -> CmdResult
 wrapCompletion mx
-    = ResCompletion
-      . take mx
-      . map (\(word,_score,terms') -> (word, terms')) -- remove score from result
-      . sortBy (descending `on` (\(_,score,_) -> score)) -- sort by score
-      . map (\(c, (wi, _wch)) -> (c, wordScore wi, terms wi))
-      . M.toList
-      . wordHits
+  = ResCompletion
+    . take mx
+    . map (\(word,_score,terms') -> (word, terms')) -- remove score from result
+    . sortBy (descending `on` (\(_,score,_) -> score)) -- sort by score
+    . map (\(c, (wi, _wch)) -> (c, wordScore wi, terms wi))
+    . M.toList
+    . wordHits
 
 
 execBatchDelete :: DocTable dt => Set URI -> ContextIndex dt -> CM dt(ContextIndex dt, CmdResult)
 execBatchDelete d ix = do
-    ix' <- lift $ Ixx.deleteDocsByURI d ix
-    return (ix', ResOK)
+  ix' <- lift $ Ixx.deleteDocsByURI d ix
+  return (ix', ResOK)
 
 -- ----------------------------------------------------------------------------
 
@@ -455,23 +455,23 @@ execBatchDelete d ix = do
 execStore :: (Bin.Binary a, DocTable dt) =>
              FilePath -> a -> CM dt CmdResult
 execStore filename x = do
-    liftIO $ Bin.encodeFile filename x
-    return ResOK
+  liftIO $ Bin.encodeFile filename x
+  return ResOK
 
 -- | deserialization needs to be more specific because of our existential typed index
 execLoad :: (Bin.Binary dt, DocTable dt) => FilePath -> CM dt (ContextIndex dt, CmdResult)
 execLoad filename = do
-    ts <- askTypes
-    let ix = map ctIxImpl ts
-    ixh@(ContextIx _ _ s) <- liftIO $ decodeFile' ix filename
-    ls <- TV.mapM reloadSchema s
-    return (ixh{ ixhSchema = ls }, ResOK)
-    where
-    decodeFile' ts f = do
-       bs <- BL.readFile f
-       return $ decodeCxIx ts bs
+  ts <- askTypes
+  let ix = map ctIxImpl ts
+  ixh@(ContextIx _ _ s) <- liftIO $ decodeFile' ix filename
+  ls <- TV.mapM reloadSchema s
+  return (ixh{ ixhSchema = ls }, ResOK)
+  where
+  decodeFile' ts f = do
+    bs <- BL.readFile f
+    return $ decodeCxIx ts bs
 
-    reloadSchema s = (askType . ctName . cxType) s >>= \t -> return $ s { cxType = t }
+  reloadSchema s = (askType . ctName . cxType) s >>= \t -> return $ s { cxType = t }
 
 -- ----------------------------------------------------------------------------
 
@@ -485,20 +485,21 @@ runQueryM       :: DocTable dt
                 -> Query
                 -> IO (Either CmdError (QRes.Result (Dt.DValue dt)))
 runQueryM ix s dt q = processQuery st dt q
-   where
-   st = QProc.initEnv queryConfig ix s
+  where
+  st = QProc.initEnv queryConfig ix s
 
 -- ----------------------------------------------------------------------------
 
 execStatus :: DocTable dt => StatusCmd -> CM dt CmdResult
 execStatus StatusGC
-    = do statsEnabled <- liftIO getGCStatsEnabled
-         if statsEnabled
-           then liftIO getGCStats >>= return . ResGeneric . JS.toJSON
-           else throwResError 501 ("GC stats not enabled. Use `+RTS -T -RTS' to enable them." :: Text)
+  = do
+    statsEnabled <- liftIO getGCStatsEnabled
+    if statsEnabled
+      then liftIO getGCStats >>= return . ResGeneric . JS.toJSON
+      else throwResError 501 ("GC stats not enabled. Use `+RTS -T -RTS' to enable them." :: Text)
 
 execStatus StatusIndex
-    = withIx
-      ( \ _ix -> return $ ResGeneric $ JS.String "status of Index not yet implemented" )
+  = withIx
+    (\_ix -> return $ ResGeneric $ JS.String "status of Index not yet implemented" )
 
 -- ----------------------------------------------------------------------------

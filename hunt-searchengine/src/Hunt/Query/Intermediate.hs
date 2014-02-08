@@ -36,17 +36,17 @@ module Hunt.Query.Intermediate
 )
 where
 
-import           Prelude                    hiding (null)
-import qualified Prelude                    as P
+import           Prelude                hiding (null)
+import qualified Prelude                as P
 
-import           Control.Applicative        hiding (empty)
+import           Control.Applicative    hiding (empty)
 
 import           Data.Maybe
 
-import qualified Data.List                  as L
+import qualified Data.List              as L
 
-import           Data.Map                   (Map)
-import qualified Data.Map                   as M
+import           Data.Map               (Map)
+import qualified Data.Map               as M
 
 import           Hunt.Query.Result      hiding (null)
 

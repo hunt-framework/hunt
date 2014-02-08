@@ -18,8 +18,8 @@
 module Hunt.Common.RawResult
 where
 
-import           Data.Map                    (Map)
-import qualified Data.Map                    as M
+import           Data.Map                (Map)
+import qualified Data.Map                as M
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdMap    (DocIdMap)
@@ -30,20 +30,20 @@ import           Hunt.Common.Positions
 -- ------------------------------------------------------------
 
 -- | The raw result returned when searching the index.
-type RawResult    = [(Word, Occurrences)]
+type RawResult = [(Word, Occurrences)]
 
 -- | Transform the raw result into a tree structure ordered by word.
-resultByWord      :: Context -> RawResult -> Map Word (Map Context Occurrences)
+resultByWord :: Context -> RawResult -> Map Word (Map Context Occurrences)
 resultByWord c
-    = M.fromList . map (\ (w, o) -> (w, M.singleton c o))
+  = M.fromList . map (\ (w, o) -> (w, M.singleton c o))
 
 -- | Transform the raw result into a tree structure ordered by document.
 resultByDocument  :: Context -> RawResult -> DocIdMap (Map Context (Map Word Positions))
 resultByDocument c os
-    = DM.map transform $
-          DM.unionsWith (flip $ (:) . head) (map insertWords os)
-    where
-    insertWords (w, o) = DM.map (\p -> [(w, p)]) o
-    transform w        = M.singleton c (M.fromList w)
+  = DM.map transform $
+        DM.unionsWith (flip $ (:) . head) (map insertWords os)
+  where
+  insertWords (w, o) = DM.map (\p -> [(w, p)]) o
+  transform w        = M.singleton c (M.fromList w)
 
 -- ------------------------------------------------------------

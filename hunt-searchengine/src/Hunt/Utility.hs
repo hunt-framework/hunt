@@ -122,9 +122,9 @@ stripWith f = reverse . dropWhile f . reverse . dropWhile f
 --   Depends on bytestring >= 0.9.0.4 (?)
 strictDecodeFile :: Binary a => FilePath -> IO a
 strictDecodeFile f  =
-    withBinaryFile f ReadMode
-            $ \h -> do c <- B.hGetContents h
-                       return $! decode c
+  withBinaryFile f ReadMode $ \h -> do
+    c <- B.hGetContents h
+    return $! decode c
 
 -- | partition the list of input data into a list of input data lists of
 --   approximately the same specified length

@@ -11,21 +11,21 @@ import           Prelude
 import qualified Prelude                           as P
 
 import           Control.Arrow
+import           Control.DeepSeq
 import           Control.Monad
 import qualified Control.Monad.Parallel            as Par
-import           Control.Parallel
-import           Control.Parallel.Strategies
-import           Control.DeepSeq
+--import           Control.Parallel
+--import           Control.Parallel.Strategies
 
-import           Data.Set                          (Set)
-import qualified Data.Set                          as S
+import           Data.Binary                       (Binary (..))
+import           Data.Binary.Get
+import           Data.ByteString.Lazy              (ByteString)
 import qualified Data.IntSet                       as IS
 import qualified Data.Map                          as M
 import           Data.Map                          (Map)
 import           Data.Maybe
-import           Data.Binary                       (Binary (..))
-import           Data.Binary.Get
-import           Data.ByteString.Lazy              (ByteString)
+import           Data.Set                          (Set)
+import qualified Data.Set                          as S
 import           Data.Text                         (Text)
 import qualified Data.Traversable                  as TV
 
@@ -86,33 +86,33 @@ instance Binary dt => Binary (ContextIndex dt) where
 insert :: (Par.MonadParallel m, DocTable dt)
        => Dt.DValue dt -> Words -> ContextIndex dt -> m (ContextIndex dt)
 insert doc wrds (ContextIx ix dt s) = do
-    (did, newDt) <- Dt.insert dt doc
-    newIx        <- addWordsM wrds did ix
-    return $ ContextIx newIx newDt s
+  (did, newDt) <- Dt.insert dt doc
+  newIx        <- addWordsM wrds did ix
+  return $ ContextIx newIx newDt s
 
 -- | Insert multiple Documents and Words.
 --   This is more efficient than using fold and 'insert'.
 batchInsert :: (Par.MonadParallel m, DocTable dt)
        => [(Dt.DValue dt, Words)] -> ContextIndex dt -> m (ContextIndex dt)
 batchInsert docAndWrds (ContextIx ix dt s) = do
-    (newDt, docIdsAndWrds)
-        <- foldM'
-              (\(docTable, wordAcc) (doc, wrds)
-                  -> Dt.insert docTable doc
-                      >>= \(dId, docTable') -> return (docTable', (dId, wrds):wordAcc))
-              (dt, [])
-              docAndWrds
-    newIx <- batchAddWordsM docIdsAndWrds ix
---    let newIx = batchAddWords docIdsAndWrds ix
-    return $! ContextIx newIx newDt s
+  (newDt, docIdsAndWrds)
+    <- foldM'
+        (\(docTable, wordAcc) (doc, wrds)
+          -> Dt.insert docTable doc
+              >>= \(dId, docTable') -> return (docTable', (dId, wrds):wordAcc))
+        (dt, [])
+        docAndWrds
+  newIx <- batchAddWordsM docIdsAndWrds ix
+--  let newIx = batchAddWords docIdsAndWrds ix
+  return $! ContextIx newIx newDt s
 
 -- | Update elements
 update :: (Par.MonadParallel m, DocTable dt)
        => DocId -> Dt.DValue dt -> Words
        -> ContextIndex dt -> m (ContextIndex dt)
 update docId doc' w ix = do
-    ix' <- delete ix (IS.singleton docId)
-    insert doc' w ix'
+  ix' <- delete ix (IS.singleton docId)
+  insert doc' w ix'
 
 -- | Modify elements
 modify :: (Par.MonadParallel m, DocTable dt)
@@ -127,16 +127,16 @@ modify f wrds dId (ContextIx ii dt s) = do
 deleteDocsByURI :: (Monad m, DocTable dt)
                 => Set URI -> ContextIndex dt -> m (ContextIndex dt)
 deleteDocsByURI us ixx@(ContextIx _ix dt _) = do
-    docIds <- liftM (toDocIdSet . catMaybes) . mapM (Dt.lookupByURI dt) . S.toList $ us
-    delete ixx docIds
+  docIds <- liftM (toDocIdSet . catMaybes) . mapM (Dt.lookupByURI dt) . S.toList $ us
+  delete ixx docIds
 
 -- | Delete a set of documents by 'DocId'.
 delete :: (Monad m, DocTable dt)
        => ContextIndex dt -> DocIdSet -> m (ContextIndex dt)
 delete (ContextIx ix dt s) dIds = do
-    newIx <- delete' dIds ix
-    newDt <- Dt.difference dIds dt
-    return $ ContextIx newIx newDt s
+  newIx <- delete' dIds ix
+  newDt <- Dt.difference dIds dt
+  return $ ContextIx newIx newDt s
 
 -- | All contexts.
 contexts :: (Monad m, DocTable dt)
@@ -161,12 +161,12 @@ member u (ContextIx _ii dt _s) = do
 modifyWithDescription :: (Par.MonadParallel m, DocTable dt)
                       => Description -> Words -> DocId -> ContextIndex dt -> m (ContextIndex dt)
 modifyWithDescription descr wrds dId (ContextIx ii dt s) = do
-    newDocTable <- Dt.adjust mergeDescr dId dt
-    newIndex    <- addWordsM wrds dId ii
-    return $ ContextIx newIndex newDocTable s
-    where
-    -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
-    mergeDescr = return . Doc.update (\d' -> d'{ desc = flip M.union (desc d') descr })
+  newDocTable <- Dt.adjust mergeDescr dId dt
+  newIndex    <- addWordsM wrds dId ii
+  return $ ContextIx newIndex newDocTable s
+  where
+  -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
+  mergeDescr = return . Doc.update (\d' -> d'{ desc = flip M.union (desc d') descr })
 
 -- ----------------------------------------------------------------------------
 
@@ -216,7 +216,7 @@ batchAddWords wrdsAndDocIds _i@(ContextMap m)
   where
   foldBatchInsert :: Context -> IndexImpl Occurrences -> [(DocId, Words)] -> IndexImpl Occurrences
   foldBatchInsert cx (Impl.IndexImpl impl) docIdsAndWrds
-    = Impl.mkIndex 
+    = Impl.mkIndex
     $ Ix.batchInsert (concat . map (wordsToOccs . second (getWlForCx cx)) $ docIdsAndWrds) impl
   wordsToOccs (did, wl) = map (second (mkOccs did)) $ M.toList wl
 
@@ -306,10 +306,10 @@ lookupRangeCxs cs k1 k2 (ContextMap m)
   = P.mapM search' cs
   where
   search' c = case M.lookup c m of
-      Just (Impl.IndexImpl cm) -> do
-        ix <- Ix.lookupRangeM k1 k2 cm
-        return (c, ix)
-      _ -> return (c, [])
+    Just (Impl.IndexImpl cm) -> do
+      ix <- Ix.lookupRangeM k1 k2 cm
+      return (c, ix)
+    _ -> return (c, [])
 
 searchWithCx :: Monad m => TextSearchOp -> Context -> Text -> ContextMap v -> m [(Text, v)]
 searchWithCx op c k (ContextMap m)
@@ -324,10 +324,10 @@ searchWithCxs op cs k (ContextMap m)
   = P.mapM search' cs
   where
   search' c = case M.lookup c m of
-      Just (Impl.IndexImpl cm) -> do
-        ix <- Ix.searchM op k cm
-        return (c, ix)
-      _ -> return (c, [])
+    Just (Impl.IndexImpl cm) -> do
+      ix <- Ix.searchM op k cm
+      return (c, ix)
+    _ -> return (c, [])
 
 -- | search in different contexts with key already normalized in respect to each context type
 searchWithCxsNormalized :: Monad m => TextSearchOp -> [(Context, Text)] -> ContextMap v -> m [(Context, [(Text, v)])]
@@ -335,10 +335,10 @@ searchWithCxsNormalized op cks (ContextMap m)
   = P.mapM search' cks
   where
   search' (c, k) = case M.lookup c m of
-      Just (Impl.IndexImpl cm) -> do
-        ix <- Ix.searchM op k cm
-        return (c, ix)
-      _ -> return (c, [])
+    Just (Impl.IndexImpl cm) -> do
+      ix <- Ix.searchM op k cm
+      return (c, ix)
+    _ -> return (c, [])
 
 -- ----------------------------------------------------------------------------
 

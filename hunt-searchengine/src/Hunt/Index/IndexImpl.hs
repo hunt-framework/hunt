@@ -3,8 +3,8 @@
 module Hunt.Index.IndexImpl where
 
 import           Control.Applicative         ((<$>))
-import           Control.Monad
 import           Control.DeepSeq
+import           Control.Monad
 
 import           Data.Binary
 import qualified Data.List                   as L
@@ -14,7 +14,7 @@ import           Data.Typeable
 import           Data.Typeable.Binary        ()
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.Occurrences (Occurrences)
+import           Hunt.Common.Occurrences     (Occurrences)
 import           Hunt.Index.Index
 
 -- ------------------------------------------------------------
@@ -46,22 +46,23 @@ instance NFData (IndexImpl v) where
 
 get' :: [IndexImpl Occurrences] -> Get [(Context, IndexImpl Occurrences)]
 get' ts = do
-          n <- get :: Get Int
-          getMany' ts n
+  n <- get :: Get Int
+  getMany' ts n
 
 getMany' :: [IndexImpl Occurrences] -> Int -> Get [(Context, IndexImpl Occurrences)]
 getMany' ts n = go [] n
- where
-    go xs 0 = return $! reverse xs
-    go xs i = do x <- liftM2 (,) get (get'' ts)
-                 x `seq` go (x:xs) (i-1)
+  where
+  go xs 0 = return $! reverse xs
+  go xs i = do
+    x <- liftM2 (,) get (get'' ts)
+    x `seq` go (x:xs) (i-1)
 
 get'' :: [IndexImpl Occurrences] -> Get (IndexImpl Occurrences)
 get'' ts = do
-        t <- get :: Get TypeRep
-        case L.find (\(IndexImpl i) -> t == typeOf i) ts of
-          Just (IndexImpl x) -> IndexImpl <$> get `asTypeOf` return x
-          Nothing            -> error $ "Unable to load index of type: " -- ++ show t
+  t <- get :: Get TypeRep
+  case L.find (\(IndexImpl i) -> t == typeOf i) ts of
+    Just (IndexImpl x) -> IndexImpl <$> get `asTypeOf` return x
+    Nothing            -> error $ "Unable to load index of type: " -- ++ show t
 
 -- | FIXME: actually implement instance
 instance Binary (IndexImpl v) where

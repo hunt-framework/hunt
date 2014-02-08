@@ -5,7 +5,7 @@ module Hunt.Index.Schema.Normalize
   )
 where
 
-import qualified Data.Text                                as T
+import qualified Data.Text                            as T
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
@@ -18,11 +18,11 @@ import qualified Hunt.Index.Schema.Normalize.Int      as Int
 
 contextNormalizer :: CNormalizer -> Word -> Word
 contextNormalizer o = case o of
-    NormUpperCase   -> T.toUpper
-    NormLowerCase   -> T.toLower
-    NormDate        -> Date.normalize
-    NormPosition    -> Pos.normalize
-    NormIntZeroFill -> Int.normalizeToText
+  NormUpperCase   -> T.toUpper
+  NormLowerCase   -> T.toLower
+  NormDate        -> Date.normalize
+  NormPosition    -> Pos.normalize
+  NormIntZeroFill -> Int.normalizeToText
 
 -- ----------------------------------------------------------------------------
 

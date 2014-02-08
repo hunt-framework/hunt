@@ -29,8 +29,8 @@ import           Hunt.Common.Occurrences.Compression
 -- ----------------------------------------------------------------------------
 
 newtype KeyProxyIndex from impl cv
-    = KPIx { kpIx :: impl cv}
-    deriving (Eq, Show, NFData)
+  = KPIx { kpIx :: impl cv}
+  deriving (Eq, Show, NFData)
 
 mkKPIx :: impl cv -> KeyProxyIndex from impl cv
 mkKPIx v = KPIx $! v
@@ -38,96 +38,97 @@ mkKPIx v = KPIx $! v
 -- ----------------------------------------------------------------------------
 
 instance Binary (impl v) => Binary (KeyProxyIndex from impl v) where
-    put = put . kpIx
-    get = get >>= return . mkKPIx
+  put = put . kpIx
+  get = get >>= return . mkKPIx
 
 -- ----------------------------------------------------------------------------
 
 instance Index (KeyProxyIndex from impl) where
-    type IKey      (KeyProxyIndex from impl) v = from
-    type IVal      (KeyProxyIndex from impl) v = IVal impl v
-    type ICon      (KeyProxyIndex from impl) v =
-        ( Index impl
-        , ICon impl v
-        , Bijection from (IKey impl v)
-        )
+  type IKey      (KeyProxyIndex from impl) v = from
+  type IVal      (KeyProxyIndex from impl) v = IVal impl v
+  type ICon      (KeyProxyIndex from impl) v =
+    ( Index impl
+    , ICon impl v
+    , Bijection from (IKey impl v)
+    )
 
-    batchInsert kvs (KPIx i)
-        = mkKPIx $ batchInsert (P.map (first to) kvs) i
+  batchInsert kvs (KPIx i)
+    = mkKPIx $ batchInsert (P.map (first to) kvs) i
 
-    batchDelete ks (KPIx i)
-        = mkKPIx $ batchDelete ks i
+  batchDelete ks (KPIx i)
+    = mkKPIx $ batchDelete ks i
 
-    empty
-        = mkKPIx $ empty
+  empty
+    = mkKPIx $ empty
 
-    fromList l
-        = mkKPIx . fromList $ P.map (first to) l
+  fromList l
+    = mkKPIx . fromList $ P.map (first to) l
 
-    toList (KPIx i)
-        = first from <$> toList i
+  toList (KPIx i)
+    = first from <$> toList i
 
-    search t k (KPIx i)
-        = first from <$> search t (to k) i
+  search t k (KPIx i)
+    = first from <$> search t (to k) i
 
-    lookupRange k1 k2 (KPIx i)
-        = first from <$> lookupRange (to k1) (to k2) i
+  lookupRange k1 k2 (KPIx i)
+    = first from <$> lookupRange (to k1) (to k2) i
 
-    unionWith op (KPIx i1) (KPIx i2)
-        = mkKPIx $ unionWith op i1 i2
+  unionWith op (KPIx i1) (KPIx i2)
+    = mkKPIx $ unionWith op i1 i2
 
-    unionWithConv t f (KPIx i1) (KPIx i2)
-        = mkKPIx $ unionWithConv t f i1 i2
+  unionWithConv t f (KPIx i1) (KPIx i2)
+    = mkKPIx $ unionWithConv t f i1 i2
 
-    map f (KPIx i)
-        = mkKPIx $ Ix.map f i
+  map f (KPIx i)
+    = mkKPIx $ Ix.map f i
 
-    keys (KPIx i)
-        = P.map from $ keys i
+  keys (KPIx i)
+    = P.map from $ keys i
 
 -- special instance for a CompressedOccurrences proxy within a TextKey proxy
 -- This requires XFlexibleInstances
 -- This requires XOverlappingInstances since the previous instance definition is more generic
 -- TODO: can this be somehow generalized to a genric index containing a compression proxy?
 instance Index (KeyProxyIndex from (ComprOccIndex impl to)) where
-    type IKey      (KeyProxyIndex from (ComprOccIndex impl to)) v = from
-    type IVal      (KeyProxyIndex from (ComprOccIndex impl to)) v = IVal      (ComprOccIndex impl to) v
-    type ICon      (KeyProxyIndex from (ComprOccIndex impl to)) v =
-        ( Index (ComprOccIndex impl to)
-        , ICon  (ComprOccIndex impl to) v
-        , Bijection from (IKey (ComprOccIndex impl to) v)
-        )
-    -- this is the only "special" function
-    batchDelete docIds (KPIx (ComprIx pt))
-        = mkKPIx $ mkComprIx $ Ix.map (differenceWithKeySet docIds) pt
+  type IKey      (KeyProxyIndex from (ComprOccIndex impl to)) v = from
+  type IVal      (KeyProxyIndex from (ComprOccIndex impl to)) v = IVal      (ComprOccIndex impl to) v
+  type ICon      (KeyProxyIndex from (ComprOccIndex impl to)) v =
+    ( Index (ComprOccIndex impl to)
+    , ICon  (ComprOccIndex impl to) v
+    , Bijection from (IKey (ComprOccIndex impl to) v)
+    )
 
-    -- everything below is copied from the more general instance Index (KeyProxyIndex impl)
-    batchInsert kvs (KPIx i)
-        = mkKPIx $ batchInsert (P.map (first to) kvs) i
+  -- this is the only "special" function
+  batchDelete docIds (KPIx (ComprIx pt))
+    = mkKPIx $ mkComprIx $ Ix.map (differenceWithKeySet docIds) pt
 
-    empty
-        = mkKPIx $ empty
+  -- everything below is copied from the more general instance Index (KeyProxyIndex impl)
+  batchInsert kvs (KPIx i)
+    = mkKPIx $ batchInsert (P.map (first to) kvs) i
 
-    fromList l
-        = mkKPIx . fromList $ P.map (first to) l
+  empty
+    = mkKPIx $ empty
 
-    toList (KPIx i)
-        = first from <$> toList i
+  fromList l
+    = mkKPIx . fromList $ P.map (first to) l
 
-    search t k (KPIx i)
-        = first from <$> search t (to k) i
+  toList (KPIx i)
+    = first from <$> toList i
 
-    lookupRange k1 k2 (KPIx i)
-        = first from <$> lookupRange (to k1) (to k2) i
+  search t k (KPIx i)
+    = first from <$> search t (to k) i
 
-    unionWith op (KPIx i1) (KPIx i2)
-        = mkKPIx $ unionWith op i1 i2
+  lookupRange k1 k2 (KPIx i)
+    = first from <$> lookupRange (to k1) (to k2) i
 
-    unionWithConv t f (KPIx i1) (KPIx i2)
-        = mkKPIx $ unionWithConv t f i1 i2
+  unionWith op (KPIx i1) (KPIx i2)
+    = mkKPIx $ unionWith op i1 i2
 
-    map f (KPIx i)
-        = mkKPIx $ Ix.map f i
+  unionWithConv t f (KPIx i1) (KPIx i2)
+    = mkKPIx $ unionWithConv t f i1 i2
 
-    keys (KPIx i)
-        = P.map from $ keys i
+  map f (KPIx i)
+    = mkKPIx $ Ix.map f i
+
+  keys (KPIx i)
+    = P.map from $ keys i

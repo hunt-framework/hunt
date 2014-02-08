@@ -3,10 +3,10 @@
 
 module Hunt.Server.Common where
 
-import Data.Typeable (Typeable)
-import Data.Data (Data)
+import           Data.Data     (Data)
+import           Data.Typeable (Typeable)
 
-import Data.Aeson
+import           Data.Aeson
 
 -- ----------------------------------------------------------------------------
 
@@ -27,7 +27,7 @@ instance ToJSON (JsonResponse r f) where
     ]
 
 data HuntServerConfiguration = HuntServerConfiguration {
-    huntServerHost :: String, 
-    huntServerPort :: Int, 
+    huntServerHost :: String,
+    huntServerPort :: Int,
     readIndexOnStartup :: Maybe FilePath
 } deriving (Show, Data, Typeable)

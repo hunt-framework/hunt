@@ -18,32 +18,34 @@ import           Control.Monad
 
 import           Data.Aeson
 import           Data.Binary
-import           Data.Text                  (Text)
-import qualified Data.Text                  as T
-import           Data.Text.Binary           ()
+import           Data.Text              (Text)
+import qualified Data.Text              as T
+import           Data.Text.Binary       ()
 
 import           Hunt.Common.BasicTypes as BTy
 import           Hunt.Index.Schema
 
 -- ----------------------------------------------------------------------------
 
-data Query = QWord      TextSearchType Text        -- ^ Word search.
-           | QPhrase    TextSearchType Text        -- ^ Phrase search
-           | QContext   [Context] Query            -- ^ Restrict query to a list of contexts.
-           | QBinary    BinOp Query Query          -- ^ Combine two queries through a binary operation.
-           | QBoost     CWeight Query              -- ^ Weight for Query
-           | QRange     Text Text                  -- ^ Range Query
-           deriving (Eq, Show)
+data Query
+  = QWord      TextSearchType Text        -- ^ Word search.
+  | QPhrase    TextSearchType Text        -- ^ Phrase search
+  | QContext   [Context] Query            -- ^ Restrict query to a list of contexts.
+  | QBinary    BinOp Query Query          -- ^ Combine two queries through a binary operation.
+  | QBoost     CWeight Query              -- ^ Weight for Query
+  | QRange     Text Text                  -- ^ Range Query
+  deriving (Eq, Show)
 
 data TextSearchType = QCase | QNoCase | QFuzzy
   deriving (Eq, Show)
 
 -- | A binary operation.
-data BinOp = And    -- ^ Intersect two queries.
-           | Or     -- ^ Union two queries.
-           | AndNot -- ^ Filter a query by another, @q1 BUT q2@ is equivalent to @q1 AND NOT q2@.
-                    --   This operator is useful for query processing optimizations.
-           deriving (Eq, Show)
+data BinOp
+  = And    -- ^ Intersect two queries.
+  | Or     -- ^ Union two queries.
+  | AndNot -- ^ Filter a query by another, @q1 BUT q2@ is equivalent to @q1 AND NOT q2@.
+          --   This operator is useful for query processing optimizations.
+  deriving (Eq, Show)
 
 -- ----------------------------------------------------------------------------
 instance ToJSON Query where
@@ -134,15 +136,16 @@ instance Binary Query where
   put (QBoost w q)       = put (5 :: Word8) >> put w >> put q
   put (QRange l u)       = put (6 :: Word8) >> put l >> put u
 
-  get = do tag <- getWord8
-           case tag of
-             0 -> liftM2 QWord      get get
-             1 -> liftM2 QPhrase    get get
-             2 -> liftM2 QContext   get get
-             4 -> liftM3 QBinary    get get get
-             5 -> liftM2 QBoost     get get
-             6 -> liftM2 QRange     get get
-             _ -> fail "Error while decoding Query"
+  get = do
+    tag <- getWord8
+    case tag of
+      0 -> liftM2 QWord      get get
+      1 -> liftM2 QPhrase    get get
+      2 -> liftM2 QContext   get get
+      4 -> liftM3 QBinary    get get get
+      5 -> liftM2 QBoost     get get
+      6 -> liftM2 QRange     get get
+      _ -> fail "Error while decoding Query"
 
 
 instance Binary TextSearchType where
@@ -150,24 +153,26 @@ instance Binary TextSearchType where
   put QNoCase = put (1 :: Word8)
   put QFuzzy  = put (2 :: Word8)
 
-  get = do tag <- getWord8
-           case tag of
-             0 -> return QCase
-             1 -> return QNoCase
-             2 -> return QFuzzy
-             _ -> fail "Error while decoding BinOp"
+  get = do
+    tag <- getWord8
+    case tag of
+      0 -> return QCase
+      1 -> return QNoCase
+      2 -> return QFuzzy
+      _ -> fail "Error while decoding BinOp"
 
 instance Binary BinOp where
   put And    = put (0 :: Word8)
   put Or     = put (1 :: Word8)
   put AndNot = put (2 :: Word8)
 
-  get = do tag <- getWord8
-           case tag of
-             0 -> return And
-             1 -> return Or
-             2 -> return AndNot
-             _ -> fail "Error while decoding BinOp"
+  get = do
+    tag <- getWord8
+    case tag of
+      0 -> return And
+      1 -> return Or
+      2 -> return AndNot
+      _ -> fail "Error while decoding BinOp"
 
 -- ----------------------------------------------------------------------------
 

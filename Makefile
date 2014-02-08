@@ -1,4 +1,4 @@
-# disable prarallel builds. 
+# disable prarallel builds.
 .NOTPARALLEL:
 
 # the -A option is important for garbage collection performance,
@@ -93,7 +93,7 @@ sandbox:
 	cabal sandbox add-source hunt-searchengine
 	cd ../hayoo/hayooFrontend  && cabal sandbox init --sandbox $(CURDIR)/.cabal-sandbox
 	cd hunt-demos/geoFrontend && cabal sandbox init --sandbox ../../.cabal-sandbox
-	
+
 searchengine:
 	cd hunt-searchengine && cabal $(action) $(PROFOPTS) $(pattern)
 
@@ -148,7 +148,7 @@ hunt-test/data/dict/en_US.dict.js:
 
 insertenUSDict: hunt-test/data/dict/en_US.dict.js
 	curl -X POST -d @hunt-test/data/dict/en_US.dict.js $(SERVER)/eval
-	
+
 # ab - Apache HTTP server benchmarking tool
 benchmark-ab:
 	ab -k -n 1000 -c 5 http://localhost:3000/search/esta

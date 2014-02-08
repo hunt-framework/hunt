@@ -71,7 +71,7 @@ import qualified Data.IntSet                 as S
 import           Data.Typeable
 
 import           Hunt.Common.DocId
-import qualified Hunt.Common.DocId       as DId
+import qualified Hunt.Common.DocId           as DId
 
 -- ------------------------------------------------------------
 

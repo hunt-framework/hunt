@@ -165,6 +165,8 @@ instance FromJSON CmdError where
 -- | Transform the supported input command into lower level commands which are actually interpreted.
 --   Transformations:
 --     - Multiple 'Cmd.Delete's into a single 'BatchDelete'.
+--     - Multiple 'Cmd.Insert's into a single or multiple 'BatchInsert's.
+--       The split is hardcoded to 200 at the moment (see 'splitBatch').
 toBasicCommand :: Command -> BasicCommand
 toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
   where
@@ -174,12 +176,12 @@ toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
   optGroup :: [Command] -> [BasicCommand]
   -- groups of delete to BatchDelete
   optGroup cs'@(Delete{}:_)
-    = foldl (\(Cmd.BatchDelete us) (Delete u)
-                -> Cmd.BatchDelete (S.insert u us)) (Cmd.BatchDelete S.empty) cs' : []
+    = [foldl (\(Cmd.BatchDelete us) (Delete u)
+                -> Cmd.BatchDelete (S.insert u us)) (Cmd.BatchDelete S.empty) cs']
   -- groups of Insert to BatchInsert
   optGroup cs'@(Insert{}:_)
-    = map splitBatch $ foldl (\(Cmd.BatchInsert us) (Insert u)
-                -> Cmd.BatchInsert (u:us)) (Cmd.BatchInsert []) cs' : []
+    = [splitBatch 200 $ foldl (\(Cmd.BatchInsert us) (Insert u)
+                -> Cmd.BatchInsert (u:us)) (Cmd.BatchInsert []) cs']
   optGroup cs'@(Sequence{}:_)
     = map toBasicCommand cs'
   optGroup cs'
@@ -204,18 +206,16 @@ toBasicCommand (StoreIx a)         = Cmd.StoreIx a
 toBasicCommand (Status a)          = Cmd.Status a
 toBasicCommand (NOOP)              = Cmd.NOOP
 
--- split big batch inserts to smaller ones
--- to avoid running out of memory 
-splitBatch :: BasicCommand -> BasicCommand
-splitBatch (Cmd.BatchInsert xs) 
-    = Cmd.Sequence $ map (Cmd.BatchInsert) $ splitEvery 200 xs 
-splitBatch cmd                 
+-- | Splits big batch inserts to smaller ones with at most @n@ elements.
+--   This can avoid running out of memory for large 'BatchInsert's.
+splitBatch :: Int -> BasicCommand -> BasicCommand
+splitBatch n (Cmd.BatchInsert xs)
+    = Cmd.Sequence $ map Cmd.BatchInsert $ splitEvery n xs
+splitBatch _ cmd
     = cmd
 
+splitEvery :: Int -> [a] -> [[a]]
 splitEvery _ [] = []
-splitEvery n list = first : (splitEvery n rest)
+splitEvery n list = first : splitEvery n rest
   where
-    (first,rest) = splitAt n list
-
-
-
+  (first,rest) = splitAt n list

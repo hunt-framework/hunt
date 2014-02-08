@@ -30,13 +30,13 @@ module Hunt.Common
   )
 where
 
-import           Hunt.Common.ApiDocument  (ApiDocument (..))
+import           Hunt.Common.ApiDocument             (ApiDocument (..))
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.Occurrences.Compression
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap     (DocIdMap, DocIdSet)
-import           Hunt.Common.Document     (Document (..))
-import           Hunt.Common.Occurrences  (Occurrences)
-import           Hunt.Common.Positions    (Positions)
+import           Hunt.Common.DocIdMap                (DocIdMap, DocIdSet)
+import           Hunt.Common.Document                (Document (..))
+import           Hunt.Common.Occurrences             (Occurrences)
+import           Hunt.Common.Occurrences.Compression
+import           Hunt.Common.Positions               (Positions)
 import           Hunt.Common.RawResult
 import           Hunt.Index.Schema

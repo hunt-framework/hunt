@@ -8,10 +8,10 @@
 module Main where
 
 import           Numeric
-import           Prelude                                         as P
+import           Prelude                      as P
 
 import           GHC.Stats
-import           GHC.Stats.Json                                  ()
+import           GHC.Stats.Json               ()
 import           System.Environment
 import           System.FilePath
 import           System.Mem
@@ -22,15 +22,15 @@ import           System.Process
 --import           Control.Concurrent
 import           Control.Monad
 
-import qualified Data.Binary                                     as Bin
---import           Data.Map                                        (Map)
-import qualified Data.Map                                        as M
+import qualified Data.Binary                  as Bin
+--import           Data.Map                     (Map)
+import qualified Data.Map                     as M
 --import           Data.Maybe
 import           Data.Monoid
-import           Data.Text                                       (Text)
-import qualified Data.Text                                       as T
+import           Data.Text                    (Text)
+import qualified Data.Text                    as T
 import           Data.Time.Clock
-import qualified Data.Traversable                                as T
+import qualified Data.Traversable             as T
 import           Data.Typeable
 
 import           Hunt.Common
@@ -39,17 +39,17 @@ import           Hunt.Interpreter.Interpreter
 
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
---import qualified Data.ByteString                                 as BS
-import qualified Data.ByteString.Lazy                            as BL
-import qualified Data.ByteString.Lazy.Char8                      as B8
+--import qualified Data.ByteString              as BS
+import qualified Data.ByteString.Lazy         as BL
+import qualified Data.ByteString.Lazy.Char8   as B8
 
 import           Hunt.Common.ApiDocument
-import qualified Hunt.Common.Occurrences                     as Occ
+import qualified Hunt.Common.Occurrences      as Occ
 import           Hunt.Index.Schema.Analyze
-import           Hunt.Query.Ranking
-import           Hunt.Query.Language.Grammar
-import           Hunt.Utility
 import           Hunt.Interpreter.Command
+import           Hunt.Query.Language.Grammar
+import           Hunt.Query.Ranking
+import           Hunt.Utility
 
 -- ----------------------------------------------------------------------------
 
@@ -66,13 +66,13 @@ main :: IO ()
 main = do
   hunt <- initEnv emptyIndexer defaultRankConfig contextTypes
   docs <- (getJson "./../data/random/RandomData.js" :: IO [ApiDocument])
-  _ <- mapM (\c -> monitorCmd hunt $ InsertContext c (ContextSchema Nothing [] 1.0 True ctText)) [ "id", "context1", "context2", "contextdate", "contextgeo", "contextint" ] 
+  _ <- mapM (\c -> monitorCmd hunt $ InsertContext c (ContextSchema Nothing [] 1.0 True ctText)) [ "id", "context1", "context2", "contextdate", "contextgeo", "contextint" ]
   putStrLn "sequence with batchInsert:"
   monitorCmd hunt $ Sequence $ map Insert docs
   putStrLn "search word 'a' to check if everything evaluated"
   monitorCmd hunt $ Search (QWord QFuzzy "a") 1 1000
 --  putStrLn "single command for each insert:"
---  start <- getCurrentTime  
+--  start <- getCurrentTime
 --  _ <- mapM (\doc -> monitorCmd hunt $ Insert doc) docs
 --  end <- getCurrentTime
 --  putStrLn $ "overall execution time: " ++ show (diffUTCTime end start)
@@ -80,7 +80,7 @@ main = do
   return ()
 
 monitorCmd hunt cmd = do
-  start <- getCurrentTime  
+  start <- getCurrentTime
   _ <- runCmd hunt cmd
   end <- getCurrentTime
   putStrLn $ "command execution time: " ++ show (diffUTCTime end start)

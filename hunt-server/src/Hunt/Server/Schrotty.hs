@@ -18,28 +18,28 @@ import           Control.Monad.Error
 
 import           Network.HTTP.Types
 import           Network.Wai
-import           Network.Wai.Handler.Warp     (Port)
+import           Network.Wai.Handler.Warp   (Port)
 
-import           Web.Scotty.Trans             hiding (jsonData, param)
-import qualified Web.Scotty.Trans             as Scotty
+import           Web.Scotty.Trans           hiding (jsonData, param)
+import qualified Web.Scotty.Trans           as Scotty
 --import           Web.Scotty.Util
 
-import           Data.ByteString.Lazy         (ByteString)
-import qualified Data.ByteString.Lazy.Char8   as BSL
-import qualified Data.Text.Lazy               as TL
-import qualified Data.Text.Lazy.Encoding      as TEnc
+import           Data.ByteString.Lazy       (ByteString)
+import qualified Data.ByteString.Lazy.Char8 as BSL
+import qualified Data.Text.Lazy             as TL
+import qualified Data.Text.Lazy.Encoding    as TEnc
 
 --import           Data.Aeson                   (FromJSON, ToJSON)
-import           Data.Aeson                   as A
-import           Data.Aeson.Encode.Pretty     as AP
+import           Data.Aeson                 as A
+import           Data.Aeson.Encode.Pretty   as AP
 
-import           Hunt.Interpreter.Command (CmdError(..))
+import           Hunt.Interpreter.Command   (CmdError (..))
 import           Hunt.Server.Common
 
 -- ----------------------------------------------------------------------------
 
 newtype WebErrorM a = WebErrorM { runWebErrorM :: ErrorT WebError IO a }
-    deriving (Functor, Applicative, Monad, MonadIO, MonadError WebError)
+  deriving (Functor, Applicative, Monad, MonadIO, MonadError WebError)
 
 type Schrotty = ScottyT WebErrorM
 
@@ -55,7 +55,7 @@ data WebError
 -- XXX: no Show instance because it's not a Haskell98 type
 
 instance Error WebError where
-    strMsg = Other . BSL.pack
+  strMsg = Other . BSL.pack
 
 -- ----------------------------------------------------------------------------
 
@@ -98,11 +98,11 @@ jsonPretty v = do
 
 -- | Replacement for 'Web.Scotty.jsonData' with custom error.
 jsonData :: FromJSON a => ActionT WebErrorM a
-jsonData = do 
-    b <- body
-    case A.eitherDecode b of
-      (Right j) -> return j
-      (Left e) -> throw (JsonInvalid e)
+jsonData = do
+  b <- body
+  case A.eitherDecode b of
+    (Right j) -> return j
+    (Left e) -> throw (JsonInvalid e)
 
 -- | Replacement for 'Web.Scotty.param' with custom error.
 param :: Parsable a => TL.Text -> ActionT WebErrorM a

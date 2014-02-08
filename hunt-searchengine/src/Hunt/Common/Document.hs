@@ -36,37 +36,37 @@ import           Hunt.Utility.Log
 
 -- | A document consists of its unique identifier (URI).
 data Document = Document
-    { uri  :: ! URI
-    , desc :: ! Description
-    }
-    deriving (Show, Eq, Ord)
+  { uri  :: ! URI
+  , desc :: ! Description
+  }
+  deriving (Show, Eq, Ord)
 
 -- ------------------------------------------------------------
 
 instance ToJSON Document where
   toJSON (Document u d) = object
-    [ "uri"   .= u
-    , "desc"  .= toJSON d
+    [ "uri"  .= u
+    , "desc" .= toJSON d
     ]
 
 instance FromJSON Document where
   parseJSON (Object o) = do
-    parsedDesc      <- o    .: "desc"
-    parsedUri       <- o    .: "uri"
+    parsedDesc <- o .: "desc"
+    parsedUri  <- o .: "uri"
     return Document
-      { uri     = parsedUri
-      , desc    = parsedDesc
+      { uri  = parsedUri
+      , desc = parsedDesc
       }
   parseJSON _ = mzero
 
 -- ------------------------------------------------------------
 
 instance Binary Document where
-    put (Document u d) = put u >> put d
-    get                   = liftM2 Document get get
+  put (Document u d) = put u >> put d
+  get                = liftM2 Document get get
 
 instance NFData Document where
-    rnf (Document t d) = rnf t `seq` rnf d
+  rnf (Document t d) = rnf t `seq` rnf d
 
 -- ------------------------------------------------------------
 

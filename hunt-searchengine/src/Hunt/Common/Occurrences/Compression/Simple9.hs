@@ -28,7 +28,7 @@ module Hunt.Common.Occurrences.Compression.Simple9
   )
 where
 
-import qualified Data.IntSet                             as IS
+import qualified Data.IntSet                         as IS
 
 import           Hunt.Common.DiffList
 import           Hunt.Common.DocId                   (DocId)

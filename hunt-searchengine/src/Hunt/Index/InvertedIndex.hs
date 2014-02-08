@@ -31,18 +31,19 @@ import           Hunt.Index.Index                           as Ix
 
 import           Hunt.Index.Proxy.KeyIndex
 
-import qualified Hunt.Index.Schema.Normalize.Int            as Int        
+import qualified Hunt.Index.Schema.Normalize.Int            as Int
 import qualified Hunt.Index.Schema.Normalize.Date           as Date
 import qualified Hunt.Index.Schema.Normalize.Position       as Pos
 
 import           Data.Bijection
+
 -- ----------------------------------------------------------------------------
 -- inverted index using int proxy for numeric data
 -- ----------------------------------------------------------------------------
 
 -- newtype required to enable different Text->Text Bijection instances
 newtype UnInt = UnInt { unInt :: Text }
-  deriving (Show, Eq, NFData) 
+  deriving (Show, Eq, NFData)
 
 instance Bijection UnInt Text where
   to = Int.normalizeToText . unInt
@@ -53,8 +54,8 @@ instance Bijection Text UnInt where
   from = unInt
 
 newtype InvertedIndexInt v
-    = InvIntIx { invIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt InvertedIndex) v }
-    deriving (Eq, Show, NFData, Typeable)
+  = InvIntIx { invIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt InvertedIndex) v }
+  deriving (Eq, Show, NFData, Typeable)
 
 mkInvIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt InvertedIndex) v -> InvertedIndexInt v
 mkInvIntIx x = InvIntIx $! x
@@ -62,54 +63,54 @@ mkInvIntIx x = InvIntIx $! x
 -- ----------------------------------------------------------------------------
 
 instance Binary (InvertedIndexInt v) where
-    put = put . invIntIx
-    get = get >>= return . InvIntIx
+  put = put . invIntIx
+  get = get >>= return . InvIntIx
 
 -- ----------------------------------------------------------------------------
 
 instance Index InvertedIndexInt where
-    type IKey InvertedIndexInt v = Text
-    type IVal InvertedIndexInt v = Occurrences
+  type IKey InvertedIndexInt v = Text
+  type IVal InvertedIndexInt v = Occurrences
 
-    batchInsert wos (InvIntIx i)
-        = mkInvIntIx $ batchInsert wos i
+  batchInsert wos (InvIntIx i)
+    = mkInvIntIx $ batchInsert wos i
 
-    batchDelete docIds (InvIntIx i)
-        = mkInvIntIx $ batchDelete docIds i
+  batchDelete docIds (InvIntIx i)
+    = mkInvIntIx $ batchDelete docIds i
 
-    empty
-        = mkInvIntIx $ empty
+  empty
+    = mkInvIntIx $ empty
 
-    fromList l
-        = mkInvIntIx $ fromList l
+  fromList l
+    = mkInvIntIx $ fromList l
 
-    toList (InvIntIx i)
-        = toList i
+  toList (InvIntIx i)
+    = toList i
 
-    search t k (InvIntIx i)
-        = search t k i
+  search t k (InvIntIx i)
+    = search t k i
 
-    lookupRange k1 k2 (InvIntIx i)
-        = lookupRange k1 k2 i
+  lookupRange k1 k2 (InvIntIx i)
+    = lookupRange k1 k2 i
 
-    unionWith op (InvIntIx i1) (InvIntIx i2)
-        = mkInvIntIx $ unionWith op i1 i2
+  unionWith op (InvIntIx i1) (InvIntIx i2)
+    = mkInvIntIx $ unionWith op i1 i2
 
-    unionWithConv to' f (InvIntIx i1) (InvIntIx i2)
-        = mkInvIntIx $ unionWithConv to' f i1 i2
+  unionWithConv to' f (InvIntIx i1) (InvIntIx i2)
+    = mkInvIntIx $ unionWithConv to' f i1 i2
 
-    map f (InvIntIx i)
-        = mkInvIntIx $ Ix.map f i
+  map f (InvIntIx i)
+    = mkInvIntIx $ Ix.map f i
 
-    keys (InvIntIx i)
-        = keys i
+  keys (InvIntIx i)
+    = keys i
 
 
 -- ----------------------------------------------------------------------------
 -- inverted index using date proxy for date information
 -- ----------------------------------------------------------------------------
 newtype UnDate = UnDate { unDate :: Text }
-  deriving (Show, Eq, NFData) 
+  deriving (Show, Eq, NFData)
 
 instance Bijection UnDate Text where
   to = Date.normalize . unDate
@@ -120,8 +121,8 @@ instance Bijection Text UnDate where
   from = unDate
 
 newtype InvertedIndexDate v
-    = InvDateIx { invDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate InvertedIndex) v }
-    deriving (Eq, Show, NFData, Typeable)
+  = InvDateIx { invDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate InvertedIndex) v }
+  deriving (Eq, Show, NFData, Typeable)
 
 mkInvDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate InvertedIndex) v -> InvertedIndexDate v
 mkInvDateIx x = InvDateIx $! x
@@ -129,53 +130,53 @@ mkInvDateIx x = InvDateIx $! x
 -- ----------------------------------------------------------------------------
 
 instance Binary (InvertedIndexDate v) where
-    put = put . invDateIx
-    get = get >>= return . mkInvDateIx
+  put = put . invDateIx
+  get = get >>= return . mkInvDateIx
 
 -- ----------------------------------------------------------------------------
 
 instance Index InvertedIndexDate where
-    type IKey InvertedIndexDate v = Word
-    type IVal InvertedIndexDate v = Occurrences
+  type IKey InvertedIndexDate v = Word
+  type IVal InvertedIndexDate v = Occurrences
 
-    batchInsert wos (InvDateIx i)
-        = mkInvDateIx $ batchInsert wos i
+  batchInsert wos (InvDateIx i)
+    = mkInvDateIx $ batchInsert wos i
 
-    batchDelete docIds (InvDateIx i)
-        = mkInvDateIx $ batchDelete docIds i
+  batchDelete docIds (InvDateIx i)
+    = mkInvDateIx $ batchDelete docIds i
 
-    empty
-        = mkInvDateIx $ empty
+  empty
+    = mkInvDateIx $ empty
 
-    fromList l
-        = mkInvDateIx $ fromList l
+  fromList l
+    = mkInvDateIx $ fromList l
 
-    toList (InvDateIx i)
-        = toList i
+  toList (InvDateIx i)
+    = toList i
 
-    search t k (InvDateIx i)
-        = search t k i
+  search t k (InvDateIx i)
+    = search t k i
 
-    lookupRange k1 k2 (InvDateIx i)
-        = lookupRange k1 k2 i
+  lookupRange k1 k2 (InvDateIx i)
+    = lookupRange k1 k2 i
 
-    unionWith op (InvDateIx i1) (InvDateIx i2)
-        = mkInvDateIx $ unionWith op i1 i2
+  unionWith op (InvDateIx i1) (InvDateIx i2)
+    = mkInvDateIx $ unionWith op i1 i2
 
-    unionWithConv to' f (InvDateIx i1) (InvDateIx i2)
-        = mkInvDateIx $ unionWithConv to' f i1 i2
+  unionWithConv to' f (InvDateIx i1) (InvDateIx i2)
+    = mkInvDateIx $ unionWithConv to' f i1 i2
 
-    map f (InvDateIx i)
-        = mkInvDateIx $ Ix.map f i
+  map f (InvDateIx i)
+    = mkInvDateIx $ Ix.map f i
 
-    keys (InvDateIx i)
-        = keys i
+  keys (InvDateIx i)
+    = keys i
 
 -- ----------------------------------------------------------------------------
 -- inverted index using position proxy for geo coordinates
 -- ----------------------------------------------------------------------------
 newtype UnPos = UnPos { unPos :: Text }
-  deriving (Show, Eq, NFData) 
+  deriving (Show, Eq, NFData)
 
 instance Bijection UnPos Text where
   to = Pos.normalize . unPos
@@ -186,8 +187,8 @@ instance Bijection Text UnPos where
   from = unPos
 
 newtype InvertedIndexPosition v
-    = InvPosIx { invPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex) v }
-    deriving (Eq, Show, NFData, Typeable)
+  = InvPosIx { invPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex) v }
+  deriving (Eq, Show, NFData, Typeable)
 
 mkInvPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex) v  -> InvertedIndexPosition v
 mkInvPosIx x = InvPosIx $! x
@@ -195,47 +196,47 @@ mkInvPosIx x = InvPosIx $! x
 -- ----------------------------------------------------------------------------
 
 instance Binary (InvertedIndexPosition v) where
-    put = put . invPosIx
-    get = get >>= return . mkInvPosIx
+  put = put . invPosIx
+  get = get >>= return . mkInvPosIx
 
 -- ----------------------------------------------------------------------------
 
 instance Index InvertedIndexPosition where
-    type IKey InvertedIndexPosition v = Word
-    type IVal InvertedIndexPosition v = Occurrences
+  type IKey InvertedIndexPosition v = Word
+  type IVal InvertedIndexPosition v = Occurrences
 
-    batchInsert wos (InvPosIx i)
-        = mkInvPosIx $ batchInsert wos i
+  batchInsert wos (InvPosIx i)
+    = mkInvPosIx $ batchInsert wos i
 
-    batchDelete docIds (InvPosIx i)
-        = mkInvPosIx $ batchDelete docIds i
+  batchDelete docIds (InvPosIx i)
+    = mkInvPosIx $ batchDelete docIds i
 
-    empty
-        = mkInvPosIx $ empty
+  empty
+    = mkInvPosIx $ empty
 
-    fromList l
-        = mkInvPosIx $ fromList l
+  fromList l
+    = mkInvPosIx $ fromList l
 
-    toList (InvPosIx i)
-        = toList i
+  toList (InvPosIx i)
+    = toList i
 
-    search t k (InvPosIx i)
-        = search t k i
+  search t k (InvPosIx i)
+    = search t k i
 
-    lookupRange k1 k2 (InvPosIx i)
-        = lookupRange k1 k2 i
+  lookupRange k1 k2 (InvPosIx i)
+    = lookupRange k1 k2 i
 
-    unionWith op (InvPosIx i1) (InvPosIx i2)
-        = mkInvPosIx $ unionWith op i1 i2
+  unionWith op (InvPosIx i1) (InvPosIx i2)
+    = mkInvPosIx $ unionWith op i1 i2
 
-    unionWithConv to' f (InvPosIx i1) (InvPosIx i2)
-        = mkInvPosIx $ unionWithConv to' f i1 i2
+  unionWithConv to' f (InvPosIx i1) (InvPosIx i2)
+    = mkInvPosIx $ unionWithConv to' f i1 i2
 
-    map f (InvPosIx i)
-        = mkInvPosIx $ Ix.map f i
+  map f (InvPosIx i)
+    = mkInvPosIx $ Ix.map f i
 
-    keys (InvPosIx i)
-        = keys i
+  keys (InvPosIx i)
+    = keys i
 
 
 -- ----------------------------------------------------------------------------
@@ -243,8 +244,8 @@ instance Index InvertedIndexPosition where
 -- ----------------------------------------------------------------------------
 
 newtype InvertedIndex _v
-    = InvIx { invIx :: KeyProxyIndex Text ComprOccPrefixTree CompressedOccurrences }
-    deriving (Eq, Show, NFData, Typeable)
+  = InvIx { invIx :: KeyProxyIndex Text ComprOccPrefixTree CompressedOccurrences }
+  deriving (Eq, Show, NFData, Typeable)
 
 mkInvIx :: KeyProxyIndex Text ComprOccPrefixTree CompressedOccurrences
         -> InvertedIndex _v
@@ -253,48 +254,48 @@ mkInvIx x = InvIx $! x
 -- ----------------------------------------------------------------------------
 
 instance Binary (InvertedIndex v) where
-    put = put . invIx
-    get = get >>= return . mkInvIx
+  put = put . invIx
+  get = get >>= return . mkInvIx
 
 -- ----------------------------------------------------------------------------
 
 instance Index InvertedIndex where
-    type IKey InvertedIndex v = Word
-    type IVal InvertedIndex v = Occurrences
+  type IKey InvertedIndex v = Word
+  type IVal InvertedIndex v = Occurrences
 
-    batchInsert wos (InvIx i)
-        = mkInvIx $ batchInsert wos i
+  batchInsert wos (InvIx i)
+    = mkInvIx $ batchInsert wos i
 
-    batchDelete docIds (InvIx i)
-        = mkInvIx $ batchDelete docIds i
+  batchDelete docIds (InvIx i)
+    = mkInvIx $ batchDelete docIds i
 
-    empty
-        = mkInvIx $ empty
+  empty
+    = mkInvIx $ empty
 
-    fromList l
-        = mkInvIx $ fromList l
+  fromList l
+    = mkInvIx $ fromList l
 
-    toList (InvIx i)
-        = toList i
+  toList (InvIx i)
+    = toList i
 
-    search t k (InvIx i)
-        = search t k i
+  search t k (InvIx i)
+    = search t k i
 
-    lookupRange k1 k2 (InvIx i)
-        = lookupRange k1 k2 i
+  lookupRange k1 k2 (InvIx i)
+    = lookupRange k1 k2 i
 
-    unionWith op (InvIx i1) (InvIx i2)
-        = mkInvIx $ unionWith op i1 i2
+  unionWith op (InvIx i1) (InvIx i2)
+    = mkInvIx $ unionWith op i1 i2
 
-    unionWithConv
-        = error "InvertedIndex unionWithConv: cannot be used there because type variable v is fixed"
+  unionWithConv
+    = error "InvertedIndex unionWithConv: cannot be used there because type variable v is fixed"
 {-
-    unionWithConv to f (InvIx i1) (InvIx i2)
-        = mkInvIx $ unionWithConv to f i1 i2
+  unionWithConv to f (InvIx i1) (InvIx i2)
+    = mkInvIx $ unionWithConv to f i1 i2
 -}
 
-    map f (InvIx i)
-        = mkInvIx $ Ix.map f i
+  map f (InvIx i)
+    = mkInvIx $ Ix.map f i
 
-    keys (InvIx i)
-        = keys i
+  keys (InvIx i)
+    = keys i

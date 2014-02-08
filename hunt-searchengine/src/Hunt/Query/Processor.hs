@@ -18,45 +18,45 @@ module Hunt.Query.Processor
 where
 
 import           Control.Applicative
-import           Control.Arrow                     (second)
+import           Control.Arrow
 import           Control.Monad
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
-import           Data.Binary                       (Binary)
-import qualified Data.Binary                       as Bin
+import           Data.Binary                 (Binary)
+import qualified Data.Binary                 as Bin
 import           Data.Function
-import qualified Data.List                         as L
-import qualified Data.Map                          as M
+import qualified Data.List                   as L
+import qualified Data.Map                    as M
 import           Data.Maybe
-import           Data.Text                         (Text)
-import qualified Data.Text                         as T
+import           Data.Text                   (Text)
+import qualified Data.Text                   as T
 
 --import           Hunt.Utility
 
 import           Hunt.Common
-import qualified Hunt.Common.DocIdMap          as DM
-import qualified Hunt.Common.Positions         as Pos
+import qualified Hunt.Common.DocIdMap        as DM
+import qualified Hunt.Common.Positions       as Pos
 --import           Hunt.Index.TextIndex
 
-import           Hunt.ContextIndex             (ContextMap)
-import qualified Hunt.ContextIndex             as CIx
+import           Hunt.ContextIndex           (ContextMap)
+import qualified Hunt.ContextIndex           as CIx
 
-import           Hunt.Query.Fuzzy              (FuzzyConfig)
-import qualified Hunt.Query.Fuzzy              as F
-import           Hunt.Query.Intermediate       (Intermediate)
-import qualified Hunt.Query.Intermediate       as I
+import           Hunt.Query.Fuzzy            (FuzzyConfig)
+import qualified Hunt.Query.Fuzzy            as F
+import           Hunt.Query.Intermediate     (Intermediate)
+import qualified Hunt.Query.Intermediate     as I
 import           Hunt.Query.Language.Grammar
-import           Hunt.Query.Result             (Result)
+import           Hunt.Query.Result           (Result)
 
-import           Hunt.DocTable.DocTable        (DocTable)
-import qualified Hunt.DocTable.DocTable        as Dt
+import           Hunt.DocTable.DocTable      (DocTable)
+import qualified Hunt.DocTable.DocTable      as Dt
 
 import           Hunt.Index.Schema.Analyze
 --import           Hunt.Index.Schema.Normalize
-import           Hunt.Interpreter.Command      (CmdError (..))
+import           Hunt.Interpreter.Command    (CmdError (..))
 
-import qualified System.Log.Logger                 as Log
+import qualified System.Log.Logger           as Log
 
 -- ----------------------------------------------------------------------------
 -- Logging

@@ -5,19 +5,18 @@
 module Hunt.DocTable.DocTable
 where
 
-import           Prelude                    hiding (filter, lookup, map, null)
-import qualified Prelude                    as P
+import           Prelude                hiding (filter, lookup, map, null)
+import qualified Prelude                as P
 
 import           Control.Monad
 
-import           Data.Maybe                 (catMaybes)
-import           Data.Set                   (Set)
-import qualified Data.Set                   as S
+import           Data.Maybe             (catMaybes)
+import           Data.Set               (Set)
+import qualified Data.Set               as S
 
 import           Hunt.Common.BasicTypes (URI)
 import           Hunt.Common.DocId      (DocId)
-import           Hunt.Common.DocIdMap   (DocIdMap (..), DocIdSet,
-                                             toDocIdSet)
+import           Hunt.Common.DocIdMap   (DocIdMap (..), DocIdSet, toDocIdSet)
 import           Hunt.Common.Document   (DocumentWrapper)
 
 -- ----------------------------------------------------------------------------

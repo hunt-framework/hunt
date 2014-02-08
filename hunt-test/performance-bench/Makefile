@@ -57,7 +57,7 @@ sandbox: .cabal-sandbox
 	cabal sandbox add-source ../../hunt-searchengine/
 
 run:
-	./.cabal-sandbox/bin/hunt-perbench +RTS -N$(N) -s $(RTSPROF) -K$(K)M -A$(A)M -H$(H)M -RTS  
+	./.cabal-sandbox/bin/hunt-perbench +RTS -N$(N) -s $(RTSPROF) -K$(K)M -A$(A)M -H$(H)M -RTS
 
 deps: sandbox
 #   bytestring
