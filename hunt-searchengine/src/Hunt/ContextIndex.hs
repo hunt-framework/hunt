@@ -55,6 +55,9 @@ newtype ContextMap v
   = ContextMap { cxMap :: Map Context (Impl.IndexImpl v) }
   deriving (Show)
 
+mkContextMap :: Map Context (Impl.IndexImpl v) -> ContextMap v
+mkContextMap x = ContextMap $!! x
+
 -- ----------------------------------------------------------------------------
 
 getContextMap :: [IndexImpl Occurrences] -> Get (ContextMap Occurrences)
@@ -99,8 +102,8 @@ batchInsert docAndWrds (ContextIx ix dt s) = do
                       >>= \(dId, docTable') -> return (docTable', (dId, wrds):wordAcc))
               (dt, [])
               docAndWrds
-    -- newIx <- batchAddWordsM docIdsAndWrds ix
-    let newIx = batchAddWords docIdsAndWrds ix
+    newIx <- batchAddWordsM docIdsAndWrds ix
+--    let newIx = batchAddWords docIdsAndWrds ix
     return $! ContextIx newIx newDt s
 
 -- | Update elements
@@ -182,7 +185,7 @@ addDocDescription descr did (Indexer i d)
 
 addWordsM :: Par.MonadParallel m => Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
 addWordsM wrds dId _i@(ContextMap m)
-  = mapWithKeyMP (\cx impl -> foldInsert cx impl wrds dId) m >>= \v -> return . ContextMap $!! v
+  = mapWithKeyMP (\cx impl -> foldInsert cx impl wrds dId) m >>= return . mkContextMap
 --  = foldrWithKeyM (\c wl acc ->
 --      foldrWithKeyM (\w ps acc' ->
 --        insertWithCx c w (mkOccs dId ps) acc')
@@ -208,7 +211,8 @@ batchAddWordsM wrdsAndDocIds _i@(ContextMap m)
 --   /NOTE/: adds words to /existing/ 'Context's.
 batchAddWords :: [(DocId, Words)] -> ContextMap Occurrences -> ContextMap Occurrences
 batchAddWords wrdsAndDocIds _i@(ContextMap m)
-  = ContextMap $!! M.fromList $ parMap rpar (\(cx,impl) -> (cx,foldBatchInsert cx impl wrdsAndDocIds)) (M.toList m)
+--  = mkContextMap $! M.fromList $! parMap rseq (\(cx,impl) -> (cx,foldBatchInsert cx impl wrdsAndDocIds)) (M.toList m)
+  = mkContextMap $ M.mapWithKey (\cx impl -> foldBatchInsert cx impl wrdsAndDocIds) m
   where
   foldBatchInsert :: Context -> IndexImpl Occurrences -> [(DocId, Words)] -> IndexImpl Occurrences
   foldBatchInsert cx (Impl.IndexImpl impl) docIdsAndWrds
