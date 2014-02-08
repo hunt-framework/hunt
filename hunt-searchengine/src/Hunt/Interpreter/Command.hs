@@ -178,7 +178,7 @@ toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
                 -> Cmd.BatchDelete (S.insert u us)) (Cmd.BatchDelete S.empty) cs' : []
   -- groups of Insert to BatchInsert
   optGroup cs'@(Insert{}:_)
-    = foldl (\(Cmd.BatchInsert us) (Insert u)
+    = map splitBatch $ foldl (\(Cmd.BatchInsert us) (Insert u)
                 -> Cmd.BatchInsert (u:us)) (Cmd.BatchInsert []) cs' : []
   optGroup cs'@(Sequence{}:_)
     = map toBasicCommand cs'
@@ -203,3 +203,19 @@ toBasicCommand (LoadIx a)          = Cmd.LoadIx a
 toBasicCommand (StoreIx a)         = Cmd.StoreIx a
 toBasicCommand (Status a)          = Cmd.Status a
 toBasicCommand (NOOP)              = Cmd.NOOP
+
+-- split big batch inserts to smaller ones
+-- to avoid running out of memory 
+splitBatch :: BasicCommand -> BasicCommand
+splitBatch (Cmd.BatchInsert xs) 
+    = Cmd.Sequence $ map (Cmd.BatchInsert) $ splitEvery 200 xs 
+splitBatch cmd                 
+    = cmd
+
+splitEvery _ [] = []
+splitEvery n list = first : (splitEvery n rest)
+  where
+    (first,rest) = splitAt n list
+
+
+
