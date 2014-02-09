@@ -66,9 +66,9 @@ data Command
 
 data CmdResult
   = ResOK
-  | ResSearch       { crRes :: LimitedResult Document }
+  | ResSearch       { crRes   :: LimitedResult Document }
   | ResCompletion   { crWords :: [(Text, [Text])] }
-  | ResGeneric      { crGen :: Value }
+  | ResGeneric      { crGen   :: Value }
   deriving (Show, Eq)
 
 data CmdError

@@ -164,7 +164,8 @@ initEnv ixx rnk opt = do
 -- ----------------------------------------------------------------------------
 -- the command evaluation monad
 -- ----------------------------------------------------------------------------
-newtype CMT dt m a = CMT { runCMT :: ReaderT (Env dt) (ErrorT CmdError m) a }
+newtype CMT dt m a
+  = CMT { runCMT :: ReaderT (Env dt) (ErrorT CmdError m) a }
   deriving (Applicative, Monad, MonadIO, Functor, MonadReader (Env dt), MonadError CmdError)
 
 instance MonadTrans (CMT dt) where

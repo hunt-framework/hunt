@@ -1,5 +1,5 @@
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE GADTs              #-}
 
 module Hunt.Server.Common where
 
@@ -26,8 +26,8 @@ instance ToJSON (JsonResponse r f) where
     , "msg"   .= msg
     ]
 
-data HuntServerConfiguration = HuntServerConfiguration {
-    huntServerHost :: String,
-    huntServerPort :: Int,
-    readIndexOnStartup :: Maybe FilePath
-} deriving (Show, Data, Typeable)
+data HuntServerConfiguration = HuntServerConfiguration
+  { huntServerHost     :: String
+  , huntServerPort     :: Int
+  , readIndexOnStartup :: Maybe FilePath
+  } deriving (Show, Data, Typeable)
