@@ -22,7 +22,7 @@ import qualified Hunt.Index.InvertedIndex         as InvIx
 import qualified Hunt.Index.PrefixTreeIndex       as PIx
 import qualified Hunt.Index.Proxy.CompressedIndex as CPIx
 import           Hunt.Index.IndexImpl
-import           Hunt.ContextIndex                (addWords)
+import           Hunt.ContextIndex                (addWordsM)
 import qualified Hunt.ContextIndex                as ConIx
 -- ----------------------------------------------------------------------------
 
@@ -117,7 +117,7 @@ insertTestContext = "test" @?= insertedContext
 
 addWordsTest :: Assertion
 addWordsTest = do
-  resIx   <- addWords (wrds "default") 1 emptyIndex
+  resIx   <- addWordsM (wrds "default") 1 emptyIndex
   resList <- ConIx.searchWithCx PrefixNoCase "default" "word" $ resIx
   True @?= length resList == 1
   where
