@@ -20,6 +20,7 @@ import           Network.HTTP.Types
 import           Network.Wai
 import           Network.Wai.Handler.Warp   (Port)
 
+import           Web.Scotty                 (ActionM)
 import           Web.Scotty.Trans           hiding (jsonData, param)
 import qualified Web.Scotty.Trans           as Scotty
 --import           Web.Scotty.Util
@@ -41,7 +42,8 @@ import           Hunt.Server.Common
 newtype WebErrorM a = WebErrorM { runWebErrorM :: ErrorT WebError IO a }
   deriving (Functor, Applicative, Monad, MonadIO, MonadError WebError)
 
-type Schrotty = ScottyT WebErrorM
+-- TODO: use ScottyT error stack...
+type Schrotty = ScottyT WebError WebErrorM
 
 data WebError
   = InterpreterError CmdError
@@ -56,6 +58,10 @@ data WebError
 
 instance Error WebError where
   strMsg = Other . BSL.pack
+
+instance ScottyError WebError where
+  stringError = Text 500 . BSL.pack
+  showError _ = "schrotty exception"
 
 -- ----------------------------------------------------------------------------
 
@@ -97,15 +103,15 @@ jsonPretty v = do
   raw $ AP.encodePretty v
 
 -- | Replacement for 'Web.Scotty.jsonData' with custom error.
-jsonData :: FromJSON a => ActionT WebErrorM a
+jsonData :: (FromJSON a, ScottyError e) => ActionT e WebErrorM a
 jsonData = do
   b <- body
   case A.eitherDecode b of
     (Right j) -> return j
-    (Left e) -> throw (JsonInvalid e)
+    (Left e)  -> throw (JsonInvalid e)
 
 -- | Replacement for 'Web.Scotty.param' with custom error.
-param :: Parsable a => TL.Text -> ActionT WebErrorM a
+param :: (Parsable a, ScottyError e) => TL.Text -> ActionT e WebErrorM a
 param p = Scotty.param p
             `rescue` (\_ -> throw $ MissingParam $ TEnc.encodeUtf8 p)
 
