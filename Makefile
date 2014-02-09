@@ -81,6 +81,7 @@ delete: clean
 configure: 	; $(MAKE) -e target action=configure
 build:		; $(MAKE) -e target action=build PROFOPTS=''
 install:	; $(MAKE) -e target action=install
+force-install:	; $(MAKE) -e target action=install PROFOPTS="--force-reinstalls $(PROFOPTS)"
 test:		; $(MAKE) -e target action=test PROFOPTS=''
 
 target: searchengine server
