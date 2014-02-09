@@ -10,4 +10,4 @@ Install
 git clone https://github.com/hunt-framework/hunt/
 git clone https://github.com/hunt-framework/hayoo/
 cd ./hunt
-make sandbox force-installs
+make sandbox force-install
