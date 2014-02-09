@@ -130,7 +130,7 @@ start config = do
         res <- liftIO $ interpret cmd
         case res of
           Left res' ->
-            throw $ InterpreterError res'
+            raise $ InterpreterError res'
           Right res' ->
             case res' of
               ResOK               -> json $ JsonSuccess ("ok" :: Text)
@@ -140,7 +140,7 @@ start config = do
 
     let evalQuery mkCmd q = case parseQuery q of
           Right qry -> eval $ mkCmd qry
-          Left  err -> throw $ Json 700 err
+          Left  err -> raise $ Json 700 err
 
     let batch cmd = Sequence . map cmd
 
@@ -209,4 +209,4 @@ start config = do
     get "/status/index" $ do
       eval $ Status StatusIndex         -- status of search index
 
-    notFound $ throw NotFound
+    notFound $ raise NotFound
