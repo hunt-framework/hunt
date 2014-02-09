@@ -93,7 +93,7 @@ instance Index ComprOccPrefixTree where
     = mkComprPT $! SM.unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
 
   unionWithConv to f (ComprPT i1) (ComprPT i2)
-    = mkComprPT $! SM.unionWithConv to f i1 i2
+    = mkComprPT $! SM.unionMapWith to f i1 i2
 
   map f (ComprPT i)
     = mkComprPT $! SM.map (compressOcc . f . decompressOcc) i

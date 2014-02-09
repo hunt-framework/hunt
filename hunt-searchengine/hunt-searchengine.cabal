@@ -31,7 +31,7 @@ library
                , bytestring             >= 0.10.4  && < 1
                , bzlib                  >= 0.4  && < 1
                , containers             >= 0.5
-               , data-stringmap         >= 0.9.5
+               , data-stringmap         >= 1.0  && < 2
                , deepseq                >= 1.2
                , dlist
 --               , directory              >= 1    && < 2
@@ -45,10 +45,10 @@ library
                , parsec                 >= 2.1  && < 4
 --               , process                >= 1    && < 2
 --               , SHA                    >= 1.4  && < 2
-               , text                   >= 0.11
+               , text                   >= 1    && < 2
                , time                   >= 1.4  && < 2
                , monad-parallel
---               , unix                   >= 2.3  && < 3
+               , unix                   >= 2.3  && < 3
   if impl( ghc >= 7.7 )
     build-depends: snappy               >= 0.1  && < 1
 
