@@ -5,6 +5,7 @@ module Hunt.Index.Schema where
 import           Control.Monad                        (mzero, liftM5)
 
 import           Data.Aeson
+import           Data.Aeson.Types
 import           Data.Binary
 import           Data.Map                             hiding (null)
 import           Data.Text                            hiding (null)
@@ -198,19 +199,23 @@ instance FromJSON ContextSchema where
 
 instance ToJSON ContextSchema where
   toJSON (ContextSchema r n w d ct) = object . Prelude.concat $
-    [ [ "ctype"       .= ct 
+    [ [ "ctype"       .= ct
       , "weight"      .= w
       ]
-    , if isNothing r 
-        then [] 
-        else [ "regexp" .= r ]
-    , if null n 
-        then []
-        else [ "normalizers" .= n ]
-    , if d == True
-        then []
-        else [ "default"     .= d ]
+    , "regexp"        .=? r .\. isNothing
+    , "normalizers"   .=? n .\. null
+    , "default"       .=? d .\. id
     ]
+
+-- ----------------------------------------------------------------------------
+-- Aeson helper
+
+(.=?) :: ToJSON a => Text -> (a, a -> Bool) -> [Pair]
+name .=? (value, cond) = if cond value then [] else [ name .= value ]
+
+(.\.) :: ToJSON a => a -> (a -> Bool) -> (a, a -> Bool)
+v .\. c = (v,c)
+infixl 8 .=?
 
 -- ----------------------------------------------------------------------------
 -- Binary instances
