@@ -189,7 +189,7 @@ addWordsIx :: (Monad m, TextIndex i v) => (Text -> Ix.IKey i v) -> Words -> DocI
 addWordsIx keyConv wrds dId i
   = foldrWithKeyM (\_c wl acc ->
       foldrWithKeyM (\w ps acc' ->
-        let ck = keyConv w in ck `seq` Ix.insert (keyConv w) (mkOccs dId ps) acc')
+        return $ let ck = keyConv w in ck `seq` Ix.insert (keyConv w) (mkOccs dId ps) acc')
       acc wl)
       i wrds
   where

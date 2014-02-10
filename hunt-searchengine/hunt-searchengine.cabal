@@ -49,6 +49,8 @@ library
                , time                   >= 1.4  && < 2
                , monad-parallel
                , unix                   >= 2.3  && < 3
+               , vector                 >= 0.10
+
   if impl( ghc >= 7.7 )
     build-depends: snappy               >= 0.1  && < 1
 
@@ -60,6 +62,7 @@ library
 
     Data.Bijection
     Data.Bijection.Instances
+    Data.IntSet.Cache
     Data.Text.Binary
     Data.Typeable.Binary
 

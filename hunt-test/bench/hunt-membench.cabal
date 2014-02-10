@@ -26,13 +26,14 @@ executable hunt-membench
                  , aeson
                  , aeson-pretty
                  , binary                 >= 0.5  && < 1
-                 , bytestring                        < 1
+                 , bytestring
                  , filepath
                  , hunt-searchengine      >= 0.1
                  , process                >= 1    && < 2
-                 , text                   >= 0.11 && < 1
-                 , time                   >= 1.4  && < 2
-                 , unix                   >= 2.3  && < 3
+                 , text
+                 , time
+                 , unix
+
   ghc-options:   -threaded
                  -Wall
                  -with-rtsopts=-T
@@ -49,12 +50,13 @@ executable hunt-membench-bin
                  , aeson
                  , aeson-pretty
                  , binary                 >= 0.5  && < 1
-                 , bytestring                        < 1
+                 , bytestring
                  , hunt-searchengine      >= 0.1
-                 , process                >= 1    && < 2
-                 , text                   >= 0.11 && < 1
-                 , time                   >= 1.4  && < 2
-                 , unix                   >= 2.3  && < 3
+                 , process
+                 , text
+                 , time
+                 , unix
+
   ghc-options:   -threaded
                  -Wall
                  -fwarn-tabs

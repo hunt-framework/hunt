@@ -18,16 +18,14 @@
 module Hunt.Common.Occurrences
 where
 
-import           Prelude                             hiding (subtract)
-
-import qualified Data.IntSet                         as IS
+import           Prelude                hiding (subtract)
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap                (DocIdMap)
-import qualified Hunt.Common.DocIdMap                as DM
-import           Hunt.Common.Positions               (Positions)
-import qualified Hunt.Common.Positions               as Pos
+import           Hunt.Common.DocIdMap   (DocIdMap)
+import qualified Hunt.Common.DocIdMap   as DM
+import           Hunt.Common.Positions  (Positions)
+import qualified Hunt.Common.Positions  as Pos
 
 -- ------------------------------------------------------------
 
@@ -51,15 +49,15 @@ null                    = DM.null
 
 -- | Determine the number of positions in a set of occurrences.
 size                    :: Occurrences -> Int
-size                    = DM.foldr ((+) . IS.size) 0
+size                    = DM.foldr ((+) . Pos.size) 0
 
 -- | Add a position to occurrences.
 insert                  :: DocId -> Position -> Occurrences -> Occurrences
-insert d p              = DM.insertWith IS.union d (Pos.singleton p)
+insert d p              = DM.insertWith Pos.union d (Pos.singleton p)
 
 -- | Add multiple positions to occurrences
 insert'                 :: DocId -> Positions -> Occurrences -> Occurrences
-insert' d ps occs       = IS.foldr (insert d) occs ps
+insert' d ps occs       = Pos.foldr (insert d) occs ps
 
 -- | Remove a position from occurrences.
 deleteOccurrence        :: DocId -> Position -> Occurrences -> Occurrences
@@ -72,7 +70,7 @@ delete                  = DM.delete
 -- | Changes the DocIDs of the occurrences.
 update                  :: (DocId -> DocId) -> Occurrences -> Occurrences
 update f                = DM.foldrWithKey
-                          (\ d ps res -> DM.insertWith IS.union (f d) ps res) empty
+                          (\ d ps res -> DM.insertWith Pos.union (f d) ps res) empty
 
 -- | Merge two occurrences.
 merge                   :: Occurrences -> Occurrences -> Occurrences
@@ -87,10 +85,10 @@ subtract                :: Occurrences -> Occurrences -> Occurrences
 subtract                = DM.differenceWith subtractPositions
   where
   subtractPositions p1 p2
-    = if IS.null diffPos
+    = if Pos.null diffPos
         then Nothing
         else Just diffPos
     where
-    diffPos = IS.difference p1 p2
+    diffPos = Pos.difference p1 p2
 
 -- ------------------------------------------------------------
