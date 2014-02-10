@@ -6,9 +6,10 @@ import           Control.Monad                        (mzero, liftM5)
 
 import           Data.Aeson
 import           Data.Binary
-import           Data.Map
-import           Data.Text
+import           Data.Map                             hiding (null)
+import           Data.Text                            hiding (null)
 import           Data.Text.Binary                     ()
+import           Data.Maybe                           (isNothing)
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences              (Occurrences)
@@ -186,7 +187,7 @@ instance ToJSON CNormalizer where
 
 instance FromJSON ContextSchema where
   parseJSON (Object o) = do
-    r <- o .:? "regexp"
+    r <- o .:? "regexp"     
     n <- o .:? "normalizers" .!= []
     w <- o .:? "weight"      .!= 1.0
     d <- o .:? "default"     .!= True
@@ -196,12 +197,19 @@ instance FromJSON ContextSchema where
   parseJSON _ = mzero
 
 instance ToJSON ContextSchema where
-  toJSON (ContextSchema r n w d ct) = object
-    [ "regexp"      .= r
-    , "normalizers" .= n
-    , "weight"      .= w
-    , "default"     .= d
-    , "ctype"       .= ct
+  toJSON (ContextSchema r n w d ct) = object . Prelude.concat $
+    [ [ "ctype"       .= ct 
+      , "weight"      .= w
+      ]
+    , if isNothing r 
+        then [] 
+        else [ "regexp" .= r ]
+    , if null n 
+        then []
+        else [ "normalizers" .= n ]
+    , if d == True
+        then []
+        else [ "default"     .= d ]
     ]
 
 -- ----------------------------------------------------------------------------
