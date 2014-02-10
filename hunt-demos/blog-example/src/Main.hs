@@ -15,7 +15,7 @@ import           Hunt.Query.Ranking
 import           Hunt.Query.Language.Grammar
 
 main :: IO ()
-main = do 
+main = do
   -- init hunt interpreter.
   ix <- initEnv emptyIndexer defaultRankConfig contextTypes
 
@@ -39,9 +39,9 @@ main = do
   putStrLn ""
   putStrLn "Press any key to continue..."
   _ <- getLine
-  
+
   -- creating contexts for subject and the article context.
-  -- commands can be batch executed by using the Sequnce operator. 
+  -- commands can be batch executed by using the Sequnce operator.
   let cmd2 = Sequence [
                 -- context with default schema for text context type
                 InsertContext "content" $ defSchema ctText,
@@ -86,7 +86,7 @@ main = do
   -- inserting a couple more documents from a file to be able to search
   -- with meaningful results. The format is the same so the JSON is not
   -- printed to the console here.
-  fileContent <- B.readFile "apidocuments.js" 
+  fileContent <- B.readFile "apidocuments.js"
   let cmd4 = case eitherDecode fileContent of
                (Right r) -> Sequence $ map Insert r
                _         -> error "error: file apidocuments.js not available or corrupt"
@@ -103,7 +103,7 @@ main = do
   putStrLn "Result:"
   B.putStr . encodePretty $ res
   putStrLn ""
-  putStrLn "Press any key to continue..." 
+  putStrLn "Press any key to continue..."
 
 
   -- another example: searching for documents publised in january 2014
@@ -115,5 +115,5 @@ main = do
   putStrLn "Result:"
   B.putStr . encodePretty $ res
   putStrLn ""
-  putStrLn "Press any key to exit" 
-  return () 
+  putStrLn "Press any key to exit"
+  return ()

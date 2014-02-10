@@ -38,7 +38,7 @@ modifyXMVar (XMVar m l) f
     putMVar  l ()
     return a
 
--- | Like 'modifyXMVar' but without a retun value.
+-- | Like 'modifyXMVar' but without a return value.
 modifyXMVar_ :: XMVar a -> (a -> IO a) -> IO ()
 modifyXMVar_ (XMVar m l) f
   = mask $ \restore -> do

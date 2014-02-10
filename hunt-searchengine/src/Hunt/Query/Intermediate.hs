@@ -62,9 +62,9 @@ import qualified Hunt.DocTable.DocTable as Dt
 
 -- | The intermediate result used during query processing.
 
-type Intermediate               = DocIdMap IntermediateContexts
-type IntermediateContexts       = (Map Context IntermediateWords, Boost)
-type IntermediateWords          = Map Word (WordInfo, Positions)
+type Intermediate         = DocIdMap IntermediateContexts
+type IntermediateContexts = (Map Context IntermediateWords, Boost)
+type IntermediateWords    = Map Word (WordInfo, Positions)
 
 -- ----------------------------------------------------------------------------
 

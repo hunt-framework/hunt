@@ -61,7 +61,7 @@ data ContextSchema = ContextSchema
   }
   deriving Show
 
--- | default ContextSchema 
+-- | default ContextSchema.
 defSchema :: ContextType -> ContextSchema
 defSchema t = ContextSchema Nothing [] 1.0 True t
 
@@ -188,7 +188,7 @@ instance ToJSON CNormalizer where
 
 instance FromJSON ContextSchema where
   parseJSON (Object o) = do
-    r <- o .:? "regexp"     
+    r <- o .:? "regexp"
     n <- o .:? "normalizers" .!= []
     w <- o .:? "weight"      .!= 1.0
     d <- o .:? "default"     .!= True
