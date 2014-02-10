@@ -46,7 +46,7 @@ type Schema
 --   The second regexp/normalizer is context-specific (defined/chosen by user)
 data ContextSchema = ContextSchema
   {
-  -- XXX: regex change to maybe - optional since we have a default within contexttype
+  -- optional regex to overwrite default given by context type
     cxRegEx      :: Maybe CRegex
   -- normalizers to apply
   , cxNormalizer :: [CNormalizer]
@@ -58,6 +58,10 @@ data ContextSchema = ContextSchema
   , cxType       :: ContextType
   }
   deriving Show
+
+-- | default ContextSchema 
+defSchema :: ContextType -> ContextSchema
+defSchema t = ContextSchema Nothing [] 1.0 True t
 
 type ContextTypes = [ContextType]
 
@@ -149,26 +153,6 @@ type CWeight = Float
 -- JSON instances
 -- ----------------------------------------------------------------------------
 
-{--
-instance FromJSON CType where
-  parseJSON (String s)
-    = case s of
-        "text"     -> return CText
-        "int"      -> return CInt
-        "date"     -> return CDate
-        "position" -> return CPosition
-        _          -> mzero
-  parseJSON _ = mzero
-
-instance ToJSON CType where
-  toJSON o = case o of
-    CText     -> "text"
-    CInt      -> "int"
-    CDate     -> "date"
-    CPosition -> "position"
---}
---
-
 -- | Note: This is only partional (de-)serialization.
 --   The other components are environment depending
 --   and cannot be (de-)serialized. We serialize the name
@@ -223,23 +207,6 @@ instance ToJSON ContextSchema where
 -- ----------------------------------------------------------------------------
 -- Binary instances
 -- ----------------------------------------------------------------------------
-
-{--
-instance Binary CType where
-  put (CText)     = put (0 :: Word8)
-  put (CInt)      = put (1 :: Word8)
-  put (CDate)     = put (2 :: Word8)
-  put (CPosition) = put (3 :: Word8)
-
-  get = do
-    t <- get :: Get Word8
-    case t of
-      0 -> return CText
-      1 -> return CInt
-      2 -> return CDate
-      3 -> return CPosition
-      _ -> fail "get(CType) out of bounds"
---}
 
 instance Binary CNormalizer where
   put (NormUpperCase)   = put (0 :: Word8)
