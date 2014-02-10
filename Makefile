@@ -69,8 +69,6 @@ all:		install
 
 first-install: delete sandbox install
 
-first-install-bs: delete sandbox cabal-bytestring cabal-text data-size stringmap searchengine-force server
-
 clean:
 	$(MAKE) -e -C hunt-test/data/random clean
 	$(MAKE) target action=clean PROFOPTS=''
@@ -167,17 +165,12 @@ cabal-%:
 	cd hunt-searchengine \
 		&& 	cabal install $(PROFOPTS) $* --constraint=text\<1
 
+#unused at them moment. used to install non hackag packages directly into the sandbox (eg murmur: github-chrisreu!murmur-hash)
 github-%:
 	git clone https://github.com/$(subst !,/,$*).git tmpgithubdir \
 		&& ( cd hunt-searchengine && cabal install $(PROFOPTS) ../tmpgithubdir ) \
 		; rm -rf tmpgithubdir
 
-# github data-stringmap install
-stringmap: github-sebastian-philipp!StringMap
-# github data-size install
-data-size: github-UweSchmidt!data-size
-# use this on ghc 7.8 until version is bumped
-murmur78: github-chrisreu!murmur-hash
 
 membench:
 	$(MAKE) -C hunt-test/bench $@
@@ -198,4 +191,4 @@ searchengine-force:
 		bench bench-* membench membench-* \
 		profServer profServer-fb profServer-rd
 		searchengine-force
-		github-* stringmap data-size cabal-*
+		github-* cabal-*
