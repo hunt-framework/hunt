@@ -1,15 +1,16 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
-import           Data.Aeson                     (toJSON, eitherDecode)
+import           Control.Monad
+
 import           Data.Aeson.Encode.Pretty
-import           Data.Text                      (Text, unpack)
-import           Data.Map                       hiding (map)
+import           Data.Text                      (unpack)
 import qualified Data.ByteString.Lazy           as B
 
-import           Hunt.Common
-import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Language.Parser
+
+-- ----------------------------------------------------------------------------
 
 main :: IO ()
 main = do
@@ -21,11 +22,8 @@ parseInput :: IO ()
 parseInput = do
   putStrLn ""
   qry <- getLine
-  if qry == "exit" 
-    then return()
-    else do
-      case parseQuery qry of
-        (Right json) -> B.putStr . encodePretty $ json
-        (Left err)   -> putStrLn $ "Invalid input: " ++ unpack err
-      parseInput
-
+  unless (qry == "exit") $ do
+    case parseQuery qry of
+      Right json -> B.putStr . encodePretty $ json
+      Left err   -> putStrLn $ "Invalid input: " ++ unpack err
+    parseInput
