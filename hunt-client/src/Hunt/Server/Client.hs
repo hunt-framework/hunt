@@ -23,7 +23,7 @@ import "mtl" Control.Monad.Reader (ReaderT, MonadReader, runReaderT, ask)
 
 import Data.Text (Text)
 import qualified Data.Text as T
--- import qualified Data.Text.Encoding as TE
+import qualified Data.Text.Encoding as TE
 
 import Data.ByteString.Lazy (ByteString) 
 -- import qualified Data.ByteString.Lazy as BL
@@ -37,6 +37,8 @@ import Control.Lens (over, both, _Left, {-_head, _tail, -}each, Mutator, Each)
 import Data.Conduit (runResourceT, ResourceT, MonadBaseControl)
 import qualified Network.HTTP.Conduit as HTTP
 import qualified Network.HTTP.Client as HTTP (defaultManagerSettings)
+
+import Network.HTTP.Types.URI (urlEncode)
 
 import Control.Failure (Failure)
 
@@ -143,7 +145,7 @@ httpLbs request = do
 
 autocomplete :: (MonadIO m, Failure HTTP.HttpException m) => Text  -> HolumbusConnectionT m (Either Text [Text])
 autocomplete q = do
-    request <- makeRequest $ T.concat [ "completion/", q, "/20"]
+    request <- makeRequest $ T.concat [ "completion/", encodeRequest q, "/20"]
     d <- httpLbs request
     return $ (eitherDecodeT >=> handleJsonResponse >=> filterByRest >=> prefixWith) d
     where
@@ -158,7 +160,7 @@ autocomplete q = do
 
 query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m) => Text -> HolumbusConnectionT m  (Either Text (LimitedResult r))
 query q = do
-    request <- makeRequest $ T.concat [ "search/", q, "/0/20"]
+    request <- makeRequest $ T.concat [ "search/", encodeRequest q, "/0/20"]
     d <- httpLbs request
     return $ (eitherDecodeT >=> handleJsonResponse) d
 
@@ -182,4 +184,8 @@ lowercaseConstructorsOptions = JSON.Options {
      , JSON.allNullaryToStringTag   = True
      , JSON.omitNothingFields       = False
      , JSON.sumEncoding             = JSON.defaultTaggedObject
- }
+}
+
+encodeRequest :: Text -> Text
+encodeRequest r = TE.decodeUtf8 $ urlEncode False $ TE.encodeUtf8 r
+ 
