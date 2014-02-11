@@ -180,7 +180,7 @@ toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
                 -> Cmd.BatchDelete (S.insert u us)) (Cmd.BatchDelete S.empty) cs']
   -- groups of Insert to BatchInsert
   optGroup cs'@(Insert{}:_)
-    = [splitBatch 200 $ foldl (\(Cmd.BatchInsert us) (Insert u)
+    = [splitBatch 2000 $ foldl (\(Cmd.BatchInsert us) (Insert u)
                 -> Cmd.BatchInsert (u:us)) (Cmd.BatchInsert []) cs']
   optGroup cs'@(Sequence{}:_)
     = map toBasicCommand cs'
