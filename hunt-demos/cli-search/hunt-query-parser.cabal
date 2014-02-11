@@ -16,8 +16,5 @@ executable hunt-cli-search
                        , text              >= 1.0    && < 2.0
                        , transformers      >= 0.3    && < 0.4
                        , hunt-searchengine >= 0.1    && < 0.2                                             
-                       , aeson 
-                       , aeson-pretty
                        , containers
-                       , bytestring
-                       , cmdargs        >= 0.10
+                       , time
