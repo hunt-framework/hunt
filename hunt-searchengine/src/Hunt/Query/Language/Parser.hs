@@ -25,12 +25,13 @@
 
   AND,OR,NOT          = combinate queries
   BUT                 = AND NOT
-  !                   = case sensitive query/word f.e.:  !car or !Car
-  ~                   = fuzzy query word          f.e.:  ~car ... ~cra
+  !                   = case sensitive query/word e.g.: !car or !Car
+  ~                   = fuzzy query word          e.g.: ~car ... ~cra
   " .. "              = phrase query
   ( .. )              = brackets
-  :                   = context sensitive queries f.e.:  (who:Rudi Völler)
-  ,                   = multi context queries     f.e.:  (content,who,title:Rudi Völler)
+  :                   = context sensitive queries e.g.: (who:Rudi Völler)
+  ,                   = multi context queries     e.g.: (content,who,title:Rudi Völler)
+  [ .. TO .. ]        = range queries             e.g.: [ 2014-02-10 TO 2012-02-16 ]
 -}
 
 -- ----------------------------------------------------------------------------

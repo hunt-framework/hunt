@@ -66,10 +66,13 @@ index _docs =
             developer<strong>,</strong>students<strong>,</strong>people:chris
        <tr>
          <td>query combinators
-         <td>AND, OR, NOT, BUT
+         <td>AND, OR, AND NOT
        <tr>
          <td>query boosting
          <td>toAscList<strong>^</strong>1.5 OR toList
+       <tr>
+         <td>range query
+         <td><strong>[</strong> 2014-02-10 <strong>TO</strong> 2012-02-16 <strong>]</strong>
 
 |]) `LT.append`
   -- generate javascript
