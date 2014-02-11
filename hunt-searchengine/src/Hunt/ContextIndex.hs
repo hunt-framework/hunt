@@ -15,7 +15,7 @@ import           Control.DeepSeq
 import           Control.Monad
 import qualified Control.Monad.Parallel            as Par
 --import           Control.Parallel
---import           Control.Parallel.Strategies
+import           Control.Parallel.Strategies
 
 import           Data.Binary                       (Binary (..))
 import           Data.Binary.Get
@@ -211,8 +211,8 @@ batchAddWordsM wrdsAndDocIds _i@(ContextMap m)
 --   /NOTE/: adds words to /existing/ 'Context's.
 batchAddWords :: [(DocId, Words)] -> ContextMap Occurrences -> ContextMap Occurrences
 batchAddWords wrdsAndDocIds _i@(ContextMap m)
---  = mkContextMap $! M.fromList $! parMap rseq (\(cx,impl) -> (cx,foldBatchInsert cx impl wrdsAndDocIds)) (M.toList m)
-  = mkContextMap $ M.mapWithKey (\cx impl -> foldBatchInsert cx impl wrdsAndDocIds) m
+  = mkContextMap $! M.fromList $! parMap rdeepseq (\(cx,impl) -> (cx,foldBatchInsert cx impl wrdsAndDocIds)) (M.toList m)
+--  = mkContextMap $ M.mapWithKey (\cx impl -> foldBatchInsert cx impl wrdsAndDocIds) m
   where
   foldBatchInsert :: Context -> IndexImpl Occurrences -> [(DocId, Words)] -> IndexImpl Occurrences
   foldBatchInsert cx (Impl.IndexImpl impl) docIdsAndWrds
