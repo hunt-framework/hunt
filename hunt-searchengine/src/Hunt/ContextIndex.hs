@@ -56,8 +56,8 @@ newtype ContextMap v
   deriving (Show)
 
 mkContextMap :: Map Context (Impl.IndexImpl v) -> ContextMap v
-mkContextMap x = ContextMap $!! x
-
+mkContextMap x = ContextMap $! x
+  
 -- ----------------------------------------------------------------------------
 
 getContextMap :: [IndexImpl Occurrences] -> Get (ContextMap Occurrences)
