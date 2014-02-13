@@ -118,4 +118,8 @@ delete: clean
 configure:
 	cabal configure $(PROFOPTS)
 
+runtimeHeapProfile:
+		head -`fgrep -n END_SAMPLE hunt-perbench.hp | tail -1 | cut -d : -f 1` hunt-perbench.hp | hp2ps -d -c > hunt-perbench.ps
+			ps2pdf hunt-perbench.ps
+
 .PHONY: sandbox deps all install clean configure membench gen gen-bin bench bench-*
