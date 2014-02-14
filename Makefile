@@ -171,6 +171,7 @@ github-%:
 		&& ( cd hunt-searchengine && cabal install $(PROFOPTS) ../tmpgithubdir ) \
 		; rm -rf tmpgithubdir
 
+geo-osm: github-sebastian-philipp!geo-osm
 
 membench:
 	$(MAKE) -C hunt-test/bench $@

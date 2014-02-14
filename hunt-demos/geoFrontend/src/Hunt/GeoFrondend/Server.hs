@@ -25,6 +25,9 @@ import qualified Hunt.GeoFrondend.Templates as Templates
 import Hunt.GeoFrondend.Common
 import Hunt.Server.Client (newServerAndManager)
 import Paths_geoFrontend
+
+type GeoFrontendError = TL.Text
+
 start :: IO ()
 start = do
     sm <- newServerAndManager "localhost:3000"
@@ -42,7 +45,7 @@ start = do
         Scotty.middleware Wai.logStdoutDev -- request / response logging
         dispatcher
 
-dispatcher :: Scotty.ScottyT GeoServer ()
+dispatcher :: Scotty.ScottyT GeoFrontendError GeoServer ()
 dispatcher = do
     Scotty.get "/" $ do
         params <- Scotty.params
@@ -57,26 +60,26 @@ dispatcher = do
         Scotty.file cssPath
     Scotty.get "/autocomplete"$ do
         q <- Scotty.param "term"
-        value <- autocomplete "localhost:3000" q >>= raiseOnLeft
+        value <- (lift $ autocomplete $ TL.toStrict q) >>= raiseOnLeft
         Scotty.json $ value
 
 
-renderRoot :: [Scotty.Param] -> Scotty.ActionT GeoServer ()
+renderRoot :: [Scotty.Param] -> Scotty.ActionT GeoFrontendError GeoServer ()
 renderRoot params = renderRoot' $ (fmap TL.toStrict) $ lookup "query" params
     where 
-    renderRoot' :: Maybe T.Text -> Scotty.ActionT GeoServer ()
+    renderRoot' :: Maybe T.Text -> Scotty.ActionT GeoFrontendError GeoServer ()
     renderRoot' Nothing = Scotty.html $ Templates.body "" Templates.mainPage
     renderRoot' (Just q) = do
         value <- (lift $ query q) >>= raiseOnLeft
         Scotty.html $ Templates.body (TL.fromStrict q) $ Templates.renderLimitedRestults value
 
-raiseOnLeft :: Monad m => Either T.Text a -> Scotty.ActionT m a
+raiseOnLeft :: Monad m => Either T.Text a -> Scotty.ActionT GeoFrontendError m a
 raiseOnLeft (Left err) = Scotty.raise $ TL.fromStrict err
 raiseOnLeft (Right x) = return x
     
 -- | Set the body of the response to the given 'T.Text' value. Also sets \"Content-Type\"
 -- header to \"text/html\".
-javascript :: T.Text -> Scotty.ActionM ()
+javascript :: (Scotty.ScottyError e, Monad m) => T.Text -> Scotty.ActionT e m ()
 javascript t = do
     Scotty.setHeader "Content-Type" "text/javascript"
     Scotty.raw $ TL.encodeUtf8 $ TL.fromStrict t
