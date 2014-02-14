@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -25,11 +26,15 @@ module Hunt.Common.Occurrences.Compression
   (
   -- * Compression types
     OccCompression(..)
+  , StrictOccurrences (..)
   )
 where
 
 import qualified Hunt.Common.DocIdMap    as DM
 import           Hunt.Common.Occurrences hiding (delete)
+import           Data.Typeable
+import           Control.DeepSeq
+import           Data.Binary
 
 -- ----------------------------------------------------------------------------
 
@@ -40,8 +45,27 @@ class OccCompression cv where
     differenceWithKeySet :: DM.DocIdSet -> cv -> cv
 
 -- ------------------------------------------------------------
+newtype StrictOccurrences = StrictOcc { unSOcc :: Occurrences }
+  deriving (Eq, Show, Typeable, NFData)
+
+instance Binary StrictOccurrences where
+  put = put . unSOcc
+  get = get >>= return . mkStrictOcc
+
+mkStrictOcc :: Occurrences -> StrictOccurrences
+mkStrictOcc b = StrictOcc $!! b
+
+
+instance OccCompression StrictOccurrences where
+  compressOcc   = mkStrictOcc
+  decompressOcc = unSOcc
+  differenceWithKeySet s x = compressOcc $ DM.diffWithSet (decompressOcc x) s
+
 
 instance OccCompression Occurrences where
   compressOcc   = id
   decompressOcc = id
   differenceWithKeySet = flip DM.diffWithSet
+
+
+
