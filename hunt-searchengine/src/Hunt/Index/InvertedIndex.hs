@@ -24,8 +24,8 @@ import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences                    (Occurrences)
-import           Hunt.Common.Occurrences.Compression.Snappy
-
+import           Hunt.Common.Occurrences.Compression.BZip
+import           Hunt.Common.Occurrences.Compression
 import           Hunt.Index.ComprPrefixTreeIndex
 import           Hunt.Index.Index                           as Ix
 
