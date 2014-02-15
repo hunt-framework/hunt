@@ -37,6 +37,7 @@ executable geoFrontend
                        , lens                 >= 3.10
                        , mtl                  >= 2
                        , OSM                  >= 0.7 
+                       , parsec               >= 3.1
                        , scotty               >= 0.6   && < 0.7
                        , text                 >= 1     && < 2
                        , transformers         >= 0.3

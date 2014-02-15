@@ -15,6 +15,8 @@ import           Control.Monad (mzero)
 
 import           Control.Lens hiding ((.=))
 
+import           Text.Parsec (parse)
+
 import           Data.Text (Text)
 import qualified Data.Text as T
 -- import qualified Data.Text.Lazy as TL
@@ -73,8 +75,10 @@ instance FromJSON GeoDocument where
         n  <- descr .: "name"
         k  <- descr .: "kind"
         p  <- (descr .: "position") :: JSON.Parser Text
-        -- TODO: use a parser. This fails on "1234-"
-        let (lon', lat') = over both (read . T.unpack) $ over _2 (maybe ("0") id . T.stripPrefix "-") $ T.span (/= '-') p
+        (lon', lat') <- case parse H.position "(json)" (T.unpack p) of 
+            Left err -> fail $ show err
+            Right res -> return res
+
         -- tags' <- JSON.parse v
         let tags' = HML.toList $ descr `HML.difference` (HML.fromList [("name", undefined), ("kind", undefined), ("position", undefined)])
         tags'' <- (mapM . traverse) JSON.parseJSON tags'

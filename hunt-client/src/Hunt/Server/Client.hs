@@ -9,7 +9,9 @@ module Hunt.Server.Client (
     , autocomplete
     , query
     , lowercaseConstructorsOptions
+
     , H.LimitedResult (..) 
+    , H.position
     )where
 
 import Data.Either ()
@@ -43,6 +45,7 @@ import Network.HTTP.Types.URI (urlEncode)
 import Control.Failure (Failure)
 
 import qualified Hunt.Common.ApiDocument as H
+import qualified Hunt.Index.Schema.Normalize.Position as H
 
 data JsonResponse r = 
     JsonSuccess {_jsonValue :: r}
