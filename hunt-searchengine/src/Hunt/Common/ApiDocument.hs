@@ -88,6 +88,15 @@ instance (ToJSON x) => ToJSON (LimitedResult x) where
     , "count"  .= cnt
     ]
 
+instance (FromJSON x) => FromJSON (LimitedResult x) where
+  parseJSON (Object v) = do
+    res <- v .: "result" 
+    offset <- v .: "offset"
+    mx <- v .: "max"
+    cnt <- v .: "count"
+    return $ LimitedResult res offset mx cnt
+  parseJSON _ = mzero
+
 instance FromJSON ApiDocument where
   parseJSON (Object o) = do
     parsedUri         <- o    .: "uri"

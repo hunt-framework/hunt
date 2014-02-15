@@ -9,7 +9,7 @@ module Hunt.Server.Client (
     , autocomplete
     , query
     , lowercaseConstructorsOptions
-    , LimitedResult (..) 
+    , H.LimitedResult (..) 
     )where
 
 import Data.Either ()
@@ -42,6 +42,8 @@ import Network.HTTP.Types.URI (urlEncode)
 
 import Control.Failure (Failure)
 
+import qualified Hunt.Common.ApiDocument as H
+
 data JsonResponse r = 
     JsonSuccess {_jsonValue :: r}
     | JsonFailure Int [Text]
@@ -70,24 +72,6 @@ instance (FromJSON r) => FromJSON (JsonResponse r) where
             _ -> do
                 msg <- v .: "msg"
                 return $ JsonFailure code msg
-    parseJSON _ = mzero
-
--- TODO: join with ApiDocument.hs
-data LimitedResult x = LimitedResult
-    { lrResult :: [x]
-    , lrOffset :: Int
-    , lrMax    :: Int
-    , lrCount  :: Int
-    }
-    deriving (Show, Eq)
-
-instance (FromJSON x) => FromJSON (LimitedResult x) where
-    parseJSON (JSON.Object v) = do
-        r <- v .: "result" 
-        o <- v .: "offset"
-        m <- v .: "max"
-        c <- v .: "count"
-        return $ LimitedResult r o m c
     parseJSON _ = mzero
 
 -- ------------------------------
@@ -158,7 +142,7 @@ autocomplete q = do
         prefixWith = ((return .) . fmap) $ (prefix `T.append`)
         
 
-query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m) => Text -> HolumbusConnectionT m  (Either Text (LimitedResult r))
+query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m) => Text -> HolumbusConnectionT m  (Either Text (H.LimitedResult r))
 query q = do
     request <- makeRequest $ T.concat [ "search/", encodeRequest q, "/0/20"]
     d <- httpLbs request

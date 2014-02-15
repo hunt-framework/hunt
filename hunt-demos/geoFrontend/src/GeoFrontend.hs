@@ -1,11 +1,15 @@
 module Main where
 
-import Hunt.GeoFrontend.Server
 import Paths_geoFrontend (getDataFileName)
+
+
+import Hunt.GeoFrontend.Server (start)
+
 
 main :: IO ()
 main = do
-    -- p <- getDataFileName "map.xml"
-    -- readXML p
+    --p <- getDataFileName "map.xml"
+    --everything <- readXML p
+    
     --return ()
     start
