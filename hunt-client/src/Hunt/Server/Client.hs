@@ -9,7 +9,7 @@ module Hunt.Server.Client (
     , autocomplete
     , query
     , lowercaseConstructorsOptions
-
+    , insert
     , H.LimitedResult (..) 
     , H.position
     )where
@@ -18,14 +18,16 @@ import Data.Either ()
 import Data.Char (isSpace, {- toUpper, -}toLower)
 import Data.String ()
 
+-- import Control.Arrow (first)
 import Control.Monad (mzero, (>=>))
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Class (MonadTrans, lift)
 import "mtl" Control.Monad.Reader (ReaderT, MonadReader, runReaderT, ask)
 
+import Data.String.Conversions
 import Data.Text (Text)
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as TE
+-- import qualified Data.Text.Encoding as TE
 
 import Data.ByteString.Lazy (ByteString) 
 -- import qualified Data.ByteString.Lazy as BL
@@ -46,6 +48,7 @@ import Control.Failure (Failure)
 
 import qualified Hunt.Common.ApiDocument as H
 import qualified Hunt.Index.Schema.Normalize.Position as H
+import qualified Hunt.Interpreter.Command as H (Command(..))
 
 data JsonResponse r = 
     JsonSuccess {_jsonValue :: r}
@@ -113,14 +116,14 @@ checkServerUrl :: Text -> Text
 checkServerUrl s 
     | T.null s = "http://localhost:3000/"
     | '/' == T.last s = s
-    | otherwise = s `T.append` "/"
+    | otherwise = s <> "/"
 
 
 
 makeRequest :: (MonadIO m, Failure HTTP.HttpException m) => Text -> HolumbusConnectionT m HTTP.Request
 makeRequest path = do
     sm <- ask
-    HTTP.parseUrl $ T.unpack $ T.concat [ unServer sm, path]
+    HTTP.parseUrl $ cs $ T.concat [ unServer sm, path]
 
 httpLbs :: (MonadIO m) => HTTP.Request -> HolumbusConnectionT m ByteString
 httpLbs request = do
@@ -142,7 +145,7 @@ autocomplete q = do
         filterByRest = return . map fst . filter (\(_, rs) -> rest `elem` rs)
 
         prefixWith :: [Text] -> Either Text [Text]
-        prefixWith = ((return .) . fmap) $ (prefix `T.append`)
+        prefixWith = ((return .) . fmap) $ (prefix <>)
         
 
 query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m) => Text -> HolumbusConnectionT m  (Either Text (H.LimitedResult r))
@@ -151,12 +154,23 @@ query q = do
     d <- httpLbs request
     return $ (eitherDecodeT >=> handleJsonResponse) d
 
+insert :: (MonadIO m, Failure HTTP.HttpException m) => H.ApiDocuments -> HolumbusConnectionT m Text
+insert docs = do
+    request' <- makeRequest "eval"
+    let inserts = map H.Insert docs
+        body = JSON.encode inserts
+        request = request' { HTTP.method = "POST", HTTP.requestBody = HTTP.RequestBodyLBS body}
+    httpLbs request >>= return . cs
+
+
+
+
 handleJsonResponse :: (FromJSON b) => JsonResponse b -> Either Text b
 handleJsonResponse (JsonSuccess r) = Right r
-handleJsonResponse (JsonFailure c err) = Left $ T.concat $ ["Code: ", T.pack $ show c, " "] ++ err
+handleJsonResponse (JsonFailure c err) = Left $ T.concat $ ["Code: ", cs $ show c, " "] ++ err
 
 eitherDecodeT :: FromJSON a => ByteString -> Either Text a
-eitherDecodeT =  over _Left (("Json decode error: " `T.append`) . T.pack) . JSON.eitherDecode
+eitherDecodeT =   over _Left (("Json decode error: " <>) . cs) . JSON.eitherDecode
 
 --capitalize :: String -> String
 --capitalize = over _head toUpper . over (_tail.each) toLower
@@ -174,5 +188,5 @@ lowercaseConstructorsOptions = JSON.Options {
 }
 
 encodeRequest :: Text -> Text
-encodeRequest r = TE.decodeUtf8 $ urlEncode False $ TE.encodeUtf8 r
+encodeRequest = cs . urlEncode False . cs
  
