@@ -150,7 +150,7 @@ insertenUSDict: hunt-test/data/dict/en_US.dict.js
 
 # ab - Apache HTTP server benchmarking tool
 benchmark-ab:
-	ab -k -n 1000 -c 5 http://localhost:3000/search/esta
+	ab -k -n 1000 -c 20 http://localhost:3000/search/Data.Text/0/100
 
 # siege - http load testing and benchmarking utility
 benchmark-siege:
