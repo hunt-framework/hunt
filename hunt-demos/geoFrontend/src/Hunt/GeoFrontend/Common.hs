@@ -3,11 +3,23 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 
-module Hunt.GeoFrontend.Common where
+
+module Hunt.GeoFrontend.Common 
+(
+    GeoFrontendConfiguration (..),
+    runGeoReader,
+    autocomplete,
+    query,
+    GeoServer (..)
+)
+
+where
 
 import           GHC.Generics (Generic)
+
 
 import           Control.Arrow (second)
 
@@ -16,6 +28,10 @@ import           Control.Monad (mzero)
 import           Control.Lens hiding ((.=))
 
 import           Text.Parsec (parse)
+
+import           Data.Typeable (Typeable)
+
+import           Data.Data (Data)
 
 import           Data.Text (Text)
 import qualified Data.Text as T
@@ -28,12 +44,12 @@ import           Data.Aeson (FromJSON, ToJSON, Object, (.=), (.:), (.:?), (.!=))
 import qualified Data.Aeson  as JSON
 import qualified Data.Aeson.Types as JSON
 
-import qualified Hunt.Server.Client as H
-import qualified Hunt.Index.Schema.Normalize.Position as P
-
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Control.Monad.Trans.Class (MonadTrans, lift)
 import           Control.Monad.Reader (ReaderT, MonadReader, ask, runReaderT)
+
+import qualified Hunt.Server.Client as H
+import qualified Hunt.Index.Schema.Normalize.Position as P
 
 import qualified Hunt.Common.ApiDocument as H
 
@@ -112,3 +128,10 @@ autocomplete q = withServerAndManager' $ H.autocomplete q
 
 query :: Text -> GeoServer (Either Text (H.LimitedResult GeoDocument))
 query q = withServerAndManager' $ H.query q
+
+
+data GeoFrontendConfiguration = GeoFrontendConfiguration {
+    geoFrontendHost :: String, 
+    geoFrontendPort :: Int, 
+    huntUrl :: String
+} deriving (Show, Data, Typeable)

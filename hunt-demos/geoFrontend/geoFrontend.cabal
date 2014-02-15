@@ -29,6 +29,7 @@ executable geoFrontend
                        , aeson                >= 0.6
                        , blaze-html           >= 0.7   && < 0.8
                        , bytestring           >= 0.10
+                       , cmdargs              >= 0.10
                        , containers           >= 0.5
                        , hamlet               >= 1.1
                        , hslogger             >= 1.2
@@ -43,4 +44,5 @@ executable geoFrontend
                        , transformers         >= 0.3
                        , unordered-containers >= 0.2
                        , wai-extra            >= 2.0   && < 2.1
+                       , warp                 >= 2.0
                        
