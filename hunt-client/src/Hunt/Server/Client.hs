@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings, FlexibleContexts, GeneralizedNewtypeDeriving, PackageImports #-}
 
 module Hunt.Server.Client (
-    withHolumbusServer
-    , HolumbusConnectionT ()
+    withHuntServer
+    , HuntConnectionT (..)
     , ServerAndManager (..)
     , newServerAndManager
     , withServerAndManager
@@ -11,6 +11,7 @@ module Hunt.Server.Client (
     , lowercaseConstructorsOptions
     , insert
     , H.LimitedResult (..) 
+    , H.ApiDocument (..)
     , H.position
     )where
 
@@ -24,7 +25,7 @@ import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Class (MonadTrans, lift)
 import "mtl" Control.Monad.Reader (ReaderT, MonadReader, runReaderT, ask)
 
-import Data.String.Conversions
+import Data.String.Conversions (cs, (<>))
 import Data.Text (Text)
 import qualified Data.Text as T
 -- import qualified Data.Text.Encoding as TE
@@ -87,12 +88,12 @@ data ServerAndManager = ServerAndManager {
 }
 
 
-newtype HolumbusConnectionT m a = HolumbusConnectionT { runHolumbusConnectionT :: ReaderT ServerAndManager (ResourceT m) a }
+newtype HuntConnectionT m a = HuntConnectionT { runHuntConnectionT :: ReaderT ServerAndManager (ResourceT m) a }
     deriving (Monad, MonadReader ServerAndManager, MonadIO)
 
-instance MonadTrans HolumbusConnectionT where
-    -- lift :: (Monad m) => m a -> HolumbusConnectionT m a
-    lift = HolumbusConnectionT . lift . lift
+instance MonadTrans HuntConnectionT where
+    -- lift :: (Monad m) => m a -> HuntConnectionT m a
+    lift = HuntConnectionT . lift . lift
 
 -- | Creates a new ServerAndManager from a Host
 newServerAndManager :: Text -> IO ServerAndManager
@@ -100,17 +101,17 @@ newServerAndManager s = do
     m <- HTTP.newManager HTTP.defaultManagerSettings
     return $ ServerAndManager (checkServerUrl s) m
 
--- | runs a HolumbusConnectionT with a ServerAndManager
-withServerAndManager :: MonadBaseControl IO m =>  HolumbusConnectionT m a -> ServerAndManager -> m a
+-- | runs a HuntConnectionT with a ServerAndManager
+withServerAndManager :: MonadBaseControl IO m =>  HuntConnectionT m a -> ServerAndManager -> m a
 withServerAndManager x = runResourceT . runReaderConnectionT x
 
--- | runs a HolumbusConnectionT in a monad
-withHolumbusServer :: (MonadIO m, MonadBaseControl IO m) => HolumbusConnectionT m a -> Text -> m a
-withHolumbusServer x s = HTTP.withManager (runReaderConnectionT x . ServerAndManager (checkServerUrl s))
+-- | runs a HuntConnectionT in a monad
+withHuntServer :: (MonadIO m, MonadBaseControl IO m) => HuntConnectionT m a -> Text -> m a
+withHuntServer x s = HTTP.withManager (runReaderConnectionT x . ServerAndManager (checkServerUrl s))
 
 
-runReaderConnectionT :: HolumbusConnectionT m a -> ServerAndManager -> ResourceT m a
-runReaderConnectionT x sm = (runReaderT . runHolumbusConnectionT) x sm
+runReaderConnectionT :: HuntConnectionT m a -> ServerAndManager -> ResourceT m a
+runReaderConnectionT x sm = (runReaderT . runHuntConnectionT) x sm
 
 checkServerUrl :: Text -> Text
 checkServerUrl s 
@@ -120,12 +121,12 @@ checkServerUrl s
 
 
 
-makeRequest :: (MonadIO m, Failure HTTP.HttpException m) => Text -> HolumbusConnectionT m HTTP.Request
+makeRequest :: (MonadIO m, Failure HTTP.HttpException m) => Text -> HuntConnectionT m HTTP.Request
 makeRequest path = do
     sm <- ask
     HTTP.parseUrl $ cs $ T.concat [ unServer sm, path]
 
-httpLbs :: (MonadIO m) => HTTP.Request -> HolumbusConnectionT m ByteString
+httpLbs :: (MonadIO m) => HTTP.Request -> HuntConnectionT m ByteString
 httpLbs request = do
     sm <- ask
     response <- HTTP.httpLbs request (unManager sm)
@@ -133,7 +134,7 @@ httpLbs request = do
 
 
 
-autocomplete :: (MonadIO m, Failure HTTP.HttpException m) => Text  -> HolumbusConnectionT m (Either Text [Text])
+autocomplete :: (MonadIO m, Failure HTTP.HttpException m) => Text  -> HuntConnectionT m (Either Text [Text])
 autocomplete q = do
     request <- makeRequest $ T.concat [ "completion/", encodeRequest q, "/20"]
     d <- httpLbs request
@@ -148,13 +149,13 @@ autocomplete q = do
         prefixWith = ((return .) . fmap) $ (prefix <>)
         
 
-query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m) => Text -> HolumbusConnectionT m  (Either Text (H.LimitedResult r))
+query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m) => Text -> HuntConnectionT m  (Either Text (H.LimitedResult r))
 query q = do
     request <- makeRequest $ T.concat [ "search/", encodeRequest q, "/0/20"]
     d <- httpLbs request
     return $ (eitherDecodeT >=> handleJsonResponse) d
 
-insert :: (MonadIO m, Failure HTTP.HttpException m) => H.ApiDocuments -> HolumbusConnectionT m Text
+insert :: (MonadIO m, Failure HTTP.HttpException m) => H.ApiDocuments -> HuntConnectionT m Text
 insert docs = do
     request' <- makeRequest "eval"
     let inserts = map H.Insert docs

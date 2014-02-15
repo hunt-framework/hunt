@@ -12,10 +12,11 @@ import Data.Maybe (isJust, fromJust)
 import Data.List (intersect)
 import qualified Data.Set as Set
 
-import Data.Text (Text, pack)
+import Data.String.Conversions (cs) -- , (<>)
+import Data.Text (Text)
 import qualified Data.Text as T
 
-import qualified Data.ByteString.Char8 as B (unpack)
+-- import qualified Data.ByteString.Char8 as B (unpack)
 import qualified Data.ByteString.Lazy as BL
 
 --import Data.Aeson (FromJSON, ToJSON, decode, encode, Object, object, toJSON, (.=))
@@ -32,17 +33,18 @@ import Hunt.GeoFrontend.Common
 writeJSON :: MonadIO m => FilePath -> m ()
 writeJSON p = do
     nwrs <- readXML p
-    let docs = Set.fromList $ map nwrToGeoDocument nwrs
-    liftIO $ writeFile "map.json" (B.unpack $ BL.toStrict $ JSON.encode docs)
+    -- let docs = Set.fromList  nwrs
+    liftIO $ writeFile "map.json" $ cs $ JSON.encode $ map geoDocToHuntDoc nwrs
 
 
 
-readXML :: MonadIO m => FilePath -> m [NodeWayRelation]
+readXML :: MonadIO m => FilePath -> m [GeoDocument]
 readXML p = do
     [osm] <- liftIO $ Data.Geo.OSM.readOsmFile p
     let nwrs = chGetNWR $ osmChildren osm
-    let namedNwrs = filter nwrHasName nwrs
-    return $ filter (\n -> (isJust $ asNode n) || (isJust $ asWay n)) namedNwrs
+        namedNwrs = filter nwrHasName nwrs
+        nwrs' = filter (\n -> (isJust $ asNode n) || (isJust $ asWay n)) namedNwrs
+    return $ map nwrToGeoDocument nwrs'
 
 supportedTags :: [Tag] -> Bool
 supportedTags tags' =  not . null $ ["amenity", "highway", "historic", "shop", "tourism", "leisure", "website", "wikipedia"] `intersect` (fst $ unzip $ map tagToPair tags')
@@ -72,7 +74,7 @@ nwrToGeoDocument nwr = GeoDocument osmId' nameTag nwrLon nwrLat kind' (filter (\
     where
         osmId' = read $ nwrCommonGetId $ getCommon nwr
         tags' :: [(Text,Text)]
-        tags' = over (mapped.both) pack $ filterIndexedTags $ fmap tagToPair $ nwrCommonGetTags $ getCommon nwr
+        tags' = over (mapped.both) cs $ filterIndexedTags $ fmap tagToPair $ nwrCommonGetTags $ getCommon nwr
         nameTag :: Text
         nameTag = fromJust $ lookup "name" tags'
         (nwrLon, nwrLat) = nwrGetCoords nwr

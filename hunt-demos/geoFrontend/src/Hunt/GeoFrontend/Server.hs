@@ -1,16 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
+-- {-# LANGUAGE DoAndIfThenElse #-}
 
-module Hunt.GeoFrontend.Server where
 
-import Data.String (fromString)
+module Hunt.GeoFrontend.Server 
+(
+    start
+) 
+where
 
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Class (lift)
+import           Data.String (fromString)
+import           Data.Maybe (isJust)
 
+import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad.Trans.Class (lift)
+
+import           Data.String.Conversions (cs) -- , (<>)
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
+-- import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.Encoding as TL
+-- import qualified Data.Text.Lazy.Encoding as TL
 import           Data.Aeson.Types ()
 
 import qualified Web.Scotty.Trans as Scotty
@@ -25,15 +33,18 @@ import qualified System.IO as System (stdout)
 
 import qualified Hunt.GeoFrontend.Templates as Templates
 
-import Hunt.GeoFrontend.Common
-import Hunt.Server.Client (newServerAndManager)
-import Paths_geoFrontend
+import           Hunt.GeoFrontend.Common
+import           Hunt.GeoFrontend.Feeder
+import           Hunt.Server.Client (newServerAndManager, withServerAndManager)
+import qualified Hunt.Server.Client as H (insert)
+
+import           Paths_geoFrontend
 
 type GeoFrontendError = TL.Text
 
 start :: GeoFrontendConfiguration -> IO ()
 start config = do
-    sm <- newServerAndManager $ T.pack $ huntUrl config
+    sm <- newServerAndManager $ cs $ huntUrl config
 
     -- Note that 'runM' is only called once, at startup.
     let runM m = runGeoReader m sm
@@ -43,6 +54,13 @@ start config = do
     initLoggers $ optLogLevel defaultOptions
 
     Log.debugM modName "Application start"
+
+    case loadIndex config of
+        Just path -> do
+            docs <- readXML path
+            t <- withServerAndManager (H.insert $ map geoDocToHuntDoc docs) sm
+            Log.debugM modName (cs t)
+        Nothing -> return ()
 
     let options = Scotty.Options {Scotty.verbose = 1, Scotty.settings = (W.defaultSettings { W.settingsPort = geoFrontendPort config, W.settingsHost = fromString $ geoFrontendHost config })}
 
@@ -65,31 +83,23 @@ dispatcher = do
         Scotty.file cssPath
     Scotty.get "/autocomplete"$ do
         q <- Scotty.param "term"
-        value <- (lift $ autocomplete $ TL.toStrict q) >>= raiseOnLeft
+        value <- (lift $ autocomplete q) >>= raiseOnLeft
         Scotty.json $ value
 
 
 renderRoot :: [Scotty.Param] -> Scotty.ActionT GeoFrontendError GeoServer ()
-renderRoot params = renderRoot' $ (fmap TL.toStrict) $ lookup "query" params
+renderRoot params = renderRoot' $ (fmap cs) $ lookup "query" params
     where 
     renderRoot' :: Maybe T.Text -> Scotty.ActionT GeoFrontendError GeoServer ()
     renderRoot' Nothing = Scotty.html $ Templates.body ""
     renderRoot' (Just q) = do
-        value <- (lift $ query q) >>= raiseOnLeft
-        Scotty.html $ Templates.body (TL.fromStrict q)
+        Scotty.html $ Templates.body (cs q)
 
 -- raiseOnLeft :: Monad m => Either T.Text a -> Scotty.ActionT GeoFrontendError m a
-raiseOnLeft (Left err) = Scotty.raise $ TL.fromStrict err
+raiseOnLeft :: Monad m => Either T.Text a -> Scotty.ActionT TL.Text m a
+raiseOnLeft (Left err) = Scotty.raise $ cs err
 raiseOnLeft (Right x) = return x
     
--- | Set the body of the response to the given 'T.Text' value. Also sets \"Content-Type\"
--- header to \"text/html\".
-javascript :: (Scotty.ScottyError e, Monad m) => T.Text -> Scotty.ActionT e m ()
-javascript t = do
-    Scotty.setHeader "Content-Type" "text/javascript"
-    Scotty.raw $ TL.encodeUtf8 $ TL.fromStrict t
-
-
 -- | Initializes the loggers with the given priority.
 initLoggers :: Log.Priority -> IO ()
 initLoggers level = do
