@@ -84,6 +84,7 @@ library
     Hunt.Common.Occurrences
     Hunt.Common.Occurrences.Compression
     Hunt.Common.Occurrences.Compression.BZip
+    Hunt.Common.Occurrences.Compression.BZipBs
     Hunt.Common.Occurrences.Compression.Simple9
     Hunt.Common.Occurrences.Compression.Snappy
     Hunt.Common.Positions
