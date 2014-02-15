@@ -3,7 +3,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hunt.GeoFrondend.Feeder where
+module Hunt.GeoFrontend.Feeder where
 
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Lens (over, mapped, both)
@@ -24,7 +24,7 @@ import qualified Data.Aeson as JSON
 import Data.Geo.OSM
 import Data.Geo.OSM.NWRCommon
 
-import Hunt.GeoFrondend.Common
+import Hunt.GeoFrontend.Common
 
 
 

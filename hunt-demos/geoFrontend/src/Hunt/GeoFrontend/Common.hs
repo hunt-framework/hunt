@@ -6,7 +6,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 
-module Hunt.GeoFrondend.Common where
+module Hunt.GeoFrontend.Common where
 
 import GHC.Generics (Generic)
 

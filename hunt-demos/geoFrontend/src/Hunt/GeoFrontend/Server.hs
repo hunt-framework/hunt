@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hunt.GeoFrondend.Server where
+module Hunt.GeoFrontend.Server where
 
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Class (lift)
@@ -20,9 +20,9 @@ import qualified System.Log.Handler as Log (setFormatter)
 import qualified System.Log.Handler.Simple as Log (streamHandler)
 import qualified System.IO as System (stdout)
 
-import qualified Hunt.GeoFrondend.Templates as Templates
+import qualified Hunt.GeoFrontend.Templates as Templates
 
-import Hunt.GeoFrondend.Common
+import Hunt.GeoFrontend.Common
 import Hunt.Server.Client (newServerAndManager)
 import Paths_geoFrontend
 
@@ -50,13 +50,13 @@ dispatcher = do
     Scotty.get "/" $ do
         params <- Scotty.params
         renderRoot params
-    Scotty.get "/geoFrondend.js" $ do
+    Scotty.get "/geoFrontend.js" $ do
         Scotty.setHeader "Content-Type" "text/javascript"
-        jsPath <- liftIO $ getDataFileName "geoFrondend.js"
+        jsPath <- liftIO $ getDataFileName "geoFrontend.js"
         Scotty.file jsPath
-    Scotty.get "/geoFrondend.css" $ do
+    Scotty.get "/geoFrontend.css" $ do
         Scotty.setHeader "Content-Type" "text/css"
-        cssPath <- liftIO $ getDataFileName "geoFrondend.css"
+        cssPath <- liftIO $ getDataFileName "geoFrontend.css"
         Scotty.file cssPath
     Scotty.get "/autocomplete"$ do
         q <- Scotty.param "term"
@@ -68,12 +68,12 @@ renderRoot :: [Scotty.Param] -> Scotty.ActionT GeoFrontendError GeoServer ()
 renderRoot params = renderRoot' $ (fmap TL.toStrict) $ lookup "query" params
     where 
     renderRoot' :: Maybe T.Text -> Scotty.ActionT GeoFrontendError GeoServer ()
-    renderRoot' Nothing = Scotty.html $ Templates.body "" Templates.mainPage
+    renderRoot' Nothing = Scotty.html $ Templates.body ""
     renderRoot' (Just q) = do
         value <- (lift $ query q) >>= raiseOnLeft
-        Scotty.html $ Templates.body (TL.fromStrict q) $ Templates.renderLimitedRestults value
+        Scotty.html $ Templates.body (TL.fromStrict q)
 
-raiseOnLeft :: Monad m => Either T.Text a -> Scotty.ActionT GeoFrontendError m a
+-- raiseOnLeft :: Monad m => Either T.Text a -> Scotty.ActionT GeoFrontendError m a
 raiseOnLeft (Left err) = Scotty.raise $ TL.fromStrict err
 raiseOnLeft (Right x) = return x
     
@@ -105,4 +105,4 @@ defaultOptions = Options
   }
 
 modName :: String
-modName = "GeoFrondend"
+modName = "GeoFrontend"

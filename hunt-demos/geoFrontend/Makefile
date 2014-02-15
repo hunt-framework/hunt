@@ -1,2 +1,3 @@
 data/map.xml:
-	wget -O data/map.xml http://api.openstreetmap.org/api/0.6/map?bbox=9.6711,53.5643,9.7783,53.6014
+	mkdir -p data
+	wget -O data/map.xml http://overpass-api.de/api/map?bbox=9.6960,53.5681,9.7496,53.5854

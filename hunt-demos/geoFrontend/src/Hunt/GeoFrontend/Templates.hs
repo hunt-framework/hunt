@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Hunt.GeoFrondend.Templates where
+module Hunt.GeoFrontend.Templates where
 
 import qualified Text.Hamlet as Hamlet (HtmlUrl, hamlet)
 import qualified Text.Blaze.Html.Renderer.String as Blaze (renderHtml)
@@ -11,41 +11,44 @@ import Data.Text.Lazy (Text)
 import qualified Data.Text as TS
 import qualified Data.Text.Lazy as T
 
-import qualified Hunt.GeoFrondend.Common as Api
+import qualified Hunt.GeoFrontend.Common as Api
 import qualified Hunt.Server.Client as Api
 
-data Routes = Home | HayooJs | HayooCSS | Autocomplete | Examples | About
+data Routes = Home | GeoJs | GeoCSS | Autocomplete | About
 
 render :: Routes -> [(TS.Text, TS.Text)] -> TS.Text
 render Home _ = "/"
-render HayooJs _ = "/hayoo.js"
-render HayooCSS _ = "/hayoo.css"
+render GeoJs _ = "/geoFrontend.js"
+render GeoCSS _ = "/geoFrontend.css"
 render Autocomplete _ = "/autocomplete"
-render Examples _ = "/examples"
 render About _ = "/about"
 
-renderTitle :: Text -> Text
-renderTitle query
-    | T.null query = "Hayoo! Haskell API Search"
-    | otherwise = query `T.append` " - Hayoo!"
+renderTitle :: Text
+renderTitle = "Hunt Geo Demo"
 
 --header :: Blaze.Html
-header :: Text -> Hamlet.HtmlUrl Routes
-header query = [Hamlet.hamlet|
+header :: Hamlet.HtmlUrl Routes
+header = [Hamlet.hamlet|
   <head>
   
-    <title>#{renderTitle query}
+    <title>#{renderTitle}
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js">
     <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js">
     <link href="//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css" rel="stylesheet">
 
     <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js">
     <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="//cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />
+    <script src="//cdn.leafletjs.com/leaflet-0.7.2/leaflet.js">
     
-    <link href=@{HayooCSS} rel="stylesheet">
-    <script src=@{HayooJs}>
+    <link href=@{GeoCSS} rel="stylesheet">
+    <script src=@{GeoJs}>
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <script type="javascript">
+        var map = L.map('map').setView([51.505, -0.09], 13);
 |]
 
 navigation :: Text -> Hamlet.HtmlUrl Routes
@@ -54,24 +57,22 @@ navigation query = [Hamlet.hamlet|
 
     <div .navbar-header .navbar-left>
         <a href=@{Home}>
-            <img .logo src="//holumbus.fh-wedel.de/hayoo/hayoo.png" alt="Hayoo! logo" >
-        <button type="button" .navbar-toggle data-toggle="collapse" data-target="#hayoo-navbar-collapse">
+            <img .logo src="//holumbus.fh-wedel.de/hayoo/hayoo.png" alt="Hunt Searchengine logo" >
+        <button type="button" .navbar-toggle data-toggle="collapse" data-target="#geoFrontend-navbar-collapse">
             <span .sr-only>Toggle navigation
             <span .icon-bar>
             <span .icon-bar>
             <span .icon-bar>
        
-    <div .navbar-collapse .collapse #hayoo-navbar-collapse>
+    <div .navbar-collapse .collapse #geoFrontend-navbar-collapse>
         <ul .nav .navbar-nav .navbar-left>
             <li .active>
                 <form .navbar-form .navbar-left action="." method="get" id="search" role="search">
                     <div .form-group>
-                        <input .form-control placeholder="Search" name="query" #hayoo type="text" autocomplete="off" accesskey="1" value="#{query}">
+                        <input .form-control placeholder="Search" name="query" #geoFrontend type="text" autocomplete="off" accesskey="1" value="#{query}">
                     <input .btn .btn-default #submit type="submit" value="Search">
 
         <ul .nav .navbar-nav .navbar-right>
-            <li >
-                <a href=@{Examples}>Examples
             <li>
                 <a href=@{About}>About
 |]
@@ -81,43 +82,20 @@ footer :: Hamlet.HtmlUrl Routes
 footer = [Hamlet.hamlet|
 <footer>
 
-    <a href=@{Home}> Hayoo Frontend
-    &copy; 2014 Sebastian Philipp
+    <a href=@{Home}> Hunt Searchengine
 |]
 
-body :: Text -> Hamlet.HtmlUrl Routes -> T.Text 
-body query content = T.pack $ Blaze.renderHtml $ [Hamlet.hamlet|
+body :: Text -> T.Text 
+body query = T.pack $ Blaze.renderHtml $ [Hamlet.hamlet|
 $doctype 5
 <html lang="en">
-    ^{header query}
+    ^{header}
     <body>
         ^{navigation query}
         
-        <div class="container">
-            ^{content}
+        <div .container #map style="height:380">
         
         ^{footer}
 |] render
 
-
-renderResult :: Api.GeoDocument -> Hamlet.HtmlUrl Routes
-renderResult result = [Hamlet.hamlet|
-<div .panel .panel-default>
-    #{Api.name result}
-|]
-
-renderLimitedRestults :: Api.LimitedResult Api.GeoDocument -> Hamlet.HtmlUrl Routes
-renderLimitedRestults limitedRes = [Hamlet.hamlet|
-<ul .list-group>
-    $forall result <- Api.lrResult limitedRes
-        <li .list-group-item>
-            ^{renderResult result} 
-|]
-
-mainPage :: Hamlet.HtmlUrl Routes
-mainPage = [Hamlet.hamlet|
-<div .jumbotron>
-  <h1>
-      Welcome!
-|]
 

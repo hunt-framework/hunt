@@ -15,15 +15,16 @@ maintainer:          sebastian@spawnhost.de
 build-type:          Simple
 cabal-version:       >=1.8
 
-data-files:          map.xml
+data-files:          map.xml geoFrontend.css geoFrontend.js
+
 data-dir:            data
 
 executable geoFrontend
   hs-source-dirs: src
   main-is:           GeoFrontend.hs
-  other-modules:     Hunt.GeoFrondend.Feeder,
-                     Hunt.GeoFrondend.Common,
-                     Hunt.GeoFrondend.Server
+  other-modules:     Hunt.GeoFrontend.Feeder,
+                     Hunt.GeoFrontend.Common,
+                     Hunt.GeoFrontend.Server
   build-depends:       base                   == 4.6.*
                        , aeson                >= 0.6
                        , blaze-html           >= 0.7   && < 0.8

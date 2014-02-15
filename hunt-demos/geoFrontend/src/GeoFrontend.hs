@@ -1,6 +1,6 @@
 module Main where
 
-import Hunt.GeoFrondend.Server
+import Hunt.GeoFrontend.Server
 import Paths_geoFrontend (getDataFileName)
 
 main :: IO ()
