@@ -22,6 +22,10 @@ source-repository head
   type:        git
   location:    https://github.com/hunt-framework/hunt-searchengine.git
 
+-- select Data.IntMap.BinTree.Strict as implementation for DocIdMap
+flag with-bintree
+  default:      False
+  manual:       True
 
 library
 
@@ -62,6 +66,7 @@ library
 
     Data.Bijection
     Data.Bijection.Instances
+    Data.IntMap.BinTree.Strict
     Data.IntSet.Cache
     Data.Text.Binary
     Data.Typeable.Binary
@@ -131,6 +136,10 @@ library
 
   ghc-options: -Wall -funbox-strict-fields -fwarn-tabs
 
+  if flag(with-bintree)
+    cpp-options:
+                -Dbintree=1
+
   extensions: MultiParamTypeClasses
               FlexibleContexts
               OverloadedStrings
@@ -151,7 +160,7 @@ test-suite Hunt-Index
   ghc-options:          -Wall
   extensions:           OverloadedStrings
 
-  build-depends: base                         >= 4.6 && < 5
+  build-depends: base
                , containers
                , HUnit
                , hunt-searchengine
@@ -167,11 +176,11 @@ test-suite Hunt-Interpreter
   ghc-options:          -Wall
   extensions:           OverloadedStrings
 
-  build-depends: base                         >= 4.6 && < 5
+  build-depends: base
                , containers
                , HUnit
                , hunt-searchengine
-               , mtl                          >= 1.1 && < 3
+               , mtl
                , QuickCheck
                , test-framework
                , test-framework-hunit
@@ -185,11 +194,11 @@ test-suite Hunt-Query-Parser
   ghc-options:          -Wall
   extensions:           OverloadedStrings
 
-  build-depends: base                         >= 4.6 && < 5
+  build-depends: base
                , containers
                , HUnit
                , hunt-searchengine
-               , mtl                          >= 1.1 && < 3
+               , mtl
                , QuickCheck
                , test-framework
                , test-framework-hunit
@@ -203,13 +212,13 @@ test-suite Hunt-Query-Parser
 --  ghc-options:          -Wall
 --  extensions:           OverloadedStrings
 --
---  build-depends: base                         >= 4.6 && < 5
+--  build-depends: base
 --               , containers
---               , deepseq                      >= 1.2
+--               , deepseq
 --               , ghc-heap-view                >= 0.5
 --               , HUnit
 --               , hunt-searchengine
---               , mtl                          >= 1.1 && < 3
+--               , mtl
 --               , QuickCheck
 --               , random                       >= 1.0
 --               , test-framework
@@ -224,11 +233,11 @@ test-suite Hunt-Analyzer
   ghc-options:          -Wall
   extensions:           OverloadedStrings
 
-  build-depends: base                         >= 4.6 && < 5
+  build-depends: base
                , containers
                , hunt-searchengine
                , HUnit
-               , mtl                          >= 1.1 && < 3
+               , mtl
                , old-locale
                , QuickCheck
                , random                       >= 1.0
