@@ -29,8 +29,8 @@ empty                = PS IS.empty
 
 -- | Positions with one element.
 singleton            :: Position -> Positions
-singleton            = PS . IS.singleton
---singleton            = PS . IS.cacheAt
+singleton            = PS . IS.cacheAt
+--singleton            = PS . IS.singleton
 
 null                 :: Positions -> Bool
 null                 = IS.null . unPS
@@ -45,8 +45,8 @@ toAscList            = IS.toAscList . unPS
 
 -- | Constructs Positions from a list of 'Position's.
 fromList             :: [Position] -> Positions
-fromList l            = PS $ IS.fromList l
---fromList             = PS . IS.unions . map IS.cacheAt
+fromList             = PS . IS.unions . map IS.cacheAt
+--fromList             = PS . IS.fromList
 
 -- | Number of 'Position's.
 size                 :: Positions -> Int
