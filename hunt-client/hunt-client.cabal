@@ -29,6 +29,7 @@ library
                 base >= 4
                 , aeson                  >= 0.6
                 , bytestring             >= 0.9.1
+                , data-default
                 , conduit                >= 1.0
                 , failure                >= 0.2
                 , hunt-searchengine

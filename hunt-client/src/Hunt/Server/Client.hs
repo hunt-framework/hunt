@@ -1,58 +1,73 @@
 {-# LANGUAGE OverloadedStrings, FlexibleContexts, GeneralizedNewtypeDeriving, PackageImports #-}
 
 module Hunt.Server.Client (
-    withHuntServer
+    -- * Monad Transformer
+      withHuntServer
     , HuntConnectionT (..)
     , ServerAndManager (..)
     , newServerAndManager
     , withServerAndManager
+   
+   -- * Conveniece wrapper
     , autocomplete
     , query
-    , lowercaseConstructorsOptions
     , insert
+
+    -- * Some Reexports from hunt
     , H.LimitedResult (..) 
     , H.ApiDocument (..)
     , H.position
-    )where
+    , ContextSchema (..)
+    , def
 
-import Data.Either ()
-import Data.Char (isSpace, {- toUpper, -}toLower)
-import Data.String ()
+    -- * misc
+    , lowercaseConstructorsOptions
+)
+where
+
+import           Data.Either ()
+import           Data.Char (isSpace, {- toUpper, -}toLower)
+import           Data.String ()
+
+import           Data.Default (Default, def)
 
 -- import Control.Arrow (first)
-import Control.Monad (mzero, (>=>))
-import Control.Monad.IO.Class (MonadIO)
-import Control.Monad.Trans.Class (MonadTrans, lift)
-import "mtl" Control.Monad.Reader (ReaderT, MonadReader, runReaderT, ask)
+import           Control.Monad (mzero, (>=>))
+import           Control.Monad.IO.Class (MonadIO)
+import           Control.Monad.Trans.Class (MonadTrans, lift)
+import           Control.Monad.Reader (ReaderT, MonadReader, runReaderT, ask)
 
-import Data.String.Conversions (cs, (<>))
-import Data.Text (Text)
+import           Data.String.Conversions (cs, (<>))
+import           Data.Text (Text)
 import qualified Data.Text as T
 -- import qualified Data.Text.Encoding as TE
 
-import Data.ByteString.Lazy (ByteString) 
+import           Data.ByteString.Lazy (ByteString) 
 -- import qualified Data.ByteString.Lazy as BL
 
-import Data.Aeson (FromJSON, ToJSON, (.=), (.:))
+import           Data.Aeson (FromJSON, ToJSON, (.=), (.:))
 import qualified Data.Aeson as JSON
 import qualified Data.Aeson.Types as JSON
 
-import Control.Lens (over, both, _Left, {-_head, _tail, -}each, Mutator, Each)
+import           Control.Lens (over, both, _Left, {-_head, _tail, -}each, Mutator, Each)
 
-import Data.Conduit (runResourceT, ResourceT, MonadBaseControl)
+import           Data.Conduit (runResourceT, ResourceT, MonadBaseControl)
 import qualified Network.HTTP.Conduit as HTTP
 import qualified Network.HTTP.Client as HTTP (defaultManagerSettings)
 
-import Network.HTTP.Types.URI (urlEncode)
+import           Network.HTTP.Types.URI (urlEncode)
 
-import Control.Failure (Failure)
+import           Control.Failure (Failure)
 
 import qualified Hunt.Common.ApiDocument as H
 import qualified Hunt.Index.Schema.Normalize.Position as H
 import qualified Hunt.Interpreter.Command as H (Command(..))
+import qualified Hunt.Index.Schema as H (Schema, CRegex, CNormalizer, CWeight)
+import           Hunt.Common.BasicTypes
+
 
 data JsonResponse r = 
-    JsonSuccess {_jsonValue :: r}
+      JsonSuccess {_jsonValue :: r}
     | JsonFailure Int [Text]
     deriving (Show)
 
@@ -119,7 +134,8 @@ checkServerUrl s
     | '/' == T.last s = s
     | otherwise = s <> "/"
 
-
+encodeRequest :: Text -> Text
+encodeRequest = cs . urlEncode False . cs
 
 makeRequest :: (MonadIO m, Failure HTTP.HttpException m) => Text -> HuntConnectionT m HTTP.Request
 makeRequest path = do
@@ -164,14 +180,54 @@ insert docs = do
     httpLbs request >>= return . cs
 
 
-
-
 handleJsonResponse :: (FromJSON b) => JsonResponse b -> Either Text b
 handleJsonResponse (JsonSuccess r) = Right r
 handleJsonResponse (JsonFailure c err) = Left $ T.concat $ ["Code: ", cs $ show c, " "] ++ err
 
 eitherDecodeT :: FromJSON a => ByteString -> Either Text a
 eitherDecodeT =   over _Left (("Json decode error: " <>) . cs) . JSON.eitherDecode
+
+
+data ContextType = TextContext | DateContext | PositionContext | IntContext
+    deriving(Show, Enum, Eq)
+
+-- | The type can be any of the supported basic index types.
+--   The regexp validates and splits the text into words:
+--     []  -> invalid
+--     xs  -> words/tokens
+--   Every type can have a type-specific regexp.
+--     => This means is has to match both the type-specific and the context-specific regexp.
+--        Example: A CDate text has to match the type-specific regexp (XMLSchema-Date)
+--                 (requirement for the corresponding Date-Parser which is used to normalize)
+--   Every type can have a type-specific normalizer.
+--     => This means it is first transformed by the type-specific normalizer and then by the
+--        context-specific normalizers
+--
+--   /TL;DR/
+--   Every input for both search and insert has
+--     - two regexps    for validation and tokenization
+--     - two normalizer for transformation
+--   The first  regexp/normalizer is type-specific and is applied first (forced)
+--   The second regexp/normalizer is context-specific (defined/chosen by user)
+data ContextSchema = ContextSchema
+  {
+  -- optional regex to overwrite default given by context type
+    cxRegEx      :: Maybe H.CRegex
+  -- normalizers to apply
+  , cxNormalizer :: [H.CNormalizer]
+  -- context weight
+  , cxWeight     :: H.CWeight
+  -- should this context used in non-context queries?
+  , cxDefault    :: Bool
+  -- contexttype
+  , cxType       :: ContextType
+  -- name
+  , cxName       :: Text
+  }
+  deriving Show
+
+instance Default ContextSchema where
+    def = ContextSchema Nothing [] 1.0 True TextContext ""
 
 --capitalize :: String -> String
 --capitalize = over _head toUpper . over (_tail.each) toLower
@@ -188,6 +244,4 @@ lowercaseConstructorsOptions = JSON.Options {
      , JSON.sumEncoding             = JSON.defaultTaggedObject
 }
 
-encodeRequest :: Text -> Text
-encodeRequest = cs . urlEncode False . cs
  

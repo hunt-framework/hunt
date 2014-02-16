@@ -10,11 +10,11 @@ import Control.Lens (over, mapped, both)
 
 import Data.Maybe (isJust, fromJust)
 import Data.List (intersect)
-import qualified Data.Set as Set
+-- import qualified Data.Set as Set
 
 import Data.String.Conversions (cs) -- , (<>)
 import Data.Text (Text)
-import qualified Data.Text as T
+-- import qualified Data.Text as T
 
 -- import qualified Data.ByteString.Char8 as B (unpack)
 import qualified Data.ByteString.Lazy as BL
@@ -26,7 +26,7 @@ import Data.Geo.OSM
 import Data.Geo.OSM.NWRCommon
 
 import Hunt.GeoFrontend.Common
-
+import qualified Hunt.Server.Client as H
 
 
 
@@ -107,3 +107,9 @@ indexedTags = [
 
 filterIndexedTags :: [(String, String)] -> [(String, String)]
 filterIndexedTags tags' = filter (\(k,_) -> k `elem` indexedTags) tags'
+
+createIndizes :: [H.ContextSchema]
+createIndizes = 
+    [
+        H.def {H.cxName = "name"}
+    ]
