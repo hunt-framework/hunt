@@ -10,10 +10,14 @@
 module Hunt.GeoFrontend.Common 
 (
     GeoFrontendConfiguration (..),
+    OSMType (..),
     runGeoReader,
+    geoDocToHuntDoc,
     autocomplete,
+    insert,
     query,
-    GeoServer (..)
+    GeoServer (..),
+    GeoDocument (..)
 )
 
 where
@@ -40,7 +44,7 @@ import qualified Data.Text as T
 import qualified Data.HashMap.Lazy as HML
 import qualified Data.Map          as M    (Map (), fromList)
 
-import           Data.Aeson (FromJSON, ToJSON, Object, (.=), (.:), (.:?), (.!=))
+import           Data.Aeson (FromJSON, ToJSON, (.:)) --(.=), (.:?), (.!=), Object
 import qualified Data.Aeson  as JSON
 import qualified Data.Aeson.Types as JSON
 
@@ -49,10 +53,7 @@ import           Control.Monad.Trans.Class (MonadTrans, lift)
 import           Control.Monad.Reader (ReaderT, MonadReader, ask, runReaderT)
 
 import qualified Hunt.Server.Client as H
-import qualified Hunt.Index.Schema.Normalize.Position as P
-
-import qualified Hunt.Common.ApiDocument as H
-
+-- import qualified Hunt.Index.Schema.Normalize.Position as P
 
 data OSMType = Way | Node
     deriving (Show, Eq, Generic, Ord)
@@ -117,7 +118,7 @@ geoServer = lift
 runGeoReader :: GeoServer a -> H.ServerAndManager -> IO a
 runGeoReader = runReaderT . runGeoServer
 
-withServerAndManager' :: H.HolumbusConnectionT IO b -> GeoServer b
+withServerAndManager' :: H.HuntConnectionT IO b -> GeoServer b
 withServerAndManager' x = do
     sm <- ask
     --sm <- liftIO $ STM.readTVarIO var
@@ -130,8 +131,13 @@ query :: Text -> GeoServer (Either Text (H.LimitedResult GeoDocument))
 query q = withServerAndManager' $ H.query q
 
 
+insert :: [GeoDocument] -> GeoServer Text
+insert docs = withServerAndManager' $ H.insert $ map geoDocToHuntDoc docs
+
+
 data GeoFrontendConfiguration = GeoFrontendConfiguration {
     geoFrontendHost :: String, 
     geoFrontendPort :: Int, 
-    huntUrl :: String
+    huntUrl :: String,
+    loadIndex  :: Maybe FilePath
 } deriving (Show, Data, Typeable)

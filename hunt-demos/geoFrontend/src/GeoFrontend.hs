@@ -6,7 +6,7 @@ import Paths_geoFrontend (getDataFileName)
 import Hunt.GeoFrontend.Server (start)
 import Hunt.GeoFrontend.Common (GeoFrontendConfiguration (..))
 
-import System.Console.CmdArgs (cmdArgs, (&=), explicit, name, help, summary)
+import System.Console.CmdArgs (cmdArgs, (&=), explicit, name, help, summary, typFile)
 
 geoFrontendConfiguration :: GeoFrontendConfiguration
 geoFrontendConfiguration = GeoFrontendConfiguration {
@@ -15,14 +15,12 @@ geoFrontendConfiguration = GeoFrontendConfiguration {
         geoFrontendPort = (8080::Int)  &= explicit &= name "geo-demo-port" 
             &= help "Listen on this Port",
         huntUrl = "http://localhost:3000/" &= explicit &= name "hunt-url"
-            &= help "Url of the Hunt Search Engine (default: http://localhost:3000/)"
+            &= help "Url of the Hunt Search Engine (default: http://localhost:3000/)",
+        loadIndex = Nothing &= explicit &= name "load-index" &= typFile
+            &= help "Load index on startup"
     } &= summary "GeoFrontend Search Frontend"
 
 main :: IO ()
 main = do
     config <- cmdArgs geoFrontendConfiguration
-    --p <- getDataFileName "map.xml"
-    --everything <- readXML p
-    
-    --return ()
     start config

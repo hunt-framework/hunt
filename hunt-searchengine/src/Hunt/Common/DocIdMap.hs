@@ -1,5 +1,7 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -56,22 +58,25 @@ module Hunt.Common.DocIdMap
     )
 where
 
-import           Prelude                     hiding (filter, foldr, lookup, map,
-                                              null)
-import qualified Prelude                     as P
+import           Prelude                    hiding (filter, foldr, lookup, map,
+                                             null)
+import qualified Prelude                    as P
 
-import           Control.Applicative         (Applicative(..), (<*>), pure)
+import           Control.Applicative        (Applicative (..), pure, (<*>))
 import           Control.DeepSeq
 
-import           Data.Binary                 (Binary (..))
-import           Data.Foldable               hiding (fold, foldr, toList)
---import           Data.Traversable
-import qualified Data.IntMap.                as IM
-import qualified Data.IntSet                 as S
+import           Data.Binary                (Binary (..))
+import           Data.Foldable              hiding (fold, foldr, toList)
+#if bintree==1
+import qualified Data.IntMap.BinTree.Strict as IM
+#else
+import qualified Data.IntMap.Strict         as IM
+#endif
+import qualified Data.IntSet                as S
 import           Data.Typeable
 
 import           Hunt.Common.DocId
-import qualified Hunt.Common.DocId           as DId
+import qualified Hunt.Common.DocId          as DId
 
 -- ------------------------------------------------------------
 
