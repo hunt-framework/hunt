@@ -83,5 +83,5 @@ toWordList scan norm = M.map DL.toList . foldr insert M.empty . zip [1..] . map 
 -- | Tokenize a text with a regular expression for words.
 --
 --  > scanTextRE "[^ \t\n\r]*" == Data.Text.words
-scanTextRE :: Text -> Text -> [Word]
+scanTextRE :: CRegex -> Text -> [Word]
 scanTextRE wRex = map T.pack . tokenize (T.unpack wRex) . T.unpack

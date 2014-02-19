@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
+
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -66,6 +67,3 @@ instance OccCompression Occurrences where
   compressOcc   = id
   decompressOcc = id
   differenceWithKeySet = flip DM.diffWithSet
-
-
-

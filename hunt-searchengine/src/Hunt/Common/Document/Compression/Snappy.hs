@@ -54,8 +54,8 @@ mkCDoc v = CDoc $!! v
 -- ----------------------------------------------------------------------------
 
 instance Binary CompressedDoc where
-    put = put . Short.fromShort . unCDoc
-    get = mkCDoc . Short.toShort <$> get
+  put = put . Short.fromShort . unCDoc
+  get = mkCDoc . Short.toShort <$> get
 
 -- to avoid sharing the data with the input, the ByteString is physically copied
 -- before return. This should be the single place where sharing is introduced,

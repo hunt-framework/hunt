@@ -29,7 +29,7 @@ import           Hunt.Common.Occurrences.Compression
 -- ----------------------------------------------------------------------------
 
 newtype KeyProxyIndex toType impl cv
-  = KPIx { kpIx :: impl cv}
+  = KPIx { kpIx :: impl cv }
   deriving (Eq, Show, NFData)
 
 mkKPIx :: impl cv -> KeyProxyIndex toType impl cv

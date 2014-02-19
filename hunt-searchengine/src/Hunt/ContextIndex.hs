@@ -11,7 +11,7 @@ import           Prelude
 import qualified Prelude                           as P
 
 import           Control.Arrow
-import           Control.DeepSeq
+--import           Control.DeepSeq
 import           Control.Monad
 import qualified Control.Monad.Parallel            as Par
 --import           Control.Parallel
@@ -20,7 +20,7 @@ import           Control.Parallel.Strategies
 import           Data.Binary                       (Binary (..))
 import           Data.Binary.Get
 import           Data.ByteString.Lazy              (ByteString)
-import qualified Data.IntSet                       as IS
+--import qualified Data.IntSet                       as IS
 import qualified Data.Map                          as M
 import           Data.Map                          (Map)
 import           Data.Maybe
@@ -57,7 +57,7 @@ newtype ContextMap v
 
 mkContextMap :: Map Context (Impl.IndexImpl v) -> ContextMap v
 mkContextMap x = ContextMap $! x
-  
+
 -- ----------------------------------------------------------------------------
 
 getContextMap :: [IndexImpl Occurrences] -> Get (ContextMap Occurrences)
@@ -107,12 +107,12 @@ batchInsert docAndWrds (ContextIx ix dt s) = do
   return $! ContextIx newIx newDt s
 
 -- | Update elements
-update :: (Par.MonadParallel m, DocTable dt)
-       => DocId -> Dt.DValue dt -> Words
-       -> ContextIndex dt -> m (ContextIndex dt)
-update docId doc' w ix = do
-  ix' <- delete ix (IS.singleton docId)
-  insert doc' w ix'
+--update :: (Par.MonadParallel m, DocTable dt)
+--       => DocId -> Dt.DValue dt -> Words
+--       -> ContextIndex dt -> m (ContextIndex dt)
+--update docId doc' w ix = do
+--  ix' <- delete ix (IS.singleton docId)
+--  insert doc' w ix'
 
 -- | Modify elements
 modify :: (Par.MonadParallel m, DocTable dt)

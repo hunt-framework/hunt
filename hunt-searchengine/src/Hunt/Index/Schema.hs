@@ -6,7 +6,7 @@ import           Control.Monad                        (mzero, liftM5)
 
 import           Data.Aeson
 import           Data.Aeson.Types
-import           Data.Binary
+import           Data.Binary                          hiding (Word)
 import           Data.Map                             hiding (null)
 import           Data.Text                            hiding (null)
 import           Data.Text.Binary                     ()
@@ -135,7 +135,7 @@ dateInv = mkIndex (Ix.empty :: InvertedIndexDate Occurrences)
 positionInv :: IndexImpl Occurrences
 positionInv = mkIndex (Ix.empty :: InvertedIndexPosition Occurrences)
 
-data CValidator = CValidator { validate :: Text -> Bool }
+data CValidator = CValidator { validate :: Word -> Bool }
 
 instance Show CValidator where
   show _ = "CValidator"

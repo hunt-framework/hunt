@@ -39,6 +39,7 @@ data IndexImpl v
 instance Show (IndexImpl v) where
   show (IndexImpl v) = show v
 
+-- FIXME: not 'rnf v `seq` ()'. is it supposed to be that way?
 instance NFData (IndexImpl v) where
   rnf (IndexImpl v) = v `seq` ()
 

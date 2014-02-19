@@ -72,6 +72,7 @@ class (DocumentWrapper (DValue i)) => DocTable i where
     deleteByURI     :: Monad m => i -> URI -> m i
     deleteByURI ds u
         = maybe (return ds) (delete ds) =<< lookupByURI ds u
+
     -- | Deletes a set of documentss by 'DocId' from the table.
     difference      :: Monad m => DocIdSet -> i -> m i
 

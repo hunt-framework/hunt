@@ -217,8 +217,8 @@ askType :: DocTable dt => Text -> CM dt ContextType
 askType cn = do
   ts <- askTypes
   case L.find (\t -> cn == ctName t) ts of
-    (Just t) -> return t
-    _        -> throwResError 410 ("used unavailable context type: " `T.append` cn)
+    Just t -> return t
+    _      -> throwResError 410 ("used unavailable context type: " `T.append` cn)
 
 askIndex :: DocTable dt => Text -> CM dt (Impl.IndexImpl Occurrences)
 askIndex cn = do
@@ -420,8 +420,8 @@ execSearch' f q (ContextIx ix dt s)
     rc <- askRanking
     cw <- askContextsWeights
     case r of
-      (Left  err) -> throwError err
-      (Right res) -> return . f . rank rc cw $ res
+      Left  err -> throwError err
+      Right res -> return . f . rank rc cw $ res
 
 -- FIXME: signature to result
 wrapSearch :: (DocumentWrapper e) => Int -> Int -> Result e -> CmdResult

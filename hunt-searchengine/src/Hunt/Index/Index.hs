@@ -9,6 +9,8 @@
 module Hunt.Index.Index
 where
 
+import           Prelude                        hiding (map)
+
 import           GHC.Exts                       (Constraint)
 
 import           Control.DeepSeq
@@ -75,6 +77,7 @@ class Monad m => IndexM m i where
   keysM        :: IConM i v
                => i v -> m [IKeyM i v]
 
+-- ----------------------------------------------------------------------------
 
 class Index i where
   type IKey      i v :: *
@@ -92,28 +95,28 @@ class Index i where
   lookupRange  :: ICon i v => IKey i v -> IKey i v -> i v -> [(IKey i v, IVal i v)]
 
   -- | Insert occurrences.
-  batchInsert  :: ICon i v => [(IKey i v, IVal i v)] -> i v -> (i v)
+  batchInsert  :: ICon i v => [(IKey i v, IVal i v)] -> i v -> i v
 
   -- | Insert occurrences.
-  insert       :: (ICon i v) => IKey i v -> IVal i v -> i v -> i v
-  insert k v i = batchInsert [(k,v)] i
+  insert       :: ICon i v => IKey i v -> IVal i v -> i v -> i v
+  insert k v   = batchInsert [(k,v)]
 
   -- | Delete as batch job
-  batchDelete  :: ICon i v => DocIdSet -> i v -> (i v)
+  batchDelete  :: ICon i v => DocIdSet -> i v -> i v
 
   -- | Delete occurrences.
-  delete       :: ICon i v => DocId -> i v -> (i v)
-  delete k i   = batchDelete (IS.singleton k) i
+  delete       :: ICon i v => DocId -> i v -> i v
+  delete       = batchDelete . IS.singleton
 
   -- | Empty Index
-  empty        :: (ICon i v) => i v
+  empty        :: ICon i v => i v
 
   -- | Convert an Index to a list. Can be used for easy conversion between different index
   -- implementations
   toList       :: ICon i v => i v -> [(IKey i v, IVal i v)]
 
   -- | Make index from list
-  fromList     :: ICon i v => [(IKey i v, IVal i v)] -> (i v)
+  fromList     :: ICon i v => [(IKey i v, IVal i v)] -> i v
 
   -- | Support for index value transformations
   unionWith    :: ICon i v
@@ -133,6 +136,7 @@ class Index i where
   keys         :: ICon i v
                => i v -> [IKey i v]
 
+-- ----------------------------------------------------------------------------
 
 instance (Index i, Monad m) => IndexM m i where
   type IKeyM i v             = IKey i v
@@ -150,5 +154,5 @@ instance (Index i, Monad m) => IndexM m i where
   fromListM l                = return $! fromList l
   unionWithM f i1 i2         = return $! unionWith f i1 i2
   unionWithConvM f1 f2 i1 i2 = return $! unionWithConv f1 f2 i1 i2
-  mapM f i                   = return $! Hunt.Index.Index.map f i
+  mapM f i                   = return $! map f i
   keysM i                    = return $! keys i

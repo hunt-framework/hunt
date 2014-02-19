@@ -1,10 +1,10 @@
-	{-# LANGUAGE TypeFamilies     #-}
+{-# LANGUAGE TypeFamilies     #-}
 {-# LANGUAGE ConstraintKinds  #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module Main where
 
-import qualified Data.Map                             as M
+import qualified Data.Map                         as M
 import           Data.Monoid
 
 import           Test.Framework
@@ -24,6 +24,7 @@ import qualified Hunt.Index.Proxy.CompressedIndex as CPIx
 import           Hunt.Index.IndexImpl
 import           Hunt.ContextIndex                (addWordsM)
 import qualified Hunt.ContextIndex                as ConIx
+
 -- ----------------------------------------------------------------------------
 
 main :: IO ()

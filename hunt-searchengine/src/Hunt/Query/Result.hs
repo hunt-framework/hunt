@@ -82,7 +82,7 @@ deriving instance Show e => Show (Result e)
 data DocInfo e
   = DocInfo
     { document :: e          -- ^ The document itself.
-    , docBoost :: [Float]
+    , docBoost :: Boost
     , docScore :: Score      -- ^ The score for the document (initial score for all documents is @0.0@).
     }
 deriving instance Show e => Show (DocInfo e)
