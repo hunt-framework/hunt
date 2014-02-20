@@ -1,6 +1,6 @@
 function makeAutocomplete() {
     var cache = {};
-    $( "#hayoo" ).autocomplete({
+    $( "#geoFrontend" ).autocomplete({
         minLength: 2,
         source: function( request, response ) {
             var term = request.term;
@@ -29,22 +29,11 @@ function initMap() {
     // start the map in South-East England
     map.setView(new L.LatLng((53.5681 + 53.5854) / 2, (9.6960 + 9.7496) / 2), 12);
     map.addLayer(osm);
-
-
 }
 
-
-$().ready(function() {
-    makeAutocomplete()
-});
-
-$(document).ready(function() {
-    initMap()
-});
-
-
 var markers = []
-function onSearch(query){
+function onSearch(){
+    query = $("#geoFrontend")[0].value
     $.each(markers, function(i, marker){
          map.removeLayer(marker)
     })  
@@ -60,3 +49,15 @@ function onSearch(query){
         })
     });
 }
+
+
+$().ready(function() {
+    makeAutocomplete()
+});
+
+$(document).ready(function() {
+    initMap()
+    $("#submit").click(onSearch)
+});
+
+

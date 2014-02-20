@@ -67,7 +67,7 @@ navigation query = [Hamlet.hamlet|
     <div .navbar-collapse .collapse #geoFrontend-navbar-collapse>
         <ul .nav .navbar-nav .navbar-left>
             <li .active>
-                <form .navbar-form .navbar-left action="." method="get" id="search" role="search">
+                <form .navbar-form .navbar-left action="javascript:void(0);" method="get" id="search" role="search">
                     <div .form-group>
                         <input .form-control placeholder="Search" name="query" #geoFrontend type="text" autocomplete="off" accesskey="1" value="#{query}">
                     <input .btn .btn-default #submit type="submit" value="Search">
