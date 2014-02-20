@@ -199,7 +199,7 @@ instance FromJSON ContextSchema where
 
 instance ToJSON ContextSchema where
   toJSON (ContextSchema r n w d ct) = object . Prelude.concat $
-    [ [ "ctype"       .= ct
+    [ [ "type"       .= ct
       , "weight"      .= w
       ]
     , "regexp"        .=? r .\. isNothing

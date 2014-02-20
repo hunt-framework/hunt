@@ -36,7 +36,7 @@ import qualified Hunt.GeoFrontend.Templates as Templates
 import           Hunt.GeoFrontend.Common
 import           Hunt.GeoFrontend.Feeder
 import           Hunt.Server.Client (newServerAndManager, withServerAndManager)
-import qualified Hunt.Server.Client as H (insert)
+import qualified Hunt.Server.Client as H (eval, Command (..))
 
 import           Paths_geoFrontend
 
@@ -58,7 +58,7 @@ start config = do
     case loadIndex config of
         Just path -> do
             docs <- readXML path
-            t <- withServerAndManager (H.insert $ map geoDocToHuntDoc docs) sm
+            t <- withServerAndManager (H.eval $ createIndexCommands ++ map (H.Insert . geoDocToHuntDoc) docs) sm
             Log.debugM modName (cs t)
         Nothing -> return ()
 

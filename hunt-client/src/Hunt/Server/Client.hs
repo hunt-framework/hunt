@@ -12,13 +12,18 @@ module Hunt.Server.Client (
     , autocomplete
     , query
     , insert
+    , eval
 
     -- * Some Reexports from hunt
     , H.LimitedResult (..) 
     , H.ApiDocument (..)
     , H.position
-    , ContextSchema (..)
+    , ContextDescription (..)
+    , ContextType (..)
     , def
+    , H.Command (..)
+    , H.CmdResult (..)
+    , descriptionToCmd
 
     -- * misc
     , lowercaseConstructorsOptions
@@ -49,7 +54,8 @@ import           Data.Aeson (FromJSON, ToJSON, (.=), (.:))
 import qualified Data.Aeson as JSON
 import qualified Data.Aeson.Types as JSON
 
-import           Control.Lens (over, both, _Left, {-_head, _tail, -}each, Mutator, Each)
+import           Control.Lens (over, both, _Left, {-_head, _tail, -}each, Mutator, Each, under)
+-- import           System.IO (utf8)
 
 import           Data.Conduit (runResourceT, ResourceT, MonadBaseControl)
 import qualified Network.HTTP.Conduit as HTTP
@@ -61,8 +67,8 @@ import           Control.Failure (Failure)
 
 import qualified Hunt.Common.ApiDocument as H
 import qualified Hunt.Index.Schema.Normalize.Position as H
-import qualified Hunt.Interpreter.Command as H (Command(..))
-import qualified Hunt.Index.Schema as H (Schema, CRegex, CNormalizer, CWeight)
+import qualified Hunt.Interpreter.Command as H (Command(..), CmdResult (..))
+import qualified Hunt.Index.Schema as H (CRegex, CNormalizer, CWeight, ContextSchema (..), ContextType (..), ctEmpty)
 import           Hunt.Common.BasicTypes
 
 
@@ -136,6 +142,7 @@ checkServerUrl s
 
 encodeRequest :: Text -> Text
 encodeRequest = cs . urlEncode False . cs
+--encodeRequest = under utf8 $ urlEncode False
 
 makeRequest :: (MonadIO m, Failure HTTP.HttpException m) => Text -> HuntConnectionT m HTTP.Request
 makeRequest path = do
@@ -172,13 +179,14 @@ query q = do
     return $ (eitherDecodeT >=> handleJsonResponse) d
 
 insert :: (MonadIO m, Failure HTTP.HttpException m) => H.ApiDocuments -> HuntConnectionT m Text
-insert docs = do
+insert docs = eval $ map H.Insert docs
+
+eval :: (MonadIO m, Failure HTTP.HttpException m) => [H.Command] -> HuntConnectionT m Text
+eval cmds = do
     request' <- makeRequest "eval"
-    let inserts = map H.Insert docs
-        body = JSON.encode inserts
+    let body = JSON.encode cmds
         request = request' { HTTP.method = "POST", HTTP.requestBody = HTTP.RequestBodyLBS body}
     httpLbs request >>= return . cs
-
 
 handleJsonResponse :: (FromJSON b) => JsonResponse b -> Either Text b
 handleJsonResponse (JsonSuccess r) = Right r
@@ -209,25 +217,42 @@ data ContextType = TextContext | DateContext | PositionContext | IntContext
 --     - two normalizer for transformation
 --   The first  regexp/normalizer is type-specific and is applied first (forced)
 --   The second regexp/normalizer is context-specific (defined/chosen by user)
-data ContextSchema = ContextSchema
-  {
-  -- optional regex to overwrite default given by context type
+data ContextDescription = ContextDescription
+    {
+    -- optional regex to overwrite default given by context type
     cxRegEx      :: Maybe H.CRegex
-  -- normalizers to apply
-  , cxNormalizer :: [H.CNormalizer]
-  -- context weight
-  , cxWeight     :: H.CWeight
-  -- should this context used in non-context queries?
-  , cxDefault    :: Bool
-  -- contexttype
-  , cxType       :: ContextType
-  -- name
-  , cxName       :: Text
-  }
-  deriving Show
+    -- normalizers to apply
+    , cxNormalizer :: [H.CNormalizer]
+    -- context weight
+    , cxWeight     :: H.CWeight
+    -- should this context used in non-context queries?
+    , cxDefault    :: Bool
+    -- contexttype
+    , cxType       :: ContextType
+    -- name
+    , cxName       :: Text
+    }
+    deriving Show
 
-instance Default ContextSchema where
-    def = ContextSchema Nothing [] 1.0 True TextContext ""
+instance Default ContextDescription where
+    def = ContextDescription Nothing [] 1.0 True TextContext ""
+
+descriptionToCmd :: ContextDescription -> H.Command
+descriptionToCmd d = H.InsertContext {H.icICon = cxName d, H.icSchema = schema}
+    where
+        schema = H.ContextSchema {
+            H.cxRegEx = cxRegEx d,
+            H.cxNormalizer = cxNormalizer d,
+            H.cxWeight = cxWeight d,
+            H.cxDefault = cxDefault d,
+            H.cxType = contextType
+        }
+        contextType = H.ctEmpty { H.ctName = name $ cxType d }
+        name TextContext = "text"
+        name DateContext = "date"
+        name PositionContext = "position"
+        name IntContext = "int"
+
 
 --capitalize :: String -> String
 --capitalize = over _head toUpper . over (_tail.each) toLower

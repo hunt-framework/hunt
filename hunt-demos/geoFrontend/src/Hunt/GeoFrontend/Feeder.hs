@@ -86,30 +86,43 @@ nwrGetCoords nwr = foldNodeWayRelation nwr fNode fWay undefined
         fNode n = over both read $ (nodeGetLon n, nodeGetLat n)
         fWay _ = (0.0, 0.0)
 
-indexedTags :: [String]
-indexedTags = [
-      "name"
-    , "amenity"
-    , "highway"
-    , "historic"
-    , "shop"
-    , "tourism"
-    , "leisure"
-    , "website"
---    , "wikipedia"
-
-    , "place"
-    , "memorial:type"
-    , "contact:website"
-    , "cuisine"
-    , "operator"
-    , "phone"]
+indexedTags :: [Text]
+indexedTags = map H.cxName tagIndizes
 
 filterIndexedTags :: [(String, String)] -> [(String, String)]
-filterIndexedTags tags' = filter (\(k,_) -> k `elem` indexedTags) tags'
+filterIndexedTags tags' = filter (flip elem indexedTags' . fst) tags'
+    where
+        indexedTags' = map cs $ indexedTags
 
-createIndizes :: [H.ContextSchema]
-createIndizes = 
+metaIndizes :: [H.ContextDescription]
+metaIndizes = 
     [
-        H.def {H.cxName = "name"}
+          H.def {H.cxName = "type"          , H.cxWeight = 0.1, H.cxDefault = False}
+        , H.def {H.cxName = "position"                        , H.cxDefault = False, H.cxType = H.PositionContext}
+        , H.def {H.cxName = "kind"          , H.cxWeight = 0.1, H.cxDefault = False}
     ]
+
+tagIndizes :: [H.ContextDescription]
+tagIndizes = 
+    [
+          H.def {H.cxName = "name"          , H.cxWeight = 1.0}
+        , H.def {H.cxName = "amenity"       , H.cxWeight = 0.5}
+        , H.def {H.cxName = "highway"       , H.cxWeight = 0.5}
+        , H.def {H.cxName = "shop"          , H.cxWeight = 0.5}
+        , H.def {H.cxName = "operator"      , H.cxWeight = 0.3}
+        , H.def {H.cxName = "leisure"       , H.cxWeight = 0.3}
+        , H.def {H.cxName = "tourism"       , H.cxWeight = 0.3}
+        , H.def {H.cxName = "cuisine"       , H.cxWeight = 0.3}
+        , H.def {H.cxName = "historic"      , H.cxWeight = 0.3}
+        , H.def {H.cxName = "place"         , H.cxWeight = 0.3}
+        , H.def {H.cxName = "memorial:type" , H.cxWeight = 0.1, H.cxDefault = False}
+        , H.def {H.cxName = "website"       , H.cxWeight = 0.1, H.cxDefault = False}
+        , H.def {H.cxName = "contact:website", H.cxWeight = 0.1,H.cxDefault = False}
+        , H.def {H.cxName = "phone"         , H.cxWeight = 0.1, H.cxDefault = False}
+    ]
+
+indizes :: [H.ContextDescription]
+indizes = metaIndizes ++ tagIndizes
+
+createIndexCommands :: [H.Command]
+createIndexCommands = map H.descriptionToCmd indizes
