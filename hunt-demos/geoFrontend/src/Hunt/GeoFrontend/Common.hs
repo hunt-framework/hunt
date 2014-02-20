@@ -44,7 +44,7 @@ import qualified Data.Text as T
 import qualified Data.HashMap.Lazy as HML
 import qualified Data.Map          as M    (Map (), fromList)
 
-import           Data.Aeson (FromJSON, ToJSON, (.:)) --(.=), (.:?), (.!=), Object
+import           Data.Aeson (FromJSON, ToJSON, (.:), (.=)) --(.:?), (.!=), Object
 import qualified Data.Aeson  as JSON
 import qualified Data.Aeson.Types as JSON
 
@@ -59,10 +59,10 @@ data OSMType = Way | Node
     deriving (Show, Eq, Generic, Ord)
 
 instance ToJSON OSMType where
-    toJSON = JSON.genericToJSON H.lowercaseConstructorsOptions
+--    toJSON = JSON.genericToJSON H.lowercaseConstructorsOptions
 
 instance FromJSON OSMType where
-    parseJSON = JSON.genericParseJSON H.lowercaseConstructorsOptions
+--    parseJSON = JSON.genericParseJSON H.lowercaseConstructorsOptions
 
 data GeoDocument = GeoDocument {
     osmId :: Integer,
@@ -104,6 +104,17 @@ instance FromJSON GeoDocument where
             
 
     parseJSON _ = mzero
+
+instance ToJSON GeoDocument where
+    toJSON d = JSON.object $ 
+        [ "name"  .= name d
+        , "lon"   .= lon d
+        , "lat"   .= lat d
+        , "kind"   .= kind d
+        ] ++ tags'
+        where
+            tags' :: [JSON.Pair]
+            tags' = map (second JSON.String) $ tags d
 
 fromShow :: (Show a) => a -> Text 
 fromShow = T.pack . show

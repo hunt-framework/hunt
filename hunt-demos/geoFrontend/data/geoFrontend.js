@@ -41,3 +41,22 @@ $().ready(function() {
 $(document).ready(function() {
     initMap()
 });
+
+
+var markers = []
+function onSearch(query){
+    $.each(markers, function(i, marker){
+         map.removeLayer(marker)
+    })  
+    markers = []
+
+    var data = {term: query}
+    $.getJSON( "search", data, function( data ) {
+        $.each(data, function(i, doc){
+            var lat = doc.lat
+            var lon = doc.lon
+            var marker = L.marker([lat, lon]).addTo(map);
+            markers.push(marker)
+        })
+    });
+}

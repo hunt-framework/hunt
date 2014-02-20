@@ -36,7 +36,7 @@ import qualified Hunt.GeoFrontend.Templates as Templates
 import           Hunt.GeoFrontend.Common
 import           Hunt.GeoFrontend.Feeder
 import           Hunt.Server.Client (newServerAndManager, withServerAndManager)
-import qualified Hunt.Server.Client as H (eval, Command (..))
+import qualified Hunt.Server.Client as H (eval, Command (..), lrResult)
 
 import           Paths_geoFrontend
 
@@ -85,6 +85,10 @@ dispatcher = do
         q <- Scotty.param "term"
         value <- (lift $ autocomplete q) >>= raiseOnLeft
         Scotty.json $ value
+    Scotty.get "/search"$ do
+        q <- Scotty.param "term"
+        value <- (lift $ query q) >>= raiseOnLeft
+        Scotty.json $ H.lrResult value
 
 
 renderRoot :: [Scotty.Param] -> Scotty.ActionT GeoFrontendError GeoServer ()
