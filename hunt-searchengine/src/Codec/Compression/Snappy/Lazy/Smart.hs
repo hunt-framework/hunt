@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Codec.Compression.Snappy.Lazy.Smart
 where
 

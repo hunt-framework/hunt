@@ -4,6 +4,7 @@
 {-# LANGUAGE ConstraintKinds           #-}
 {-# LANGUAGE FlexibleInstances         #-}
 {-# LANGUAGE UndecidableInstances      #-}
+{-# LANGUAGE MultiParamTypeClasses     #-}
 
 module Hunt.Index.Index
 where

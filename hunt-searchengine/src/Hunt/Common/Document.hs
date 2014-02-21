@@ -22,12 +22,12 @@ module Hunt.Common.Document
 where
 
 import           Control.DeepSeq
-import           Control.Monad              (liftM2, mzero)
+import           Control.Monad          (liftM2, mzero)
 
 import           Data.Aeson
-import           Data.Binary                (Binary (..))
-import           Data.Text                  as T
-import           Data.Text.Binary           ()
+import           Data.Binary            (Binary (..))
+import           Data.Text              as T
+import           Data.Text.Binary       ()
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Utility.Log
