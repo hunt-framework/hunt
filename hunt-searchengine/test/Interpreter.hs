@@ -1,19 +1,26 @@
 module Main where
 
 import           Control.Applicative
+import           Control.Arrow
+import           Control.Monad                          (join)
 import           Control.Monad.Error
 --import           Control.Monad.Trans                         (liftIO)
-
+import           Data.Fixed                                (div')
+import           Data.List                                    (sort)
 import qualified Data.Map                                    as M
+import           Data.Monoid                            ((<>))
 --import           Data.Monoid
 import qualified Data.Set                                    as S
-import           Data.Text                                   (Text)
+import           Data.Text                                   (Text, pack)
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
---import           Test.Framework.Providers.QuickCheck2
+import           Test.Framework.Providers.QuickCheck2
 import           Test.HUnit
---import           Test.QuickCheck
+import           Test.QuickCheck.Monadic
+import           Test.QuickCheck
+
+import           Text.Printf                            (printf)
 
 import           Hunt.Common
 import           Hunt.Common.Document
@@ -58,6 +65,7 @@ main = defaultMain
   -- test binary serialization
   , testCase "Interpreter: store/load index"           test_binary
   , testCase "Interpreter: store/load schema"          test_binary2
+  , testProperty "position range query"  prop_position_range
   ]
 
 -- | check DmPrefixTree
@@ -107,16 +115,17 @@ dateDoc = emptyApiDoc
   where
   ApiDocument _ ix dt = brainDoc
 
-geoDoc :: ApiDocument
-geoDoc = emptyApiDoc
+geoDoc' :: Text -> ApiDocument
+geoDoc' position = emptyApiDoc
   { apiDocUri      = "test://2"
-  , apiDocIndexMap = M.insert "geocontext" "53.60000-10.00000" ix
+  , apiDocIndexMap = M.insert "geocontext" position ix
   , apiDocDescrMap = dt
   }
   where
   ApiDocument _ ix dt = brainDoc
 
-
+geoDoc :: ApiDocument
+geoDoc = geoDoc' "53.60000-10.00000"
 
 -- example apidoc
 brainDocUpdate :: ApiDocument
@@ -367,3 +376,31 @@ test_fancy = testCM $ do
   where
   os = 0
   pp = 1000
+
+getFraction :: Double -> Double
+getFraction x = (signum x) * (x - (Prelude.fromInteger $  x `div'` 1))
+
+isInRect :: (Double, Double) -> (Double, Double) -> (Double, Double) -> Bool
+--isInRect ne sw p = (unzip ^>> Control.Monad.join (***) (\x -> x == sort x) >>> uncurry (&&)) [ne, p, sw]
+isInRect (x1,y1) (x3,y3) (x2,y2) = x1 <= x2 && x2 <= x3 && y1 <= y2 && y2 <= y3
+
+toText :: (Double, Double) -> Text
+toText (lat, lon) = (pack $ printf "%f" lat) <> "-" <> (pack $ printf "%f" lon)
+
+prop_position_range :: Double -> Double -> Double -> Double -> (Double, Double) -> Property
+prop_position_range x1 x2 x3 x4 (lon, lat) = monadicIO $ do
+  res <- run $ do
+    env <- initEnv emptyIndexer rankConfig contextTypes
+    res' <- flip runCM env $ do
+      _ <- execCmd' insertDefaultContext
+      _ <- execCmd' insertGeoContext
+      _ <- execCmd' $ Insert $ geoDoc' $ toText p
+      execCmd' $ Search (QContext ["geocontext"] (QRange (toText nw) (toText se))) 0 10
+    print $ (show [nw, se, p]) ++ (show $ searchResultUris $ fromRight res') ++ show isIn
+    return res'
+  Test.QuickCheck.Monadic.assert $ isIn == (not $ null $ searchResultUris $ fromRight res)
+  where
+  nw = (min x1 x3, min x2 x4) 
+  se = (max x1 x3, max x2 x4)
+  p = (x1 + getFraction lon, x2 + getFraction lat)
+  isIn = isInRect nw se p
