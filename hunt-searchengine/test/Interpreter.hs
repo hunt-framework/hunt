@@ -5,7 +5,7 @@ import           Control.Arrow
 import           Control.Monad                          (join)
 import           Control.Monad.Error
 --import           Control.Monad.Trans                         (liftIO)
-import           Data.Fixed                                (div')
+import           Data.Fixed                                (div', mod')
 import           Data.List                                    (sort)
 import qualified Data.Map                                    as M
 import           Data.Monoid                            ((<>))
@@ -388,7 +388,7 @@ toText :: (Double, Double) -> Text
 toText (lat, lon) = (pack $ printf "%f" lat) <> "-" <> (pack $ printf "%f" lon)
 
 prop_position_range :: Double -> Double -> Double -> Double -> (Double, Double) -> Property
-prop_position_range x1 x2 x3 x4 (lon, lat) = monadicIO $ do
+prop_position_range x1' x2' x3' x4' (lon', lat') = monadicIO $ do
   res <- run $ do
     env <- initEnv emptyIndexer rankConfig contextTypes
     res' <- flip runCM env $ do
@@ -400,6 +400,7 @@ prop_position_range x1 x2 x3 x4 (lon, lat) = monadicIO $ do
     return res'
   Test.QuickCheck.Monadic.assert $ isIn == (not $ null $ searchResultUris $ fromRight res)
   where
+  [x1, x2, x3, x4, lon, lat] = map (abs . (`mod'` 90)) [x1', x2', x3', x4', lon', lat'] 
   nw = (min x1 x3, min x2 x4) 
   se = (max x1 x3, max x2 x4)
   p = (x1 + getFraction lon, x2 + getFraction lat)
