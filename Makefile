@@ -67,7 +67,7 @@ action		= install
 
 all:		install
 
-first-install: delete sandbox install
+first-install: delete sandbox force-install
 
 clean:
 	- $(MAKE) -e -C hunt-test/data/random clean
