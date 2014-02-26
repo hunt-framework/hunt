@@ -164,7 +164,7 @@ data CNormalizer = CNormalizer
   }
 
 instance Show CNormalizer where
-  show = unpack . cnName 
+  show = unpack . cnName
 
 -- | Enum for text-normalizers than can be chose by the user.
 --data CNormalizer = NormUpperCase | NormLowerCase | NormDate | NormPosition | NormIntZeroFill

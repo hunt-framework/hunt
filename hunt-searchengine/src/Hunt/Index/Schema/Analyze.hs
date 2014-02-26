@@ -63,9 +63,6 @@ toDocAndWords' schema apiDoc = (doc, ws)
 normalize :: [CNormalizer] -> Word -> Word
 normalize ns  = foldl (\f2 (CNormalizer _ f) -> f.f2) id $ ns
 
-chainFuns :: [a -> a] -> a -> a
-chainFuns = foldl (.) id
-
 -- | Construct a WordList from Text using the function scan to split
 --   the text into words with their corresponding positions.
 toWordList :: (Text -> [Word]) -> (Word -> Word) -> Text -> WordList
