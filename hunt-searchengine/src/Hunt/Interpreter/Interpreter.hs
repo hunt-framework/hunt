@@ -279,6 +279,9 @@ execCmd' (Update doc)
 execCmd' (BatchDelete uris)
   = modIx $ execBatchDelete uris
 
+execCmd' (DeleteByQuery q)
+  = modIx $ execDeleteByQuery q
+
 execCmd' (StoreIx filename)
   = withIx $ execStore filename
 
@@ -450,6 +453,16 @@ execBatchDelete d ix = do
   ix' <- lift $ Ixx.deleteDocsByURI d ix
   return (ix', ResOK)
 
+
+execDeleteByQuery :: DocTable dt => Query -> ContextIndex dt -> CM dt(ContextIndex dt, CmdResult)
+execDeleteByQuery q ixx@(ContextIx ix _dt s) = do
+  r <- lift $ runQueryDocIdsM ix s q
+  case r of
+    Left  err -> throwError err
+    Right res -> do
+      ix' <- lift $ Ixx.delete res ixx
+      return (ix', ResOK)
+
 -- ----------------------------------------------------------------------------
 
 -- | general binary serialzation function
@@ -479,6 +492,10 @@ execLoad filename = do
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
+-- XXX: not limited because deletebyquery should wipe everything
+queryConfigDocIds :: ProcessConfig
+queryConfigDocIds = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 0 0
+
 runQueryM       :: DocTable dt
                 => Ixx.ContextMap Occurrences
                 -> Schema
@@ -488,6 +505,15 @@ runQueryM       :: DocTable dt
 runQueryM ix s dt q = processQuery st dt q
   where
   st = QProc.initEnv queryConfig ix s
+
+
+runQueryDocIdsM :: Ixx.ContextMap Occurrences
+                -> Schema
+                -> Query
+                -> IO (Either CmdError DocIdSet)
+runQueryDocIdsM ix s q = processQueryDocIds st q
+  where
+  st = QProc.initEnv queryConfigDocIds ix s
 
 -- ----------------------------------------------------------------------------
 

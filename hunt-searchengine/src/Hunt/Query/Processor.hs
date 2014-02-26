@@ -7,12 +7,11 @@
 {-# LANGUAGE TypeFamilies               #-}
 
 module Hunt.Query.Processor
-(
-   processQuery
-,  initEnv
+( processQuery
+, processQueryDocIds , initEnv
 
-,  ProcessConfig (..)
-,  ProcessEnv
+, ProcessConfig (..)
+, ProcessEnv
 )
 
 where
@@ -29,6 +28,7 @@ import           Data.Function
 import qualified Data.List                   as L
 import qualified Data.Map                    as M
 import           Data.Maybe
+--import qualified Data.Set                    as S
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
@@ -197,6 +197,16 @@ processQuery st d q = runErrorT . runReaderT (runProcessor processToRes) $ st
     where
     oq = if optimizeQuery (psConfig st) then optimize q else q
     processToRes = process oq >>= \ir -> I.toResult d ir
+
+processQuery' :: (Intermediate -> Processor e) -> ProcessEnv -> Query -> IO (Either CmdError e)
+processQuery' f st q = runErrorT . runReaderT (runProcessor processToRes) $ st
+    where
+    oq = if optimizeQuery (psConfig st) then optimize q else q
+    processToRes = process oq >>= f
+
+processQueryDocIds :: ProcessEnv -> Query -> IO (Either CmdError DocIdSet)
+processQueryDocIds = processQuery' (return . DM.toDocIdSet . DM.keys)
+
 
 process :: Query -> Processor Intermediate
 process o = case o of

@@ -128,12 +128,12 @@ deleteDocsByURI :: (Monad m, DocTable dt)
                 => Set URI -> ContextIndex dt -> m (ContextIndex dt)
 deleteDocsByURI us ixx@(ContextIx _ix dt _) = do
   docIds <- liftM (toDocIdSet . catMaybes) . mapM (Dt.lookupByURI dt) . S.toList $ us
-  delete ixx docIds
+  delete docIds ixx
 
 -- | Delete a set of documents by 'DocId'.
 delete :: (Monad m, DocTable dt)
-       => ContextIndex dt -> DocIdSet -> m (ContextIndex dt)
-delete (ContextIx ix dt s) dIds = do
+       => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
+delete dIds (ContextIx ix dt s) = do
   newIx <- delete' dIds ix
   newDt <- Dt.difference dIds dt
   return $ ContextIx newIx newDt s

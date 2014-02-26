@@ -47,6 +47,7 @@ data Command
   | Insert        { icDoc :: ApiDocument }
   | Update        { icDoc :: ApiDocument }
   | Delete        { icUri :: URI }
+  | DeleteByQuery { icQueryD :: Query }
 
   -- | context manipulation
   | InsertContext { icICon   :: Context
@@ -96,6 +97,7 @@ instance ToJSON Command where
     Insert d          -> object . cmd "insert"         $ [ "document" .= d ]
     Update d          -> object . cmd "update"         $ [ "document" .= d ]
     Delete u          -> object . cmd "delete"         $ [ "uri" .= u ]
+    DeleteByQuery q   -> object . cmd "delete-by-query"$ [ "query" .= q ]
     InsertContext c s -> object . cmd "insert-context" $ [ "context" .= c, "schema" .= s ]
     DeleteContext c   -> object . cmd "delete-context" $ [ "context" .= c ]
     LoadIx  f         -> object . cmd "load"           $ [ "path" .= f ]
@@ -122,6 +124,7 @@ instance FromJSON Command where
       "insert"         -> o .: "document" >>= return . Insert
       "update"         -> o .: "document" >>= return . Update
       "delete"         -> o .: "uri"      >>= return . Delete
+      "delete-by-query"-> o .: "query"    >>= return . DeleteByQuery
       "insert-context" -> do
         cx  <- o .: "context"
         s   <- o .: "schema"
@@ -197,6 +200,7 @@ toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
   equalHeads _ _                   = False
 
 toBasicCommand (Delete u)          = Cmd.BatchDelete $ S.singleton u
+toBasicCommand (DeleteByQuery q)   = Cmd.DeleteByQuery q
 toBasicCommand (Search a b c)      = Cmd.Search a b c
 toBasicCommand (Completion a b)    = Cmd.Completion a b
 toBasicCommand (Insert a)          = Cmd.BatchInsert [a]
