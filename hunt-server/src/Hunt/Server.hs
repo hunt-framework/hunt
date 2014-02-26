@@ -98,7 +98,7 @@ start config = do
   debugM "Application start"
 
   -- init interpreter
-  env <- initEnv emptyIndexer defaultRankConfig contextTypes
+  env <- initEnv emptyIndexer defaultRankConfig contextTypes normalizers queryConfig
 
   case readIndexOnStartup config of
     Just filename -> do

@@ -25,8 +25,6 @@ import           Hunt.Common.Document        (Document (..),
 import           Hunt.Common.ApiDocument
 import           Hunt.Index.Schema
 
-import           Hunt.Index.Schema.Normalize
-
 -- ----------------------------------------------------------------------------
 
 {-
@@ -63,9 +61,8 @@ toDocAndWords' schema apiDoc = (doc, ws)
 
 -- | Apply the normalizers to a Word.
 normalize :: [CNormalizer] -> Word -> Word
-normalize cType = chainFuns . map contextNormalizer $ cType
+normalize ns  = foldl (\f2 (CNormalizer _ f) -> f.f2) id $ ns
 
--- | Chain a list of functions.
 chainFuns :: [a -> a] -> a -> a
 chainFuns = foldl (.) id
 

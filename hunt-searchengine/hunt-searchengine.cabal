@@ -97,7 +97,6 @@ library
 
     Hunt.Index.Schema
     Hunt.Index.Schema.Analyze
-    Hunt.Index.Schema.Normalize
     Hunt.Index.Schema.Normalize.Date
     Hunt.Index.Schema.Normalize.Position
     Hunt.Index.Schema.Normalize.Int

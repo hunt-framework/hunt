@@ -11,7 +11,7 @@ import           Prelude
 import qualified Prelude                           as P
 
 import           Control.Arrow
-import           Control.DeepSeq
+--import           Control.DeepSeq
 import           Control.Monad
 import qualified Control.Monad.Parallel            as Par
 --import           Control.Parallel

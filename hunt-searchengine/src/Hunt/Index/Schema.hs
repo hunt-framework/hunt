@@ -9,6 +9,7 @@ import           Data.Aeson.Types
 import           Data.Binary
 import           Data.Map                             hiding (null)
 import           Data.Text                            hiding (null)
+import qualified Data.Text                            as T
 import           Data.Text.Binary                     ()
 import           Data.Maybe                           (isNothing)
 
@@ -137,6 +138,7 @@ positionInv = mkIndex (Ix.empty :: InvertedIndexPosition Occurrences)
 
 data CValidator = CValidator { validate :: Text -> Bool }
 
+-- | XXX maybe add name to validator type as well 
 instance Show CValidator where
   show _ = "CValidator"
 
@@ -144,9 +146,29 @@ instance Show CValidator where
 -- | Regular expression.
 type CRegex  = Text
 
+cnEmpty :: CNormalizer
+cnEmpty = CNormalizer "" id
+
+cnUpperCase :: CNormalizer
+cnUpperCase = CNormalizer "UpperCase" T.toUpper
+
+cnLowerCase :: CNormalizer
+cnLowerCase = CNormalizer "LowerCase" T.toLower
+
+cnZeroFill :: CNormalizer
+cnZeroFill = CNormalizer "ZeroFill" Int.normalizeToText
+
+data CNormalizer = CNormalizer
+  { cnName       :: Text
+  , cnNormalizer :: Text -> Text
+  }
+
+instance Show CNormalizer where
+  show = unpack . cnName 
+
 -- | Enum for text-normalizers than can be chose by the user.
-data CNormalizer = NormUpperCase | NormLowerCase | NormDate | NormPosition | NormIntZeroFill
-  deriving (Show, Eq)
+--data CNormalizer = NormUpperCase | NormLowerCase | NormDate | NormPosition | NormIntZeroFill
+--  deriving (Show, Eq)
 
 -- | Context weight for search result rankings.
 type CWeight = Float
@@ -168,23 +190,11 @@ instance ToJSON ContextType where
   toJSON (CType n _ _ _) = String n
 
 instance FromJSON CNormalizer where
-  parseJSON (String s)
-    = case s of
-        "uppercase" -> return NormUpperCase
-        "lowercase" -> return NormLowerCase
-        "date"      -> return NormDate
-        "position"  -> return NormPosition
-        "zerofill"  -> return NormIntZeroFill
-        _           -> mzero
-  parseJSON _ = mzero
+  parseJSON (String s) = return $ cnEmpty { cnName = s } 
+  parseJSON _          = mzero
 
 instance ToJSON CNormalizer where
-  toJSON o = case o of
-    NormUpperCase   -> "uppercase"
-    NormLowerCase   -> "lowercase"
-    NormDate        -> "date"
-    NormPosition    -> "position"
-    NormIntZeroFill -> "zerofill"
+  toJSON (CNormalizer n _) = String n
 
 instance FromJSON ContextSchema where
   parseJSON (Object o) = do
@@ -222,21 +232,9 @@ infixl 8 .=?
 -- ----------------------------------------------------------------------------
 
 instance Binary CNormalizer where
-  put (NormUpperCase)   = put (0 :: Word8)
-  put (NormLowerCase)   = put (1 :: Word8)
-  put (NormDate)        = put (2 :: Word8)
-  put (NormPosition)    = put (3 :: Word8)
-  put (NormIntZeroFill) = put (4 :: Word8)
+  put (CNormalizer n _) = put n
+  get = get >>= \n -> return $ cnEmpty { cnName = n }
 
-  get = do
-    t <- get :: Get Word8
-    case t of
-      0 -> return NormUpperCase
-      1 -> return NormLowerCase
-      2 -> return NormDate
-      3 -> return NormPosition
-      4 -> return NormIntZeroFill
-      _ -> fail "get(CNormalizer) out of bounds"
 
 instance Binary ContextType where
   put (CType n _ _ _) = put n

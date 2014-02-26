@@ -15,6 +15,8 @@ module Hunt.Interpreter.Interpreter
 , CM
 , CMT (..)
 , contextTypes
+, normalizers
+, queryConfig
 , emptyIndexer
 , Env (..)
 , DefaultEnv
@@ -142,6 +144,11 @@ contextTypes
 contextTypes :: ContextTypes
 contextTypes = [ctText, ctInt, ctDate, ctPosition]
 
+normalizers :: [CNormalizer]
+normalizers = [cnEmpty, cnUpperCase, cnLowerCase, cnZeroFill]
+
+queryConfig     :: ProcessConfig
+queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
 -- ----------------------------------------------------------------------------
 --
@@ -151,15 +158,23 @@ contextTypes = [ctText, ctInt, ctDate, ctPosition]
 type DefaultEnv = Env (Documents CompressedDoc)
 
 data Env dt = Env
-  { evIndexer :: DocTable dt => XMVar (ContextIndex dt)
-  , evRanking :: RankConfig (Dt.DValue dt)
-  , evCxTypes :: ContextTypes
+  { evIndexer     :: DocTable dt => XMVar (ContextIndex dt)
+  , evRanking     :: RankConfig (Dt.DValue dt)
+  , evCxTypes     :: ContextTypes
+  , evNormalizers :: [CNormalizer] 
+  , evQueryConfig :: ProcessConfig
   }
 
-initEnv :: DocTable dt => ContextIndex dt -> RankConfig (Dt.DValue dt) -> ContextTypes -> IO (Env dt)
-initEnv ixx rnk opt = do
+initEnv :: DocTable dt 
+           => ContextIndex dt 
+           -> RankConfig (Dt.DValue dt) 
+           -> ContextTypes 
+           -> [CNormalizer] 
+           -> ProcessConfig
+           -> IO (Env dt)
+initEnv ixx rnk opt ns qc = do
   ixref <- newXMVar ixx
-  return $ Env ixref rnk opt
+  return $ Env ixref rnk opt ns qc
 
 -- ----------------------------------------------------------------------------
 -- the command evaluation monad
@@ -221,9 +236,11 @@ askType cn = do
     _        -> throwResError 410 ("used unavailable context type: " `T.append` cn)
 
 askIndex :: DocTable dt => Text -> CM dt (Impl.IndexImpl Occurrences)
-askIndex cn = do
-  t <- askType cn
-  return $ ctIxImpl t
+askIndex cn = askType cn >>= return . ctIxImpl
+
+askQueryConfig :: DocTable dt => CM dt ProcessConfig
+askQueryConfig 
+  = asks evQueryConfig
 
 askRanking :: DocTable dt => CM dt (RankConfig (Dt.DValue dt))
 askRanking
@@ -416,7 +433,8 @@ execSearch' :: (DocTable dt, e ~ Dt.DValue dt)
             -> CM dt CmdResult
 execSearch' f q (ContextIx ix dt s)
   = do
-    r <- lift $ runQueryM ix s dt q
+    cfg <- askQueryConfig
+    r <- lift $ runQueryM ix s cfg dt q
     rc <- askRanking
     cw <- askContextsWeights
     case r of
@@ -476,18 +494,16 @@ execLoad filename = do
 
 -- ----------------------------------------------------------------------------
 
-queryConfig     :: ProcessConfig
-queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
-
 runQueryM       :: DocTable dt
                 => Ixx.ContextMap Occurrences
                 -> Schema
+                -> ProcessConfig
                 -> dt
                 -> Query
                 -> IO (Either CmdError (QRes.Result (Dt.DValue dt)))
-runQueryM ix s dt q = processQuery st dt q
+runQueryM ix s cfg dt q = processQuery st dt q
   where
-  st = QProc.initEnv queryConfig ix s
+  st = QProc.initEnv cfg ix s
 
 -- ----------------------------------------------------------------------------
 
