@@ -20,7 +20,7 @@ import           Control.Parallel.Strategies
 import           Data.Binary                       (Binary (..))
 import           Data.Binary.Get
 import           Data.ByteString.Lazy              (ByteString)
-import qualified Data.IntSet                       as IS
+--import qualified Data.IntSet                       as IS
 import qualified Data.Map                          as M
 import           Data.Map                          (Map)
 import           Data.Maybe
@@ -57,7 +57,7 @@ newtype ContextMap v
 
 mkContextMap :: Map Context (Impl.IndexImpl v) -> ContextMap v
 mkContextMap x = ContextMap $! x
-  
+
 -- ----------------------------------------------------------------------------
 
 getContextMap :: [IndexImpl Occurrences] -> Get (ContextMap Occurrences)
@@ -107,12 +107,12 @@ batchInsert docAndWrds (ContextIx ix dt s) = do
   return $! ContextIx newIx newDt s
 
 -- | Update elements
-update :: (Par.MonadParallel m, DocTable dt)
-       => DocId -> Dt.DValue dt -> Words
-       -> ContextIndex dt -> m (ContextIndex dt)
-update docId doc' w ix = do
-  ix' <- delete ix (IS.singleton docId)
-  insert doc' w ix'
+--update :: (Par.MonadParallel m, DocTable dt)
+--       => DocId -> Dt.DValue dt -> Words
+--       -> ContextIndex dt -> m (ContextIndex dt)
+--update docId doc' w ix = do
+--  ix' <- delete ix (IS.singleton docId)
+--  insert doc' w ix'
 
 -- | Modify elements
 modify :: (Par.MonadParallel m, DocTable dt)
@@ -128,12 +128,12 @@ deleteDocsByURI :: (Monad m, DocTable dt)
                 => Set URI -> ContextIndex dt -> m (ContextIndex dt)
 deleteDocsByURI us ixx@(ContextIx _ix dt _) = do
   docIds <- liftM (toDocIdSet . catMaybes) . mapM (Dt.lookupByURI dt) . S.toList $ us
-  delete ixx docIds
+  delete docIds ixx
 
 -- | Delete a set of documents by 'DocId'.
 delete :: (Monad m, DocTable dt)
-       => ContextIndex dt -> DocIdSet -> m (ContextIndex dt)
-delete (ContextIx ix dt s) dIds = do
+       => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
+delete dIds (ContextIx ix dt s) = do
   newIx <- delete' dIds ix
   newDt <- Dt.difference dIds dt
   return $ ContextIx newIx newDt s

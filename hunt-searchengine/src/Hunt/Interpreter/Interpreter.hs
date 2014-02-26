@@ -150,6 +150,11 @@ normalizers = [cnEmpty, cnUpperCase, cnLowerCase, cnZeroFill]
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
+-- XXX: not limited because deletebyquery should wipe everything
+-- XXX: how to handle this with interpreter env?!?
+queryConfigDocIds :: ProcessConfig
+queryConfigDocIds = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 0 0
+
 -- ----------------------------------------------------------------------------
 --
 -- the environment
@@ -232,8 +237,8 @@ askType :: DocTable dt => Text -> CM dt ContextType
 askType cn = do
   ts <- askTypes
   case L.find (\t -> cn == ctName t) ts of
-    (Just t) -> return t
-    _        -> throwResError 410 ("used unavailable context type: " `T.append` cn)
+    Just t -> return t
+    _      -> throwResError 410 ("used unavailable context type: " `T.append` cn)
 
 askIndex :: DocTable dt => Text -> CM dt (Impl.IndexImpl Occurrences)
 askIndex cn = askType cn >>= return . ctIxImpl
@@ -295,6 +300,9 @@ execCmd' (Update doc)
 
 execCmd' (BatchDelete uris)
   = modIx $ execBatchDelete uris
+
+execCmd' (DeleteByQuery q)
+  = modIx $ execDeleteByQuery q
 
 execCmd' (StoreIx filename)
   = withIx $ execStore filename
@@ -438,15 +446,15 @@ execSearch' f q (ContextIx ix dt s)
     rc <- askRanking
     cw <- askContextsWeights
     case r of
-      (Left  err) -> throwError err
-      (Right res) -> return . f . rank rc cw $ res
+      Left  err -> throwError err
+      Right res -> return . f . rank rc cw $ res
 
 -- FIXME: signature to result
 wrapSearch :: (DocumentWrapper e) => Int -> Int -> Result e -> CmdResult
 wrapSearch offset mx
   = ResSearch
     . mkLimitedResult offset mx
-    . map fst -- remove score from result
+--    . map fst -- remove score from result
     . sortBy (descending `on` snd) -- sort by score
     . map (\(_did, (di, _dch)) -> (unwrap . document $ di, docScore di))
     . DM.toList
@@ -467,6 +475,16 @@ execBatchDelete :: DocTable dt => Set URI -> ContextIndex dt -> CM dt(ContextInd
 execBatchDelete d ix = do
   ix' <- lift $ Ixx.deleteDocsByURI d ix
   return (ix', ResOK)
+
+
+execDeleteByQuery :: DocTable dt => Query -> ContextIndex dt -> CM dt(ContextIndex dt, CmdResult)
+execDeleteByQuery q ixx@(ContextIx ix _dt s) = do
+  r <- lift $ runQueryDocIdsM ix s q
+  case r of
+    Left  err -> throwError err
+    Right res -> do
+      ix' <- lift $ Ixx.delete res ixx
+      return (ix', ResOK)
 
 -- ----------------------------------------------------------------------------
 
@@ -504,6 +522,15 @@ runQueryM       :: DocTable dt
 runQueryM ix s cfg dt q = processQuery st dt q
   where
   st = QProc.initEnv cfg ix s
+
+
+runQueryDocIdsM :: Ixx.ContextMap Occurrences
+                -> Schema
+                -> Query
+                -> IO (Either CmdError DocIdSet)
+runQueryDocIdsM ix s q = processQueryDocIds st q
+  where
+  st = QProc.initEnv queryConfigDocIds ix s
 
 -- ----------------------------------------------------------------------------
 

@@ -90,7 +90,7 @@ instance (ToJSON x) => ToJSON (LimitedResult x) where
 
 instance (FromJSON x) => FromJSON (LimitedResult x) where
   parseJSON (Object v) = do
-    res <- v .: "result" 
+    res <- v .: "result"
     offset <- v .: "offset"
     mx <- v .: "max"
     cnt <- v .: "count"

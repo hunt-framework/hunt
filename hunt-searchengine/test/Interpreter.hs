@@ -1,40 +1,40 @@
 module Main where
 
 import           Control.Applicative
-import           Control.Arrow
-import           Control.Monad                          (join)
+--import           Control.Arrow
+--import           Control.Monad                         (join)
 import           Control.Monad.Error
---import           Control.Monad.Trans                         (liftIO)
-import           Data.Fixed                                (div', mod')
-import           Data.List                                    (sort)
-import qualified Data.Map                                    as M
-import           Data.Monoid                            ((<>))
+--import           Control.Monad.Trans                   (liftIO)
+import           Data.Fixed                            (div', mod')
+--import           Data.List                             (sort)
+import qualified Data.Map                              as M
+import           Data.Monoid                           ((<>))
 --import           Data.Monoid
-import qualified Data.Set                                    as S
-import           Data.Text                                   (Text, pack)
+--import qualified Data.Set                              as S
+import           Data.Text                             (Text, pack)
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
 import           Test.HUnit
-import           Test.QuickCheck.Monadic
 import           Test.QuickCheck
+import           Test.QuickCheck.Monadic
 
-import           Text.Printf                            (printf)
+import           Text.Printf                           (printf)
 
 import           Hunt.Common
+import           Hunt.Common.ApiDocument               as ApiDoc
 import           Hunt.Common.Document
 import           Hunt.Common.Document.Compression.BZip
-import           Hunt.Common.ApiDocument                 as ApiDoc
 --import           Hunt.Common.BasicTypes
 import           Hunt.Interpreter.Command
 import           Hunt.Interpreter.Interpreter
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Ranking
 import           Hunt.Utility
---import           Hunt.Index.InvertedIndex                (InvertedIndex)
-import           Hunt.DocTable.HashedDocTable            (Documents)
---import           Hunt.Index.Schema.Normalize.Date        (rexDates)
+--import           Hunt.Index.InvertedIndex              (InvertedIndex)
+import           Hunt.DocTable.HashedDocTable          (Documents)
+--import           Hunt.Index.Schema.Normalize.Date      (rexDates)
 
 -- ----------------------------------------------------------------------------
 
@@ -93,7 +93,7 @@ testCmd cmd = fst <$> testRunCmd cmd
 
 -- uris of the search results
 searchResultUris :: CmdResult -> [URI]
-searchResultUris = map uri . lrResult . crRes
+searchResultUris = map uri . map fst . lrResult . crRes
 
 -- example apidoc
 brainDoc :: ApiDocument
@@ -358,14 +358,14 @@ test_fancy = testCM $ do
         `catchError` const (return ())
   -- search yields the old description
   Search (QWord QCase "Brain") os pp
-    @@@ ((@?= apiDocDescrMap brainDoc) . desc . head . lrResult . crRes)
+    @@@ ((@?= apiDocDescrMap brainDoc) . desc . head . map fst . lrResult . crRes)
 
   -- update the description
   Update brainDocUpdate
     @@= ResOK
   -- search yields >merged< description
   Search (QWord QCase "Brain") os pp
-    @@@ ((@?= apiDocDescrMap brainDocMerged) . desc . head . lrResult . crRes)
+    @@@ ((@?= apiDocDescrMap brainDocMerged) . desc . head . map fst . lrResult . crRes)
 
   -- delete return the correct result value
   Delete ("test://0")
@@ -400,8 +400,8 @@ prop_position_range x1' x2' x3' x4' (lon', lat') = monadicIO $ do
     return res'
   Test.QuickCheck.Monadic.assert $ isIn == (not $ null $ searchResultUris $ fromRight res)
   where
-  [x1, x2, x3, x4, lon, lat] = map (abs . (`mod'` 90)) [x1', x2', x3', x4', lon', lat'] 
-  nw = (min x1 x3, min x2 x4) 
+  [x1, x2, x3, x4, lon, lat] = map (abs . (`mod'` 90)) [x1', x2', x3', x4', lon', lat']
+  nw = (min x1 x3, min x2 x4)
   se = (max x1 x3, max x2 x4)
   p = (x1 + getFraction lon, x2 + getFraction lat)
   isIn = isInRect nw se p

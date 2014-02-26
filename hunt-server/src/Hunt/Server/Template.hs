@@ -146,14 +146,15 @@ index _docs =
 
           var res = "";
           $(docs).each(function(i,e) {
-             var desc = e.desc
+             var doc = e[0]
+             var desc = doc.desc
              var first = true;
              var props = Object.keys(desc).length;
              for (var key in desc){
                res += "<tr>";
                if (first)
                {
-                 res += "<td rowspan=\"" + props +"\">" + e.uri + "</td>";
+                 res += "<td rowspan=\"" + props +"\">" + doc.uri + "</td>";
                }
                res += "<th>" + key + "</th><td>" + desc[key] + "</td>>";
                if (first)
