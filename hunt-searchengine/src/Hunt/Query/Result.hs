@@ -58,8 +58,8 @@ module Hunt.Query.Result
 where
 
 import           Prelude                  hiding (null)
+import qualified Prelude                  as P
 
-import qualified Data.List                as L
 import           Data.Map                 (Map)
 import qualified Data.Map                 as M
 import           Data.Text                (Text)
@@ -192,6 +192,9 @@ getDocuments r = map (document . fst . snd) . DM.toList $ docHits r
 
 -- | Get the boosting factor for the document.
 boost :: DocInfo e -> Float
-boost = L.foldl' (*) 1 . docBoost
+boost di = if P.null l then 1.0 else sum l / llen
+  where
+  l    = {-filter (/= 1.0) $-} docBoost di
+  llen = fromIntegral $ length l
 
 -- ----------------------------------------------------------------------------
