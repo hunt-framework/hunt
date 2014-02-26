@@ -27,6 +27,8 @@ import qualified Hunt.Interpreter.BasicCommand as Cmd
 
 import           Hunt.Utility.Log
 
+import           Hunt.Query.Result
+
 -- ----------------------------------------------------------------------------
 
 -- | The commands of the the 'Interpreter'.
@@ -66,7 +68,7 @@ data Command
 
 data CmdResult
   = ResOK
-  | ResSearch       { crRes   :: LimitedResult Document }
+  | ResSearch       { crRes   :: LimitedResult (Document, Score) }
   | ResCompletion   { crWords :: [(Text, [Text])] }
   | ResGeneric      { crGen   :: Value }
   deriving (Show, Eq)

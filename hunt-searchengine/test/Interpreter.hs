@@ -93,7 +93,7 @@ testCmd cmd = fst <$> testRunCmd cmd
 
 -- uris of the search results
 searchResultUris :: CmdResult -> [URI]
-searchResultUris = map uri . lrResult . crRes
+searchResultUris = map uri . map fst . lrResult . crRes
 
 -- example apidoc
 brainDoc :: ApiDocument
@@ -358,14 +358,14 @@ test_fancy = testCM $ do
         `catchError` const (return ())
   -- search yields the old description
   Search (QWord QCase "Brain") os pp
-    @@@ ((@?= apiDocDescrMap brainDoc) . desc . head . lrResult . crRes)
+    @@@ ((@?= apiDocDescrMap brainDoc) . desc . head . map fst . lrResult . crRes)
 
   -- update the description
   Update brainDocUpdate
     @@= ResOK
   -- search yields >merged< description
   Search (QWord QCase "Brain") os pp
-    @@@ ((@?= apiDocDescrMap brainDocMerged) . desc . head . lrResult . crRes)
+    @@@ ((@?= apiDocDescrMap brainDocMerged) . desc . head . map fst . lrResult . crRes)
 
   -- delete return the correct result value
   Delete ("test://0")

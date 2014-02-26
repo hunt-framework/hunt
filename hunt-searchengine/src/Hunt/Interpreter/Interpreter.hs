@@ -428,7 +428,7 @@ wrapSearch :: (DocumentWrapper e) => Int -> Int -> Result e -> CmdResult
 wrapSearch offset mx
   = ResSearch
     . mkLimitedResult offset mx
-    . map fst -- remove score from result
+--    . map fst -- remove score from result
     . sortBy (descending `on` snd) -- sort by score
     . map (\(_did, (di, _dch)) -> (unwrap . document $ di, docScore di))
     . DM.toList
