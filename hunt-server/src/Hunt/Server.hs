@@ -7,6 +7,7 @@ module Hunt.Server {-(start)-} where
 import           Control.Monad.Error
 import           Data.String                          (fromString)
 
+import           Data.Default                         (def)
 import           Data.Text                            (Text)
 
 import qualified Network.Wai.Handler.Warp             as W
@@ -16,7 +17,6 @@ import           Hunt.Interpreter.Command
 import           Hunt.Interpreter.Interpreter
 
 import           Hunt.Query.Language.Parser
-import           Hunt.Query.Ranking
 
 import           Hunt.Server.Common
 import           Hunt.Server.Schrotty                 hiding (Options)
@@ -98,7 +98,7 @@ start config = do
   debugM "Application start"
 
   -- init interpreter
-  env <- initEnv emptyIndexer defaultRankConfig contextTypes normalizers queryConfig
+  env <- getHunt $ (def :: DefaultHunt)
 
   case readIndexOnStartup config of
     Just filename -> do

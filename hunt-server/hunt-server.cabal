@@ -28,6 +28,7 @@ executable hunt-server
   build-depends:   base                   >= 4
                  , binary
                  , bytestring             >= 0.9.1     && < 1
+                 , data-default
                  , aeson
                  , aeson-pretty
                  , blaze-html

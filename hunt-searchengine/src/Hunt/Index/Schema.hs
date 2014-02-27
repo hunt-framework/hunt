@@ -12,6 +12,7 @@ import           Data.Text                            hiding (null)
 import qualified Data.Text                            as T
 import           Data.Text.Binary                     ()
 import           Data.Maybe                           (isNothing)
+import           Data.Default
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences              (Occurrences)
@@ -80,23 +81,22 @@ data ContextType = CType
   }
   deriving Show
 
-ctEmpty :: ContextType
-ctEmpty = CType
-  { ctName     = ""
-  , ctRegEx    = ""
-  , ctValidate = defValid
-  , ctIxImpl   = defaultInv
-  }
+instance Default ContextType where
+  def = CType
+    { ctName     = ""
+    , ctRegEx    = ""
+    , ctValidate = def
+    , ctIxImpl   = defaultInv
+    }
 
-defValid :: CValidator
-defValid = CValidator $ const True
+instance Default CValidator where
+  def = CValidator $ const True
 
--- TODO: fix default validator and regex in all impls!
 ctText :: ContextType
 ctText = CType
   { ctName     = "text"
   , ctRegEx    = "\\w*"
-  , ctValidate = defValid
+  , ctValidate = def
   , ctIxImpl   = defaultInv
   }
 
@@ -146,8 +146,8 @@ instance Show CValidator where
 -- | Regular expression.
 type CRegex  = Text
 
-cnEmpty :: CNormalizer
-cnEmpty = CNormalizer "" id
+instance Default CNormalizer where
+  def = CNormalizer "" id
 
 cnUpperCase :: CNormalizer
 cnUpperCase = CNormalizer "UpperCase" T.toUpper
@@ -183,14 +183,14 @@ type CWeight = Float
 --   and identify the other compontens of the type
 --   later.
 instance FromJSON ContextType where
-  parseJSON (String s) = return $ ctEmpty { ctName = s }
+  parseJSON (String s) = return $ def { ctName = s }
   parseJSON _          = mzero
 
 instance ToJSON ContextType where
   toJSON (CType n _ _ _) = String n
 
 instance FromJSON CNormalizer where
-  parseJSON (String s) = return $ cnEmpty { cnName = s } 
+  parseJSON (String s) = return $ def { cnName = s }
   parseJSON _          = mzero
 
 instance ToJSON CNormalizer where
@@ -233,12 +233,12 @@ infixl 8 .=?
 
 instance Binary CNormalizer where
   put (CNormalizer n _) = put n
-  get = get >>= \n -> return $ cnEmpty { cnName = n }
+  get = get >>= \n -> return $ def { cnName = n }
 
 
 instance Binary ContextType where
   put (CType n _ _ _) = put n
-  get = get >>= \n -> return $ ctEmpty { ctName = n }
+  get = get >>= \n -> return $ def { ctName = n }
 
 instance Binary ContextSchema where
   get = liftM5 ContextSchema get get get get get

@@ -12,6 +12,8 @@ module Hunt.Interpreter.Interpreter
 , runCmd
 , runCM
 , execCmd
+, Hunt (..)
+, DefaultHunt
 , CM
 , CMT (..)
 , contextTypes
@@ -19,7 +21,6 @@ module Hunt.Interpreter.Interpreter
 , queryConfig
 , emptyIndexer
 , Env (..)
-, DefaultEnv
 )
 where
 
@@ -40,6 +41,7 @@ import qualified Data.Set                                as S
 import           Data.Text                               (Text)
 import qualified Data.Text                               as T
 import qualified Data.Traversable                        as TV
+import           Data.Default
 
 import           Hunt.Common
 import           Hunt.Common.ApiDocument                 as ApiDoc
@@ -129,23 +131,11 @@ debugContext c ws = debugM $ concat ["insert in ", T.unpack c, show . M.toList $
 emptyIndexer :: ContextIndex (Documents CompressedDoc)
 emptyIndexer = ContextIx Ixx.empty Dt.empty M.empty
 
--- ----------------------------------------------------------------------------
-
-{--contextTypes :: ContextTypes
-contextTypes
-  = M.fromList $
-      [ ("text",     Impl.CxMeta CText     defaultInv)
-      , ("int",      Impl.CxMeta CInt      intInv)
-      , ("date",     Impl.CxMeta CDate     dateInv)
-      , ("position", Impl.CxMeta CPosition positionInv)
-      ]
---}
-
 contextTypes :: ContextTypes
 contextTypes = [ctText, ctInt, ctDate, ctPosition]
 
 normalizers :: [CNormalizer]
-normalizers = [cnEmpty, cnUpperCase, cnLowerCase, cnZeroFill]
+normalizers = [cnUpperCase, cnLowerCase, cnZeroFill]
 
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
@@ -157,11 +147,6 @@ queryConfigDocIds = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements)
 
 -- ----------------------------------------------------------------------------
 --
--- the environment
--- with a MVar for storing the index
--- so the MVar acts as a global state (within IO)
-type DefaultEnv = Env (Documents CompressedDoc)
-
 data Env dt = Env
   { evIndexer     :: DocTable dt => XMVar (ContextIndex dt)
   , evRanking     :: RankConfig (Dt.DValue dt)
@@ -169,6 +154,13 @@ data Env dt = Env
   , evNormalizers :: [CNormalizer] 
   , evQueryConfig :: ProcessConfig
   }
+
+type DefaultHunt = Hunt (Documents CompressedDoc)
+
+data Hunt dt = Hunt { getHunt :: DocTable dt => IO (Env dt) }
+
+instance (DocTable dt) => Default (Hunt dt) where
+  def = Hunt $ initEnv (ContextIx Ixx.empty Dt.empty M.empty) defaultRankConfig contextTypes normalizers queryConfig
 
 initEnv :: DocTable dt 
            => ContextIndex dt 

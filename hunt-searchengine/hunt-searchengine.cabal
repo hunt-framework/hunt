@@ -36,6 +36,7 @@ library
                , bzlib                  >= 0.4  && < 1
                , containers             >= 0.5
                , data-stringmap         >= 1.0  && < 2
+               , data-default
                , deepseq                >= 1.2
                , dlist
 --               , directory              >= 1    && < 2
