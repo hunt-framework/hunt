@@ -52,8 +52,8 @@ instance Index (KeyProxyIndex toType impl) where
     , Bijection (IKey impl v) toType
     )
 
-  batchInsert kvs (KPIx i)
-    = mkKPIx $ batchInsert (P.map (first from) kvs) i
+  insertList kvs (KPIx i)
+    = mkKPIx $ insertList (P.map (first from) kvs) i
 
   batchDelete ks (KPIx i)
     = mkKPIx $ batchDelete ks i
@@ -103,8 +103,8 @@ instance Index (KeyProxyIndex toType (ComprOccIndex impl to)) where
     = mkKPIx $ mkComprIx $ Ix.map (differenceWithKeySet docIds) pt
 
   -- everything below is copied toType the more general instance Index (KeyProxyIndex impl)
-  batchInsert kvs (KPIx i)
-    = mkKPIx $ batchInsert (P.map (first from) kvs) i
+  insertList kvs (KPIx i)
+    = mkKPIx $ insertList (P.map (first from) kvs) i
 
   empty
     = mkKPIx $ empty

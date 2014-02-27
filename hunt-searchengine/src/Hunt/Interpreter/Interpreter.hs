@@ -291,8 +291,8 @@ execCmd' NOOP
 execCmd' (Status sc)
   = execStatus sc
 
-execCmd' (BatchInsert docs)
-  = modIx $ execBatchInsert docs
+execCmd' (InsertList docs)
+  = modIx $ execInsertList docs
 
 execCmd' (Update doc)
   = modIx $ execUpdate doc
@@ -379,16 +379,16 @@ execInsert doc ixx@(ContextIx _ix _dt schema) = do
 -- | Inserts an 'ApiDocument' into the index.
 -- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs must not exist.
-execBatchInsert :: DocTable dt
+execInsertList :: DocTable dt
                 => [ApiDocument] -> ContextIndex dt -> CM dt (ContextIndex dt, CmdResult)
-execBatchInsert docs ixx@(ContextIx _ix _dt schema) = do
+execInsertList docs ixx@(ContextIx _ix _dt schema) = do
   -- TODO: use set for undup
   let contexts = concatMap (M.keys . apiDocIndexMap) docs
   checkContextsExistence contexts ixx
   -- apidoc should not exist
   mapM_ (flip (checkApiDocExistence False) ixx) docs
   let docsAndWords = map (toDocAndWords schema) docs
-  ixx' <- lift $ Ixx.batchInsert docsAndWords ixx
+  ixx' <- lift $ Ixx.insertList docsAndWords ixx
   return (ixx', ResOK)
 
 

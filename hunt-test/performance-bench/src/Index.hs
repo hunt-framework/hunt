@@ -67,7 +67,7 @@ main = do
   hunt <- initEnv emptyIndexer defaultRankConfig contextTypes
   docs <- (getJson "./../data/random/RandomData.js" :: IO [ApiDocument])
   _ <- mapM (\c -> monitorCmd hunt $ InsertContext c (ContextSchema Nothing [] 1.0 True ctText)) [ "id", "context1", "context2", "contextdate", "contextgeo", "contextint" ]
-  putStrLn "sequence with batchInsert:"
+  putStrLn "sequence with insertList:"
   monitorCmd hunt $ Sequence $ map Insert docs
   putStrLn "search word 'a' to check if everything evaluated"
   monitorCmd hunt $ Search (QWord QFuzzy "a") 1 1000

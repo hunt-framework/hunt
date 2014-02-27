@@ -32,7 +32,7 @@ data BasicCommand
                   }
 
   -- | Index manipulation
-  | BatchInsert   { icDocs :: [ApiDocument] }
+  | InsertList    { icDocs :: [ApiDocument] }
   | Update        { icDoc :: ApiDocument }
   | BatchDelete   { icUris :: Set URI }
   | DeleteByQuery { icQueryD :: Query }
@@ -76,7 +76,7 @@ instance FromJSON StatusCmd where
 -- ----------------------------------------------------------------------------
 
 instance LogShow BasicCommand where
-  logShow (BatchInsert docs) = "BatchInsert " ++ show (map apiDocUri docs)
+  logShow (InsertList docs) = "InsertList " ++ show (map apiDocUri docs)
   logShow (Update doc) = "Update {icDoc = " ++ logShow doc ++ "\", ..}"
   logShow (Sequence _) = "Sequence"
   logShow o = show o

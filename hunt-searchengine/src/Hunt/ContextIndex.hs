@@ -82,7 +82,7 @@ instance Binary dt => Binary (ContextIndex dt) where
 -- ----------------------------------------------------------------------------
 
 -- | Insert a Document and Words.
---   /NOTE/: For multiple inserts, use the more efficient 'batchInsert'.
+--   /NOTE/: For multiple inserts, use the more efficient 'insertList'.
 insert :: (Par.MonadParallel m, DocTable dt)
        => Dt.DValue dt -> Words -> ContextIndex dt -> m (ContextIndex dt)
 insert doc wrds (ContextIx ix dt s) = do
@@ -92,9 +92,9 @@ insert doc wrds (ContextIx ix dt s) = do
 
 -- | Insert multiple Documents and Words.
 --   This is more efficient than using fold and 'insert'.
-batchInsert :: (Par.MonadParallel m, DocTable dt)
+insertList :: (Par.MonadParallel m, DocTable dt)
        => [(Dt.DValue dt, Words)] -> ContextIndex dt -> m (ContextIndex dt)
-batchInsert docAndWrds (ContextIx ix dt s) = do
+insertList docAndWrds (ContextIx ix dt s) = do
   (newDt, docIdsAndWrds)
     <- foldM'
         (\(docTable, wordAcc) (doc, wrds)
@@ -193,31 +193,31 @@ addWordsM wrds dId _i@(ContextMap m)
   where
   foldInsert :: Monad m => Context -> IndexImpl Occurrences -> Words -> DocId -> m (IndexImpl Occurrences)
   foldInsert cx (Impl.IndexImpl impl) ws docId
-    = Ix.batchInsertM (map (second (mkOccs docId)) $ M.toList (getWlForCx cx ws)) impl >>= return . Impl.mkIndex
+    = Ix.insertListM (map (second (mkOccs docId)) $ M.toList (getWlForCx cx ws)) impl >>= return . Impl.mkIndex
 
 
 -- | Add words for a document to the 'Index'.
 --   /NOTE/: adds words to /existing/ 'Context's.
 batchAddWordsM :: Par.MonadParallel m => [(DocId, Words)] -> ContextMap Occurrences -> m (ContextMap Occurrences)
 batchAddWordsM wrdsAndDocIds _i@(ContextMap m)
-  = mapWithKeyMP (\cx impl -> foldBatchInsert cx impl wrdsAndDocIds) m >>= return . ContextMap
+  = mapWithKeyMP (\cx impl -> foldinsertList cx impl wrdsAndDocIds) m >>= return . ContextMap
   where
-  foldBatchInsert :: Monad m => Context -> IndexImpl Occurrences -> [(DocId, Words)] -> m (IndexImpl Occurrences)
-  foldBatchInsert cx (Impl.IndexImpl impl) docIdsAndWrds
-    = Ix.batchInsertM (concat . map ((\(did, wl) -> map (second (mkOccs did)) $ M.toList wl) . second (getWlForCx cx)) $ docIdsAndWrds) impl
+  foldinsertList :: Monad m => Context -> IndexImpl Occurrences -> [(DocId, Words)] -> m (IndexImpl Occurrences)
+  foldinsertList cx (Impl.IndexImpl impl) docIdsAndWrds
+    = Ix.insertListM (concat . map ((\(did, wl) -> map (second (mkOccs did)) $ M.toList wl) . second (getWlForCx cx)) $ docIdsAndWrds) impl
         >>= return . Impl.mkIndex
 
 -- | Add words for a document to the 'Index'.
 --   /NOTE/: adds words to /existing/ 'Context's.
 batchAddWords :: [(DocId, Words)] -> ContextMap Occurrences -> ContextMap Occurrences
 batchAddWords wrdsAndDocIds _i@(ContextMap m)
-  = mkContextMap $! M.fromList $! parMap rdeepseq (\(cx,impl) -> (cx,foldBatchInsert cx impl wrdsAndDocIds)) (M.toList m)
---  = mkContextMap $ M.mapWithKey (\cx impl -> foldBatchInsert cx impl wrdsAndDocIds) m
+  = mkContextMap $! M.fromList $! parMap rdeepseq (\(cx,impl) -> (cx,foldinsertList cx impl wrdsAndDocIds)) (M.toList m)
+--  = mkContextMap $ M.mapWithKey (\cx impl -> foldinsertList cx impl wrdsAndDocIds) m
   where
-  foldBatchInsert :: Context -> IndexImpl Occurrences -> [(DocId, Words)] -> IndexImpl Occurrences
-  foldBatchInsert cx (Impl.IndexImpl impl) docIdsAndWrds
+  foldinsertList :: Context -> IndexImpl Occurrences -> [(DocId, Words)] -> IndexImpl Occurrences
+  foldinsertList cx (Impl.IndexImpl impl) docIdsAndWrds
     = Impl.mkIndex
-    $ Ix.batchInsert (concat . map (wordsToOccs . second (getWlForCx cx)) $ docIdsAndWrds) impl
+    $ Ix.insertList (concat . map (wordsToOccs . second (getWlForCx cx)) $ docIdsAndWrds) impl
   wordsToOccs (did, wl) = map (second (mkOccs did)) $ M.toList wl
 
 ----------------------------------------------------------------------------
@@ -276,7 +276,7 @@ insertWithCx :: Monad m => Context -> Text -> v -> ContextMap v -> m (ContextMap
 insertWithCx c w v (ContextMap m)
   = case M.lookup c m of
       Just (Impl.IndexImpl ix) -> do
-        ix' <- liftM Impl.mkIndex $ Ix.batchInsertM [(w,v)] ix
+        ix' <- liftM Impl.mkIndex $ Ix.insertListM [(w,v)] ix
         return $ ContextMap $ M.insert c ix' m
       _      -> error "context does not exist"
   --where

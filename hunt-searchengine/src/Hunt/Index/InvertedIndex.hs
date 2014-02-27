@@ -72,8 +72,8 @@ instance Index InvertedIndexInt where
   type IKey InvertedIndexInt v = Text
   type IVal InvertedIndexInt v = Occurrences
 
-  batchInsert wos (InvIntIx i)
-    = mkInvIntIx $ batchInsert wos i
+  insertList wos (InvIntIx i)
+    = mkInvIntIx $ insertList wos i
 
   batchDelete docIds (InvIntIx i)
     = mkInvIntIx $ batchDelete docIds i
@@ -139,8 +139,8 @@ instance Index InvertedIndexDate where
   type IKey InvertedIndexDate v = Word
   type IVal InvertedIndexDate v = Occurrences
 
-  batchInsert wos (InvDateIx i)
-    = mkInvDateIx $ batchInsert wos i
+  insertList wos (InvDateIx i)
+    = mkInvDateIx $ insertList wos i
 
   batchDelete docIds (InvDateIx i)
     = mkInvDateIx $ batchDelete docIds i
@@ -205,8 +205,8 @@ instance Index InvertedIndexPosition where
   type IKey InvertedIndexPosition v = Word
   type IVal InvertedIndexPosition v = Occurrences
 
-  batchInsert wos (InvPosIx i)
-    = mkInvPosIx $ batchInsert wos i
+  insertList wos (InvPosIx i)
+    = mkInvPosIx $ insertList wos i
 
   batchDelete docIds (InvPosIx i)
     = mkInvPosIx $ batchDelete docIds i
@@ -263,8 +263,8 @@ instance Index InvertedIndex where
   type IKey InvertedIndex v = Word
   type IVal InvertedIndex v = Occurrences
 
-  batchInsert wos (InvIx i)
-    = mkInvIx $ batchInsert wos i
+  insertList wos (InvIx i)
+    = mkInvIx $ insertList wos i
 
   batchDelete docIds (InvIx i)
     = mkInvIx $ batchDelete docIds i

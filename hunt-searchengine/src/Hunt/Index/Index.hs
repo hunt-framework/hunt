@@ -37,10 +37,10 @@ class Monad m => IndexM m i where
   lookupRangeM :: IConM i v => IKeyM i v -> IKeyM i v -> i v -> m [(IKeyM i v, IValM i v)]
 
   -- | Insert occurrences.
-  batchInsertM :: IConM i v => [(IKeyM i v, IValM i v)] -> i v -> m (i v)
+  insertListM  :: IConM i v => [(IKeyM i v, IValM i v)] -> i v -> m (i v)
 
   insertM       :: (IConM i v) => IKeyM i v -> IValM i v -> i v -> m (i v)
-  insertM k v i = batchInsertM [(k,v)] i
+  insertM k v i = insertListM [(k,v)] i
 
   -- | Delete as batch job
   batchDeleteM :: IConM i v => DocIdSet -> i v -> m (i v)
@@ -95,11 +95,11 @@ class Index i where
   lookupRange  :: ICon i v => IKey i v -> IKey i v -> i v -> [(IKey i v, IVal i v)]
 
   -- | Insert occurrences.
-  batchInsert  :: ICon i v => [(IKey i v, IVal i v)] -> i v -> i v
+  insertList  :: ICon i v => [(IKey i v, IVal i v)] -> i v -> i v
 
   -- | Insert occurrences.
   insert       :: ICon i v => IKey i v -> IVal i v -> i v -> i v
-  insert k v   = batchInsert [(k,v)]
+  insert k v   = insertList [(k,v)]
 
   -- | Delete as batch job
   batchDelete  :: ICon i v => DocIdSet -> i v -> i v
@@ -145,7 +145,7 @@ instance (Index i, Monad m) => IndexM m i where
 
   searchM op s i             = return $! search op s i
   lookupRangeM l u i         = return $! lookupRange l u i
-  batchInsertM vs i          = return $! batchInsert vs i
+  insertListM vs i           = return $! insertList vs i
   batchDeleteM ds i          = return $! batchDelete ds i
   insertM k v i              = return $! insert k v i
   deleteM k i                = return $! delete k i

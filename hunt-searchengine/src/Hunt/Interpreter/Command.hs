@@ -165,12 +165,11 @@ instance FromJSON CmdError where
 -- ----------------------------------------------------------------------------
 
 -- TODO: - flattening of 'Sequence's?
---       - add BatchInsert?
 
 -- | Transform the supported input command into lower level commands which are actually interpreted.
 --   Transformations:
 --     - Multiple 'Cmd.Delete's into a single 'BatchDelete'.
---     - Multiple 'Cmd.Insert's into a single or multiple 'BatchInsert's.
+--     - Multiple 'Cmd.Insert's into a single or multiple 'InsertList's.
 --       The split is hardcoded to 200 at the moment (see 'splitBatch').
 toBasicCommand :: Command -> BasicCommand
 toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
@@ -183,10 +182,10 @@ toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
   optGroup cs'@(Delete{}:_)
     = [foldl (\(Cmd.BatchDelete us) (Delete u)
                 -> Cmd.BatchDelete (S.insert u us)) (Cmd.BatchDelete S.empty) cs']
-  -- groups of Insert to BatchInsert
+  -- groups of Insert to InsertList
   optGroup cs'@(Insert{}:_)
-    = [splitBatch 2000 $ foldl (\(Cmd.BatchInsert us) (Insert u)
-                -> Cmd.BatchInsert (u:us)) (Cmd.BatchInsert []) cs']
+    = [splitBatch 2000 $ foldl (\(Cmd.InsertList us) (Insert u)
+                -> Cmd.InsertList (u:us)) (Cmd.InsertList []) cs']
   optGroup cs'@(Sequence{}:_)
     = map toBasicCommand cs'
   optGroup cs'
@@ -203,7 +202,7 @@ toBasicCommand (Delete u)          = Cmd.BatchDelete $ S.singleton u
 toBasicCommand (DeleteByQuery q)   = Cmd.DeleteByQuery q
 toBasicCommand (Search a b c)      = Cmd.Search a b c
 toBasicCommand (Completion a b)    = Cmd.Completion a b
-toBasicCommand (Insert a)          = Cmd.BatchInsert [a]
+toBasicCommand (Insert a)          = Cmd.InsertList [a]
 toBasicCommand (Update a)          = Cmd.Update a
 toBasicCommand (InsertContext a b) = Cmd.InsertContext a b
 toBasicCommand (DeleteContext a)   = Cmd.DeleteContext a
@@ -213,10 +212,10 @@ toBasicCommand (Status a)          = Cmd.Status a
 toBasicCommand (NOOP)              = Cmd.NOOP
 
 -- | Splits big batch inserts to smaller ones with at most @n@ elements.
---   This can avoid running out of memory for large 'BatchInsert's.
+--   This can avoid running out of memory for large 'InsertList's.
 splitBatch :: Int -> BasicCommand -> BasicCommand
-splitBatch n (Cmd.BatchInsert xs)
-    = Cmd.Sequence $ map Cmd.BatchInsert $ splitEvery n xs
+splitBatch n (Cmd.InsertList xs)
+    = Cmd.Sequence $ map Cmd.InsertList $ splitEvery n xs
 splitBatch _ cmd
     = cmd
 

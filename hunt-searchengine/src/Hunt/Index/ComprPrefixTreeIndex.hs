@@ -54,7 +54,7 @@ instance Index ComprOccPrefixTree where
 
   -- FIXME: this is ugly
   -- a simple fromList does not work because there can be duplicates that need to be merged...
-  batchInsert kos i1
+  insertList kos i1
     = unionWithConv compressOcc (\a b -> compressOcc (Occ.merge (decompressOcc a) b)) i1 ixs
     where
     ixs = foldr (unionWith Occ.merge) empty $ P.map (fromList . (:[])) kos
