@@ -240,6 +240,13 @@ askType cn = do
     Just t -> return t
     _      -> throwResError 410 ("used unavailable context type: " `T.append` cn)
 
+askNormalizer :: DocTable dt => Text -> CM dt CNormalizer
+askNormalizer cn = do
+  ts <- asks evNormalizers
+  case L.find (\t -> cn == cnName t) ts of
+    Just t -> return t
+    _      -> throwResError 410 ("used unavailable normalizer: " `T.append` cn)
+
 askIndex :: DocTable dt => Text -> CM dt (Impl.IndexImpl Occurrences)
 askIndex cn = askType cn >>= return . ctIxImpl
 
@@ -338,11 +345,15 @@ execInsertContext cx ct ixx@(ContextIx ix dt s)
     -- check if type exists in this interpreter instance
     cType                <- askType . ctName . cxType  $ ct
     impl                 <- askIndex . ctName . cxType $ ct
+    norms                <- mapM (askNormalizer . cnName) $ cxNormalizer ct
 
     -- create new index instance and insert it with context
     return ( ContextIx { ixhIndex = Ixx.insertContext cx (newIx impl) ix
                  , ixhDocs   = dt
-                 , ixhSchema = M.insert cx (ct {cxType = cType}) s
+                 , ixhSchema = M.insert cx (ct
+                                            { cxType = cType
+                                            , cxNormalizer = norms
+                                            }) s
                  }
            , ResOK )
   where
