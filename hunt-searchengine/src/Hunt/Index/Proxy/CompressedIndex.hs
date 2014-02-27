@@ -52,8 +52,8 @@ instance Index (ComprOccIndex impl to) where
   insertList kvs (ComprIx i)
       = mkComprIx $ insertList (P.map (second compressOcc) kvs) i
 
-  batchDelete ks (ComprIx i)
-      = mkComprIx $ batchDelete ks i
+  deleteDocs ks (ComprIx i)
+      = mkComprIx $ deleteDocs ks i
 
   empty
       = mkComprIx $ empty

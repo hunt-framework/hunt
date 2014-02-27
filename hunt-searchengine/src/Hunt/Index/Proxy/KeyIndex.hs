@@ -55,8 +55,8 @@ instance Index (KeyProxyIndex toType impl) where
   insertList kvs (KPIx i)
     = mkKPIx $ insertList (P.map (first from) kvs) i
 
-  batchDelete ks (KPIx i)
-    = mkKPIx $ batchDelete ks i
+  deleteDocs ks (KPIx i)
+    = mkKPIx $ deleteDocs ks i
 
   empty
     = mkKPIx $ empty
@@ -99,7 +99,7 @@ instance Index (KeyProxyIndex toType (ComprOccIndex impl to)) where
     )
 
   -- this is the only "special" function
-  batchDelete docIds (KPIx (ComprIx pt))
+  deleteDocs docIds (KPIx (ComprIx pt))
     = mkKPIx $ mkComprIx $ Ix.map (differenceWithKeySet docIds) pt
 
   -- everything below is copied toType the more general instance Index (KeyProxyIndex impl)

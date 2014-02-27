@@ -60,7 +60,7 @@ instance Index ComprOccPrefixTree where
     ixs = foldr (unionWith Occ.merge) empty $ P.map (fromList . (:[])) kos
 
   -- XXX: not the best solution, but is there really another solution?
-  batchDelete ks i
+  deleteDocs ks i
     = Ix.map (\m -> DM.diffWithSet m ks) i
 
   empty

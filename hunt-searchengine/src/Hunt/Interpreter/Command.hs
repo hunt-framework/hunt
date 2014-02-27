@@ -168,7 +168,7 @@ instance FromJSON CmdError where
 
 -- | Transform the supported input command into lower level commands which are actually interpreted.
 --   Transformations:
---     - Multiple 'Cmd.Delete's into a single 'BatchDelete'.
+--     - Multiple 'Cmd.Delete's into a single 'DeleteDocs'.
 --     - Multiple 'Cmd.Insert's into a single or multiple 'InsertList's.
 --       The split is hardcoded to 200 at the moment (see 'splitBatch').
 toBasicCommand :: Command -> BasicCommand
@@ -178,10 +178,10 @@ toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
   opt cs' = concatMap optGroup $ groupBy equalHeads cs'
   -- requires the commands to be grouped by constructor
   optGroup :: [Command] -> [BasicCommand]
-  -- groups of delete to BatchDelete
+  -- groups of delete to DeleteDocs
   optGroup cs'@(Delete{}:_)
-    = [foldl (\(Cmd.BatchDelete us) (Delete u)
-                -> Cmd.BatchDelete (S.insert u us)) (Cmd.BatchDelete S.empty) cs']
+    = [foldl (\(Cmd.DeleteDocs us) (Delete u)
+                -> Cmd.DeleteDocs (S.insert u us)) (Cmd.DeleteDocs S.empty) cs']
   -- groups of Insert to InsertList
   optGroup cs'@(Insert{}:_)
     = [splitBatch 2000 $ foldl (\(Cmd.InsertList us) (Insert u)
@@ -198,7 +198,7 @@ toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
   equalHeads Sequence{} Sequence{} = True
   equalHeads _ _                   = False
 
-toBasicCommand (Delete u)          = Cmd.BatchDelete $ S.singleton u
+toBasicCommand (Delete u)          = Cmd.DeleteDocs $ S.singleton u
 toBasicCommand (DeleteByQuery q)   = Cmd.DeleteByQuery q
 toBasicCommand (Search a b c)      = Cmd.Search a b c
 toBasicCommand (Completion a b)    = Cmd.Completion a b

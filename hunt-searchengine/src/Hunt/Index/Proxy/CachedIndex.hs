@@ -58,7 +58,7 @@ instance Index (CachedIndex impl) where
   insertList kvs (CachedIx c i)
     = mkCachedIx c (insertList kvs i)
 
-  batchDelete ks (CachedIx c i)
+  deleteDocs ks (CachedIx c i)
     = mkCachedIx (IS.union c ks) i
 
   empty
@@ -97,4 +97,4 @@ filterResult c = P.map (second (flip deleteIds c))
   where deleteIds = IS.foldr DM.delete
 
 flatten :: (ICon impl v, Index impl) => CachedIndex impl v -> (CachedIndex impl v)
-flatten (CachedIx c i) = (mkCachedIx IS.empty) $ (batchDelete c i)
+flatten (CachedIx c i) = (mkCachedIx IS.empty) $ (deleteDocs c i)

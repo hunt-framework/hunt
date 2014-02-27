@@ -43,11 +43,11 @@ class Monad m => IndexM m i where
   insertM k v i = insertListM [(k,v)] i
 
   -- | Delete as batch job
-  batchDeleteM :: IConM i v => DocIdSet -> i v -> m (i v)
+  deleteDocsM  :: IConM i v => DocIdSet -> i v -> m (i v)
 
   -- | Delete occurrences.
   deleteM      :: IConM i v => DocId -> i v -> m (i v)
-  deleteM k i  = batchDeleteM (IS.singleton k) i
+  deleteM k i  = deleteDocsM (IS.singleton k) i
 
   -- | Empty Index
   emptyM       :: (IConM i v) => m (i v)
@@ -102,11 +102,11 @@ class Index i where
   insert k v   = insertList [(k,v)]
 
   -- | Delete as batch job
-  batchDelete  :: ICon i v => DocIdSet -> i v -> i v
+  deleteDocs  :: ICon i v => DocIdSet -> i v -> i v
 
   -- | Delete occurrences.
   delete       :: ICon i v => DocId -> i v -> i v
-  delete       = batchDelete . IS.singleton
+  delete       = deleteDocs . IS.singleton
 
   -- | Empty Index
   empty        :: ICon i v => i v
@@ -146,7 +146,7 @@ instance (Index i, Monad m) => IndexM m i where
   searchM op s i             = return $! search op s i
   lookupRangeM l u i         = return $! lookupRange l u i
   insertListM vs i           = return $! insertList vs i
-  batchDeleteM ds i          = return $! batchDelete ds i
+  deleteDocsM ds i           = return $! deleteDocs ds i
   insertM k v i              = return $! insert k v i
   deleteM k i                = return $! delete k i
   emptyM                     = return $! empty

@@ -34,7 +34,7 @@ data BasicCommand
   -- | Index manipulation
   | InsertList    { icDocs :: [ApiDocument] }
   | Update        { icDoc :: ApiDocument }
-  | BatchDelete   { icUris :: Set URI }
+  | DeleteDocs   { icUris :: Set URI }
   | DeleteByQuery { icQueryD :: Query }
 
   -- | context manipulation

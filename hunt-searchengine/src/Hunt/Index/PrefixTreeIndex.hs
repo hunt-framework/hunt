@@ -45,7 +45,7 @@ instance Index DmPrefixTree where
   insertList kvs (DmPT pt) =
     mkDmPT $ SM.union pt (SM.fromList kvs)
 
-  batchDelete ks (DmPT pt)
+  deleteDocs ks (DmPT pt)
     = mkDmPT $ SM.map (\m -> DM.diffWithSet m ks) pt
 
   empty

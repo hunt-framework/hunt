@@ -286,7 +286,7 @@ delete' :: Monad m => DocIdSet -> ContextMap v -> m (ContextMap v)
 delete' dIds (ContextMap m)
   = liftM ContextMap $ TV.mapM adjust' m
   where
-  adjust' (Impl.IndexImpl ix) = liftM Impl.mkIndex $ Ix.batchDeleteM dIds ix
+  adjust' (Impl.IndexImpl ix) = liftM Impl.mkIndex $ Ix.deleteDocsM dIds ix
 
 search :: Monad m => TextSearchOp -> Text -> ContextMap v -> m [(Context, [(Text, v)])]
 search op k (ContextMap m)

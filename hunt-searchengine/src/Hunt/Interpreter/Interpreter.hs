@@ -297,8 +297,8 @@ execCmd' (InsertList docs)
 execCmd' (Update doc)
   = modIx $ execUpdate doc
 
-execCmd' (BatchDelete uris)
-  = modIx $ execBatchDelete uris
+execCmd' (DeleteDocs uris)
+  = modIx $ execDeleteDocs uris
 
 execCmd' (DeleteByQuery q)
   = modIx $ execDeleteByQuery q
@@ -474,8 +474,8 @@ wrapCompletion mx
     . wordHits
 
 
-execBatchDelete :: DocTable dt => Set URI -> ContextIndex dt -> CM dt(ContextIndex dt, CmdResult)
-execBatchDelete d ix = do
+execDeleteDocs :: DocTable dt => Set URI -> ContextIndex dt -> CM dt(ContextIndex dt, CmdResult)
+execDeleteDocs d ix = do
   ix' <- lift $ Ixx.deleteDocsByURI d ix
   return (ix', ResOK)
 

@@ -75,8 +75,8 @@ instance Index InvertedIndexInt where
   insertList wos (InvIntIx i)
     = mkInvIntIx $ insertList wos i
 
-  batchDelete docIds (InvIntIx i)
-    = mkInvIntIx $ batchDelete docIds i
+  deleteDocs docIds (InvIntIx i)
+    = mkInvIntIx $ deleteDocs docIds i
 
   empty
     = mkInvIntIx $ empty
@@ -142,8 +142,8 @@ instance Index InvertedIndexDate where
   insertList wos (InvDateIx i)
     = mkInvDateIx $ insertList wos i
 
-  batchDelete docIds (InvDateIx i)
-    = mkInvDateIx $ batchDelete docIds i
+  deleteDocs docIds (InvDateIx i)
+    = mkInvDateIx $ deleteDocs docIds i
 
   empty
     = mkInvDateIx $ empty
@@ -208,8 +208,8 @@ instance Index InvertedIndexPosition where
   insertList wos (InvPosIx i)
     = mkInvPosIx $ insertList wos i
 
-  batchDelete docIds (InvPosIx i)
-    = mkInvPosIx $ batchDelete docIds i
+  deleteDocs docIds (InvPosIx i)
+    = mkInvPosIx $ deleteDocs docIds i
 
   empty
     = mkInvPosIx $ empty
@@ -266,8 +266,8 @@ instance Index InvertedIndex where
   insertList wos (InvIx i)
     = mkInvIx $ insertList wos i
 
-  batchDelete docIds (InvIx i)
-    = mkInvIx $ batchDelete docIds i
+  deleteDocs docIds (InvIx i)
+    = mkInvIx $ deleteDocs docIds i
 
   empty
     = mkInvIx $ empty
