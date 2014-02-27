@@ -35,7 +35,7 @@ modifyXMVar (XMVar m l) f
     v <- readMVar m
     (v',a) <- restore (f v) `onException` putMVar l ()
     _ <- swapMVar m v'
-    putMVar  l ()
+    putMVar l ()
     return a
 
 -- | Like 'modifyXMVar' but without a return value.
@@ -46,7 +46,7 @@ modifyXMVar_ (XMVar m l) f
     v  <- readMVar m
     v' <- restore (f v) `onException` putMVar l ()
     _  <- swapMVar m v'
-    putMVar  l ()
+    putMVar l ()
 
 -- | Locks for writers and reads the value. Readers do not block each other.
 takeXMVarWrite :: XMVar a -> IO a

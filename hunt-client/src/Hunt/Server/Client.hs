@@ -7,7 +7,7 @@ module Hunt.Server.Client (
     , ServerAndManager (..)
     , newServerAndManager
     , withServerAndManager
-   
+
    -- * Conveniece wrapper
     , autocomplete
     , query
@@ -15,7 +15,7 @@ module Hunt.Server.Client (
     , eval
 
     -- * Some Reexports from hunt
-    , H.LimitedResult (..) 
+    , H.LimitedResult (..)
     , H.ApiDocument (..)
     , H.position
     , ContextDescription (..)
@@ -47,7 +47,7 @@ import           Data.Text (Text)
 import qualified Data.Text as T
 -- import qualified Data.Text.Encoding as TE
 
-import           Data.ByteString.Lazy (ByteString) 
+import           Data.ByteString.Lazy (ByteString)
 -- import qualified Data.ByteString.Lazy as BL
 
 import           Data.Aeson (FromJSON, ToJSON, (.=), (.:))
@@ -72,7 +72,7 @@ import qualified Hunt.Index.Schema as H (CRegex, CNormalizer, CWeight, ContextSc
 import           Hunt.Common.BasicTypes
 
 
-data JsonResponse r = 
+data JsonResponse r =
       JsonSuccess {_jsonValue :: r}
     | JsonFailure Int [Text]
     deriving (Show)
@@ -92,8 +92,8 @@ instance (ToJSON r) => ToJSON (JsonResponse r) where
 
 instance (FromJSON r) => FromJSON (JsonResponse r) where
     parseJSON (JSON.Object v) = do
-        code <- v .: "code"   
-        case code of 
+        code <- v .: "code"
+        case code of
             0 -> do
                 msg <- v .: "msg"
                 return $ JsonSuccess msg
@@ -135,7 +135,7 @@ runReaderConnectionT :: HuntConnectionT m a -> ServerAndManager -> ResourceT m a
 runReaderConnectionT x sm = (runReaderT . runHuntConnectionT) x sm
 
 checkServerUrl :: Text -> Text
-checkServerUrl s 
+checkServerUrl s
     | T.null s = "http://localhost:3000/"
     | '/' == T.last s = s
     | otherwise = s <> "/"
@@ -170,7 +170,7 @@ autocomplete q = do
 
         prefixWith :: [Text] -> Either Text [Text]
         prefixWith = ((return .) . fmap) $ (prefix <>)
-        
+
 
 query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m) => Text -> HuntConnectionT m  (Either Text (H.LimitedResult r))
 query q = do
@@ -261,12 +261,10 @@ lowercase :: Each Mutator s t Char Char => s -> t
 lowercase = over (each) toLower
 
 lowercaseConstructorsOptions :: JSON.Options
-lowercaseConstructorsOptions = JSON.Options { 
+lowercaseConstructorsOptions = JSON.Options {
        JSON.fieldLabelModifier      = id
      , JSON.constructorTagModifier  = lowercase
      , JSON.allNullaryToStringTag   = True
      , JSON.omitNothingFields       = False
      , JSON.sumEncoding             = JSON.defaultTaggedObject
 }
-
- 
