@@ -63,9 +63,8 @@ data ContextSchema = ContextSchema
   }
   deriving Show
 
--- | default ContextSchema.
-defSchema :: ContextType -> ContextSchema
-defSchema t = ContextSchema Nothing [] 1.0 True t
+instance Default ContextSchema where
+  def = ContextSchema Nothing [] 1.0 True def
 
 type ContextTypes = [ContextType]
 
@@ -82,12 +81,7 @@ data ContextType = CType
   deriving Show
 
 instance Default ContextType where
-  def = CType
-    { ctName     = ""
-    , ctRegEx    = ""
-    , ctValidate = def
-    , ctIxImpl   = defaultInv
-    }
+  def = ctText
 
 instance Default CValidator where
   def = CValidator $ const True
