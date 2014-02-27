@@ -162,7 +162,7 @@ createDocHits :: (Applicative m, Monad m, DocTable d, e ~ Dt.DValue d) =>
 createDocHits d = DM.traverseWithKey transformDocs
   where
   transformDocs did (ic,db)
-    = let doc   = fromMaybe dummy <$> (Dt.lookup d did)
+    = let doc   = fromMaybe dummy <$> (Dt.lookup did d)
           dummy = wrap (Document "" M.empty)
       in (\doc' -> (DocInfo doc' db 0.0, M.map (M.map snd) ic)) <$> doc
 

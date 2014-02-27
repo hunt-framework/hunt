@@ -151,7 +151,7 @@ data Env dt = Env
   { evIndexer     :: DocTable dt => XMVar (ContextIndex dt)
   , evRanking     :: RankConfig (Dt.DValue dt)
   , evCxTypes     :: ContextTypes
-  , evNormalizers :: [CNormalizer] 
+  , evNormalizers :: [CNormalizer]
   , evQueryConfig :: ProcessConfig
   }
 
@@ -162,11 +162,11 @@ data Hunt dt = Hunt { getHunt :: DocTable dt => IO (Env dt) }
 instance (DocTable dt) => Default (Hunt dt) where
   def = Hunt $ initEnv (ContextIx Ixx.empty Dt.empty M.empty) defaultRankConfig contextTypes normalizers queryConfig
 
-initEnv :: DocTable dt 
-           => ContextIndex dt 
-           -> RankConfig (Dt.DValue dt) 
-           -> ContextTypes 
-           -> [CNormalizer] 
+initEnv :: DocTable dt
+           => ContextIndex dt
+           -> RankConfig (Dt.DValue dt)
+           -> ContextTypes
+           -> [CNormalizer]
            -> ProcessConfig
            -> IO (Env dt)
 initEnv ixx rnk opt ns qc = do
@@ -213,7 +213,7 @@ modIx f = do
     liftIO $ putXMVarWrite ref i
     throwError e
 
---modIx_ :: DocTable dt => (ContextIndex dt -> CM dt (ContextIndex dt)) -> CM dt()
+--modIx_ :: DocTable dt => (ContextIndex dt -> CM dt (ContextIndex dt)) -> CM dt ()
 --modIx_ f = modIx f'
 --    where f' i = f i >>= \r -> return (r, ())
 
@@ -243,7 +243,7 @@ askIndex :: DocTable dt => Text -> CM dt (Impl.IndexImpl Occurrences)
 askIndex cn = askType cn >>= return . ctIxImpl
 
 askQueryConfig :: DocTable dt => CM dt ProcessConfig
-askQueryConfig 
+askQueryConfig
   = asks evQueryConfig
 
 askRanking :: DocTable dt => CM dt (RankConfig (Dt.DValue dt))
@@ -401,7 +401,7 @@ execUpdate doc ixx@(ContextIx _ix dt schema) = do
   let contexts = M.keys $ apiDocIndexMap doc
   checkContextsExistence contexts ixx
   let (docs, ws) = toDocAndWords schema doc
-  docIdM <- lift $ Dt.lookupByURI dt (uri docs)
+  docIdM <- lift $ Dt.lookupByURI (uri docs) dt
   case docIdM of
     Just docId -> do
       ixx' <- lift $ Ixx.modifyWithDescription (desc docs) ws docId ixx
@@ -411,12 +411,12 @@ execUpdate doc ixx@(ContextIx _ix dt schema) = do
 
 
 unless' :: DocTable dt
-       => Bool -> Int -> Text -> CM dt()
+       => Bool -> Int -> Text -> CM dt ()
 unless' b code text = unless b $ throwResError code text
 
 
 checkContextsExistence :: DocTable dt
-                       => [Context] -> ContextIndex dt -> CM dt()
+                       => [Context] -> ContextIndex dt -> CM dt ()
 checkContextsExistence cs ixx = do
   ixxContexts        <- S.fromList <$> Ixx.contexts ixx
   let docContexts     = S.fromList cs
@@ -427,7 +427,7 @@ checkContextsExistence cs ixx = do
 
 
 checkApiDocExistence :: DocTable dt
-                     => Bool -> ApiDocument -> ContextIndex dt -> CM dt()
+                     => Bool -> ApiDocument -> ContextIndex dt -> CM dt ()
 checkApiDocExistence switch apidoc ixx = do
   let u = apiDocUri apidoc
   mem <- Ixx.member u ixx

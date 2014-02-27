@@ -34,10 +34,10 @@ class (DocumentWrapper (DValue i)) => DocTable i where
 
     -- TODO: argument ordering
     -- | Lookup a document by its ID.
-    lookup          :: Monad m => i -> DocId -> m (Maybe (DValue i))
+    lookup          :: Monad m => DocId -> i -> m (Maybe (DValue i))
 
     -- | Lookup the 'DocId' of a document by an 'URI'.
-    lookupByURI     :: Monad m => i -> URI -> m (Maybe DocId)
+    lookupByURI     :: Monad m => URI -> i -> m (Maybe DocId)
 
     -- | Union of two disjoint document tables. It is assumed, that the
     --   DocIds and the document 'URI's of both indexes are disjoint.
@@ -49,29 +49,30 @@ class (DocumentWrapper (DValue i)) => DocTable i where
     -- | Insert a document into the table. Returns a tuple of the 'DocId' for that document and the
     -- new table. If a document with the same 'URI' is already present, its id will be returned
     -- and the table is returned unchanged.
-    insert          :: Monad m => i -> DValue i -> m (DocId, i)
+    insert          :: Monad m => DValue i -> i -> m (DocId, i)
 
     -- | Update a document with a certain 'DocId'.
-    update          :: Monad m => i -> DocId -> DValue i -> m i
+    update          :: Monad m => DocId -> DValue i -> i -> m i
 
     -- | Update a document by 'DocId' with the result of the provided function.
     adjust          :: Monad m => (DValue i -> m (DValue i)) -> DocId -> i -> m i
     adjust f did d =
-        maybe (return d) (update d did <=< f) =<< lookup d did
+        maybe (return d) (upd d did <=< f) =<< lookup did d
         --maybe d (update d did . f) $ lookup d did
+        where upd i docid v = update docid v i
 
     -- | Update a document by 'URI' with the result of the provided function.
-    adjustByURI     :: Monad m => (DValue i -> m (DValue i)) ->  URI -> i -> m i
+    adjustByURI     :: Monad m => (DValue i -> m (DValue i)) -> URI -> i -> m i
     adjustByURI f uri d
-        = maybe (return d) (flip (adjust f) d) =<< lookupByURI d uri
+        = maybe (return d) (flip (adjust f) d) =<< lookupByURI uri d
 
     -- | Removes the document with the specified 'DocId' from the table.
-    delete          :: Monad m => i -> DocId -> m i
+    delete          :: Monad m => DocId -> i -> m i
 
     -- | Removes the document with the specified 'URI' from the table.
-    deleteByURI     :: Monad m => i -> URI -> m i
-    deleteByURI ds u
-        = maybe (return ds) (delete ds) =<< lookupByURI ds u
+    deleteByURI     :: Monad m => URI -> i -> m i
+    deleteByURI u ds
+        = maybe (return ds) (flip delete ds) =<< lookupByURI u ds
 
     -- | Deletes a set of documentss by 'DocId' from the table.
     difference      :: Monad m => DocIdSet -> i -> m i
@@ -79,7 +80,7 @@ class (DocumentWrapper (DValue i)) => DocTable i where
     -- | Deletes a set of documents by 'URI' from the table.
     differenceByURI :: Monad m => Set URI -> i -> m i
     differenceByURI uris d = do -- XXX: eliminate S.toList?
-        ids <- liftM (toDocIdSet . catMaybes) . mapM (lookupByURI d) . S.toList $ uris
+        ids <- liftM (toDocIdSet . catMaybes) . mapM (flip lookupByURI d) . S.toList $ uris
         difference ids d
 
     -- | Update documents (through mapping over all documents).

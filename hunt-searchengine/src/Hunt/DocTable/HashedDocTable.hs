@@ -143,15 +143,15 @@ size'       :: (DocumentWrapper e) => Documents e -> Int
 size'
   = DM.size . idToDoc
 
-lookup'     :: (Monad m, DocumentWrapper e) => Documents e -> DocId -> m e
-lookup'  d i
+lookup'     :: (Monad m, DocumentWrapper e) => DocId -> Documents e -> m e
+lookup' i d
   = maybe (fail "") return
     . DM.lookup i
     . idToDoc
     $ d
 
-lookupByURI' :: (Monad m, DocumentWrapper e) => Documents e -> URI -> m DocId
-lookupByURI' d u
+lookupByURI' :: (Monad m, DocumentWrapper e) => URI -> Documents e -> m DocId
+lookupByURI' u d
   = maybe (fail "") (const $ return i)
     . DM.lookup i
     . idToDoc
@@ -177,21 +177,21 @@ unionDocs' dt1 dt2
       { idToDoc = idToDoc dt1' `DM.union` idToDoc dt2' }
 
 
-insert'     :: (DocumentWrapper e) => Documents e -> e -> (DocId, Documents e)
-insert' ds d
-  = maybe reallyInsert (const (newId, ds)) (lookup' ds newId)
+insert'     :: (DocumentWrapper e) => e -> Documents e -> (DocId, Documents e)
+insert' d ds
+  = maybe reallyInsert (const (newId, ds)) (lookup' newId ds)
   where
   newId
       = docToId . uri . unwrap $ d
   reallyInsert
       = (newId, Documents {idToDoc = DM.insert newId d $ idToDoc ds})
 
-update'     :: (DocumentWrapper e) => Documents e -> DocId -> e -> Documents e
-update' ds i d
+update'     :: (DocumentWrapper e) => DocId -> e -> Documents e -> Documents e
+update' i d ds
   = Documents {idToDoc = DM.insert i d $ idToDoc ds}
 
-delete'     :: (DocumentWrapper e) => Documents e -> DocId -> Documents e
-delete' ds d
+delete'     :: (DocumentWrapper e) => DocId -> Documents e -> Documents e
+delete' d ds
   = Documents {idToDoc = DM.delete d $ idToDoc ds}
 
 difference' :: (DocumentWrapper e) => DM.DocIdSet -> Documents e -> Documents e

@@ -86,7 +86,7 @@ instance Binary dt => Binary (ContextIndex dt) where
 insert :: (Par.MonadParallel m, DocTable dt)
        => Dt.DValue dt -> Words -> ContextIndex dt -> m (ContextIndex dt)
 insert doc wrds (ContextIx ix dt s) = do
-  (did, newDt) <- Dt.insert dt doc
+  (did, newDt) <- Dt.insert doc dt
   newIx        <- addWordsM wrds did ix
   return $ ContextIx newIx newDt s
 
@@ -98,7 +98,7 @@ insertList docAndWrds (ContextIx ix dt s) = do
   (newDt, docIdsAndWrds)
     <- foldM'
         (\(docTable, wordAcc) (doc, wrds)
-          -> Dt.insert docTable doc
+          -> Dt.insert doc docTable
               >>= \(dId, docTable') -> return (docTable', (dId, wrds):wordAcc))
         (dt, [])
         docAndWrds
@@ -127,7 +127,7 @@ modify f wrds dId (ContextIx ii dt s) = do
 deleteDocsByURI :: (Monad m, DocTable dt)
                 => Set URI -> ContextIndex dt -> m (ContextIndex dt)
 deleteDocsByURI us ixx@(ContextIx _ix dt _) = do
-  docIds <- liftM (toDocIdSet . catMaybes) . mapM (Dt.lookupByURI dt) . S.toList $ us
+  docIds <- liftM (toDocIdSet . catMaybes) . mapM (flip Dt.lookupByURI dt) . S.toList $ us
   delete docIds ixx
 
 -- | Delete a set of documents by 'DocId'.
@@ -152,7 +152,7 @@ hasContext c (ContextIx ix _dt _s) = return $ hasContext' c ix
 member :: (Monad m, DocTable dt)
        => URI -> ContextIndex dt -> m Bool
 member u (ContextIx _ii dt _s) = do
-  mem <- Dt.lookupByURI dt u
+  mem <- Dt.lookupByURI u dt
   return $ isJust mem
 -- ----------------------------------------------------------------------------
 
