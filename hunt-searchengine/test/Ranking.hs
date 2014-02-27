@@ -144,7 +144,7 @@ test_ranking = testCM $ do
     @@@ ((@?= [(pinkyUri, 8.0)]) . sr)
 
   Search (QBinary And (QBoost 5.0 (QWord QNoCase pinky)) (QBoost 1.0 (QWord QNoCase pinky))) os pp
-    @@@ ((@?= [(pinkyUri, 10.0)]) . sr)
+    @@@ ((@?= [(pinkyUri, 6.0)]) . sr)
 
 
   where
