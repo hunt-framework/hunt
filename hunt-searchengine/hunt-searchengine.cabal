@@ -180,6 +180,7 @@ test-suite Hunt-Interpreter
                , containers
                , HUnit
                , hunt-searchengine
+               , data-default
                , mtl
                , QuickCheck
                , test-framework
@@ -222,6 +223,7 @@ test-suite Hunt-Ranking
                , test-framework-hunit
                , test-framework-quickcheck2
                , text
+               , data-default
 
 --test-suite Hunt-IndexStrictess
 --  hs-source-dirs:       test

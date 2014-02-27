@@ -12,6 +12,7 @@ import           Data.Monoid                           ((<>))
 --import           Data.Monoid
 --import qualified Data.Set                              as S
 import           Data.Text                             (Text, pack)
+import           Data.Default
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -76,7 +77,7 @@ test_insertEmpty = do
 
 testRunCmd :: Command -> IO (Either CmdError CmdResult, TestEnv)
 testRunCmd cmd = do
-  env <- initEnv emptyIndexer rankConfig contextTypes
+  env <- getHunt (def :: DefaultHunt)
   res <- runCmd env cmd
   return (res, env)
 
@@ -165,7 +166,7 @@ insertGeoContext = uncurry InsertContext geoContextInfo
 -- evaluate CM and check the result
 testCM' :: Bool -> TestCM () -> Assertion
 testCM' b int = do
-  env <- initEnv emptyIndexer rankConfig contextTypes
+  env <- getHunt (def :: DefaultHunt)
   res <- runCM int env
   (if b then isRight else isLeft) res @? "unexpected interpreter result: " ++ show res
 
@@ -390,7 +391,7 @@ toText (lat, lon) = (pack $ printf "%f" lat) <> "-" <> (pack $ printf "%f" lon)
 prop_position_range :: Double -> Double -> Double -> Double -> (Double, Double) -> Property
 prop_position_range x1' x2' x3' x4' (lon', lat') = monadicIO $ do
   res <- run $ do
-    env <- initEnv emptyIndexer rankConfig contextTypes
+    env <- getHunt (def :: DefaultHunt)
     res' <- flip runCM env $ do
       _ <- execCmd' insertDefaultContext
       _ <- execCmd' insertGeoContext

@@ -4,7 +4,7 @@ import           Control.Applicative
 import           Control.Arrow
 import           Control.Monad.Error
 import qualified Data.Map                              as M
---import           Data.Text                             (Text)
+import           Data.Default
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -38,7 +38,7 @@ main = defaultMain
 
 testRunCmd :: Command -> IO (Either CmdError CmdResult, TestEnv)
 testRunCmd cmd = do
-  env <- initEnv emptyIndexer rankConfig contextTypes
+  env <- getHunt (def :: DefaultHunt) 
   res <- runCmd env cmd
   return (res, env)
 
@@ -68,7 +68,7 @@ insertTextContext cx = InsertContext cx defaultContextSchema
 -- evaluate CM and check the result
 testCM' :: Bool -> TestCM () -> Assertion
 testCM' b int = do
-  env <- initEnv emptyIndexer rankConfig contextTypes
+  env <- getHunt (def :: DefaultHunt)
   res <- runCM int env
   (if b then isRight else isLeft) res @? "unexpected interpreter result: " ++ show res
 
