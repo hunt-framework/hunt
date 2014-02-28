@@ -184,7 +184,7 @@ toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
                 -> Cmd.DeleteDocs (S.insert u us)) (Cmd.DeleteDocs S.empty) cs']
   -- groups of Insert to InsertList
   optGroup cs'@(Insert{}:_)
-    = [splitBatch 2000 $ foldl (\(Cmd.InsertList us) (Insert u)
+    = [splitBatch 500 $ foldl (\(Cmd.InsertList us) (Insert u)
                 -> Cmd.InsertList (u:us)) (Cmd.InsertList []) cs']
   optGroup cs'@(Sequence{}:_)
     = map toBasicCommand cs'

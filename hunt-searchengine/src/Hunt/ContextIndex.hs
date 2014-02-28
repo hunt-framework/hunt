@@ -14,6 +14,7 @@ import           Control.Arrow
 --import           Control.DeepSeq
 import           Control.Monad
 import qualified Control.Monad.Parallel            as Par
+import           Control.Monad.Trans
 --import           Control.Parallel
 import           Control.Parallel.Strategies
 
@@ -42,7 +43,7 @@ import           Hunt.Index.IndexImpl              (IndexImpl)
 import qualified Hunt.Index.IndexImpl              as Impl
 
 import           Hunt.Utility
-
+import           System.Mem
 -- ----------------------------------------------------------------------------
 
 data ContextIndex dt = ContextIx
@@ -102,7 +103,8 @@ insertList docAndWrds (ContextIx ix dt s) = do
               >>= \(dId, docTable') -> return (docTable', (dId, wrds):wordAcc))
         (dt, [])
         docAndWrds
-  newIx <- batchAddWordsM docIdsAndWrds ix
+  newIx <- mapReduceAddWordsM docIdsAndWrds ix
+--  newIx <- batchAddWordsM docIdsAndWrds ix
 --  let newIx = batchAddWords docIdsAndWrds ix
   return $! ContextIx newIx newDt s
 
@@ -199,13 +201,43 @@ addWordsM wrds dId _i@(ContextMap m)
 -- | Add words for a document to the 'Index'.
 --   /NOTE/: adds words to /existing/ 'Context's.
 batchAddWordsM :: Par.MonadParallel m => [(DocId, Words)] -> ContextMap Occurrences -> m (ContextMap Occurrences)
-batchAddWordsM wrdsAndDocIds _i@(ContextMap m)
-  = mapWithKeyMP (\cx impl -> foldinsertList cx impl wrdsAndDocIds) m >>= return . ContextMap
+batchAddWordsM vs (ContextMap m)
+  = mapWithKeyMP (\cx impl -> foldinsertList cx impl) m >>= return . ContextMap
   where
-  foldinsertList :: Monad m => Context -> IndexImpl Occurrences -> [(DocId, Words)] -> m (IndexImpl Occurrences)
-  foldinsertList cx (Impl.IndexImpl impl) docIdsAndWrds
-    = Ix.insertListM (concat . map ((\(did, wl) -> map (second (mkOccs did)) $ M.toList wl) . second (getWlForCx cx)) $ docIdsAndWrds) impl
-        >>= return . Impl.mkIndex
+  foldinsertList :: Monad m => Context -> IndexImpl Occurrences -> m (IndexImpl Occurrences)
+  foldinsertList cx (Impl.IndexImpl impl)
+    = Ix.insertListM (contentForCx cx vs) impl >>= return . Impl.mkIndex
+
+mapReduceAddWordsM :: Par.MonadParallel m => [(DocId, Words)] -> ContextMap Occurrences -> m (ContextMap Occurrences)
+mapReduceAddWordsM vs (ContextMap m)
+  = mapWithKeyMP (\cx impl -> mrInsert cx impl) m >>= return . ContextMap
+  where
+  mrInsert :: Par.MonadParallel m => Context -> IndexImpl Occurrences -> m (IndexImpl Occurrences)
+  mrInsert cx ix@(Impl.IndexImpl impl)
+    = case contentForCx cx vs of
+        [] -> return ix
+        cs -> do
+          mapRes <- Par.mapM (\ws -> Ix.insertListM ws (Ix.empty `asTypeOf` impl)) (partitionListByLength 200 cs)
+          reduce mapRes impl >>= return . Impl.mkIndex
+
+  reduce mapRes impl = do
+    x <- Par.mapM (\(i1,i2) -> Ix.unionWithM (Occ.merge) i1 i2) $ mkPairs mapRes
+    case x of
+      []     -> error "this should not be possible..?!?"
+      [x]    -> Ix.unionWithM (Occ.merge) x impl
+      xs     -> reduce xs impl
+
+
+  mkPairs :: [a] -> [(a,a)]
+  mkPairs []       = []
+  mkPairs (a:[])   = [(a,a)]
+  mkPairs (a:b:xs) = (a,b):mkPairs xs
+
+
+
+
+contentForCx :: Content -> [(DocId, Words)] -> [(Word, Occurrences)]
+contentForCx cx vs = (concat . map ((\(did, wl) -> map (second (mkOccs did)) $ M.toList wl) . second (getWlForCx cx)) $ vs)
 
 -- | Add words for a document to the 'Index'.
 --   /NOTE/: adds words to /existing/ 'Context's.
