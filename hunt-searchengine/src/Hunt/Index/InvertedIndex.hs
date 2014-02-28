@@ -46,12 +46,12 @@ newtype UnInt = UnInt { unInt :: Text }
   deriving (Show, Eq, NFData)
 
 instance Bijection UnInt Text where
-  to = Int.normalizeToText . unInt
-  from = UnInt . Int.denormalizeFromText
+  to   = Int.denormalizeFromText . unInt
+  from = UnInt . Int.normalizeToText
 
 instance Bijection Text UnInt where
-  to = UnInt
-  from = unInt
+  to   = UnInt . Int.normalizeToText
+  from = Int.denormalizeFromText . unInt
 
 newtype InvertedIndexInt v
   = InvIntIx { invIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt InvertedIndex) v }
@@ -113,12 +113,12 @@ newtype UnDate = UnDate { unDate :: Text }
   deriving (Show, Eq, NFData)
 
 instance Bijection UnDate Text where
-  to = Date.normalize . unDate
-  from = UnDate . Date.denormalize
+  to   = Date.denormalize . unDate
+  from = UnDate . Date.normalize
 
 instance Bijection Text UnDate where
-  to = UnDate
-  from = unDate
+  to   = UnDate . Date.normalize
+  from = Date.denormalize . unDate
 
 newtype InvertedIndexDate v
   = InvDateIx { invDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate InvertedIndex) v }
@@ -179,12 +179,12 @@ newtype UnPos = UnPos { unPos :: Text }
   deriving (Show, Eq, NFData)
 
 instance Bijection UnPos Text where
-  to = Pos.normalize . unPos
-  from = UnPos . Pos.denormalize
+  to   = Pos.denormalize . unPos
+  from = UnPos . Pos.normalize
 
 instance Bijection Text UnPos where
-  to = UnPos
-  from = unPos
+  to   = UnPos . Pos.normalize
+  from = Pos.denormalize . unPos
 
 newtype InvertedIndexPosition v
   = InvPosIx { invPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex) v }
