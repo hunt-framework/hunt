@@ -17,15 +17,13 @@ import           System.FilePath
 import           System.Mem
 import           System.Posix.Process
 import           System.Process
+import           Data.Default
 
---import           Control.Applicative
---import           Control.Concurrent
 import           Control.Monad
+import           Control.DeepSeq
 
 import qualified Data.Binary                  as Bin
---import           Data.Map                     (Map)
 import qualified Data.Map                     as M
---import           Data.Maybe
 import           Data.Monoid
 import           Data.Text                    (Text)
 import qualified Data.Text                    as T
@@ -39,7 +37,6 @@ import           Hunt.Interpreter.Interpreter
 
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
---import qualified Data.ByteString              as BS
 import qualified Data.ByteString.Lazy         as BL
 import qualified Data.ByteString.Lazy.Char8   as B8
 
@@ -53,38 +50,49 @@ import           Hunt.Utility
 
 -- ----------------------------------------------------------------------------
 
--- | wrapper type for index environment
-data Hunt = Hunt { getHunt :: DefaultEnv }
-
--- | helper for easy initiation
-initHunt :: IO Hunt
-initHunt = do
-  env <- initEnv emptyIndexer defaultRankConfig contextTypes
-  return $ Hunt env
-
 main :: IO ()
 main = do
-  hunt <- initEnv emptyIndexer defaultRankConfig contextTypes
+  hunt <- getHunt (def :: DefaultHunt)
+  -- read benchmark jsond data
   docs <- (getJson "./../data/random/RandomData.js" :: IO [ApiDocument])
-  _ <- mapM (\c -> monitorCmd hunt $ InsertContext c (ContextSchema Nothing [] 1.0 True ctText)) [ "id", "context1", "context2", "contextdate", "contextgeo", "contextint" ]
-  putStrLn "sequence with insertList:"
-  monitorCmd hunt $ Sequence $ map Insert docs
-  putStrLn "search word 'a' to check if everything evaluated"
-  monitorCmd hunt $ Search (QWord QFuzzy "a") 1 1000
---  putStrLn "single command for each insert:"
---  start <- getCurrentTime
---  _ <- mapM (\doc -> monitorCmd hunt $ Insert doc) docs
---  end <- getCurrentTime
---  putStrLn $ "overall execution time: " ++ show (diffUTCTime end start)
+  
+  -- insert benchmark contexts
+  run hunt `withCmd` Sequence [ InsertContext "context1" def
+                              , InsertContext "context2" def
+                              ]
+
+  printStats (Just "Before Insert") ()
+  getLine
+
+  -- benchmark insert performance
+  res <- runAndMonitor hunt `withCmd` Sequence (map Insert docs)
+  printStats (Just "After Insert") res
+  getLine
+
+  -- run query to check success
+  res <- runAndMonitor hunt `withCmd` Search (QWord QNoCase "a") 0 3000
+  printStats (Just "After Search") (id $!! res)
+  getLine
+
   l <- getLine
   return ()
 
-monitorCmd hunt cmd = do
+runAndMonitor hunt cmd = do
   start <- getCurrentTime
-  _ <- runCmd hunt cmd
+  run hunt `withCmd` cmd
   end <- getCurrentTime
   putStrLn $ "command execution time: " ++ show (diffUTCTime end start)
   return ()
+
+runListAndMonitor hunt cmds = do
+  start <- getCurrentTime
+  mapM (\cmd -> run hunt `withCmd` cmd) cmds
+  end <- getCurrentTime
+  putStrLn $ "command execution time: " ++ show (diffUTCTime end start)
+  return ()
+
+
+
 
 -- ----------------------------------------------------------------------------
 -- IO
@@ -95,43 +103,25 @@ getJson file = do
   return . fromRight . eitherDecode $ content
 
 -- ----------------------------------------------------------------------------
--- Test
-{-
-typeName :: Typeable a => a -> String
-typeName x
-  = (tyConModule . fst . splitTyConApp $ t) ++ "." ++ show t
-    where
-    t = typeOf x
-
-testIndex :: DataSet -> IndexAll -> IO ()
-testIndex dataSet (IndexAll ix f) = do
-  !apiDocs  <- getDataSet dataSet :: IO ApiDocuments
-  --threadDelay (5 * 10^6)
-  let docs = P.map (toDocAndWords' (tdSchema dataSet)) apiDocs
-  start <- getCurrentTime
-  ix'   <- foldM' (\i ((_d,w),did) -> addWordsIx f w did i) ix (zip docs [0..])
-  end <- ix' `seq` getCurrentTime
-
-  -- output
-  ix' `seq` printStats Nothing ix' (diffUTCTime end start)
--}
-
--- ----------------------------------------------------------------------------
 -- Utils
+
+run = runCmd
+
+withCmd :: (a -> b) -> a -> b
+f `withCmd` x  =  f x
+
 
 showF :: RealFloat a => a -> String
 showF f = showFFloat (Just 2) f ""
 
-printStats :: Typeable a => Maybe String -> a -> NominalDiffTime -> IO ()
-printStats titleM x tdiff = do
+printStats :: Typeable a => Maybe String -> a -> IO ()
+printStats titleM x = do
   x `seq` performGC
   stats <- getGCStats
   sep
   -- who knew?
   _ <- T.sequence . fmap (putStrLn . (++) ">> ") $ titleM
 --  putStrLn $ ">> " ++ typeName x
-  ssep
-  putStrLn $ "time: " ++ show tdiff
   ssep
   printTop
   where

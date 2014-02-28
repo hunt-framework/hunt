@@ -32,7 +32,9 @@ executable hunt-perbench
                  , process                >= 1    && < 2
                  , text                  
                  , time                   
-                 , unix                   
+                 , unix
+                 , deepseq
+                 , data-default
   ghc-options:   -threaded
                  -Wall
                  -with-rtsopts=-T
