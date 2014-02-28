@@ -178,7 +178,7 @@ apiDocGen :: Int -> Gen ApiDocument
 apiDocGen n = do
   desc    <- descriptionGen
   ix      <- mkIndexData n desc
-  return  $ ApiDocument uri ix desc
+  return  $ ApiDocument uri ix M.empty
   where uri = T.pack . ("rnd://" ++) . show $ n
 
 niceText1 :: Gen Text
@@ -221,12 +221,12 @@ date = arbitrary >>= \x -> return . T.pack $ formatTime defaultTimeLocale "%Y-%m
 
 mkIndexData :: Int -> Description -> Gen (Map Context Text)
 mkIndexData i d = do
-  return $ M.fromList [ ("id", index)
-                      , ("context1", cx2)
+  return $ M.fromList [-- ("id", index)
+                       ("context1", cx2)
                       , ("context2", cx2)
-                      , ("contextdate", cxd)
-                      , ("contextgeo", cxp)
-                      , ("contextint", cxi)
+                    --  , ("contextdate", cxd)
+                    --  , ("contextgeo", cxp)
+                    --  , ("contextint", cxi)
                       ]
   where
   index   = T.pack $ show i
