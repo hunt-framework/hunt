@@ -52,28 +52,30 @@ import           Hunt.Utility
 
 main :: IO ()
 main = do
+--  let json = "./../data/random/RandomData.js"
+  let json = "./hayoo.js"
+
   hunt <- getHunt (def :: DefaultHunt)
-  -- read benchmark jsond data
-  docs <- (getJson "./../data/random/RandomData.js" :: IO [ApiDocument])
-  
+  showStats "Index initialized"
+  -- read benchmark json data force evaluation with deepseq
+  -- to be sure all data is read into memory before starting
+  -- the actual benchmark
+  docs <- (getJson json :: IO [ApiDocument])
+  showStats $ "JSON loaded and evaluated " ++ (show . head . show . head $!! docs)
+
   -- insert benchmark contexts
   run hunt `withCmd` Sequence [ InsertContext "context1" def
                               , InsertContext "context2" def
                               ]
-
-  printStats (Just "Before Insert") ()
-  getLine
+  showStats "contexts created"
 
   -- benchmark insert performance
   res <- runAndMonitor hunt `withCmd` Sequence (map Insert docs)
-  printStats (Just "After Insert") res
-  getLine
+  showStats "documents inserted"
 
   -- run query to check success
   res <- runAndMonitor hunt `withCmd` Search (QWord QNoCase "a") 0 3000
-  printStats (Just "After Search") (id $!! res)
-  getLine
-
+  showStats "index used with search and garbage collected"
   l <- getLine
   return ()
 
@@ -91,16 +93,15 @@ runListAndMonitor hunt cmds = do
   putStrLn $ "command execution time: " ++ show (diffUTCTime end start)
   return ()
 
-
-
-
 -- ----------------------------------------------------------------------------
 -- IO
 
 getJson :: (FromJSON a) => FilePath -> IO a
 getJson file = do
   content <- BL.readFile file
-  return . fromRight . eitherDecode $ content
+  case eitherDecode content of
+    (Right x) -> return x
+    (Left err) -> error err
 
 -- ----------------------------------------------------------------------------
 -- Utils
@@ -114,32 +115,9 @@ f `withCmd` x  =  f x
 showF :: RealFloat a => a -> String
 showF f = showFFloat (Just 2) f ""
 
-printStats :: Typeable a => Maybe String -> a -> IO ()
-printStats titleM x = do
-  x `seq` performGC
+showStats :: String -> IO ()
+showStats t = do
+  putStrLn t
+  performGC
   stats <- getGCStats
-  sep
-  -- who knew?
-  _ <- T.sequence . fmap (putStrLn . (++) ">> ") $ titleM
---  putStrLn $ ">> " ++ typeName x
-  ssep
-  printTop
-  where
-  sep  = putStrLn "==========="
-  ssep = putStrLn "-----------"
-  putStrLs = putStrLn . concat
-  printGCStats :: ToJSON a => a -> IO ()
-  printGCStats = B8.putStrLn . encodePretty' config
-    where
-    config = Config
-      { confIndent  = 2
-      , confCompare = keyOrder ["currentBytesUsed", "maxBytesUsed", "peakMegabytesAllocated"]
-                        `mappend` compare
-      }
-
-printTop :: IO ()
-printTop = do
-  pid <- getProcessID
-  res <- readProcess "top" ["-cbn", "1" ,"-p", show pid] []
-  putStrLn res
-
+  putStrLn $ "Bytes used: " ++ (show $ currentBytesUsed stats) ++ " B"
