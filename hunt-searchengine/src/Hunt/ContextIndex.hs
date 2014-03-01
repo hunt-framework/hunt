@@ -103,8 +103,8 @@ insertList docAndWrds (ContextIx ix dt s) = do
               >>= \(dId, docTable') -> return (docTable', (dId, wrds):wordAcc))
         (dt, [])
         docAndWrds
-  newIx <- mapReduceAddWordsM docIdsAndWrds ix
---  newIx <- batchAddWordsM docIdsAndWrds ix
+--  newIx <- mapReduceAddWordsM docIdsAndWrds ix
+  newIx <- batchAddWordsM docIdsAndWrds ix
 --  let newIx = batchAddWords docIdsAndWrds ix
   return $! ContextIx newIx newDt s
 

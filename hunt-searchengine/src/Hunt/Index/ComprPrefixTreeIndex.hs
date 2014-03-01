@@ -13,9 +13,11 @@ import           Prelude                             as P
 import           Control.Applicative                 ((<$>))
 import           Control.Arrow                       (second)
 import           Control.DeepSeq
+import           Control.Parallel.Strategies
 
 import           Data.Binary                         (Binary (..))
 import           Data.Typeable
+import qualified Data.Foldable                       as F
 
 import           Hunt.Index.Index
 import qualified Hunt.Index.Index                    as Ix
@@ -57,7 +59,25 @@ instance Index ComprOccPrefixTree where
   insertList kos i1
     = unionWithConv compressOcc (\a b -> compressOcc (Occ.merge (decompressOcc a) b)) i1 ixs
     where
-    ixs = foldr (unionWith Occ.merge) empty $ P.map (fromList . (:[])) kos
+--    ixs = F.foldr' (unionWith Occ.merge) empty $ P.map (fromList . (:[])) kos
+
+    ixs = if null m then empty else reduce m
+       where
+       m = parMap rpar (\ws -> P.foldr (unionWith Occ.merge) empty $ P.map (fromList . (:[])) ws) (partitionListByLength 5000 kos)
+          
+       reduce mapRes 
+         = case parMap rpar (\(i1,i2) -> unionWith (Occ.merge) i1 i2) $ mkPairs mapRes of
+             []     -> error "this should not be possible..?!?"
+             [x]    -> x
+             xs     -> reduce xs
+
+       mkPairs :: [a] -> [(a,a)]
+       mkPairs []       = []
+       mkPairs (a:[])   = [(a,a)]
+       mkPairs (a:b:xs) = (a,b):mkPairs xs
+
+
+
 
   -- XXX: not the best solution, but is there really another solution?
   deleteDocs ks i

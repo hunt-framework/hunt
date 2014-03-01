@@ -270,6 +270,9 @@ execCommand
 
 -- XXX: kind of obsolete now
 execCmd :: (Bin.Binary dt, DocTable dt) => BasicCommand -> CM dt CmdResult
+execCmd cmd@(InsertList _) = do
+  liftIO $ debugM $ "Exec: InsertList [..]"
+  execCmd' cmd
 execCmd cmd = do
   liftIO $ debugM $ "Exec: " ++ logShow cmd
   execCmd' cmd

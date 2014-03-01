@@ -134,7 +134,7 @@ library
 
   hs-source-dirs: src
 
-  ghc-options: -Wall -funbox-strict-fields -fwarn-tabs
+  ghc-options: -Wall -funbox-strict-fields -fwarn-tabs -threaded
 
   if flag(with-bintree)
     cpp-options:
