@@ -52,8 +52,8 @@ import           Hunt.Utility
 
 main :: IO ()
 main = do
---  let json = "./../data/random/RandomData.js"
-  let json = "./hayoo.js"
+  let json = "./../data/random/RandomData.js"
+--  let json = "./hayoo.js"
 
   hunt <- getHunt (def :: DefaultHunt)
   showStats "Index initialized"
