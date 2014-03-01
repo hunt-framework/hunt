@@ -4,12 +4,13 @@ module Hunt.Common.ApiDocument where
 
 import           Control.Applicative
 import           Control.Monad              (mzero)
+import           Control.DeepSeq
 
 import           Data.Binary                (Binary (..))
 import           Data.Text.Binary           ()
 import           Data.Aeson
-import           Data.Map                   (Map ())
-import qualified Data.Map                   as M
+import           Data.Map.Strict            (Map ())
+import qualified Data.Map.Strict            as M
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 
@@ -29,6 +30,11 @@ data ApiDocument  = ApiDocument
   , apiDocDescrMap :: Description
   }
   deriving (Show)
+
+ 
+
+instance NFData ApiDocument where
+  --default
 
 -- | Text analysis function
 type AnalyzerFunction = Text -> [(Position, Text)]
@@ -102,7 +108,7 @@ instance FromJSON ApiDocument where
     parsedUri         <- o    .: "uri"
     indexMap          <- o    .:? "index"       .!= emptyApiDocIndexMap
     descrMap          <- o    .:? "description" .!= emptyApiDocDescrMap
-    return ApiDocument
+    return $!! ApiDocument
       { apiDocUri       = parsedUri
       , apiDocIndexMap  = indexMap
       , apiDocDescrMap  = descrMap

@@ -6,6 +6,7 @@ where
 import           Control.Monad (mzero)
 
 import           Data.Map
+import qualified Data.Map.Strict       as SM
 import           Data.Text
 
 import           Data.Aeson
@@ -17,7 +18,7 @@ import           Data.Binary   hiding (Word)
 type URI          = Text
 
 -- | The description of a document is a generic key value map.
-type Description  = Map Text Text
+type Description  = SM.Map Text Text
 
 -- | The title of a document.
 type Title        = Text
