@@ -31,7 +31,6 @@ data ApiDocument  = ApiDocument
   }
   deriving (Show)
 
- 
 
 instance NFData ApiDocument where
   --default
@@ -108,7 +107,7 @@ instance FromJSON ApiDocument where
     parsedUri         <- o    .: "uri"
     indexMap          <- o    .:? "index"       .!= emptyApiDocIndexMap
     descrMap          <- o    .:? "description" .!= emptyApiDocDescrMap
-    return $!! ApiDocument
+    return ApiDocument
       { apiDocUri       = parsedUri
       , apiDocIndexMap  = indexMap
       , apiDocDescrMap  = descrMap
