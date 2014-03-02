@@ -44,6 +44,12 @@ instance NFData (IndexImpl v) where
   rnf (IndexImpl v) = v `seq` ()
 
 -- ------------------------------------------------------------
+-- Serialization
+
+-- | FIXME: actually implement instance
+instance Binary (IndexImpl v) where
+  put (IndexImpl i) = put (typeOf i) >> put i
+  get = error "existential types cannot be deserialized this way. Use special get' functions"
 
 get' :: [IndexImpl Occurrences] -> Get [(Context, IndexImpl Occurrences)]
 get' ts = do
@@ -64,11 +70,6 @@ get'' ts = do
   case L.find (\(IndexImpl i) -> t == typeOf i) ts of
     Just (IndexImpl x) -> IndexImpl <$> get `asTypeOf` return x
     Nothing            -> error $ "Unable to load index of type: " -- ++ show t
-
--- | FIXME: actually implement instance
-instance Binary (IndexImpl v) where
-  put (IndexImpl i) = put (typeOf i) >> put i
-  get = error "existential types cannot be deserialized this way. Use special get' functions"
 
 -- ------------------------------------------------------------
 

@@ -1,4 +1,6 @@
+{-# OPTIONS -fno-warn-orphans  #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Hunt.Index.Schema where
 
@@ -63,8 +65,18 @@ data ContextSchema = ContextSchema
   }
   deriving Show
 
+-- | Context weight for search result rankings.
+type CWeight = Float
+
+-- | Regular expression.
+type CRegex  = Text
+
+-- ----------------------------------------------------------------------------
+
 instance Default ContextSchema where
   def = ContextSchema Nothing [] 1.0 True def
+
+-- ----------------------------------------------------------------------------
 
 type ContextTypes = [ContextType]
 
@@ -80,18 +92,19 @@ data ContextType = CType
   }
   deriving Show
 
+-- ----------------------------------------------------------------------------
+
 instance Default ContextType where
   def = ctText
 
-instance Default CValidator where
-  def = CValidator $ const True
+-- ----------------------------------------------------------------------------
 
 ctText :: ContextType
 ctText = CType
   { ctName     = "text"
   , ctRegEx    = "\\w*"
   , ctValidate = def
-  , ctIxImpl   = defaultInv
+  , ctIxImpl   = def
   }
 
 ctInt :: ContextType
@@ -118,6 +131,13 @@ ctPosition = CType
   , ctIxImpl   = positionInv
   }
 
+-- ----------------------------------------------------------------------------
+-- IndexImpls
+
+instance Default (IndexImpl Occurrences) where
+  def = defaultInv
+
+
 defaultInv :: IndexImpl Occurrences
 defaultInv = mkIndex (Ix.empty :: InvertedIndex Occurrences)
 
@@ -130,15 +150,36 @@ dateInv = mkIndex (Ix.empty :: InvertedIndexDate Occurrences)
 positionInv :: IndexImpl Occurrences
 positionInv = mkIndex (Ix.empty :: InvertedIndexPosition Occurrences)
 
+-- ----------------------------------------------------------------------------
+-- Validator
+
 data CValidator = CValidator { validate :: Word -> Bool }
 
--- | XXX maybe add name to validator type as well 
+-- ----------------------------------------------------------------------------
+
+instance Default CValidator where
+  def = CValidator $ const True
+
+-- | XXX maybe add name to validator type as well
 instance Show CValidator where
   show _ = "CValidator"
 
+-- ----------------------------------------------------------------------------
+-- Normalizer
 
--- | Regular expression.
-type CRegex  = Text
+data CNormalizer = CNormalizer
+  { cnName       :: Text
+  , cnNormalizer :: Text -> Text
+  }
+
+-- ----------------------------------------------------------------------------
+
+-- | Enum for text-normalizers than can be chose by the user.
+--data CNormalizer = NormUpperCase | NormLowerCase | NormDate | NormPosition | NormIntZeroFill
+--  deriving (Show, Eq)
+
+instance Show CNormalizer where
+  show = unpack . cnName
 
 instance Default CNormalizer where
   def = CNormalizer "" id
@@ -151,21 +192,6 @@ cnLowerCase = CNormalizer "LowerCase" T.toLower
 
 cnZeroFill :: CNormalizer
 cnZeroFill = CNormalizer "ZeroFill" Int.normalizeToText
-
-data CNormalizer = CNormalizer
-  { cnName       :: Text
-  , cnNormalizer :: Text -> Text
-  }
-
-instance Show CNormalizer where
-  show = unpack . cnName
-
--- | Enum for text-normalizers than can be chose by the user.
---data CNormalizer = NormUpperCase | NormLowerCase | NormDate | NormPosition | NormIntZeroFill
---  deriving (Show, Eq)
-
--- | Context weight for search result rankings.
-type CWeight = Float
 
 -- ----------------------------------------------------------------------------
 -- JSON instances
@@ -212,7 +238,24 @@ instance ToJSON ContextSchema where
     ]
 
 -- ----------------------------------------------------------------------------
+-- Binary instances
+-- ----------------------------------------------------------------------------
+
+instance Binary ContextSchema where
+  get = liftM5 ContextSchema get get get get get
+  put (ContextSchema a b c d e) = put a >> put b >> put c >> put d >> put e
+
+instance Binary ContextType where
+  put (CType n _ _ _) = put n
+  get = get >>= \n -> return $ def { ctName = n }
+
+instance Binary CNormalizer where
+  put (CNormalizer n _) = put n
+  get = get >>= \n -> return $ def { cnName = n }
+
+-- ----------------------------------------------------------------------------
 -- Aeson helper
+-- ----------------------------------------------------------------------------
 
 (.=?) :: ToJSON a => Text -> (a, a -> Bool) -> [Pair]
 name .=? (value, cond) = if cond value then [] else [ name .= value ]
@@ -220,20 +263,3 @@ name .=? (value, cond) = if cond value then [] else [ name .= value ]
 (.\.) :: ToJSON a => a -> (a -> Bool) -> (a, a -> Bool)
 v .\. c = (v,c)
 infixl 8 .=?
-
--- ----------------------------------------------------------------------------
--- Binary instances
--- ----------------------------------------------------------------------------
-
-instance Binary CNormalizer where
-  put (CNormalizer n _) = put n
-  get = get >>= \n -> return $ def { cnName = n }
-
-
-instance Binary ContextType where
-  put (CType n _ _ _) = put n
-  get = get >>= \n -> return $ def { ctName = n }
-
-instance Binary ContextSchema where
-  get = liftM5 ContextSchema get get get get get
-  put (ContextSchema a b c d e) = put a >> put b >> put c >> put d >> put e
