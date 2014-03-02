@@ -29,6 +29,7 @@ import           Data.Set                          (Set)
 import qualified Data.Set                          as S
 import           Data.Text                         (Text)
 import qualified Data.Traversable                  as TV
+import qualified Data.Foldable                     as F
 
 import           Hunt.DocTable.DocTable            (DocTable)
 import qualified Hunt.DocTable.DocTable            as Dt
@@ -96,17 +97,33 @@ insert doc wrds (ContextIx ix dt s) = do
 insertList :: (Par.MonadParallel m, DocTable dt)
        => [(Dt.DValue dt, Words)] -> ContextIndex dt -> m (ContextIndex dt)
 insertList docAndWrds (ContextIx ix dt s) = do
-  (newDt, docIdsAndWrds)
-    <- foldM'
-        (\(docTable, wordAcc) (doc, wrds)
-          -> Dt.insert doc docTable
-              >>= \(dId, docTable') -> return (docTable', (dId, wrds):wordAcc))
-        (dt, [])
-        docAndWrds
---  newIx <- mapReduceAddWordsM docIdsAndWrds ix
+  -- insert to doctable and generate docId
+  tables <- Par.mapM subInsert $ partitionListByLength 20 docAndWrds
+  (newDt, docIdsAndWrds) <- reduce tables
+  
+  -- insert to index
   newIx <- batchAddWordsM docIdsAndWrds ix
---  let newIx = batchAddWords docIdsAndWrds ix
   return $! ContextIx newIx newDt s
+
+  where
+  subInsert ds = foldM (\(dt, withIds) (doc, wrds) -> do
+                             (dId, dt') <- Dt.insert doc dt 
+                             return (dt', (dId, wrds):withIds)
+                          ) (Dt.empty, []) ds
+
+  reduce tables = do 
+     step <- Par.mapM (\((dt1, ws1),(dt2, ws2)) -> Dt.union dt1 dt2 >>= \dt -> return (dt, ws1 ++ ws2)) $ mkPairs tables
+     case step of
+      []     -> return (Dt.empty, [])
+      [x]    -> return x
+      xs     -> reduce xs
+
+
+  mkPairs []       = []
+  mkPairs (a:[])   = [(a,(Dt.empty,[]))]
+  mkPairs (a:b:xs) = (a,b):mkPairs xs
+
+
 
 -- | Update elements
 --update :: (Par.MonadParallel m, DocTable dt)
