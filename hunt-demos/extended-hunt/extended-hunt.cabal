@@ -1,0 +1,23 @@
+name:                extended-hunt
+version:             0.1.0.0
+synopsis:            Simple example how to extend the search engine.
+description:         Simple example how to extend the search engine.
+homepage:            https://github.com/hunt-framework
+license:             MIT
+author:              Chris Reumann
+maintainer:          Chris Reumann
+build-type:          Simple
+cabal-version:       >=1.8
+
+executable extended-hunt
+  hs-source-dirs: src
+  main-is:           Main.hs  
+  build-depends:       base                >= 4.6    && < 5
+                       , text              >= 1.0    && < 2.0
+                       , transformers      >= 0.3    && < 0.4
+                       , hunt-searchengine >= 0.1    && < 0.2                                             
+                       , containers
+                       , time 
+                       , deepseq
+                       , data-default
+                       , binary
