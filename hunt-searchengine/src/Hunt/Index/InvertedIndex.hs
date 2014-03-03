@@ -27,6 +27,7 @@ import           Hunt.Common.Occurrences                    (Occurrences)
 import           Hunt.Common.Occurrences.Compression.BZip
 import           Hunt.Common.Occurrences.Compression
 import           Hunt.Index.ComprPrefixTreeIndex
+import qualified Hunt.Index.ComprPrefixTreeIndex2Dim        as PT2D
 import           Hunt.Index.Index                           as Ix
 
 import           Hunt.Index.Proxy.KeyIndex
@@ -187,10 +188,10 @@ instance Bijection Text UnPos where
   from = Pos.denormalize . unPos
 
 newtype InvertedIndexPosition v
-  = InvPosIx { invPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex) v }
+  = InvPosIx { invPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex2Dim) v }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex) v  -> InvertedIndexPosition v
+mkInvPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex2Dim) v -> InvertedIndexPosition v
 mkInvPosIx x = InvPosIx $! x
 
 -- ----------------------------------------------------------------------------
@@ -298,4 +299,65 @@ instance Index InvertedIndex where
     = mkInvIx $ Ix.map f i
 
   keys (InvIx i)
+    = keys i
+
+-- ----------------------------------------------------------------------------
+-- 2dim inverted index using text key
+-- ----------------------------------------------------------------------------
+
+newtype InvertedIndex2Dim _v
+  = InvIx2D { invIx2D :: KeyProxyIndex Text PT2D.ComprOccPrefixTree CompressedOccurrences }
+  deriving (Eq, Show, NFData, Typeable)
+
+mkInvIx2D :: KeyProxyIndex Text PT2D.ComprOccPrefixTree CompressedOccurrences
+        -> InvertedIndex2Dim _v
+mkInvIx2D x = InvIx2D $! x
+
+-- ----------------------------------------------------------------------------
+
+instance Binary (InvertedIndex2Dim v) where
+  put = put . invIx2D
+  get = get >>= return . mkInvIx2D
+
+-- ----------------------------------------------------------------------------
+
+instance Index InvertedIndex2Dim where
+  type IKey InvertedIndex2Dim v = Word
+  type IVal InvertedIndex2Dim v = Occurrences
+
+  insertList wos (InvIx2D i)
+    = mkInvIx2D $ insertList wos i
+
+  deleteDocs docIds (InvIx2D i)
+    = mkInvIx2D $ deleteDocs docIds i
+
+  empty
+    = mkInvIx2D $ empty
+
+  fromList l
+    = mkInvIx2D $ fromList l
+
+  toList (InvIx2D i)
+    = toList i
+
+  search t k (InvIx2D i)
+    = search t k i
+
+  lookupRange k1 k2 (InvIx2D i)
+    = lookupRange k1 k2 i
+
+  unionWith op (InvIx2D i1) (InvIx2D i2)
+    = mkInvIx2D $ unionWith op i1 i2
+
+  unionWithConv
+    = error "InvertedIndex unionWithConv: cannot be used there because type variable v is fixed"
+{-
+  unionWithConv to f (InvIx2D i1) (InvIx2D i2)
+    = mkInvIx2D $ unionWithConv to f i1 i2
+-}
+
+  map f (InvIx2D i)
+    = mkInvIx2D $ Ix.map f i
+
+  keys (InvIx2D i)
     = keys i

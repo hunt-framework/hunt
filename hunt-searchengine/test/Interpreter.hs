@@ -66,7 +66,7 @@ main = defaultMain
   -- test binary serialization
   , testCase "Interpreter: store/load index"           test_binary
   , testCase "Interpreter: store/load schema"          test_binary2
-  , testProperty "position range query"  prop_position_range
+  , testProperty "position range query"                prop_position_range
   ]
 
 -- | check DmPrefixTree

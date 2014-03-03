@@ -35,7 +35,7 @@ library
                , bytestring             >= 0.10.4  && < 1
                , bzlib                  >= 0.4  && < 1
                , containers             >= 0.5
-               , data-stringmap         >= 1.0  && < 2
+               , data-stringmap         >= 1.0.1.1 && < 2
                , data-default
                , deepseq                >= 1.2
                , dlist
@@ -106,6 +106,7 @@ library
     Hunt.Index.IndexImpl
     Hunt.Index.PrefixTreeIndex
     Hunt.Index.ComprPrefixTreeIndex
+    Hunt.Index.ComprPrefixTreeIndex2Dim
     Hunt.Index.InvertedIndex
 
     Hunt.Index.Proxy.CompressedIndex
