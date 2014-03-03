@@ -76,6 +76,11 @@ main = do
   -- run query to check success
   res <- runAndMonitor hunt `withCmd` Search (QWord QNoCase "a") 0 3000
   showStats "index used with search and garbage collected"
+  
+  -- benchmark delete performance
+  res <- runAndMonitor hunt `withCmd` Sequence (map (\id -> Delete . T.pack $ "rnd://" ++ show id) [1..(length docs `div` 2)])
+  showStats "documents removed"
+
   l <- getLine
   return ()
 
