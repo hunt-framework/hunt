@@ -70,7 +70,8 @@ main = do
   showStats "contexts created"
 
   -- benchmark insert performance
-  res <- runAndMonitor hunt `withCmd` Sequence (map Insert docs)
+--  res <- runAndMonitor hunt `withCmd` Sequence (map Insert docs)
+  res <- runListAndMonitor hunt `withCmd` (map Insert docs)
   showStats "documents inserted"
 
   -- run query to check success
@@ -78,7 +79,8 @@ main = do
   showStats "index used with search and garbage collected"
   
   -- benchmark delete performance
-  res <- runAndMonitor hunt `withCmd` Sequence (map (\id -> Delete . T.pack $ "rnd://" ++ show id) [1..(length docs `div` 2)])
+--  res <- runAndMonitor hunt `withCmd` Sequence (map (\id -> Delete . T.pack $ "rnd://" ++ show id) [1..(length docs `div` 2)])
+  res <- runListAndMonitor hunt `withCmd` (map (\id -> Delete . T.pack $ "rnd://" ++ show id) [1..(length docs `div` 2)])
   showStats "documents removed"
 
   l <- getLine

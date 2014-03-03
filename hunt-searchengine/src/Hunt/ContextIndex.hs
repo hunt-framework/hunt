@@ -99,9 +99,8 @@ insertList :: (Par.MonadParallel m, DocTable dt)
 insertList docAndWrds (ContextIx ix dt s) = do
   -- insert to doctable and generate docId
   tables <- Par.mapM subInsert $ partitionListByLength 20 docAndWrds
-  (newDt, docIdsAndWrds) <- reduce tables
+  (newDt, docIdsAndWrds) <- reduce tables dt
   
-  -- insert to index
   newIx <- batchAddWordsM docIdsAndWrds ix
   return $! ContextIx newIx newDt s
 
@@ -111,13 +110,12 @@ insertList docAndWrds (ContextIx ix dt s) = do
                              return (dt', (dId, wrds):withIds)
                           ) (Dt.empty, []) ds
 
-  reduce tables = do 
+  reduce tables old = do 
      step <- Par.mapM (\((dt1, ws1),(dt2, ws2)) -> Dt.union dt1 dt2 >>= \dt -> return (dt, ws1 ++ ws2)) $ mkPairs tables
      case step of
-      []     -> return (Dt.empty, [])
-      [x]    -> return x
-      xs     -> reduce xs
-
+      []      -> return (Dt.empty, [])
+      [(d,w)] -> Dt.union old d >>= \n -> return (n, w)
+      xs      -> reduce xs old
 
   mkPairs []       = []
   mkPairs (a:[])   = [(a,(Dt.empty,[]))]
