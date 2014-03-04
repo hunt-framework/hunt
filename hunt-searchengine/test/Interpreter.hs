@@ -58,9 +58,10 @@ main = defaultMain
   -- date search specific tests
   , testCase "Interpreter: date context"               test_dates
 
-  -- postion search specifix tests
+  -- position search specific tests
   , testCase "Interpreter: geo context"                test_geo
   , testCase "Interpreter: geo context range"          test_geo2
+  , testCase "Interpreter: geo context range_a"        test_geo2a
   , testCase "Interpreter: geo context range2"         test_geo3
 
   -- test binary serialization
@@ -308,6 +309,16 @@ test_geo2 = testCM $ do
   Search (QContext ["geocontext"] (QRange "1-1" "80-80")) 0 10
     @@@ ((@?= ["test://2"]) . searchResultUris)
 
+test_geo2a :: Assertion
+test_geo2a = testCM $ do
+  -- create contexts
+  insertGeoContext       @@= ResOK
+  insertDefaultContext   @@= ResOK
+
+  Insert (geoDoc' "89.63-2.75") @@= ResOK
+
+  Search (QContext ["geocontext"] (QRange "9.40-2.25" "89.25-87.88")) 0 10
+    @@@ ((@?= []) . searchResultUris)
 
 test_geo3 :: Assertion
 test_geo3 = testCM $ do
@@ -397,7 +408,7 @@ prop_position_range x1' x2' x3' x4' (lon', lat') = monadicIO $ do
       _ <- execCmd' insertGeoContext
       _ <- execCmd' $ Insert $ geoDoc' $ toText p
       execCmd' $ Search (QContext ["geocontext"] (QRange (toText nw) (toText se))) 0 10
-    print $ (show [nw, se, p]) ++ (show $ searchResultUris $ fromRight res') ++ show isIn
+    -- print $ (show [nw, se, p]) ++ (show $ searchResultUris $ fromRight res') ++ show isIn
     return res'
   Test.QuickCheck.Monadic.assert $ isIn == (not $ null $ searchResultUris $ fromRight res)
   where
