@@ -82,6 +82,9 @@ instance Index (KeyProxyIndex toType impl) where
   map f (KPIx i)
     = mkKPIx $ Ix.map f i
 
+  mapMaybe f (KPIx i)
+    = mkKPIx $ Ix.mapMaybe f i
+
   keys (KPIx i)
     = P.map to $ keys i
 
@@ -129,6 +132,9 @@ instance Index (KeyProxyIndex toType (ComprOccIndex impl to)) where
 
   map f (KPIx i)
     = mkKPIx $ Ix.map f i
+
+  mapMaybe f (KPIx i)
+    = mkKPIx $ Ix.mapMaybe f i
 
   keys (KPIx i)
     = P.map to $ keys i

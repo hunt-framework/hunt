@@ -103,6 +103,9 @@ instance Index InvertedIndexInt where
   map f (InvIntIx i)
     = mkInvIntIx $ Ix.map f i
 
+  mapMaybe f (InvIntIx i)
+    = mkInvIntIx $ Ix.mapMaybe f i
+
   keys (InvIntIx i)
     = keys i
 
@@ -170,6 +173,9 @@ instance Index InvertedIndexDate where
   map f (InvDateIx i)
     = mkInvDateIx $ Ix.map f i
 
+  mapMaybe f (InvDateIx i)
+    = mkInvDateIx $ Ix.mapMaybe f i
+
   keys (InvDateIx i)
     = keys i
 
@@ -236,6 +242,9 @@ instance Index InvertedIndexPosition where
   map f (InvPosIx i)
     = mkInvPosIx $ Ix.map f i
 
+  mapMaybe f (InvPosIx i)
+    = mkInvPosIx $ Ix.mapMaybe f i
+
   keys (InvPosIx i)
     = keys i
 
@@ -298,6 +307,9 @@ instance Index InvertedIndex where
   map f (InvIx i)
     = mkInvIx $ Ix.map f i
 
+  mapMaybe f (InvIx i)
+    = mkInvIx $ Ix.mapMaybe f i
+
   keys (InvIx i)
     = keys i
 
@@ -358,6 +370,9 @@ instance Index InvertedIndex2Dim where
 
   map f (InvIx2D i)
     = mkInvIx2D $ Ix.map f i
+
+  mapMaybe f (InvIx2D i)
+    = mkInvIx2D $ Ix.mapMaybe f i
 
   keys (InvIx2D i)
     = keys i

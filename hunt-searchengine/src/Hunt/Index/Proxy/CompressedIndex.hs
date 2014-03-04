@@ -79,6 +79,9 @@ instance Index (ComprOccIndex impl to) where
   map f (ComprIx i)
       = mkComprIx $ Ix.map (compressOcc . f . decompressOcc) i
 
+  mapMaybe f (ComprIx i)
+      = mkComprIx $ Ix.mapMaybe (fmap compressOcc . f . decompressOcc) i
+
   keys (ComprIx i)
       = keys i
 

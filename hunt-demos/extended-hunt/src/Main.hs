@@ -149,7 +149,8 @@ instance Index IntMapIndex where
     = mkIntMapIx $ IM.union i (IM.fromList kos)
 
   deleteDocs ks (IntMapIndex i)
-    = mkIntMapIx $ IM.map (\m -> DM.diffWithSet m ks) i
+    = mkIntMapIx $ IM.mapMaybe (\m -> let dm = DM.diffWithSet m ks
+                                      in if DM.null dm then Nothing else Just dm) i
 
   empty
     = mkIntMapIx IM.empty

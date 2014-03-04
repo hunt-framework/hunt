@@ -72,6 +72,12 @@ class Monad m => IndexM m i where
   mapM         :: IConM i v
                => (IValM i v -> IValM i v)
                -> i v -> m (i v)
+  mapM f = mapMaybeM (Just . f)
+
+  -- TODO: non-rigid map
+  mapMaybeM    :: IConM i v
+               => (IValM i v -> Maybe (IValM i v))
+               -> i v -> m (i v)
 
   -- XXX: maybe less generic with just list?
   keysM        :: IConM i v
@@ -131,6 +137,11 @@ class Index i where
   map          :: ICon i v
                => (IVal i v -> IVal i v)
                -> i v -> i v
+  map f = mapMaybe (Just . f)
+
+  mapMaybe     :: ICon i v
+               => (IVal i v -> Maybe (IVal i v))
+               -> i v -> i v
 
   -- XXX: maybe less generic with just list?
   keys         :: ICon i v
@@ -155,4 +166,5 @@ instance (Index i, Monad m) => IndexM m i where
   unionWithM f i1 i2         = return $! unionWith f i1 i2
   unionWithConvM f1 f2 i1 i2 = return $! unionWithConv f1 f2 i1 i2
   mapM f i                   = return $! map f i
+  mapMaybeM f i              = return $! mapMaybe f i
   keysM i                    = return $! keys i

@@ -87,6 +87,10 @@ instance Index (CachedIndex impl) where
     = let (CachedIx c i') = flatten i
       in mkCachedIx c (Ix.map f i')
 
+  mapMaybe f i
+    = let (CachedIx c i') = flatten i
+      in mkCachedIx c (Ix.mapMaybe f i')
+
   keys (CachedIx _c i)
     = keys i
 

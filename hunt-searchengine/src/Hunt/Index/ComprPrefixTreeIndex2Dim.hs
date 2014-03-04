@@ -79,7 +79,8 @@ instance Index ComprOccPrefixTree where
 
   -- XXX: not the best solution, but is there really another solution?
   deleteDocs ks i
-    = Ix.map (\m -> DM.diffWithSet m ks) i
+    = Ix.mapMaybe (\m -> let dm = DM.diffWithSet m ks
+                         in if DM.null dm then Nothing else Just dm) i
 
   empty
     = mkComprPT $! SM.empty
@@ -115,6 +116,9 @@ instance Index ComprOccPrefixTree where
 
   map f (ComprPT i)
     = mkComprPT $! SM.map (compressOcc . f . decompressOcc) i
+
+  mapMaybe f (ComprPT i)
+    = mkComprPT $! SM.mapMaybe (fmap compressOcc . f . decompressOcc) i
 
   keys (ComprPT i)
     = SM.keys i

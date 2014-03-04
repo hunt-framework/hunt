@@ -46,7 +46,8 @@ instance Index DmPrefixTree where
     mkDmPT $ SM.union pt (SM.fromList kvs)
 
   deleteDocs ks (DmPT pt)
-    = mkDmPT $ SM.map (\m -> DM.diffWithSet m ks) pt
+    = mkDmPT $ SM.mapMaybe (\m -> let dm = DM.diffWithSet m ks
+                                  in if DM.null dm then Nothing else Just dm) pt
 
   empty
     = mkDmPT $ SM.empty
@@ -86,6 +87,9 @@ instance Index DmPrefixTree where
 
   map f (DmPT pt)
     = mkDmPT $ SM.map f pt
+
+  mapMaybe f (DmPT pt)
+    = mkDmPT $ SM.mapMaybe f pt
 
   keys (DmPT pt)
     = SM.keys pt
