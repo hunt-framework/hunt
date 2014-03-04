@@ -13,7 +13,6 @@ import qualified Prelude                           as P
 import           Control.Arrow
 import           Control.Monad
 import qualified Control.Monad.Parallel            as Par
-import           Control.Monad.Trans
 import           Control.Parallel.Strategies
 
 import           Data.Binary                       (Binary (..))
@@ -26,7 +25,6 @@ import           Data.Set                          (Set)
 import qualified Data.Set                          as S
 import           Data.Text                         (Text)
 import qualified Data.Traversable                  as TV
-import qualified Data.Foldable                     as F
 
 import           Hunt.DocTable.DocTable            (DocTable)
 import qualified Hunt.DocTable.DocTable            as Dt
@@ -41,7 +39,6 @@ import           Hunt.Index.IndexImpl              (IndexImpl)
 import qualified Hunt.Index.IndexImpl              as Impl
 
 import           Hunt.Utility
-import           System.Mem
 
 -- ----------------------------------------------------------------------------
 
@@ -91,21 +88,21 @@ insert doc wrds ix = insertList [(doc,wrds)] ix
 --   This is more efficient than using fold and 'insert'.
 insertList :: (Par.MonadParallel m, DocTable dt)
        => [(Dt.DValue dt, Words)] -> ContextIndex dt -> m (ContextIndex dt)
-insertList docAndWrds (ContextIx ix dt s) = do
+insertList docAndWrds (ContextIx ix docTable s) = do
   -- insert to doctable and generate docId
   tables <- Par.mapM subInsert $ partitionListByLength 20 docAndWrds
-  (newDt, docIdsAndWrds) <- reduce tables dt
-  
+  (newDt, docIdsAndWrds) <- reduce tables docTable
+
   newIx <- batchAddWordsM docIdsAndWrds ix
   return $! ContextIx newIx newDt s
 
   where
   subInsert ds = foldM (\(dt, withIds) (doc, wrds) -> do
-                             (dId, dt') <- Dt.insert doc dt 
+                             (dId, dt') <- Dt.insert doc dt
                              return (dt', (dId, wrds):withIds)
                           ) (Dt.empty, []) ds
 
-  reduce tables old = do 
+  reduce tables old = do
      step <- Par.mapM (\((dt1, ws1),(dt2, ws2)) -> Dt.union dt1 dt2 >>= \dt -> return (dt, ws1 ++ ws2)) $ mkPairs tables
      case step of
       []      -> return (Dt.empty, [])
@@ -179,12 +176,12 @@ modifyWithDescription descr wrds dId (ContextIx ii dt s) = do
 
 
 addWordsM :: Par.MonadParallel m => Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
-addWordsM wrds dId _i@(ContextMap m)
+addWordsM wrds dId (ContextMap m)
   = mapWithKeyMP (\cx impl -> foldInsert cx impl wrds dId) m >>= return . mkContextMap
   where
   foldInsert :: Monad m => Context -> IndexImpl Occurrences -> Words -> DocId -> m (IndexImpl Occurrences)
   foldInsert cx (Impl.IndexImpl impl) ws docId
-    = Ix.insertListM (contentForCx cx [(dId,wrds)]) impl >>= return . Impl.mkIndex
+    = Ix.insertListM (contentForCx cx [(docId,ws)]) impl >>= return . Impl.mkIndex
 
 -- | Add words for a document to the 'Index'.
 --   /NOTE/: adds words to /existing/ 'Context's.
@@ -203,7 +200,7 @@ contentForCx cx vs = (concat . map ((\(did, wl) -> map (second (mkOccs did)) $ M
 -- | Add words for a document to the 'Index'.
 --   /NOTE/: adds words to /existing/ 'Context's.
 batchAddWords :: [(DocId, Words)] -> ContextMap Occurrences -> ContextMap Occurrences
-batchAddWords vs _i@(ContextMap m)
+batchAddWords vs (ContextMap m)
   = mkContextMap $ M.fromList $ parMap rpar (\(cx,impl) -> (cx,foldinsertList cx impl)) (M.toList m)
   where
   foldinsertList :: Context -> IndexImpl Occurrences-> IndexImpl Occurrences

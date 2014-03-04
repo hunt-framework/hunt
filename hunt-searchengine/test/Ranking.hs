@@ -38,7 +38,7 @@ main = defaultMain
 
 testRunCmd :: Command -> IO (Either CmdError CmdResult, TestEnv)
 testRunCmd cmd = do
-  env <- getHunt (def :: DefaultHunt) 
+  env <- getHunt (def :: DefaultHunt)
   res <- runCmd env cmd
   return (res, env)
 

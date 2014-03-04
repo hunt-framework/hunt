@@ -56,8 +56,8 @@ instance Index ComprOccPrefixTree where
 
   -- FIXME: this is ugly
   -- a simple fromList does not work because there can be duplicates that need to be merged...
-  insertList kos i1
-    = unionWithConv compressOcc (\a b -> compressOcc (Occ.merge (decompressOcc a) b)) i1 ixs
+  insertList kos i
+    = unionWithConv compressOcc (\a b -> compressOcc (Occ.merge (decompressOcc a) b)) i ixs
     where
 --    ixs = F.foldr' (unionWith Occ.merge) empty $ P.map (fromList . (:[])) kos
 

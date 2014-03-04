@@ -35,10 +35,10 @@ main = do
   hunt <- getHunt (def :: DefaultHunt)
           >>= \e -> return e { evCxTypes = cRealInt:(evCxTypes e)}
 
-  runCmd hunt $ InsertContext "number" def { cxType = cRealInt } 
+  runCmd hunt $ InsertContext "number" def { cxType = cRealInt }
 
-  runCmd hunt $ Insert 
-              $ ApiDocument 
+  runCmd hunt $ Insert
+              $ ApiDocument
               { apiDocUri      = "id://1"
               , apiDocIndexMap = M.fromList [("number", "index only 3 numbers 44")]
               , apiDocDescrMap = M.empty
@@ -64,7 +64,7 @@ cRealInt = CType
   { ctName     = "realInt"
   , ctRegEx    = "([-]?[0-9]*)"
   , ctValidate = CValidator $ isInt
-  , ctIxImpl   = mkIndex (Ix.empty :: IntIndex Occurrences)  
+  , ctIxImpl   = mkIndex (Ix.empty :: IntIndex Occurrences)
   }
 
 instance Bijection Int Text where
@@ -129,7 +129,7 @@ instance Index IntIndex where
 -- implementing the index typeclass for general intmap index
 --
 
-newtype IntMapIndex v 
+newtype IntMapIndex v
   = IntMapIndex { imIx :: IntMap v }
   deriving (Show, Eq, NFData, Typeable)
 
@@ -145,24 +145,24 @@ instance Index IntMapIndex where
   type IVal IntMapIndex v = Occurrences
   type ICon IntMapIndex v = (NFData v, Occurrences ~ v)
 
-  insertList kos (IntMapIndex i) 
-    = mkIntMapIx $ IM.union i (IM.fromList kos)   
+  insertList kos (IntMapIndex i)
+    = mkIntMapIx $ IM.union i (IM.fromList kos)
 
   deleteDocs ks (IntMapIndex i)
     = mkIntMapIx $ IM.map (\m -> DM.diffWithSet m ks) i
 
-  empty 
+  empty
     = mkIntMapIx IM.empty
 
   fromList l
     = mkIntMapIx $ IM.fromList l
-  
+
   toList (IntMapIndex i)
     = IM.toList i
 
   search _ k (IntMapIndex i)
     = case IM.lookup k i of
-        (Just res) -> [(k, res)] 
+        (Just res) -> [(k, res)]
         _          -> []
 
   lookupRange k1 k2 (IntMapIndex i)
@@ -171,7 +171,7 @@ instance Index IntMapIndex where
   unionWith f (IntMapIndex i1) (IntMapIndex i2)
     = mkIntMapIx $ IM.unionWith f i1 i2
 
-  unionWithConv 
+  unionWithConv
     = error "not yet implemented"
 
   map f (IntMapIndex i)
