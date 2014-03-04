@@ -21,7 +21,6 @@ import           Prelude                             as P
 
 import           Data.Binary                         (Binary (..))
 
-import           Hunt.Index.Index
 import           Hunt.Index.Index                    as Ix
 
 -- ----------------------------------------------------------------------------
@@ -60,7 +59,12 @@ instance Index (CachedIndex impl) where
     = mkCachedIx c (insertList kvs i)
 
   deleteDocs ks (CachedIx c i)
-    = mkCachedIx (IS.union c ks) i
+    = if IS.size newSet > 100 -- merge/apply when cache size > 100
+      then flatten newIx
+      else newIx
+    where
+    newIx  = mkCachedIx newSet i
+    newSet = IS.union c ks
 
   empty
     = mkCachedIx IS.empty empty
@@ -82,7 +86,7 @@ instance Index (CachedIndex impl) where
       = mkCachedIx (IS.union c1 c2) (unionWith op i1 i2)
 
   unionWithConv to f (CachedIx c1 i1) (CachedIx c2 i2)
-      = (mkCachedIx (IS.union c1 c2)) $ unionWithConv to f i1 i2
+      = mkCachedIx (IS.union c1 c2) (unionWithConv to f i1 i2)
 
   map f i
     = let (CachedIx c i') = flatten i
@@ -101,5 +105,5 @@ filterResult :: OccCompression v => IS.IntSet -> [(d, v)] -> [(d, v)]
 filterResult c = P.map (second (deleteIds c))
   where deleteIds = differenceWithKeySet
 
-flatten :: (ICon impl v, Index impl) => CachedIndex impl v -> (CachedIndex impl v)
-flatten (CachedIx c i) = (mkCachedIx IS.empty) $ (deleteDocs c i)
+flatten :: (ICon impl v, Index impl) => CachedIndex impl v -> CachedIndex impl v
+flatten (CachedIx c i) = mkCachedIx IS.empty $ deleteDocs c i
