@@ -51,8 +51,8 @@ instance Bijection UnInt Text where
   from = UnInt . Int.normalizeToText
 
 instance Bijection Text UnInt where
-  to   = UnInt . Int.normalizeToText
-  from = Int.denormalizeFromText . unInt
+  to   = UnInt
+  from = unInt
 
 newtype InvertedIndexInt v
   = InvIntIx { invIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt InvertedIndex) v }
@@ -118,8 +118,8 @@ instance Bijection UnDate Text where
   from = UnDate . Date.normalize
 
 instance Bijection Text UnDate where
-  to   = UnDate . Date.normalize
-  from = Date.denormalize . unDate
+  to   = UnDate
+  from = unDate
 
 newtype InvertedIndexDate v
   = InvDateIx { invDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate InvertedIndex) v }
@@ -184,8 +184,8 @@ instance Bijection UnPos Text where
   from = UnPos . Pos.normalize
 
 instance Bijection Text UnPos where
-  to   = UnPos . Pos.normalize
-  from = Pos.denormalize . unPos
+  to   = UnPos
+  from = unPos
 
 newtype InvertedIndexPosition v
   = InvPosIx { invPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex2Dim) v }
@@ -350,7 +350,7 @@ instance Index InvertedIndex2Dim where
     = mkInvIx2D $ unionWith op i1 i2
 
   unionWithConv
-    = error "InvertedIndex unionWithConv: cannot be used there because type variable v is fixed"
+    = error "InvertedIndex2Dim unionWithConv: cannot be used there because type variable v is fixed"
 {-
   unionWithConv to f (InvIx2D i1) (InvIx2D i2)
     = mkInvIx2D $ unionWithConv to f i1 i2
