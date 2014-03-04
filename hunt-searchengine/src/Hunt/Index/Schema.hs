@@ -126,7 +126,7 @@ ctDate = CType
 ctPosition :: ContextType
 ctPosition = CType
   { ctName     = "position"
-  , ctRegEx    = "-?(90(\\.0*)?|[1-7]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?"
+  , ctRegEx    = "-?(90(\\.0*)?|[1-8]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?"
   , ctValidate = CValidator $ Pos.isPosition
   , ctIxImpl   = positionInv
   }
