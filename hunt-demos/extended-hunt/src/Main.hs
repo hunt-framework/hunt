@@ -72,10 +72,10 @@ instance Bijection Int Text where
   to = T.pack . show
 
 newtype IntIndex _v
-  = IntIx { intIx :: KeyProxyIndex Text IntMapIndex Occurrences }
+  = IntIx { intIx :: KeyProxyIndex Text IntMap Occurrences }
   deriving (Eq, Show, NFData, Typeable)
 
-mkIntIx :: KeyProxyIndex Text IntMapIndex Occurrences
+mkIntIx :: KeyProxyIndex Text IntMap Occurrences
         -> IntIndex _v
 mkIntIx x = IntIx $! x
 
@@ -128,55 +128,43 @@ instance Index IntIndex where
 
 -- implementing the index typeclass for general intmap index
 --
+instance Index IntMap where
+  type IKey IntMap v = Int
+  type IVal IntMap v = Occurrences
+  type ICon IntMap v = (NFData v, Occurrences ~ v)
 
-newtype IntMapIndex v
-  = IntMapIndex { imIx :: IntMap v }
-  deriving (Show, Eq, NFData, Typeable)
+  insertList kos i
+    = IM.union i (IM.fromList kos)
 
-mkIntMapIx :: NFData v => IntMap v -> IntMapIndex v
-mkIntMapIx im = IntMapIndex $! im
-
-instance (NFData v, Binary v) => Binary (IntMapIndex v) where
-  put (IntMapIndex i) = put i
-  get = get >>= return . mkIntMapIx
-
-instance Index IntMapIndex where
-  type IKey IntMapIndex v = Int
-  type IVal IntMapIndex v = Occurrences
-  type ICon IntMapIndex v = (NFData v, Occurrences ~ v)
-
-  insertList kos (IntMapIndex i)
-    = mkIntMapIx $ IM.union i (IM.fromList kos)
-
-  deleteDocs ks (IntMapIndex i)
-    = mkIntMapIx $ IM.mapMaybe (\m -> let dm = DM.diffWithSet m ks
-                                      in if DM.null dm then Nothing else Just dm) i
+  deleteDocs ks i
+    = IM.mapMaybe (\m -> let dm = DM.diffWithSet m ks
+                         in if DM.null dm then Nothing else Just dm) i
 
   empty
-    = mkIntMapIx IM.empty
+    = IM.empty
 
   fromList l
-    = mkIntMapIx $ IM.fromList l
+    = IM.fromList l
 
-  toList (IntMapIndex i)
+  toList i
     = IM.toList i
 
-  search _ k (IntMapIndex i)
+  search _ k i
     = case IM.lookup k i of
         (Just res) -> [(k, res)]
         _          -> []
 
-  lookupRange k1 k2 (IntMapIndex i)
+  lookupRange k1 k2 i
     = IM.toList $ IM.filterWithKey (\k _ -> k >= k1 &&k <= k2) i
 
-  unionWith f (IntMapIndex i1) (IntMapIndex i2)
-    = mkIntMapIx $ IM.unionWith f i1 i2
+  unionWith f i1 i2 
+    = IM.unionWith f i1 i2
 
   unionWithConv
     = error "not yet implemented"
 
-  map f (IntMapIndex i)
-    = mkIntMapIx $ IM.map f i
+  map f i
+    = IM.map f i
 
-  keys (IntMapIndex i)
+  keys i
     = IM.keys i
