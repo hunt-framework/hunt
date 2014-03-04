@@ -5,23 +5,24 @@
 module Hunt.Index.Proxy.CachedIndex
 where
 
-import qualified Prelude              as P
+import qualified Prelude                             as P
 
-import           Control.Applicative  hiding (empty)
-import           Control.Arrow        (second)
+import           Control.Applicative                 hiding (empty)
+import           Control.Arrow
 import           Control.DeepSeq
 import           Control.Monad
 
-import qualified Data.IntSet          as IS
+import qualified Data.IntSet                         as IS
 
-import           Hunt.Common.DocIdMap (DocIdMap, DocIdSet)
-import qualified Hunt.Common.DocIdMap as DM
+import           Hunt.Common.DocIdMap                (DocIdSet)
+--import qualified Hunt.Common.DocIdMap                as DM
+import           Hunt.Common.Occurrences.Compression
+import           Prelude                             as P
+
+import           Data.Binary                         (Binary (..))
+
 import           Hunt.Index.Index
-import           Prelude              as P
-
-import           Data.Binary          (Binary (..))
-
-import           Hunt.Index.Index     as Ix
+import           Hunt.Index.Index                    as Ix
 
 -- ----------------------------------------------------------------------------
 
@@ -47,12 +48,12 @@ instance Binary (impl v) => Binary (CachedIndex impl v) where
 -- ----------------------------------------------------------------------------
 
 instance Index (CachedIndex impl) where
-  type IKey      (CachedIndex impl) v = IKey      impl v
-  type IVal      (CachedIndex impl) v = IVal      impl v
-  type ICon      (CachedIndex impl) v
+  type IKey (CachedIndex impl) v = IKey impl v
+  type IVal (CachedIndex impl) v = IVal impl v
+  type ICon (CachedIndex impl) v
     = ( Index impl
       , ICon impl v
-      , IVal impl v ~ DocIdMap v
+      , OccCompression (IVal impl v)
       )
 
   insertList kvs (CachedIx c i)
@@ -96,9 +97,9 @@ instance Index (CachedIndex impl) where
 
 -- ----------------------------------------------------------------------------
 
-filterResult :: IS.IntSet -> [(d, DocIdMap v)] -> [(d, DocIdMap v)]
-filterResult c = P.map (second (flip deleteIds c))
-  where deleteIds = IS.foldr DM.delete
+filterResult :: OccCompression v => IS.IntSet -> [(d, v)] -> [(d, v)]
+filterResult c = P.map (second (deleteIds c))
+  where deleteIds = differenceWithKeySet
 
 flatten :: (ICon impl v, Index impl) => CachedIndex impl v -> (CachedIndex impl v)
 flatten (CachedIx c i) = (mkCachedIx IS.empty) $ (deleteDocs c i)
