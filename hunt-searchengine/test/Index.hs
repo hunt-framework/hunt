@@ -4,7 +4,7 @@
 
 module Main where
 
-import qualified Data.Map                         as M
+import qualified Data.Map                                    as M
 import           Data.Monoid
 
 import           Test.Framework
@@ -14,16 +14,17 @@ import           Test.HUnit
 --import          Test.QuickCheck
 
 import           Hunt.Common
-import           Hunt.Common.Occurrences          (merge, singleton)
+import qualified Hunt.Common.DocIdMap                        as DM
+import           Hunt.Common.Occurrences                     (merge, singleton)
 import           Hunt.Common.Occurrences.Compression.Simple9
 
-import qualified Hunt.Index.Index                 as Ix
-import qualified Hunt.Index.InvertedIndex         as InvIx
-import qualified Hunt.Index.PrefixTreeIndex       as PIx
-import qualified Hunt.Index.Proxy.CompressedIndex as CPIx
+import           Hunt.ContextIndex                           (addWordsM)
+import qualified Hunt.ContextIndex                           as ConIx
+import qualified Hunt.Index.Index                            as Ix
 import           Hunt.Index.IndexImpl
-import           Hunt.ContextIndex                (addWordsM)
-import qualified Hunt.ContextIndex                as ConIx
+import qualified Hunt.Index.InvertedIndex                    as InvIx
+import qualified Hunt.Index.PrefixTreeIndex                  as PIx
+import qualified Hunt.Index.Proxy.CompressedIndex            as CPIx
 
 -- ----------------------------------------------------------------------------
 
@@ -31,6 +32,7 @@ main :: IO ()
 main = defaultMainWithOpts
   [ testCase "DmPrefixTree:            insert"        insertTestPIx
   , testCase "InvertedIndex:           insert"        insertTestInvIx
+  , testCase "InvertedIndex:           deleteDocs"    deleteDocsTestInvIx
   , testCase "InvertedIndex:           merge"         mergeTestInvIx
   , testCase "ComprOccPrefixTree:      insert"        insertTestCPIx
   , testCase "ContextMap Inverted:     insert"        insertTestContextIx
@@ -81,6 +83,22 @@ insertTestInvIx = do
             (Ix.empty::(InvIx.InvertedIndex Occurrences)) -- the Occurrences type is a dummy in this case
             "test" (singleton 1 1)
   True @?= result
+
+-- | check deleteDocs with InvertedIndex
+deleteDocsTestInvIx :: Assertion
+deleteDocsTestInvIx = do
+  let occ = (singleton 1 1)
+  ix <- Ix.insertM "test" occ (Ix.empty::(InvIx.InvertedIndex Occurrences)) -- the Occurrences type is a dummy in this case
+  [(_,nv)] <- Ix.searchM PrefixNoCase "test" ix
+  nv @?= occ
+  let delNot = DM.toDocIdSet [2]
+  ix' <- Ix.deleteDocsM delNot ix
+  [(_,nv')] <- Ix.searchM PrefixNoCase "test" ix'
+  nv' @?= occ
+  let delReal = DM.toDocIdSet [1]
+  ix'' <- Ix.deleteDocsM delReal ix'
+  result <- Ix.searchM PrefixNoCase "test" ix''
+  result @?= []
 
 -- | test merging of occurrences in InvertedIndex
 mergeTestInvIx :: Assertion
