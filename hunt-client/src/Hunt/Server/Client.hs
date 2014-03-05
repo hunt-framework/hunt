@@ -68,7 +68,7 @@ import           Control.Failure (Failure)
 import qualified Hunt.Common.ApiDocument as H
 import qualified Hunt.Index.Schema.Normalize.Position as H
 import qualified Hunt.Interpreter.Command as H (Command(..), CmdResult (..))
-import qualified Hunt.Index.Schema as H (CRegex, CNormalizer, CWeight, ContextSchema (..), ContextType (..), ctEmpty)
+import qualified Hunt.Index.Schema as H (CRegex, CNormalizer, CWeight, ContextSchema (..), ContextType (..))
 import           Hunt.Common.BasicTypes
 
 
@@ -247,7 +247,7 @@ descriptionToCmd d = H.InsertContext {H.icICon = cxName d, H.icSchema = schema}
             H.cxDefault = cxDefault d,
             H.cxType = contextType
         }
-        contextType = H.ctEmpty { H.ctName = name $ cxType d }
+        contextType = def { H.ctName = name $ cxType d }
         name TextContext = "text"
         name DateContext = "date"
         name PositionContext = "position"
