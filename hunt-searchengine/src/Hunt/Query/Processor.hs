@@ -8,7 +8,7 @@
 
 module Hunt.Query.Processor
 ( processQuery
-, processQueryDocIds , initEnv
+, processQueryDocIds , initProcessor
 
 , ProcessConfig (..)
 , ProcessEnv
@@ -119,7 +119,6 @@ instance MonadTrans ProcessorT where
 
 type Processor = ProcessorT IO
 
-
 -- ----------------------------------------------------------------------------
 -- | helper
 -- ----------------------------------------------------------------------------
@@ -135,9 +134,6 @@ unless' b code text = unless b $ processError code text
 
 getContexts ::   Processor [Context]
 getContexts = ask >>= return . psContexts
-
---getConfig ::   Processor ProcessConfig
---getConfig = get >>= return . psConfig
 
 getFuzzyConfig ::   Processor FuzzyConfig
 getFuzzyConfig = ask >>= return . fuzzyConfig . psConfig
@@ -181,8 +177,8 @@ normQueryCxs ::   [Context] -> Text -> Processor [(Context, Text)]
 normQueryCxs cs t  = mapM (\c -> normQueryCx c t >>= \nt -> return (c, nt)) cs
 
 -- | Initialize the state of the processor.
-initEnv :: ProcessConfig -> QueryIndex -> Schema -> ProcessEnv
-initEnv cfg ix s
+initProcessor :: ProcessConfig -> QueryIndex -> Schema -> ProcessEnv
+initProcessor cfg ix s
   = ProcessEnv cfg cxs ix s
   where -- XXX: kind of inefficient
   cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault) $ CIx.contexts' ix

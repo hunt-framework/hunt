@@ -7,7 +7,6 @@ module Hunt.Server {-(start)-} where
 import           Control.Monad.Error
 import           Data.String                          (fromString)
 
-import           Data.Default                         (def)
 import           Data.Text                            (Text)
 
 import qualified Network.Wai.Handler.Warp             as W
@@ -98,7 +97,7 @@ start config = do
   debugM "Application start"
 
   -- init interpreter
-  env <- getHunt $ (def :: DefaultHunt)
+  env <- (initHunt :: IO DefHuntEnv)
 
   case readIndexOnStartup config of
     Just filename -> do

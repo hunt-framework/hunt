@@ -6,21 +6,15 @@
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-
 module Hunt.Interpreter.Interpreter
-( initEnv
+( initHunt
 , runCmd
-, runCM
+, runHunt
 , execCmd
-, Hunt (..)
-, DefaultHunt
-, CM
-, CMT (..)
-, contextTypes
-, normalizers
-, queryConfig
-, emptyIndexer
-, Env (..)
+, Hunt
+, HuntT (..)
+, HuntEnv (..)
+, DefHuntEnv
 )
 where
 
@@ -41,7 +35,6 @@ import qualified Data.Set                                as S
 import           Data.Text                               (Text)
 import qualified Data.Text                               as T
 import qualified Data.Traversable                        as TV
-import           Data.Default
 
 import           Hunt.Common
 import           Hunt.Common.ApiDocument                 as ApiDoc
@@ -49,25 +42,19 @@ import qualified Hunt.Common.DocIdMap                    as DM
 import           Hunt.Common.Document                    (DocumentWrapper,
                                                           unwrap)
 import           Hunt.Common.Document.Compression.BZip   (CompressedDoc)
---import           Hunt.Common.Document.Compression.Snappy (CompressedDoc)
 
 import qualified Hunt.Index.Index                        as Ix
 import           Hunt.Index.Schema.Analyze
 
-import           Hunt.ContextIndex                       (ContextIndex (..),
-                                                          decodeCxIx)
+import           Hunt.ContextIndex                       (ContextIndex (..), decodeCxIx)
 import qualified Hunt.ContextIndex                       as Ixx
 
-import           Hunt.Index.IndexImpl                    (IndexImpl (..),
-                                                          mkIndex)
+import           Hunt.Index.IndexImpl                    (IndexImpl (..), mkIndex)
 import qualified Hunt.Index.IndexImpl                    as Impl
---import           Hunt.Index.Proxy.ContextIndex           (ContextIndex)
---import qualified Hunt.Index.Proxy.ContextIndex           as CIx
 
 import           Hunt.Query.Fuzzy
 import           Hunt.Query.Language.Grammar
---import           Hunt.Query.Language.Parser
-import           Hunt.Query.Processor                    hiding (initEnv)
+import           Hunt.Query.Processor
 import qualified Hunt.Query.Processor                    as QProc
 import           Hunt.Query.Ranking
 import           Hunt.Query.Result                       as QRes
@@ -91,7 +78,7 @@ import           GHC.Stats.Json                          ()
 --
 -- the semantic domains (datatypes for interpretation)
 --
--- Env, Index, ...
+-- HuntEnv, Index, ...
 
 -- ----------------------------------------------------------------------------
 --
@@ -128,9 +115,6 @@ debugContext c ws = debugM $ concat ["insert in ", T.unpack c, show . M.toList $
 
 -- ----------------------------------------------------------------------------
 
-emptyIndexer :: ContextIndex (Documents CompressedDoc)
-emptyIndexer = ContextIx Ixx.empty Dt.empty M.empty
-
 contextTypes :: ContextTypes
 contextTypes = [ctText, ctInt, ctDate, ctPosition]
 
@@ -140,70 +124,63 @@ normalizers = [cnUpperCase, cnLowerCase, cnZeroFill]
 queryConfig     :: ProcessConfig
 queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
--- XXX: not limited because deletebyquery should wipe everything
--- XXX: how to handle this with interpreter env?!?
-queryConfigDocIds :: ProcessConfig
-queryConfigDocIds = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 0 0
-
 -- ----------------------------------------------------------------------------
 --
-data Env dt = Env
-  { evIndexer     :: DocTable dt => XMVar (ContextIndex dt)
-  , evRanking     :: RankConfig (Dt.DValue dt)
-  , evCxTypes     :: ContextTypes
-  , evNormalizers :: [CNormalizer]
-  , evQueryConfig :: ProcessConfig
+data HuntEnv dt = HuntEnv
+  { huntIndex       :: DocTable dt => XMVar (ContextIndex dt)
+  , huntRankingCfg  :: RankConfig (Dt.DValue dt)
+  , huntTypes       :: ContextTypes
+  , huntNormalizers :: [CNormalizer]
+  , huntQueryCfg    :: ProcessConfig
   }
 
-type DefaultHunt = Hunt (Documents CompressedDoc)
+type DefHuntEnv = HuntEnv (Documents CompressedDoc)
 
-data Hunt dt = Hunt { getHunt :: DocTable dt => IO (Env dt) }
+initHunt :: DocTable dt => IO (HuntEnv dt)
+initHunt = initHuntEnv (ContextIx Ixx.empty Dt.empty M.empty) defaultRankConfig contextTypes normalizers queryConfig
 
-instance (DocTable dt) => Default (Hunt dt) where
-  def = Hunt $ initEnv (ContextIx Ixx.empty Dt.empty M.empty) defaultRankConfig contextTypes normalizers queryConfig
-
-initEnv :: DocTable dt
+initHuntEnv :: DocTable dt
            => ContextIndex dt
            -> RankConfig (Dt.DValue dt)
            -> ContextTypes
            -> [CNormalizer]
            -> ProcessConfig
-           -> IO (Env dt)
-initEnv ixx rnk opt ns qc = do
+           -> IO (HuntEnv dt)
+initHuntEnv ixx rnk opt ns qc = do
   ixref <- newXMVar ixx
-  return $ Env ixref rnk opt ns qc
+  return $ HuntEnv ixref rnk opt ns qc
 
 -- ----------------------------------------------------------------------------
 -- the command evaluation monad
 -- ----------------------------------------------------------------------------
-newtype CMT dt m a
-  = CMT { runCMT :: ReaderT (Env dt) (ErrorT CmdError m) a }
-  deriving (Applicative, Monad, MonadIO, Functor, MonadReader (Env dt), MonadError CmdError)
+newtype HuntT dt m a
+  = HuntT { runHuntT :: ReaderT (HuntEnv dt) (ErrorT CmdError m) a }
+  deriving (Applicative, Monad, MonadIO, Functor, MonadReader (HuntEnv dt), MonadError CmdError)
 
-instance MonadTrans (CMT dt) where
-  lift = CMT . lift . lift
+instance MonadTrans (HuntT dt) where
+  lift = HuntT . lift . lift
 
-type CM dt = CMT dt IO
+type Hunt dt = HuntT dt IO
 
 -- ----------------------------------------------------------------------------
 
-runCM :: DocTable dt => CMT dt m a -> Env dt -> m (Either CmdError a)
-runCM env = runErrorT . runReaderT (runCMT env)
+runHunt :: DocTable dt => HuntT dt m a -> HuntEnv dt -> m (Either CmdError a)
+runHunt env = runErrorT . runReaderT (runHuntT env)
 
-runCmd :: (DocTable dt, Bin.Binary dt) => Env dt -> Command -> IO (Either CmdError CmdResult)
+runCmd :: (DocTable dt, Bin.Binary dt) => HuntEnv dt -> Command -> IO (Either CmdError CmdResult)
 runCmd env cmd
-  = runErrorT . runReaderT (runCMT . execCommand $ cmd) $ env
+  = runErrorT . runReaderT (runHuntT . execCommand $ cmd) $ env
 
-askIx :: DocTable dt => CM dt (ContextIndex dt)
+askIx :: DocTable dt => Hunt dt (ContextIndex dt)
 askIx = do
-  ref <- asks evIndexer
+  ref <- asks huntIndex
   liftIO $ readXMVar ref
 
 -- FIXME: io exception-safe?
 modIx :: DocTable dt
-      => (ContextIndex dt-> CM dt (ContextIndex dt, a)) -> CM dt a
+      => (ContextIndex dt-> Hunt dt (ContextIndex dt, a)) -> Hunt dt a
 modIx f = do
-  ref <- asks evIndexer
+  ref <- asks huntIndex
   ix <- liftIO $ takeXMVarWrite ref
   (i',a) <- f ix `catchError` putBack ref ix
   liftIO $ putXMVarWrite ref i'
@@ -213,49 +190,32 @@ modIx f = do
     liftIO $ putXMVarWrite ref i
     throwError e
 
---modIx_ :: DocTable dt => (ContextIndex dt -> CM dt (ContextIndex dt)) -> CM dt ()
---modIx_ f = modIx f'
---    where f' i = f i >>= \r -> return (r, ())
-
-withIx :: DocTable dt => (ContextIndex dt -> CM dt a) -> CM dt a
+withIx :: DocTable dt => (ContextIndex dt -> Hunt dt a) -> Hunt dt a
 withIx f
   = askIx >>= f
 
-askTypes :: DocTable dt => CM dt ContextTypes
-askTypes
-  = asks evCxTypes
-
-askType :: DocTable dt => Text -> CM dt ContextType
+askType :: DocTable dt => Text -> Hunt dt ContextType
 askType cn = do
-  ts <- askTypes
+  ts <- asks huntTypes
   case L.find (\t -> cn == ctName t) ts of
     Just t -> return t
     _      -> throwResError 410 ("used unavailable context type: " `T.append` cn)
 
-askNormalizer :: DocTable dt => Text -> CM dt CNormalizer
+askNormalizer :: DocTable dt => Text -> Hunt dt CNormalizer
 askNormalizer cn = do
-  ts <- asks evNormalizers
+  ts <- asks huntNormalizers
   case L.find (\t -> cn == cnName t) ts of
     Just t -> return t
     _      -> throwResError 410 ("used unavailable normalizer: " `T.append` cn)
 
-askIndex :: DocTable dt => Text -> CM dt (Impl.IndexImpl Occurrences)
+askIndex :: DocTable dt => Text -> Hunt dt (Impl.IndexImpl Occurrences)
 askIndex cn = askType cn >>= return . ctIxImpl
 
-askQueryConfig :: DocTable dt => CM dt ProcessConfig
-askQueryConfig
-  = asks evQueryConfig
-
-askRanking :: DocTable dt => CM dt (RankConfig (Dt.DValue dt))
-askRanking
-  = asks evRanking
-
--- TODO: meh
-askContextsWeights :: DocTable dt => CM dt(M.Map Context CWeight)
+askContextsWeights :: DocTable dt => Hunt dt(M.Map Context CWeight)
 askContextsWeights
   = withIx (\(ContextIx _ _ schema) -> return $ M.map cxWeight schema)
 
-throwResError :: DocTable dt => Int -> Text -> CM dt a
+throwResError :: DocTable dt => Int -> Text -> Hunt dt a
 throwResError n msg
   = throwError $ ResError n msg
 
@@ -264,12 +224,12 @@ descending = flip compare
 
 -- ----------------------------------------------------------------------------
 
-execCommand :: (Bin.Binary dt, DocTable dt) => Command -> CM dt CmdResult
+execCommand :: (Bin.Binary dt, DocTable dt) => Command -> Hunt dt CmdResult
 execCommand
   = execCmd . toBasicCommand
 
 -- XXX: kind of obsolete now
-execCmd :: (Bin.Binary dt, DocTable dt) => BasicCommand -> CM dt CmdResult
+execCmd :: (Bin.Binary dt, DocTable dt) => BasicCommand -> Hunt dt CmdResult
 execCmd cmd@(InsertList _) = do
   liftIO $ debugM $ "Exec: InsertList [..]"
   execCmd' cmd
@@ -278,7 +238,7 @@ execCmd cmd = do
   execCmd' cmd
 
 
-execCmd' :: (Bin.Binary dt, DocTable dt) => BasicCommand -> CM dt CmdResult
+execCmd' :: (Bin.Binary dt, DocTable dt) => BasicCommand -> Hunt dt CmdResult
 execCmd' (Search q offset mx)
   = withIx $ execSearch' (wrapSearch offset mx) q
 
@@ -320,7 +280,7 @@ execCmd' (DeleteContext cx)
 
 -- ----------------------------------------------------------------------------
 
-execSequence :: (DocTable dt, Bin.Binary dt)=> [BasicCommand] -> CM dt CmdResult
+execSequence :: (DocTable dt, Bin.Binary dt)=> [BasicCommand] -> Hunt dt CmdResult
 execSequence []       = execCmd NOOP
 execSequence [c]      = execCmd c
 execSequence (c : cs) = execCmd c >> execSequence cs
@@ -329,7 +289,7 @@ execInsertContext :: DocTable dt
                   => Context
                   -> ContextSchema
                   -> ContextIndex dt
-                  -> CM dt (ContextIndex dt, CmdResult)
+                  -> Hunt dt (ContextIndex dt, CmdResult)
 execInsertContext cx ct ixx@(ContextIx ix dt s)
   = do
     -- check if context already exists
@@ -359,31 +319,15 @@ execInsertContext cx ct ixx@(ContextIx ix dt s)
 execDeleteContext :: DocTable dt
                   => Context
                   -> ContextIndex dt
-                  -> CM dt(ContextIndex dt, CmdResult)
+                  -> Hunt dt(ContextIndex dt, CmdResult)
 execDeleteContext cx (ContextIx ix dt s)
   = return (ContextIx (Ixx.deleteContext cx ix) dt (M.delete cx s), ResOK)
-
-{-
--- | Inserts an 'ApiDocument' into the index.
--- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
--- Documents/URIs must not exist.
-execInsert :: DocTable dt
-           => ApiDocument -> ContextIndex dt -> CM dt (ContextIndex dt, CmdResult)
-execInsert doc ixx@(ContextIx _ix _dt schema) = do
-    let contexts = M.keys $ apiDocIndexMap doc
-    checkContextsExistence contexts ixx
-    -- apidoc should not exist
-    checkApiDocExistence False doc ixx
-    let (docs, ws) = toDocAndWords schema doc
-    ixx' <- lift $ Ixx.insert docs ws ixx
-    return (ixx', ResOK)
--}
 
 -- | Inserts an 'ApiDocument' into the index.
 -- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs must not exist.
 execInsertList :: DocTable dt
-                => [ApiDocument] -> ContextIndex dt -> CM dt (ContextIndex dt, CmdResult)
+                => [ApiDocument] -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 execInsertList docs ixx@(ContextIx _ix _dt schema) = do
   -- TODO: use set for undup
   let contexts = concatMap (M.keys . apiDocIndexMap) docs
@@ -399,7 +343,7 @@ execInsertList docs ixx@(ContextIx _ix _dt schema) = do
 -- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs need to exist.
 execUpdate :: DocTable dt
-           => ApiDocument -> ContextIndex dt -> CM dt(ContextIndex dt, CmdResult)
+           => ApiDocument -> ContextIndex dt -> Hunt dt(ContextIndex dt, CmdResult)
 execUpdate doc ixx@(ContextIx _ix dt schema) = do
   let contexts = M.keys $ apiDocIndexMap doc
   checkContextsExistence contexts ixx
@@ -414,12 +358,12 @@ execUpdate doc ixx@(ContextIx _ix dt schema) = do
 
 
 unless' :: DocTable dt
-       => Bool -> Int -> Text -> CM dt ()
+       => Bool -> Int -> Text -> Hunt dt ()
 unless' b code text = unless b $ throwResError code text
 
 
 checkContextsExistence :: DocTable dt
-                       => [Context] -> ContextIndex dt -> CM dt ()
+                       => [Context] -> ContextIndex dt -> Hunt dt ()
 checkContextsExistence cs ixx = do
   ixxContexts        <- S.fromList <$> Ixx.contexts ixx
   let docContexts     = S.fromList cs
@@ -430,7 +374,7 @@ checkContextsExistence cs ixx = do
 
 
 checkApiDocExistence :: DocTable dt
-                     => Bool -> ApiDocument -> ContextIndex dt -> CM dt ()
+                     => Bool -> ApiDocument -> ContextIndex dt -> Hunt dt ()
 checkApiDocExistence switch apidoc ixx = do
   let u = apiDocUri apidoc
   mem <- Ixx.member u ixx
@@ -444,13 +388,13 @@ execSearch' :: (DocTable dt, e ~ Dt.DValue dt)
             => (Result e -> CmdResult)
             -> Query
             -> ContextIndex dt
-            -> CM dt CmdResult
+            -> Hunt dt CmdResult
 execSearch' f q (ContextIx ix dt s)
   = do
-    cfg <- askQueryConfig
-    r <- lift $ runQueryM ix s cfg dt q
-    rc <- askRanking
-    cw <- askContextsWeights
+    cfg <- asks huntQueryCfg
+    r   <- lift $ runQueryM ix s cfg dt q
+    rc  <- asks huntRankingCfg
+    cw  <- askContextsWeights
     case r of
       Left  err -> throwError err
       Right res -> return . f . rank rc cw $ res
@@ -477,13 +421,13 @@ wrapCompletion mx
     . wordHits
 
 
-execDeleteDocs :: DocTable dt => Set URI -> ContextIndex dt -> CM dt(ContextIndex dt, CmdResult)
+execDeleteDocs :: DocTable dt => Set URI -> ContextIndex dt -> Hunt dt(ContextIndex dt, CmdResult)
 execDeleteDocs d ix = do
   ix' <- lift $ Ixx.deleteDocsByURI d ix
   return (ix', ResOK)
 
 
-execDeleteByQuery :: DocTable dt => Query -> ContextIndex dt -> CM dt(ContextIndex dt, CmdResult)
+execDeleteByQuery :: DocTable dt => Query -> ContextIndex dt -> Hunt dt(ContextIndex dt, CmdResult)
 execDeleteByQuery q ixx@(ContextIx ix _dt s) = do
   r <- lift $ runQueryDocIdsM ix s q
   case r of
@@ -496,15 +440,15 @@ execDeleteByQuery q ixx@(ContextIx ix _dt s) = do
 
 -- | general binary serialzation function
 execStore :: (Bin.Binary a, DocTable dt) =>
-             FilePath -> a -> CM dt CmdResult
+             FilePath -> a -> Hunt dt CmdResult
 execStore filename x = do
   liftIO $ Bin.encodeFile filename x
   return ResOK
 
 -- | deserialization needs to be more specific because of our existential typed index
-execLoad :: (Bin.Binary dt, DocTable dt) => FilePath -> CM dt (ContextIndex dt, CmdResult)
+execLoad :: (Bin.Binary dt, DocTable dt) => FilePath -> Hunt dt (ContextIndex dt, CmdResult)
 execLoad filename = do
-  ts <- askTypes
+  ts <- asks huntTypes
   let ix = map ctIxImpl ts
   ixh@(ContextIx _ _ s) <- liftIO $ decodeFile' ix filename
   ls <- TV.mapM reloadSchema s
@@ -527,8 +471,11 @@ runQueryM       :: DocTable dt
                 -> IO (Either CmdError (QRes.Result (Dt.DValue dt)))
 runQueryM ix s cfg dt q = processQuery st dt q
   where
-  st = QProc.initEnv cfg ix s
+  st = QProc.initProcessor cfg ix s
 
+-- | specific internal query config for delete query only
+queryConfigDocIds :: ProcessConfig
+queryConfigDocIds = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 0 0
 
 runQueryDocIdsM :: Ixx.ContextMap Occurrences
                 -> Schema
@@ -536,11 +483,11 @@ runQueryDocIdsM :: Ixx.ContextMap Occurrences
                 -> IO (Either CmdError DocIdSet)
 runQueryDocIdsM ix s q = processQueryDocIds st q
   where
-  st = QProc.initEnv queryConfigDocIds ix s
+  st = QProc.initProcessor queryConfigDocIds ix s
 
 -- ----------------------------------------------------------------------------
 
-execStatus :: DocTable dt => StatusCmd -> CM dt CmdResult
+execStatus :: DocTable dt => StatusCmd -> Hunt dt CmdResult
 execStatus StatusGC
   = do
     statsEnabled <- liftIO getGCStatsEnabled
