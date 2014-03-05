@@ -15,6 +15,8 @@ module Hunt.Interpreter.Interpreter
 , HuntT (..)
 , HuntEnv (..)
 , DefHuntEnv
+
+, insert
 )
 where
 
@@ -64,8 +66,9 @@ import qualified Hunt.DocTable.DocTable                  as Dt
 import           Hunt.DocTable.HashedDocTable
 
 import           Hunt.Interpreter.BasicCommand
-import           Hunt.Interpreter.Command                (Command)
+import           Hunt.Interpreter.Command                (Command )
 import           Hunt.Interpreter.Command                hiding (Command (..))
+import qualified Hunt.Interpreter.Command                as Cmd
 
 import qualified System.Log.Logger                       as Log
 
@@ -114,18 +117,8 @@ debugContext c ws = debugM $ concat ["insert in ", T.unpack c, show . M.toList $
 -}
 
 -- ----------------------------------------------------------------------------
-
-contextTypes :: ContextTypes
-contextTypes = [ctText, ctInt, ctDate, ctPosition]
-
-normalizers :: [CNormalizer]
-normalizers = [cnUpperCase, cnLowerCase, cnZeroFill]
-
-queryConfig     :: ProcessConfig
-queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
-
--- ----------------------------------------------------------------------------
 --
+
 data HuntEnv dt = HuntEnv
   { huntIndex       :: DocTable dt => XMVar (ContextIndex dt)
   , huntRankingCfg  :: RankConfig (Dt.DValue dt)
@@ -138,6 +131,15 @@ type DefHuntEnv = HuntEnv (Documents CompressedDoc)
 
 initHunt :: DocTable dt => IO (HuntEnv dt)
 initHunt = initHuntEnv (ContextIx Ixx.empty Dt.empty M.empty) defaultRankConfig contextTypes normalizers queryConfig
+
+contextTypes :: ContextTypes
+contextTypes = [ctText, ctInt, ctDate, ctPosition]
+
+normalizers :: [CNormalizer]
+normalizers = [cnUpperCase, cnLowerCase, cnZeroFill]
+
+queryConfig     :: ProcessConfig
+queryConfig     = ProcessConfig (FuzzyConfig True True 1.0 germanReplacements) True 100 500
 
 initHuntEnv :: DocTable dt
            => ContextIndex dt
@@ -221,6 +223,11 @@ throwResError n msg
 
 descending :: Ord a => a -> a -> Ordering
 descending = flip compare
+
+-- ----------------------------------------------------------------------------
+
+insert :: (Bin.Binary dt, DocTable dt) => ApiDocument -> Hunt dt CmdResult
+insert d = execCommand $ Cmd.Insert d
 
 -- ----------------------------------------------------------------------------
 
