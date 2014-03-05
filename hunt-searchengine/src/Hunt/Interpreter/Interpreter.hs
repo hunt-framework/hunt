@@ -15,8 +15,6 @@ module Hunt.Interpreter.Interpreter
 , HuntT (..)
 , HuntEnv (..)
 , DefHuntEnv
-
-, insert
 )
 where
 
@@ -223,11 +221,6 @@ throwResError n msg
 
 descending :: Ord a => a -> a -> Ordering
 descending = flip compare
-
--- ----------------------------------------------------------------------------
-
-insert :: (Bin.Binary dt, DocTable dt) => ApiDocument -> Hunt dt CmdResult
-insert d = execCommand $ Cmd.Insert d
 
 -- ----------------------------------------------------------------------------
 

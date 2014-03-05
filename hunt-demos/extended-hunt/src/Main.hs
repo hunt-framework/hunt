@@ -24,6 +24,7 @@ import           Hunt.Index.Index
 import qualified Hunt.Index.Index              as Ix
 import           Hunt.Index.Proxy.KeyIndex
 import           Hunt.Interpreter.Interpreter
+import qualified Hunt.Interpreter.Interpreter  as H
 import           Hunt.Interpreter.Command
 import           Hunt.Index.Schema.Normalize.Int
 import           Hunt.Index.IndexImpl
@@ -32,13 +33,12 @@ import           System.Environment
 
 main :: IO ()
 main = do
-  hunt <- getHunt (def :: DefaultHunt)
-          >>= \e -> return e { evCxTypes = cRealInt:(evCxTypes e)}
+  hunt <- (initHunt :: IO DefHuntEnv)
+          >>= \e -> return e { huntTypes = cRealInt:huntTypes e}
 
   runCmd hunt $ InsertContext "number" def { cxType = cRealInt }
 
-  runCmd hunt $ Insert
-              $ ApiDocument
+  runCmd hunt $ Insert ApiDocument
               { apiDocUri      = "id://1"
               , apiDocIndexMap = M.fromList [("number", "index only 3 numbers 44")]
               , apiDocDescrMap = M.empty
@@ -121,6 +121,9 @@ instance Index IntIndex where
   map f (IntIx i)
     = mkIntIx $ Ix.map f i
 
+  mapMaybe f (IntIx i)
+    = mkIntIx $ Ix.mapMaybe f i
+
   keys (IntIx i)
     = keys i
 
@@ -165,6 +168,9 @@ instance Index IntMap where
 
   map f i
     = IM.map f i
+
+  mapMaybe f i
+    = IM.mapMaybe f i
 
   keys i
     = IM.keys i

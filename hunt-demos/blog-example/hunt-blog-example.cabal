@@ -20,3 +20,4 @@ executable hunt-blog
                        , aeson-pretty
                        , containers
                        , bytestring
+                       , data-default

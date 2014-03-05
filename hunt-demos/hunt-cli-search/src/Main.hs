@@ -23,7 +23,7 @@ main = do
     args <- getArgs
 
     putStrLn $ "loading index from file " ++ head args
-    ix  <- initEnv emptyIndexer defaultRankConfig contextTypes
+    ix  <- initHunt :: IO DefHuntEnv
     res <- runCmd ix $ LoadIx (head args)
 
     case res of
@@ -61,6 +61,6 @@ printQueryResult res t
             putStrLn $ "Query time: " ++ show t
             putStrLn $ "Query results: " ++ (show . lrCount . crRes $ r)
             putStr $ "Found uris: "
-            mapM (\(Document uri _) -> putStr $ " " ++ unpack uri) (lrResult . crRes $ r)
+            mapM (\(Document uri _,_) -> putStr $ " " ++ unpack uri) (lrResult . crRes $ r)
             putStrLn ""
             return ()

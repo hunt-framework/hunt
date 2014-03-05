@@ -6,6 +6,7 @@ import           Data.Aeson.Encode.Pretty
 import           Data.Text                      (Text)
 import           Data.Map                       hiding (map)
 import qualified Data.ByteString.Lazy           as B
+import           Data.Default
 
 import           Hunt.Common
 import           Hunt.Index.Schema
@@ -17,7 +18,7 @@ import           Hunt.Query.Language.Grammar
 main :: IO ()
 main = do
   -- init hunt interpreter.
-  ix <- initEnv emptyIndexer defaultRankConfig contextTypes
+  ix <- initHunt :: IO DefHuntEnv
 
   -- create context for publishing date.
   let cmd1 = InsertContext {
@@ -28,7 +29,9 @@ main = do
                -- This means that every general query will per performed
                -- on this context. For the date context this might not
                -- be wanted, so we disable the default option.
-               icSchema = (defSchema ctDate) { cxDefault = False }
+               icSchema = def { cxDefault = False 
+                              , cxType    = ctDate
+                              }
              }
   putStrLn "1) Creating a new Context for the publishing date"
   putStrLn "JSON:"
@@ -44,11 +47,11 @@ main = do
   -- commands can be batch executed by using the Sequnce operator.
   let cmd2 = Sequence [
                 -- context with default schema for text context type
-                InsertContext "content" $ defSchema ctText,
+                InsertContext "content" $ def ,
                 -- context with defaultSchema for text context type,
                 -- but weight set to 2.0, to make this context twice
                 -- as important as the other two
-                InsertContext "subject" $ (defSchema ctText) { cxWeight = 2.0 }
+                InsertContext "subject" $ def { cxWeight = 2.0 }
               ]
   putStrLn "2) Executing multiple commands at once with Sequence. Here: Creating two contexts with one call."
   putStrLn "JSON:"
