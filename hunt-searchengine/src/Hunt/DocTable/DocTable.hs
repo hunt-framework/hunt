@@ -8,8 +8,10 @@ where
 import           Prelude                hiding (filter, lookup, map, null)
 import qualified Prelude                as P
 
+import           Control.Applicative    ((<$>))
 import           Control.Monad
 
+import           Data.Aeson
 import           Data.Maybe             (catMaybes)
 import           Data.Set               (Set)
 import qualified Data.Set               as S
@@ -17,7 +19,9 @@ import qualified Data.Set               as S
 import           Hunt.Common.BasicTypes (URI)
 import           Hunt.Common.DocId      (DocId)
 import           Hunt.Common.DocIdMap   (DocIdMap (..), DocIdSet, toDocIdSet)
-import           Hunt.Common.Document   (DocumentWrapper)
+import qualified Hunt.Common.DocIdMap   as DM
+import           Hunt.Common.Document   (Document, DocumentWrapper, unwrap,
+                                         wrap)
 
 -- ----------------------------------------------------------------------------
 
@@ -97,3 +101,25 @@ class (DocumentWrapper (DValue i)) => DocTable i where
 
     -- | Empty 'DocTable'.
     empty           :: i
+
+-- ----------------------------------------------------------------------------
+
+toJSON'DocTable :: (Functor m, Monad m, DocTable i) => i -> m Value
+toJSON'DocTable dt
+    = do didm <- DM.map unwrap <$> toMap dt
+         return $ toJSON didm
+
+fromJSON'DocTable :: (Functor m, Monad m, DocTable i) => Value -> m i
+fromJSON'DocTable v
+    = foldM ins empty $ dm'
+      where
+        ins res (did, doc) = update did doc res
+
+        dm :: DocIdMap Document
+        dm = case fromJSON v of
+               Error _   -> DM.empty
+               Success m -> m
+
+        dm'= DM.toList . DM.map wrap $ dm
+
+-- ----------------------------------------------------------------------------

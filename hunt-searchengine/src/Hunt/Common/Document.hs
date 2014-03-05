@@ -84,3 +84,5 @@ instance DocumentWrapper Document where
 
 instance LogShow Document where
   logShow o = "Document {uri = \"" ++ (T.unpack . uri $ o) ++ "\", ..}"
+
+-- ------------------------------------------------------------
