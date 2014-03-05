@@ -168,3 +168,5 @@ instance (Index i, Monad m) => IndexM m i where
   mapM f i                   = return $! map f i
   mapMaybeM f i              = return $! mapMaybe f i
   keysM i                    = return $! keys i
+
+-- ----------------------------------------------------------------------------

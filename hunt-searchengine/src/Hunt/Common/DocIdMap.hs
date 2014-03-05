@@ -1,6 +1,8 @@
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
 
 -- ----------------------------------------------------------------------------
 
@@ -62,21 +64,28 @@ import           Prelude                    hiding (filter, foldr, lookup, map,
                                              null)
 import qualified Prelude                    as P
 
-import           Control.Applicative        (Applicative (..), pure, (<*>))
+import           Control.Applicative        (Applicative (..), (<$>))
 import           Control.DeepSeq
+import           Control.Monad              (foldM, mzero)
 
+import           Data.Aeson
 import           Data.Binary                (Binary (..))
 import           Data.Foldable              hiding (fold, foldr, toList)
+import qualified Data.HashMap.Strict        as HM
 #if bintree==1
 import qualified Data.IntMap.BinTree.Strict as IM
 #else
 import qualified Data.IntMap.Strict         as IM
 #endif
 import qualified Data.IntSet                as S
+import qualified Data.List                  as L
+import qualified Data.Text                  as T
 import           Data.Typeable
 
 import           Hunt.Common.DocId
 import qualified Hunt.Common.DocId          as DId
+
+import           Text.Read                  (readMaybe)
 
 -- ------------------------------------------------------------
 
@@ -96,6 +105,32 @@ newtype DocIdMap v
 instance Binary v => Binary (DocIdMap v) where
   put = put . unDIM
   get = get >>= return . DIM
+
+-- ------------------------------------------------------------
+
+instance ToJSON v => ToJSON (DocIdMap v) where
+    toJSON = object . L.map toJ . IM.toList . unDIM
+        where
+          toJ (k, v) = (T.pack . toH $ k) .= toJSON v
+          toH !y = "0x" ++ toX 16 "" y
+              where
+                toX :: Int -> String -> Int -> String
+                toX !0 !acc _ = acc
+                toX !n !acc x = toX (n - 1) (d : acc) x'
+                    where
+                      (!x', !r) = x `divMod` 16
+                      !d | r < 10    = toEnum (fromEnum '0' + r)
+                         | otherwise = toEnum (fromEnum 'a' + r - 10)
+
+instance FromJSON v => FromJSON (DocIdMap v) where
+    parseJSON (Object o) = DIM <$> foldM parsePair IM.empty (HM.toList o)
+                           where
+                             parsePair res (k, v)
+                                 = case readMaybe . T.unpack $ k of
+                                     Nothing -> mzero
+                                     Just k' -> do v' <- parseJSON v
+                                                   return $ IM.insert k' v' res
+    parseJSON _          = mzero
 
 -- ------------------------------------------------------------
 
