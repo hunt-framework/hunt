@@ -128,7 +128,7 @@ start config = do
     let eval cmd = do
         res <- liftIO $ interpret cmd
         case res of
-          Left res' ->
+          Left res' -> do
             raise $ InterpreterError res'
           Right res' ->
             case res' of
@@ -204,6 +204,9 @@ start config = do
     -- status commands
     get "/status/gc" $ do
       eval $ Status StatusGC            -- garbage collector status
+
+    get "/status/doctable" $ do
+      eval $ Status StatusDocTable      -- garbage collector status
 
     get "/status/index" $ do
       eval $ Status StatusIndex         -- status of search index

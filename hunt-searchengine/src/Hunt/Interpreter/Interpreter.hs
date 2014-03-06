@@ -7,15 +7,15 @@
 {-# LANGUAGE TypeFamilies               #-}
 
 module Hunt.Interpreter.Interpreter
-( initHunt
-, runCmd
-, runHunt
-, execCmd
-, Hunt
-, HuntT (..)
-, HuntEnv (..)
-, DefHuntEnv
-)
+    ( initHunt
+    , runCmd
+    , runHunt
+    , execCmd
+    , Hunt
+    , HuntT (..)
+    , HuntEnv (..)
+    , DefHuntEnv
+    )
 where
 
 import           Control.Applicative
@@ -23,57 +23,56 @@ import           Control.Concurrent.XMVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
-import qualified Data.Aeson                              as JS
-import qualified Data.Binary                             as Bin
-import qualified Data.ByteString.Lazy                    as BL
-import           Data.Function                           (on)
-import           Data.List                               (sortBy)
-import qualified Data.List                               as L
-import qualified Data.Map                                as M
-import           Data.Set                                (Set)
-import qualified Data.Set                                as S
-import           Data.Text                               (Text)
-import qualified Data.Text                               as T
-import qualified Data.Traversable                        as TV
+import qualified Data.Aeson                            as JS
+import qualified Data.Binary                           as Bin
+import qualified Data.ByteString.Lazy                  as BL
+import           Data.Function                         (on)
+import           Data.List                             (sortBy)
+import qualified Data.List                             as L
+import qualified Data.Map                              as M
+import           Data.Set                              (Set)
+import qualified Data.Set                              as S
+import           Data.Text                             (Text)
+import qualified Data.Text                             as T
+import qualified Data.Traversable                      as TV
 
 import           Hunt.Common
-import           Hunt.Common.ApiDocument                 as ApiDoc
-import qualified Hunt.Common.DocIdMap                    as DM
-import           Hunt.Common.Document                    (DocumentWrapper,
-                                                          unwrap)
-import           Hunt.Common.Document.Compression.BZip   (CompressedDoc)
+import           Hunt.Common.ApiDocument               as ApiDoc
+import qualified Hunt.Common.DocIdMap                  as DM
+import           Hunt.Common.Document                  (DocumentWrapper, unwrap)
+import           Hunt.Common.Document.Compression.BZip (CompressedDoc)
 
-import qualified Hunt.Index.Index                        as Ix
+import qualified Hunt.Index.Index                      as Ix
 import           Hunt.Index.Schema.Analyze
 
-import           Hunt.ContextIndex                       (ContextIndex (..), decodeCxIx)
-import qualified Hunt.ContextIndex                       as Ixx
+import           Hunt.ContextIndex                     (ContextIndex (..),
+                                                        decodeCxIx)
+import qualified Hunt.ContextIndex                     as Ixx
 
-import           Hunt.Index.IndexImpl                    (IndexImpl (..), mkIndex)
-import qualified Hunt.Index.IndexImpl                    as Impl
+import           Hunt.Index.IndexImpl                  (IndexImpl (..), mkIndex)
+import qualified Hunt.Index.IndexImpl                  as Impl
 
 import           Hunt.Query.Fuzzy
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Processor
-import qualified Hunt.Query.Processor                    as QProc
+import qualified Hunt.Query.Processor                  as QProc
 import           Hunt.Query.Ranking
-import           Hunt.Query.Result                       as QRes
+import           Hunt.Query.Result                     as QRes
 
-import           Hunt.DocTable.DocTable                  (DocTable)
-import qualified Hunt.DocTable.DocTable                  as Dt
+import           Hunt.DocTable.DocTable                (DocTable)
+import qualified Hunt.DocTable.DocTable                as Dt
 import           Hunt.DocTable.HashedDocTable
 
 import           Hunt.Interpreter.BasicCommand
-import           Hunt.Interpreter.Command                (Command )
-import           Hunt.Interpreter.Command                hiding (Command (..))
-import qualified Hunt.Interpreter.Command                as Cmd
+import           Hunt.Interpreter.Command              (Command)
+import           Hunt.Interpreter.Command              hiding (Command (..))
 
-import qualified System.Log.Logger                       as Log
+import qualified System.Log.Logger                     as Log
 
 import           Hunt.Utility.Log
 
 import           GHC.Stats
-import           GHC.Stats.Json                          ()
+import           GHC.Stats.Json                        ()
 
 -- ----------------------------------------------------------------------------
 --
@@ -98,21 +97,22 @@ modName :: String
 modName = "Hunt.Interpreter.Interpreter"
 
 -- | Log a message at 'DEBUG' priority.
-debugM :: String -> IO ()
-debugM = Log.debugM modName
-{-
+debugM :: MonadIO m => String -> m ()
+debugM = liftIO . Log.debugM modName
+
 -- | Log a message at 'WARNING' priority.
-warningM :: String -> IO ()
-warningM = Log.warningM modName
+warningM :: MonadIO m => String -> m ()
+warningM = liftIO . Log.warningM modName
 
 -- | Log a message at 'ERROR' priority.
-errorM :: String -> IO ()
-errorM = Log.errorM modName
+errorM :: MonadIO m => String -> m ()
+errorM = liftIO . Log.errorM modName
 
+{-
 -- | Log formated values that get inserted into a context
 debugContext :: Context -> Words -> IO ()
 debugContext c ws = debugM $ concat ["insert in ", T.unpack c, show . M.toList $ fromMaybe M.empty $ M.lookup c ws]
--}
+-- -}
 
 -- ----------------------------------------------------------------------------
 --
@@ -217,7 +217,8 @@ askContextsWeights
 
 throwResError :: DocTable dt => Int -> Text -> Hunt dt a
 throwResError n msg
-  = throwError $ ResError n msg
+    = do errorM $ unwords [show n, T.unpack msg]
+         throwError $ ResError n msg
 
 descending :: Ord a => a -> a -> Ordering
 descending = flip compare
@@ -231,10 +232,10 @@ execCommand
 -- XXX: kind of obsolete now
 execCmd :: (Bin.Binary dt, DocTable dt) => BasicCommand -> Hunt dt CmdResult
 execCmd cmd@(InsertList _) = do
-  liftIO $ debugM $ "Exec: InsertList [..]"
+  debugM $ "Exec: InsertList [..]"
   execCmd' cmd
 execCmd cmd = do
-  liftIO $ debugM $ "Exec: " ++ logShow cmd
+  debugM $ "Exec: " ++ logShow cmd
   execCmd' cmd
 
 
@@ -494,6 +495,13 @@ execStatus StatusGC
     if statsEnabled
       then liftIO getGCStats >>= return . ResGeneric . JS.toJSON
       else throwResError 501 ("GC stats not enabled. Use `+RTS -T -RTS' to enable them." :: Text)
+
+execStatus StatusDocTable
+    = withIx dumpDocTable
+      where
+        dumpDocTable (ContextIx _ix dt _s)
+            = ResGeneric <$> Dt.toJSON'DocTable dt
+
 
 execStatus StatusIndex
   = withIx

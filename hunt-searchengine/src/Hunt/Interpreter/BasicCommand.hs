@@ -1,20 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hunt.Interpreter.BasicCommand
-( BasicCommand (..), StatusCmd (..)
-)
+    ( BasicCommand (..)
+    , StatusCmd (..)
+    )
 where
 
-import           Control.Monad                   (mzero)
+import           Control.Monad               (mzero)
 
 import           Data.Aeson
-import qualified Data.Aeson                      as JS (Value (..))
-import           Data.Set                        (Set)
+import qualified Data.Aeson                  as JS (Value (..))
+import           Data.Set                    (Set)
 
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
-import           Hunt.Query.Language.Grammar     (Query (..))
+import           Hunt.Query.Language.Grammar (Query (..))
 
 import           Hunt.Utility.Log
 
@@ -58,6 +59,7 @@ data BasicCommand
 
 data StatusCmd
   = StatusGC
+  | StatusDocTable
   | StatusIndex
     deriving (Show)
 
@@ -65,12 +67,14 @@ data StatusCmd
 -- XXX: maybe duplicate StatusCmd to keep this module clean
 
 instance ToJSON StatusCmd where
-  toJSON StatusGC    = JS.String "gc"
-  toJSON StatusIndex = JS.String "index"
+  toJSON StatusGC       = JS.String "gc"
+  toJSON StatusDocTable = JS.String "doctable"
+  toJSON StatusIndex    = JS.String "index"
 
 instance FromJSON StatusCmd where
-  parseJSON (JS.String "gc"   ) = return StatusGC
-  parseJSON (JS.String "index") = return StatusIndex
+  parseJSON (JS.String "gc"      ) = return StatusGC
+  parseJSON (JS.String "doctable") = return StatusDocTable
+  parseJSON (JS.String "index"   ) = return StatusIndex
   parseJSON _                   = mzero
 
 -- ----------------------------------------------------------------------------

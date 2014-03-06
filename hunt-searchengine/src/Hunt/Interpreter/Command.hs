@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Hunt.Interpreter.Command
-( Command (..) , StatusCmd (..)
-, CmdResult (..), CmdError (..)
-, toBasicCommand
-)
+    ( Command (..)
+    , StatusCmd (..)
+    , CmdResult (..)
+    , CmdError (..)
+    , toBasicCommand
+    )
 where
 
 import           Control.Monad                 (mzero)
@@ -69,9 +71,9 @@ data Command
 
 data CmdResult
   = ResOK
-  | ResSearch       { crRes   :: LimitedResult (Document, Score) }
+  | ResSearch       { crRes :: LimitedResult (Document, Score) }
   | ResCompletion   { crWords :: [(Text, [Text])] }
-  | ResGeneric      { crGen   :: Value }
+  | ResGeneric      { crGen :: Value }
   deriving (Show, Eq)
 
 data CmdError
