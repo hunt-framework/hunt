@@ -52,10 +52,10 @@ data Command
   | DeleteByQuery { icQueryD :: Query }
 
   -- | context manipulation
-  | InsertContext { icICon   :: Context
+  | InsertContext { icIContext :: Context
                   , icSchema :: ContextSchema
                   }
-  | DeleteContext { icDCon :: Context }
+  | DeleteContext { icDContext :: Context }
 
   -- | persistent commands
   | LoadIx        { icPath :: FilePath }

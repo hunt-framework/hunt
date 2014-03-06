@@ -1,19 +1,21 @@
 {-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
-import           Data.Aeson                     (toJSON, eitherDecode)
+import           Control.Monad
+
+import           Data.Aeson                   (eitherDecode)
 import           Data.Aeson.Encode.Pretty
-import           Data.Text                      (Text)
-import           Data.Map                       hiding (map)
-import qualified Data.ByteString.Lazy           as B
+import qualified Data.ByteString.Lazy         as B
 import           Data.Default
+import           Data.Map                     hiding (map)
 
 import           Hunt.Common
-import           Hunt.Index.Schema
-import           Hunt.Interpreter.Interpreter
 import           Hunt.Interpreter.Command
-import           Hunt.Query.Ranking
+import           Hunt.Interpreter.Interpreter
 import           Hunt.Query.Language.Grammar
+
+-- ----------------------------------------------------------------------------
 
 main :: IO ()
 main = do
@@ -23,13 +25,13 @@ main = do
   -- create context for publishing date.
   let cmd1 = InsertContext {
                -- context name
-               icICon   = "publish_date",
+               icIContext = "publish_date",
                -- context schema: default schema for date context type
                -- Per default each context is created as default context.
                -- This means that every general query will per performed
                -- on this context. For the date context this might not
                -- be wanted, so we disable the default option.
-               icSchema = def { cxDefault = False 
+               icSchema   = def { cxDefault = False
                               , cxType    = ctDate
                               }
              }
@@ -39,9 +41,7 @@ main = do
   -- we just discard the interpreter results in this demo
   -- in a real application the results should be handled to catch potential errors
   res <- runCmd ix cmd1
-  putStrLn ""
-  putStrLn "Press any key to continue..."
-  _ <- getLine
+  continue
 
   -- creating contexts for subject and the article context.
   -- commands can be batch executed by using the Sequnce operator.
@@ -57,9 +57,7 @@ main = do
   putStrLn "JSON:"
   B.putStr . encodePretty $ cmd2
   res <- runCmd ix cmd2
-  putStrLn ""
-  putStrLn "Press any key to continue..."
-  _ <- getLine
+  continue
 
   -- inserting a single document
   let cmd3 =  Insert ApiDocument {
@@ -82,9 +80,7 @@ main = do
   putStrLn "JSON:"
   B.putStr . encodePretty $ cmd3
   res <- runCmd ix cmd3
-  putStrLn ""
-  putStrLn "Press any key to continue..."
-  _ <- getLine
+  continue
 
   -- inserting a couple more documents from a file to be able to search
   -- with meaningful results. The format is the same so the JSON is not
@@ -105,8 +101,7 @@ main = do
   res <- runCmd ix query
   putStrLn "Result:"
   B.putStr . encodePretty $ res
-  putStrLn ""
-  putStrLn "Press any key to continue..."
+  continue
 
 
   -- another example: searching for documents publised in january 2014
@@ -117,6 +112,12 @@ main = do
   res <- runCmd ix query2
   putStrLn "Result:"
   B.putStr . encodePretty $ res
-  putStrLn ""
-  putStrLn "Press any key to exit"
+  continue
   return ()
+
+  where
+  prompt s = do
+    putStrLn s
+    getLine
+
+  continue = void $ putStrLn "" >> prompt "Press any key to continue..."
