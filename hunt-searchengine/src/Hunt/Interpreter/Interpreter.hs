@@ -27,6 +27,7 @@ import qualified Data.Aeson                            as JS
 import qualified Data.Binary                           as Bin
 import qualified Data.ByteString.Lazy                  as BL
 import           Data.Function                         (on)
+import qualified Data.IntSet                           as IS
 import           Data.List                             (sortBy)
 import qualified Data.List                             as L
 import qualified Data.Map                              as M
@@ -433,9 +434,14 @@ execDeleteByQuery q ixx@(ContextIx ix _dt s) = do
   r <- lift $ runQueryDocIdsM ix s q
   case r of
     Left  err -> throwError err
-    Right res -> do
-      ix' <- lift $ Ixx.delete res ixx
-      return (ix', ResOK)
+    Right res ->
+        if IS.null res
+        then do
+          debugM "DeleteByQuery: Query result set empty"
+          return (ixx, ResOK)
+        else do
+          ix' <- lift $ Ixx.delete res ixx
+          return (ix', ResOK)
 
 -- ----------------------------------------------------------------------------
 
