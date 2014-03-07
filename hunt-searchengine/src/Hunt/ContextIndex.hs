@@ -1,42 +1,43 @@
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE Rank2Types            #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE Rank2Types            #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
 module Hunt.ContextIndex where
 
 import           Prelude
-import qualified Prelude                           as P
+import qualified Prelude                     as P
 
 import           Control.Arrow
 import           Control.Monad
-import qualified Control.Monad.Parallel            as Par
+import qualified Control.Monad.Parallel      as Par
 import           Control.Parallel.Strategies
 
-import           Data.Binary                       (Binary (..))
+import           Data.Binary                 (Binary (..))
 import           Data.Binary.Get
-import           Data.ByteString.Lazy              (ByteString)
-import qualified Data.Map                          as M
-import           Data.Map                          (Map)
+import           Data.ByteString.Lazy        (ByteString)
+import qualified Data.IntSet                 as IS
+import           Data.Map                    (Map)
+import qualified Data.Map                    as M
 import           Data.Maybe
-import           Data.Set                          (Set)
-import qualified Data.Set                          as S
-import           Data.Text                         (Text)
-import qualified Data.Traversable                  as TV
+import           Data.Set                    (Set)
+import qualified Data.Set                    as S
+import           Data.Text                   (Text)
+import qualified Data.Traversable            as TV
 
-import           Hunt.DocTable.DocTable            (DocTable)
-import qualified Hunt.DocTable.DocTable            as Dt
+import           Hunt.DocTable.DocTable      (DocTable)
+import qualified Hunt.DocTable.DocTable      as Dt
 
 import           Hunt.Common
-import           Hunt.Common.DocIdMap              (toDocIdSet)
-import qualified Hunt.Common.Document              as Doc
-import qualified Hunt.Common.Occurrences           as Occ
+import           Hunt.Common.DocIdMap        (toDocIdSet)
+import qualified Hunt.Common.Document        as Doc
+import qualified Hunt.Common.Occurrences     as Occ
 
-import qualified Hunt.Index.Index                  as Ix
-import           Hunt.Index.IndexImpl              (IndexImpl)
-import qualified Hunt.Index.IndexImpl              as Impl
+import qualified Hunt.Index.Index            as Ix
+import           Hunt.Index.IndexImpl        (IndexImpl)
+import qualified Hunt.Index.IndexImpl        as Impl
 
 import           Hunt.Utility
 
@@ -135,10 +136,13 @@ deleteDocsByURI us ixx@(ContextIx _ix dt _) = do
 -- | Delete a set of documents by 'DocId'.
 delete :: (Par.MonadParallel m, DocTable dt)
        => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
-delete dIds (ContextIx ix dt s) = do
-  newIx <- delete' dIds ix
-  newDt <- Dt.difference dIds dt
-  return $ ContextIx newIx newDt s
+delete dIds cix@(ContextIx ix dt s)
+    | IS.null dIds
+        = return cix
+    | otherwise
+        = do newIx <- delete' dIds ix
+             newDt <- Dt.difference dIds dt
+             return $ ContextIx newIx newDt s
 
 -- | All contexts.
 contexts :: (Monad m, DocTable dt)
