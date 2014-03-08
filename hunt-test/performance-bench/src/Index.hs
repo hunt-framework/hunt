@@ -55,7 +55,7 @@ main = do
   let json = "./../data/random/RandomData.js"
 --  let json = "./hayoo.js"
 
-  hunt <- getHunt (def :: DefaultHunt)
+  hunt <- initHunt :: IO DefHuntEnv
   showStats "Index initialized"
   -- read benchmark json data force evaluation with deepseq
   -- to be sure all data is read into memory before starting
@@ -66,21 +66,23 @@ main = do
   -- insert benchmark contexts
   run hunt `withCmd` Sequence [ InsertContext "context1" def
                               , InsertContext "context2" def
+                              , InsertContext "context3" def
+                              , InsertContext "context4" def
                               ]
   showStats "contexts created"
 
   -- benchmark insert performance
---  res <- runAndMonitor hunt `withCmd` Sequence (map Insert docs)
-  res <- runListAndMonitor hunt `withCmd` (map Insert docs)
+  res <- runAndMonitor hunt `withCmd` Sequence (map Insert docs)
+--  res <- runListAndMonitor hunt `withCmd` (map Insert docs)
   showStats "documents inserted"
 
   -- run query to check success
   res <- runAndMonitor hunt `withCmd` Search (QWord QNoCase "a") 0 3000
   showStats "index used with search and garbage collected"
-
+  getLine
   -- benchmark delete performance
---  res <- runAndMonitor hunt `withCmd` Sequence (map (\id -> Delete . T.pack $ "rnd://" ++ show id) [1..(length docs `div` 2)])
-  res <- runListAndMonitor hunt `withCmd` (map (\id -> Delete . T.pack $ "rnd://" ++ show id) [1..(length docs `div` 2)])
+  res <- runAndMonitor hunt `withCmd` Sequence (map (\id -> Delete . T.pack $ "rnd://" ++ show id) [1..(length docs `div` 2)])
+--  res <- runListAndMonitor hunt `withCmd` (map (\id -> Delete . T.pack $ "rnd://" ++ show id) [1..(length docs `div` 2)])
   showStats "documents removed"
 
   l <- getLine
@@ -125,6 +127,9 @@ showF f = showFFloat (Just 2) f ""
 showStats :: String -> IO ()
 showStats t = do
   putStrLn t
+  performGC
+  performGC
+  performGC
   performGC
   stats <- getGCStats
   putStrLn $ "Bytes used: " ++ (show $ currentBytesUsed stats) ++ " B"

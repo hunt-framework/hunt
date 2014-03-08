@@ -27,7 +27,7 @@
 EXE     = $(shell [ which .cabal-sandbox/bin/hunt-permbench hunt-permbench | head -1)
 PROFSH  = ./prof.sh
 
-PROFOPTS=--enable-library-profiling --enable-executable-profiling --ghc-option=-auto-all
+PROFOPTS=--disable-library-profiling --disable-executable-profiling --ghc-option=-auto-all
 
 N       = 1
 H       = 500
@@ -57,7 +57,7 @@ sandbox: .cabal-sandbox
 	cabal sandbox add-source ../../hunt-searchengine/
 
 run:
-	./.cabal-sandbox/bin/hunt-perbench +RTS -N$(N) -s $(RTSPROF) -K$(K)M -A$(A)M -H$(H)M -RTS
+	./.cabal-sandbox/bin/hunt-perbench +RTS -N$(N) -RTS
 
 deps: sandbox
 #   bytestring
