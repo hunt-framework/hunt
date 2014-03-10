@@ -43,10 +43,10 @@ toDocAndWords s = first wrap . toDocAndWords' s
 toDocAndWords' :: Schema -> ApiDocument -> (Document, Words)
 toDocAndWords' schema apiDoc = (doc, ws)
   where
-  indexMap = apiDocIndexMap apiDoc
-  descrMap = apiDocDescrMap apiDoc
+  indexMap = adIndex apiDoc
+  descrMap = adDescr apiDoc
   doc = Document
-    { uri   = apiDocUri apiDoc
+    { uri   = adUri apiDoc
     , desc  = descrMap
     }
   ws = M.mapWithKey

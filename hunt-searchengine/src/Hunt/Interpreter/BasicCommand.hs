@@ -80,7 +80,7 @@ instance FromJSON StatusCmd where
 -- ----------------------------------------------------------------------------
 
 instance LogShow BasicCommand where
-  logShow (InsertList docs) = "InsertList " ++ show (map apiDocUri docs)
+  logShow (InsertList docs) = "InsertList " ++ show (map adUri docs)
   logShow (Update doc) = "Update {icDoc = " ++ logShow doc ++ "\", ..}"
   logShow (Sequence _) = "Sequence"
   logShow o = show o

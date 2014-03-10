@@ -332,7 +332,7 @@ execInsertList :: DocTable dt
                 => [ApiDocument] -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 execInsertList docs ixx@(ContextIx _ix _dt schema) = do
   -- TODO: use set for undup
-  let contexts = concatMap (M.keys . apiDocIndexMap) docs
+  let contexts = concatMap (M.keys . adIndex) docs
   checkContextsExistence contexts ixx
   -- apidoc should not exist
   mapM_ (flip (checkApiDocExistence False) ixx) docs
@@ -347,7 +347,7 @@ execInsertList docs ixx@(ContextIx _ix _dt schema) = do
 execUpdate :: DocTable dt
            => ApiDocument -> ContextIndex dt -> Hunt dt(ContextIndex dt, CmdResult)
 execUpdate doc ixx@(ContextIx _ix dt schema) = do
-  let contexts = M.keys $ apiDocIndexMap doc
+  let contexts = M.keys $ adIndex doc
   checkContextsExistence contexts ixx
   let (docs, ws) = toDocAndWords schema doc
   docIdM <- lift $ Dt.lookupByURI (uri docs) dt
@@ -378,7 +378,7 @@ checkContextsExistence cs ixx = do
 checkApiDocExistence :: DocTable dt
                      => Bool -> ApiDocument -> ContextIndex dt -> Hunt dt ()
 checkApiDocExistence switch apidoc ixx = do
-  let u = apiDocUri apidoc
+  let u = adUri apidoc
   mem <- Ixx.member u ixx
   unless' (switch == mem)
     409 $ (if mem

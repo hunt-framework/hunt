@@ -25,9 +25,9 @@ type ApiDocuments = [ApiDocument]
 
 -- | The document accepted via the API.
 data ApiDocument  = ApiDocument
-  { apiDocUri      :: URI
-  , apiDocIndexMap :: Map Context Content
-  , apiDocDescrMap :: Description
+  { adUri   :: URI
+  , adIndex :: Map Context Content
+  , adDescr :: Description
   }
   deriving (Show)
 
@@ -66,11 +66,11 @@ mkLimitedResult offset mx xs = LimitedResult
 emptyApiDocIndexMap :: Map Context Content
 emptyApiDocIndexMap = M.empty
 
-emptyApiDocDescrMap :: Description
-emptyApiDocDescrMap = M.empty
+emptyApiDocDescr :: Description
+emptyApiDocDescr = M.empty
 
 emptyApiDoc :: ApiDocument
-emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescrMap
+emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescr
 
 -- ----------------------------------------------------------------------------
 
@@ -81,7 +81,7 @@ instance Binary ApiDocument where
 -- ----------------------------------------------------------------------------
 
 instance LogShow ApiDocument where
-  logShow o = "ApiDocument {apiDocUri = \"" ++ (T.unpack . apiDocUri $ o) ++ "\", ..}"
+  logShow o = "ApiDocument {adUri = \"" ++ (T.unpack . adUri $ o) ++ "\", ..}"
 
 -- ----------------------------------------------------------------------------
 
@@ -106,11 +106,11 @@ instance FromJSON ApiDocument where
   parseJSON (Object o) = do
     parsedUri         <- o    .: "uri"
     indexMap          <- o    .:? "index"       .!= emptyApiDocIndexMap
-    descrMap          <- o    .:? "description" .!= emptyApiDocDescrMap
+    descrMap          <- o    .:? "description" .!= emptyApiDocDescr
     return ApiDocument
-      { apiDocUri       = parsedUri
-      , apiDocIndexMap  = indexMap
-      , apiDocDescrMap  = descrMap
+      { adUri       = parsedUri
+      , adIndex  = indexMap
+      , adDescr  = descrMap
       }
   parseJSON _ = mzero
 

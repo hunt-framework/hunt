@@ -100,9 +100,9 @@ searchResultUris = map uri . map fst . lrResult . crRes
 -- example apidoc
 brainDoc :: ApiDocument
 brainDoc = emptyApiDoc
-  { apiDocUri      = "test://0"
-  , apiDocIndexMap = M.fromList [("default", td)]
-  , apiDocDescrMap = descr
+  { adUri   = "test://0"
+  , adIndex = M.fromList [("default", td)]
+  , adDescr = descr
   }
   where
   td = "Brain"
@@ -110,18 +110,18 @@ brainDoc = emptyApiDoc
 
 dateDoc :: ApiDocument
 dateDoc = emptyApiDoc
-  { apiDocUri      = "test://1"
-  , apiDocIndexMap = M.insert "datecontext" "2013-01-01" ix
-  , apiDocDescrMap = dt
+  { adUri   = "test://1"
+  , adIndex = M.insert "datecontext" "2013-01-01" ix
+  , adDescr = dt
   }
   where
   ApiDocument _ ix dt = brainDoc
 
 geoDoc' :: Text -> ApiDocument
 geoDoc' position = emptyApiDoc
-  { apiDocUri      = "test://2"
-  , apiDocIndexMap = M.insert "geocontext" position ix
-  , apiDocDescrMap = dt
+  { adUri   = "test://2"
+  , adIndex = M.insert "geocontext" position ix
+  , adDescr = dt
   }
   where
   ApiDocument _ ix dt = brainDoc
@@ -131,12 +131,12 @@ geoDoc = geoDoc' "53.60000-10.00000"
 
 -- example apidoc
 brainDocUpdate :: ApiDocument
-brainDocUpdate = brainDoc { apiDocDescrMap = descr }
+brainDocUpdate = brainDoc { adDescr = descr }
   where
   descr = M.fromList [("name", "Pinky"), ("mission", "ask stupid questions")]
 
 brainDocMerged :: ApiDocument
-brainDocMerged = brainDocUpdate { apiDocDescrMap = (apiDocDescrMap brainDocUpdate) `M.union` (apiDocDescrMap brainDoc) }
+brainDocMerged = brainDocUpdate { adDescr = (adDescr brainDocUpdate) `M.union` (adDescr brainDoc) }
 
 defaultContextInfo :: (Context, ContextSchema)
 defaultContextInfo = ("default", ContextSchema Nothing [] 1 True ctText)
@@ -370,14 +370,14 @@ test_fancy = testCM $ do
         `catchError` const (return ())
   -- search yields the old description
   Search (QWord QCase "Brain") os pp
-    @@@ ((@?= apiDocDescrMap brainDoc) . desc . head . map fst . lrResult . crRes)
+    @@@ ((@?= adDescr brainDoc) . desc . head . map fst . lrResult . crRes)
 
   -- update the description
   Update brainDocUpdate
     @@= ResOK
   -- search yields >merged< description
   Search (QWord QCase "Brain") os pp
-    @@@ ((@?= apiDocDescrMap brainDocMerged) . desc . head . map fst . lrResult . crRes)
+    @@@ ((@?= adDescr brainDocMerged) . desc . head . map fst . lrResult . crRes)
 
   -- delete return the correct result value
   Delete ("test://0")
