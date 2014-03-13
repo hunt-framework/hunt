@@ -129,7 +129,7 @@ data HuntEnv dt = HuntEnv
 type DefHuntEnv = HuntEnv (Documents CompressedDoc)
 
 initHunt :: DocTable dt => IO (HuntEnv dt)
-initHunt = initHuntEnv (ContextIx Ixx.empty Dt.empty M.empty) defaultRankConfig contextTypes normalizers queryConfig
+initHunt = initHuntEnv (ContextIndex Ixx.empty Dt.empty M.empty) defaultRankConfig contextTypes normalizers queryConfig
 
 contextTypes :: ContextTypes
 contextTypes = [ctText, ctInt, ctDate, ctPosition]
@@ -214,7 +214,7 @@ askIndex cn = askType cn >>= return . ctIxImpl
 
 askContextsWeights :: DocTable dt => Hunt dt(M.Map Context CWeight)
 askContextsWeights
-  = withIx (\(ContextIx _ _ schema) -> return $ M.map cxWeight schema)
+  = withIx (\(ContextIndex _ _ schema) -> return $ M.map cxWeight schema)
 
 throwResError :: DocTable dt => Int -> Text -> Hunt dt a
 throwResError n msg
@@ -292,7 +292,7 @@ execInsertContext :: DocTable dt
                   -> ContextSchema
                   -> ContextIndex dt
                   -> Hunt dt (ContextIndex dt, CmdResult)
-execInsertContext cx ct ixx@(ContextIx ix dt s)
+execInsertContext cx ct ixx@(ContextIndex ix dt s)
   = do
     -- check if context already exists
     contextExists        <- Ixx.hasContext cx ixx
@@ -305,7 +305,7 @@ execInsertContext cx ct ixx@(ContextIx ix dt s)
     norms                <- mapM (askNormalizer . cnName) $ cxNormalizer ct
 
     -- create new index instance and insert it with context
-    return ( ContextIx { ciIndex = Ixx.insertContext cx (newIx impl) ix
+    return ( ContextIndex { ciIndex = Ixx.insertContext cx (newIx impl) ix
                  , ciDocs   = dt
                  , ciSchema = M.insert cx (ct
                                             { cxType = cType
@@ -322,15 +322,15 @@ execDeleteContext :: DocTable dt
                   => Context
                   -> ContextIndex dt
                   -> Hunt dt(ContextIndex dt, CmdResult)
-execDeleteContext cx (ContextIx ix dt s)
-  = return (ContextIx (Ixx.deleteContext cx ix) dt (M.delete cx s), ResOK)
+execDeleteContext cx (ContextIndex ix dt s)
+  = return (ContextIndex (Ixx.deleteContext cx ix) dt (M.delete cx s), ResOK)
 
 -- | Inserts an 'ApiDocument' into the index.
 -- /NOTE/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs must not exist.
 execInsertList :: DocTable dt
                 => [ApiDocument] -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
-execInsertList docs ixx@(ContextIx _ix _dt schema) = do
+execInsertList docs ixx@(ContextIndex _ix _dt schema) = do
   -- TODO: use set for undup
   let contexts = concatMap (M.keys . adIndex) docs
   checkContextsExistence contexts ixx
@@ -346,7 +346,7 @@ execInsertList docs ixx@(ContextIx _ix _dt schema) = do
 -- Documents/URIs need to exist.
 execUpdate :: DocTable dt
            => ApiDocument -> ContextIndex dt -> Hunt dt(ContextIndex dt, CmdResult)
-execUpdate doc ixx@(ContextIx _ix dt schema) = do
+execUpdate doc ixx@(ContextIndex _ix dt schema) = do
   let contexts = M.keys $ adIndex doc
   checkContextsExistence contexts ixx
   let (docs, ws) = toDocAndWords schema doc
@@ -391,7 +391,7 @@ execSearch' :: (DocTable dt, e ~ Dt.DValue dt)
             -> Query
             -> ContextIndex dt
             -> Hunt dt CmdResult
-execSearch' f q (ContextIx ix dt s)
+execSearch' f q (ContextIndex ix dt s)
   = do
     cfg <- asks huntQueryCfg
     r   <- lift $ runQueryM ix s cfg dt q
@@ -430,7 +430,7 @@ execDeleteDocs d ix = do
 
 
 execDeleteByQuery :: DocTable dt => Query -> ContextIndex dt -> Hunt dt(ContextIndex dt, CmdResult)
-execDeleteByQuery q ixx@(ContextIx ix _dt s) = do
+execDeleteByQuery q ixx@(ContextIndex ix _dt s) = do
   r <- lift $ runQueryDocIdsM ix s q
   case r of
     Left  err -> throwError err
@@ -457,7 +457,7 @@ execLoad :: (Bin.Binary dt, DocTable dt) => FilePath -> Hunt dt (ContextIndex dt
 execLoad filename = do
   ts <- asks huntTypes
   let ix = map ctIxImpl ts
-  ixh@(ContextIx _ _ s) <- liftIO $ decodeFile' ix filename
+  ixh@(ContextIndex _ _ s) <- liftIO $ decodeFile' ix filename
   ls <- TV.mapM reloadSchema s
   return (ixh{ ciSchema = ls }, ResOK)
   where
@@ -505,7 +505,7 @@ execStatus StatusGC
 execStatus StatusDocTable
     = withIx dumpDocTable
       where
-        dumpDocTable (ContextIx _ix dt _s)
+        dumpDocTable (ContextIndex _ix dt _s)
             = ResGeneric <$> Dt.toJSON'DocTable dt
 
 

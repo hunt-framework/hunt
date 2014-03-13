@@ -43,7 +43,7 @@ import           Hunt.Utility
 
 -- ----------------------------------------------------------------------------
 
-data ContextIndex dt = ContextIx
+data ContextIndex dt = ContextIndex
   { ciIndex  :: !(ContextMap Occurrences)
   , ciDocs   :: dt
   , ciSchema :: Schema
@@ -71,11 +71,11 @@ decodeCxIx :: (Binary dt, DocTable dt) => [IndexImpl Occurrences] -> ByteString 
 decodeCxIx ts = runGet (get' ts)
 
 get' :: Binary dt => [IndexImpl Occurrences] -> Get (ContextIndex dt)
-get' ts = liftM3 ContextIx (getContextMap ts) get get
+get' ts = liftM3 ContextIndex (getContextMap ts) get get
 
 instance Binary dt => Binary (ContextIndex dt) where
-  get = liftM3 ContextIx get get get
-  put (ContextIx a b c) = put a >> put b >> put c
+  get = liftM3 ContextIndex get get get
+  put (ContextIndex a b c) = put a >> put b >> put c
 
 -- ----------------------------------------------------------------------------
 
@@ -89,13 +89,13 @@ insert doc wrds ix = insertList [(doc,wrds)] ix
 --   This is more efficient than using fold and 'insert'.
 insertList :: (Par.MonadParallel m, DocTable dt)
        => [(Dt.DValue dt, Words)] -> ContextIndex dt -> m (ContextIndex dt)
-insertList docAndWrds (ContextIx ix docTable s) = do
+insertList docAndWrds (ContextIndex ix docTable s) = do
   -- insert to doctable and generate docId
   tables <- Par.mapM subInsert $ partitionListByLength 20 docAndWrds
   (newDt, docIdsAndWrds) <- reduce tables docTable
 
   newIx <- batchAddWordsM docIdsAndWrds ix
-  return $! ContextIx newIx newDt s
+  return $! ContextIndex newIx newDt s
 
   where
   subInsert ds = foldM (\(dt, withIds) (doc, wrds) -> do
@@ -121,43 +121,43 @@ insertList docAndWrds (ContextIx ix docTable s) = do
 modify :: (Par.MonadParallel m, DocTable dt)
        => (Dt.DValue dt -> m (Dt.DValue dt))
        -> Words -> DocId -> ContextIndex dt -> m (ContextIndex dt)
-modify f wrds dId (ContextIx ii dt s) = do
+modify f wrds dId (ContextIndex ii dt s) = do
   newDocTable <- Dt.adjust f dId dt
   newIndex    <- addWordsM wrds dId ii
-  return $ ContextIx newIndex newDocTable s
+  return $ ContextIndex newIndex newDocTable s
 
 -- | Delete a set of documents by 'URI'.
 deleteDocsByURI :: (Par.MonadParallel m, DocTable dt)
                 => Set URI -> ContextIndex dt -> m (ContextIndex dt)
-deleteDocsByURI us ixx@(ContextIx _ix dt _) = do
+deleteDocsByURI us ixx@(ContextIndex _ix dt _) = do
   docIds <- liftM (toDocIdSet . catMaybes) . mapM (flip Dt.lookupByURI dt) . S.toList $ us
   delete docIds ixx
 
 -- | Delete a set of documents by 'DocId'.
 delete :: (Par.MonadParallel m, DocTable dt)
        => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
-delete dIds cix@(ContextIx ix dt s)
+delete dIds cix@(ContextIndex ix dt s)
     | IS.null dIds
         = return cix
     | otherwise
         = do newIx <- delete' dIds ix
              newDt <- Dt.difference dIds dt
-             return $ ContextIx newIx newDt s
+             return $ ContextIndex newIx newDt s
 
 -- | All contexts.
 contexts :: (Monad m, DocTable dt)
          => ContextIndex dt -> m [Context]
-contexts (ContextIx ix _dt _s) = return $ contexts' ix
+contexts (ContextIndex ix _dt _s) = return $ contexts' ix
 
 -- | Does the context exist?
 hasContext :: (Monad m, DocTable dt)
            => Context -> ContextIndex dt -> m Bool
-hasContext c (ContextIx ix _dt _s) = return $ hasContext' c ix
+hasContext c (ContextIndex ix _dt _s) = return $ hasContext' c ix
 
 -- | Is the document part of the index?
 member :: (Monad m, DocTable dt)
        => URI -> ContextIndex dt -> m Bool
-member u (ContextIx _ii dt _s) = do
+member u (ContextIndex _ii dt _s) = do
   mem <- Dt.lookupByURI u dt
   return $ isJust mem
 -- ----------------------------------------------------------------------------
@@ -166,10 +166,10 @@ member u (ContextIx _ii dt _s) = do
 --   (occurrences for that document) to the index.
 modifyWithDescription :: (Par.MonadParallel m, DocTable dt)
                       => Description -> Words -> DocId -> ContextIndex dt -> m (ContextIndex dt)
-modifyWithDescription descr wrds dId (ContextIx ii dt s) = do
+modifyWithDescription descr wrds dId (ContextIndex ii dt s) = do
   newDocTable <- Dt.adjust mergeDescr dId dt
   newIndex    <- addWordsM wrds dId ii
-  return $ ContextIx newIndex newDocTable s
+  return $ ContextIndex newIndex newDocTable s
   where
   -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
   mergeDescr = return . Doc.update (\d' -> d'{ desc = flip M.union (desc d') descr })
