@@ -39,9 +39,9 @@ main = do
   runCmd hunt $ InsertContext "number" def { cxType = cRealInt }
 
   runCmd hunt $ Insert ApiDocument
-              { apiDocUri      = "id://1"
-              , apiDocIndexMap = M.fromList [("number", "index only 3 numbers 44")]
-              , apiDocDescrMap = M.empty
+              { adUri   = "id://1"
+              , adIndex = M.fromList [("number", "index only 3 numbers 44")]
+              , adDescr = M.empty
               }
 
   res <- runCmd hunt $ Search (QContext ["number"] (QWord QNoCase "3")) 0 10
