@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Main where
 
+import           Control.Monad                  (unless)
 import           Data.Text                      (Text, unpack)
 import           Data.Time.Clock
 
@@ -36,19 +37,17 @@ main = do
       putStrLn "======================================"
       putStrLn "Enter query or 'exit':"
       qry <- getLine
-      if qry == "exit"
-        then return ()
-        else do
-          case parseQuery qry of
-            Right query -> do
-              putStrLn "searching ..."
-              -- no paging here. fetch all results. might lead to slow queries!
-              start <- getCurrentTime
-              res <- runCmd ix $ Search query 0 1000000000000
-              end <- getCurrentTime
-              printQueryResult res (diffUTCTime end start)
-              getQuery ix
-            Left err   -> putStrLn $ "Invalid input: " ++ unpack err
+      unless (qry == "exit") $ do
+        case parseQuery qry of
+          Right query -> do
+            putStrLn "searching ..."
+            -- no paging here. fetch all results. might lead to slow queries!
+            start <- getCurrentTime
+            res <- runCmd ix $ Search query 0 1000000000000
+            end <- getCurrentTime
+            printQueryResult res (diffUTCTime end start)
+            getQuery ix
+          Left err   -> putStrLn $ "Invalid input: " ++ unpack err
 
 -- | Print interpreter search results.
 printQueryResult :: Show t => Either CmdError CmdResult -> t -> IO ()
