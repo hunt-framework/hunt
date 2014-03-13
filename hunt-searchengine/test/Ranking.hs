@@ -4,7 +4,7 @@ import           Control.Applicative
 import           Control.Arrow
 import           Control.Monad.Error
 import qualified Data.Map                              as M
-import           Data.Default
+--import           Data.Default
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -23,8 +23,8 @@ import           Hunt.DocTable.HashedDocTable          (Documents)
 
 -- ----------------------------------------------------------------------------
 
-type TestEnv = Env (Documents CompressedDoc)
-type TestCM a = CM (Documents CompressedDoc) a
+type TestEnv  = HuntEnv (Documents CompressedDoc)
+type TestCM a = Hunt    (Documents CompressedDoc) a
 
 rankConfig :: DocumentWrapper e => RankConfig e
 rankConfig = defaultRankConfig
@@ -38,7 +38,7 @@ main = defaultMain
 
 testRunCmd :: Command -> IO (Either CmdError CmdResult, TestEnv)
 testRunCmd cmd = do
-  env <- getHunt (def :: DefaultHunt)
+  env <- initHunt :: IO DefHuntEnv
   res <- runCmd env cmd
   return (res, env)
 
@@ -68,8 +68,8 @@ insertTextContext cx = InsertContext cx defaultContextSchema
 -- evaluate CM and check the result
 testCM' :: Bool -> TestCM () -> Assertion
 testCM' b int = do
-  env <- getHunt (def :: DefaultHunt)
-  res <- runCM int env
+  env <- initHunt :: IO DefHuntEnv
+  res <- runHunt int env
   (if b then isRight else isLeft) res @? "unexpected interpreter result: " ++ show res
 
 
@@ -158,16 +158,16 @@ test_ranking = testCM $ do
   brainUri = "test://brain"
   brainDoc :: ApiDocument
   brainDoc = emptyApiDoc
-    { apiDocUri      = brainUri
-    , apiDocIndexMap = M.fromList [("0", brain)]
-    , apiDocDescrMap = descr
+    { adUri   = brainUri
+    , adIndex = M.fromList [("0", brain)]
+    , adDescr = descr
     }
 
   pinky    = "pinky"
   pinkyUri = "test://pinky"
   pinkyDoc :: ApiDocument
   pinkyDoc = emptyApiDoc
-    { apiDocUri      = pinkyUri
-    , apiDocIndexMap = M.fromList [("0", pinky), ("1", pinky)]
-    , apiDocDescrMap = descr
+    { adUri   = pinkyUri
+    , adIndex = M.fromList [("0", pinky), ("1", pinky)]
+    , adDescr = descr
     }

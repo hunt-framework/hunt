@@ -12,7 +12,7 @@ import           Data.Monoid                           ((<>))
 --import           Data.Monoid
 --import qualified Data.Set                              as S
 import           Data.Text                             (Text, pack)
-import           Data.Default
+--import           Data.Default
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -39,8 +39,8 @@ import           Hunt.DocTable.HashedDocTable          (Documents)
 
 -- ----------------------------------------------------------------------------
 
-type TestEnv = Env (Documents CompressedDoc)
-type TestCM a = CM (Documents CompressedDoc) a
+type TestEnv  = HuntEnv (Documents CompressedDoc)
+type TestCM a = Hunt    (Documents CompressedDoc) a
 
 rankConfig :: DocumentWrapper e => RankConfig e
 rankConfig = defaultRankConfig
@@ -78,7 +78,7 @@ test_insertEmpty = do
 
 testRunCmd :: Command -> IO (Either CmdError CmdResult, TestEnv)
 testRunCmd cmd = do
-  env <- getHunt (def :: DefaultHunt)
+  env <- initHunt :: IO DefHuntEnv
   res <- runCmd env cmd
   return (res, env)
 
@@ -167,8 +167,8 @@ insertGeoContext = uncurry InsertContext geoContextInfo
 -- evaluate CM and check the result
 testCM' :: Bool -> TestCM () -> Assertion
 testCM' b int = do
-  env <- getHunt (def :: DefaultHunt)
-  res <- runCM int env
+  env <- initHunt :: IO DefHuntEnv
+  res <- runHunt int env
   (if b then isRight else isLeft) res @? "unexpected interpreter result: " ++ show res
 
 
@@ -402,8 +402,8 @@ toText (lat, lon) = (pack $ printf "%f" lat) <> "-" <> (pack $ printf "%f" lon)
 prop_position_range :: Double -> Double -> Double -> Double -> (Double, Double) -> Property
 prop_position_range x1' x2' x3' x4' (lon', lat') = monadicIO $ do
   res <- run $ do
-    env <- getHunt (def :: DefaultHunt)
-    res' <- flip runCM env $ do
+    env <- initHunt :: IO DefHuntEnv
+    res' <- flip runHunt env $ do
       _ <- execCmd' insertDefaultContext
       _ <- execCmd' insertGeoContext
       _ <- execCmd' $ Insert $ geoDoc' $ toText p
