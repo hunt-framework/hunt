@@ -305,9 +305,9 @@ execInsertContext cx ct ixx@(ContextIx ix dt s)
     norms                <- mapM (askNormalizer . cnName) $ cxNormalizer ct
 
     -- create new index instance and insert it with context
-    return ( ContextIx { ixhIndex = Ixx.insertContext cx (newIx impl) ix
-                 , ixhDocs   = dt
-                 , ixhSchema = M.insert cx (ct
+    return ( ContextIx { ciIndex = Ixx.insertContext cx (newIx impl) ix
+                 , ciDocs   = dt
+                 , ciSchema = M.insert cx (ct
                                             { cxType = cType
                                             , cxNormalizer = norms
                                             }) s
@@ -459,7 +459,7 @@ execLoad filename = do
   let ix = map ctIxImpl ts
   ixh@(ContextIx _ _ s) <- liftIO $ decodeFile' ix filename
   ls <- TV.mapM reloadSchema s
-  return (ixh{ ixhSchema = ls }, ResOK)
+  return (ixh{ ciSchema = ls }, ResOK)
   where
   decodeFile' ts f = do
     bs <- BL.readFile f

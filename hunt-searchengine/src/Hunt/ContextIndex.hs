@@ -44,9 +44,9 @@ import           Hunt.Utility
 -- ----------------------------------------------------------------------------
 
 data ContextIndex dt = ContextIx
-  { ixhIndex  :: !(ContextMap Occurrences)
-  , ixhDocs   :: dt
-  , ixhSchema :: Schema
+  { ciIndex  :: !(ContextMap Occurrences)
+  , ciDocs   :: dt
+  , ciSchema :: Schema
   }
 
 newtype ContextMap v
