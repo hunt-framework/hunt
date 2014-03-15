@@ -24,7 +24,7 @@ source-repository head
 
 -- select Data.IntMap.BinTree.Strict as implementation for DocIdMap
 flag with-bintree
-  default:      False
+  default:      True
   manual:       True
 
 library
