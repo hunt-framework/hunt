@@ -1,9 +1,9 @@
 {-# LANGUAGE ConstraintKinds            #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverlappingInstances       #-}
 {-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE DeriveDataTypeable         #-}
 
 module Hunt.Index.InvertedIndex
 ( InvertedIndex(..)
@@ -13,28 +13,28 @@ module Hunt.Index.InvertedIndex
 )
 where
 
-import           Prelude                                    as P
+import           Prelude                                  as P
 
 import           Control.DeepSeq
 
-import           Data.Bijection.Instances                   ()
-import           Data.Binary                                (Binary (..))
-import           Data.Text                                  (Text)
+import           Data.Bijection.Instances                 ()
+import           Data.Binary                              (Binary (..))
+import           Data.Text                                (Text)
 import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.Occurrences                    (Occurrences)
+import           Hunt.Common.Occurrences                  (Occurrences)
 import           Hunt.Common.Occurrences.Compression.BZip
 --import           Hunt.Common.Occurrences.Compression
+import           Hunt.Index                               as Ix
 import           Hunt.Index.ComprPrefixTreeIndex
-import qualified Hunt.Index.ComprPrefixTreeIndex2Dim        as PT2D
-import           Hunt.Index                                 as Ix
+import qualified Hunt.Index.ComprPrefixTreeIndex2Dim      as PT2D
 
 import           Hunt.Index.Proxy.KeyIndex
 
-import qualified Hunt.Index.Schema.Normalize.Int            as Int
-import qualified Hunt.Index.Schema.Normalize.Date           as Date
-import qualified Hunt.Index.Schema.Normalize.Position       as Pos
+import qualified Hunt.Index.Schema.Normalize.Date         as Date
+import qualified Hunt.Index.Schema.Normalize.Int          as Int
+import qualified Hunt.Index.Schema.Normalize.Position     as Pos
 
 import           Data.Bijection
 
