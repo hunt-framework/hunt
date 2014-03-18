@@ -238,7 +238,7 @@ instance Default ContextDescription where
     def = ContextDescription Nothing [] 1.0 True TextContext ""
 
 descriptionToCmd :: ContextDescription -> H.Command
-descriptionToCmd d = H.InsertContext {H.icICon = cxName d, H.icSchema = schema}
+descriptionToCmd d = H.InsertContext {H.icIContext = cxName d, H.icSchema = schema}
     where
         schema = H.ContextSchema {
             H.cxRegEx = cxRegEx d,
