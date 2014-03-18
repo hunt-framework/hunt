@@ -13,6 +13,8 @@ module Hunt.Server.Client (
     , query
     , insert
     , eval
+    , evalAutocomplete
+    , evalQuery
 
     -- * Some Reexports from hunt
     , H.LimitedResult (..)
@@ -69,6 +71,7 @@ import qualified Hunt.Common.ApiDocument as H
 import qualified Hunt.Index.Schema.Normalize.Position as H
 import qualified Hunt.Interpreter.Command as H (Command(..), CmdResult (..))
 import qualified Hunt.Index.Schema as H (CRegex, CNormalizer, CWeight, ContextSchema (..), ContextType (..))
+import           Hunt.Query.Language.Grammar (Query) -- (..), BinOp (..), TextSearchType (..))
 import           Hunt.Common.BasicTypes
 
 
@@ -134,6 +137,8 @@ withHuntServer x s = HTTP.withManager (runReaderConnectionT x . ServerAndManager
 runReaderConnectionT :: HuntConnectionT m a -> ServerAndManager -> ResourceT m a
 runReaderConnectionT x sm = (runReaderT . runHuntConnectionT) x sm
 
+ -- ---------------------------
+
 checkServerUrl :: Text -> Text
 checkServerUrl s
     | T.null s = "http://localhost:3000/"
@@ -155,13 +160,8 @@ httpLbs request = do
     response <- HTTP.httpLbs request (unManager sm)
     return $ HTTP.responseBody response
 
-
-
-autocomplete :: (MonadIO m, Failure HTTP.HttpException m) => Text  -> HuntConnectionT m (Either Text [Text])
-autocomplete q = do
-    request <- makeRequest $ T.concat [ "completion/", encodeRequest q, "/20"]
-    d <- httpLbs request
-    return $ (eitherDecodeT >=> handleJsonResponse >=> filterByRest >=> prefixWith) d
+handleAutoCompeteResponse :: Monad m => Text -> ByteString -> m (Either Text [Text])
+handleAutoCompeteResponse q d = return $ (eitherDecodeT >=> handleJsonResponse >=> filterByRest >=> prefixWith) d
     where
         (rest, prefix) = over both T.reverse $ T.span (\ c -> (not $ isSpace c) && (c /= ':') && (c /= '!') && (c /= '~')) $ T.reverse q
 
@@ -170,6 +170,12 @@ autocomplete q = do
 
         prefixWith :: [Text] -> Either Text [Text]
         prefixWith = ((return .) . fmap) $ (prefix <>)
+
+autocomplete :: (MonadIO m, Failure HTTP.HttpException m) => Text  -> HuntConnectionT m (Either Text [Text])
+autocomplete q = do
+    request <- makeRequest $ T.concat [ "completion/", encodeRequest q, "/20"]
+    d <- httpLbs request
+    handleAutoCompeteResponse q d
 
 
 query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m) => Text -> HuntConnectionT m  (Either Text (H.LimitedResult r))
@@ -180,6 +186,16 @@ query q = do
 
 insert :: (MonadIO m, Failure HTTP.HttpException m) => H.ApiDocuments -> HuntConnectionT m Text
 insert docs = eval $ map H.Insert docs
+
+evalAutocomplete :: (MonadIO m, Failure HTTP.HttpException m) => Text -> Query -> HuntConnectionT m (Either Text [Text])
+evalAutocomplete qt qq = do
+    result <- eval $ [H.Completion qq 20]
+    handleAutoCompeteResponse qt $ cs result
+
+evalQuery :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m) => Query -> HuntConnectionT m  (Either Text (H.LimitedResult r))
+evalQuery q = do
+    result <- eval $ [H.Search q 0 20]
+    return $ (eitherDecodeT >=> handleJsonResponse) $ cs result
 
 eval :: (MonadIO m, Failure HTTP.HttpException m) => [H.Command] -> HuntConnectionT m Text
 eval cmds = do
