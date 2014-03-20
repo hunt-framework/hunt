@@ -33,7 +33,7 @@ import           Data.Typeable
 
 import           Hunt.Common
 
-import           Hunt.Interpreter.Interpreter
+import           Hunt.Interpreter
 
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty

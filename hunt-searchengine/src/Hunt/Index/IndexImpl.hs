@@ -15,7 +15,7 @@ import           Data.Typeable.Binary        ()
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences     (Occurrences)
-import           Hunt.Index.Index
+import           Hunt.Index
 
 -- ------------------------------------------------------------
 

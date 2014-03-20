@@ -6,7 +6,7 @@
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeFamilies               #-}
 
-module Hunt.Interpreter.Interpreter
+module Hunt.Interpreter
     ( initHunt
     , runCmd
     , runHunt
@@ -43,7 +43,7 @@ import qualified Hunt.Common.DocIdMap                  as DM
 import           Hunt.Common.Document                  (DocumentWrapper, unwrap)
 import           Hunt.Common.Document.Compression.BZip (CompressedDoc)
 
-import qualified Hunt.Index.Index                      as Ix
+import qualified Hunt.Index                            as Ix
 import           Hunt.Index.Schema.Analyze
 
 import           Hunt.ContextIndex                     (ContextIndex (..),
@@ -60,8 +60,8 @@ import qualified Hunt.Query.Processor                  as QProc
 import           Hunt.Query.Ranking
 import           Hunt.Query.Result                     as QRes
 
-import           Hunt.DocTable.DocTable                (DocTable)
-import qualified Hunt.DocTable.DocTable                as Dt
+import           Hunt.DocTable                         (DocTable)
+import qualified Hunt.DocTable                         as Dt
 import           Hunt.DocTable.HashedDocTable
 
 import           Hunt.Interpreter.BasicCommand
@@ -95,7 +95,7 @@ import           GHC.Stats.Json                        ()
 
 -- | Name of the module for logging purposes.
 modName :: String
-modName = "Hunt.Interpreter.Interpreter"
+modName = "Hunt.Interpreter"
 
 -- | Log a message at 'DEBUG' priority.
 debugM :: MonadIO m => String -> m ()

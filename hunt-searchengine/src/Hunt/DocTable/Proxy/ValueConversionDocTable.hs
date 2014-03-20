@@ -1,11 +1,11 @@
 module Hunt.DocTable.Proxy.ValueConversionDocTable
 where
 
-import           Prelude                          hiding (null, filter, map, lookup)
-import           Control.Arrow                    (second)
+import           Prelude                      hiding (null, filter, map, lookup)
+import           Control.Arrow                (second)
 
 import qualified Hunt.Index.Common.DocIdMap   as DM
-import           Hunt.DocTable.DocTable
+import           Hunt.DocTable
 
 -- ------------------------------------------------------------
 

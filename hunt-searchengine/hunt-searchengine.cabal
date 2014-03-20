@@ -103,7 +103,7 @@ library
     Hunt.Index.Schema.Normalize.Position
     Hunt.Index.Schema.Normalize.Int
 
-    Hunt.Index.Index
+    Hunt.Index
     Hunt.Index.IndexImpl
     Hunt.Index.PrefixTreeIndex
     Hunt.Index.ComprPrefixTreeIndex
@@ -114,12 +114,12 @@ library
     Hunt.Index.Proxy.CachedIndex
     Hunt.Index.Proxy.KeyIndex
 
-    Hunt.DocTable.DocTable
+    Hunt.DocTable
     Hunt.DocTable.HashedDocTable
 
     Hunt.ContextIndex
 
-    Hunt.Interpreter.Interpreter
+    Hunt.Interpreter
     Hunt.Interpreter.BasicCommand
     Hunt.Interpreter.Command
 

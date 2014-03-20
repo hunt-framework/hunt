@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module Hunt.DocTable.DocTable
+module Hunt.DocTable
 where
 
 import           Prelude                hiding (filter, lookup, map, null)

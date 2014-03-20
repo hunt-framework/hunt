@@ -40,7 +40,7 @@ import qualified Hunt.Common.Positions                       as Pos
 
 
 import qualified Hunt.Index.ComprPrefixTreeIndex             as CPIx
-import qualified Hunt.Index.Index                            as Ix
+import qualified Hunt.Index                                  as Ix
 import qualified Hunt.Index.InvertedIndex                    as InvIx
 import qualified Hunt.Index.PrefixTreeIndex                  as PIx
 import           Hunt.Index.IndexImpl

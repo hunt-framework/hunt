@@ -20,8 +20,8 @@ import           Data.Binary                         (Binary (..))
 
 import           Hunt.Common.Occurrences             (Occurrences)
 import           Hunt.Common.Occurrences.Compression
-import           Hunt.Index.Index
-import qualified Hunt.Index.Index                    as Ix
+import           Hunt.Index
+import qualified Hunt.Index                          as Ix
 
 -- ----------------------------------------------------------------------------
 

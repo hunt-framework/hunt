@@ -16,8 +16,8 @@ import           Data.Typeable
 import qualified Data.StringMap.Strict      as SM
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocIdMap   as DM
-import           Hunt.Index.Index
+import           Hunt.Common.DocIdMap       as DM
+import           Hunt.Index
 
 import           Hunt.Utility
 

@@ -19,7 +19,7 @@ import           Data.Default
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences              (Occurrences)
 import           Hunt.Index.IndexImpl                 (IndexImpl, mkIndex)
-import qualified Hunt.Index.Index                     as Ix
+import qualified Hunt.Index                           as Ix
 import           Hunt.Index.InvertedIndex
 
 import qualified Hunt.Index.Schema.Normalize.Position as Pos

@@ -8,13 +8,15 @@ import           Data.Time.Clock
 import           Hunt.Common
 import           Hunt.Common.ApiDocument
 import           Hunt.Index.Schema
-import           Hunt.Interpreter.Interpreter
+import           Hunt.Interpreter
 import           Hunt.Interpreter.Command
 import           Hunt.Query.Ranking
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Language.Parser
 
 import           System.Environment
+
+-- ----------------------------------------------------------------------------
 
 -- | Hunt command line search.
 --   After index is loaded, queries can be performed

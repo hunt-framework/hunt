@@ -13,7 +13,7 @@ import qualified Network.Wai.Handler.Warp             as W
 import           Network.Wai.Middleware.RequestLogger
 
 import           Hunt.Interpreter.Command
-import           Hunt.Interpreter.Interpreter
+import           Hunt.Interpreter
 
 import           Hunt.Query.Language.Parser
 

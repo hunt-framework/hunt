@@ -12,7 +12,7 @@ import           Data.Map                     hiding (map)
 
 import           Hunt.Common
 import           Hunt.Interpreter.Command
-import           Hunt.Interpreter.Interpreter
+import           Hunt.Interpreter
 import           Hunt.Query.Language.Grammar
 
 -- ----------------------------------------------------------------------------

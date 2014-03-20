@@ -29,7 +29,7 @@ import           Hunt.Common.Document
 import           Hunt.Common.Document.Compression.BZip
 --import           Hunt.Common.BasicTypes
 import           Hunt.Interpreter.Command
-import           Hunt.Interpreter.Interpreter
+import           Hunt.Interpreter
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Ranking
 import           Hunt.Utility

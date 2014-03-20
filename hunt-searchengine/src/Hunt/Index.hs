@@ -6,7 +6,7 @@
 {-# LANGUAGE UndecidableInstances      #-}
 {-# LANGUAGE MultiParamTypeClasses     #-}
 
-module Hunt.Index.Index
+module Hunt.Index
 where
 
 import           Prelude                        hiding (map)

@@ -8,10 +8,10 @@
 module Main where
 
 import           Numeric
-import           Prelude                                         as P
+import           Prelude                                     as P
 
 import           GHC.Stats
-import           GHC.Stats.Json                                  ()
+import           GHC.Stats.Json                              ()
 import           System.Environment
 import           System.FilePath
 import           System.Mem
@@ -22,28 +22,28 @@ import           System.Process
 --import           Control.Concurrent
 import           Control.Monad
 
-import qualified Data.Binary                                     as Bin
---import           Data.Map                                        (Map)
-import qualified Data.Map                                        as M
+import qualified Data.Binary                                 as Bin
+--import           Data.Map                                    (Map)
+import qualified Data.Map                                    as M
 --import           Data.Maybe
 import           Data.Monoid
-import           Data.Text                                       (Text)
-import qualified Data.Text                                       as T
+import           Data.Text                                   (Text)
+import qualified Data.Text                                   as T
 import           Data.Time.Clock
-import qualified Data.Traversable                                as T
+import qualified Data.Traversable                            as T
 import           Data.Typeable
 
 import           Hunt.Common
 
-import qualified Hunt.Index.Index                            as Ix
+import qualified Hunt.Index                                  as Ix
 import qualified Hunt.Index.InvertedIndex                    as InvIx
 import qualified Hunt.Index.PrefixTreeIndex                  as PIx
 
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
---import qualified Data.ByteString                                 as BS
-import qualified Data.ByteString.Lazy                            as BL
-import qualified Data.ByteString.Lazy.Char8                      as B8
+--import qualified Data.ByteString                             as BS
+import qualified Data.ByteString.Lazy                        as BL
+import qualified Data.ByteString.Lazy.Char8                  as B8
 
 import           Hunt.Common.ApiDocument
 import qualified Hunt.Common.Occurrences                     as Occ

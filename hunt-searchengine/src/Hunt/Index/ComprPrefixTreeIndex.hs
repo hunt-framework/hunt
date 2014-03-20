@@ -18,8 +18,8 @@ import           Control.Parallel.Strategies
 import           Data.Binary                         (Binary (..))
 import           Data.Typeable
 
-import           Hunt.Index.Index
-import qualified Hunt.Index.Index                    as Ix
+import           Hunt.Index
+import qualified Hunt.Index                          as Ix
 
 import qualified Data.StringMap.Strict               as SM
 

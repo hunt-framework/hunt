@@ -27,15 +27,15 @@ import qualified Data.Set                    as S
 import           Data.Text                   (Text)
 import qualified Data.Traversable            as TV
 
-import           Hunt.DocTable.DocTable      (DocTable)
-import qualified Hunt.DocTable.DocTable      as Dt
+import           Hunt.DocTable               (DocTable)
+import qualified Hunt.DocTable               as Dt
 
 import           Hunt.Common
 import           Hunt.Common.DocIdMap        (toDocIdSet)
 import qualified Hunt.Common.Document        as Doc
 import qualified Hunt.Common.Occurrences     as Occ
 
-import qualified Hunt.Index.Index            as Ix
+import qualified Hunt.Index                  as Ix
 import           Hunt.Index.IndexImpl        (IndexImpl)
 import qualified Hunt.Index.IndexImpl        as Impl
 

@@ -35,25 +35,25 @@ module Hunt.DocTable.HashedCompactDocuments
     )
 where
 
-import qualified Codec.Compression.BZip                          as BZ
+import qualified Codec.Compression.BZip                      as BZ
 
-import           Control.Arrow                                   (second)
+import           Control.Arrow                               (second)
 import           Control.DeepSeq
 
-import           Data.Binary                                     (Binary (..))
-import qualified Data.Binary                                     as B
-import           Data.Set                                        (Set)
-import qualified Data.Set                                        as S
+import           Data.Binary                                 (Binary (..))
+import qualified Data.Binary                                 as B
+import           Data.Set                                    (Set)
+import qualified Data.Set                                    as S
 
-import           Data.ByteString.Lazy                            (ByteString)
-import qualified Data.ByteString.Lazy                            as BS
+import           Data.ByteString.Lazy                        (ByteString)
+import qualified Data.ByteString.Lazy                        as BS
 
 import           Data.Digest.Murmur64
 
 import           Hunt.Index.Common                           hiding (empty)
 import qualified Hunt.Index.Common.DocIdMap                  as DM
 
-import           Hunt.DocTable.DocTable                      hiding (map)
+import           Hunt.DocTable                               hiding (map)
 import qualified Hunt.DocTable.Proxy.ValueConversionDocTable as ValConvDt
 
 import           Hunt.Utility                                ((.::))

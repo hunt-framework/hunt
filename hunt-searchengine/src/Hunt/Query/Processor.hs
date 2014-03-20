@@ -49,8 +49,8 @@ import qualified Hunt.Query.Intermediate     as I
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Result           (Result)
 
-import           Hunt.DocTable.DocTable      (DocTable)
-import qualified Hunt.DocTable.DocTable      as Dt
+import           Hunt.DocTable               (DocTable)
+import qualified Hunt.DocTable               as Dt
 
 import           Hunt.Index.Schema.Analyze
 --import           Hunt.Index.Schema.Normalize

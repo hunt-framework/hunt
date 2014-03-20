@@ -55,8 +55,8 @@ import qualified Hunt.Common.DocIdMap   as DM
 import           Hunt.Common.Document   (DocumentWrapper (..))
 import qualified Hunt.Common.Positions  as Pos
 
-import           Hunt.DocTable.DocTable (DocTable)
-import qualified Hunt.DocTable.DocTable as Dt
+import           Hunt.DocTable          (DocTable)
+import qualified Hunt.DocTable          as Dt
 
 -- ----------------------------------------------------------------------------
 

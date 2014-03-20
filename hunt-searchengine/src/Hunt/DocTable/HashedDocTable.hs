@@ -43,7 +43,7 @@ import qualified Hunt.Common.DocId      as DId
 import           Hunt.Common.DocIdMap   (DocIdMap)
 import qualified Hunt.Common.DocIdMap   as DM
 import           Hunt.Common.Document   (Document (..), DocumentWrapper (..))
-import           Hunt.DocTable.DocTable
+import           Hunt.DocTable
 
 import           Hunt.Utility
 

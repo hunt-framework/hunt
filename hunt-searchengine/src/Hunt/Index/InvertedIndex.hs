@@ -28,7 +28,7 @@ import           Hunt.Common.Occurrences.Compression.BZip
 --import           Hunt.Common.Occurrences.Compression
 import           Hunt.Index.ComprPrefixTreeIndex
 import qualified Hunt.Index.ComprPrefixTreeIndex2Dim        as PT2D
-import           Hunt.Index.Index                           as Ix
+import           Hunt.Index                                 as Ix
 
 import           Hunt.Index.Proxy.KeyIndex
 

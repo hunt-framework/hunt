@@ -4,6 +4,7 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
+
 module Main where
 
 import           Data.IntMap.Strict            (IntMap)
@@ -20,16 +21,18 @@ import           Data.Bijection
 
 import           Hunt.Common
 import qualified Hunt.Common.DocIdMap          as DM
-import           Hunt.Index.Index
-import qualified Hunt.Index.Index              as Ix
+import           Hunt.Index
+import qualified Hunt.Index                    as Ix
 import           Hunt.Index.Proxy.KeyIndex
-import           Hunt.Interpreter.Interpreter
-import qualified Hunt.Interpreter.Interpreter  as H
+import           Hunt.Interpreter
+import qualified Hunt.Interpreter              as H
 import           Hunt.Interpreter.Command
 import           Hunt.Index.Schema.Normalize.Int
 import           Hunt.Index.IndexImpl
 import           Hunt.Query.Language.Grammar
 import           System.Environment
+
+-- ----------------------------------------------------------------------------
 
 main :: IO ()
 main = do
@@ -160,7 +163,7 @@ instance Index IntMap where
   lookupRange k1 k2 i
     = IM.toList $ IM.filterWithKey (\k _ -> k >= k1 &&k <= k2) i
 
-  unionWith f i1 i2 
+  unionWith f i1 i2
     = IM.unionWith f i1 i2
 
   unionWithConv

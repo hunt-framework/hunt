@@ -10,17 +10,17 @@ module Hunt.Index.Proxy.KeyIndex
 )
 where
 
-import           Prelude                                 as P
+import           Prelude                             as P
 
-import           Control.Applicative                     ((<$>))
-import           Control.Arrow                           (first)
+import           Control.Applicative                 ((<$>))
+import           Control.Arrow                       (first)
 import           Control.DeepSeq
 
 import           Data.Bijection
-import           Data.Binary                             (Binary (..))
+import           Data.Binary                         (Binary (..))
 
-import           Hunt.Index.Index
-import qualified Hunt.Index.Index                        as Ix
+import qualified Hunt.Index                          as Ix
+import           Hunt.Index
 
 import           Hunt.Index.Proxy.CompressedIndex
 

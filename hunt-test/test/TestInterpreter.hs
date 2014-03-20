@@ -3,12 +3,12 @@
 
 module Main where
 
-import           Data.Map                          (Map)
-import qualified Data.Map                          as M
-import           Data.Text                         (Text)
+import           Data.Map                      (Map)
+import qualified Data.Map                      as M
+import           Data.Text                     (Text)
 import           Hunt.Common.Document
 import qualified Hunt.Index.Proxy.ContextIndex as Ix
-import           Hunt.Interpreter.Interpreter
+import           Hunt.Interpreter
 
 -- ----------------------------------------------------------------------------
 
@@ -22,7 +22,7 @@ main1 c
 -- ----------------------------------------------------------------------------
 
 c1 = NOOP
-c2 = Search ("abc")
+c2 = Search  "abc"
 c3 = LoadIx  "ix1"
 c4 = StoreIx "ix2"
 c5 = Sequence [c1,c2,c3,c4]

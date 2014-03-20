@@ -21,7 +21,7 @@ import           Prelude                             as P
 
 import           Data.Binary                         (Binary (..))
 
-import           Hunt.Index.Index                    as Ix
+import           Hunt.Index                          as Ix
 
 -- ----------------------------------------------------------------------------
 
