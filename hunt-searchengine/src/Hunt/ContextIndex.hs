@@ -115,8 +115,6 @@ insertList docAndWrds (ContextIndex ix docTable s) = do
   mkPairs (a:b:xs) = (a,b):mkPairs xs
 
 
-
-
 -- | Modify elements
 modify :: (Par.MonadParallel m, DocTable dt)
        => (Dt.DValue dt -> m (Dt.DValue dt))
@@ -126,12 +124,14 @@ modify f wrds dId (ContextIndex ii dt s) = do
   newIndex    <- addWordsM wrds dId ii
   return $ ContextIndex newIndex newDocTable s
 
+
 -- | Delete a set of documents by 'URI'.
 deleteDocsByURI :: (Par.MonadParallel m, DocTable dt)
                 => Set URI -> ContextIndex dt -> m (ContextIndex dt)
 deleteDocsByURI us ixx@(ContextIndex _ix dt _) = do
   docIds <- liftM (toDocIdSet . catMaybes) . mapM (flip Dt.lookupByURI dt) . S.toList $ us
   delete docIds ixx
+
 
 -- | Delete a set of documents by 'DocId'.
 delete :: (Par.MonadParallel m, DocTable dt)
@@ -144,6 +144,7 @@ delete dIds cix@(ContextIndex ix dt s)
              newDt <- Dt.difference dIds dt
              return $ ContextIndex newIx newDt s
 
+
 -- | All contexts.
 contexts :: (Monad m, DocTable dt)
          => ContextIndex dt -> m [Context]
@@ -153,6 +154,7 @@ contexts (ContextIndex ix _dt _s) = return $ contexts' ix
 hasContext :: (Monad m, DocTable dt)
            => Context -> ContextIndex dt -> m Bool
 hasContext c (ContextIndex ix _dt _s) = return $ hasContext' c ix
+
 
 -- | Is the document part of the index?
 member :: (Monad m, DocTable dt)
@@ -175,7 +177,6 @@ modifyWithDescription descr wrds dId (ContextIndex ii dt s) = do
   mergeDescr = return . Doc.update (\d' -> d'{ desc = flip M.union (desc d') descr })
 
 -- ----------------------------------------------------------------------------
-----------------------------------------------------------------------------
 -- helper
 
 
@@ -249,7 +250,7 @@ empty :: ContextMap v
 empty = ContextMap $ M.empty
 
 -- | Insert a new context.
---   Note: If context already exists this function does nothing.
+--   /Note/: If context already exists this function does nothing.
 insertContext' :: Impl.IndexImplCon ix v
               => Context -> ix v -> ContextMap v -> ContextMap v
 insertContext' c ix (ContextMap m) = ContextMap $ M.insertWith (const id) c (Impl.mkIndex ix) m
@@ -258,11 +259,11 @@ insertContext :: Context -> Impl.IndexImpl v -> ContextMap v -> ContextMap v
 insertContext c ix (ContextMap m) = ContextMap $ M.insertWith (const id) c ix m
 
 
--- | Removes context including attached index from ContextMap.
+-- | Removes context (including the index) from the 'ContextMap'.
 deleteContext :: Context -> ContextMap v -> ContextMap v
 deleteContext c (ContextMap m) = ContextMap $ M.delete c m
 
--- | Insert an element to one Context.
+-- | Insert an element to a 'Context'.
 insertWithCx :: Monad m => Context -> Text -> v -> ContextMap v -> m (ContextMap v)
 insertWithCx c w v (ContextMap m)
   = case M.lookup c m of
@@ -270,8 +271,6 @@ insertWithCx c w v (ContextMap m)
         ix' <- liftM Impl.mkIndex $ Ix.insertListM [(w,v)] ix
         return $ ContextMap $ M.insert c ix' m
       _      -> error "context does not exist"
-  --where
-  --adjust' (Impl.IndexImpl ix) = Impl.mkIndex $
 
 delete' :: Par.MonadParallel m => DocIdSet -> ContextMap v -> m (ContextMap v)
 delete' dIds (ContextMap m)

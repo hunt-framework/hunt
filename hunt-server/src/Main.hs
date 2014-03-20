@@ -21,7 +21,7 @@ huntConfiguration = HuntServerConfiguration {
       &= help "Load index on startup",
     logPriority = DEBUG
       &= explicit &= name "log-priority" &= typ "PRIORITY"
-      &= help "Set log level",
+      &= help "Set log level for stdout",
     logFile = "hunt.log"
       &= explicit &= name "log-file" &= typFile
       &= help "Set logfile location"

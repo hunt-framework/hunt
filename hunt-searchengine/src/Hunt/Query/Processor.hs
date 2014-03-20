@@ -28,16 +28,12 @@ import           Data.Function
 import qualified Data.List                   as L
 import qualified Data.Map                    as M
 import           Data.Maybe
---import qualified Data.Set                    as S
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
-
---import           Hunt.Utility
 
 import           Hunt.Common
 import qualified Hunt.Common.DocIdMap        as DM
 import qualified Hunt.Common.Positions       as Pos
---import           Hunt.Index.TextIndex
 
 import           Hunt.ContextIndex           (ContextMap)
 import qualified Hunt.ContextIndex           as CIx
@@ -53,7 +49,6 @@ import           Hunt.DocTable               (DocTable)
 import qualified Hunt.DocTable               as Dt
 
 import           Hunt.Index.Schema.Analyze
---import           Hunt.Index.Schema.Normalize
 import           Hunt.Interpreter.Command    (CmdError (..))
 
 import qualified System.Log.Logger           as Log

@@ -2,7 +2,7 @@
 -- http://ghc.haskell.org/trac/ghc/blog/LetGeneralisationInGhc7
 -- {-# LANGUAGE NoMonoLocalBinds  #-}
 
-module Hunt.Server {-(start)-} where
+module Hunt.Server (start) where
 
 import           Control.Monad.Error
 import           Data.String                          (fromString)
@@ -41,7 +41,7 @@ modName = "Hunt.Server"
 -- | Log a message at 'DEBUG' priority.
 debugM :: String -> IO ()
 debugM = Log.debugM modName
-
+{-
 -- | Log a message at 'WARNING' priority.
 warningM :: String -> IO ()
 warningM = Log.warningM modName
@@ -49,12 +49,15 @@ warningM = Log.warningM modName
 -- | Log a message at 'ERROR' priority.
 errorM :: String -> IO ()
 errorM = Log.errorM modName
+-}
 
 -- | Convenience function to add a log formatter.
 withFormatter :: (Monad m, LogHandler r) => m r -> LogFormatter r -> m r
 withFormatter h f = liftM (flip setFormatter f) h
 
--- | Initializes the loggers and sets the stdout logger to the given priority.
+-- | Initializes the loggers (stdout, file).
+--   Sets the stdout logger to the given priority
+--   and sets the path and 'DEBUG' priority for the file logger.
 initLoggers :: HuntServerConfiguration -> IO ()
 initLoggers config = do
   -- formatter

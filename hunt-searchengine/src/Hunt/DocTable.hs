@@ -16,27 +16,26 @@ import           Data.Maybe             (catMaybes)
 import           Data.Set               (Set)
 import qualified Data.Set               as S
 
-import           Hunt.Common.BasicTypes (URI)
-import           Hunt.Common.DocId      (DocId)
-import           Hunt.Common.DocIdMap   (DocIdMap (..), DocIdSet, toDocIdSet)
+import           Hunt.Common.BasicTypes
+import           Hunt.Common.DocId
+import           Hunt.Common.DocIdMap   (DocIdMap (..), DocIdSet)
 import qualified Hunt.Common.DocIdMap   as DM
-import           Hunt.Common.Document   (Document, DocumentWrapper, unwrap,
-                                         wrap)
+import           Hunt.Common.Document   (Document, DocumentWrapper (wrap, unwrap))
 
 -- ----------------------------------------------------------------------------
 
--- | The doc-table data type which contains all functions used on the implementation.
+-- | The document table type class which needs to be implemented to be used by the 'Interpreter'.
 --   The type parameter @i@ is the implementation.
+--   The implementation must have a value type parameter.
 class (DocumentWrapper (DValue i)) => DocTable i where
     type DValue i :: *
 
-    -- | Test whether the doc table is empty.
+    -- | Test whether the document table is empty.
     null            :: Monad m => i -> m Bool
 
     -- | Returns the number of unique documents in the table.
     size            :: Monad m => i -> m Int
 
-    -- TODO: argument ordering
     -- | Lookup a document by its ID.
     lookup          :: Monad m => DocId -> i -> m (Maybe (DValue i))
 
@@ -51,8 +50,8 @@ class (DocumentWrapper (DValue i)) => DocTable i where
     disjoint        :: Monad m => i -> i -> m Bool
 
     -- | Insert a document into the table. Returns a tuple of the 'DocId' for that document and the
-    -- new table. If a document with the same 'URI' is already present, its id will be returned
-    -- and the table is returned unchanged.
+    --   new table. If a document with the same 'URI' is already present, its id will be returned
+    --   and the table is returned unchanged.
     insert          :: Monad m => DValue i -> i -> m (DocId, i)
 
     -- | Update a document with a certain 'DocId'.
@@ -84,19 +83,19 @@ class (DocumentWrapper (DValue i)) => DocTable i where
     -- | Deletes a set of documents by 'URI' from the table.
     differenceByURI :: Monad m => Set URI -> i -> m i
     differenceByURI uris d = do -- XXX: eliminate S.toList?
-        ids <- liftM (toDocIdSet . catMaybes) . mapM (flip lookupByURI d) . S.toList $ uris
+        ids <- liftM (DM.toDocIdSet . catMaybes) . mapM (flip lookupByURI d) . S.toList $ uris
         difference ids d
 
-    -- | Update documents (through mapping over all documents).
+    -- | Map a function over all values of the document table.
     map             :: Monad m => (DValue i -> DValue i) -> i -> m i
 
     -- | Filters all documents that satisfy the predicate.
     filter          :: Monad m => (DValue i -> Bool) -> i -> m i
 
-    -- | Convert document table to a single map
+    -- | Convert document table to a 'DocIdMap'.
     toMap           :: Monad m => i -> m (DocIdMap (DValue i))
 
-    -- | Edit 'DocId's.
+    -- | Update 'DocId's.
     mapKeys         :: Monad m => (DocId -> DocId) -> i -> m i
 
     -- | Empty 'DocTable'.

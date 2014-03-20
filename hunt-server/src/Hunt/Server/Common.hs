@@ -13,10 +13,11 @@ import           System.Log.Logger (Priority(..))
 
 -- ----------------------------------------------------------------------------
 
--- |  some sort of json response format
+-- | Generic JSON response format.
 data JsonResponse r f
-  = ToJSON r => JsonSuccess     r
-  | ToJSON f => JsonFailure Int f
+  = ToJSON r => JsonSuccess     r -- ^ Successful response with the payload.
+  | ToJSON f => JsonFailure Int f -- ^ Response that something went wrong.
+                                  --   Includes an error code an a message.
 
 instance ToJSON (JsonResponse r f) where
   toJSON (JsonSuccess msg) = object
@@ -33,10 +34,11 @@ instance ToJSON (JsonResponse r f) where
 deriving instance Data     Priority
 deriving instance Typeable Priority
 
+-- | Hunt server configuration.
 data HuntServerConfiguration = HuntServerConfiguration
-  { huntServerHost     :: String
-  , huntServerPort     :: Int
-  , readIndexOnStartup :: Maybe FilePath
-  , logFile            :: FilePath
-  , logPriority        :: Priority
+  { huntServerHost     :: String          -- ^ The host.
+  , huntServerPort     :: Int             -- ^ The port to use.
+  , readIndexOnStartup :: Maybe FilePath  -- ^ A serialized index to load on startup.
+  , logFile            :: FilePath        -- ^ The location of the logfile.
+  , logPriority        :: Priority        -- ^ The priority level to log on stdout.
   } deriving (Show, Data, Typeable)

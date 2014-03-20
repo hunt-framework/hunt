@@ -9,15 +9,91 @@
 module Hunt.Index
 where
 
-import           Prelude                        hiding (map)
+import           Prelude                hiding (map)
 
-import           GHC.Exts                       (Constraint)
+import           GHC.Exts               (Constraint)
 
 import           Control.DeepSeq
-import qualified Data.IntSet                    as IS
+import qualified Data.IntSet            as IS
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocIdMap           (DocIdSet)
 import           Hunt.Common.DocId
+import           Hunt.Common.DocIdMap   (DocIdSet)
+
+-- ----------------------------------------------------------------------------
+
+-- | The index type class which needs to be implemented to be used by the 'Interpreter'.
+--   The type parameter @i@ is the implementation.
+--   The implementation must have a value type parameter.
+class Index i where
+  type IKey i v :: *          -- ^ The key type of the index.
+
+  type IVal i v :: *          -- ^ The value type of the index.
+  type IVal i v = v
+
+  type ICon i v :: Constraint -- ^ Contraints of the index. Constraints can be on the implementation
+                              --   and its value type.
+  type ICon i v =  NFData v
+
+  -- | General lookup function.
+  search        :: ICon i v => TextSearchOp -> IKey i v -> i v -> [(IKey i v, IVal i v)]
+
+  -- | Search within a range of two keys.
+  lookupRange   :: ICon i v => IKey i v -> IKey i v -> i v -> [(IKey i v, IVal i v)]
+
+  -- | Insert occurrences.
+  --   This is more efficient than folding with 'insert'.
+  insertList    :: ICon i v => [(IKey i v, IVal i v)] -> i v -> i v
+
+  -- | Insert occurrences.
+  insert        :: ICon i v => IKey i v -> IVal i v -> i v -> i v
+  insert k v    = insertList [(k,v)]
+
+  -- | Delete as batch job.
+  --   This is more efficient than folding with 'delete'.
+  deleteDocs    :: ICon i v => DocIdSet -> i v -> i v
+
+  -- | Delete occurrences.
+  delete        :: ICon i v => DocId -> i v -> i v
+  delete        = deleteDocs . IS.singleton
+
+  -- | Empty index.
+  empty         :: ICon i v => i v
+
+  -- | Convert an index to a list.
+  --   Can be used for easy conversion between different index implementations.
+  toList        :: ICon i v => i v -> [(IKey i v, IVal i v)]
+
+  -- | Convert a list of key-value pairs to an index.
+  fromList      :: ICon i v => [(IKey i v, IVal i v)] -> i v
+
+  -- | Merge two indexes with a combining function.
+  unionWith     :: ICon i v
+                => (IVal i v -> IVal i v -> IVal i v)
+                -> i v -> i v -> i v
+
+  -- | Merge two indexes with combining functions.
+  --   The second index may have another value type than the first one.
+  --   Conversion and merging of the indexes is done in a single step.
+  --   This is much more efficient than mapping the second index and calling 'unionWith'.
+  unionWithConv :: (ICon i v, ICon i v2)
+                => (v2 -> v) -> (v -> v2 -> v)
+                -> i v -> i v2 -> i v
+
+  -- TODO: non-rigid map
+  -- | Map a function over the values of the index.
+  map           :: ICon i v
+                => (IVal i v -> IVal i v)
+                -> i v -> i v
+  map f = mapMaybe (Just . f)
+
+  -- | Updates a value or deletes it if the result of the function is 'Nothing'.
+  mapMaybe      :: ICon i v
+                => (IVal i v -> Maybe (IVal i v))
+                -> i v -> i v
+
+  -- | Keys of the index.
+  keys          :: ICon i v
+                => i v -> [IKey i v]
 
 -- ----------------------------------------------------------------------------
 
@@ -30,122 +106,59 @@ class Monad m => IndexM m i where
   type IConM     i v :: Constraint
   type IConM     i v =  NFData v
 
-  -- | General lookup function.
+  -- | Monadic version of 'search'.
   searchM      :: IConM i v => TextSearchOp -> IKeyM i v -> i v -> m [(IKeyM i v, IValM i v)]
 
-  -- | Search within a range.
+  -- | Monadic version of 'lookupRangeM'.
   lookupRangeM :: IConM i v => IKeyM i v -> IKeyM i v -> i v -> m [(IKeyM i v, IValM i v)]
 
-  -- | Insert occurrences.
+  -- | Monadic version of 'insertList'.
   insertListM  :: IConM i v => [(IKeyM i v, IValM i v)] -> i v -> m (i v)
 
-  insertM       :: (IConM i v) => IKeyM i v -> IValM i v -> i v -> m (i v)
+  -- | Monadic version of 'insert'.
+  insertM      :: IConM i v => IKeyM i v -> IValM i v -> i v -> m (i v)
   insertM k v i = insertListM [(k,v)] i
 
-  -- | Delete as batch job
+  -- | Monadic version of 'deleteDocs'.
   deleteDocsM  :: IConM i v => DocIdSet -> i v -> m (i v)
 
-  -- | Delete occurrences.
+  -- | Monadic version of 'delete'.
   deleteM      :: IConM i v => DocId -> i v -> m (i v)
   deleteM k i  = deleteDocsM (IS.singleton k) i
 
-  -- | Empty Index
-  emptyM       :: (IConM i v) => m (i v)
+  -- | Monadic version of 'empty'.
+  emptyM       :: IConM i v => m (i v)
 
-  -- | Convert an Index to a list. Can be used for easy conversion between different index
-  -- implementations
+  -- | Monadic version of 'toList'.
   toListM      :: IConM i v => i v -> m [(IKeyM i v, IValM i v)]
 
-  -- | Make index from list
+  -- | Monadic version of 'fromList'.
   fromListM    :: IConM i v => [(IKeyM i v, IValM i v)] -> m (i v)
 
-  -- | Support for index value transformations
+  -- | Monadic version of 'unionWith'.
   unionWithM   :: IConM i v
                => (IValM i v -> IValM i v -> IValM i v)
                -> i v -> i v -> m (i v)
 
+  -- | Monadic version of 'unionWithConv'.
   unionWithConvM :: (IConM i v, Monad m, IConM i v2)
                  => (v2 -> v) -> (v -> v2 -> v)
                  -> i v -> i v2 -> m (i v)
 
-  -- TODO: non-rigid map
+  -- | Monadic version of 'map'.
   mapM         :: IConM i v
                => (IValM i v -> IValM i v)
                -> i v -> m (i v)
   mapM f = mapMaybeM (Just . f)
 
-  -- TODO: non-rigid map
+  -- | Monadic version of 'mapMaybe'.
   mapMaybeM    :: IConM i v
                => (IValM i v -> Maybe (IValM i v))
                -> i v -> m (i v)
 
-  -- XXX: maybe less generic with just list?
+  -- | Monadic version of 'keys'.
   keysM        :: IConM i v
                => i v -> m [IKeyM i v]
-
--- ----------------------------------------------------------------------------
-
-class Index i where
-  type IKey      i v :: *
-
-  type IVal      i v :: *
-  type IVal      i v = v
-
-  type ICon      i v :: Constraint
-  type ICon      i v =  NFData v
-
-  -- | General lookup function.
-  search       :: ICon i v => TextSearchOp -> IKey i v -> i v -> [(IKey i v, IVal i v)]
-
-  -- | Search within a range.
-  lookupRange  :: ICon i v => IKey i v -> IKey i v -> i v -> [(IKey i v, IVal i v)]
-
-  -- | Insert occurrences.
-  insertList  :: ICon i v => [(IKey i v, IVal i v)] -> i v -> i v
-
-  -- | Insert occurrences.
-  insert       :: ICon i v => IKey i v -> IVal i v -> i v -> i v
-  insert k v   = insertList [(k,v)]
-
-  -- | Delete as batch job
-  deleteDocs  :: ICon i v => DocIdSet -> i v -> i v
-
-  -- | Delete occurrences.
-  delete       :: ICon i v => DocId -> i v -> i v
-  delete       = deleteDocs . IS.singleton
-
-  -- | Empty Index
-  empty        :: ICon i v => i v
-
-  -- | Convert an Index to a list. Can be used for easy conversion between different index
-  -- implementations
-  toList       :: ICon i v => i v -> [(IKey i v, IVal i v)]
-
-  -- | Make index from list
-  fromList     :: ICon i v => [(IKey i v, IVal i v)] -> i v
-
-  -- | Support for index value transformations
-  unionWith    :: ICon i v
-               => (IVal i v -> IVal i v -> IVal i v)
-               -> i v -> i v -> i v
-
-  unionWithConv:: (ICon i v, ICon i v2)
-               => (v2 -> v) -> (v -> v2 -> v)
-               -> i v -> i v2 -> i v
-
-  -- TODO: non-rigid map
-  map          :: ICon i v
-               => (IVal i v -> IVal i v)
-               -> i v -> i v
-  map f = mapMaybe (Just . f)
-
-  mapMaybe     :: ICon i v
-               => (IVal i v -> Maybe (IVal i v))
-               -> i v -> i v
-
-  -- XXX: maybe less generic with just list?
-  keys         :: ICon i v
-               => i v -> [IKey i v]
 
 -- ----------------------------------------------------------------------------
 
