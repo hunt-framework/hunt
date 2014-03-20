@@ -32,27 +32,11 @@ import           System.Log.Logger                    hiding (debugM, errorM,
 import qualified System.Log.Logger                    as Log
 
 -- ----------------------------------------------------------------------------
--- Application launch options
-
-data Options = Options
-  { optLogLevel :: Priority
-  }
-
-defaultOptions :: Options
-defaultOptions = Options
-  { optLogLevel = DEBUG
-  }
-
--- ----------------------------------------------------------------------------
 -- Logging
 
 -- | Name of the module for logging purposes.
 modName :: String
 modName = "Hunt.Server"
-
--- | Location of the log file.
-logPath :: String
-logPath = "hunt.log"
 
 -- | Log a message at 'DEBUG' priority.
 debugM :: String -> IO ()
@@ -71,8 +55,8 @@ withFormatter :: (Monad m, LogHandler r) => m r -> LogFormatter r -> m r
 withFormatter h f = liftM (flip setFormatter f) h
 
 -- | Initializes the loggers and sets the stdout logger to the given priority.
-initLoggers :: Priority -> IO ()
-initLoggers level = do
+initLoggers :: HuntServerConfiguration -> IO ()
+initLoggers config = do
   -- formatter
   let defFormatter = simpleLogFormatter "[$time : $loggername : $prio] $msg"
 
@@ -80,11 +64,11 @@ initLoggers level = do
   updateGlobalLogger rootLoggerName clearLevel
 
   -- stdout root logger
-  handlerBare <- streamHandler stdout level `withFormatter` defFormatter
+  handlerBare <- streamHandler stdout (logPriority config) `withFormatter` defFormatter
   updateGlobalLogger rootLoggerName (setHandlers [handlerBare])
 
   -- file logger always at 'DEBUG' level
-  handlerFile <- fileHandler logPath DEBUG `withFormatter` defFormatter
+  handlerFile <- fileHandler (logFile config) DEBUG `withFormatter` defFormatter
   updateGlobalLogger rootLoggerName (addHandler handlerFile)
 
 -- ----------------------------------------------------------------------------
@@ -92,18 +76,18 @@ initLoggers level = do
 start :: HuntServerConfiguration -> IO ()
 start config = do
   -- initialize loggers
-  initLoggers $ optLogLevel defaultOptions
+  initLoggers config
 
   debugM "Application start"
 
   -- init interpreter
-  env <- (initHunt :: IO DefHuntEnv)
+  env <- initHunt :: IO DefHuntEnv
 
   case readIndexOnStartup config of
     Just filename -> do
       res <- liftIO $ runCmd env $ LoadIx filename
       case res of
-        Right _  -> debugM $ "index loaded: " ++ filename
+        Right _  -> debugM $ "Index loaded: " ++ filename
         Left err -> fail $ show err
     Nothing -> return ()
 
@@ -111,7 +95,7 @@ start config = do
         { verbose  = 1
         , settings = W.defaultSettings
             { W.settingsPort = huntServerPort config
-            ,  W.settingsHost = fromString $ huntServerHost config
+            , W.settingsHost = fromString $ huntServerHost config
             }
         }
   -- start schrotty
