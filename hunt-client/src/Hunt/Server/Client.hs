@@ -1,4 +1,6 @@
-{-# LANGUAGE OverloadedStrings, FlexibleContexts, GeneralizedNewtypeDeriving, PackageImports #-}
+{-# LANGUAGE OverloadedStrings, FlexibleContexts, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, DeriveDataTypeable #-}
+{-# LANGUAGE OverlappingInstances #-}
 
 module Hunt.Server.Client (
     -- * Monad Transformer
@@ -32,47 +34,48 @@ module Hunt.Server.Client (
 )
 where
 
-import           Data.Either ()
-import           Data.Char (isSpace, {- toUpper, -}toLower)
-import           Data.String ()
-
-import           Data.Default (Default, def)
-
--- import Control.Arrow (first)
-import           Control.Monad (mzero, (>=>))
-import           Control.Monad.IO.Class (MonadIO)
-import           Control.Monad.Trans.Class (MonadTrans, lift)
-import           Control.Monad.Reader (ReaderT, MonadReader, runReaderT, ask)
-
-import           Data.String.Conversions (cs, (<>))
-import           Data.Text (Text)
-import qualified Data.Text as T
--- import qualified Data.Text.Encoding as TE
-
-import           Data.ByteString.Lazy (ByteString)
--- import qualified Data.ByteString.Lazy as BL
-
 import           Data.Aeson (FromJSON, ToJSON, (.=), (.:))
 import qualified Data.Aeson as JSON
 import qualified Data.Aeson.Types as JSON
 
-import           Control.Lens (over, both, _Left, {-_head, _tail, -}each, Mutator, Each, under)
--- import           System.IO (utf8)
+import           Data.ByteString.Lazy (ByteString)
+import           Data.Char (isSpace, {- toUpper, -}toLower)
 
 import           Data.Conduit (runResourceT, ResourceT, MonadBaseControl)
+
+import           Data.Default (Default, def)
+
+import           Data.Either ()
+
+import           Data.String ()
+import           Data.String.Conversions (cs, (<>))
+
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           Data.Typeable (Typeable)
+
+import           Control.Exception (Exception)
+import           Control.Failure (Failure, failure)
+
+import           Control.Lens (over, both, {- _Left, _head, _tail, under, -} each, Mutator, Each)
+
+import           Control.Monad (mzero)
+import           Control.Monad.IO.Class (MonadIO)
+import           Control.Monad.Trans.Class (MonadTrans, lift)
+import           Control.Monad.Reader (ReaderT, MonadReader, runReaderT, ask)
+
+
 import qualified Network.HTTP.Conduit as HTTP
 import qualified Network.HTTP.Client as HTTP (defaultManagerSettings)
 
 import           Network.HTTP.Types.URI (urlEncode)
-
-import           Control.Failure (Failure)
 
 import qualified Hunt.Common.ApiDocument as H
 import qualified Hunt.Index.Schema.Normalize.Position as H
 import qualified Hunt.Interpreter.Command as H (Command(..), CmdResult (..))
 import qualified Hunt.Index.Schema as H (CRegex, CNormalizer, CWeight, ContextSchema (..), ContextType (..))
 import           Hunt.Query.Language.Grammar (Query) -- (..), BinOp (..), TextSearchType (..))
-import           Hunt.Common.BasicTypes
+-- import           Hunt.Common.BasicTypes
 
 
 data JsonResponse r =
@@ -111,13 +114,25 @@ data ServerAndManager = ServerAndManager {
     unManager :: HTTP.Manager
 }
 
-
 newtype HuntConnectionT m a = HuntConnectionT { runHuntConnectionT :: ReaderT ServerAndManager (ResourceT m) a }
     deriving (Monad, MonadReader ServerAndManager, MonadIO)
 
 instance MonadTrans HuntConnectionT where
     -- lift :: (Monad m) => m a -> HuntConnectionT m a
     lift = HuntConnectionT . lift . lift
+
+data HuntClientException =
+      ServerError Int [Text]
+--    | HttpException HTTP.HttpException
+    | JSONDecodeError Text
+    deriving (Show, Typeable)
+
+instance Exception HuntClientException
+
+
+--instance Failure HuntClientException m => Failure HTTP.HttpException m where
+--    failure e = failure (HttpException e)
+
 
 -- | Creates a new ServerAndManager from a Host
 newServerAndManager :: Text -> IO ServerAndManager
@@ -160,56 +175,60 @@ httpLbs request = do
     response <- HTTP.httpLbs request (unManager sm)
     return $ HTTP.responseBody response
 
-handleAutoCompeteResponse :: Monad m => Text -> ByteString -> m (Either Text [Text])
-handleAutoCompeteResponse q d = return $ (eitherDecodeT >=> handleJsonResponse >=> filterByRest >=> prefixWith) d
+handleAutoCompeteResponse :: (Monad m, Failure HuntClientException m) => Text -> ByteString -> m [Text]
+handleAutoCompeteResponse q result = do
+    response <- handleJsonResponse result
+    return $ prefixWith $ filterByRest response
     where
         (rest, prefix) = over both T.reverse $ T.span (\ c -> (not $ isSpace c) && (c /= ':') && (c /= '!') && (c /= '~')) $ T.reverse q
 
-        filterByRest :: [(Text, [Text])] -> Either Text [Text]
-        filterByRest = return . map fst . filter (\(_, rs) -> rest `elem` rs)
+        filterByRest :: [(Text, [Text])] -> [Text]
+        filterByRest = map fst . filter (\(_, rs) -> rest `elem` rs)
 
-        prefixWith :: [Text] -> Either Text [Text]
-        prefixWith = ((return .) . fmap) $ (prefix <>)
+        prefixWith :: [Text] -> [Text]
+        prefixWith x = map (prefix <> ) x 
 
-autocomplete :: (MonadIO m, Failure HTTP.HttpException m) => Text  -> HuntConnectionT m (Either Text [Text])
+autocomplete :: (MonadIO m, Failure HTTP.HttpException m, Failure HuntClientException m) => Text  -> HuntConnectionT m [Text]
 autocomplete q = do
     request <- makeRequest $ T.concat [ "completion/", encodeRequest q, "/20"]
     d <- httpLbs request
     handleAutoCompeteResponse q d
 
 
-query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m) => Text -> HuntConnectionT m  (Either Text (H.LimitedResult r))
+query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m, Failure HuntClientException m) => Text -> HuntConnectionT m  (H.LimitedResult r)
 query q = do
     request <- makeRequest $ T.concat [ "search/", encodeRequest q, "/0/20"]
-    d <- httpLbs request
-    return $ (eitherDecodeT >=> handleJsonResponse) d
+    httpLbs request >>= handleJsonResponse
 
-insert :: (MonadIO m, Failure HTTP.HttpException m) => H.ApiDocuments -> HuntConnectionT m Text
+insert :: (MonadIO m, Failure HTTP.HttpException m) => H.ApiDocuments -> HuntConnectionT m ByteString
 insert docs = eval $ map H.Insert docs
 
-evalAutocomplete :: (MonadIO m, Failure HTTP.HttpException m) => Text -> Query -> HuntConnectionT m (Either Text [Text])
+evalAutocomplete :: (MonadIO m, Failure HTTP.HttpException m, Failure HuntClientException m) => Text -> Query -> HuntConnectionT m [Text]
 evalAutocomplete qt qq = do
     result <- eval $ [H.Completion qq 20]
-    handleAutoCompeteResponse qt $ cs result
+    handleAutoCompeteResponse qt result
 
-evalQuery :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m) => Query -> HuntConnectionT m  (Either Text (H.LimitedResult r))
+evalQuery :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m, Failure HuntClientException m) => Query -> HuntConnectionT m (H.LimitedResult r)
 evalQuery q = do
     result <- eval $ [H.Search q 0 20]
-    return $ (eitherDecodeT >=> handleJsonResponse) $ cs result
+    handleJsonResponse result
 
-eval :: (MonadIO m, Failure HTTP.HttpException m) => [H.Command] -> HuntConnectionT m Text
+eval :: (MonadIO m, Failure HTTP.HttpException m) => [H.Command] -> HuntConnectionT m ByteString
 eval cmds = do
     request' <- makeRequest "eval"
     let body = JSON.encode cmds
         request = request' { HTTP.method = "POST", HTTP.requestBody = HTTP.RequestBodyLBS body}
-    httpLbs request >>= return . cs
+    httpLbs request
 
-handleJsonResponse :: (FromJSON b) => JsonResponse b -> Either Text b
-handleJsonResponse (JsonSuccess r) = Right r
-handleJsonResponse (JsonFailure c err) = Left $ T.concat $ ["Code: ", cs $ show c, " "] ++ err
+handleJsonResponse :: (FromJSON a, Monad m, Failure HuntClientException m) => ByteString -> m a
+handleJsonResponse r = safeDecodeJson r >>= unJsonResponse
+    where
+    unJsonResponse (JsonSuccess r') = return r'
+    unJsonResponse (JsonFailure c err) = failure $ ServerError c err
 
-eitherDecodeT :: FromJSON a => ByteString -> Either Text a
-eitherDecodeT =   over _Left (("Json decode error: " <>) . cs) . JSON.eitherDecode
+    safeDecodeJson bs = case JSON.eitherDecode bs of
+        (Right a) -> return a
+        (Left err) -> failure $ JSONDecodeError $ cs $ ("Json decode error: " <> err)
 
 
 data ContextType = TextContext | DateContext | PositionContext | IntContext
