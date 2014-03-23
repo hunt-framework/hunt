@@ -9,6 +9,7 @@ module Hunt.Server.Client (
     , ServerAndManager (..)
     , newServerAndManager
     , withServerAndManager
+    , HuntClientException
 
    -- * Conveniece wrapper
     , autocomplete
@@ -60,7 +61,7 @@ import           Control.Failure (Failure, failure)
 import           Control.Lens (over, both, {- _Left, _head, _tail, under, -} each, Mutator, Each)
 
 import           Control.Monad (mzero)
-import           Control.Monad.IO.Class (MonadIO)
+import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Control.Monad.Trans.Class (MonadTrans, lift)
 import           Control.Monad.Reader (ReaderT, MonadReader, runReaderT, ask)
 
@@ -135,9 +136,9 @@ instance Exception HuntClientException
 
 
 -- | Creates a new ServerAndManager from a Host
-newServerAndManager :: Text -> IO ServerAndManager
+newServerAndManager :: (MonadIO m) => Text -> m ServerAndManager
 newServerAndManager s = do
-    m <- HTTP.newManager HTTP.defaultManagerSettings
+    m <- liftIO $ HTTP.newManager HTTP.defaultManagerSettings
     return $ ServerAndManager (checkServerUrl s) m
 
 -- | runs a HuntConnectionT with a ServerAndManager
