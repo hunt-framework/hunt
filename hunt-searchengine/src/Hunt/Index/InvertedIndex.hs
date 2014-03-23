@@ -254,10 +254,10 @@ instance Index InvertedIndexPosition where
 -- ----------------------------------------------------------------------------
 
 newtype InvertedIndex _v
-  = InvIx { invIx :: KeyProxyIndex Text ComprOccPrefixTree CompressedOccurrences }
+  = InvIx { invIx :: KeyProxyIndex Text ComprOccPrefixTree Occurrences }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvIx :: KeyProxyIndex Text ComprOccPrefixTree CompressedOccurrences
+mkInvIx :: KeyProxyIndex Text ComprOccPrefixTree Occurrences
         -> InvertedIndex _v
 mkInvIx x = InvIx $! x
 
@@ -318,10 +318,10 @@ instance Index InvertedIndex where
 -- ----------------------------------------------------------------------------
 
 newtype InvertedIndex2Dim _v
-  = InvIx2D { invIx2D :: KeyProxyIndex Text PT2D.ComprOccPrefixTree CompressedOccurrences }
+  = InvIx2D { invIx2D :: KeyProxyIndex Text PT2D.ComprOccPrefixTree Occurrences }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvIx2D :: KeyProxyIndex Text PT2D.ComprOccPrefixTree CompressedOccurrences
+mkInvIx2D :: KeyProxyIndex Text PT2D.ComprOccPrefixTree Occurrences
         -> InvertedIndex2Dim _v
 mkInvIx2D x = InvIx2D $! x
 
