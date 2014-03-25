@@ -1,4 +1,4 @@
-name:          hunt-randomData
+name:          hunt-data-random
 version:       0.0.0.1
 license:       MIT
 -- license-file:  LICENSE
@@ -7,9 +7,9 @@ copyright:
 maintainer:
 stability:     experimental
 category:      Test, Benchmark
-synopsis:      random data generator for hunt framework.
+synopsis:      Random data generator for hunt framework.
 homepage:      http://github.com/hunt-framework
-description:   random data generator for hunt framework.
+description:   Random data generator for hunt framework.
 cabal-version: >=1.8
 build-type:    Simple
 
@@ -17,7 +17,7 @@ source-repository head
   type:        git
   location:    https://github.com/hunt-framework/hunt-test.git
 
-executable RandomData
+executable rd2js
   main-is:        RandomData.hs
   hs-source-dirs: src
   other-modules:
@@ -35,8 +35,6 @@ executable RandomData
                  , QuickCheck
                  , test-framework
                  , test-framework-quickcheck2
-  ghc-options:   -threaded
-                 -Wall
-                 -with-rtsopts=-T
-                 -rtsopts
+  ghc-options:   -Wall
                  -fwarn-tabs
+                 -rtsopts

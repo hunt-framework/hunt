@@ -1,6 +1,4 @@
-GHC     = ghc
-MAIN    = RandomData
-OUT     = $(MAIN)
+OUT     = rd2js
 
 # hardcoded in RandomData.hs
 GENOUT  = RandomData.js
@@ -18,7 +16,10 @@ install:
 	cabal install
 
 clean:
-	- rm -f $(OUT) $(MAIN).hi $(MAIN).o
+	cabal clean
+
+delete: clean
+	cabal sandbox delete
 
 cleanData:
 	- rm -f $(GENOUT)

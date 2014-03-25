@@ -71,9 +71,16 @@ first-install: delete sandbox install
 
 clean:
 	$(MAKE) -e -C hunt-test/data/random clean
+	$(MAKE) -e -C hunt-test/data/jokes clean
 	$(MAKE) target action=clean PROFOPTS=''
 
+cleanData:
+	$(MAKE) -e -C hunt-test/data/random cleanData
+	$(MAKE) -e -C hunt-test/data/jokes cleanData
+
 delete: clean
+	$(MAKE) -e -C hunt-test/data/random delete
+	$(MAKE) -e -C hunt-test/data/jokes delete
 	- rm -rf .cabal-sandbox/
 
 configure: 	; $(MAKE) -e target action=configure
@@ -108,7 +115,9 @@ stopServer:
 	-killall $(notdir $(EXE)) \
 		&& sleep 1 # wait for shutdown and socket release
 
-insertJokes:
+jokes: hunt-test/data/jokes/FussballerSprueche.js
+
+insertJokes: hunt-test/data/jokes/FussballerSprueche.js
 	curl -X POST -d @hunt-test/data/jokes/contexts.js $(SERVER)/eval
 	curl -X POST -d @hunt-test/data/jokes/FussballerSprueche.js $(SERVER)/document/insert
 
@@ -136,6 +145,9 @@ generateRandom:
 
 hunt-test/data/random/RandomData.js:
 	$(MAKE) -e -C hunt-test/data/random generate
+
+hunt-test/data/jokes/FussballerSprueche.js:
+	$(MAKE) -e -C hunt-test/data/jokes generate
 
 insertRandom:  hunt-test/data/random/RandomData.js
 	curl -X POST -d @hunt-test/data/random/contexts.js $(SERVER)/eval
