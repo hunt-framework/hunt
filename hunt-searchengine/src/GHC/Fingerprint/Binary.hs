@@ -1,5 +1,9 @@
 {-# OPTIONS -fno-warn-orphans #-}
 
+{- |
+'Binary' instance for 'Fingerprint'.
+-}
+
 module GHC.Fingerprint.Binary where
 
 import           Control.Applicative

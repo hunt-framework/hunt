@@ -1,6 +1,8 @@
 {-# OPTIONS -fno-warn-orphans #-}
 
--- ----------------------------------------------------------------------------
+{- |
+Default 'Binary' instance for 'Text' using UTF-8.
+-}
 
 module Data.Text.Binary
 where

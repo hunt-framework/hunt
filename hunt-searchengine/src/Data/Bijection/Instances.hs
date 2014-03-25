@@ -3,6 +3,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverlappingInstances  #-}
 
+{- |
+  Default 'Bijection' instances.
+-}
+
 module Data.Bijection.Instances where
 
 import           Data.Text
@@ -17,7 +21,6 @@ instance Bijection Text String where
   from = pack
 
 -- | 'String' to 'Text'.
---   See comments in 'Data.Bijection' for why both instances need to be defined.
 instance Bijection String Text where
   to   = pack
   from = unpack

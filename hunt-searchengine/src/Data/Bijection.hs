@@ -3,9 +3,17 @@
 --{-# LANGUAGE FlexibleInstances    #-}
 --{-# LANGUAGE UndecidableInstances #-}
 
+{- |
+'Bijection' instances represent a bijection between two types and allow conversion to and from.
+-}
+
 module Data.Bijection where
 
--- | Bijective function 'to' and it's reverse 'from'.
+-- | Bijection between two types @a@ and @b@.
+--   'to' and 'from' represent the bijective function.
+--
+-- For a proper bijection between x and y, two instances need to be defined (@Bijection x y@ and
+-- @Bijection y x@).
 class Bijection a b where
   to   :: a -> b
   from :: b -> a

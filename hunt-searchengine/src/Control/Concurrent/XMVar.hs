@@ -1,3 +1,17 @@
+{- |
+  An 'MVar' variation that only blocks for modification.
+  Readers are never blocked but write access is carried out in sequence.
+
+  This is done with two 'MVar's.
+  While modification is done, the readers use the old value.
+  When the modification is done, the old (unmodified) value is replaced with the new one.
+  For this to work, the writers have to block each other which is done with the second 'MVar'.
+  This process is encapsulated in 'modifyXMVar' and 'modifyXMVar_'.
+
+  /Note/: This may increase the memory usage since there may be two value present at a time.
+          This is intended to be used with (big) data structures where small changes are made.
+-}
+
 module Control.Concurrent.XMVar
   ( XMVar
   , newXMVar
@@ -11,18 +25,21 @@ import           Control.Exception
 
 -- ----------------------------------------------------------------------------
 
+-- | An 'MVar' variation that only blocks for modification.
+--   It consists of two 'MVar's. One for the value which can always be read and the second one
+--   to block writers so that modifications are done sequentially.
 data XMVar a = XMVar (MVar a) (MVar ())
 
 -- ----------------------------------------------------------------------------
 
--- | Creates a new 'XMVar' with the supplied value.
+-- | Create a new 'XMVar' with the supplied value.
 newXMVar :: a -> IO (XMVar a)
 newXMVar v = do
   m <- newMVar v
   l <- newMVar ()
   return $ XMVar m l
 
--- | Reads the value.
+-- | Read the value.
 readXMVar :: XMVar a -> IO a
 readXMVar (XMVar m _)
   = readMVar m
@@ -48,7 +65,8 @@ modifyXMVar_ (XMVar m l) f
     _  <- swapMVar m v'
     putMVar l ()
 
--- | Locks for writers and reads the value. Readers do not block each other.
+-- | Locks for writes and reads the value. Readers do not block each other.
+--   'modifyXMVar' encapsulates 'takeXMVarWrite' and 'putXMVarWrite' and also handles exceptions.
 takeXMVarWrite :: XMVar a -> IO a
 takeXMVarWrite (XMVar m l)
   = takeMVar l >> readMVar m

@@ -25,13 +25,15 @@ import           Hunt.Common.DocIdMap   (DocIdSet)
 --   The type parameter @i@ is the implementation.
 --   The implementation must have a value type parameter.
 class Index i where
-  type IKey i v :: *          -- ^ The key type of the index.
+  -- | The key type of the index.
+  type IKey i v
 
-  type IVal i v :: *          -- ^ The value type of the index.
+  -- | The value type of the index.
+  type IVal i v
   type IVal i v = v
 
-  type ICon i v :: Constraint -- ^ Contraints of the index. Constraints can be on the implementation
-                              --   and its value type.
+  -- | Contraints of the index. Constraints can be on the implementation and its value type.
+  type ICon i v :: Constraint
   type ICon i v =  NFData v
 
   -- | General lookup function.

@@ -1,5 +1,9 @@
 {-# OPTIONS -fno-warn-orphans #-}
 
+{- |
+'Binary' instance for 'TypeRep'.
+-}
+
 module Data.Typeable.Binary where
 
 import           Control.Applicative

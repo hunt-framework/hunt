@@ -28,6 +28,7 @@ import           Hunt.Common.Document   (Document, DocumentWrapper (wrap, unwrap
 --   The type parameter @i@ is the implementation.
 --   The implementation must have a value type parameter.
 class (DocumentWrapper (DValue i)) => DocTable i where
+    -- | The value type of the document table.
     type DValue i :: *
 
     -- | Test whether the document table is empty.

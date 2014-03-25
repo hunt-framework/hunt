@@ -1,6 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS -fno-warn-orphans #-}
 
+{- |
+'ToJSON' instance for 'GCStats'.
+-}
+
 module GHC.Stats.Json where
 
 import           Data.Aeson

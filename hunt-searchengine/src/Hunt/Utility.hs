@@ -3,17 +3,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Hunt.Utility
-  Copyright  : Copyright (C) 2008 Timo B. Huebel
-  License    : MIT
-
-  Maintainer : Timo B. Huebel (tbh@holumbus.org)
-  Stability  : experimental
-  Portability: portable
-  Version    : 0.1
-
-  Small utility functions which are probably useful somewhere else, too.
-
+  General utitlity functions.
 -}
 
 -- ----------------------------------------------------------------------------
