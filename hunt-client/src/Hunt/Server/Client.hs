@@ -196,9 +196,9 @@ autocomplete q = do
     handleAutoCompeteResponse q d
 
 
-query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m, Failure HuntClientException m) => Text -> HuntConnectionT m  (H.LimitedResult r)
-query q = do
-    request <- makeRequest $ T.concat [ "search/", encodeRequest q, "/0/20"]
+query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m, Failure HuntClientException m) => Text -> Int -> HuntConnectionT m  (H.LimitedResult r)
+query query offset = do
+    request <- makeRequest $ T.concat [ "search/", encodeRequest query, "/", cs $ show offset, "/20"]
     httpLbs request >>= handleJsonResponse
 
 insert :: (MonadIO m, Failure HTTP.HttpException m) => H.ApiDocuments -> HuntConnectionT m ByteString
@@ -209,9 +209,9 @@ evalAutocomplete qt qq = do
     result <- eval $ [H.Completion qq 20]
     handleAutoCompeteResponse qt result
 
-evalQuery :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m, Failure HuntClientException m) => Query -> HuntConnectionT m (H.LimitedResult r)
-evalQuery q = do
-    result <- eval $ [H.Search q 0 20]
+evalQuery :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m, Failure HuntClientException m) => Query -> Int -> HuntConnectionT m (H.LimitedResult r)
+evalQuery query offset = do
+    result <- eval $ [H.Search query offset 20]
     handleJsonResponse result
 
 eval :: (MonadIO m, Failure HTTP.HttpException m) => [H.Command] -> HuntConnectionT m ByteString
