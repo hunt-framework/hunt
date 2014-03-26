@@ -6,8 +6,6 @@ module Hunt.Index.Schema.Analyze
   )
 where
 
-import           Control.Arrow               (first)
-
 import           Data.DList                  (DList)
 import qualified Data.DList                  as DL
 import           Data.Map                    (Map)
@@ -35,19 +33,20 @@ analyzerMapping o = case o of
 
 -- | 'ApiDocument' to 'Document' (instance of 'DocumentWrapper') and 'Words' mapping.
 --   /Note/: Contexts mentioned in the ApiDoc need to exist.
-toDocAndWords :: DocumentWrapper e => Schema -> ApiDocument -> (e, Words)
-toDocAndWords s = first wrap . toDocAndWords' s
+toDocAndWords :: DocumentWrapper e => Schema -> ApiDocument -> (e, Maybe Float, Words)
+toDocAndWords s = (\(d,dw,ws) -> (wrap d,dw,ws)) . toDocAndWords' s
 
 -- | ApiDocument to Document and Words mapping.
 --   /Note/: Contexts mentioned in the ApiDoc need to exist.
-toDocAndWords' :: Schema -> ApiDocument -> (Document, Words)
-toDocAndWords' schema apiDoc = (doc, ws)
+toDocAndWords' :: Schema -> ApiDocument -> (Document, Maybe Float, Words)
+toDocAndWords' schema apiDoc = (doc, weight, ws)
   where
   indexMap = adIndex apiDoc
   descrMap = adDescr apiDoc
   doc = Document
-    { uri   = adUri apiDoc
-    , desc  = descrMap
+    { uri  = adUri apiDoc
+    , desc = descrMap
+    , wght = fromMaybe 1 weight
     }
   ws = M.mapWithKey
         (\context content ->
@@ -58,6 +57,7 @@ toDocAndWords' schema apiDoc = (doc, ws)
             -- XXX: simple concat without nub
             in toWordList scan (normalize normalizers) content)
         indexMap
+  weight = adWght apiDoc
 
 -- | Apply the normalizers to a Word.
 normalize :: [CNormalizer] -> Word -> Word

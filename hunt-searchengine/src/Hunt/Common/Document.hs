@@ -21,8 +21,9 @@
 module Hunt.Common.Document
 where
 
+import           Control.Applicative
 import           Control.DeepSeq
-import           Control.Monad          (liftM2, mzero)
+import           Control.Monad          (mzero)
 
 import           Data.Aeson
 import           Data.Binary            (Binary (..))
@@ -30,6 +31,7 @@ import           Data.Text              as T
 import           Data.Text.Binary       ()
 
 import           Hunt.Common.BasicTypes
+import           Hunt.Utility
 import           Hunt.Utility.Log
 
 -- ------------------------------------------------------------
@@ -38,35 +40,39 @@ import           Hunt.Utility.Log
 data Document = Document
   { uri  :: ! URI
   , desc :: ! Description
+  , wght :: ! Float
   }
   deriving (Show, Eq, Ord)
 
 -- ------------------------------------------------------------
 
 instance ToJSON Document where
-  toJSON (Document u d) = object
-    [ "uri"  .= u
-    , "desc" .= toJSON d
+  toJSON (Document u d w) = object' $
+    [ "uri"    .== u
+    , "desc"   .== d
+    , "weight" .=? w .\. (== 1.0)
     ]
 
 instance FromJSON Document where
   parseJSON (Object o) = do
     parsedDesc <- o .: "desc"
     parsedUri  <- o .: "uri"
+    parsedWght <- o .: "weight"
     return Document
       { uri  = parsedUri
       , desc = parsedDesc
+      , wght = parsedWght
       }
   parseJSON _ = mzero
 
 -- ------------------------------------------------------------
 
 instance Binary Document where
-  put (Document u d) = put u >> put d
-  get                = liftM2 Document get get
+  put (Document u d w) = put u >> put d >> put w
+  get = Document <$> get <*> get <*> get
 
 instance NFData Document where
-  rnf (Document t d) = rnf t `seq` rnf d
+  rnf (Document t d w) = rnf t `seq` rnf d `seq` rnf w
 
 -- ------------------------------------------------------------
 

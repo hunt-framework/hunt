@@ -10,6 +10,8 @@
 
 module Hunt.Utility where
 
+import           Data.Aeson           hiding (decode)
+import           Data.Aeson.Types
 import           Data.Binary
 import qualified Data.ByteString.Lazy as B
 import           Data.Char
@@ -20,6 +22,7 @@ import qualified Data.Map             as M
 import           Data.Maybe           (fromJust)
 import           Data.Set             (Set)
 import qualified Data.Set             as S
+import           Data.Text            (Text)
 
 import           Numeric              (showHex)
 
@@ -158,3 +161,17 @@ foldlWithKeyM f b = FB.foldlM f' b . M.toList
   where f' a = uncurry (f a)
 
 -- ------------------------------------------------------------
+-- Aeson helper
+
+object' :: [[Pair]] -> Value
+object' = object . Prelude.concat
+
+(.=?) :: ToJSON a => Text -> (a, a -> Bool) -> [Pair]
+name .=? (value, cond) = if cond value then [] else [ name .= value ]
+
+(.==) :: ToJSON a => Text -> a -> [Pair]
+name .== value = [ name .= value ]
+
+(.\.) :: ToJSON a => a -> (a -> Bool) -> (a, a -> Bool)
+v .\. c = (v,c)
+infixl 8 .=?

@@ -212,6 +212,9 @@ askNormalizer cn = do
 askIndex :: DocTable dt => Text -> Hunt dt (Impl.IndexImpl Occurrences)
 askIndex cn = askType cn >>= return . ctIxImpl
 
+askDocTable :: DocTable dt => Hunt dt dt
+askDocTable = askIx >>= return . ciDocs
+
 askContextsWeights :: DocTable dt => Hunt dt(M.Map Context CWeight)
 askContextsWeights
   = withIx (\(ContextIndex _ _ schema) -> return $ M.map cxWeight schema)
@@ -336,7 +339,7 @@ execInsertList docs ixx@(ContextIndex _ix _dt schema) = do
   checkContextsExistence contexts ixx
   -- apidoc should not exist
   mapM_ (flip (checkApiDocExistence False) ixx) docs
-  let docsAndWords = map (toDocAndWords schema) docs
+  let docsAndWords = map ((\(d,_dw,ws) -> (d,ws)) . toDocAndWords schema) docs
   ixx' <- lift $ Ixx.insertList docsAndWords ixx
   return (ixx', ResOK)
 
@@ -349,11 +352,11 @@ execUpdate :: DocTable dt
 execUpdate doc ixx@(ContextIndex _ix dt schema) = do
   let contexts = M.keys $ adIndex doc
   checkContextsExistence contexts ixx
-  let (docs, ws) = toDocAndWords schema doc
+  let (docs, _dw, ws) = toDocAndWords schema doc
   docIdM <- lift $ Dt.lookupByURI (uri docs) dt
   case docIdM of
     Just docId -> do
-      ixx' <- lift $ Ixx.modifyWithDescription (desc docs) ws docId ixx
+      ixx' <- lift $ Ixx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
       return (ixx', ResOK)
     Nothing    ->
       throwResError 409 $ "document for update not found: " `T.append` uri docs
@@ -399,7 +402,7 @@ execSearch' f q (ContextIndex ix dt s)
     cw  <- askContextsWeights
     case r of
       Left  err -> throwError err
-      Right res -> return . f . rank rc cw $ res
+      Right res -> (f <$>) . rank rc dt cw $ res
 
 -- FIXME: signature to result
 wrapSearch :: (DocumentWrapper e) => Int -> Int -> Result e -> CmdResult

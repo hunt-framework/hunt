@@ -28,6 +28,7 @@ data ApiDocument  = ApiDocument
   { adUri   :: URI
   , adIndex :: Map Context Content
   , adDescr :: Description
+  , adWght  :: Maybe Float
   }
   deriving (Show)
 
@@ -70,13 +71,13 @@ emptyApiDocDescr :: Description
 emptyApiDocDescr = M.empty
 
 emptyApiDoc :: ApiDocument
-emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescr
+emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescr Nothing
 
 -- ----------------------------------------------------------------------------
 
 instance Binary ApiDocument where
-  put (ApiDocument a b c) = put a >> put b >> put c
-  get = ApiDocument <$> get <*> get <*> get
+  put (ApiDocument a b c d) = put a >> put b >> put c >> put d
+  get = ApiDocument <$> get <*> get <*> get <*> get
 
 -- ----------------------------------------------------------------------------
 
@@ -95,22 +96,24 @@ instance (ToJSON x) => ToJSON (LimitedResult x) where
 
 instance (FromJSON x) => FromJSON (LimitedResult x) where
   parseJSON (Object v) = do
-    res <- v .: "result"
+    res    <- v .: "result"
     offset <- v .: "offset"
-    mx <- v .: "max"
-    cnt <- v .: "count"
+    mx     <- v .: "max"
+    cnt    <- v .: "count"
     return $ LimitedResult res offset mx cnt
   parseJSON _ = mzero
 
 instance FromJSON ApiDocument where
   parseJSON (Object o) = do
-    parsedUri         <- o    .: "uri"
-    indexMap          <- o    .:? "index"       .!= emptyApiDocIndexMap
-    descrMap          <- o    .:? "description" .!= emptyApiDocDescr
+    parsedUri <- o    .: "uri"
+    indexMap  <- o    .:? "index"       .!= emptyApiDocIndexMap
+    descrMap  <- o    .:? "description" .!= emptyApiDocDescr
+    weight    <- o    .:? "weight"
     return ApiDocument
-      { adUri       = parsedUri
+      { adUri    = parsedUri
       , adIndex  = indexMap
       , adDescr  = descrMap
+      , adWght   = weight
       }
   parseJSON _ = mzero
 
@@ -122,10 +125,11 @@ instance FromJSON AnalyzerType where
   parseJSON _ = mzero
 
 instance ToJSON ApiDocument where
-  toJSON (ApiDocument u im dm) = object
+  toJSON (ApiDocument u im dm wt) = object
     [ "uri"         .= u
     , "index"       .= im
     , "description" .= dm
+    , "weight"      .= wt
     ]
 
 instance ToJSON AnalyzerType where

@@ -7,7 +7,6 @@ module Hunt.Index.Schema where
 import           Control.Monad                        (mzero, liftM5)
 
 import           Data.Aeson
-import           Data.Aeson.Types
 import           Data.Binary                          hiding (Word)
 import           Data.Map                             hiding (null)
 import           Data.Text                            hiding (null)
@@ -25,6 +24,7 @@ import           Hunt.Index.InvertedIndex
 import qualified Hunt.Index.Schema.Normalize.Position as Pos
 import qualified Hunt.Index.Schema.Normalize.Int      as Int
 import qualified Hunt.Index.Schema.Normalize.Date     as Date
+import           Hunt.Utility
 
 -- ----------------------------------------------------------------------------
 
@@ -252,14 +252,3 @@ instance Binary ContextType where
 instance Binary CNormalizer where
   put (CNormalizer n _) = put n
   get = get >>= \n -> return $ def { cnName = n }
-
--- ----------------------------------------------------------------------------
--- Aeson helper
--- ----------------------------------------------------------------------------
-
-(.=?) :: ToJSON a => Text -> (a, a -> Bool) -> [Pair]
-name .=? (value, cond) = if cond value then [] else [ name .= value ]
-
-(.\.) :: ToJSON a => a -> (a -> Bool) -> (a, a -> Bool)
-v .\. c = (v,c)
-infixl 8 .=?

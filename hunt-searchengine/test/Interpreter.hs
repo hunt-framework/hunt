@@ -115,7 +115,7 @@ dateDoc = emptyApiDoc
   , adDescr = dt
   }
   where
-  ApiDocument _ ix dt = brainDoc
+  ApiDocument _ ix dt _ = brainDoc
 
 geoDoc' :: Text -> ApiDocument
 geoDoc' position = emptyApiDoc
@@ -124,7 +124,7 @@ geoDoc' position = emptyApiDoc
   , adDescr = dt
   }
   where
-  ApiDocument _ ix dt = brainDoc
+  ApiDocument _ ix dt _ = brainDoc
 
 geoDoc :: ApiDocument
 geoDoc = geoDoc' "53.60000-10.00000"
