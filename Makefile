@@ -19,7 +19,7 @@ SERVER  = http://localhost:3000
 EXE     = $(shell [ -d ".cabal-sandbox" ] && echo ".cabal-sandbox/bin/hunt-server" || echo "hunt-server")
 PROFSH  = ./prof.sh
 # profiling on/off
-export PROF=1
+export PROF=0
 
 
 # RandomData options
