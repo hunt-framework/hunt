@@ -1,11 +1,10 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
---{-# LANGUAGE FlexibleInstances    #-}
---{-# LANGUAGE UndecidableInstances #-}
-
+-- ----------------------------------------------------------------------------
 {- |
 'Bijection' instances represent a bijection between two types and allow conversion to and from.
 -}
+-- ----------------------------------------------------------------------------
 
 module Data.Bijection where
 
@@ -27,3 +26,5 @@ instance Bijection a b => Bijection b a where
   to   = from
   from = to
 -}
+
+-- ------------------------------------------------------------

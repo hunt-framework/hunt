@@ -26,7 +26,7 @@ import qualified Hunt.Index.Schema.Normalize.Int      as Int
 import qualified Hunt.Index.Schema.Normalize.Date     as Date
 import           Hunt.Utility
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Schema
 type Schema
@@ -71,12 +71,12 @@ type CWeight = Float
 -- | Regular expression.
 type CRegex  = Text
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Default ContextSchema where
   def = ContextSchema Nothing [] 1.0 True def
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 type ContextTypes = [ContextType]
 
@@ -92,12 +92,12 @@ data ContextType = CType
   }
   deriving Show
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Default ContextType where
   def = ctText
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 ctText :: ContextType
 ctText = CType
@@ -131,8 +131,9 @@ ctPosition = CType
   , ctIxImpl   = positionInv
   }
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- IndexImpls
+-- ------------------------------------------------------------
 
 instance Default (IndexImpl Occurrences) where
   def = defaultInv
@@ -150,12 +151,13 @@ dateInv = mkIndex (Ix.empty :: InvertedIndexDate Occurrences)
 positionInv :: IndexImpl Occurrences
 positionInv = mkIndex (Ix.empty :: InvertedIndexPosition Occurrences)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Validator
+-- ------------------------------------------------------------
 
 data CValidator = CValidator { validate :: Word -> Bool }
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Default CValidator where
   def = CValidator $ const True
@@ -164,15 +166,16 @@ instance Default CValidator where
 instance Show CValidator where
   show _ = "CValidator"
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Normalizer
+-- ------------------------------------------------------------
 
 data CNormalizer = CNormalizer
   { cnName       :: Text
   , cnNormalizer :: Text -> Text
   }
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Enum for text-normalizers than can be chose by the user.
 --data CNormalizer = NormUpperCase | NormLowerCase | NormDate | NormPosition | NormIntZeroFill
@@ -193,9 +196,9 @@ cnLowerCase = CNormalizer "LowerCase" T.toLower
 cnZeroFill :: CNormalizer
 cnZeroFill = CNormalizer "ZeroFill" Int.normalizeToText
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- JSON instances
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Note: This is only partional (de-)serialization.
 --   The other components are environment depending
@@ -237,9 +240,9 @@ instance ToJSON ContextSchema where
     , "default"       .=? d .\. id
     ]
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Binary instances
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary ContextSchema where
   get = liftM5 ContextSchema get get get get get

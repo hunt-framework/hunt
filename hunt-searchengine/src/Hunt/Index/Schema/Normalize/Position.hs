@@ -18,8 +18,9 @@ import           Text.ParserCombinators.Parsec
 
 import           Hunt.Utility
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- validator
+-- ------------------------------------------------------------
 
 -- | Checks if value is a valid position.
 --   A valid position has a format like "double-double"/"latitude-longitude".
@@ -50,8 +51,9 @@ longitude = do
     then return pos
     else fail "longitude out of bounds"
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- normalizer
+-- ------------------------------------------------------------
 
 -- | Normalizes valid position
 --   A valid position has a format like "double-double"/"latitude-longitude".
@@ -89,8 +91,9 @@ denormalize pos
 
   show' = showFFloat (Just 7)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- normalizer helper
+-- ------------------------------------------------------------
 
 -- | Decimal representation of a binary encoded string.
 --   /NOTE/: The input needs to be valid.
@@ -137,8 +140,9 @@ intersectPos la lo = foldPos' la lo id
     foldPos' []    []      a = a
 -}
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Int to binary and vice versa
+-- ------------------------------------------------------------
 
 -- | Binary integer to character.
 b2c :: Int -> Char
@@ -158,8 +162,9 @@ c2b o = case o of
 isbc :: Char -> Bool
 isbc = (`elem` "01")
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- parser helper
+-- ------------------------------------------------------------
 
 number :: Parser String
 number = many1 digit
@@ -183,3 +188,5 @@ double = fmap rd $ integer <++> decimal
 
 (<:>) :: Applicative f => f a -> f [a] -> f [a]
 (<:>) a b = (:) <$> a <*> b
+
+-- ------------------------------------------------------------

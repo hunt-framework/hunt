@@ -23,7 +23,7 @@ moduleName = "Data.IntMap.BinTree.Strict"
 error' :: String -> a
 error' = error . ((moduleName ++": ") ++)
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 
 type Key = Int
 
@@ -37,7 +37,7 @@ data Tree v = Empty
               deriving (Show, Typeable)         -- This saves 20% of space, average size of
                                                 -- objects is 4 instead of 5 words
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- instances for NFData and Binary
 
@@ -99,7 +99,7 @@ traverseWithKey f
 
 --       = (pure DIM <*>) . IM.traverseWithKey f . unDIM
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- the smart constructor generating Lt, Gt and Leaf nodes
 
@@ -123,7 +123,7 @@ unNode  Empty         = error' "\"unNode\" with empty tree"
 
 {-# INLINE unNode #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- the work horses
 
@@ -165,7 +165,7 @@ join' Nothing t1 t2
 
 {-# INLINE join' #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 {-
 -- lookup, insert and delete with split' and join'
 -- insert and delete change the root
@@ -196,7 +196,7 @@ delete k t
 {-# INLINE delete     #-}
 
 -- -}
--- ----------------------------------------
+-- ------------------------------------------------------------
 -- {-
 -- traditional lookup, insert and remove
 
@@ -243,7 +243,7 @@ delete k
 {-# INLINE delete          #-}
 
 -- -}
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- derived lookup and insert functions
 
@@ -275,7 +275,7 @@ insert = insertWith const
 {-# INLINE notMember       #-}
 {-# INLINE insert          #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- primitive operations
 
@@ -289,7 +289,7 @@ null _     = False
 size :: Tree v -> Int
 size = foldl' (\ cnt _ -> cnt + 1) 0
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 
 union :: Tree v -> Tree v -> Tree v
 union = unionWith const
@@ -318,7 +318,7 @@ unionsWith f = L.foldl' (\ acc t -> unionWith f acc t) empty
 {-# INLINE unionWith     #-}
 {-# INLINE unionWithKey' #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 
 difference :: Tree a -> Tree b -> Tree a
 difference = differenceWith (const (const Nothing))
@@ -349,7 +349,7 @@ differenceWithKey' f x1 x2
 {-# INLINE differenceWith     #-}
 {-# INLINE differenceWithKey' #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 
 intersection :: Tree a -> Tree b -> Tree a
 intersection = intersectionWith const
@@ -386,7 +386,7 @@ equal t1 t2       =    Just v1 == m2
                       (k1, v1, l1, r1) = unNode t1
                       (m2,     l2, r2) = split' k1 t2
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- maps
 
@@ -405,7 +405,7 @@ mapWithKey f
 {-# INLINE map                  #-}
 {-# INLINE mapWithKey           #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 -- filter
 
 filter :: (a -> Bool) -> Tree a -> Tree a
@@ -425,7 +425,7 @@ filterWithKey p
 {-# INLINE filter               #-}
 {-# INLINE filterWithKey        #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- foldr's
 
@@ -453,7 +453,7 @@ foldrWithKey' f
                         where
                           (k, v, l, r) = unNode t
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- foldl's
 
@@ -486,7 +486,7 @@ foldlWithKey' f
 {-# INLINE foldl        #-}
 {-# INLINE foldlWithKey #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 
 fromList :: [(Key, v)] -> Tree v
 fromList = L.foldl' (\ acc (k, v) -> insert k v acc) Empty
@@ -524,7 +524,7 @@ scan i xs
       (x : xs2) = xs1
       (r,  xs3) = scan (i - 1) xs2
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- conversions to lists
 
@@ -549,7 +549,7 @@ keys = foldrWithKey (\ k _v r -> k : r) []
 {-# INLINE elems #-}
 {-# INLINE keys  #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- min/max
 
@@ -591,7 +591,7 @@ first f (x,y) = (f x,y)
 
 {-# INLINE first #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 
 unionWithKey        :: (Key -> v -> v -> v) -> Tree v -> Tree v -> Tree v
 intersectionWithKey :: (Key -> a -> b -> c) -> Tree a -> Tree b -> Tree c
@@ -649,7 +649,7 @@ assert args retr exp' res
                      ]
 -- -}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 {-
 
 main :: IO ()
@@ -676,3 +676,5 @@ got = fromList'       [-9019555248142772964,-6161526110399673733,-53585868183536
 
 
 -- -}
+
+-- ------------------------------------------------------------

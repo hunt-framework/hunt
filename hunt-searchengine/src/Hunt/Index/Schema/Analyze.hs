@@ -23,7 +23,7 @@ import           Hunt.Common.Document        (Document (..),
 import           Hunt.Common.ApiDocument
 import           Hunt.Index.Schema
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 {-
 analyzerMapping :: AnalyzerType -> Text -> [(Position, Word)]
@@ -79,3 +79,5 @@ toWordList scan norm = M.map DL.toList . foldr insert M.empty . zip [1..] . map 
 --  > scanTextRE "[^ \t\n\r]*" == Data.Text.words
 scanTextRE :: CRegex -> Text -> [Word]
 scanTextRE wRex = map T.pack . tokenize (T.unpack wRex) . T.unpack
+
+-- ------------------------------------------------------------

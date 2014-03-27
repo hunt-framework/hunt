@@ -80,3 +80,5 @@ get'' ts = do
 --   with the KeyIndex Proxy
 mkIndex :: IndexImplCon i v => i v -> IndexImpl v
 mkIndex i = IndexImpl $! i
+
+-- ------------------------------------------------------------

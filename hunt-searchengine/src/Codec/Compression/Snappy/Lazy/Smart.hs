@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 
+-- ----------------------------------------------------------------------------
 {- |
   'ByteString' compression that is only used if the result is sufficiently large
   (80 characters).
@@ -8,6 +9,7 @@
   tend to be bigger than the source 'ByteString'.
   This may not apply to the Snappy compression.
 -}
+-- ----------------------------------------------------------------------------
 
 module Codec.Compression.Snappy.Lazy.Smart
 where
@@ -21,7 +23,7 @@ import qualified Data.ByteString.Lazy          as BL
 
 -- TODO: This is based on bzip - test if this is also the case with snappy.
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 --
 -- select the default compression/decompression method
 --
@@ -42,7 +44,7 @@ decompress :: BL.ByteString -> BL.ByteString
 -- decompress = decompress'
 decompress = decompressSmart
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 #if  __GLASGOW_HASKELL__ >= 770
 compress'   :: BL.ByteString -> BL.ByteString
@@ -60,7 +62,7 @@ decompress' :: BL.ByteString -> BL.ByteString
 decompress' = id
 #endif
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Smart compression with stdout tracing.
 compressSmart :: BL.ByteString -> BL.ByteString
@@ -78,4 +80,4 @@ decompressSmart = decompressCond decompress'
 {-# INLINE compressSmart #-}
 {-# INLINE decompressSmart #-}
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

@@ -23,7 +23,7 @@ import           Hunt.Common.Occurrences.Compression
 import           Hunt.Index
 import qualified Hunt.Index                          as Ix
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 newtype ComprOccIndex impl to from
   = ComprIx { comprIx :: impl to }
@@ -32,13 +32,13 @@ newtype ComprOccIndex impl to from
 mkComprIx :: impl to -> ComprOccIndex impl to from
 mkComprIx v = ComprIx $! v
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary (impl v) => Binary (ComprOccIndex impl v from) where
   put = put . comprIx
   get = get >>= return . mkComprIx
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Index (ComprOccIndex impl to) where
   type IKey      (ComprOccIndex impl to) from = IKey impl to
@@ -85,4 +85,4 @@ instance Index (ComprOccIndex impl to) where
   keys (ComprIx i)
       = keys i
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

@@ -3,7 +3,7 @@
 
 -- ----------------------------------------------------------------------------
 {-
-  Document compression using the bzip2 library
+  'Document' compression using the bzip2 library
     http://www.bzip.org/
 
   Haskell-Bindings
@@ -14,34 +14,41 @@
 module Hunt.Common.Document.Compression.BZip
 where
 
-import qualified Codec.Compression.BZip   as ZIP
+import qualified Codec.Compression.BZip as ZIP
 
-import           Control.Applicative      ((<$>))
+import           Control.Applicative    ((<$>))
 import           Control.DeepSeq
 
-import           Data.Binary              (Binary (..))
-import qualified Data.Binary              as B
---import qualified Data.ByteString          as BS
-import qualified Data.ByteString.Lazy     as BL
-import           Data.ByteString.Short    (ShortByteString)
-import qualified Data.ByteString.Short    as Short
+import           Data.Binary            (Binary (..))
+import qualified Data.Binary            as B
+import qualified Data.ByteString.Lazy   as BL
+import           Data.ByteString.Short  (ShortByteString)
+import qualified Data.ByteString.Short  as Short
 import           Data.Typeable
 
 import           Hunt.Common.Document
 
--- ----------------------------------------------------------------------------
--- TODO:
--- The CompressedDoc is a candidate for a BS.ShortByteString available with bytestring 0.10.4,
--- then 5 machine words can be saved per value
+-- ------------------------------------------------------------
 
+-- | A bzip-compressed 'Document'.
+--   Use 'mkCDoc' to create.
+--   The Document can be retrieved with 'unwrap'.
+--   The corresponding bijection is defined in 'DocumentWrapper'.
+--
+-- Using ShortByteString saves 5 machine words per value.
+-- It also eliminates issues with sharing and fragmentation due to ByteStrings being pinned.
+-- https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1
 newtype CompressedDoc
   = CDoc { unCDoc :: ShortByteString }
-    deriving (Eq, Show, NFData, Typeable)
+  deriving (Eq, Show, NFData, Typeable)
 
+-- | Create a 'CompressedDoc' using bzip-compression.
+--
+-- Deeply evaluates the value.
 mkCDoc :: ShortByteString -> CompressedDoc
 mkCDoc v = CDoc $!! v
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary CompressedDoc where
     put = put . Short.fromShort . unCDoc
@@ -51,13 +58,13 @@ instance Binary CompressedDoc where
 -- before return. This should be the single place where sharing is introduced,
 -- else the copy must be moved to mkCDoc
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance DocumentWrapper CompressedDoc where
   wrap   = compress
   unwrap = decompress
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | 'Document' to 'CompressedDoc' conversion.
 compress :: Document -> CompressedDoc
@@ -67,4 +74,4 @@ compress = mkCDoc . Short.toShort . BL.toStrict . ZIP.compress . B.encode
 decompress  :: CompressedDoc -> Document
 decompress = B.decode . ZIP.decompress . BL.fromStrict . Short.fromShort . unCDoc
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

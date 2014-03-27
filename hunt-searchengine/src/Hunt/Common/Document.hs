@@ -4,16 +4,13 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Module     : Hunt.Index.Common.Document
-  Copyright  : Copyright (C) 2011 Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
-  License    : MIT
+  The document representation.
 
-  Maintainer : Timo B. Huebel (tbh@holumbus.org)
-  Stability  : experimental
-  Portability: none portable
+  This includes the
 
-  The Document datatype
-
+  * URI for identification,
+  * the description for the data itself and
+  * the weight used in ranking.
 -}
 
 -- ----------------------------------------------------------------------------
@@ -36,14 +33,16 @@ import           Hunt.Utility.Log
 
 -- ------------------------------------------------------------
 
--- | A document consists of its unique identifier (URI).
+-- | The document representation.
 data Document = Document
-  { uri  :: ! URI
-  , desc :: ! Description
-  , wght :: ! Float
+  { uri  :: ! URI         -- ^ Unique identifier of the document.
+  , desc :: ! Description -- Description of the Document (simple key-value store).
+  , wght :: ! Float       -- Weight used in ranking (default @1.0@).
   }
   deriving (Show, Eq, Ord)
 
+-- ------------------------------------------------------------
+-- JSON instances
 -- ------------------------------------------------------------
 
 instance ToJSON Document where

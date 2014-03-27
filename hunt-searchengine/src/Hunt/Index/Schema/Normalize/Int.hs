@@ -10,9 +10,9 @@ import           Control.Applicative           hiding ((<|>))
 import           Hunt.Common.BasicTypes
 import           Text.ParserCombinators.Parsec
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- normalize Int to actual Int
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 normalizeToInt :: Text -> Int
 normalizeToInt = getInt
@@ -21,9 +21,9 @@ denormalizeFromInt :: Int -> Text
 denormalizeFromInt = T.pack . show
 
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- normalize Int as Text
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 normalizeToText' :: Word -> Word
 normalizeToText' i
@@ -49,9 +49,9 @@ denormalizeFromText i
   raw  = T.dropWhile (== '0') $ T.drop 1 i
 
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Validate int
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | parses int value - but valiation needs to be
 --   done before this proxy! otherwise normalization will
@@ -74,3 +74,5 @@ integer = rd <$> (plus <|> minus <|> number)
   plus   = char '+' *> number
   minus  = (:) <$> char '-' <*> number
   number = many1 digit
+
+-- ------------------------------------------------------------

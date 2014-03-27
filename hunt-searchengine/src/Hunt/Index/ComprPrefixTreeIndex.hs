@@ -31,7 +31,7 @@ import           Hunt.Common.Occurrences.Compression
 
 import           Hunt.Utility
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 newtype ComprOccPrefixTree cv
   = ComprPT { comprPT :: SM.StringMap cv}
@@ -40,13 +40,13 @@ newtype ComprOccPrefixTree cv
 mkComprPT :: NFData cv => SM.StringMap cv -> ComprOccPrefixTree cv
 mkComprPT cv = ComprPT $! cv
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance (NFData v, Binary v) => Binary (ComprOccPrefixTree v) where
   put (ComprPT i) = put i
   get = get >>= return . mkComprPT
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Index ComprOccPrefixTree where
   type IKey ComprOccPrefixTree v = SM.Key
@@ -120,3 +120,5 @@ instance Index ComprOccPrefixTree where
 
   keys (ComprPT i)
     = SM.keys i
+
+-- ------------------------------------------------------------

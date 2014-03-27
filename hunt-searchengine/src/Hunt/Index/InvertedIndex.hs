@@ -25,7 +25,6 @@ import           Data.Typeable
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences                  (Occurrences)
 import           Hunt.Common.Occurrences.Compression.BZip
---import           Hunt.Common.Occurrences.Compression
 import           Hunt.Index                               as Ix
 import           Hunt.Index.ComprPrefixTreeIndex
 import qualified Hunt.Index.ComprPrefixTreeIndex2Dim      as PT2D
@@ -38,9 +37,9 @@ import qualified Hunt.Index.Schema.Normalize.Position     as Pos
 
 import           Data.Bijection
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- inverted index using int proxy for numeric data
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- newtype required to enable different Text->Text Bijection instances
 newtype UnInt = UnInt { unInt :: Text }
@@ -61,13 +60,13 @@ newtype InvertedIndexInt v
 mkInvIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt InvertedIndex) v -> InvertedIndexInt v
 mkInvIntIx x = InvIntIx $! x
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary (InvertedIndexInt v) where
   put = put . invIntIx
   get = get >>= return . InvIntIx
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Index InvertedIndexInt where
   type IKey InvertedIndexInt v = Text
@@ -110,9 +109,9 @@ instance Index InvertedIndexInt where
     = keys i
 
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- inverted index using date proxy for date information
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 newtype UnDate = UnDate { unDate :: Text }
   deriving (Show, Eq, NFData)
 
@@ -131,13 +130,13 @@ newtype InvertedIndexDate v
 mkInvDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate InvertedIndex) v -> InvertedIndexDate v
 mkInvDateIx x = InvDateIx $! x
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary (InvertedIndexDate v) where
   put = put . invDateIx
   get = get >>= return . mkInvDateIx
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Index InvertedIndexDate where
   type IKey InvertedIndexDate v = Word
@@ -179,9 +178,9 @@ instance Index InvertedIndexDate where
   keys (InvDateIx i)
     = keys i
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- inverted index using position proxy for geo coordinates
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 newtype UnPos = UnPos { unPos :: Text }
   deriving (Show, Eq, NFData)
 
@@ -200,13 +199,13 @@ newtype InvertedIndexPosition v
 mkInvPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex2Dim) v -> InvertedIndexPosition v
 mkInvPosIx x = InvPosIx $! x
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary (InvertedIndexPosition v) where
   put = put . invPosIx
   get = get >>= return . mkInvPosIx
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Index InvertedIndexPosition where
   type IKey InvertedIndexPosition v = Word
@@ -249,9 +248,9 @@ instance Index InvertedIndexPosition where
     = keys i
 
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- default inverted index using text key
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 newtype InvertedIndex _v
   = InvIx { invIx :: KeyProxyIndex Text ComprOccPrefixTree Occurrences }
@@ -261,13 +260,13 @@ mkInvIx :: KeyProxyIndex Text ComprOccPrefixTree Occurrences
         -> InvertedIndex _v
 mkInvIx x = InvIx $! x
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary (InvertedIndex v) where
   put = put . invIx
   get = get >>= return . mkInvIx
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Index InvertedIndex where
   type IKey InvertedIndex v = Word
@@ -313,9 +312,9 @@ instance Index InvertedIndex where
   keys (InvIx i)
     = keys i
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- 2dim inverted index using text key
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 newtype InvertedIndex2Dim _v
   = InvIx2D { invIx2D :: KeyProxyIndex Text PT2D.ComprOccPrefixTree Occurrences }
@@ -325,13 +324,13 @@ mkInvIx2D :: KeyProxyIndex Text PT2D.ComprOccPrefixTree Occurrences
         -> InvertedIndex2Dim _v
 mkInvIx2D x = InvIx2D $! x
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary (InvertedIndex2Dim v) where
   put = put . invIx2D
   get = get >>= return . mkInvIx2D
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Index InvertedIndex2Dim where
   type IKey InvertedIndex2Dim v = Word
@@ -376,3 +375,5 @@ instance Index InvertedIndex2Dim where
 
   keys (InvIx2D i)
     = keys i
+
+-- ------------------------------------------------------------

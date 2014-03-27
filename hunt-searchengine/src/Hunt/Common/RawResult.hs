@@ -9,8 +9,7 @@
   Stability  : experimental
   Portability: none portable
 
-  The RawResult data type
-
+  The raw result of index queries.
 -}
 
 -- ----------------------------------------------------------------------------
@@ -31,6 +30,8 @@ import           Hunt.Common.Positions
 
 -- | The raw result returned when searching the index.
 type RawResult = [(Word, Occurrences)]
+
+-- ------------------------------------------------------------
 
 -- | Transform the raw result into a tree structure ordered by word.
 resultByWord :: Context -> RawResult -> Map Word (Map Context Occurrences)

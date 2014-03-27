@@ -15,7 +15,6 @@ import           Control.Monad
 import qualified Data.IntSet                         as IS
 
 import           Hunt.Common.DocIdMap                (DocIdSet)
---import qualified Hunt.Common.DocIdMap                as DM
 import           Hunt.Common.Occurrences.Compression
 import           Prelude                             as P
 
@@ -23,7 +22,7 @@ import           Data.Binary                         (Binary (..))
 
 import           Hunt.Index                          as Ix
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 data CachedIndex impl v = CachedIx
   { cachedIds :: DocIdSet
@@ -34,17 +33,18 @@ data CachedIndex impl v = CachedIx
 mkCachedIx :: DocIdSet -> impl v -> CachedIndex impl v
 mkCachedIx v = CachedIx $! v
 
+-- ------------------------------------------------------------
 
 instance NFData (CachedIndex impl v) where
   -- default
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary (impl v) => Binary (CachedIndex impl v) where
   put (CachedIx c i) = put c >> put i
   get = mkCachedIx <$> get <*> get
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Index (CachedIndex impl) where
   type IKey (CachedIndex impl) v = IKey impl v
@@ -99,7 +99,7 @@ instance Index (CachedIndex impl) where
   keys (CachedIx _c i)
     = keys i
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 filterResult :: OccCompression v => IS.IntSet -> [(d, v)] -> [(d, v)]
 filterResult c = P.map (second (deleteIds c))
@@ -107,3 +107,5 @@ filterResult c = P.map (second (deleteIds c))
 
 flatten :: (ICon impl v, Index impl) => CachedIndex impl v -> CachedIndex impl v
 flatten (CachedIx c i) = mkCachedIx IS.empty $ deleteDocs c i
+
+-- ------------------------------------------------------------

@@ -1,3 +1,4 @@
+-- ----------------------------------------------------------------------------
 {- |
   Snappy 'ByteString' compression that is only used if the result is sufficiently large
   (80 characters).
@@ -5,6 +6,7 @@
   This is based on observation for the BZIP compression where small compressed 'ByteString's
   tend to be bigger than the source 'ByteString'.
 -}
+-- ----------------------------------------------------------------------------
 
 module Codec.Compression.BZip.Smart
   ( compress, decompress
@@ -17,7 +19,7 @@ import qualified Codec.Compression.BZip        as Zip
 
 import qualified Data.ByteString.Lazy          as BL
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 --
 -- select the default compression/decompression method
 --
@@ -38,7 +40,7 @@ decompress :: BL.ByteString -> BL.ByteString
 -- decompress = decompress'
 decompress = decompressSmart
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Plain compression.
 compress'   :: BL.ByteString -> BL.ByteString
@@ -48,7 +50,7 @@ compress'   = Zip.compress
 decompress' :: BL.ByteString -> BL.ByteString
 decompress' = Zip.decompress
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Smart compression with stdout tracing.
 compressSmart :: BL.ByteString -> BL.ByteString
@@ -66,4 +68,4 @@ decompressSmart = decompressCond decompress'
 {-# INLINE compressSmart #-}
 {-# INLINE decompressSmart #-}
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

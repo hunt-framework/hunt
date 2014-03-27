@@ -1,10 +1,12 @@
 {-# LANGUAGE CPP #-}
 
+-- ----------------------------------------------------------------------------
 {- |
   Utility function for ByteString-based compression.
 
   This includes tracing functions as well as compression depending on the size of the input.
 -}
+-- ----------------------------------------------------------------------------
 
 module Codec.Compression.Utility
 where
@@ -48,3 +50,5 @@ traceCompress f x
 
 {-# INLINE compressCond #-}
 {-# INLINE decompressCond #-}
+
+-- ------------------------------------------------------------

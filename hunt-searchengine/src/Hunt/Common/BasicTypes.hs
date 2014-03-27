@@ -1,16 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- ----------------------------------------------------------------------------
+
+{- |
+  Common types used within Hunt.
+-}
+
+-- ----------------------------------------------------------------------------
+
 module Hunt.Common.BasicTypes
 where
 
-import           Control.Monad (mzero)
+import           Control.Monad   (mzero)
 
 import           Data.Map
-import qualified Data.Map.Strict       as SM
+import qualified Data.Map.Strict as SM
 import           Data.Text
 
 import           Data.Aeson
-import           Data.Binary   hiding (Word)
+import           Data.Binary     hiding (Word)
 
 -- ------------------------------------------------------------
 
@@ -45,6 +53,10 @@ type WordList     = Map Word [Position]
 data TextSearchOp = Case | NoCase | PrefixCase | PrefixNoCase
   deriving (Eq, Show)
 
+-- ------------------------------------------------------------
+-- JSON instances
+-- ------------------------------------------------------------
+
 instance FromJSON TextSearchOp where
   parseJSON (String s)
     = case s of
@@ -62,9 +74,9 @@ instance ToJSON TextSearchOp where
     PrefixCase   -> "prefixCase"
     PrefixNoCase -> "prefixNoCase"
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Binary instances
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary TextSearchOp where
   put (Case)         = put (0 :: Word8)

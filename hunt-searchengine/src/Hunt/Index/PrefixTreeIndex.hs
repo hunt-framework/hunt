@@ -8,7 +8,6 @@ module Hunt.Index.PrefixTreeIndex
 where
 
 import           Control.DeepSeq
---import           Control.Monad
 
 import           Data.Binary                (Binary (..))
 import           Data.Typeable
@@ -21,7 +20,7 @@ import           Hunt.Index
 
 import           Hunt.Utility
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 newtype DmPrefixTree v
   = DmPT { dmPT :: SM.StringMap (DocIdMap v) }
@@ -30,13 +29,13 @@ newtype DmPrefixTree v
 mkDmPT :: NFData v => SM.StringMap (DocIdMap v) -> DmPrefixTree v
 mkDmPT v = DmPT $! v
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance (NFData v,Binary v) => Binary (DmPrefixTree v) where
   put = put . dmPT
   get = get >>= return . mkDmPT
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Index DmPrefixTree where
   type IKey DmPrefixTree v = SM.Key
@@ -93,3 +92,5 @@ instance Index DmPrefixTree where
 
   keys (DmPT pt)
     = SM.keys pt
+
+-- ------------------------------------------------------------

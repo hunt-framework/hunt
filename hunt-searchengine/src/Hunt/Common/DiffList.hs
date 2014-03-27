@@ -14,7 +14,6 @@
   lists are compressed using "Hunt.Data.Crunch" to save even more space. For
   convenience, conversion functions for "Data.IntSet" are provided. Only works
   for non-negative integers.
-
 -}
 
 -- ----------------------------------------------------------------------------
@@ -44,7 +43,7 @@ import           Hunt.Common.BasicTypes (Position)
 import           Hunt.Common.Positions  (Positions)
 import qualified Hunt.Common.Positions  as Pos
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | A single difference between two integers.
 type Diff               = Word64
@@ -52,7 +51,7 @@ type Diff               = Word64
 -- | A list of differences.
 type DiffList           = [Diff]
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Convert a set of integers into a list of difference encoded values.
 fromPositions           :: Positions -> DiffList
@@ -96,4 +95,4 @@ decode                  = decode' 0
 diffs                   :: DiffList -> [Word32]
 diffs                   = decrunch32
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

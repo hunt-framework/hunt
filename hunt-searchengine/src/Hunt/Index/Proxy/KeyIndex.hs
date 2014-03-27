@@ -26,7 +26,7 @@ import           Hunt.Index.Proxy.CompressedIndex
 
 import           Hunt.Common.Occurrences.Compression
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 newtype KeyProxyIndex toType impl cv
   = KPIx { kpIx :: impl cv }
@@ -35,13 +35,13 @@ newtype KeyProxyIndex toType impl cv
 mkKPIx :: impl cv -> KeyProxyIndex toType impl cv
 mkKPIx v = KPIx $! v
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary (impl v) => Binary (KeyProxyIndex toType impl v) where
   put = put . kpIx
   get = get >>= return . mkKPIx
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Index (KeyProxyIndex toType impl) where
   type IKey      (KeyProxyIndex toType impl) v = toType
@@ -138,3 +138,5 @@ instance Index (KeyProxyIndex toType (ComprOccIndex impl to)) where
 
   keys (KPIx i)
     = P.map to $ keys i
+
+-- ------------------------------------------------------------

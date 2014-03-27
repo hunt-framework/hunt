@@ -1,3 +1,4 @@
+-- ----------------------------------------------------------------------------
 {- |
 A cache for single element 'IntSet's with elements 0 <= i < cacheSize (1024)
 These single element sets occur very frequently in position sets
@@ -6,6 +7,7 @@ in occurrence maps, so sharing becomes available with this cache.
 Usage: substitute all singleton calls with @cacheAt@ calls
 and all @fromList@ calls with @IS.unions . map cacheAt@.
 -}
+-- ----------------------------------------------------------------------------
 
 module Data.IntSet.Cache
   ( cache

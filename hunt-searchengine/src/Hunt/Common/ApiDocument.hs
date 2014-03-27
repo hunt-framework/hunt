@@ -1,5 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- ----------------------------------------------------------------------------
+
+{- |
+  Document format for the interpreter and JSON API.
+  It includes the document description, the index data and additional metadata.
+-}
+
+-- ----------------------------------------------------------------------------
+
 module Hunt.Common.ApiDocument where
 
 import           Control.Applicative
@@ -18,23 +27,19 @@ import           Hunt.Common.BasicTypes
 
 import           Hunt.Utility.Log
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
--- | Multiple ApiDocuments.
-type ApiDocuments = [ApiDocument]
-
--- | The document accepted via the API.
+-- | The document accepted by the interpreter and JSON API.
 data ApiDocument  = ApiDocument
-  { adUri   :: URI
-  , adIndex :: Map Context Content
-  , adDescr :: Description
-  , adWght  :: Maybe Float
+  { adUri   :: URI                 -- ^ The unique identifier.
+  , adIndex :: Map Context Content -- ^ The data to index according to schema associated with the context.
+  , adDescr :: Description         -- ^ The document description (a simple key-value map).
+  , adWght  :: Maybe Float         -- ^ An optional document boost (internal default is @1.0@).
   }
   deriving (Show)
 
-
-instance NFData ApiDocument where
-  --default
+-- | Multiple 'ApiDocument's.
+type ApiDocuments = [ApiDocument]
 
 -- | Text analysis function
 type AnalyzerFunction = Text -> [(Position, Text)]
@@ -44,17 +49,19 @@ data AnalyzerType
   = DefaultAnalyzer
   deriving (Show)
 
--- | paged api document result
+-- | Paginated result with an offset and chunk size.
 data LimitedResult x = LimitedResult
-  { lrResult :: [x]
-  , lrOffset :: Int
-  , lrMax    :: Int
-  , lrCount  :: Int
+  { lrResult :: [x] -- ^ The list with at most 'lrMax' elements.
+  , lrOffset :: Int -- ^ The offset of the result.
+  , lrMax    :: Int -- ^ The limit for the result.
+  , lrCount  :: Int -- ^ The size of the complete result.
   }
   deriving (Show, Eq)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
+-- | Create a paginated result with an offset and a chunk size.
+--   The result also includes the size of the complete result.
 mkLimitedResult :: Int -> Int -> [x] -> LimitedResult x
 mkLimitedResult offset mx xs = LimitedResult
   { lrResult = take mx . drop offset $ xs
@@ -63,28 +70,37 @@ mkLimitedResult offset mx xs = LimitedResult
   , lrCount  = length xs
   }
 
--- | empty document
+-- | Empty index content.
 emptyApiDocIndexMap :: Map Context Content
 emptyApiDocIndexMap = M.empty
 
+-- | Empty 'Document' description.
 emptyApiDocDescr :: Description
 emptyApiDocDescr = M.empty
 
+-- | Empty 'ApiDocument'.
 emptyApiDoc :: ApiDocument
 emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescr Nothing
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+
+instance NFData ApiDocument where
+  --default
+
+-- ------------------------------------------------------------
 
 instance Binary ApiDocument where
   put (ApiDocument a b c d) = put a >> put b >> put c >> put d
   get = ApiDocument <$> get <*> get <*> get <*> get
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance LogShow ApiDocument where
   logShow o = "ApiDocument {adUri = \"" ++ (T.unpack . adUri $ o) ++ "\", ..}"
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+-- JSON instances
+-- ------------------------------------------------------------
 
 instance (ToJSON x) => ToJSON (LimitedResult x) where
    toJSON (LimitedResult res offset mx cnt) = object
@@ -139,4 +155,4 @@ instance ToJSON AnalyzerType where
   toJSON (DefaultAnalyzer) =
     "default"
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

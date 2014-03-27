@@ -43,32 +43,37 @@ import qualified Hunt.Common.DocIdMap                    as DM
 import           Hunt.Common.Occurrences
 import           Hunt.Common.Occurrences.Compression
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
--- ShortByteString: It has a lower memory overhead than a ByteString and and does not contribute to
--- heapfragmentation. It can be converted to or from a ByteString (at the cost of copying the string
--- data).
--- https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1
-
+-- | Snappy-compressed 'Occurrences'.
+--   Use 'mkComprOccs' to create.
+--   The Document can be retrieved with 'decompressOcc'.
+--   The corresponding bijection is defined in 'DocumentWrapper'.
+--
+--   Uses 'Bytestring' instead of 'ShortByteString' which can lead to fragmentation:
+--     https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1
 newtype CompressedOccurrences = ComprOccs { unComprOccs :: ShortByteString }
   deriving (Eq, Show, Typeable)
 
+-- | Make 'CompressedOccurrences' using Snappy-compression.
+--
+--   Deeply evaluates the value.
 mkComprOccs :: ShortByteString -> CompressedOccurrences
 mkComprOccs b = ComprOccs $!! b
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance NFData CompressedOccurrences where
 -- use default implementation: eval to WHNF, and that's sufficient
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance OccCompression CompressedOccurrences where
   compressOcc           = compress
   decompressOcc         = decompress
   differenceWithKeySet ks = compress . (flip DM.diffWithSet) ks . decompress
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary CompressedOccurrences where
   put = put . Short.fromShort . unComprOccs
@@ -79,7 +84,7 @@ instance Binary CompressedOccurrences where
 -- else the copy must be moved to mSBs
 
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 --compress :: Binary a => a -> CompressedOccurrences
 compress :: Occurrences -> CompressedOccurrences
@@ -88,3 +93,5 @@ compress = mkComprOccs . Short.toShort . BL.toStrict . ZIP.compress . B.encode
 --decompress :: Binary a => CompressedOccurrences -> a
 decompress :: CompressedOccurrences -> Occurrences
 decompress = B.decode . ZIP.decompress . BL.fromStrict . Short.fromShort . unComprOccs
+
+-- ------------------------------------------------------------

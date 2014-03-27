@@ -1,3 +1,4 @@
+-- ----------------------------------------------------------------------------
 {- |
   An 'MVar' variation that only blocks for modification.
   Readers are never blocked but write access is carried out in sequence.
@@ -11,6 +12,7 @@
   /Note/: This may increase the memory usage since there may be two value present at a time.
           This is intended to be used with (big) data structures where small changes are made.
 -}
+-- ----------------------------------------------------------------------------
 
 module Control.Concurrent.XMVar
   ( XMVar
@@ -23,14 +25,14 @@ where
 import           Control.Concurrent.MVar
 import           Control.Exception
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | An 'MVar' variation that only blocks for modification.
 --   It consists of two 'MVar's. One for the value which can always be read and the second one
 --   to block writers so that modifications are done sequentially.
 data XMVar a = XMVar (MVar a) (MVar ())
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Create a new 'XMVar' with the supplied value.
 newXMVar :: a -> IO (XMVar a)
@@ -75,3 +77,5 @@ takeXMVarWrite (XMVar m l)
 putXMVarWrite :: XMVar a -> a -> IO ()
 putXMVarWrite (XMVar m l) v
   = swapMVar m v >> putMVar l ()
+
+-- ------------------------------------------------------------
