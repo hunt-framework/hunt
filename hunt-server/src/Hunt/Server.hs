@@ -96,10 +96,9 @@ start config = do
 
   let options = Schrotty.Options
         { verbose  = 1
-        , settings = W.defaultSettings
-            { W.settingsPort = huntServerPort config
-            , W.settingsHost = fromString $ huntServerHost config
-            }
+        , settings = W.setHost (fromString $ huntServerHost config)
+                   $ W.setPort (huntServerPort config)
+                   $ W.defaultSettings
         }
   -- start schrotty
   schrottyOpts options $ do
