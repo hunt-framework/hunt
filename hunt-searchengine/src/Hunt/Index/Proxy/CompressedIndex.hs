@@ -4,6 +4,14 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE FlexibleInstances          #-}
 
+-- ----------------------------------------------------------------------------
+
+{- |
+  Index compression proxy.
+-}
+
+-- ----------------------------------------------------------------------------
+
 module Hunt.Index.Proxy.CompressedIndex
 ( ComprOccIndex (..)
 , mkComprIx
@@ -25,10 +33,12 @@ import qualified Hunt.Index                          as Ix
 
 -- ------------------------------------------------------------
 
+-- | The index compression proxy.
 newtype ComprOccIndex impl to from
   = ComprIx { comprIx :: impl to }
   deriving (Eq, Show, NFData)
 
+-- | Wrap an index with the compression proxy.
 mkComprIx :: impl to -> ComprOccIndex impl to from
 mkComprIx v = ComprIx $! v
 

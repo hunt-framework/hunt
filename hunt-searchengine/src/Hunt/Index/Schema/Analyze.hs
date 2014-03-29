@@ -1,3 +1,11 @@
+-- ----------------------------------------------------------------------------
+{- |
+  Analyzer for index data.
+  Creates raw index data by splitting and normalizing the 'ApiDocument' index data as defined in
+  the schema.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.Index.Schema.Analyze
   ( toDocAndWords
   , toDocAndWords'
@@ -25,18 +33,15 @@ import           Hunt.Index.Schema
 
 -- ------------------------------------------------------------
 
-{-
-analyzerMapping :: AnalyzerType -> Text -> [(Position, Word)]
-analyzerMapping o = case o of
-    DefaultAnalyzer -> scanTextDefault
--}
-
--- | 'ApiDocument' to 'Document' (instance of 'DocumentWrapper') and 'Words' mapping.
---   /Note/: Contexts mentioned in the ApiDoc need to exist.
+-- | Extracts the 'Document' ('DocumentWrapper') and raw index data from an 'ApiDocument' in
+--   compliance with the schema.
+--
+--   /Note/: Contexts mentioned in the 'ApiDocument' need to exist.
 toDocAndWords :: DocumentWrapper e => Schema -> ApiDocument -> (e, Maybe Float, Words)
 toDocAndWords s = (\(d,dw,ws) -> (wrap d,dw,ws)) . toDocAndWords' s
 
--- | ApiDocument to Document and Words mapping.
+-- | Extracts the 'Document' and raw index data from an 'ApiDocument' in compliance with the schema.
+--
 --   /Note/: Contexts mentioned in the ApiDoc need to exist.
 toDocAndWords' :: Schema -> ApiDocument -> (Document, Maybe Float, Words)
 toDocAndWords' schema apiDoc = (doc, weight, ws)
@@ -59,12 +64,11 @@ toDocAndWords' schema apiDoc = (doc, weight, ws)
         indexMap
   weight = adWght apiDoc
 
--- | Apply the normalizers to a Word.
+-- | Apply the normalizers to a word.
 normalize :: [CNormalizer] -> Word -> Word
 normalize ns  = foldl (\f2 (CNormalizer _ f) -> f.f2) id $ ns
 
--- | Construct a WordList from Text using the function scan to split
---   the text into words with their corresponding positions.
+-- | Construct a 'WordList' from text using the splitting and normalization function.
 toWordList :: (Text -> [Word]) -> (Word -> Word) -> Text -> WordList
 toWordList scan norm = M.map DL.toList . foldr insert M.empty . zip [1..] . map norm . scan
   where
@@ -72,11 +76,11 @@ toWordList scan norm = M.map DL.toList . foldr insert M.empty . zip [1..] . map 
   insert (p, w)
     = M.alter (return . maybe (DL.singleton p) (`DL.snoc` p)) w
 
--- Analyzer
-
 -- | Tokenize a text with a regular expression for words.
 --
 --  > scanTextRE "[^ \t\n\r]*" == Data.Text.words
+--
+--   Grammar: <http://www.w3.org/TR/xmlschema11-2/#regexs>
 scanTextRE :: CRegex -> Text -> [Word]
 scanTextRE wRex = map T.pack . tokenize (T.unpack wRex) . T.unpack
 

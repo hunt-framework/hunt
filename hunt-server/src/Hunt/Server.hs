@@ -192,7 +192,7 @@ start config = do
       eval $ Status StatusGC            -- garbage collector status
 
     get "/status/doctable" $ do
-      eval $ Status StatusDocTable      -- garbage collector status
+      eval $ Status StatusDocTable      -- status of document table
 
     get "/status/index" $ do
       eval $ Status StatusIndex         -- status of search index

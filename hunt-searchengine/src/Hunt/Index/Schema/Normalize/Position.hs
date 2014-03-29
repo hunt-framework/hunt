@@ -1,8 +1,13 @@
+-- ----------------------------------------------------------------------------
+{- |
+  Normalization and validation for geographic positions.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.Index.Schema.Normalize.Position
-{--( isPosition
-, normalize
-, denormalize
-)--}
+  ( normalize, denormalize
+  , isPosition
+  )
 where
 
 import           Numeric

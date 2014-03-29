@@ -5,8 +5,20 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
+-- ----------------------------------------------------------------------------
+
+{- |
+  Key conversion proxy.
+  Wraps an index to expose the desired key type.
+  The conversion is defined by the 'Bijection' implementation.
+
+  This can be used for simple conversions like @Text@ to @String@ or normalization and compression.
+-}
+
+-- ----------------------------------------------------------------------------
+
 module Hunt.Index.Proxy.KeyIndex
-( KeyProxyIndex(..)
+( KeyProxyIndex (..)
 )
 where
 
@@ -28,18 +40,24 @@ import           Hunt.Common.Occurrences.Compression
 
 -- ------------------------------------------------------------
 
+-- | Key conversion proxy.
+--   @toType@ is the desired/exposed key type, followed by the wrapped index type.
+--   There has to be a corresponding 'Bijection' instance:
+--
+--   >  instance Bijection (IKey impl v) toType where ...
 newtype KeyProxyIndex toType impl cv
-  = KPIx { kpIx :: impl cv }
+  = KeyProxyIx { keyProxyIx :: impl cv }
   deriving (Eq, Show, NFData)
 
-mkKPIx :: impl cv -> KeyProxyIndex toType impl cv
-mkKPIx v = KPIx $! v
+-- | Wrap an index in a key conversion proxy.
+mkKeyProxyIx :: impl cv -> KeyProxyIndex toType impl cv
+mkKeyProxyIx v = KeyProxyIx $! v
 
 -- ------------------------------------------------------------
 
 instance Binary (impl v) => Binary (KeyProxyIndex toType impl v) where
-  put = put . kpIx
-  get = get >>= return . mkKPIx
+  put = put . KeyProxyIx
+  get = get >>= return . mkKeyProxyIx
 
 -- ------------------------------------------------------------
 
@@ -52,40 +70,40 @@ instance Index (KeyProxyIndex toType impl) where
     , Bijection (IKey impl v) toType
     )
 
-  insertList kvs (KPIx i)
-    = mkKPIx $ insertList (P.map (first from) kvs) i
+  insertList kvs (KeyProxyIx i)
+    = mkKeyProxyIx $ insertList (P.map (first from) kvs) i
 
-  deleteDocs ks (KPIx i)
-    = mkKPIx $ deleteDocs ks i
+  deleteDocs ks (KeyProxyIx i)
+    = mkKeyProxyIx $ deleteDocs ks i
 
   empty
-    = mkKPIx $ empty
+    = mkKeyProxyIx $ empty
 
   fromList l
-    = mkKPIx . fromList $ P.map (first from) l
+    = mkKeyProxyIx . fromList $ P.map (first from) l
 
-  toList (KPIx i)
+  toList (KeyProxyIx i)
     = first to <$> toList i
 
-  search t k (KPIx i)
+  search t k (KeyProxyIx i)
     = first to <$> search t (from k) i
 
-  lookupRange k1 k2 (KPIx i)
+  lookupRange k1 k2 (KeyProxyIx i)
     = first to <$> lookupRange (from k1) (from k2) i
 
-  unionWith op (KPIx i1) (KPIx i2)
-    = mkKPIx $ unionWith op i1 i2
+  unionWith op (KeyProxyIx i1) (KeyProxyIx i2)
+    = mkKeyProxyIx $ unionWith op i1 i2
 
-  unionWithConv t f (KPIx i1) (KPIx i2)
-    = mkKPIx $ unionWithConv t f i1 i2
+  unionWithConv t f (KeyProxyIx i1) (KeyProxyIx i2)
+    = mkKeyProxyIx $ unionWithConv t f i1 i2
 
-  map f (KPIx i)
-    = mkKPIx $ Ix.map f i
+  map f (KeyProxyIx i)
+    = mkKeyProxyIx $ Ix.map f i
 
-  mapMaybe f (KPIx i)
-    = mkKPIx $ Ix.mapMaybe f i
+  mapMaybe f (KeyProxyIx i)
+    = mkKeyProxyIx $ Ix.mapMaybe f i
 
-  keys (KPIx i)
+  keys (KeyProxyIx i)
     = P.map to $ keys i
 
 -- special instance for a CompressedOccurrences proxy within a TextKey proxy
@@ -102,41 +120,41 @@ instance Index (KeyProxyIndex toType (ComprOccIndex impl to)) where
     )
 
   -- this is the only "special" function
-  deleteDocs docIds (KPIx (ComprIx pt))
-    = mkKPIx $ mkComprIx $ Ix.map (differenceWithKeySet docIds) pt
+  deleteDocs docIds (KeyProxyIx (ComprIx pt))
+    = mkKeyProxyIx $ mkComprIx $ Ix.map (differenceWithKeySet docIds) pt
 
   -- everything below is copied toType the more general instance Index (KeyProxyIndex impl)
-  insertList kvs (KPIx i)
-    = mkKPIx $ insertList (P.map (first from) kvs) i
+  insertList kvs (KeyProxyIx i)
+    = mkKeyProxyIx $ insertList (P.map (first from) kvs) i
 
   empty
-    = mkKPIx $ empty
+    = mkKeyProxyIx $ empty
 
   fromList l
-    = mkKPIx . fromList $ P.map (first from) l
+    = mkKeyProxyIx . fromList $ P.map (first from) l
 
-  toList (KPIx i)
+  toList (KeyProxyIx i)
     = first to <$> toList i
 
-  search t k (KPIx i)
+  search t k (KeyProxyIx i)
     = first to <$> search t (from k) i
 
-  lookupRange k1 k2 (KPIx i)
+  lookupRange k1 k2 (KeyProxyIx i)
     = first to <$> lookupRange (from k1) (from k2) i
 
-  unionWith op (KPIx i1) (KPIx i2)
-    = mkKPIx $ unionWith op i1 i2
+  unionWith op (KeyProxyIx i1) (KeyProxyIx i2)
+    = mkKeyProxyIx $ unionWith op i1 i2
 
-  unionWithConv t f (KPIx i1) (KPIx i2)
-    = mkKPIx $ unionWithConv t f i1 i2
+  unionWithConv t f (KeyProxyIx i1) (KeyProxyIx i2)
+    = mkKeyProxyIx $ unionWithConv t f i1 i2
 
-  map f (KPIx i)
-    = mkKPIx $ Ix.map f i
+  map f (KeyProxyIx i)
+    = mkKeyProxyIx $ Ix.map f i
 
-  mapMaybe f (KPIx i)
-    = mkKPIx $ Ix.mapMaybe f i
+  mapMaybe f (KeyProxyIx i)
+    = mkKeyProxyIx $ Ix.mapMaybe f i
 
-  keys (KPIx i)
+  keys (KeyProxyIx i)
     = P.map to $ keys i
 
 -- ------------------------------------------------------------

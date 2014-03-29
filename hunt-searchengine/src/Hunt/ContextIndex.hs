@@ -60,7 +60,7 @@ mkContextMap x = ContextMap $! x
 -- ----------------------------------------------------------------------------
 
 getContextMap :: [IndexImpl Occurrences] -> Get (ContextMap Occurrences)
-getContextMap ts = liftM M.fromDistinctAscList (Impl.get' ts) >>= return . ContextMap
+getContextMap ts = liftM M.fromDistinctAscList (Impl.gets' ts) >>= return . ContextMap
 
 instance Binary v => Binary (ContextMap v) where
   put = put . cxMap

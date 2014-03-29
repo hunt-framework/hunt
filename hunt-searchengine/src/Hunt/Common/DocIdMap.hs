@@ -21,42 +21,42 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Common.DocIdMap
-    ( DocIdMap(..)
-    , DocIdSet
-    , empty
-    , singleton
-    , null
-    , member
-    , lookup
-    , insert
-    , delete
-    , insertWith
-    , size
-    , minKey
-    , maxKey
-    , isIntervall
-    , union
-    , intersection
-    , difference
-    , diffWithSet
-    , unionWith
-    , intersectionWith
-    , differenceWith
-    , unionsWith
-    , map
-    , filter
-    , filterWithKey
-    , mapWithKey
-    , traverseWithKey
-    , foldr
-    , foldrWithKey
-    , fromList
-    , fromAscList
-    , toList
-    , keys
-    , elems
-    , toDocIdSet
-    )
+  ( DocIdMap(..)
+  , DocIdSet
+  , empty
+  , singleton
+  , null
+  , member
+  , lookup
+  , insert
+  , delete
+  , insertWith
+  , size
+  , minKey
+  , maxKey
+  , isIntervall
+  , union
+  , intersection
+  , difference
+  , diffWithSet
+  , unionWith
+  , intersectionWith
+  , differenceWith
+  , unionsWith
+  , map
+  , filter
+  , filterWithKey
+  , mapWithKey
+  , traverseWithKey
+  , foldr
+  , foldrWithKey
+  , fromList
+  , fromAscList
+  , toList
+  , keys
+  , elems
+  , toDocIdSet
+  )
 where
 
 import           Prelude                    hiding (filter, foldr, lookup, map,
@@ -115,28 +115,29 @@ instance Binary v => Binary (DocIdMap v) where
 -- ------------------------------------------------------------
 
 instance ToJSON v => ToJSON (DocIdMap v) where
-    toJSON = object . L.map toJ . IM.toList . unDIM
+  toJSON = object . L.map toJ . IM.toList . unDIM
+    where
+    toJ (k, v) = (T.pack . toH $ k) .= toJSON v
+    toH !y = "0x" ++ toX 16 "" y
+      where
+      toX :: Int -> String -> Int -> String
+      toX !0 !acc _ = acc
+      toX !n !acc x = toX (n - 1) (d : acc) x'
         where
-          toJ (k, v) = (T.pack . toH $ k) .= toJSON v
-          toH !y = "0x" ++ toX 16 "" y
-              where
-                toX :: Int -> String -> Int -> String
-                toX !0 !acc _ = acc
-                toX !n !acc x = toX (n - 1) (d : acc) x'
-                    where
-                      (!x', !r) = x `divMod` 16
-                      !d | r < 10    = toEnum (fromEnum '0' + r)
-                         | otherwise = toEnum (fromEnum 'a' + r - 10)
+        (!x', !r) = x `divMod` 16
+        !d | r < 10    = toEnum (fromEnum '0' + r)
+           | otherwise = toEnum (fromEnum 'a' + r - 10)
 
 instance FromJSON v => FromJSON (DocIdMap v) where
-    parseJSON (Object o) = DIM <$> foldM parsePair IM.empty (HM.toList o)
-                           where
-                             parsePair res (k, v)
-                                 = case readMaybe . T.unpack $ k of
-                                     Nothing -> mzero
-                                     Just k' -> do v' <- parseJSON v
-                                                   return $ IM.insert k' v' res
-    parseJSON _          = mzero
+  parseJSON (Object o) = DIM <$> foldM parsePair IM.empty (HM.toList o)
+    where
+    parsePair res (k, v)
+      = case readMaybe . T.unpack $ k of
+          Nothing -> mzero
+          Just k' -> do
+            v' <- parseJSON v
+            return $ IM.insert k' v' res
+  parseJSON _          = mzero
 
 -- ------------------------------------------------------------
 

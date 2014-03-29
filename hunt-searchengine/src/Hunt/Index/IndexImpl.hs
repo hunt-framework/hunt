@@ -1,5 +1,20 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  Heterogeneous indexes using @ExistentialQuantification@.
+
+  Indexes have to implement the 'Index' type class as well as obey other constraints defined in
+  'IndexImplCon'.
+
+  /Note/: Due to the nature of @ExistentialQuantification@, deserialization is tricky because the
+  concrete implementation is not known.
+  This is circumvented by storing the type representation of the index. Deserialization is possible
+  if there is a matching type representation in the set of available types.
+  This requires the use of the custom get functions.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.Index.IndexImpl where
 
 import           Control.Applicative         ((<$>))
@@ -19,6 +34,7 @@ import           Hunt.Index
 
 -- ------------------------------------------------------------
 
+-- | Constraint for index implementations.
 type IndexImplCon i v
   = ( Index i
     , IKey i v ~ Text
@@ -31,6 +47,7 @@ type IndexImplCon i v
 
 -- ------------------------------------------------------------
 
+-- | Index using @ExistentialQuantification@ to allow heterogeneous index containers.
 data IndexImpl v
   = forall i. IndexImplCon i v => IndexImpl { ixImpl :: i v }
 
@@ -51,21 +68,26 @@ instance Binary (IndexImpl v) where
   put (IndexImpl i) = put (typeOf i) >> put i
   get = error "existential types cannot be deserialized this way. Use special get' functions"
 
-get' :: [IndexImpl Occurrences] -> Get [(Context, IndexImpl Occurrences)]
-get' ts = do
-  n <- get :: Get Int
-  getMany' ts n
+-- TODO: refactor
 
-getMany' :: [IndexImpl Occurrences] -> Int -> Get [(Context, IndexImpl Occurrences)]
-getMany' ts n = go [] n
+-- | Deserialize a set of 'IndexImpl's. Requires a set of available index implementations.
+--
+--   /Note/: This will fail if a used index implementation is not provided.
+gets' :: [IndexImpl Occurrences] -> Get [(Context, IndexImpl Occurrences)]
+gets' ts = do
+  n <- get :: Get Int
+  go [] n
   where
   go xs 0 = return $! reverse xs
   go xs i = do
-    x <- liftM2 (,) get (get'' ts)
+    x <- liftM2 (,) get (get' ts)
     x `seq` go (x:xs) (i-1)
 
-get'' :: [IndexImpl Occurrences] -> Get (IndexImpl Occurrences)
-get'' ts = do
+-- | Deserialize an 'IndexImpl'. Requires a set of available index implementations.
+--
+--   /Note/: This will fail if a used index implementation is not provided.
+get' :: [IndexImpl Occurrences] -> Get (IndexImpl Occurrences)
+get' ts = do
   t <- get :: Get TypeRep
   case L.find (\(IndexImpl i) -> t == typeOf i) ts of
     Just (IndexImpl x) -> IndexImpl <$> get `asTypeOf` return x
@@ -73,11 +95,7 @@ get'' ts = do
 
 -- ------------------------------------------------------------
 
--- | IndexImpl is the Wrapper for external access
---   we set the key to Text here, but allow internal
---   Key in all haskell types. For conversion we have
---   could imagine a normalization proxy implemented
---   with the KeyIndex Proxy
+-- | Wrap an index using @ExistentialQuantification@ tto allow heterogeneous containers.
 mkIndex :: IndexImplCon i v => i v -> IndexImpl v
 mkIndex i = IndexImpl $! i
 

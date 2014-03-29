@@ -1,6 +1,33 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hunt.Index.Schema.Normalize.Date where
+-- ----------------------------------------------------------------------------
+
+{- |
+  Normalization and validation for date.
+
+  Days are represented here as in ISO 8601:2000 Second Edition:
+      ISO (International Organization for Standardization).
+      Representations of dates and times, second edition, 2000-12-15.
+
+   NOT as in
+   ISO 8601
+      ISO (International Organization for Standardization).
+      Representations of dates and times, 1988-06-15.
+
+   The main difference is dealing with year 0.
+   in the older ISO standard, this is excluded and
+   "-0001" is the representation of year 1 Before Common Era "-1 BCE".
+   In the latter standard "0000" represents "-1 BCE" and "-0001" represents "-2 BCE"
+-}
+-- source hxt-xmlschema/src/Text/XML/HXT/XMLSchema/W3CDataTypeCheck.hs
+
+-- ----------------------------------------------------------------------------
+
+module Hunt.Index.Schema.Normalize.Date
+  ( normalize, denormalize
+  , isAnyDate
+  )
+where
 
 import           Control.Applicative
 import           Control.Monad

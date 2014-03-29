@@ -2,6 +2,13 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies               #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  Text index using the 'DocIdMap' based on the 'StringMap' implementation.
+-}
+-- ----------------------------------------------------------------------------
+-- TODO: obsolete now?
+
 module Hunt.Index.PrefixTreeIndex
 ( DmPrefixTree(..)
 )
@@ -22,6 +29,9 @@ import           Hunt.Utility
 
 -- ------------------------------------------------------------
 
+-- | Text index using 'DocIdMap' based on the 'StringMap' implementation.
+--   Note that the value parameter is on the type of the 'DocIdMap' value and not the 'Occurrences'
+--   itself.
 newtype DmPrefixTree v
   = DmPT { dmPT :: SM.StringMap (DocIdMap v) }
   deriving (Eq, Show, NFData, Typeable)

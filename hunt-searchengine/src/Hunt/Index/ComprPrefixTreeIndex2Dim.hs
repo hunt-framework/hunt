@@ -3,8 +3,15 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies               #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  Compressed 'StringMap' index for 2-dimensional lookup, e.g. geographic locations.
+  The value has to implement 'OccCompression'.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.Index.ComprPrefixTreeIndex2Dim
-( ComprOccPrefixTree(..)
+( ComprOccPrefixTree (..)
 )
 where
 
@@ -34,10 +41,13 @@ import           Hunt.Utility
 
 -- ------------------------------------------------------------
 
+-- | Compressed 'StringMap' index for 2-dimensional lookup.
+--   The value has to implement 'OccCompression'.
 newtype ComprOccPrefixTree cv
   = ComprPT { comprPT :: SM.StringMap cv}
   deriving (Eq, Show, NFData, Typeable)
 
+-- | Create a compressed 'StringMap' index for 2-dimensional lookup.
 mkComprPT :: NFData cv => SM.StringMap cv -> ComprOccPrefixTree cv
 mkComprPT cv = ComprPT $! cv
 

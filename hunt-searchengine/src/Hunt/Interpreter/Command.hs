@@ -33,53 +33,67 @@ import           Hunt.Query.Result
 
 -- ----------------------------------------------------------------------------
 
--- | The commands of the the 'Interpreter'.
---   These are actually translated to 'BasicCommand's.
+-- | The \"high-level\" commands accepted by the 'Interpreter' \/ JSON API.
+--   These are translated to 'BasicCommand's.
 data Command
-  -- | Search
+  -- | Search query with pagination.
   = Search        { icQuery    :: Query
                   , icOffsetSR :: Int
                   , icMaxSR    :: Int
                   }
+  -- | Auto-completion query with a limit.
   | Completion    { icPrefixCR :: Query
                   , icMaxCR    :: Int
                   }
 
-  -- | Index manipulation
+  -- | Insert a document.
   | Insert        { icDoc :: ApiDocument }
+  -- | Update a documents' description.
   | Update        { icDoc :: ApiDocument }
+  -- | Delete a documents by 'URI'.
   | Delete        { icUri :: URI }
+  -- | Delete all documents of the query result.
   | DeleteByQuery { icQueryD :: Query }
 
-  -- | context manipulation
+  -- | Insert a context and the associated schema.
   | InsertContext { icIContext :: Context
                   , icSchema :: ContextSchema
                   }
+  -- | Delete a context.
   | DeleteContext { icDContext :: Context }
 
-  -- | persistent commands
+  -- | Deserialize the index.
   | LoadIx        { icPath :: FilePath }
+  -- | Serialize the index.
   | StoreIx       { icPath :: FilePath }
 
-  -- | status
+  -- | Query general information about the server/index.
   | Status        { icStatus :: StatusCmd }
 
-  -- | general
+  -- | Sequence commands.
   | Sequence      { icCmdSeq :: [Command] }
+  -- | No operation. Can be used in control flow and as an alive test.
   | NOOP
   deriving (Show)
 
+-- | The result of an interpreted command.
 data CmdResult
+  -- | The command was processed successfully.
   = ResOK
+  -- | The search results.
   | ResSearch       { crRes :: LimitedResult (Document, Score) }
+  -- | The auto-completion results.
   | ResCompletion   { crWords :: [(Text, [Text])] }
+  -- | A generic JSON result.
   | ResGeneric      { crGen :: Value }
   deriving (Show, Eq)
 
+-- | An error during processing of the command.
+--   This includes a error code and a message.
 data CmdError
   = ResError
-    { ceCode :: Int
-    , ceMsg  :: Text
+    { ceCode :: Int  -- ^ Error code.
+    , ceMsg  :: Text -- ^ Message describing the error.
     } deriving (Show)
 
 -- ----------------------------------------------------------------------------
@@ -90,6 +104,8 @@ instance LogShow Command where
   logShow (Sequence _) = "Sequence"
   logShow o = show o
 
+-- ----------------------------------------------------------------------------
+-- JSON instances
 -- ----------------------------------------------------------------------------
 
 instance ToJSON Command where
@@ -169,10 +185,12 @@ instance FromJSON CmdError where
 -- TODO: - flattening of 'Sequence's?
 
 -- | Transform the supported input command into lower level commands which are actually interpreted.
+--
 --   Transformations:
+--
 --     - Multiple 'Cmd.Delete's into a single 'DeleteDocs'.
+--
 --     - Multiple 'Cmd.Insert's into a single or multiple 'InsertList's.
---       The split is hardcoded to 200 at the moment (see 'splitBatch').
 toBasicCommand :: Command -> BasicCommand
 toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
   where
@@ -185,6 +203,7 @@ toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
     = [foldl (\(Cmd.DeleteDocs us) (Delete u)
                 -> Cmd.DeleteDocs (S.insert u us)) (Cmd.DeleteDocs S.empty) cs']
   -- groups of Insert to InsertList
+  -- TODO: remove constant
   optGroup cs'@(Insert{}:_)
     = [splitBatch 30000000000 $ foldl (\(Cmd.InsertList us) (Insert u)
                 -> Cmd.InsertList (u:us)) (Cmd.InsertList []) cs']

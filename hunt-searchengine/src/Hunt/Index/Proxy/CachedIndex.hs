@@ -2,7 +2,25 @@
 {-# LANGUAGE ConstraintKinds           #-}
 {-# LANGUAGE FlexibleContexts          #-}
 
+-- ----------------------------------------------------------------------------
+
+{- |
+  A index prototype with a deletion cache (size == 100 documents).
+  Deletes are cached in a set and query results are filtered.
+  This improves delete performance significantly but adds overhead to queries.
+
+  The impact on queries increases the more documents are deleted. This can also affect query results
+  in unexpected ways. To limit this effect, the cache is limited to 100 docs after which the
+  deletion is applied.
+
+  Snapshot support could be added by adding another index and searching both.
+-}
+
+-- ----------------------------------------------------------------------------
+
 module Hunt.Index.Proxy.CachedIndex
+  ( CachedIndex (..)
+  )
 where
 
 import qualified Prelude                             as P
@@ -24,12 +42,14 @@ import           Hunt.Index                          as Ix
 
 -- ------------------------------------------------------------
 
+-- | An index with a deletion cache. A set of deleted 'DocId's is kept to filter the query results.
 data CachedIndex impl v = CachedIx
   { cachedIds :: DocIdSet
   , cachedIx  :: ! (impl v)
   }
   deriving (Eq, Show)
 
+-- | Wrap an index with the cache proxy.
 mkCachedIx :: DocIdSet -> impl v -> CachedIndex impl v
 mkCachedIx v = CachedIx $! v
 
@@ -101,10 +121,12 @@ instance Index (CachedIndex impl) where
 
 -- ------------------------------------------------------------
 
+-- | Filter 'DocId's from raw results.
 filterResult :: OccCompression v => IS.IntSet -> [(d, v)] -> [(d, v)]
 filterResult c = P.map (second (deleteIds c))
   where deleteIds = differenceWithKeySet
 
+-- | Flush the cache and apply the deletions.
 flatten :: (ICon impl v, Index impl) => CachedIndex impl v -> CachedIndex impl v
 flatten (CachedIx c i) = mkCachedIx IS.empty $ deleteDocs c i
 
