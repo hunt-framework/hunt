@@ -96,10 +96,9 @@ start config = do
 
   let options = Schrotty.Options
         { verbose  = 1
-        , settings = W.defaultSettings
-            { W.settingsPort = huntServerPort config
-            , W.settingsHost = fromString $ huntServerHost config
-            }
+        , settings = W.setHost (fromString $ huntServerHost config)
+                   $ W.setPort (huntServerPort config)
+                   $ W.defaultSettings
         }
   -- start schrotty
   schrottyOpts options $ do
@@ -193,7 +192,7 @@ start config = do
       eval $ Status StatusGC            -- garbage collector status
 
     get "/status/doctable" $ do
-      eval $ Status StatusDocTable      -- garbage collector status
+      eval $ Status StatusDocTable      -- status of document table
 
     get "/status/index" $ do
       eval $ Status StatusIndex         -- status of search index

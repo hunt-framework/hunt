@@ -10,7 +10,7 @@ category:      Text, Data
 synopsis:      A search and indexing engine.
 homepage:      http://github.com/hunt-framework/
 description:   The Hunt-Searchengine library provides a solid toolkit to
-               create fast and scaleable searchengines.
+               create fast and scalable searchengines.
 cabal-version: >=1.8
 build-type:    Simple
 -- tested-with:   ghc-7.0.3
@@ -24,7 +24,7 @@ source-repository head
 
 -- select Data.IntMap.BinTree.Strict as implementation for DocIdMap
 flag with-bintree
-  default:      False
+  default:      True
   manual:       True
 
 library
@@ -63,6 +63,7 @@ library
   exposed-modules:
     Control.Concurrent.XMVar
 
+    Codec.Compression.Utility
     Codec.Compression.BZip.Smart
     Codec.Compression.Snappy.Lazy.Smart
 

@@ -1,13 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# OPTIONS -fno-warn-orphans #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+'ToJSON' instance for 'GCStats'.
+-}
+-- ----------------------------------------------------------------------------
+
 module GHC.Stats.Json where
 
 import           Data.Aeson
 
 import           GHC.Stats
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance ToJSON GCStats where
   toJSON o = object
@@ -31,4 +37,4 @@ instance ToJSON GCStats where
     , "parMaxBytesCopied"       .= parMaxBytesCopied o
     ]
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

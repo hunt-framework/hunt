@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns       #-}
+{-# LANGUAGE CPP                #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
 module Data.IntMap.BinTree.Strict where
@@ -22,7 +23,7 @@ moduleName = "Data.IntMap.BinTree.Strict"
 error' :: String -> a
 error' = error . ((moduleName ++": ") ++)
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 
 type Key = Int
 
@@ -36,7 +37,7 @@ data Tree v = Empty
               deriving (Show, Typeable)         -- This saves 20% of space, average size of
                                                 -- objects is 4 instead of 5 words
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- instances for NFData and Binary
 
@@ -98,7 +99,7 @@ traverseWithKey f
 
 --       = (pure DIM <*>) . IM.traverseWithKey f . unDIM
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- the smart constructor generating Lt, Gt and Leaf nodes
 
@@ -122,7 +123,7 @@ unNode  Empty         = error' "\"unNode\" with empty tree"
 
 {-# INLINE unNode #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- the work horses
 
@@ -149,7 +150,7 @@ join' (Just (k, v)) t1 t2
 join' Nothing t1 t2
     = case minViewWithKey t2 of                 -- get smallest key in t2
         Nothing          -> t1                  -- and return t1
-        Just ((k, v), r) -> mkNode k v t1 r     -- that key as new root
+        Just ((k, v), r) -> mkNode k v t1 r     -- or take that key as new root
 
 {- disabled due to unbalancing of result tree
 
@@ -164,7 +165,7 @@ join' Nothing t1 t2
 
 {-# INLINE join' #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 {-
 -- lookup, insert and delete with split' and join'
 -- insert and delete change the root
@@ -195,7 +196,7 @@ delete k t
 {-# INLINE delete     #-}
 
 -- -}
--- ----------------------------------------
+-- ------------------------------------------------------------
 -- {-
 -- traditional lookup, insert and remove
 
@@ -242,7 +243,7 @@ delete k
 {-# INLINE delete          #-}
 
 -- -}
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- derived lookup and insert functions
 
@@ -274,7 +275,7 @@ insert = insertWith const
 {-# INLINE notMember       #-}
 {-# INLINE insert          #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- primitive operations
 
@@ -288,7 +289,7 @@ null _     = False
 size :: Tree v -> Int
 size = foldl' (\ cnt _ -> cnt + 1) 0
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 
 union :: Tree v -> Tree v -> Tree v
 union = unionWith const
@@ -297,10 +298,10 @@ unionWith :: (v -> v -> v) -> Tree v -> Tree v -> Tree v
 unionWith op
     = unionWithKey (const op)
 
-unionWithKey :: (Key -> v -> v -> v) -> Tree v -> Tree v -> Tree v
-unionWithKey _  x1 Empty
+unionWithKey' :: (Key -> v -> v -> v) -> Tree v -> Tree v -> Tree v
+unionWithKey' _  x1 Empty
     = x1
-unionWithKey f x1 x2
+unionWithKey' f x1 x2
     = uni x1 x2
     where
       uni Empty t2 = t2
@@ -313,11 +314,11 @@ unionWithKey f x1 x2
 unionsWith :: (v -> v -> v) -> [Tree v] -> Tree v
 unionsWith f = L.foldl' (\ acc t -> unionWith f acc t) empty
 
-{-# INLINE union        #-}
-{-# INLINE unionWith    #-}
-{-# INLINE unionWithKey #-}
+{-# INLINE union         #-}
+{-# INLINE unionWith     #-}
+{-# INLINE unionWithKey' #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 
 difference :: Tree a -> Tree b -> Tree a
 difference = differenceWith (const (const Nothing))
@@ -326,11 +327,11 @@ differenceWith :: (a -> b -> Maybe a) -> Tree a -> Tree b -> Tree a
 differenceWith op
     = differenceWithKey (const op)
 
-differenceWithKey :: (Key -> a -> b -> Maybe a) -> Tree a -> Tree b -> Tree a
-differenceWithKey _ x1 Empty
+differenceWithKey' :: (Key -> a -> b -> Maybe a) -> Tree a -> Tree b -> Tree a
+differenceWithKey' _ x1 Empty
     = x1
 
-differenceWithKey f x1 x2
+differenceWithKey' f x1 x2
     = diff x1 x2
     where
       diff Empty _  = Empty
@@ -344,11 +345,11 @@ differenceWithKey f x1 x2
                                                        Nothing -> Nothing
                                                        Just y  -> Just (k, y)
 
-{-# INLINE difference        #-}
-{-# INLINE differenceWith    #-}
-{-# INLINE differenceWithKey #-}
+{-# INLINE difference         #-}
+{-# INLINE differenceWith     #-}
+{-# INLINE differenceWithKey' #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 
 intersection :: Tree a -> Tree b -> Tree a
 intersection = intersectionWith const
@@ -357,10 +358,10 @@ intersectionWith :: (a -> b -> c) -> Tree a -> Tree b -> Tree c
 intersectionWith op
     = intersectionWithKey (const op)
 
-intersectionWithKey :: (Key -> a -> b -> c) -> Tree a -> Tree b -> Tree c
-intersectionWithKey _  _ Empty
+intersectionWithKey' :: (Key -> a -> b -> c) -> Tree a -> Tree b -> Tree c
+intersectionWithKey' _  _ Empty
     = Empty
-intersectionWithKey f x1 x2
+intersectionWithKey' f x1 x2
     = intersect x1 x2
     where
       intersect Empty _  = Empty
@@ -372,7 +373,7 @@ intersectionWithKey f x1 x2
 
 {-# INLINE intersection         #-}
 {-# INLINE intersectionWith     #-}
-{-# INLINE intersectionWithKey  #-}
+{-# INLINE intersectionWithKey' #-}
 
 equal :: Eq v => Tree v -> Tree v -> Bool
 equal Empty Empty = True
@@ -385,7 +386,7 @@ equal t1 t2       =    Just v1 == m2
                       (k1, v1, l1, r1) = unNode t1
                       (m2,     l2, r2) = split' k1 t2
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- maps
 
@@ -404,7 +405,7 @@ mapWithKey f
 {-# INLINE map                  #-}
 {-# INLINE mapWithKey           #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 -- filter
 
 filter :: (a -> Bool) -> Tree a -> Tree a
@@ -424,7 +425,7 @@ filterWithKey p
 {-# INLINE filter               #-}
 {-# INLINE filterWithKey        #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- foldr's
 
@@ -452,7 +453,7 @@ foldrWithKey' f
                         where
                           (k, v, l, r) = unNode t
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- foldl's
 
@@ -485,7 +486,7 @@ foldlWithKey' f
 {-# INLINE foldl        #-}
 {-# INLINE foldlWithKey #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 
 fromList :: [(Key, v)] -> Tree v
 fromList = L.foldl' (\ acc (k, v) -> insert k v acc) Empty
@@ -504,7 +505,7 @@ toTr :: Int -> Tree v -> [(Key, v)] -> Tree v
 toTr _ t [] = t
 toTr i t (x : xs)
     | L.null xs1  = t'
-    | otherwise = toTr (i + 1) t' xs
+    | otherwise = toTr (i + 1) t' xs1
     where
       (r, xs1) = scan i xs
       t'       = join' (Just x) t r
@@ -523,7 +524,7 @@ scan i xs
       (x : xs2) = xs1
       (r,  xs3) = scan (i - 1) xs2
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- conversions to lists
 
@@ -548,7 +549,7 @@ keys = foldrWithKey (\ k _v r -> k : r) []
 {-# INLINE elems #-}
 {-# INLINE keys  #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
 --
 -- min/max
 
@@ -557,24 +558,28 @@ minView t = first snd <$> minViewWithKey t
 
 minViewWithKey :: Tree v -> Maybe ((Key, v), Tree v)
 minViewWithKey Empty = Nothing
-minViewWithKey x     = go x
+minViewWithKey x     = Just $ go x
     where
       go t = case l of
-               Empty -> Just ((k, v), r)
-               _     -> go l
-          where (k, v, l, r) = unNode t
+               Empty -> ((k, v), r)
+               _     -> substLeft $ go l
+          where
+            (k, v, l, r) = unNode t
+            substLeft (kv, l') = (kv, mkNode k v l' r)
 
 maxView :: Tree v -> Maybe (v, Tree v)
 maxView t = first snd <$> maxViewWithKey t
 
 maxViewWithKey :: Tree v -> Maybe ((Key, v), Tree v)
 maxViewWithKey Empty = Nothing
-maxViewWithKey x     = go x
+maxViewWithKey x     = Just $ go x
     where
       go t = case r of
-               Empty -> Just ((k, v), l)
-               _     -> go r
-          where (k, v, l, r) = unNode t
+               Empty -> ((k, v), l)
+               _     -> substRight $ go r
+          where
+            (k, v, l, r) = unNode t
+            substRight (kv, r') = (kv, mkNode k v l r')
 
 {-# INLINE minView        #-}
 {-# INLINE maxView        #-}
@@ -586,14 +591,72 @@ first f (x,y) = (f x,y)
 
 {-# INLINE first #-}
 
--- ----------------------------------------
+-- ------------------------------------------------------------
+
+unionWithKey        :: (Key -> v -> v -> v) -> Tree v -> Tree v -> Tree v
+intersectionWithKey :: (Key -> a -> b -> c) -> Tree a -> Tree b -> Tree c
+differenceWithKey   :: (Key -> a -> b -> Maybe a) -> Tree a -> Tree b -> Tree a
+
+-- {-
+unionWithKey        = unionWithKey'
+intersectionWithKey = intersectionWithKey'
+differenceWithKey   = differenceWithKey'
+
+-- -}
+
+{- union, interect and diff operations with assertions
+
+unionWithKey op
+    = assertBin "unionWithKey" keys keys keys union'keys $ unionWithKey' op
+      where
+        union'keys x y = L.sort $ x `L.union` y
+
+differenceWithKey op
+    = assertBin "differenceWithKeys" keys keys keys diff'keys $ differenceWithKey' op
+      where
+        diff'keys x y = L.sort $ x L.\\ y
+
+intersectionWithKey op
+    = assertBin "intersectionWithKey" keys keys keys intersection'keys $ intersectionWithKey' op
+      where
+        intersection'keys x y = L.sort $ x `L.intersect` y
+
+assertBin :: (Eq r, Show r) =>
+             String -> (a -> r) -> (b -> r) -> (c -> r) -> (r -> r -> r) ->
+             (a -> b -> c) -> (a -> b -> c)
+assertBin opn retrX retrY retrR op' op x y
+    = assert msg' retrR res' res
+    where
+      res  = x  `op`  y
+      res' = x' `op'` y'
+      x'   = retrX x
+      y'   = retrY y
+      msg' = unlines [ "operation: " ++ opn
+                     , "arg1:      " ++ show x'
+                     , "arg2:      " ++ show y'
+                     ]
+
+assert :: (Eq r, Show r) => String -> (a -> r) -> r -> a -> a
+assert args retr exp' res
+    | exp' == res' = res
+    | otherwise    = error msg
+    where
+      res' = retr res
+      msg  = unlines [ "assertion failed"
+                     , args
+                     , "expected:  " ++ show exp'
+                     , "got:       " ++ show res'
+                     ]
+-- -}
+
+-- ------------------------------------------------------------
 {-
 
 main :: IO ()
 main = return ()
 
 fromList' :: [Key] -> Tree String
-fromList' = fromList . L.map (\ x -> (x, show x))
+fromList' = fromAscList . L.map (\ x -> (x, ""))
 fromList'' :: [Key] -> Tree String
 fromList'' = fromList . L.map (\ x -> (x, show $ x+1))
 
@@ -604,4 +667,14 @@ s2 = fromList' [1,3..10]
 s3 :: Tree String
 s3 = fromList'' [0,3..10]
 
+
+arg1 = fromList' [-9019555248142772964,-6161526110399673733,-5962998868550245357,-5723094145863444326,-5358586818353638861,-4957792663758460317,-1038248931000888297,1160546946948583692,1945733972938829115,2251145106674145554,3000418586234587927,4084681012873670518,5287472037333007190,7296040159437125633,8079593536333253132,8492044343351169705]
+arg2 = fromList' [-9019555248142772964,-6161526110399673733,-5358586818353638861,-4957792663758460317,-1038248931000888297,1160546946948583692,1945733972938829115,2251145106674145554,3000418586234587927,4084681012873670518,5287472037333007190,7296040159437125633,8079593536333253132,8492044343351169705]
+
+expected = fromList'  [-9019555248142772964,-6161526110399673733,-5358586818353638861,-4957792663758460317,-1038248931000888297,1160546946948583692,1945733972938829115,2251145106674145554,3000418586234587927,4084681012873670518,5287472037333007190,7296040159437125633,8079593536333253132,8492044343351169705]
+got = fromList'       [-9019555248142772964,-6161526110399673733,-5358586818353638861,-4957792663758460317,-1038248931000888297]
+
+
 -- -}
+
+-- ------------------------------------------------------------

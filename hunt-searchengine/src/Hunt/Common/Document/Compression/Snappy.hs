@@ -4,7 +4,7 @@
 
 -- ----------------------------------------------------------------------------
 {-
-  Document compression using Google's Snappy library
+  'Document' compression using Google's Snappy library
     https://code.google.com/p/snappy/
 
   Haskell-Bindings
@@ -24,34 +24,39 @@ where
 import qualified Codec.Compression.Snappy.Lazy as ZIP
 #endif
 
-import           Control.Applicative           ((<$>))
+import           Control.Applicative   ((<$>))
 import           Control.DeepSeq
 
-import           Data.Binary                   (Binary (..))
-import qualified Data.Binary                   as B
---import qualified Data.ByteString               as BS
-import qualified Data.ByteString.Lazy          as BL
-import           Data.ByteString.Short         (ShortByteString)
-import qualified Data.ByteString.Short         as Short
+import           Data.Binary           (Binary (..))
+import qualified Data.Binary           as B
+import qualified Data.ByteString.Lazy  as BL
+import           Data.ByteString.Short (ShortByteString)
+import qualified Data.ByteString.Short as Short
 import           Data.Typeable
 
 import           Hunt.Common.Document
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
--- ShortByteString: It has a lower memory overhead than a ByteString and and does not contribute to
--- heapfragmentation. It can be converted to or from a ByteString (at the cost of copying the string
--- data).
+-- | A snappy-compressed 'Document'.
+--   Use 'mkCDoc' to create.
+--   The Document can be retrieved with 'unwrap'.
+--   The corresponding bijection is defined in 'DocumentWrapper'.
+--
+-- Using ShortByteString saves 5 machine words per value.
+-- It also eliminates issues with sharing and fragmentation due to ByteStrings being pinned.
 -- https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1
-
 newtype CompressedDoc
   = CDoc { unCDoc :: ShortByteString }
-    deriving (Eq, Show, NFData, Typeable)
+  deriving (Eq, Show, NFData, Typeable)
 
+-- | Create a 'CompressedDoc' using Snappy-compression.
+--
+-- Deeply evaluates the value.
 mkCDoc :: ShortByteString -> CompressedDoc
 mkCDoc v = CDoc $!! v
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary CompressedDoc where
   put = put . Short.fromShort . unCDoc
@@ -61,13 +66,13 @@ instance Binary CompressedDoc where
 -- before return. This should be the single place where sharing is introduced,
 -- else the copy must be moved to mkCDoc
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance DocumentWrapper CompressedDoc where
   wrap   = compress
   unwrap = decompress
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 #if  __GLASGOW_HASKELL__ >= 770
 -- | 'Document' to 'CompressedDoc' conversion.
@@ -88,3 +93,5 @@ compress    = mkCDoc . Short.toShort . BL.toStrict . B.encode
 decompress  :: CompressedDoc -> Document
 decompress  = B.decode . BL.fromStrict . Short.fromShort . unCDoc
 #endif
+
+-- ------------------------------------------------------------

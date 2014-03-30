@@ -3,8 +3,15 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies               #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  Compressed 'StringMap' index.
+  The value has to implement 'OccCompression'.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.Index.ComprPrefixTreeIndex
-( ComprOccPrefixTree(..)
+( ComprOccPrefixTree (..)
 )
 where
 
@@ -31,22 +38,25 @@ import           Hunt.Common.Occurrences.Compression
 
 import           Hunt.Utility
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
+-- | Compressed 'StringMap' index.  The value has to implement 'OccCompression'.
 newtype ComprOccPrefixTree cv
   = ComprPT { comprPT :: SM.StringMap cv}
   deriving (Eq, Show, NFData, Typeable)
 
+-- | Create a compressed 'StringMap' index.
 mkComprPT :: NFData cv => SM.StringMap cv -> ComprOccPrefixTree cv
 mkComprPT cv = ComprPT $! cv
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance (NFData v, Binary v) => Binary (ComprOccPrefixTree v) where
   put (ComprPT i) = put i
   get = get >>= return . mkComprPT
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+-- TODO: refactor
 
 instance Index ComprOccPrefixTree where
   type IKey ComprOccPrefixTree v = SM.Key
@@ -66,7 +76,7 @@ instance Index ComprOccPrefixTree where
 
        reduce mapRes
          = case parMap rpar (\(i1,i2) -> unionWith (Occ.merge) i1 i2) $ mkPairs mapRes of
-             []     -> error "this should not be possible..?!?"
+             []     -> error "insertList (ComprOccPrefixTree): impossible case"
              [x]    -> x
              xs     -> reduce xs
 
@@ -120,3 +130,5 @@ instance Index ComprOccPrefixTree where
 
   keys (ComprPT i)
     = SM.keys i
+
+-- ------------------------------------------------------------

@@ -20,7 +20,6 @@
     * Vo N. Anh, Alstair Moffat,
       \"/Inverted Index Compression Using Word-Aligned Binary Codes/\",
       Information Retrieval, 8 (1), 2005, pages 151-166
-
 -}
 
 -- ----------------------------------------------------------------------------
@@ -46,8 +45,12 @@ where
 import Data.Bits
 import Data.Word
 
+-- ------------------------------------------------------------
+
 data Width = W01 | W02 | W03 | W04 | W05 | W06 | W07 | W08 | W10 | W12 | W15 | W20 | W30 | W60
              deriving (Show, Eq, Enum)
+
+-- ------------------------------------------------------------
 
 -- | Increase performance by avoiding the calculation of maximum values.
 value :: Width -> Word64

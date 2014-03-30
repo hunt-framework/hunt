@@ -1,37 +1,50 @@
 {-# LANGUAGE CPP #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  'ByteString' compression that is only used if the result is sufficiently large
+  (80 characters).
+
+  This is based on observation for the BZIP compression where small compressed 'ByteString's
+  tend to be bigger than the source 'ByteString'.
+  This may not apply to the Snappy compression.
+-}
+-- ----------------------------------------------------------------------------
+
 module Codec.Compression.Snappy.Lazy.Smart
 where
 
+import           Codec.Compression.Utility
 #if  __GLASGOW_HASKELL__ >= 770
 import qualified Codec.Compression.Snappy.Lazy as Zip
 #endif
 
 import qualified Data.ByteString.Lazy          as BL
-import           Data.Int
 
-import           Debug.Trace                   (trace)
+-- TODO: This is based on bzip - test if this is also the case with snappy.
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 --
 -- select the default compression/decompression method
 --
--- compress'              is pure compression
--- compressWithTrace      traces the compression process
--- compressSmart          does not compress short ByteStrings <= 80 bytes
--- compressSmartWithTrace traces the compression process
+-- compress'                is pure compression
+-- traceCompress compress'  additionally traces the compression process
+-- compressSmart            does not compress short ByteStrings <= 80 bytes
+-- compressSmartWithTrace   additionally traces the compression process
 
+-- | Compress a data stream with Snappy (if it is bigger than 80 characters).
 compress :: BL.ByteString -> BL.ByteString
 -- compress = compress'
--- compress = compressWithTrace
+-- compress = traceCompress compress'
 compress = compressSmart
 -- compress = compressSmartWithTrace
 
+-- | Compress a data stream.
 decompress :: BL.ByteString -> BL.ByteString
 -- decompress = decompress'
 decompress = decompressSmart
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 #if  __GLASGOW_HASKELL__ >= 770
 compress'   :: BL.ByteString -> BL.ByteString
@@ -49,57 +62,22 @@ decompress' :: BL.ByteString -> BL.ByteString
 decompress' = id
 #endif
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
-compressWithTrace :: BL.ByteString -> BL.ByteString
-compressWithTrace = traceCompress compress'
-
--- ----------------------------------------------------------------------------
-
---- XXX: is 80 a good value for snappy too?
+-- | Smart compression with stdout tracing.
 compressSmart :: BL.ByteString -> BL.ByteString
 compressSmart = compressCond 80 compress'
 
+-- | Smart compression with stdout tracing.
+--   Includes the length of both the source and the result and the ratio.
 compressSmartWithTrace :: BL.ByteString -> BL.ByteString
 compressSmartWithTrace = traceCompress compressSmart
 
+-- | Smart decompression.
 decompressSmart :: BL.ByteString -> BL.ByteString
 decompressSmart = decompressCond decompress'
 
 {-# INLINE compressSmart #-}
 {-# INLINE decompressSmart #-}
 
--- ----------------------------------------------------------------------------
--- XXX: code duplication (BZip.Smart) -> move to separate module
-
-compressCond :: Int64 -> (BL.ByteString -> BL.ByteString) -> (BL.ByteString -> BL.ByteString)
-compressCond lowerBound cf x
-    | BL.length x <= lowerBound
-        = BL.cons 0 x
-    | otherwise
-        = BL.cons 1 $ cf x
-
-decompressCond :: (BL.ByteString -> BL.ByteString) -> (BL.ByteString -> BL.ByteString)
-decompressCond df x
-    | BL.head x == 0
-        = BL.tail x
-    | otherwise
-        = df $ BL.tail x
-
-{-# INLINE compressCond #-}
-{-# INLINE decompressCond #-}
-
--- ----------------------------------------------------------------------------
-
-traceCompress :: (BL.ByteString -> BL.ByteString) -> (BL.ByteString -> BL.ByteString)
-traceCompress f x
-    = trace msg y
-    where
-      lin  = BL.length x
-      y    = f x
-      lout = BL.length y
-      tod  = fromInteger . fromIntegral
-      cp   = (tod lout / tod lin) :: Double
-      msg  = "traceCompress: " ++ show (lin, lout) ++ ", factor = " ++ show cp
-
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

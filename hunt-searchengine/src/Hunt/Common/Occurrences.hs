@@ -9,8 +9,8 @@
   Stability  : experimental
   Portability: none portable
 
-  The Occurrences data type
-
+  Occurrences of words within the index.
+  A word occurs in document at specific locations.
 -}
 
 -- ----------------------------------------------------------------------------
@@ -29,7 +29,7 @@ import qualified Hunt.Common.Positions  as Pos
 
 -- ------------------------------------------------------------
 
--- | The occurrences in a number of documents.
+-- | The occurrences of words in documents.
 --   A mapping from document ids to the positions in the document.
 type Occurrences        = DocIdMap Positions
 

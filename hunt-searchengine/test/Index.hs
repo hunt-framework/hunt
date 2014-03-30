@@ -156,4 +156,4 @@ wrds :: Word -> Words
 wrds w = M.fromList $ [(w, wordList)]
 
 doc :: Document
-doc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")])
+doc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")]) 1.0

@@ -1,6 +1,33 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hunt.Index.Schema.Normalize.Date where
+-- ----------------------------------------------------------------------------
+
+{- |
+  Normalization and validation for date.
+
+  Days are represented here as in ISO 8601:2000 Second Edition:
+      ISO (International Organization for Standardization).
+      Representations of dates and times, second edition, 2000-12-15.
+
+   NOT as in
+   ISO 8601
+      ISO (International Organization for Standardization).
+      Representations of dates and times, 1988-06-15.
+
+   The main difference is dealing with year 0.
+   in the older ISO standard, this is excluded and
+   "-0001" is the representation of year 1 Before Common Era "-1 BCE".
+   In the latter standard "0000" represents "-1 BCE" and "-0001" represents "-2 BCE"
+-}
+-- source hxt-xmlschema/src/Text/XML/HXT/XMLSchema/W3CDataTypeCheck.hs
+
+-- ----------------------------------------------------------------------------
+
+module Hunt.Index.Schema.Normalize.Date
+  ( normalize, denormalize
+  , isAnyDate
+  )
+where
 
 import           Control.Applicative
 import           Control.Monad
@@ -20,7 +47,7 @@ import           Text.Regex.XMLSchema.String
 
 import           Hunt.Utility
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Normalize a date representation to store in the index or search for.
 normalize :: Text -> Text
@@ -43,7 +70,7 @@ denormalize t = T.concat [y1, y2, "-", m, "-", d, " ", h, ":", i, ":", s]
   where
   [y1,y2,m,d,h,i,s] = T.chunksOf 2 t
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Checks if the string is a date representation (syntactically).
 isAnyDate :: String -> Bool
@@ -78,7 +105,7 @@ safeDateReaders = zip validators readers
   readers    :: [String -> Date]
   readers    = [readDateTime, readDate, readGYearMonth, readGYear, readGMonthDay, readGMonth, readGDay]
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- source hxt-xmlschema/src/Text/XML/HXT/XMLSchema/W3CDataTypeCheck.hs
 
@@ -127,7 +154,7 @@ toUTCTime (Date d (Just tz)) = addUTCTime (fromInteger . toInteger $ tz) d
 toUTC :: Date -> Date
 toUTC d = Date (toUTCTime d) Nothing -- to UTC
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 isDateTime, isDate, isTime, isGYearMonth, isGYear, isGMonthDay, isGMonth, isGDay :: String -> Bool
 [isDateTime, isDate, isTime, isGYearMonth, isGYear, isGMonthDay, isGMonth, isGDay]
@@ -186,7 +213,7 @@ rexDates
       alt x1 x2 = "((" ++ x1 ++ ")|(" ++ x2 ++ "))"
 
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 readDate
   , readGYearMonth
@@ -384,7 +411,7 @@ showDec n = reverse . toStr n
       toStr 0 _ = ""
       toStr l i = show (i `mod` 10) ++ toStr (l-1) (i `div` 10)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Creates a regex from a string
 rex :: String -> Regex
@@ -394,4 +421,4 @@ rex regex
   where
   ex = parseRegex regex
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

@@ -15,49 +15,48 @@
   Stability  : experimental
   Portability: none portable
 
-  DocId maps
-
+  Efficient Map implementation for 'DocId's.
 -}
 
 -- ----------------------------------------------------------------------------
 
 module Hunt.Common.DocIdMap
-    ( DocIdMap(..)
-    , DocIdSet
-    , empty
-    , singleton
-    , null
-    , member
-    , lookup
-    , insert
-    , delete
-    , insertWith
-    , size
-    , minKey
-    , maxKey
-    , isIntervall
-    , union
-    , intersection
-    , difference
-    , diffWithSet
-    , unionWith
-    , intersectionWith
-    , differenceWith
-    , unionsWith
-    , map
-    , filter
-    , filterWithKey
-    , mapWithKey
-    , traverseWithKey
-    , foldr
-    , foldrWithKey
-    , fromList
-    , fromAscList
-    , toList
-    , keys
-    , elems
-    , toDocIdSet
-    )
+  ( DocIdMap(..)
+  , DocIdSet
+  , empty
+  , singleton
+  , null
+  , member
+  , lookup
+  , insert
+  , delete
+  , insertWith
+  , size
+  , minKey
+  , maxKey
+  , isIntervall
+  , union
+  , intersection
+  , difference
+  , diffWithSet
+  , unionWith
+  , intersectionWith
+  , differenceWith
+  , unionsWith
+  , map
+  , filter
+  , filterWithKey
+  , mapWithKey
+  , traverseWithKey
+  , foldr
+  , foldrWithKey
+  , fromList
+  , fromAscList
+  , toList
+  , keys
+  , elems
+  , toDocIdSet
+  )
 where
 
 import           Prelude                    hiding (filter, foldr, lookup, map,
@@ -89,13 +88,18 @@ import           Text.Read                  (readMaybe)
 
 -- ------------------------------------------------------------
 
+-- TODO: maybe move DocIdSet to separate module.
+
+-- | A set of 'DocId's.
 type DocIdSet = S.IntSet
 
-toDocIdSet              :: [DocId] -> DocIdSet
-toDocIdSet              = S.fromList
+-- | Create a 'DocIdSet' from a list.
+toDocIdSet :: [DocId] -> DocIdSet
+toDocIdSet = S.fromList
 
 -- ------------------------------------------------------------
 
+-- | An efficient Map implementation for 'DocId's.
 newtype DocIdMap v
   = DIM { unDIM :: IM.IntMap v }
   deriving (Eq, Show, Foldable, {-Traversable,-} Functor, NFData, Typeable)
@@ -107,30 +111,33 @@ instance Binary v => Binary (DocIdMap v) where
   get = get >>= return . DIM
 
 -- ------------------------------------------------------------
+-- JSON instances
+-- ------------------------------------------------------------
 
 instance ToJSON v => ToJSON (DocIdMap v) where
-    toJSON = object . L.map toJ . IM.toList . unDIM
+  toJSON = object . L.map toJ . IM.toList . unDIM
+    where
+    toJ (k, v) = (T.pack . toH $ k) .= toJSON v
+    toH !y = "0x" ++ toX 16 "" y
+      where
+      toX :: Int -> String -> Int -> String
+      toX !0 !acc _ = acc
+      toX !n !acc x = toX (n - 1) (d : acc) x'
         where
-          toJ (k, v) = (T.pack . toH $ k) .= toJSON v
-          toH !y = "0x" ++ toX 16 "" y
-              where
-                toX :: Int -> String -> Int -> String
-                toX !0 !acc _ = acc
-                toX !n !acc x = toX (n - 1) (d : acc) x'
-                    where
-                      (!x', !r) = x `divMod` 16
-                      !d | r < 10    = toEnum (fromEnum '0' + r)
-                         | otherwise = toEnum (fromEnum 'a' + r - 10)
+        (!x', !r) = x `divMod` 16
+        !d | r < 10    = toEnum (fromEnum '0' + r)
+           | otherwise = toEnum (fromEnum 'a' + r - 10)
 
 instance FromJSON v => FromJSON (DocIdMap v) where
-    parseJSON (Object o) = DIM <$> foldM parsePair IM.empty (HM.toList o)
-                           where
-                             parsePair res (k, v)
-                                 = case readMaybe . T.unpack $ k of
-                                     Nothing -> mzero
-                                     Just k' -> do v' <- parseJSON v
-                                                   return $ IM.insert k' v' res
-    parseJSON _          = mzero
+  parseJSON (Object o) = DIM <$> foldM parsePair IM.empty (HM.toList o)
+    where
+    parsePair res (k, v)
+      = case readMaybe . T.unpack $ k of
+          Nothing -> mzero
+          Just k' -> do
+            v' <- parseJSON v
+            return $ IM.insert k' v' res
+  parseJSON _          = mzero
 
 -- ------------------------------------------------------------
 
@@ -142,39 +149,60 @@ liftDIM2                :: (IM.IntMap v -> IM.IntMap w -> IM.IntMap x) ->
                            DocIdMap v -> DocIdMap w -> DocIdMap x
 liftDIM2 f x y          = DIM $ f (unDIM x) (unDIM y)
 
+-- | The empty map.
 empty                   :: DocIdMap v
 empty                   = DIM $ IM.empty
 
+-- | A map with a single element.
 singleton               :: DocId -> v -> DocIdMap v
 singleton d v           = insert d v empty
 
+-- | Is the map empty?
 null                    :: DocIdMap v -> Bool
 null                    = IM.null . unDIM
 
+-- | Is the 'DocId' member of the map?
 member                  :: DocId -> DocIdMap v -> Bool
 member x                = IM.member x . unDIM
 
+-- | Lookup the value at a 'DocId' in the map.
+
+--   The function will return the corresponding value as @('Just' value)@,
+--   or 'Nothing' if the 'DocId' isn't in the map.
 lookup                  :: DocId -> DocIdMap v -> Maybe v
 lookup x                = IM.lookup x . unDIM
 
+-- | Insert a 'DocId' and value in the map.
+--   If the 'DocId' is already present in the map, the associated value is replaced with the supplied
+--   value. 'insert' is equivalent to 'insertWith' 'const'.
 insert                  :: DocId -> v -> DocIdMap v -> DocIdMap v
 insert x y              = liftDIM $ IM.insert x y
 
+-- | Delete a 'DocId' and its value from the map.
+--   When the 'DocId' is not a member of the map, the original map is returned.
 delete                  :: DocId -> DocIdMap v -> DocIdMap v
 delete x                = liftDIM $ IM.delete x
 
+ -- Insert with a function, combining new value and old value.
+ -- @insertWith f docId value mp@ will insert the pair @(docId, value)@ into @mp@ if @docId@ does
+-- not exist in the map. If the 'DocId' does exist, the function will insert the pair
+ -- @(docId, f new_value old_value)@.
 insertWith              :: (v -> v -> v) -> DocId -> v -> DocIdMap v -> DocIdMap v
 insertWith f x y        = liftDIM $ IM.insertWith f x y
 
+-- | The number of elements in the map.
 size                    :: DocIdMap v -> Int
 size                    = IM.size . unDIM
 
+-- | The minimum 'DocId' of the map.
 minKey                  :: DocIdMap v -> DocId
 minKey                  = maybe DId.mkNull (fst . fst) . IM.minViewWithKey . unDIM
 
+-- | The maximum 'DocId' of the map.
 maxKey                  :: DocIdMap v -> DocId
 maxKey                  = maybe DId.mkNull (fst . fst) . IM.maxViewWithKey . unDIM
 
+-- | Are the 'DocId's assigned sequentially such that @'maxKey' m - 'minKey' m == 'size' m@.
 isIntervall             :: DocIdMap v -> Bool
 isIntervall m           = null m
                             ||
@@ -182,63 +210,110 @@ isIntervall m           = null m
                               == size m - 1
                             )
 
+-- | The (left-biased) union of two maps.
+--   It prefers the first map when duplicate 'DocId' are encountered,
+--   i.e. @(union == unionWith const)@.
 union                   :: DocIdMap v -> DocIdMap v -> DocIdMap v
 union                   = liftDIM2 $ IM.union
 
+-- | The (left-biased) intersection of two maps (based on 'DocId's).
 intersection            :: DocIdMap v -> DocIdMap v -> DocIdMap v
 intersection            = liftDIM2 $ IM.intersection
 
+-- | Difference between two maps (based on 'DocId's).
 difference              :: DocIdMap v -> DocIdMap w -> DocIdMap v
 difference              = liftDIM2 $ IM.difference
 
+-- | Difference between the map and a set of 'DocId's.
 diffWithSet             :: DocIdMap v -> DocIdSet -> DocIdMap v
 diffWithSet m s         = m `difference` (DIM $ IM.fromSet (const ()) s)
 
+-- | The union with a combining function.
 unionWith               :: (v -> v -> v) -> DocIdMap v -> DocIdMap v -> DocIdMap v
 unionWith f             = liftDIM2 $ IM.unionWith f
 
+-- | The intersection with a combining function.
 intersectionWith        :: (v -> v -> v) -> DocIdMap v -> DocIdMap v -> DocIdMap v
 intersectionWith f      = liftDIM2 $ IM.intersectionWith f
 
+-- | Difference with a combining function.
 differenceWith          :: (v -> v -> Maybe v) -> DocIdMap v -> DocIdMap v -> DocIdMap v
 differenceWith f        = liftDIM2 $ IM.differenceWith f
 
+-- | The union of a list of maps, with a combining operation.
 unionsWith              :: (v -> v -> v) -> [DocIdMap v] -> DocIdMap v
 unionsWith f            = DIM . IM.unionsWith f . P.map unDIM
 
+-- | Map a function over all values in the map.
 map                     :: (v -> r) -> DocIdMap v -> DocIdMap r
 map f                   = liftDIM $ IM.map f
 
-filter                  :: (v -> Bool) -> DocIdMap v -> DocIdMap v
-filter p                = liftDIM $ IM.filter p
-
-filterWithKey           :: (DocId -> v -> Bool) -> DocIdMap v -> DocIdMap v
-filterWithKey p         = liftDIM $ IM.filterWithKey p
-
+-- | Map a function over all values in the map.
 mapWithKey              :: (DocId -> v -> r) -> DocIdMap v -> DocIdMap r
 mapWithKey f            = liftDIM $ IM.mapWithKey f
 
+-- | Filter all values that satisfy some predicate.
+filter                  :: (v -> Bool) -> DocIdMap v -> DocIdMap v
+filter p                = liftDIM $ IM.filter p
+
+-- | Filter all 'DocId's/values that satisfy some predicate.
+filterWithKey           :: (DocId -> v -> Bool) -> DocIdMap v -> DocIdMap v
+filterWithKey p         = liftDIM $ IM.filterWithKey p
+
+-- @'traverseWithKey' f s == 'fromList' <$> 'traverse' (\(k, v) -> (,) k <$> f k v) ('toList' m)@
+-- That is, behaves exactly like a regular 'traverse' except that the traversing
+-- function also has access to the 'DocId' associated with a value.
+--
+-- > traverseWithKey (\k v -> if odd k then Just (succ v) else Nothing) (fromList [(1, 'a'), (5, 'e')]) == Just (fromList [(1, 'b'), (5, 'f')])
+-- > traverseWithKey (\k v -> if odd k then Just (succ v) else Nothing) (fromList [(2, 'c')])           == Nothing
 traverseWithKey         :: Applicative t => (DocId -> a -> t b) -> DocIdMap a -> t (DocIdMap b)
 traverseWithKey f       = (pure DIM <*>) . IM.traverseWithKey f . unDIM
 
+-- | Fold the values in the map using the given right-associative binary operator, such that
+--   @'foldr' f z == 'Prelude.foldr' f z . 'elems'@.
+--
+-- For example,
+--
+-- > elems map = foldr (:) [] map
+--
+-- > let f a len = len + (length a)
+-- > foldr f 0 (fromList [(5,"a"), (3,"bbb")]) == 4
 foldr                   :: (v -> b -> b) -> b -> DocIdMap v -> b
 foldr f u               = IM.foldr f u . unDIM
 
+-- | Fold the 'DocId's and values in the map using the given right-associative
+-- binary operator, such that
+-- @'foldrWithKey' f z == 'Prelude.foldr' ('uncurry' f) z . 'toAscList'@.
+--
+-- For example,
+--
+-- > keys map = foldrWithKey (\k x ks -> k:ks) [] map
+--
+-- > let f k a result = result ++ "(" ++ (show k) ++ ":" ++ a ++ ")"
+-- > foldrWithKey f "Map: " (fromList [(5,"a"), (3,"b")]) == "Map: (5:a)(3:b)"
 foldrWithKey            :: (DocId -> v -> b -> b) -> b -> DocIdMap v -> b
 foldrWithKey f u        = IM.foldrWithKey f u . unDIM
 
+-- | Create a map from a list of 'DocId'\/value pairs.
 fromList                :: [(DocId, v)] -> DocIdMap v
 fromList                = DIM . IM.fromList
 
+-- | Build a map from a list of 'DocId'\/value pairs where the 'DocId's are in ascending order.
 fromAscList             :: [(DocId, v)] -> DocIdMap v
 fromAscList             = DIM . IM.fromAscList
 
+-- | Convert the map to a list of 'DocId'\/value pairs.
+--   Subject to list fusion.
 toList                  :: DocIdMap v -> [(DocId, v)]
 toList                  = IM.toList . unDIM
 
+-- | Return all 'DocId's of the map in ascending order.
+--   Subject to list fusion.
 keys                    :: DocIdMap v -> [DocId]
 keys                    = IM.keys . unDIM
 
+-- | Return all elements of the map in the ascending order of their 'DocId's.
+--   Subject to list fusion.
 elems                   :: DocIdMap v -> [v]
 elems                   = IM.elems . unDIM
 

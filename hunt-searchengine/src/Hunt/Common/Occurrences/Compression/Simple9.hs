@@ -4,7 +4,7 @@
 
 -- ----------------------------------------------------------------------------
 {-
-  Occurrences compression on the Simple-9 encoding scheme.
+  'Occurrences' compression on the Simple-9 encoding scheme.
 -}
 -- ----------------------------------------------------------------------------
 
@@ -38,21 +38,21 @@ import           Hunt.Common.Occurrences             hiding (delete)
 import           Hunt.Common.Occurrences.Compression
 import           Hunt.Common.Positions               (Positions)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Compressed occurrences using a difference list implementation.
 type CompressedOccurrences      = DocIdMap CompressedPositions
 -- | Compressed positions using a difference list implementation.
 type CompressedPositions        = DiffList
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance OccCompression CompressedOccurrences where
     compressOcc          = deflateOcc
     decompressOcc        = inflateOcc
     differenceWithKeySet = differenceWithKeySet'
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Decompressing the occurrences by just decompressing all contained positions.
 inflateOcc :: CompressedOccurrences -> Occurrences
@@ -82,4 +82,4 @@ inflatePos = toPositions
 deflatePos :: Positions -> CompressedPositions
 deflatePos = fromPositions
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

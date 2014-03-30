@@ -1,39 +1,45 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- ----------------------------------------------------------------------------
+
+{- |
+  Document format for the interpreter and JSON API.
+  It includes the document description, the index data and additional metadata.
+-}
+
+-- ----------------------------------------------------------------------------
+
 module Hunt.Common.ApiDocument where
 
 import           Control.Applicative
-import           Control.Monad              (mzero)
 import           Control.DeepSeq
+import           Control.Monad          (mzero)
 
-import           Data.Binary                (Binary (..))
-import           Data.Text.Binary           ()
 import           Data.Aeson
-import           Data.Map.Strict            (Map ())
-import qualified Data.Map.Strict            as M
-import           Data.Text                  (Text)
-import qualified Data.Text                  as T
+import           Data.Binary            (Binary (..))
+import           Data.Map.Strict        (Map ())
+import qualified Data.Map.Strict        as M
+import           Data.Text              (Text)
+import qualified Data.Text              as T
+import           Data.Text.Binary       ()
 
 import           Hunt.Common.BasicTypes
 
 import           Hunt.Utility.Log
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
--- | Multiple ApiDocuments.
-type ApiDocuments = [ApiDocument]
-
--- | The document accepted via the API.
+-- | The document accepted by the interpreter and JSON API.
 data ApiDocument  = ApiDocument
-  { adUri   :: URI
-  , adIndex :: Map Context Content
-  , adDescr :: Description
+  { adUri   :: URI                 -- ^ The unique identifier.
+  , adIndex :: Map Context Content -- ^ The data to index according to schema associated with the context.
+  , adDescr :: Description         -- ^ The document description (a simple key-value map).
+  , adWght  :: Maybe Float         -- ^ An optional document boost (internal default is @1.0@).
   }
   deriving (Show)
 
-
-instance NFData ApiDocument where
-  --default
+-- | Multiple 'ApiDocument's.
+type ApiDocuments = [ApiDocument]
 
 -- | Text analysis function
 type AnalyzerFunction = Text -> [(Position, Text)]
@@ -43,17 +49,19 @@ data AnalyzerType
   = DefaultAnalyzer
   deriving (Show)
 
--- | paged api document result
+-- | Paginated result with an offset and chunk size.
 data LimitedResult x = LimitedResult
-  { lrResult :: [x]
-  , lrOffset :: Int
-  , lrMax    :: Int
-  , lrCount  :: Int
+  { lrResult :: [x] -- ^ The list with at most 'lrMax' elements.
+  , lrOffset :: Int -- ^ The offset of the result.
+  , lrMax    :: Int -- ^ The limit for the result.
+  , lrCount  :: Int -- ^ The size of the complete result.
   }
   deriving (Show, Eq)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
+-- | Create a paginated result with an offset and a chunk size.
+--   The result also includes the size of the complete result.
 mkLimitedResult :: Int -> Int -> [x] -> LimitedResult x
 mkLimitedResult offset mx xs = LimitedResult
   { lrResult = take mx . drop offset $ xs
@@ -62,28 +70,37 @@ mkLimitedResult offset mx xs = LimitedResult
   , lrCount  = length xs
   }
 
--- | empty document
+-- | Empty index content.
 emptyApiDocIndexMap :: Map Context Content
 emptyApiDocIndexMap = M.empty
 
+-- | Empty 'Document' description.
 emptyApiDocDescr :: Description
 emptyApiDocDescr = M.empty
 
+-- | Empty 'ApiDocument'.
 emptyApiDoc :: ApiDocument
-emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescr
+emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescr Nothing
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+
+instance NFData ApiDocument where
+  --default
+
+-- ------------------------------------------------------------
 
 instance Binary ApiDocument where
-  put (ApiDocument a b c) = put a >> put b >> put c
-  get = ApiDocument <$> get <*> get <*> get
+  put (ApiDocument a b c d) = put a >> put b >> put c >> put d
+  get = ApiDocument <$> get <*> get <*> get <*> get
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance LogShow ApiDocument where
   logShow o = "ApiDocument {adUri = \"" ++ (T.unpack . adUri $ o) ++ "\", ..}"
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+-- JSON instances
+-- ------------------------------------------------------------
 
 instance (ToJSON x) => ToJSON (LimitedResult x) where
    toJSON (LimitedResult res offset mx cnt) = object
@@ -95,24 +112,37 @@ instance (ToJSON x) => ToJSON (LimitedResult x) where
 
 instance (FromJSON x) => FromJSON (LimitedResult x) where
   parseJSON (Object v) = do
-    res <- v .: "result"
+    res    <- v .: "result"
     offset <- v .: "offset"
-    mx <- v .: "max"
-    cnt <- v .: "count"
+    mx     <- v .: "max"
+    cnt    <- v .: "count"
     return $ LimitedResult res offset mx cnt
   parseJSON _ = mzero
 
 instance FromJSON ApiDocument where
   parseJSON (Object o) = do
-    parsedUri         <- o    .: "uri"
-    indexMap          <- o    .:? "index"       .!= emptyApiDocIndexMap
-    descrMap          <- o    .:? "description" .!= emptyApiDocDescr
+    parsedUri <- o    .: "uri"
+    indexMap  <- o    .:? "index"       .!= emptyApiDocIndexMap
+    descrMap  <- o    .:? "description" .!= emptyApiDocDescr
+    weight    <- o    .:? "weight"
     return ApiDocument
-      { adUri       = parsedUri
+      { adUri    = parsedUri
       , adIndex  = indexMap
       , adDescr  = descrMap
+      , adWght   = weight
       }
   parseJSON _ = mzero
+
+instance ToJSON ApiDocument where
+  toJSON (ApiDocument u im dm wt) = object $
+    (maybe [] (\ w -> ["weight" .= w]) wt)
+    ++
+    (if M.null dm then [] else ["index"       .= im])
+    ++
+    (if M.null dm then [] else ["description" .= dm])
+    ++
+    [ "uri"         .= u
+    ]
 
 instance FromJSON AnalyzerType where
   parseJSON (String s) =
@@ -121,13 +151,8 @@ instance FromJSON AnalyzerType where
       _         -> mzero
   parseJSON _ = mzero
 
-instance ToJSON ApiDocument where
-  toJSON (ApiDocument u im dm) = object
-    [ "uri"         .= u
-    , "index"       .= im
-    , "description" .= dm
-    ]
-
 instance ToJSON AnalyzerType where
   toJSON (DefaultAnalyzer) =
     "default"
+
+-- ------------------------------------------------------------

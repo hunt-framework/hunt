@@ -10,6 +10,7 @@ module Hunt.ContextIndex where
 import           Prelude
 import qualified Prelude                     as P
 
+import           Control.Applicative         (Applicative)
 import           Control.Arrow
 import           Control.Monad
 import qualified Control.Monad.Parallel      as Par
@@ -59,7 +60,7 @@ mkContextMap x = ContextMap $! x
 -- ----------------------------------------------------------------------------
 
 getContextMap :: [IndexImpl Occurrences] -> Get (ContextMap Occurrences)
-getContextMap ts = liftM M.fromDistinctAscList (Impl.get' ts) >>= return . ContextMap
+getContextMap ts = liftM M.fromDistinctAscList (Impl.gets' ts) >>= return . ContextMap
 
 instance Binary v => Binary (ContextMap v) where
   put = put . cxMap
@@ -81,13 +82,13 @@ instance Binary dt => Binary (ContextIndex dt) where
 
 -- | Insert a Document and Words.
 --   /NOTE/: For multiple inserts, use the more efficient 'insertList'.
-insert :: (Par.MonadParallel m, DocTable dt)
+insert :: (Par.MonadParallel m, Applicative m, DocTable dt)
        => Dt.DValue dt -> Words -> ContextIndex dt -> m (ContextIndex dt)
 insert doc wrds ix = insertList [(doc,wrds)] ix
 
 -- | Insert multiple Documents and Words.
 --   This is more efficient than using fold and 'insert'.
-insertList :: (Par.MonadParallel m, DocTable dt)
+insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
        => [(Dt.DValue dt, Words)] -> ContextIndex dt -> m (ContextIndex dt)
 insertList docAndWrds (ContextIndex ix docTable s) = do
   -- insert to doctable and generate docId
@@ -116,7 +117,7 @@ insertList docAndWrds (ContextIndex ix docTable s) = do
 
 
 -- | Modify elements
-modify :: (Par.MonadParallel m, DocTable dt)
+modify :: (Par.MonadParallel m, Applicative m, DocTable dt)
        => (Dt.DValue dt -> m (Dt.DValue dt))
        -> Words -> DocId -> ContextIndex dt -> m (ContextIndex dt)
 modify f wrds dId (ContextIndex ii dt s) = do
@@ -126,7 +127,7 @@ modify f wrds dId (ContextIndex ii dt s) = do
 
 
 -- | Delete a set of documents by 'URI'.
-deleteDocsByURI :: (Par.MonadParallel m, DocTable dt)
+deleteDocsByURI :: (Par.MonadParallel m, Applicative m, DocTable dt)
                 => Set URI -> ContextIndex dt -> m (ContextIndex dt)
 deleteDocsByURI us ixx@(ContextIndex _ix dt _) = do
   docIds <- liftM (toDocIdSet . catMaybes) . mapM (flip Dt.lookupByURI dt) . S.toList $ us
@@ -134,7 +135,7 @@ deleteDocsByURI us ixx@(ContextIndex _ix dt _) = do
 
 
 -- | Delete a set of documents by 'DocId'.
-delete :: (Par.MonadParallel m, DocTable dt)
+delete :: (Par.MonadParallel m, Applicative m, DocTable dt)
        => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
 delete dIds cix@(ContextIndex ix dt s)
     | IS.null dIds
@@ -157,7 +158,7 @@ hasContext c (ContextIndex ix _dt _s) = return $ hasContext' c ix
 
 
 -- | Is the document part of the index?
-member :: (Monad m, DocTable dt)
+member :: (Monad m, Applicative m, DocTable dt)
        => URI -> ContextIndex dt -> m Bool
 member u (ContextIndex _ii dt _s) = do
   mem <- Dt.lookupByURI u dt
@@ -166,15 +167,16 @@ member u (ContextIndex _ii dt _s) = do
 
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
-modifyWithDescription :: (Par.MonadParallel m, DocTable dt)
-                      => Description -> Words -> DocId -> ContextIndex dt -> m (ContextIndex dt)
-modifyWithDescription descr wrds dId (ContextIndex ii dt s) = do
+modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt)
+                      => Maybe Float -> Description -> Words -> DocId -> ContextIndex dt -> m (ContextIndex dt)
+modifyWithDescription weight descr wrds dId (ContextIndex ii dt s) = do
   newDocTable <- Dt.adjust mergeDescr dId dt
   newIndex    <- addWordsM wrds dId ii
   return $ ContextIndex newIndex newDocTable s
   where
   -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
-  mergeDescr = return . Doc.update (\d' -> d'{ desc = flip M.union (desc d') descr })
+  mergeDescr = return . Doc.update (\d -> d{ desc = flip M.union (desc d) descr
+                                           , wght = fromMaybe (wght d) weight })
 
 -- ----------------------------------------------------------------------------
 -- helper

@@ -4,6 +4,14 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE FlexibleInstances          #-}
 
+-- ----------------------------------------------------------------------------
+
+{- |
+  Index compression proxy.
+-}
+
+-- ----------------------------------------------------------------------------
+
 module Hunt.Index.Proxy.CompressedIndex
 ( ComprOccIndex (..)
 , mkComprIx
@@ -23,22 +31,24 @@ import           Hunt.Common.Occurrences.Compression
 import           Hunt.Index
 import qualified Hunt.Index                          as Ix
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
+-- | The index compression proxy.
 newtype ComprOccIndex impl to from
   = ComprIx { comprIx :: impl to }
   deriving (Eq, Show, NFData)
 
+-- | Wrap an index with the compression proxy.
 mkComprIx :: impl to -> ComprOccIndex impl to from
 mkComprIx v = ComprIx $! v
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary (impl v) => Binary (ComprOccIndex impl v from) where
   put = put . comprIx
   get = get >>= return . mkComprIx
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Index (ComprOccIndex impl to) where
   type IKey      (ComprOccIndex impl to) from = IKey impl to
@@ -85,4 +95,4 @@ instance Index (ComprOccIndex impl to) where
   keys (ComprIx i)
       = keys i
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

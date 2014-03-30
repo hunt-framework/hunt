@@ -21,46 +21,53 @@ import           Hunt.Utility.Log
 
 -- ----------------------------------------------------------------------------
 
--- | The (low level) commands that actually get interpreted.
+-- | The \"low-level\" commands that actually get interpreted.
 data BasicCommand
-  -- | Search
+  -- | Search query with pagination.
   = Search        { icQuery    :: Query
                   , icOffsetSR :: Int
                   , icMaxSR    :: Int
                   }
+  -- | Auto-completion query with a limit.
   | Completion    { icPrefixCR :: Query
                   , icMaxCR    :: Int
                   }
 
-  -- | Index manipulation
+  -- | Insert documents.
   | InsertList    { icDocs :: [ApiDocument] }
+  -- | Update the document description.
   | Update        { icDoc :: ApiDocument }
+  -- | Delete documents by 'URI'.
   | DeleteDocs   { icUris :: Set URI }
+  -- | Delete all documents of the query result.
   | DeleteByQuery { icQueryD :: Query }
 
-  -- | context manipulation
+  -- | Insert a context and the associated schema.
   | InsertContext { icICon   :: Context
                   , icSchema :: ContextSchema
                   }
+  -- | Delete a context.
   | DeleteContext { icDCon :: Context }
 
-  -- | persistent commands
+  -- | Deserialize the index.
   | LoadIx        { icPath :: FilePath }
+  -- | Serialize the index.
   | StoreIx       { icPath :: FilePath }
 
-  -- | status
+  -- | Query general information about the server/index.
   | Status        { icStatus :: StatusCmd }
 
-  -- | general
+  -- | Sequence commands.
   | Sequence      { icCmdSeq :: [BasicCommand] }
+  -- | No operation. Can be used in control flow and as an alive test.
   | NOOP
   deriving (Show)
 
-
+-- | Available status commands.
 data StatusCmd
-  = StatusGC
-  | StatusDocTable
-  | StatusIndex
+  = StatusGC       -- ^ Garbage collection statistics.
+  | StatusDocTable -- ^ Document table JSON dump.
+  | StatusIndex    -- ^ Index JSON dump.
     deriving (Show)
 
 -- ----------------------------------------------------------------------------

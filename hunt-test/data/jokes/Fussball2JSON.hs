@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module FussballToJSON where
+module Main where
 
 import           Control.Monad               (mzero)
 

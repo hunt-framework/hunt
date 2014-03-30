@@ -15,8 +15,15 @@
   A more space efficient substitute for Hunt.Index.Documents
   and a more flexible implementation than Hunt.Index.CompactDocuments.
 
-  DocIds are computed by a hash function, so the inverse map from URIs to DocIds
-  is substituted by the hash function
+  DocIds are computed by a hash function, so the inverse map from 'URI's to 'DocId's
+  is substituted by the hash function.
+
+  MurmurHash2 64-bit is used as the hash function.
+  https://sites.google.com/site/murmurhash/
+
+  It is a fast non-cryptographic hash function with good performance and
+  hash distribution properties.
+  http://programmers.stackexchange.com/a/145633
 -}
 
 -- ----------------------------------------------------------------------------
@@ -47,7 +54,7 @@ import           Hunt.DocTable
 
 import           Hunt.Utility
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | The table which is used to map a document to an artificial id and vice versa.
 type DocMap e
@@ -59,13 +66,13 @@ newtype Documents e
                                           --   the document itself.
   deriving (Eq, Show)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance (DocumentWrapper e, Binary e) => Binary (Documents e) where
   put = put . idToDoc
   get = get >>= return . Documents
 
---- ----------------------------------------------------------------------------
+--- ------------------------------------------------------------
 
 -- | An empty document table.
 empty' :: (DocTable (Documents e), DocumentWrapper e) => Documents e
@@ -80,7 +87,7 @@ fromMap :: (DocTable (Documents e), DocumentWrapper e) =>
           (Document -> e) -> DocIdMap Document -> Documents e
 fromMap = fromMap'
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance (DocumentWrapper e) =>
          DocTable (Documents e) where
@@ -133,7 +140,7 @@ instance (DocumentWrapper e) =>
   -- | Empty 'DocTable'.
   empty       = empty'
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 null'       :: (DocumentWrapper e) => Documents e -> Bool
 null'

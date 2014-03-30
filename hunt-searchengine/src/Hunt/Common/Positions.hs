@@ -1,6 +1,14 @@
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
+-- ----------------------------------------------------------------------------
+
+{- |
+  Positions within document.
+-}
+
+-- ----------------------------------------------------------------------------
+
 module Hunt.Common.Positions where
 
 import           Control.Applicative    ((<$>))
@@ -13,15 +21,19 @@ import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | The positions of the word in the document.
 newtype Positions    = PS {unPS :: IS.IntSet}
                        deriving (Eq, Ord, Read, Show, Typeable, NFData)
 
+-- ------------------------------------------------------------
+
 instance B.Binary Positions where
     put = B.put . toAscList
     get = fromList <$> B.get
+
+-- ------------------------------------------------------------
 
 -- | Empty positions.
 empty                :: Positions
@@ -64,4 +76,4 @@ difference s1 s2     = PS $ (unPS s1) `IS.difference` (unPS s2)
 foldr                :: (Position -> r -> r) -> r -> Positions -> r
 foldr op e           = IS.foldr op e . unPS
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

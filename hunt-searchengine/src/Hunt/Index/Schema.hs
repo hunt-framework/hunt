@@ -2,12 +2,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  Schema for the 'ContextIndex'.
+
+  Every context has a type (e.g. text, int, date, position) and additional schema information.
+  This includes how keys are splitted and normalized when inserted and searched for.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.Index.Schema where
 
 import           Control.Monad                        (mzero, liftM5)
 
 import           Data.Aeson
-import           Data.Aeson.Types
 import           Data.Binary                          hiding (Word)
 import           Data.Map                             hiding (null)
 import           Data.Text                            hiding (null)
@@ -25,42 +33,30 @@ import           Hunt.Index.InvertedIndex
 import qualified Hunt.Index.Schema.Normalize.Position as Pos
 import qualified Hunt.Index.Schema.Normalize.Int      as Int
 import qualified Hunt.Index.Schema.Normalize.Date     as Date
+import           Hunt.Utility
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
--- | Schema
+-- | The global schema assigning schema information to each context.
 type Schema
   = Map Context ContextSchema
 
--- | The type can be any of the supported basic index types.
---   The regexp validates and splits the text into words:
---     []  -> invalid
---     xs  -> words/tokens
---   Every type can have a type-specific regexp.
---     => This means is has to match both the type-specific and the context-specific regexp.
---        Example: A CDate text has to match the type-specific regexp (XMLSchema-Date)
---                 (requirement for the corresponding Date-Parser which is used to normalize)
---   Every type can have a type-specific normalizer.
---     => This means it is first transformed by the type-specific normalizer and then by the
---        context-specific normalizers
+-- | The context schema information. Every context schema has a type and additional to adjust the
+--   behavior.
 --
---   /TL;DR/
---   Every input for both search and insert has
---     - two regexps    for validation and tokenization
---     - two normalizer for transformation
---   The first  regexp/normalizer is type-specific and is applied first (forced)
---   The second regexp/normalizer is context-specific (defined/chosen by user)
+--   The regular expression splits the text into words which are then transformed by the given
+--   normalizations functions (e.g. to lower case).
 data ContextSchema = ContextSchema
   {
-  -- optional regex to overwrite default given by context type
+    -- | Optional regex to override the default given by context type.
     cxRegEx      :: Maybe CRegex
-  -- normalizers to apply
+    -- | Normalizers to apply on keys.
   , cxNormalizer :: [CNormalizer]
-  -- context weight
+    -- | Context weight to boost results.
   , cxWeight     :: CWeight
-  -- should this context used in non-context queries?
+    -- | If the context is searched in queries without context-specifier.
   , cxDefault    :: Bool
-  -- contexttype
+    -- | The type of the index (e.g. text, int, date, geo-position).
   , cxType       :: ContextType
   }
   deriving Show
@@ -71,34 +67,38 @@ type CWeight = Float
 -- | Regular expression.
 type CRegex  = Text
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Default ContextSchema where
   def = ContextSchema Nothing [] 1.0 True def
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
+-- | Set of context types.
 type ContextTypes = [ContextType]
 
+-- | A general context type like text or int.
 data ContextType = CType
-  -- name of the context type
-  { ctName     :: Text
-  -- default regex used when no user defined regex is given in ContextSchema
+  {
+    -- | Name used in the (JSON) API.
+    ctName     :: Text
+    -- | Default regex to split words.
   , ctRegEx    :: CRegex
-  -- validator function which checks values
+    -- | Validation function for keys.
   , ctValidate :: CValidator
-  -- index implementation used for this context type
+    -- | The index implementation used for this type.
   , ctIxImpl   :: IndexImpl Occurrences
   }
   deriving Show
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Default ContextType where
   def = ctText
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
+-- | Text context type.
 ctText :: ContextType
 ctText = CType
   { ctName     = "text"
@@ -107,6 +107,7 @@ ctText = CType
   , ctIxImpl   = def
   }
 
+-- | Int context type.
 ctInt :: ContextType
 ctInt = CType
   { ctName     = "int"
@@ -115,6 +116,7 @@ ctInt = CType
   , ctIxImpl   = intInv
   }
 
+-- | Date context type.
 ctDate :: ContextType
 ctDate = CType
   { ctName     = "date"
@@ -123,6 +125,7 @@ ctDate = CType
   , ctIxImpl   = dateInv
   }
 
+-- | Geographic position context type.
 ctPosition :: ContextType
 ctPosition = CType
   { ctName     = "position"
@@ -131,52 +134,57 @@ ctPosition = CType
   , ctIxImpl   = positionInv
   }
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- IndexImpls
+-- ------------------------------------------------------------
 
 instance Default (IndexImpl Occurrences) where
   def = defaultInv
 
+-- ------------------------------------------------------------
 
+-- | Default (text) index implementation.
 defaultInv :: IndexImpl Occurrences
 defaultInv = mkIndex (Ix.empty :: InvertedIndex Occurrences)
 
+-- | Int index implementation.
 intInv :: IndexImpl Occurrences
 intInv = mkIndex (Ix.empty :: InvertedIndexInt Occurrences)
 
+-- | Date index implementation.
 dateInv :: IndexImpl Occurrences
 dateInv = mkIndex (Ix.empty :: InvertedIndexDate Occurrences)
 
+-- | Geographic position index implementation.
 positionInv :: IndexImpl Occurrences
 positionInv = mkIndex (Ix.empty :: InvertedIndexPosition Occurrences)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Validator
+-- ------------------------------------------------------------
 
+-- | Validation function for single words.
 data CValidator = CValidator { validate :: Word -> Bool }
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Default CValidator where
   def = CValidator $ const True
 
--- | XXX maybe add name to validator type as well
+-- XXX: maybe add name to validator type as well
 instance Show CValidator where
   show _ = "CValidator"
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Normalizer
+-- ------------------------------------------------------------
 
 data CNormalizer = CNormalizer
   { cnName       :: Text
   , cnNormalizer :: Text -> Text
   }
 
--- ----------------------------------------------------------------------------
-
--- | Enum for text-normalizers than can be chose by the user.
---data CNormalizer = NormUpperCase | NormLowerCase | NormDate | NormPosition | NormIntZeroFill
---  deriving (Show, Eq)
+-- ------------------------------------------------------------
 
 instance Show CNormalizer where
   show = unpack . cnName
@@ -184,20 +192,23 @@ instance Show CNormalizer where
 instance Default CNormalizer where
   def = CNormalizer "" id
 
+-- | Uppercase normalizer.
 cnUpperCase :: CNormalizer
 cnUpperCase = CNormalizer "UpperCase" T.toUpper
 
+-- | Lowercase normalizer.
 cnLowerCase :: CNormalizer
 cnLowerCase = CNormalizer "LowerCase" T.toLower
 
+-- | Int normalizer to preserve int ordering on strings.
 cnZeroFill :: CNormalizer
 cnZeroFill = CNormalizer "ZeroFill" Int.normalizeToText
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- JSON instances
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
--- | Note: This is only partional (de-)serialization.
+-- | /Note/: This is only partional (de-)serialization.
 --   The other components are environment depending
 --   and cannot be (de-)serialized. We serialize the name
 --   and identify the other compontens of the type
@@ -237,9 +248,9 @@ instance ToJSON ContextSchema where
     , "default"       .=? d .\. id
     ]
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Binary instances
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance Binary ContextSchema where
   get = liftM5 ContextSchema get get get get get
@@ -252,14 +263,3 @@ instance Binary ContextType where
 instance Binary CNormalizer where
   put (CNormalizer n _) = put n
   get = get >>= \n -> return $ def { cnName = n }
-
--- ----------------------------------------------------------------------------
--- Aeson helper
--- ----------------------------------------------------------------------------
-
-(.=?) :: ToJSON a => Text -> (a, a -> Bool) -> [Pair]
-name .=? (value, cond) = if cond value then [] else [ name .= value ]
-
-(.\.) :: ToJSON a => a -> (a -> Bool) -> (a, a -> Bool)
-v .\. c = (v,c)
-infixl 8 .=?
