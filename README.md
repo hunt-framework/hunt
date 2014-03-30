@@ -1,7 +1,7 @@
 Hunt
 ====
 
-A flexible lightweight search platfrom written in Haskell.
+A flexible lightweight search platform written in Haskell.
 
 Install
 ====
