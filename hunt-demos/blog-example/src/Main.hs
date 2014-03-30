@@ -62,15 +62,15 @@ main = do
   -- inserting a single document
   let cmd3 =  Insert ApiDocument {
                 -- the documents unique identifier
-                apiDocUri      = "id://6",
+                adUri          = "id://6",
                 -- the values that should be indexed
-                apiDocIndexMap = fromList [ ("publish_date", "2014-02-15")
+                adIndex        = fromList [ ("publish_date", "2014-02-15")
                                           , ("subject"     , "Another blog post")
                                           , ("content"     , "This is a short post ...")
                                           ],
                 -- the values that should be stored for this document
                 -- in the document table
-                apiDocDescrMap = fromList [ ("date"   , "2014-02-15")
+                adDescr        = fromList [ ("date"   , "2014-02-15")
                                           , ("subject", "Another blog post")
                                           , ("content", "This is a short post ...")
                                           ]
@@ -104,7 +104,7 @@ main = do
   continue
 
 
-  -- another example: searching for documents publised in january 2014
+  -- another example: searching for documents published in january 2014
   let query2 = Search (QContext ["publish_date"] $ QRange "2014-01-01" "2014-01-31" ) 0 10
   putStrLn "4) Example query: simple search case in-sensitive for the word 'sinis'"
   putStrLn "JSON-Query:"
