@@ -13,13 +13,13 @@ clean:
 	cabal clean
 
 delete: clean
-	cabal sandbox delete
+	- cabal sandbox delete
 
 cleanData:
 	- rm -f $(GENOUT)
 
 $(GENOUT): install
-	./.cabal-sandbox/bin/$(OUT) 
+	./.cabal-sandbox/bin/$(OUT)
 
 generate: $(GENOUT)
 

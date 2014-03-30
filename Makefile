@@ -70,17 +70,17 @@ all:		install
 first-install: delete sandbox install
 
 clean:
-	$(MAKE) -e -C hunt-test/data/random clean
-	$(MAKE) -e -C hunt-test/data/jokes clean
-	$(MAKE) target action=clean PROFOPTS=''
+	- $(MAKE) -e -C hunt-test/data/random clean
+	- $(MAKE) -e -C hunt-test/data/jokes clean
+	- $(MAKE) target action=clean PROFOPTS=''
 
 cleanData:
-	$(MAKE) -e -C hunt-test/data/random cleanData
-	$(MAKE) -e -C hunt-test/data/jokes cleanData
+	- $(MAKE) -e -C hunt-test/data/random cleanData
+	- $(MAKE) -e -C hunt-test/data/jokes cleanData
 
 delete: clean
-	$(MAKE) -e -C hunt-test/data/random delete
-	$(MAKE) -e -C hunt-test/data/jokes delete
+	- $(MAKE) -e -C hunt-test/data/random delete
+	- $(MAKE) -e -C hunt-test/data/jokes delete
 	- rm -rf .cabal-sandbox/
 
 configure: 	; $(MAKE) -e target action=configure
@@ -112,7 +112,7 @@ startServer: stopServer
 	$(EXE) $(RUNOPTS) &
 
 stopServer:
-	-killall $(notdir $(EXE)) \
+	- killall $(notdir $(EXE)) \
 		&& sleep 1 # wait for shutdown and socket release
 
 jokes: hunt-test/data/jokes/FussballerSprueche.js

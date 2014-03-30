@@ -1,13 +1,13 @@
-hunt
+Hunt
 ====
 
-Hunt - a flexible lightweight searchengine framework
+A flexible lightweight search platfrom written in Haskell.
 
 Install
 ====
 
  ```bash
-git clone https://github.com/hunt-framework/hunt/
-git clone https://github.com/hunt-framework/hayoo/
-cd ./hunt
-make sandbox force-install
+git clone https://github.com/hunt-framework/hunt.git
+cd hunt
+make sandbox install
+```
