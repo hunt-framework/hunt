@@ -35,7 +35,7 @@ compress :: BL.ByteString -> BL.ByteString
 compress = compressSmart
 -- compress = compressSmartWithTrace
 
--- | Compress a data stream.
+-- | Decompress a data stream.
 decompress :: BL.ByteString -> BL.ByteString
 -- decompress = decompress'
 decompress = decompressSmart

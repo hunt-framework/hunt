@@ -6,6 +6,13 @@
 {-# LANGUAGE UndecidableInstances      #-}
 {-# LANGUAGE MultiParamTypeClasses     #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  The index interface.
+-}
+-- ----------------------------------------------------------------------------
+
+
 module Hunt.Index
 where
 
@@ -19,7 +26,7 @@ import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
 import           Hunt.Common.DocIdMap   (DocIdSet)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | The index type class which needs to be implemented to be used by the 'Interpreter'.
 --   The type parameter @i@ is the implementation.
@@ -97,14 +104,19 @@ class Index i where
   keys          :: ICon i v
                 => i v -> [IKey i v]
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
+-- | Monadic version of 'Index'.
+--   'Index' instances are automatically instance of this type class.
 class Monad m => IndexM m i where
+  -- | The key type of the index.
   type IKeyM     i v :: *
 
+  -- | The value type of the index.
   type IValM     i v :: *
   type IValM     i v = v
 
+  -- | Contraints of the index. Constraints can be on the implementation and its value type.
   type IConM     i v :: Constraint
   type IConM     i v =  NFData v
 
@@ -162,7 +174,7 @@ class Monad m => IndexM m i where
   keysM        :: IConM i v
                => i v -> m [IKeyM i v]
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance (Index i, Monad m) => IndexM m i where
   type IKeyM i v             = IKey i v
@@ -184,4 +196,4 @@ instance (Index i, Monad m) => IndexM m i where
   mapMaybeM f i              = return $! mapMaybe f i
   keysM i                    = return $! keys i
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

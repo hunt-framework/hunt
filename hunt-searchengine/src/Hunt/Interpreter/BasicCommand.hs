@@ -1,9 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  Basic \"low-level\" commands that are directly interpreted.
+
+  "Hunt.Interpreter.Command" defines the \"high-level\" commands accepted by the (JSON) API.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.Interpreter.BasicCommand
-    ( BasicCommand (..)
-    , StatusCmd (..)
-    )
+  ( BasicCommand (..)
+  , StatusCmd (..)
+  )
 where
 
 import           Control.Monad               (mzero)
@@ -19,9 +27,9 @@ import           Hunt.Query.Language.Grammar (Query (..))
 
 import           Hunt.Utility.Log
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
--- | The \"low-level\" commands that actually get interpreted.
+-- | The \"low-level\" commands that are actually interpreted.
 data BasicCommand
   -- | Search query with pagination.
   = Search        { icQuery    :: Query
@@ -70,7 +78,7 @@ data StatusCmd
   | StatusIndex    -- ^ Index JSON dump.
     deriving (Show)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- XXX: maybe duplicate StatusCmd to keep this module clean
 
 instance ToJSON StatusCmd where
@@ -84,7 +92,7 @@ instance FromJSON StatusCmd where
   parseJSON (JS.String "index"   ) = return StatusIndex
   parseJSON _                   = mzero
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance LogShow BasicCommand where
   logShow (InsertList docs) = "InsertList " ++ show (map adUri docs)
@@ -92,4 +100,4 @@ instance LogShow BasicCommand where
   logShow (Sequence _) = "Sequence"
   logShow o = show o
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

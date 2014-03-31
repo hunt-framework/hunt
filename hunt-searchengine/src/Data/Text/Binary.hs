@@ -14,6 +14,8 @@ import           Data.Binary        (Binary (..))
 import           Data.Text
 import           Data.Text.Encoding
 
+-- ------------------------------------------------------------
+
 instance Binary Text where
   put = put . encodeUtf8
   get = liftM decodeUtf8 get

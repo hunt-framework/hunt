@@ -11,12 +11,35 @@
 -}
 -- ----------------------------------------------------------------------------
 
-module Hunt.Index.Schema where
+module Hunt.Index.Schema
+  (
+    -- * Types
+    Schema
+  , ContextSchema (..)
+  , ContextType (..)
+  , ContextTypes
+  , CValidator (..)
+  , CNormalizer (..)
+  , normalize'
+
+    -- * Default Context Types
+  , ctText
+  , ctInt
+  , ctDate
+  , ctPosition
+
+  -- * Default Normalizers
+  , cnUpperCase
+  , cnLowerCase
+  , cnZeroFill
+  )
+where
 
 import           Control.Monad                        (mzero, liftM5)
 
 import           Data.Aeson
 import           Data.Binary                          hiding (Word)
+import qualified Data.List                            as L
 import           Data.Map                             hiding (null)
 import           Data.Text                            hiding (null)
 import qualified Data.Text                            as T
@@ -49,23 +72,17 @@ type Schema
 data ContextSchema = ContextSchema
   {
     -- | Optional regex to override the default given by context type.
-    cxRegEx      :: Maybe CRegex
+    cxRegEx      :: Maybe RegEx
     -- | Normalizers to apply on keys.
   , cxNormalizer :: [CNormalizer]
     -- | Context weight to boost results.
-  , cxWeight     :: CWeight
+  , cxWeight     :: Weight
     -- | If the context is searched in queries without context-specifier.
   , cxDefault    :: Bool
     -- | The type of the index (e.g. text, int, date, geo-position).
   , cxType       :: ContextType
   }
   deriving Show
-
--- | Context weight for search result rankings.
-type CWeight = Float
-
--- | Regular expression.
-type CRegex  = Text
 
 -- ------------------------------------------------------------
 
@@ -83,7 +100,7 @@ data ContextType = CType
     -- | Name used in the (JSON) API.
     ctName     :: Text
     -- | Default regex to split words.
-  , ctRegEx    :: CRegex
+  , ctRegEx    :: RegEx
     -- | Validation function for keys.
   , ctValidate :: CValidator
     -- | The index implementation used for this type.
@@ -179,10 +196,15 @@ instance Show CValidator where
 -- Normalizer
 -- ------------------------------------------------------------
 
+-- | Normalizer for words\/keys of an index.
 data CNormalizer = CNormalizer
-  { cnName       :: Text
-  , cnNormalizer :: Text -> Text
+  { cnName    :: Text         -- ^ Name used in (JSON) API.
+  , normalize :: Text -> Text -- ^ Normalization function.
   }
+
+-- | Apply the normalizers to a word.
+normalize' :: [CNormalizer] -> Word -> Word
+normalize' ns  = L.foldl' (\f2 (CNormalizer _ f1) -> f1 . f2) id $ ns
 
 -- ------------------------------------------------------------
 
@@ -192,15 +214,15 @@ instance Show CNormalizer where
 instance Default CNormalizer where
   def = CNormalizer "" id
 
--- | Uppercase normalizer.
+-- | Uppercase normalizer \"UpperCase\".
 cnUpperCase :: CNormalizer
 cnUpperCase = CNormalizer "UpperCase" T.toUpper
 
--- | Lowercase normalizer.
+-- | Lowercase normalizer \"LowerCase\".
 cnLowerCase :: CNormalizer
 cnLowerCase = CNormalizer "LowerCase" T.toLower
 
--- | Int normalizer to preserve int ordering on strings.
+-- | Int normalizer \"ZeroFill\" to preserve int ordering on strings.
 cnZeroFill :: CNormalizer
 cnZeroFill = CNormalizer "ZeroFill" Int.normalizeToText
 

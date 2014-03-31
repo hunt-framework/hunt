@@ -101,7 +101,8 @@ denormalize pos
 -- ------------------------------------------------------------
 
 -- | Decimal representation of a binary encoded string.
---   /NOTE/: The input needs to be valid.
+--
+--   /Note/: The input needs to be valid.
 --           @length input >= 2 && all (`elem` "01") input@
 bin2dec :: String -> Int
 bin2dec (s:i)
@@ -115,7 +116,8 @@ bin2dec []
 -- | Convert Integer to Binary and normalize result
 --   with leading zeros to a length of 32 characters.
 --   The first character is the sign: 0 -> negative.
---   /NOTE/: The input needs to be valid.
+--
+--   /Note/: The input needs to be valid.
 dec2bin :: Integer -> String
 dec2bin i = sign . zeros . bin $ ""
   where

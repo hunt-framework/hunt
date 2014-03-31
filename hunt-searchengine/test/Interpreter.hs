@@ -45,8 +45,6 @@ type TestCM a = Hunt    (Documents CompressedDoc) a
 rankConfig :: DocumentWrapper e => RankConfig e
 rankConfig = defaultRankConfig
 
-execCmd' cmd = execCmd (toBasicCommand cmd)
-
 main :: IO ()
 main = defaultMain
   -- general test cases
@@ -195,13 +193,13 @@ test_insertAndSearch = do
 test_alot :: Assertion
 test_alot = testCM $ do
   --throwNYI "user error"
-  insCR <- execCmd' insertDefaultContext
+  insCR <- execCmd insertDefaultContext
   liftIO $ ResOK @=? insCR
-  insR <- execCmd' $ Insert brainDoc
+  insR <- execCmd $ Insert brainDoc
   liftIO $ ResOK @=? insR
-  seaR <- execCmd' $ Search (QWord QNoCase "Brain") os pp
+  seaR <- execCmd $ Search (QWord QNoCase "Brain") os pp
   liftIO $ ["test://0"] @=? searchResultUris seaR
-  seaR2 <- execCmd' $ Search (QWord QCase "brain") os pp
+  seaR2 <- execCmd $ Search (QWord QCase "brain") os pp
   liftIO $ [] @=? searchResultUris seaR2
   where
   os = 0
@@ -211,7 +209,7 @@ test_alot = testCM $ do
 -- fancy functions
 -- characters were chosen without any reason
 (@@@) :: Command -> (CmdResult -> IO b) -> TestCM b
-a @@@ f = execCmd' a >>= liftIO . f
+a @@@ f = execCmd a >>= liftIO . f
 
 (@@=) :: Command -> CmdResult -> TestCM ()
 a @@= b = a @@@ (@?=b)
@@ -404,10 +402,10 @@ prop_position_range x1' x2' x3' x4' (lon', lat') = monadicIO $ do
   res <- run $ do
     env <- initHunt :: IO DefHuntEnv
     res' <- flip runHunt env $ do
-      _ <- execCmd' insertDefaultContext
-      _ <- execCmd' insertGeoContext
-      _ <- execCmd' $ Insert $ geoDoc' $ toText p
-      execCmd' $ Search (QContext ["geocontext"] (QRange (toText nw) (toText se))) 0 10
+      _ <- execCmd insertDefaultContext
+      _ <- execCmd insertGeoContext
+      _ <- execCmd $ Insert $ geoDoc' $ toText p
+      execCmd $ Search (QContext ["geocontext"] (QRange (toText nw) (toText se))) 0 10
     -- print $ (show [nw, se, p]) ++ (show $ searchResultUris $ fromRight res') ++ show isIn
     return res'
   Test.QuickCheck.Monadic.assert $ isIn == (not $ null $ searchResultUris $ fromRight res)

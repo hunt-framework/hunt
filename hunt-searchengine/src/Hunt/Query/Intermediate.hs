@@ -3,11 +3,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  The intermediate query results which have to be merged for the various combinatorial operations.
+
+  'toResult' creates the final result which includes the document (and word) hits.
+-}
+-- ----------------------------------------------------------------------------
 
 module Hunt.Query.Intermediate
 (
   -- * The intermediate result type.
-  Intermediate
+    Intermediate
+  , IntermediateContexts
   , IntermediateWords
 
   -- * Construction
@@ -26,8 +34,8 @@ module Hunt.Query.Intermediate
   , unionsDocLimited
   , merges
   , mergesDocLimited
-  , intersections1
-  , differences1
+--  , intersections1
+--  , differences1
 
   -- * Conversion
   , fromList
@@ -58,15 +66,14 @@ import qualified Hunt.Common.Positions  as Pos
 import           Hunt.DocTable          (DocTable)
 import qualified Hunt.DocTable          as Dt
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | The intermediate result used during query processing.
-
 type Intermediate         = DocIdMap IntermediateContexts
 type IntermediateContexts = (Map Context IntermediateWords, Boost)
 type IntermediateWords    = Map Word (WordInfo, Positions)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Create an empty intermediate result.
 empty :: Intermediate
@@ -88,6 +95,7 @@ unions = L.foldl' union empty
 intersection :: Intermediate -> Intermediate -> Intermediate
 intersection = DM.intersectionWith combineContexts
 
+{-
 -- TODO: make this safe and efficient
 -- foldl is inefficient because the neutral element of the intersection is >everything<
 intersections1 :: [Intermediate] -> Intermediate
@@ -96,17 +104,20 @@ intersections1 = L.foldl1' intersection
 -- TODO: same as for 'intersections1' but this is not commutative
 differences1 :: [Intermediate] -> Intermediate
 differences1 = L.foldl1' difference
+-}
 
 -- | Union two sets of intermediate results.
---   Can be used on "query intermediates".
--- /NOTE/: See 'merge' for a similar function.
+--   Can be used on \"query intermediates\".
+--
+-- /Note/: See 'merge' for a similar function.
 union :: Intermediate -> Intermediate -> Intermediate
 union = DM.unionWith combineContexts
 
 -- | Merge two sets of intermediate results.
 --   Search term should be the same.
---   Can be used on "context intermediates".
--- /NOTE/: See 'union' for a similar function.
+--   Can be used on \"context intermediates\".
+--
+-- /Note/: See 'union' for a similar function.
 merge :: Intermediate -> Intermediate -> Intermediate
 merge = DM.unionWith mergeContexts
 
@@ -136,6 +147,8 @@ fromList t c os
   transform wl       = (M.singleton c (M.fromList wl), []) -- XXX: empty docboost
 
 -- XXX: optimize if necessary, see comments below
+-- | Create an intermediate result from a list of words and their occurrences
+--   with their associated context.
 fromListCxs :: Word -> [(Context, RawResult)] -> Intermediate
 fromListCxs t rs = merges $ map (uncurry (fromList t)) rs
 
@@ -219,7 +232,7 @@ combineWordInfo (WordInfo t1 s1) (WordInfo t2 s2)
 combineScore :: Score -> Score -> Score
 combineScore s1 s2 = (s1 + s2) / 2.0
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- XXX: code duplication - maybe branch in unionContexts with op
 
@@ -249,4 +262,4 @@ mergesDocLimited n = takeOne ((>= n) . size) . scanl merge empty
   takeOne b (x:xs) = if P.null xs || b x then x else takeOne b xs
   takeOne _ _      = error "takeOne with empty list"
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

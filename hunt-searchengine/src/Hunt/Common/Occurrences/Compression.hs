@@ -30,6 +30,8 @@ import           Data.Binary
 
 -- ------------------------------------------------------------
 
+-- | Compression of 'Occurrences'.
+--   Defines a bijection between compressed type @cv@ and 'Occurrences'.
 class OccCompression cv where
   -- | Compress 'Occurrences'.
   compressOcc          :: Occurrences -> cv

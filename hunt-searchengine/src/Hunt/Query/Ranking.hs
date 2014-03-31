@@ -1,5 +1,4 @@
 -- ----------------------------------------------------------------------------
-
 {- |
   Module     : Hunt.Query.Ranking
   Copyright  : Copyright (C) 2007, 2008 Timo B. Huebel
@@ -16,7 +15,6 @@
   provided by the user. Some predefined ranking functions are avaliable, too.
 
 -}
-
 -- ----------------------------------------------------------------------------
 
 module Hunt.Query.Ranking
@@ -62,7 +60,7 @@ import           Hunt.Query.Result
 
 import           Hunt.Utility
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | The configuration of the ranking mechanism.
 data RankConfig e
@@ -84,7 +82,7 @@ type WordRanking  = Word -> WordInfo -> WordContextHits -> Score
 -- | Weights for the contexts (optional).
 type ContextWeights = Map Context Weight
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | The configuration of the ranking mechanism.
 defaultRankConfig :: DocumentWrapper e => RankConfig e
@@ -93,7 +91,7 @@ defaultRankConfig = RankConfig
   , wordRanking = wordRankByCount
   }
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Rank the result with custom ranking functions (and the given context weights).
 rank :: (DocTable dt, Monad m, Applicative m) => RankConfig e -> dt -> ContextWeights -> Result e -> m (Result e)
@@ -108,7 +106,7 @@ rank (RankConfig fd fw {-ld lw-}) dt cw r
       return $ (setDocScore (fd cw k kw di dch) di, dch)) $ docHits r
   scoredWordHits = M.mapWithKey  (\k (wi, wch) -> (setWordScore (fw k wi wch) wi, wch)) $ wordHits r
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Rank documents by count and multiply occurrences with their respective context weights (default @1.0@).
 --   Pass an empty map to discard context weights.
@@ -128,7 +126,7 @@ wordRankByCount :: WordRanking
 wordRankByCount _ _ h
   = fromIntegral $ M.foldr (flip (DM.foldr ((+) . Pos.size))) 0 h
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- The old weighting mechanism
 --   - used a list of context weights
@@ -171,4 +169,4 @@ lookupWeight c (x:xs)
     else lookupWeight c xs
 -}
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

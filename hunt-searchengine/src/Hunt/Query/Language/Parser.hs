@@ -2,7 +2,6 @@
 {-# OPTIONS_GHC  -fno-warn-unused-do-bind #-}
 
 -- ----------------------------------------------------------------------------
-
 {- |
   Module     : Hunt.Query.Language.Parser
   Copyright  : Copyright (C) 2007, 2008 Timo B. Huebel
@@ -18,22 +17,26 @@
   The parser implements a default syntax for the query grammar which exposes
   all possible query types and operators to the user.
 
-  ==========================
-  ==========================
+  Syntax:
 
-  Current Syntax:
+  [@AND@, @OR@, @AND NOT@] = combinatory queries
 
-  AND,OR,NOT          = combinate queries
-  BUT                 = AND NOT
-  !                   = case sensitive query/word e.g.: !car or !Car
-  ~                   = fuzzy query word          e.g.: ~car ... ~cra
-  " .. "              = phrase query
-  ( .. )              = brackets
-  :                   = context sensitive queries e.g.: (who:Rudi Völler)
-  ,                   = multi context queries     e.g.: (content,who,title:Rudi Völler)
-  [ .. TO .. ]        = range queries             e.g.: [ 2014-02-10 TO 2012-02-16 ]
+  [@!w@]                   = case sensitive prefix query e.g.: @!car@ or @!Car@
+
+  [@~w@]                   = fuzzy word query            e.g.: @~car@ or @~cra@
+
+  [@\"...\"@]              = phrase query, performs an exact search for a single word
+
+  [@(...)@]                = brackets
+
+  [@c:w@]                  = context sensitive queries   e.g.: @(who:Rudi Voeller)@
+
+  [@c1,c2:w@]              = multi context queries       e.g.: @(content,who,title:Rudi Voeller)@
+
+  [@\[... TO ...\]@]       = range queries               e.g.: @[2014-02-10 TO 2012-02-16]@
+
+  [@w\^b@]                 = query boosting              e.g.: @toList OR toAscList^1.5@
 -}
-
 -- ----------------------------------------------------------------------------
 
 module Hunt.Query.Language.Parser
@@ -52,7 +55,7 @@ import           Text.ParserCombinators.Parsec
 
 import           Hunt.Query.Language.Grammar
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Parse a query using the default syntax provided by the Hunt framework.
 parseQuery :: String -> Either Text Query
@@ -107,6 +110,7 @@ parQuery = parQuery' <|> rangeQuery
                  char ')'
                  tryBoost q
 
+-- | Parse a range query.
 rangeQuery :: Parser Query
 rangeQuery = rangeQuery' <|> caseQuery
   where
@@ -197,14 +201,14 @@ phrase = do char '"'
             char '"'
             return p
 
+-- | Parse a boosted query.
 tryBoost :: Query -> Parser Query
 tryBoost q = try boost <|> return q
   where
   boost = do
           char '^'
-          b <- simpleFloat
+          b <- simplePositiveFloat
           return (QBoost b q)
-
 
 -- | Parse a character of a word.
 wordChar :: Parser Char
@@ -233,21 +237,23 @@ context = do spaces
 spaces1 :: Parser ()
 spaces1 = skipMany1 space
 
-number :: Parser String
-number = many1 digit
+-- | Parse a simple positive number.
+simplePositiveNumber :: Parser String
+simplePositiveNumber = many1 digit
 
-simpleFloat :: Parser Float
-simpleFloat = fmap read $ number <++> decimal
-  where decimal  = option "" $ char '.' <:> number
+-- | Parse a simple positive float. The decimal point with following numbers is optional.
+simplePositiveFloat :: Parser Float
+simplePositiveFloat = fmap read $ simplePositiveNumber <++> decimal
+  where decimal  = option "" $ char '.' <:> simplePositiveNumber
 
 -- ------------------------------------------------------------
 
-(<++>) :: Applicative f
-       => f [a] -> f [a] -> f [a]
+-- |Applicative concat @(++)@.
+(<++>) :: Applicative f => f [a] -> f [a] -> f [a]
 (<++>) a b = (++) <$> a <*> b
 
-(<:>) :: Applicative f
-      => f a -> f [a] -> f [a]
+-- Applicative cons @(:)@.
+(<:>) :: Applicative f => f a -> f [a] -> f [a]
 (<:>) a b = (:) <$> a <*> b
 
 -- ------------------------------------------------------------

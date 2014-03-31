@@ -1,16 +1,29 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs             #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  Schrotty server.
+  Scotty with custom error handling.
+  All regular scotty functions can be used.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.Server.Schrotty
-( module Web.Scotty.Trans
-, ActionSchrotty
-, ActionSchrottyT
-, schrotty
+(
+  -- * Start the server
+  schrotty
 , schrottyOpts
-, handleCustomError
+
+  -- * Adjusted/Added Scotty Functions
 , jsonData
 , param
 , jsonPretty
+
+  -- * Types
+, module Web.Scotty.Trans
+, ActionSchrotty
+, ActionSchrottyT
 , WebError(..)
 )
 where
@@ -30,7 +43,7 @@ import           Data.Aeson.Encode.Pretty   as AP
 import           Hunt.Interpreter.Command   (CmdError (..))
 import           Hunt.Server.Common
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 type ActionSchrottyT m a = ActionT WebError m a
 
@@ -51,7 +64,7 @@ instance ScottyError WebError where
   stringError = Text 500 . TL.pack
   showError _ = "schrotty exception :("
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 handleCustomError :: Monad m => WebError -> ActionSchrottyT m ()
 handleCustomError (NotFound)
@@ -100,10 +113,14 @@ param :: (Parsable a, Monad m) => TL.Text -> ActionSchrottyT m a
 param p = Scotty.param p
             `rescue` (\_ -> raise $ MissingParam p)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
+-- | Start schrotty.
 schrotty :: Port -> ScottyT WebError IO () -> IO ()
 schrotty p a = Scotty.scottyT p id id $ defaultHandler handleCustomError >> a
 
+-- | Start schrotty with options.
 schrottyOpts :: Options -> ScottyT WebError IO () -> IO ()
 schrottyOpts o a = Scotty.scottyOptsT o id id $ defaultHandler handleCustomError >> a
+
+-- ------------------------------------------------------------

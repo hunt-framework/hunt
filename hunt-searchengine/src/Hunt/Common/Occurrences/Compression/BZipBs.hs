@@ -4,9 +4,9 @@
 {-# LANGUAGE TypeSynonymInstances       #-}
 
 -- ----------------------------------------------------------------------------
-{-
-  'Occurrences' compression using the bzip2 library
-    http://www.bzip.org/
+{- |
+  'Occurrences' compression using the bzip2 library:
+    <http://www.bzip.org/>
 
   /Note/: This implementation leads to huge heap fragmentation
   due to pinned memory. This module exists for benchmarking
@@ -15,7 +15,7 @@
   memory usage.
 
   Haskell-Bindings
-    http://hackage.haskell.org/package/bzlib
+    <http://hackage.haskell.org/package/bzlib>
 -}
 -- ----------------------------------------------------------------------------
 
@@ -50,7 +50,7 @@ import           Hunt.Common.Occurrences.Compression
 --   The corresponding bijection is defined in 'DocumentWrapper'.
 --
 --   /Note/: Uses 'Bytestring' instead of 'ShortByteString' which can lead to fragmentation:
---     https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1
+--     <https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1>
 newtype CompressedOccurrences = ComprOccs { unComprOccs :: BS.ByteString }
   deriving (Eq, Show, Typeable)
 

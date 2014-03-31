@@ -47,17 +47,21 @@ decompress = decompressSmart
 -- ------------------------------------------------------------
 
 #if  __GLASGOW_HASKELL__ >= 770
+-- | Plain compression.
 compress'   :: BL.ByteString -> BL.ByteString
 compress'   = Zip.compress
 
+-- | Plain decompression.
 decompress' :: BL.ByteString -> BL.ByteString
 decompress' = Zip.decompress
 
 #else
 #warning snappy is disabled if GHC < 7.7
+-- | Plain compression (dummy).
 compress'   :: BL.ByteString -> BL.ByteString
 compress'   = id
 
+-- | Plain decompression (dummy).
 decompress' :: BL.ByteString -> BL.ByteString
 decompress' = id
 #endif

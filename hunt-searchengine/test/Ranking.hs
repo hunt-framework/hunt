@@ -29,8 +29,6 @@ type TestCM a = Hunt    (Documents CompressedDoc) a
 rankConfig :: DocumentWrapper e => RankConfig e
 rankConfig = defaultRankConfig
 
-execCmd' cmd = execCmd (toBasicCommand cmd)
-
 main :: IO ()
 main = defaultMain
   [ testCase "Ranking: Boosting"                    test_ranking
@@ -84,7 +82,7 @@ testCM = testCM' True
 -- fancy functions
 -- characters were chosen without any reason
 (@@@) :: Command -> (CmdResult -> IO b) -> TestCM b
-a @@@ f = execCmd' a >>= liftIO . f
+a @@@ f = execCmd a >>= liftIO . f
 
 (@@=) :: Command -> CmdResult -> TestCM ()
 a @@= b = a @@@ (@?=b)

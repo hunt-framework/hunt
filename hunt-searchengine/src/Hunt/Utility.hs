@@ -1,19 +1,54 @@
 {-# LANGUAGE BangPatterns   #-}
 {-# LANGUAGE EmptyDataDecls #-}
--- ----------------------------------------------------------------------------
 
+-- ----------------------------------------------------------------------------
 {- |
   General utitlity functions.
 -}
-
 -- ----------------------------------------------------------------------------
 
-module Hunt.Utility where
+module Hunt.Utility
+  (
+    -- * Function Composition
+    (.::), (.:::)
+
+    -- * Safe / Total Functions
+  , head'
+
+    -- * Strict Functions
+  , foldM'
+
+    -- * Monadic Functions
+  , foldlWithKeyM, foldrWithKeyM
+
+    -- * Maybe Helper
+  , catMaybesSet
+
+    -- * Either Helper
+  , isLeft, isRight
+  , fromLeft, fromRight
+
+    -- * List Helper
+  , unbox, unboxM, isSingleton
+  , split
+  , join
+  , partitionListByLength, partitionListByCount
+  , descending
+
+    -- * String Helper
+  , strip, stripl, stripr, stripWith
+  , escape
+
+    -- * Aeson Helper
+  , object', (.=?), (.==), (.\.)
+
+  -- * Types
+  , TypeDummy
+  )
+where
 
 import           Data.Aeson           hiding (decode)
 import           Data.Aeson.Types
-import           Data.Binary
-import qualified Data.ByteString.Lazy as B
 import           Data.Char
 import qualified Data.Foldable        as FB
 import qualified Data.List            as L
@@ -25,8 +60,6 @@ import qualified Data.Set             as S
 import           Data.Text            (Text)
 
 import           Numeric              (showHex)
-
-import           System.IO
 
 -- ------------------------------------------------------------
 
@@ -47,15 +80,15 @@ data TypeDummy
 head' :: [a] -> Maybe a
 head' xs = if null xs then Nothing else Just $ head xs
 
--- | Data.Maybe.catMaybes on a Set instead of a List.
+-- | 'Data.Maybe.catMaybes' on a 'Set' instead of a List.
 catMaybesSet :: Ord a => Set (Maybe a) -> [a]
 catMaybesSet = S.toList . S.map fromJust . S.delete Nothing
 
--- | Test if Either is a Left value.
+-- | Test if 'Either' is a 'Left' value.
 isLeft :: Either a b -> Bool
 isLeft = either (const True) (const False)
 
--- | Test if Either is a Right value.
+-- | Test if 'Either' is a 'Right' value.
 isRight :: Either a b -> Bool
 isRight = not . isLeft
 
@@ -68,10 +101,11 @@ fromRight :: Either a b -> b
 fromRight = either (error "Hunt.Utility.fromRight: Left") id
 
 -- | Unbox a singleton.
---   /NOTE/: This fails if the list is not a singleton.
+--
+--   /Note/: This fails if the list is not a singleton.
 unbox :: [a] -> a
 unbox [e] = e
-unbox _   = error "unbox with non-singleton"
+unbox _   = error "unbox: []"
 
 -- | Unbox a singleton in a safe way with 'Maybe'.
 unboxM :: [a] -> Maybe a
@@ -82,7 +116,6 @@ unboxM _   = Nothing
 isSingleton :: [a] -> Bool
 isSingleton [_] = True
 isSingleton _   = False
-
 
 -- | Split a string into seperate strings at a specific character sequence.
 split :: Eq a => [a] -> [a] -> [[a]]
@@ -110,15 +143,6 @@ stripr = reverse . dropWhile isSpace . reverse
 stripWith :: (a -> Bool) -> [a] -> [a]
 stripWith f = reverse . dropWhile f . reverse . dropWhile f
 
--- | found on the haskell cafe mailing list
---   (<http://www.haskell.org/pipermail/haskell-cafe/2008-April/041970.html>).
---   Depends on bytestring >= 0.9.0.4 (?)
-strictDecodeFile :: Binary a => FilePath -> IO a
-strictDecodeFile f  =
-  withBinaryFile f ReadMode $ \h -> do
-    c <- B.hGetContents h
-    return $! decode c
-
 -- | partition the list of input data into a list of input data lists of
 --   approximately the same specified length
 partitionListByLength :: Int -> [a] -> [[a]]
@@ -135,6 +159,10 @@ partitionListByCount = partition
     = let next = (length l `div` sublists)
       in  if next == 0  then [l]
                         else take next l : partition (sublists -1) (drop next l)
+
+-- | To use with 'sortBy'.
+descending :: Ord a => a -> a -> Ordering
+descending = flip compare
 
 -- | Escapes non-alphanumeric or space characters in a String
 escape :: String -> String
@@ -162,16 +190,36 @@ foldlWithKeyM f b = FB.foldlM f' b . M.toList
 
 -- ------------------------------------------------------------
 -- Aeson helper
+-- ------------------------------------------------------------
 
+-- | Like 'Data.Aeson.object' to use with '.=?', '.==' and '.\.'.
+--   This allows omitting (default) values in 'ToJSON' instances.
+--
+-- > toJSON (Example maybe list float) = object' $
+-- >   [ "maybe" .=? maybe .\. isNothing
+-- >   , "list"  .=? list  .\. null
+-- >   , "float" .=? float .\. (== 1.0)
+-- >   ]
 object' :: [[Pair]] -> Value
 object' = object . Prelude.concat
 
+-- | Like '.=' but allows omitting of (default) values in 'ToJSON' instances.
+--
+--   See 'object''.
 (.=?) :: ToJSON a => Text -> (a, a -> Bool) -> [Pair]
 name .=? (value, cond) = if cond value then [] else [ name .= value ]
 
+-- | '.==' for 'object''.
+--
+--   See 'object''.
 (.==) :: ToJSON a => Text -> a -> [Pair]
 name .== value = [ name .= value ]
 
+-- | Use with '.=?' to specify which value to omit.
+--
+--   See 'object''.
 (.\.) :: ToJSON a => a -> (a -> Bool) -> (a, a -> Bool)
 v .\. c = (v,c)
 infixl 8 .=?
+
+-- ------------------------------------------------------------

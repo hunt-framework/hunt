@@ -60,13 +60,9 @@ toDocAndWords' schema apiDoc = (doc, weight, ws)
                 (CType _ defRex validator _) = cType
                 scan = filter (validate validator) . scanTextRE (fromMaybe defRex rex)
             -- XXX: simple concat without nub
-            in toWordList scan (normalize normalizers) content)
+            in toWordList scan (normalize' normalizers) content)
         indexMap
   weight = adWght apiDoc
-
--- | Apply the normalizers to a word.
-normalize :: [CNormalizer] -> Word -> Word
-normalize ns  = foldl (\f2 (CNormalizer _ f) -> f.f2) id $ ns
 
 -- | Construct a 'WordList' from text using the splitting and normalization function.
 toWordList :: (Text -> [Word]) -> (Word -> Word) -> Text -> WordList
@@ -81,7 +77,7 @@ toWordList scan norm = M.map DL.toList . foldr insert M.empty . zip [1..] . map 
 --  > scanTextRE "[^ \t\n\r]*" == Data.Text.words
 --
 --   Grammar: <http://www.w3.org/TR/xmlschema11-2/#regexs>
-scanTextRE :: CRegex -> Text -> [Word]
+scanTextRE :: RegEx -> Text -> [Word]
 scanTextRE wRex = map T.pack . tokenize (T.unpack wRex) . T.unpack
 
 -- ------------------------------------------------------------

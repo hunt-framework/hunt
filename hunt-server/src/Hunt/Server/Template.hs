@@ -1,7 +1,15 @@
+-- ----------------------------------------------------------------------------
+{- |
+  The main Hunt front-end template.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.Server.Template
-( index
-, addDocs
-) where
+  ( index
+  , addDocs
+  )
+where
+
 import qualified Data.Text.Lazy as LT
 
 import           Text.Hamlet
@@ -9,7 +17,9 @@ import           Text.Julius
 import           Text.Blaze.Html.Renderer.Text    (renderHtml)
 import           Text.Blaze                       (Markup, ToMarkup)
 
--- | main page
+-- ------------------------------------------------------------
+
+-- | Main page.
 index :: Int -> LT.Text
 index _docs =
   -- generate html with hamlet
@@ -221,6 +231,8 @@ index _docs =
 </script>
 |]
 
+
+-- | Addition of documents.
 addDocs :: LT.Text
 addDocs =
   -- generate html with hamlet
@@ -363,3 +375,5 @@ defaultLayout content = [xshamlet|
     <div .container style="margin-top:70px">
       #{content}
 |]
+
+-- ------------------------------------------------------------

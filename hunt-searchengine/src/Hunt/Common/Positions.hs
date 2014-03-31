@@ -44,6 +44,7 @@ singleton            :: Position -> Positions
 singleton            = PS . IS.cacheAt
 --singleton            = PS . IS.singleton
 
+-- | Test whether it is the empty positions.
 null                 :: Positions -> Bool
 null                 = IS.null . unPS
 

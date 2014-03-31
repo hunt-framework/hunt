@@ -2,7 +2,45 @@
 -- http://ghc.haskell.org/trac/ghc/blog/LetGeneralisationInGhc7
 -- {-# LANGUAGE NoMonoLocalBinds  #-}
 
-module Hunt.Server (start) where
+-- ----------------------------------------------------------------------------
+{- |
+  The Hunt server.
+
+  Routes:
+
+    [@POST \/eval@]                          Evaluates 'Command's.
+
+    [@GET  \/search\/:query\/@]              Search (limited to 1000000 results).
+
+    [@GET  \/search\/:query\/:offset\/:mx@]  Search with pagination.
+
+    [@GET  \/completion\/:query\/:mx@]       Word completions with maximum.
+
+    [@POST \/document\/insert@]              Insert 'ApiDocument's.
+
+    [@POST \/document\/update@]              Update 'ApiDocument's.
+
+    [@POST \/document\/delete@]              Delete documents by URI.
+
+    [@GET  \/binary\/save\/:filename@]       Store the index.
+
+    [@GET  \/binary\/load\/:filename@]       Load an index.
+
+    [@GET  \/status\/gc@]                    Garbage collection statistics.
+
+    [@GET  \/status\/doctable@]              JSON dump of the document table (/experimental/).
+
+    [@GET  \/status\/index@]                 JSON dump of the index (/experimental/).
+-}
+-- ----------------------------------------------------------------------------
+
+module Hunt.Server
+  ( -- * Starting the Server
+    start
+    -- * Configuration
+  , HuntServerConfiguration (..)
+  )
+where
 
 import           Control.Monad.Error
 import           Data.String                          (fromString)
@@ -31,7 +69,7 @@ import           System.Log.Logger                    hiding (debugM, errorM,
                                                        warningM)
 import qualified System.Log.Logger                    as Log
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Logging
 
 -- | Name of the module for logging purposes.
@@ -74,8 +112,9 @@ initLoggers config = do
   handlerFile <- fileHandler (logFile config) DEBUG `withFormatter` defFormatter
   updateGlobalLogger rootLoggerName (addHandler handlerFile)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
+-- | Start the server.
 start :: HuntServerConfiguration -> IO ()
 start config = do
   -- initialize loggers
@@ -106,7 +145,7 @@ start config = do
     -- request / response logging
     middleware logStdoutDev
 
-    -- ------------------------------------------------------------------------
+    -- ------------------------------------------------------------
     -- XXX: maybe move to schrotty?
 
     let interpret = runCmd env
@@ -129,20 +168,20 @@ start config = do
 
     let batch cmd = Sequence . map cmd
 
-    -- ------------------------------------------------------------------------
+    -- ------------------------------------------------------------
 
     get "/"         $ redirect "/search"
     get "/search"   $ html . Tmpl.index $ (0::Int)
     get "/add"      $ html Tmpl.addDocs
 
-    -- ------------------------------------------------------------------------
+    -- ------------------------------------------------------------
 
     -- interpreter
     post "/eval" $ do
       cmd <- jsonData
       eval cmd
 
-    -- ------------------------------------------------------------------------
+    -- ------------------------------------------------------------
 
     -- simple query
     get "/search/:query/" $ do
@@ -198,3 +237,5 @@ start config = do
       eval $ Status StatusIndex         -- status of search index
 
     notFound $ raise NotFound
+
+-- ------------------------------------------------------------

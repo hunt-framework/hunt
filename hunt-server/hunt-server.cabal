@@ -9,12 +9,12 @@ stability:     experimental
 category:      Text, Data
 synopsis:      A search and indexing engine server.
 homepage:      http://github.com/hunt-framework
-description:   Standalone search server based on hunt searchengine
+description:   Standalone search server based on the Hunt searchengine.
 cabal-version: >=1.6
 build-type:    Simple
 
-extra-source-files:
-    README
+-- extra-source-files:
+--     README
 
 source-repository head
   type:        git

@@ -1,7 +1,6 @@
 {-# LANGUAGE StandaloneDeriving #-}
 
 -- ----------------------------------------------------------------------------
-
 {- |
   Module     : Hunt.Query.Result
   Copyright  : Copyright (C) 2007 Timo B. Huebel
@@ -15,10 +14,8 @@
 
   The result of a query is defined in terms of two partial results,
   the documents containing the search terms and the words which
-  are possible completions of the serach terms.
-
+  are possible completions of the search terms.
 -}
-
 -- ----------------------------------------------------------------------------
 
 module Hunt.Query.Result
@@ -67,7 +64,7 @@ import           Data.Text                (Text)
 import           Hunt.Common
 import qualified Hunt.Common.DocIdMap     as DM
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | The combined result type for Holumbus queries.
 data Result e
@@ -81,55 +78,52 @@ deriving instance Show e => Show (Result e)
 -- | Information about an document.
 data DocInfo e
   = DocInfo
-    { document :: e          -- ^ The document itself.
-    , docBoost :: Boost
-    , docScore :: Score      -- ^ The score for the document (initial score for all documents is @0.0@).
+    { document :: e     -- ^ The document itself.
+    , docBoost :: Boost -- ^ The document weight.
+    , docScore :: Score -- ^ The score for the document (initial score for all documents is @0.0@).
     }
 deriving instance Show e => Show (DocInfo e)
 
 -- | Information about a word.
 data WordInfo
   = WordInfo
-    { terms     :: Terms     -- ^ The search terms that led to this very word.
-    , wordScore :: Score     -- ^ The frequency of the word in the document for a context.
+    { terms     :: Terms -- ^ The search terms that led to this very word.
+    , wordScore :: Score -- ^ The frequency of the word in the document for a context.
     }
     deriving (Eq, Show)
-
--- | A single weight for weighting/boosting .
-type Weight = Float
 
 -- XXX: a list for now - maybe useful for testing
 -- | Boosting of a single document.
 type Boost = [Weight]
 
 -- | Document boosting.
-type DocBoosts          = DocIdMap Boost
+type DocBoosts       = DocIdMap Boost
 
 -- | A mapping from a document to it's score and the contexts where it was found.
-type DocHits e          = DocIdMap (DocInfo e, DocContextHits)
+type DocHits e       = DocIdMap (DocInfo e, DocContextHits)
 
 -- | A mapping from a context to the words of the document that were found in this context.
-type DocContextHits     = Map Context DocWordHits
+type DocContextHits  = Map Context DocWordHits
 
 -- | A mapping from a word of the document in a specific context to it's positions.
-type DocWordHits        = Map Word Positions
+type DocWordHits     = Map Word Positions
 
 -- | A mapping from a word to it's score and the contexts where it was found.
-type WordHits           = Map Word (WordInfo, WordContextHits)
+type WordHits        = Map Word (WordInfo, WordContextHits)
 
 -- | A mapping from a context to the documents that contain the word that were found in this context.
-type WordContextHits    = Map Context WordDocHits
+type WordContextHits = Map Context WordDocHits
 
 -- | A mapping from a document containing the word to the positions of the word.
-type WordDocHits        = Occurrences
+type WordDocHits     = Occurrences
 
 -- | The score of a hit (either a document hit or a word hit).
-type Score              = Float
+type Score           = Float
 
 -- | The original search terms entered by the user.
-type Terms              = [Text]
+type Terms           = [Text]
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 {-
 instance Binary Result where
   put (Result dh wh)    = put dh >> put wh
@@ -152,7 +146,7 @@ instance NFData DocInfo where
 instance NFData WordInfo where
   rnf (WordInfo t s)    = rnf t `seq` rnf s
 -}
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Create an empty result.
 emptyResult :: Result e
@@ -190,11 +184,11 @@ setWordScore s wi@(WordInfo{}) = wi { wordScore = s }
 getDocuments :: Result e -> [e]
 getDocuments r = map (document . fst . snd) . DM.toList $ docHits r
 
--- | Get the boosting factor for the document.
+-- | The boosting factor for the document.
 boost :: DocInfo e -> Float
 boost di = if P.null l then 1.0 else sum l / llen
   where
   l    = {-filter (/= 1.0) $-} docBoost di
   llen = fromIntegral $ length l
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

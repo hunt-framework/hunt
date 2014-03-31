@@ -13,7 +13,6 @@
   Version    : 0.2
 
   The unique Holumbus mechanism for generating fuzzy sets.
-
 -}
 
 -- ----------------------------------------------------------------------------
@@ -40,12 +39,12 @@ module Hunt.Query.Fuzzy
 where
 
 import           Data.Binary
+import           Data.Default
 import           Data.Function
 import           Data.List
 import           Data.Maybe       (fromMaybe)
 
--- import           Control.Applicative
-import           Control.Monad
+import           Control.Applicative
 
 import           Data.Map         (Map)
 import qualified Data.Map         as M
@@ -54,14 +53,14 @@ import           Data.Text        (Text)
 import qualified Data.Text        as T
 import           Data.Text.Binary ()
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | A set of string which have been "fuzzed" with an associated score.
 type FuzzySet = Map Text FuzzyScore
 
 -- | Some replacements which can be applied to a string to generate a 'FuzzySet'. The scores of
 -- the replacements will be normalized to a maximum of 1.0.
-type Replacements = [ Replacement ]
+type Replacements = [Replacement]
 
 -- | A single replacements, where the first will be replaced by the second and vice versa in
 -- the target string. The score indicates the amount of fuzzines that one single application
@@ -81,13 +80,16 @@ data FuzzyConfig
     }
   deriving (Show)
 
-instance Binary FuzzyConfig where
-  put (FuzzyConfig r s m f)
-      = put r >> put s >> put m >> put f
-  get
-      = liftM4 FuzzyConfig get get get get
+-- ------------------------------------------------------------
 
--- ----------------------------------------------------------------------------
+instance Default FuzzyConfig where
+  def = FuzzyConfig True True 1.0 englishReplacements
+
+instance Binary FuzzyConfig where
+  put (FuzzyConfig r s m f) = put r >> put s >> put m >> put f
+  get = FuzzyConfig <$> get <*> get <*> get <*> get
+
+-- ------------------------------------------------------------
 
 -- | Some default replacements for the english language.
 englishReplacements :: Replacements
@@ -221,4 +223,4 @@ replaceFirst xs' ys' zs'
 toList :: FuzzySet -> [ (Text, FuzzyScore) ]
 toList = sortBy (compare `on` snd) . M.toList
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

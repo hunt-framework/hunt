@@ -4,12 +4,12 @@
 {-# LANGUAGE TypeSynonymInstances       #-}
 
 -- ----------------------------------------------------------------------------
-{-
-  'Occurrences' compression using the bzip2 library
-    http://www.bzip.org/
+{- |
+  'Occurrences' compression using the bzip2 library:
+    <http://www.bzip.org/>
 
-  Haskell-Bindings
-    http://hackage.haskell.org/package/bzlib
+  Haskell-Bindings:
+    <http://hackage.haskell.org/package/bzlib>
 -}
 -- ----------------------------------------------------------------------------
 
@@ -17,7 +17,7 @@ module Hunt.Common.Occurrences.Compression.BZip
   (
   -- * Compression types
     CompressedOccurrences
-  , OccCompression(..)
+  , OccCompression (..)
   )
 where
 
@@ -50,9 +50,9 @@ import           Hunt.Common.Occurrences.Compression
 --   The Document can be retrieved with 'decompressOcc'.
 --   The corresponding bijection is defined in 'DocumentWrapper'.
 --
--- Using ShortByteString saves 5 machine words per value.
--- It also eliminates issues with sharing and fragmentation due to ByteStrings being pinned.
--- https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1
+--   Using 'ShortByteString' saves 5 machine words per value.
+--   It also eliminates issues with sharing and fragmentation due to 'ByteString's being pinned.
+--   <https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1>
 newtype CompressedOccurrences
   = ComprOccs { unComprOccs :: ShortByteString }
   deriving (Eq, Show, Typeable)

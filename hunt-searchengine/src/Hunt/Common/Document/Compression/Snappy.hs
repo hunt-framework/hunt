@@ -3,17 +3,20 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 -- ----------------------------------------------------------------------------
-{-
-  'Document' compression using Google's Snappy library
-    https://code.google.com/p/snappy/
+{- |
+  'Document' compression using Google's Snappy library:
+    <https://code.google.com/p/snappy/>
 
-  Haskell-Bindings
-    http://hackage.haskell.org/package/snappy
+  Haskell-Bindings:
+    <http://hackage.haskell.org/package/snappy>
 
-  Requires the Snappy C library
-    source: https://code.google.com/p/snappy/
-    deb: apt-get install libsnappy-dev
-    rpm: yum install libsnappy-devel
+  Requires the Snappy C library:
+
+    - source: <https://code.google.com/p/snappy/>
+
+    - deb: @apt-get install libsnappy-dev@
+
+    - rpm: @yum install libsnappy-devel@
 -}
 -- ----------------------------------------------------------------------------
 
@@ -43,9 +46,9 @@ import           Hunt.Common.Document
 --   The Document can be retrieved with 'unwrap'.
 --   The corresponding bijection is defined in 'DocumentWrapper'.
 --
--- Using ShortByteString saves 5 machine words per value.
--- It also eliminates issues with sharing and fragmentation due to ByteStrings being pinned.
--- https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1
+-- Using 'ShortByteString' saves 5 machine words per value.
+-- It also eliminates issues with sharing and fragmentation due to 'BL.ByteString's being pinned.
+-- <https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1>
 newtype CompressedDoc
   = CDoc { unCDoc :: ShortByteString }
   deriving (Eq, Show, NFData, Typeable)

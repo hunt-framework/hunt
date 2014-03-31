@@ -2,6 +2,12 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE GADTs              #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  Common data types and functions for the Hunt server.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.Server.Common where
 
 import           Data.Data              (Data)
@@ -15,7 +21,7 @@ import           System.Console.CmdArgs (explicit, help, name, program,
 import           System.Log.Logger      (Priority (..))
 
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Generic JSON response format.
 data JsonResponse r f
@@ -34,19 +40,21 @@ instance ToJSON (JsonResponse r f) where
     , "msg"   .= msg
     ]
 
--- ----------------------------------------------------------------------------
-
+-- ------------------------------------------------------------
 -- instances necessary for System.Console.CmdArgs
+-- ------------------------------------------------------------
 deriving instance Data     Priority
 deriving instance Typeable Priority
+
+-- ------------------------------------------------------------
 
 -- | Hunt server configuration.
 data HuntServerConfiguration = HuntServerConfiguration
   { huntServerHost     :: String          -- ^ The host.
   , huntServerPort     :: Int             -- ^ The port to use.
-  , readIndexOnStartup :: Maybe FilePath  -- ^ A serialized index to load on startup.
-  , logFile            :: FilePath        -- ^ The location of the logfile.
-  , logPriority        :: Priority        -- ^ The priority level to log on stdout.
+  , readIndexOnStartup :: Maybe FilePath  -- ^ Serialized index to load on startup.
+  , logFile            :: FilePath        -- ^ Location of the logfile.
+  , logPriority        :: Priority        -- ^ Priority level to log on stdout.
   } deriving (Show, Data, Typeable)
 
 
@@ -67,5 +75,7 @@ instance Default HuntServerConfiguration where
     logFile = "hunt.log"
       &= explicit &= name "log-file" &= typFile
       &= help "Set logfile location"
-  } &= summary "Standalone search server based on the hunt searchengine."
+  } &= summary "Standalone search server based on the Hunt searchengine."
     &= program "hunt-server"
+
+-- ------------------------------------------------------------

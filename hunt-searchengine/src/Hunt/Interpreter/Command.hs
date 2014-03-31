@@ -1,12 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  \"High-level\" commands that are accepted by the (JSON) API.
+
+  These commands are translated with 'toBasicCommand' to 'BasicCommand's which can be interpreted.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.Interpreter.Command
-    ( Command (..)
-    , StatusCmd (..)
-    , CmdResult (..)
-    , CmdError (..)
-    , toBasicCommand
-    )
+  ( Command (..)
+  , StatusCmd (..)
+  , CmdResult (..)
+  , CmdError (..)
+  , toBasicCommand
+  )
 where
 
 import           Control.Monad                 (mzero)
@@ -31,7 +39,7 @@ import           Hunt.Utility.Log
 
 import           Hunt.Query.Result
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | The \"high-level\" commands accepted by the 'Interpreter' \/ JSON API.
 --   These are translated to 'BasicCommand's.
@@ -96,7 +104,7 @@ data CmdError
     , ceMsg  :: Text -- ^ Message describing the error.
     } deriving (Show)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance LogShow Command where
   logShow (Insert doc) = "Insert {icDoc = " ++ logShow doc ++ "\", ..}"
@@ -104,9 +112,9 @@ instance LogShow Command where
   logShow (Sequence _) = "Sequence"
   logShow o = show o
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- JSON instances
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 instance ToJSON Command where
   toJSON o = case o of
@@ -180,7 +188,7 @@ instance FromJSON CmdError where
     return $ ResError c m
   parseJSON _ = mzero
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- TODO: - flattening of 'Sequence's?
 

@@ -183,10 +183,10 @@ insert x y              = liftDIM $ IM.insert x y
 delete                  :: DocId -> DocIdMap v -> DocIdMap v
 delete x                = liftDIM $ IM.delete x
 
- -- Insert with a function, combining new value and old value.
- -- @insertWith f docId value mp@ will insert the pair @(docId, value)@ into @mp@ if @docId@ does
--- not exist in the map. If the 'DocId' does exist, the function will insert the pair
- -- @(docId, f new_value old_value)@.
+-- | Insert with a function, combining new value and old value.
+--   @insertWith f docId value mp@ will insert the pair @(docId, value)@ into @mp@ if @docId@ does
+--   not exist in the map. If the 'DocId' does exist, the function will insert the pair
+--   @(docId, f new_value old_value)@.
 insertWith              :: (v -> v -> v) -> DocId -> v -> DocIdMap v -> DocIdMap v
 insertWith f x y        = liftDIM $ IM.insertWith f x y
 
@@ -260,12 +260,12 @@ filter p                = liftDIM $ IM.filter p
 filterWithKey           :: (DocId -> v -> Bool) -> DocIdMap v -> DocIdMap v
 filterWithKey p         = liftDIM $ IM.filterWithKey p
 
--- @'traverseWithKey' f s == 'fromList' <$> 'traverse' (\(k, v) -> (,) k <$> f k v) ('toList' m)@
--- That is, behaves exactly like a regular 'traverse' except that the traversing
--- function also has access to the 'DocId' associated with a value.
+-- | @'traverseWithKey' f s == 'fromList' <$> 'traverse' (\(k, v) -> (,) k <$> f k v) ('toList' m)@
+--   That is, behaves exactly like a regular 'traverse' except that the traversing
+--   function also has access to the 'DocId' associated with a value.
 --
--- > traverseWithKey (\k v -> if odd k then Just (succ v) else Nothing) (fromList [(1, 'a'), (5, 'e')]) == Just (fromList [(1, 'b'), (5, 'f')])
--- > traverseWithKey (\k v -> if odd k then Just (succ v) else Nothing) (fromList [(2, 'c')])           == Nothing
+--   > traverseWithKey (\k v -> if odd k then Just (succ v) else Nothing) (fromList [(1, 'a'), (5, 'e')]) == Just (fromList [(1, 'b'), (5, 'f')])
+--   > traverseWithKey (\k v -> if odd k then Just (succ v) else Nothing) (fromList [(2, 'c')])           == Nothing
 traverseWithKey         :: Applicative t => (DocId -> a -> t b) -> DocIdMap a -> t (DocIdMap b)
 traverseWithKey f       = (pure DIM <*>) . IM.traverseWithKey f . unDIM
 

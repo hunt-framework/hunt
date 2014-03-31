@@ -9,11 +9,11 @@ stability:     experimental
 category:      Text, Data
 synopsis:      A search and indexing engine.
 homepage:      http://github.com/hunt-framework/
-description:   The Hunt-Searchengine library provides a solid toolkit to
-               create fast and scalable searchengines.
+description:   The Hunt-Searchengine library provides a toolkit to
+               create fast and flexible searchengines.
 cabal-version: >=1.8
 build-type:    Simple
--- tested-with:   ghc-7.0.3
+-- tested-with:   ghc-7.6.3
 
 -- extra-source-files:
 --     README
@@ -39,17 +39,12 @@ library
                , data-default
                , deepseq                >= 1.2
                , dlist
---               , directory              >= 1    && < 2
---               , filepath               >= 1    && < 2
                , hslogger               >= 1    && < 2
                , hxt-regex-xmlschema    >= 9.1
                , mtl                    >= 1.1  && < 3
                , murmur-hash
---               , network                >= 2.1  && < 3
                , parallel               >= 3.1  && < 4
                , parsec                 >= 2.1  && < 4
---               , process                >= 1    && < 2
---               , SHA                    >= 1.4  && < 2
                , text                   >= 1    && < 2
                , time                   >= 1.4  && < 2
                , monad-parallel

@@ -2,7 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 -- ----------------------------------------------------------------------------
-{-
+{- |
   'Document' compression using the bzip2 library
     http://www.bzip.org/
 
@@ -35,9 +35,9 @@ import           Hunt.Common.Document
 --   The Document can be retrieved with 'unwrap'.
 --   The corresponding bijection is defined in 'DocumentWrapper'.
 --
--- Using ShortByteString saves 5 machine words per value.
--- It also eliminates issues with sharing and fragmentation due to ByteStrings being pinned.
--- https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1
+-- Using 'ShortByteString' saves 5 machine words per value.
+-- It also eliminates issues with sharing and fragmentation due to 'BL.ByteString's being pinned.
+-- <https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1>
 newtype CompressedDoc
   = CDoc { unCDoc :: ShortByteString }
   deriving (Eq, Show, NFData, Typeable)

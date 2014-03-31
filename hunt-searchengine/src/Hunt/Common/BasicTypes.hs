@@ -53,6 +53,12 @@ type WordList     = Map Word [Position]
 data TextSearchOp = Case | NoCase | PrefixCase | PrefixNoCase
   deriving (Eq, Show)
 
+-- | Weight (for ranking).
+type Weight       = Float
+
+-- | Regular expression.
+type RegEx        = Text
+
 -- ------------------------------------------------------------
 -- JSON instances
 -- ------------------------------------------------------------

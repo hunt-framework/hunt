@@ -9,14 +9,11 @@ import           Data.Monoid
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
---import          Test.Framework.Providers.QuickCheck2
 import           Test.HUnit
---import          Test.QuickCheck
 
 import           Hunt.Common
 import qualified Hunt.Common.DocIdMap                        as DM
 import           Hunt.Common.Occurrences                     (merge, singleton)
-import           Hunt.Common.Occurrences.Compression.Simple9
 
 import           Hunt.ContextIndex                           (addWordsM)
 import qualified Hunt.ContextIndex                           as ConIx
@@ -24,7 +21,6 @@ import qualified Hunt.Index                                  as Ix
 import           Hunt.Index.IndexImpl
 import qualified Hunt.Index.InvertedIndex                    as InvIx
 import qualified Hunt.Index.PrefixTreeIndex                  as PIx
-import qualified Hunt.Index.Proxy.CompressedIndex            as CPIx
 
 -- ----------------------------------------------------------------------------
 
@@ -34,7 +30,6 @@ main = defaultMainWithOpts
   , testCase "InvertedIndex:           insert"        insertTestInvIx
   , testCase "InvertedIndex:           deleteDocs"    deleteDocsTestInvIx
   , testCase "InvertedIndex:           merge"         mergeTestInvIx
-  , testCase "ComprOccPrefixTree:      insert"        insertTestCPIx
   , testCase "ContextMap Inverted:     insert"        insertTestContextIx
   , testCase "ContextMap Inverted:     insertContext" insertTestContext
   , testCase "TextIndex:               addWords"      addWordsTest
@@ -65,14 +60,6 @@ mergeTest emptyIndex k v1 v2 = do
 insertTestPIx :: Assertion
 insertTestPIx = do
   result <- insertTest (Ix.empty::(PIx.DmPrefixTree Positions)) "test" (singleton 1 1)
-  True @?= result
-
--- | check ComprOccPrefixTree
-insertTestCPIx :: Assertion
-insertTestCPIx = do
-  result <- insertTest
-            (Ix.empty::((CPIx.ComprOccIndex PIx.DmPrefixTree CompressedPositions) Positions))
-            "test" (singleton 1 1)
   True @?= result
 
 

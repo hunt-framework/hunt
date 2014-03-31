@@ -2,6 +2,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies      #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  The document table interface.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.DocTable
 where
 
@@ -22,7 +28,7 @@ import           Hunt.Common.DocIdMap   (DocIdMap (..), DocIdSet)
 import qualified Hunt.Common.DocIdMap   as DM
 import           Hunt.Common.Document   (Document, DocumentWrapper (wrap, unwrap))
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | The document table type class which needs to be implemented to be used by the 'Interpreter'.
 --   The type parameter @i@ is the implementation.
@@ -102,13 +108,15 @@ class (DocumentWrapper (DValue i)) => DocTable i where
     -- | Empty 'DocTable'.
     empty           :: i
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
+-- | JSON dump of the document table.
 toJSON'DocTable :: (Functor m, (Monad m, Applicative m), DocTable i) => i -> m Value
 toJSON'DocTable dt
     = do didm <- DM.map unwrap <$> toMap dt
          return $ toJSON didm
 
+-- | JSON import of the document table.
 fromJSON'DocTable :: (Functor m, (Monad m, Applicative m), DocTable i) => Value -> m i
 fromJSON'DocTable v
     = foldM ins empty $ dm'
@@ -122,4 +130,4 @@ fromJSON'DocTable v
 
         dm'= DM.toList . DM.map wrap $ dm
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------

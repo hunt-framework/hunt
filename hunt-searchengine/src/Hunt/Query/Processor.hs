@@ -6,6 +6,15 @@
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeFamilies               #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  The query processor to perform 'Query's.
+
+  'processQuery' executes the query and generates the unranked result.
+  The result can be ranked with the default 'Hunt.Query.Ranking.rank' function.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.Query.Processor
 ( processQuery
 , processQueryDocIds , initProcessor
@@ -18,12 +27,12 @@ where
 
 import           Control.Applicative
 import           Control.Arrow
-import           Control.Monad
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
 import           Data.Binary                 (Binary)
 import qualified Data.Binary                 as Bin
+import           Data.Default
 import           Data.Function
 import qualified Data.List                   as L
 import qualified Data.Map                    as M
@@ -48,13 +57,13 @@ import           Hunt.Query.Result           (Result)
 import           Hunt.DocTable               (DocTable)
 import qualified Hunt.DocTable               as Dt
 
-import           Hunt.Index.Schema.Analyze
 import           Hunt.Interpreter.Command    (CmdError (..))
 
 import qualified System.Log.Logger           as Log
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Logging
+-- ------------------------------------------------------------
 
 -- | Name of the module for logging purposes.
 modName :: String
@@ -72,36 +81,46 @@ warningM = Log.warningM modName
 errorM :: String -> IO ()
 errorM = Log.errorM modName
 -}
--- ----------------------------------------------------------------------------
--- | The configuration and State for the query processor.
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+-- Configuration and state for the query processor
+-- ------------------------------------------------------------
 
+-- | Query processor configuration.
 data ProcessConfig
   = ProcessConfig
     { fuzzyConfig   :: ! FuzzyConfig -- ^ The configuration for fuzzy queries.
-    , optimizeQuery :: ! Bool        -- ^ Optimize the query before processing.
-    , wordLimit     :: ! Int         -- ^ The maximum number of words used from a prefix. @0@ = no limit.
-    , docLimit      :: ! Int         -- ^ The maximum number of documents taken into account. @0@ = no limit.
+    , optimizeQuery :: ! Bool        -- ^ Optimize the query before processing (default: @False@).
+    , wordLimit     :: ! Int         -- ^ The maximum number of words used from a prefix. @0@ = no limit (default: @100@).
+    , docLimit      :: ! Int         -- ^ The maximum number of documents taken into account. @0@ = no limit (default: @500@).
     }
+
+-- ------------------------------------------------------------
+
+instance Default ProcessConfig where
+  def = ProcessConfig def False 100 500
+
+-- ------------------------------------------------------------
 
 instance Binary ProcessConfig where
   put (ProcessConfig fc o l d)
     = Bin.put fc >> Bin.put o >> Bin.put l >> Bin.put d
   get
-    = liftM4 ProcessConfig Bin.get Bin.get Bin.get Bin.get
+    = ProcessConfig <$> Bin.get <*> Bin.get <*> Bin.get <*> Bin.get
+
+-- ------------------------------------------------------------
 
 -- | The internal state of the query processor.
 data ProcessEnv
   = ProcessEnv
-    { psConfig   :: ! ProcessConfig    -- ^ The configuration for the query processor.
-    , psContexts :: ! [Context]        -- ^ The current list of contexts.
+    { psConfig   :: ! ProcessConfig           -- ^ The configuration for the query processor.
+    , psContexts :: ! [Context]               -- ^ The current list of contexts.
     , psIndex    ::   ContextMap Occurrences  -- ^ The index to search.
-    , psSchema   ::   Schema           -- ^ Schema / Schemas for the contexts.
+    , psSchema   ::   Schema                  -- ^ Schema / Schemas for the contexts.
     }
 
--- ----------------------------------------------------------------------------
--- | Processor monad
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+-- Processor monad
+-- ------------------------------------------------------------
 
 type QueryIndex    = ContextMap     Occurrences
 
@@ -114,9 +133,9 @@ instance MonadTrans ProcessorT where
 
 type Processor = ProcessorT IO
 
--- ----------------------------------------------------------------------------
--- | helper
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+-- Helper
+-- ------------------------------------------------------------
 
 processError ::   Int -> Text -> Processor a
 processError n msg
@@ -140,34 +159,35 @@ getSchema ::   Processor Schema
 getSchema = ask >>= return . psSchema
 
 -- | Get the schema associated with that context/index.
---   /NOTE/: This fails if the schema does not exist.
+--
+--   /Note/: This fails if the schema does not exist.
 getContextSchema ::   Context -> Processor ContextSchema
 getContextSchema c = do
   schema <- getSchema
   case M.lookup c schema of
-    (Just cs) -> return cs
-    _         -> processError 420 ("Context does not exist in schema: " `T.append` c)
+    Just cs -> return cs
+    _       -> processError 420 ("Context does not exist in schema: " `T.append` c)
 
 
--- | normalizes search text in respect of schema context type
---   first runs validator that throws error for invalid values
---   then runs normalizers attached to the given context
+-- | Normalizes the search value with respect to the schema context type.
+--   First runs the validator that throws an error for invalid values,
+--   then runs the normalizers associated with the context.
 normQueryCx :: Context -> Text -> Processor Text
 normQueryCx c t = do
   s <- getContextSchema c
-  -- applying context type validator
+  -- apply context type validator
   if (validate . ctValidate . cxType $ s) t
     then do
       liftIO . debugM . debugMsg $ s
-      -- applying context schema normalizer
+      -- apply context schema normalizer
       return $ norm s
     else processError 400 $ errorMsg s
     where
-  norm s     = normalize (cxNormalizer s) t
+  norm s     = normalize' (cxNormalizer s) t
   debugMsg s = T.unpack $ T.concat [ "query normalizer: ", c, ": [", t, "=>", norm s, "]"]
   errorMsg s = T.concat ["value incompatible with context type: ", c, ":", t, "(", T.pack . show $ ctName . cxType $ s,")"]
 
--- | normalizes search text in respect of multiple contexts
+-- | Normalizes value with respect to multiple contexts.
 normQueryCxs ::   [Context] -> Text -> Processor [(Context, Text)]
 normQueryCxs cs t  = mapM (\c -> normQueryCx c t >>= \nt -> return (c, nt)) cs
 
@@ -178,10 +198,16 @@ initProcessor cfg ix s
   where -- XXX: kind of inefficient
   cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault) $ CIx.contexts' ix
 
--- ----------------------------------------------------------------------------
--- | processor code
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+-- Processor code
+-- ------------------------------------------------------------
 
+-- XXX: write in terms of processQuery'
+-- | Process a query and return the unranked search results.
+--
+--   Initialize the environment with 'initProcessor'.
+--
+--   The results can be ranked with the default 'Hunt.Query.Ranking.rank' function.
 processQuery :: (DocTable d, Dt.DValue d ~ e)
               => ProcessEnv -> d -> Query -> IO (Either CmdError (Result e))
 processQuery st d q = runErrorT . runReaderT (runProcessor processToRes) $ st
@@ -189,16 +215,19 @@ processQuery st d q = runErrorT . runReaderT (runProcessor processToRes) $ st
     oq = if optimizeQuery (psConfig st) then optimize q else q
     processToRes = process oq >>= \ir -> I.toResult d ir
 
+-- | Generic 'processQuery' with a function to create the final result from an 'Intermediate'.
 processQuery' :: (Intermediate -> Processor e) -> ProcessEnv -> Query -> IO (Either CmdError e)
 processQuery' f st q = runErrorT . runReaderT (runProcessor processToRes) $ st
     where
     oq = if optimizeQuery (psConfig st) then optimize q else q
     processToRes = process oq >>= f
 
+-- | Works like 'processQuery', but only returns the 'DocId's.
 processQueryDocIds :: ProcessEnv -> Query -> IO (Either CmdError DocIdSet)
 processQueryDocIds = processQuery' (return . DM.toDocIdSet . DM.keys)
 
-
+-- | Process a Query and construct an intermediate result.
+--   This can be further transformed to a final 'Result' with 'Hunt.Query.Intermediate.toResult'.
 process :: Query -> Processor Intermediate
 process o = case o of
   QWord QCase w       -> forAllContexts . processWordCase      $ w
@@ -236,9 +265,9 @@ forAllContexts' :: (QueryIndexCon)
 forAllContexts' f = getContexts >>= mapM (\c -> get >>= f c) >>= return . I.merges
 -}
 
--- ----------------------------------------------------------------------------
--- Word Query
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+-- Word query
+-- ------------------------------------------------------------
 
 -- | Process a single, case-insensitive word by finding all documents
 --   which contain the word as prefix.
@@ -275,9 +304,9 @@ processFuzzyWord q = do
   where
   fuzzySet cfg = (q,0):(F.toList $ F.fuzz cfg q)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Phrase Query
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Process a phrase.
 processPhrase :: TextSearchOp
@@ -288,6 +317,7 @@ processPhrase op q cs = do
     ims <- mapM (\c -> processPhraseInternal (meaningfulName ix c) q c) cs
     return . I.merges $ ims
     where
+    -- TODO: normalization?
     -- XXX: no limit for phrase queries? a phrase query is already really restrictive...
     meaningfulName ix c t = CIx.searchWithCx op c t ix
 
@@ -334,9 +364,9 @@ processPhraseInternal f q c = do
             hasSuccessor :: Positions -> Bool
             hasSuccessor w' = Pos.foldr (\cp r -> r || Pos.member (cp + p) w') False np
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Range Query
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 processRange ::   Text -> Text -> Processor Intermediate
 processRange l h = forAllContexts' range
   where
@@ -361,9 +391,9 @@ processRange l h = forAllContexts' range
     res <- CIx.lookupRangeCx c lo hi ix
     return . I.fromList lo c . limitWords st $ res -- FIXME: check I.fromList - correct term
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Operators
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Process a binary operator by caculating the union or the intersection of the two subqueries.
 processBin :: BinOp -> Intermediate -> Intermediate -> Processor Intermediate
@@ -388,9 +418,9 @@ processContexts cs q = do
   where
   setCx cfg = cfg { psContexts = cs}
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 -- Helper
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Limit a 'RawResult' to a fixed amount of the best words.
 --
@@ -430,7 +460,7 @@ limitWords s r          = cutW . cutD $ r
   --calcScore w@(_, o)    = (log (fromIntegral (psTotal s) / fromIntegral (DM.size o)), w)
   calcScore w@(_, o)    = (fromIntegral $ DM.size o, w) --(log (fromIntegral (psTotal s) / fromIntegral (DM.size o)), w)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Limit the number of docs in a raw result
 limitDocs               :: Int -> RawResult -> RawResult
@@ -439,13 +469,14 @@ limitDocs limit _
     | limit <= 0        = []
 limitDocs limit (x:xs)  = x : limitDocs (limit - DM.size (snd x)) xs
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Merge occurrences
 mergeOccurrencesList    :: [Occurrences] -> Occurrences
 mergeOccurrencesList    = DM.unionsWith Pos.union
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+
 -- old range stuff
 
 {-
@@ -498,3 +529,5 @@ succString = succString'
     --minBound' = 'a'
     --maxBound' = 'z'
 -}
+
+-- ------------------------------------------------------------

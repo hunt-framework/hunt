@@ -1,5 +1,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- ----------------------------------------------------------------------------
+{- |
+  The query language.
+
+  'Query' specifies the complete grammar.
+
+  "Hunt.Query.Language.Parser" provides a parser for plain text queries.
+-}
+-- ----------------------------------------------------------------------------
+
 module Hunt.Query.Language.Grammar
   (
   -- * Query data types
@@ -23,31 +33,39 @@ import qualified Data.Text              as T
 import           Data.Text.Binary       ()
 
 import           Hunt.Common.BasicTypes as BTy
-import           Hunt.Index.Schema
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
+-- | The query language.
 data Query
   = QWord    TextSearchType Text  -- ^ Word search.
-  | QPhrase  TextSearchType Text  -- ^ Phrase search
-  | QContext [Context] Query      -- ^ Restrict query to a list of contexts.
-  | QBinary  BinOp Query Query    -- ^ Combine two queries through a binary operation.
-  | QBoost   CWeight Query        -- ^ Weight for Query
-  | QRange   Text Text            -- ^ Range Query
+  | QPhrase  TextSearchType Text  -- ^ Phrase search.
+  | QContext [Context] Query      -- ^ Restrict a query to a list of contexts.
+  | QBinary  BinOp Query Query    -- ^ Combine two queries with a binary operation.
+  | QBoost   Weight Query         -- ^ Weight for query.
+  | QRange   Text Text            -- ^ Range query.
   deriving (Eq, Show)
 
-data TextSearchType = QCase | QNoCase | QFuzzy
+-- | The search opeation.
+data TextSearchType
+  = QCase   -- ^ Case-sensitive search.
+  | QNoCase -- ^ Case-insensitive search.
+  | QFuzzy  -- ^ Fuzzy search. See "Hunt.Query.Fuzzy" for details.
+            --   The query processor allows additional configuration with
+            --   'Hunt.Query.Processor.ProcessConfig'.
   deriving (Eq, Show)
 
 -- | A binary operation.
 data BinOp
   = And    -- ^ Intersect two queries.
   | Or     -- ^ Union two queries.
-  | AndNot -- ^ Filter a query by another, @q1 BUT q2@ is equivalent to @q1 AND NOT q2@.
-          --   This operator is useful for query processing optimizations.
+  | AndNot -- ^ Filter a query by another.
   deriving (Eq, Show)
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+-- JSON instances
+-- ------------------------------------------------------------
+
 instance ToJSON Query where
   toJSON o = case o of
     QWord op w        -> object . ty "word"    $ [ "op" .= op, "word"   .= w ]
@@ -126,7 +144,9 @@ instance FromJSON BinOp where
       _         -> mzero
   parseJSON _ = mzero
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+-- Binary instances
+-- ------------------------------------------------------------
 
 instance Binary Query where
   put (QWord op s)       = put (0 :: Word8) >> put op >> put s
@@ -174,38 +194,40 @@ instance Binary BinOp where
       2 -> return AndNot
       _ -> fail "Error while decoding BinOp"
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
--- | Transforms all @(QBinary And q1 q2)@ where one of @q1@ or @q2@ is a @Negation@ into
--- @QBinary Filter q1 q2@ or @QBinary Filter q2 q1@ respectively.
+-- | Minor query optimizations.
+--
+--   /Note/: This can affect the ranking.
 optimize :: Query -> Query
-
+-- Same prefix in AND query (case-insensitive)
 optimize q@(QBinary And (QWord QNoCase q1) (QWord QNoCase q2))
   | T.toLower q1 `T.isPrefixOf` T.toLower q2 = QWord QNoCase q2
   | T.toLower q2 `T.isPrefixOf` T.toLower q1 = QWord QNoCase q1
   | otherwise = q
-
+-- Same prefix in AND query (case-sensitive)
 optimize q@(QBinary And (QWord QCase q1) (QWord QCase q2))
   | q1 `T.isPrefixOf` q2 = QWord QCase q2
   | q2 `T.isPrefixOf` q1 = QWord QCase q1
   | otherwise = q
-
+-- Same prefix in OR query (case-insensitive)
 optimize q@(QBinary Or (QWord QNoCase q1) (QWord QNoCase q2))
   | T.toLower q1 `T.isPrefixOf` T.toLower q2 = QWord QNoCase q1
   | T.toLower q2 `T.isPrefixOf` T.toLower q1 = QWord QNoCase q2
   | otherwise = q
-
+-- Same prefix in OR query (case-sensitive)
 optimize q@(QBinary Or (QWord QCase q1) (QWord QCase q2))
   | q1 `T.isPrefixOf` q2 = QWord QCase q1
   | q2 `T.isPrefixOf` q1 = QWord QCase q2
   | otherwise = q
+-- recursive application
+optimize (QBinary And    q1 q2) = QBinary And    (optimize q1) (optimize q2)
+optimize (QBinary Or     q1 q2) = QBinary Or     (optimize q1) (optimize q2)
+optimize (QBinary AndNot q1 q2) = QBinary AndNot (optimize q1) (optimize q2)
+optimize (QContext cs q)        = QContext cs (optimize q)
+optimize (QBoost w q)           = QBoost w (optimize q)
 
-optimize (QBinary And    q1 q2)          = QBinary And    (optimize q1) (optimize q2)
-optimize (QBinary Or     q1 q2)          = QBinary Or     (optimize q1) (optimize q2)
-optimize (QBinary AndNot q1 q2)          = QBinary AndNot (optimize q1) (optimize q2)
-optimize (QContext cs q)                 = QContext cs (optimize q)
-
-optimize q                               = q
+optimize q                      = q
 
 -- | Check if the query arguments comply with some custom predicate.
 checkWith                         :: (Text -> Bool) -> Query -> Bool
@@ -224,3 +246,5 @@ extractTerms (QWord QFuzzy s)      = [s]
 extractTerms (QContext _ q)        = extractTerms q
 extractTerms (QBinary _ q1 q2)     = extractTerms q1 ++ extractTerms q2
 extractTerms _                     = []
+
+-- ------------------------------------------------------------

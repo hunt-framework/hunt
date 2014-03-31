@@ -5,17 +5,20 @@
 {-# LANGUAGE TypeSynonymInstances       #-}
 
 -- ----------------------------------------------------------------------------
-{-
-  Occurrences compression using Google's Snappy library
-    https://code.google.com/p/snappy/
+{- |
+  'Occurrences' compression using Google's Snappy library:
+    <https://code.google.com/p/snappy/>
 
-  Haskell-Bindings
-    http://hackage.haskell.org/package/snappy
+  Haskell-Bindings:
+    <http://hackage.haskell.org/package/snappy>
 
-  Requires the Snappy C library
-    source: https://code.google.com/p/snappy/
-    deb: apt-get install libsnappy-dev
-    rpm: yum install libsnappy-devel
+  Requires the Snappy C library:
+
+    - source: <https://code.google.com/p/snappy/>
+
+    - deb: @apt-get install libsnappy-dev@
+
+    - rpm: @yum install libsnappy-devel@
 -}
 -- ----------------------------------------------------------------------------
 
@@ -50,8 +53,9 @@ import           Hunt.Common.Occurrences.Compression
 --   The Document can be retrieved with 'decompressOcc'.
 --   The corresponding bijection is defined in 'DocumentWrapper'.
 --
---   Uses 'Bytestring' instead of 'ShortByteString' which can lead to fragmentation:
---     https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1
+--   Using 'ShortByteString' saves 5 machine words per value.
+--   It also eliminates issues with sharing and fragmentation due to 'ByteString's being pinned.
+--   <https://hackage.haskell.org/package/bytestring/docs/Data-ByteString-Short.html#g:1>
 newtype CompressedOccurrences = ComprOccs { unComprOccs :: ShortByteString }
   deriving (Eq, Show, Typeable)
 

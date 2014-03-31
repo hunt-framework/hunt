@@ -5,12 +5,50 @@
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE UndecidableInstances  #-}
 
-module Hunt.ContextIndex where
+-- ----------------------------------------------------------------------------
+{- |
+  The context index introduces contexts and combines the index, document table and schema.
+-}
+-- ----------------------------------------------------------------------------
+
+module Hunt.ContextIndex
+  (
+    -- * Construction
+    empty
+
+    -- * Contexts and Schema
+  , insertContext
+  , deleteContext
+  , contexts
+  , contexts'
+  , hasContext'
+  , hasContext
+
+    -- * Queries
+  , lookupRangeCx
+  , searchWithCx
+  , searchWithCxsNormalized
+
+    -- * Insert\/Delete Documents
+  , insertList
+  , insertWithCx               -- only used in tests
+  , modifyWithDescription
+  , addWordsM                  -- only used in tests
+  , delete
+  , deleteDocsByURI
+  , decodeCxIx
+  , member
+
+    -- * Types
+  , ContextIndex (..)
+  , ContextMap (..)
+  )
+where
 
 import           Prelude
 import qualified Prelude                     as P
 
-import           Control.Applicative         (Applicative)
+import           Control.Applicative         (Applicative, (<$>), (<*>))
 import           Control.Arrow
 import           Control.Monad
 import qualified Control.Monad.Parallel      as Par
@@ -42,52 +80,63 @@ import qualified Hunt.Index.IndexImpl        as Impl
 
 import           Hunt.Utility
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
+-- | Context index introduces contexts and combines the major components of Hunt.
 data ContextIndex dt = ContextIndex
-  { ciIndex  :: !(ContextMap Occurrences)
-  , ciDocs   :: dt
-  , ciSchema :: Schema
+  { ciIndex  :: !(ContextMap Occurrences) -- ^ Indexes associated to contexts.
+  , ciDocs   :: dt                        -- ^ Document table.
+  , ciSchema :: Schema                    -- ^ Schema associated to contexts.
   }
 
+-- | Contexts with associated heterogeneous index implementations.
 newtype ContextMap v
   = ContextMap { cxMap :: Map Context (Impl.IndexImpl v) }
   deriving (Show)
 
+-- | Strict smart constructor for the 'ContextMap'.
 mkContextMap :: Map Context (Impl.IndexImpl v) -> ContextMap v
 mkContextMap x = ContextMap $! x
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
+-- Binary / Serialization
+-- ------------------------------------------------------------
 
 getContextMap :: [IndexImpl Occurrences] -> Get (ContextMap Occurrences)
-getContextMap ts = liftM M.fromDistinctAscList (Impl.gets' ts) >>= return . ContextMap
+getContextMap ts = liftM M.fromDistinctAscList (Impl.gets' ts) >>= return . mkContextMap
 
 instance Binary v => Binary (ContextMap v) where
   put = put . cxMap
-  get = get >>= return . ContextMap
+  get = get >>= return . mkContextMap
 
--- ----------------------------------------------------------------------------
 
+-- | Deserialize a 'ContextIndex' with the list of available index implementations.
+--
+--   /Note/: The serialized index implementations have to  be in the list of available types,
+--           otherwise this will fail.
 decodeCxIx :: (Binary dt, DocTable dt) => [IndexImpl Occurrences] -> ByteString -> ContextIndex dt
 decodeCxIx ts = runGet (get' ts)
 
 get' :: Binary dt => [IndexImpl Occurrences] -> Get (ContextIndex dt)
-get' ts = liftM3 ContextIndex (getContextMap ts) get get
+get' ts = ContextIndex <$> (getContextMap ts) <*> get <*> get
 
 instance Binary dt => Binary (ContextIndex dt) where
-  get = liftM3 ContextIndex get get get
+  get = ContextIndex <$> get <*> get <*> get
   put (ContextIndex a b c) = put a >> put b >> put c
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
+{-
 -- | Insert a Document and Words.
---   /NOTE/: For multiple inserts, use the more efficient 'insertList'.
+--
+--   /Note/: For multiple inserts, use the more efficient 'insertList'.
 insert :: (Par.MonadParallel m, Applicative m, DocTable dt)
        => Dt.DValue dt -> Words -> ContextIndex dt -> m (ContextIndex dt)
 insert doc wrds ix = insertList [(doc,wrds)] ix
+-}
 
--- | Insert multiple Documents and Words.
---   This is more efficient than using fold and 'insert'.
+--   This is more efficient than using fold and with 'insert'.
+-- | Insert multiple documents and words.
 insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
        => [(Dt.DValue dt, Words)] -> ContextIndex dt -> m (ContextIndex dt)
 insertList docAndWrds (ContextIndex ix docTable s) = do
@@ -116,7 +165,8 @@ insertList docAndWrds (ContextIndex ix docTable s) = do
   mkPairs (a:b:xs) = (a,b):mkPairs xs
 
 
--- | Modify elements
+-- XXX: this should not work well atm
+-- | Modify documents and index data.
 modify :: (Par.MonadParallel m, Applicative m, DocTable dt)
        => (Dt.DValue dt -> m (Dt.DValue dt))
        -> Words -> DocId -> ContextIndex dt -> m (ContextIndex dt)
@@ -146,7 +196,7 @@ delete dIds cix@(ContextIndex ix dt s)
              return $ ContextIndex newIx newDt s
 
 
--- | All contexts.
+-- | All contexts of the index.
 contexts :: (Monad m, DocTable dt)
          => ContextIndex dt -> m [Context]
 contexts (ContextIndex ix _dt _s) = return $ contexts' ix
@@ -163,7 +213,7 @@ member :: (Monad m, Applicative m, DocTable dt)
 member u (ContextIndex _ii dt _s) = do
   mem <- Dt.lookupByURI u dt
   return $ isJust mem
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
@@ -178,10 +228,13 @@ modifyWithDescription weight descr wrds dId (ContextIndex ii dt s) = do
   mergeDescr = return . Doc.update (\d -> d{ desc = flip M.union (desc d) descr
                                            , wght = fromMaybe (wght d) weight })
 
--- ----------------------------------------------------------------------------
--- helper
+-- ------------------------------------------------------------
+-- Helper
+-- ------------------------------------------------------------
 
-
+-- | Adds words associated to a document to the index.
+--
+--   'insertList' and 'modifyWithDescription' are more convenient in most cases.
 addWordsM :: Par.MonadParallel m => Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
 addWordsM wrds dId (ContextMap m)
   = mapWithKeyMP (\cx impl -> foldInsert cx impl wrds dId) m >>= return . mkContextMap
@@ -191,10 +244,11 @@ addWordsM wrds dId (ContextMap m)
     = Ix.insertListM (contentForCx cx [(docId,ws)]) impl >>= return . Impl.mkIndex
 
 -- | Add words for a document to the 'Index'.
---   /NOTE/: adds words to /existing/ 'Context's.
+--
+--   /Note/: Adds words to /existing/ 'Context's.
 batchAddWordsM :: Par.MonadParallel m => [(DocId, Words)] -> ContextMap Occurrences -> m (ContextMap Occurrences)
 batchAddWordsM vs (ContextMap m)
-  = mapWithKeyMP (\cx impl -> foldinsertList cx impl) m >>= return . ContextMap
+  = mapWithKeyMP (\cx impl -> foldinsertList cx impl) m >>= return . mkContextMap
   where
   foldinsertList :: Monad m => Context -> IndexImpl Occurrences -> m (IndexImpl Occurrences)
   foldinsertList cx (Impl.IndexImpl impl)
@@ -205,7 +259,8 @@ contentForCx :: Content -> [(DocId, Words)] -> [(Word, Occurrences)]
 contentForCx cx vs = (concat . map ((\(did, wl) -> map (second (mkOccs did)) $ M.toList wl) . second (getWlForCx cx)) $ vs)
 
 -- | Add words for a document to the 'Index'.
---   /NOTE/: adds words to /existing/ 'Context's.
+--
+--   /Note/: Adds words to /existing/ 'Context's.
 batchAddWords :: [(DocId, Words)] -> ContextMap Occurrences -> ContextMap Occurrences
 batchAddWords vs (ContextMap m)
   = mkContextMap $ M.fromList $ parMap rpar (\(cx,impl) -> (cx,foldinsertList cx impl)) (M.toList m)
@@ -216,6 +271,7 @@ batchAddWords vs (ContextMap m)
 
 ----------------------------------------------------------------------------
 -- addWords/batchAddWords functions
+----------------------------------------------------------------------------
 
 positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
 positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws
@@ -234,7 +290,7 @@ mapWithKeyM f m =
                 ) $ M.toList m) >>=
     return . M.fromList
 
--- | parallel map
+-- parallel map
 --   increasing cpu usage from 30% to 60%
 --   but runtime is actually slower
 mapWithKeyMP :: (Par.MonadParallel m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
@@ -247,23 +303,34 @@ mapWithKeyMP f m =
 
 ----------------------------------------------------------------------------
 
--- | Empty ContextMap.
+-- | Empty context map.
 empty :: ContextMap v
 empty = ContextMap $ M.empty
 
--- | Insert a new context.
---   /Note/: If context already exists this function does nothing.
+{-
+-- | Inserts a new context.
+--
+--   /Note/: Does nothing if the context already exists.
 insertContext' :: Impl.IndexImplCon ix v
               => Context -> ix v -> ContextMap v -> ContextMap v
-insertContext' c ix (ContextMap m) = ContextMap $ M.insertWith (const id) c (Impl.mkIndex ix) m
+insertContext' c ix (ContextMap m) = mkContextMap $ M.insertWith (const id) c (Impl.mkIndex ix) m
+-}
 
+-- | Inserts a new context.
+--
+--   /Note/: Does nothing if the context already exists.
 insertContext :: Context -> Impl.IndexImpl v -> ContextMap v -> ContextMap v
-insertContext c ix (ContextMap m) = ContextMap $ M.insertWith (const id) c ix m
+insertContext c ix (ContextMap m) = mkContextMap $ M.insertWith (const id) c ix m
 
 
--- | Removes context (including the index) from the 'ContextMap'.
-deleteContext :: Context -> ContextMap v -> ContextMap v
-deleteContext c (ContextMap m) = ContextMap $ M.delete c m
+
+-- | Removes context (including the index and the schema).
+deleteContext :: Context -> ContextIndex dt -> ContextIndex dt
+deleteContext c (ContextIndex ix dt s) = ContextIndex (deleteContext' c ix) dt (M.delete c s)
+  where
+  -- | Removes context (includes the index, but not the schema).
+  deleteContext' :: Context -> ContextMap v -> ContextMap v
+  deleteContext' cx (ContextMap m) = mkContextMap $ M.delete cx m
 
 -- | Insert an element to a 'Context'.
 insertWithCx :: Monad m => Context -> Text -> v -> ContextMap v -> m (ContextMap v)
@@ -276,11 +343,12 @@ insertWithCx c w v (ContextMap m)
 
 delete' :: Par.MonadParallel m => DocIdSet -> ContextMap v -> m (ContextMap v)
 delete' dIds (ContextMap m)
-  = mapWithKeyMP (\_ impl -> adjust' impl) m >>= return . ContextMap
+  = mapWithKeyMP (\_ impl -> adjust' impl) m >>= return . mkContextMap
 --  = TV.mapM adjust' m >>= return . mkContextMap
   where
   adjust' (Impl.IndexImpl ix) = liftM Impl.mkIndex $ Ix.deleteDocsM dIds ix
 
+-- | Search query in all context.
 search :: Monad m => TextSearchOp -> Text -> ContextMap v -> m [(Context, [(Text, v)])]
 search op k (ContextMap m)
   = liftM M.toList $ TV.mapM search' m
@@ -288,12 +356,14 @@ search op k (ContextMap m)
   search' (Impl.IndexImpl ix) = Ix.searchM op k ix
 
 -- XXX: code duplication? - see searchwithcx...
+-- | Range query in a context.
 lookupRangeCx :: Monad m => Context -> Text -> Text -> ContextMap v -> m [(Text, v)]
 lookupRangeCx c k1 k2 (ContextMap m)
   = case M.lookup c m of
       Just (Impl.IndexImpl cm) -> Ix.lookupRangeM k1 k2 cm
       _                        -> return []
 
+-- | Range query in multiple contexts.
 lookupRangeCxs :: Monad m => [Context] -> Text -> Text -> ContextMap v -> m [(Context, [(Text, v)])]
 lookupRangeCxs cs k1 k2 (ContextMap m)
   = P.mapM search' cs
@@ -304,14 +374,16 @@ lookupRangeCxs cs k1 k2 (ContextMap m)
       return (c, ix)
     _ -> return (c, [])
 
+-- | Search query in a context.
 searchWithCx :: Monad m => TextSearchOp -> Context -> Text -> ContextMap v -> m [(Text, v)]
 searchWithCx op c k (ContextMap m)
   = case M.lookup c m of
       Just (Impl.IndexImpl cm) -> Ix.searchM op k cm
       _                        -> return []
 
--- | XXX we actually do not have any parallelism here at the moment
---   because everything is evalutated lazy!
+-- XXX: we actually do not have any parallelism here at the moment
+--      because everything is evalutated lazy!
+-- | Search query in multiple contexts.
 searchWithCxs :: Monad m => TextSearchOp -> [Context] -> Text -> ContextMap v -> m [(Context, [(Text, v)])]
 searchWithCxs op cs k (ContextMap m)
   = P.mapM search' cs
@@ -322,7 +394,7 @@ searchWithCxs op cs k (ContextMap m)
       return (c, ix)
     _ -> return (c, [])
 
--- | search in different contexts with key already normalized in respect to each context type
+-- | Search in contexts with key already normalized with respect to each context type.
 searchWithCxsNormalized :: Monad m => TextSearchOp -> [(Context, Text)] -> ContextMap v -> m [(Context, [(Text, v)])]
 searchWithCxsNormalized op cks (ContextMap m)
   = P.mapM search' cks
@@ -333,7 +405,7 @@ searchWithCxsNormalized op cks (ContextMap m)
       return (c, ix)
     _ -> return (c, [])
 
--- ----------------------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | Contexts/keys of 'ContextMap'.
 contexts' :: ContextMap v -> [Context]
@@ -379,3 +451,5 @@ mapReduceAddWordsM vs (ContextMap m)
 --update docId doc' w ix = do
 --  ix' <- delete ix (IS.singleton docId)
 --  insert doc' w ix'
+
+-- ------------------------------------------------------------

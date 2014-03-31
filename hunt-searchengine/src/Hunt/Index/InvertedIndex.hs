@@ -20,11 +20,11 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Index.InvertedIndex
-( InvertedIndex (..)
-, InvertedIndexDate
-, InvertedIndexInt
-, InvertedIndexPosition
-)
+  ( InvertedIndex (..)
+  , InvertedIndexDate
+  , InvertedIndexInt
+  , InvertedIndexPosition
+  )
 where
 
 import           Prelude                                  as P
@@ -38,7 +38,7 @@ import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences                  (Occurrences)
-import           Hunt.Common.Occurrences.Compression.BZip
+--import           Hunt.Common.Occurrences.Compression.BZip
 import           Hunt.Index                               as Ix
 import           Hunt.Index.ComprPrefixTreeIndex
 import qualified Hunt.Index.ComprPrefixTreeIndex2Dim      as PT2D
