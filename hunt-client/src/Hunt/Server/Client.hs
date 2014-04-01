@@ -22,7 +22,6 @@ module Hunt.Server.Client (
     -- * Some Reexports from hunt
     , H.LimitedResult (..)
     , H.ApiDocument (..)
-    , H.position
     , ContextDescription (..)
     , ContextType (..)
     , def
