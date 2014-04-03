@@ -56,7 +56,7 @@ mkKeyProxyIx v = KeyProxyIx $! v
 -- ------------------------------------------------------------
 
 instance Binary (impl v) => Binary (KeyProxyIndex toType impl v) where
-  put = put . KeyProxyIx
+  put = put . keyProxyIx
   get = get >>= return . mkKeyProxyIx
 
 -- ------------------------------------------------------------
