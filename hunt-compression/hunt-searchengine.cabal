@@ -1,0 +1,74 @@
+name:          hunt-compression
+version:       0.1
+license:       MIT
+license-file:  LICENSE
+author:        Chris Reumann, Ulf Sauer, Uwe Schmidt
+copyright:     Chris Reumann, Ulf Sauer, Uwe Schmidt
+maintainer:    Chris Reumann, Ulf Sauer, Uwe Schmidt
+stability:     experimental
+category:      Text, Data
+synopsis:      A plugin for the hunt search framework that provides support for compression
+homepage:      http://github.com/hunt-framework/
+description:   The Hunt-Searchengine library provides a toolkit to
+               create fast and flexible searchengines. This plugin
+               adds support for compressed document tables and also
+               adds additional compressed context-types (index implementations).
+cabal-version: >=1.8
+build-type:    Simple
+-- tested-with:   ghc-7.6.3
+
+-- extra-source-files:
+--     README
+
+source-repository head
+  type:        git
+  location:    https://github.com/hunt-framework/hunt-compression.git
+
+library
+
+  build-depends: base                   >= 4.5  && < 5
+               , aeson                  >= 0.6
+               , binary                 >= 0.5  && < 1
+               , bytestring             >= 0.10.4  && < 1
+               , bzlib                  >= 0.4  && < 1
+               , containers             >= 0.5
+               , data-stringmap         >= 1.0.1.1 && < 2
+               , data-default               
+               , murmur-hash
+               
+
+  if impl( ghc >= 7.7 )
+    build-depends: snappy               >= 0.1  && < 1
+
+  exposed-modules:
+    Codec.Compression.Utility
+    Codec.Compression.BZip.Smart
+    Codec.Compression.Snappy.Lazy.Smart
+
+    Hunt.Common.Document.Compression.BZip
+    Hunt.Common.Document.Compression.Snappy
+
+    Hunt.Common.Occurrences.Compression
+    Hunt.Common.Occurrences.Compression.BZip
+    Hunt.Common.Occurrences.Compression.BZipBs
+    Hunt.Common.Occurrences.Compression.Simple9
+    Hunt.Common.Occurrences.Compression.Snappy
+
+    Hunt.Index.ComprPrefixTreeIndex
+    Hunt.Index.ComprPrefixTreeIndex2Dim
+    Hunt.Index.InvertedIndex
+
+    Hunt.Index.Proxy.CompressedIndex
+
+  hs-source-dirs: src
+
+  ghc-options: -Wall -funbox-strict-fields -fwarn-tabs -threaded
+
+  extensions: MultiParamTypeClasses
+              FlexibleContexts
+              OverloadedStrings
+              TypeFamilies
+              ConstraintKinds
+              KindSignatures
+              CPP
+
