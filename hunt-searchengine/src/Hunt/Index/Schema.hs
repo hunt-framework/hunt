@@ -263,7 +263,7 @@ instance FromJSON ContextSchema where
 instance ToJSON ContextSchema where
   toJSON (ContextSchema r n w d ct) = object' $
     [ "type"        .== ct
-    , "weight"      .== w
+    , "weight"      .=? w .\. (== 1.0)
     , "regexp"      .=? r .\. isNothing
     , "normalizers" .=? n .\. null
     , "default"     .=? d .\. id
