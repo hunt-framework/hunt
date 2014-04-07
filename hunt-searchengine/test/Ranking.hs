@@ -13,7 +13,6 @@ import           Test.HUnit
 import           Hunt.Common
 import           Hunt.Common.ApiDocument               as ApiDoc
 import           Hunt.Common.Document
-import           Hunt.Common.Document.Compression.BZip
 import           Hunt.Interpreter.Command
 import           Hunt.Interpreter
 import           Hunt.Query.Language.Grammar
@@ -23,8 +22,8 @@ import           Hunt.DocTable.HashedDocTable          (Documents)
 
 -- ----------------------------------------------------------------------------
 
-type TestEnv  = HuntEnv (Documents CompressedDoc)
-type TestCM a = Hunt    (Documents CompressedDoc) a
+type TestEnv  = HuntEnv (Documents Document)
+type TestCM a = Hunt    (Documents Document) a
 
 rankConfig :: DocumentWrapper e => RankConfig e
 rankConfig = defaultRankConfig

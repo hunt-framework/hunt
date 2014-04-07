@@ -32,7 +32,7 @@ library
   build-depends: base                   >= 4.5  && < 5
                , aeson                  >= 0.6
                , binary                 >= 0.5  && < 1
-               , bytestring             >= 0.10.4  && < 1
+               , bytestring             >= 0.10 && < 1
                , bzlib                  >= 0.4  && < 1
                , containers             >= 0.5
                , data-stringmap         >= 1.0.1.1 && < 2
@@ -76,6 +76,7 @@ library
     Hunt.Common.Occurrences
     Hunt.Common.Positions
     Hunt.Common.RawResult
+    Hunt.Common.Document
 
     Hunt.Index.Schema
     Hunt.Index.Schema.Analyze
@@ -204,26 +205,26 @@ test-suite Hunt-Ranking
                , text
                , data-default
 
---test-suite Hunt-IndexStrictess
---  hs-source-dirs:       test
---  main-is:              IndexStrict.hs
---  type:                 exitcode-stdio-1.0
---  ghc-options:          -Wall
---  extensions:           OverloadedStrings
---
---  build-depends: base
---               , containers
---               , deepseq
---               , ghc-heap-view                >= 0.5
---               , HUnit
---               , hunt-searchengine
---               , mtl
---               , QuickCheck
---               , random                       >= 1.0
---               , test-framework
---               , test-framework-hunit
---               , test-framework-quickcheck2
---               , text
+test-suite Hunt-IndexStrictess
+  hs-source-dirs:       test
+  main-is:              IndexStrict.hs
+  type:                 exitcode-stdio-1.0
+  ghc-options:          -Wall
+  extensions:           OverloadedStrings
+
+  build-depends: base
+               , containers
+               , deepseq
+               , ghc-heap-view                >= 0.5
+               , HUnit
+               , hunt-searchengine
+               , mtl
+               , QuickCheck
+               , random                       >= 1.0
+               , test-framework
+               , test-framework-hunit
+               , test-framework-quickcheck2
+               , text
 
 test-suite Hunt-Analyzer
   hs-source-dirs:       test

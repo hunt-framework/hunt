@@ -11,9 +11,12 @@ import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit
 
-import           Hunt.Common
+import           Hunt.Common.BasicTypes
 import qualified Hunt.Common.DocIdMap                        as DM
-import           Hunt.Common.Occurrences                     (merge, singleton)
+import           Hunt.Common.DocIdMap                        (DocIdMap)
+import           Hunt.Common.Positions                       (Positions)
+import           Hunt.Common.Occurrences
+import           Hunt.Common.Document
 
 import           Hunt.ContextIndex                           (addWordsM)
 import qualified Hunt.ContextIndex                           as ConIx

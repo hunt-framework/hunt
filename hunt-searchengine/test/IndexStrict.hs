@@ -32,26 +32,15 @@ import qualified System.Mem
 
 
 import           Hunt.Common
-import qualified Hunt.Common.Occurrences                     as Occ
-import qualified Hunt.Common.Occurrences.Compression.BZip    as ZB
-import qualified Hunt.Common.Occurrences.Compression.Simple9 as Z9
-import qualified Hunt.Common.Occurrences.Compression.Snappy  as ZS
 import qualified Hunt.Common.Positions                       as Pos
+import qualified Hunt.Common.Occurrences                     as Occ
 
-
-import qualified Hunt.Index.ComprPrefixTreeIndex             as CPIx
 import qualified Hunt.Index                                  as Ix
 import qualified Hunt.Index.InvertedIndex                    as InvIx
 import qualified Hunt.Index.PrefixTreeIndex                  as PIx
 import           Hunt.Index.IndexImpl
 
-import qualified Hunt.Index.Proxy.CachedIndex                as CacheProxy
 import qualified Hunt.Index.Proxy.KeyIndex                   as KeyProxy
-import qualified Hunt.Index.Proxy.IntNormalizerIndex         as IntProxy
-import qualified Hunt.Index.Proxy.DateNormalizerIndex        as DateProxy
-import qualified Hunt.Index.Proxy.PositionNormalizerIndex    as GeoProxy
-import qualified Hunt.Index.Proxy.ContextIndex               as CIx
---import qualified Hunt.Index.Proxy.CompressedIndex            as ComprProxy
 
 -- ----------------------------------------------------------------------------
 
@@ -68,14 +57,14 @@ main = defaultMain
   , testProperty "prop_strictness_invindex geokey"           prop_invix4
 
   -- strictness property for compression implementations
-  , testProperty "prop_strictness_comprprefixtreeindex bzip" prop_cptix2
-  , testProperty "prop_strictness_comprprefixtreeindex snap" prop_cptix3
+--  , testProperty "prop_strictness_comprprefixtreeindex bzip" prop_cptix2
+--  , testProperty "prop_strictness_comprprefixtreeindex snap" prop_cptix3
   --            test failing right now because compressedoccurrences are not strict
   --            but we are not using them at the moment and probably won't in the future
   --              , testProperty "prop_strictness_comprprefixtreeindex comp" prop_cptix
 
   -- strictness property for proxies
-  , testProperty "prop_strictness_proxy_cache"               prop_cachedix
+--  , testProperty "prop_strictness_proxy_cache"               prop_cachedix
   , testProperty "prop_strictness_proxy_textkey"             prop_textix
   , testProperty "prop_strictness_proxy_intkey"              prop_intix
   , testProperty "prop_strictness_proxy_datekey"             prop_dateix
@@ -121,6 +110,7 @@ prop_ptix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
+{--
 prop_cptix :: Property
 prop_cptix
   = monadicIO $ do
@@ -144,7 +134,7 @@ prop_cptix3
     assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
-
+--}
 
 prop_invix1 :: Property
 prop_invix1
@@ -184,6 +174,7 @@ prop_invix4
 -- ----------------------------------------------------------------------------
 
 -- cache
+{--
 prop_cachedix :: Property
 prop_cachedix
   = monadicIO $ do
@@ -192,7 +183,7 @@ prop_cachedix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
-
+--}
 -- text proxy
 prop_textix :: Property
 prop_textix
@@ -206,7 +197,7 @@ prop_textix
 prop_intix :: Property
 prop_intix
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (IntProxy.IntAsTextNormalizerIndex (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree)) Positions)
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexInt Positions)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1" val Ix.empty
@@ -215,7 +206,7 @@ prop_intix
 prop_dateix :: Property
 prop_dateix
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (DateProxy.DateNormalizerIndex (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree)) Positions)
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexDate Positions)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "2013-01-01" val Ix.empty
@@ -224,7 +215,7 @@ prop_dateix
 prop_geoix :: Property
 prop_geoix
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (GeoProxy.PositionNormalizerIndex (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree)) Positions)
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Positions)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
@@ -232,7 +223,7 @@ prop_geoix
 -- ----------------------------------------------------------------------------
 -- test property contextindex
 -- ----------------------------------------------------------------------------
-
+{--
 prop_contextix_empty :: Property
 prop_contextix_empty
   = monadicIO $ do
@@ -277,11 +268,12 @@ prop_contextix2
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
   pickIx2 = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
-
+--}
 -- ----------------------------------------------------------------------------
 -- test property indeximpl
 -- ----------------------------------------------------------------------------
 
+{--
 prop_impl_full :: Property
 prop_impl_full
   = monadicIO $ do
@@ -295,6 +287,7 @@ prop_impl_empty
   = monadicIO $ do
     let ix = Ix.empty  :: (InvIx.InvertedIndexPosition Occurrences)
     assertNF' $ mkIndex ix
+--}
 
 -- ----------------------------------------------------------------------------
 -- test property
@@ -360,7 +353,7 @@ apiDocGen :: Int -> Gen ApiDocument
 apiDocGen n = do
   desc_    <- descriptionGen
   let ix  =  mkIndexData n desc_
-  return  $ ApiDocument uri_ ix desc_
+  return  $ ApiDocument uri_ ix desc_ (Just 1.0)
   where uri_ = T.pack . ("rnd://" ++) . show $ n
 
 niceText1 :: Gen Text
