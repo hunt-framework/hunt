@@ -35,7 +35,8 @@ module Hunt.Index.Schema
   )
 where
 
-import           Control.Monad                        (mzero, liftM5)
+import           Control.Applicative
+import           Control.Monad                        (mzero)
 
 import           Data.Aeson
 import           Data.Binary                          hiding (Word)
@@ -230,11 +231,10 @@ cnZeroFill = CNormalizer "ZeroFill" Int.normalizeToText
 -- JSON instances
 -- ------------------------------------------------------------
 
--- | /Note/: This is only partional (de-)serialization.
---   The other components are environment depending
+-- | /Note/: This is only partial (de-)serialization.
+--   The other components are environment-dependent
 --   and cannot be (de-)serialized. We serialize the name
---   and identify the other compontens of the type
---   later.
+--   and identify the other compontens of the type later.
 instance FromJSON ContextType where
   parseJSON (String s) = return $ def { ctName = s }
   parseJSON _          = mzero
@@ -251,23 +251,22 @@ instance ToJSON CNormalizer where
 
 instance FromJSON ContextSchema where
   parseJSON (Object o) = do
-    r <- o .:? "regexp"
-    n <- o .:? "normalizers" .!= []
-    w <- o .:? "weight"      .!= 1.0
-    d <- o .:? "default"     .!= True
-    ct <- o .: "type"
+    r  <- o .:? "regexp"
+    n  <- o .:? "normalizers" .!= []
+    w  <- o .:? "weight"      .!= 1.0
+    d  <- o .:? "default"     .!= True
+    ct <- o .:  "type"
     return $ ContextSchema r n w d ct
 
   parseJSON _ = mzero
 
 instance ToJSON ContextSchema where
-  toJSON (ContextSchema r n w d ct) = object . Prelude.concat $
-    [ [ "type"       .= ct
-      , "weight"      .= w
-      ]
-    , "regexp"        .=? r .\. isNothing
-    , "normalizers"   .=? n .\. null
-    , "default"       .=? d .\. id
+  toJSON (ContextSchema r n w d ct) = object' $
+    [ "type"        .== ct
+    , "weight"      .== w
+    , "regexp"      .=? r .\. isNothing
+    , "normalizers" .=? n .\. null
+    , "default"     .=? d .\. id
     ]
 
 -- ------------------------------------------------------------
@@ -275,7 +274,7 @@ instance ToJSON ContextSchema where
 -- ------------------------------------------------------------
 
 instance Binary ContextSchema where
-  get = liftM5 ContextSchema get get get get get
+  get = ContextSchema <$> get <*> get <*> get <*> get <*> get
   put (ContextSchema a b c d e) = put a >> put b >> put c >> put d >> put e
 
 instance Binary ContextType where
