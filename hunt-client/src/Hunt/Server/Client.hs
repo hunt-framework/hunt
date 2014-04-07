@@ -71,9 +71,10 @@ import qualified Network.HTTP.Client as HTTP (defaultManagerSettings)
 import           Network.HTTP.Types.URI (urlEncode)
 
 import qualified Hunt.Common.ApiDocument as H
+import qualified Hunt.Common.BasicTypes as H (RegEx, Weight)
 import qualified Hunt.Index.Schema.Normalize.Position as H
 import qualified Hunt.Interpreter.Command as H (Command(..), CmdResult (..))
-import qualified Hunt.Index.Schema as H (CRegex, CNormalizer, CWeight, ContextSchema (..), ContextType (..))
+import qualified Hunt.Index.Schema as H (CNormalizer, ContextSchema (..), ContextType (..))
 import           Hunt.Query.Language.Grammar (Query) -- (..), BinOp (..), TextSearchType (..))
 -- import           Hunt.Common.BasicTypes
 
@@ -255,11 +256,11 @@ data ContextType = TextContext | DateContext | PositionContext | IntContext
 data ContextDescription = ContextDescription
     {
     -- optional regex to overwrite default given by context type
-    cxRegEx      :: Maybe H.CRegex
+    cxRegEx      :: Maybe H.RegEx
     -- normalizers to apply
     , cxNormalizer :: [H.CNormalizer]
     -- context weight
-    , cxWeight     :: H.CWeight
+    , cxWeight     :: H.Weight
     -- should this context used in non-context queries?
     , cxDefault    :: Bool
     -- contexttype
