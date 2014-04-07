@@ -16,7 +16,6 @@
 module Hunt.Common
   (
     module Hunt.Common.BasicTypes
-  , module Hunt.Common.Occurrences.Compression
   , module Hunt.Common.DocId
   , module Hunt.Common.DocIdMap
   , module Hunt.Common.Document
@@ -34,7 +33,6 @@ import           Hunt.Common.DocId
 import           Hunt.Common.DocIdMap                (DocIdMap, DocIdSet)
 import           Hunt.Common.Document                (Document (..))
 import           Hunt.Common.Occurrences             (Occurrences)
-import           Hunt.Common.Occurrences.Compression
 import           Hunt.Common.Positions               (Positions)
 import           Hunt.Common.RawResult
 import           Hunt.Index.Schema

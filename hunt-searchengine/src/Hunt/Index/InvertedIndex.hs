@@ -38,10 +38,10 @@ import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences                  (Occurrences)
---import           Hunt.Common.Occurrences.Compression.BZip
+import           Hunt.Common.Positions                    (Positions)
 import           Hunt.Index                               as Ix
-import           Hunt.Index.ComprPrefixTreeIndex
-import qualified Hunt.Index.ComprPrefixTreeIndex2Dim      as PT2D
+import           Hunt.Index.PrefixTreeIndex
+import qualified Hunt.Index.PrefixTreeIndex2Dim           as PT2D
 
 import           Hunt.Index.Proxy.KeyIndex
 
@@ -57,10 +57,10 @@ import           Data.Bijection
 
 -- | Text index using a 'StringMap'-implementation.
 newtype InvertedIndex _v
-  = InvIx { invIx :: KeyProxyIndex Text ComprOccPrefixTree Occurrences }
+  = InvIx { invIx :: KeyProxyIndex Text DmPrefixTree Positions }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvIx :: KeyProxyIndex Text ComprOccPrefixTree Occurrences
+mkInvIx :: KeyProxyIndex Text DmPrefixTree Positions
         -> InvertedIndex _v
 mkInvIx x = InvIx $! x
 
@@ -123,10 +123,10 @@ instance Index InvertedIndex where
 
 -- | Text index with 2-dimensional lookup using a 'StringMap'-implementation.
 newtype InvertedIndex2Dim _v
-  = InvIx2D { invIx2D :: KeyProxyIndex Text PT2D.ComprOccPrefixTree Occurrences }
+  = InvIx2D { invIx2D :: KeyProxyIndex Text PT2D.DmPrefixTree Positions }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvIx2D :: KeyProxyIndex Text PT2D.ComprOccPrefixTree Occurrences
+mkInvIx2D :: KeyProxyIndex Text PT2D.DmPrefixTree Positions
         -> InvertedIndex2Dim _v
 mkInvIx2D x = InvIx2D $! x
 

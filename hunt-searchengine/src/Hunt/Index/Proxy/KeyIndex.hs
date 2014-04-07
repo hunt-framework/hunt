@@ -34,10 +34,6 @@ import           Data.Binary                         (Binary (..))
 import qualified Hunt.Index                          as Ix
 import           Hunt.Index
 
-import           Hunt.Index.Proxy.CompressedIndex
-
-import           Hunt.Common.Occurrences.Compression
-
 -- ------------------------------------------------------------
 
 -- | Key conversion proxy.
@@ -105,56 +101,3 @@ instance Index (KeyProxyIndex toType impl) where
 
   keys (KeyProxyIx i)
     = P.map to $ keys i
-
--- special instance for a CompressedOccurrences proxy within a TextKey proxy
--- This requires XFlexibleInstances
--- This requires XOverlappingInstances since the previous instance definition is more generic
--- TODO: can this be somehow generalized to a genric index containing a compression proxy?
-instance Index (KeyProxyIndex toType (ComprOccIndex impl to)) where
-  type IKey      (KeyProxyIndex toType (ComprOccIndex impl to)) v = toType
-  type IVal      (KeyProxyIndex toType (ComprOccIndex impl to)) v = IVal      (ComprOccIndex impl to) v
-  type ICon      (KeyProxyIndex toType (ComprOccIndex impl to)) v =
-    ( Index (ComprOccIndex impl to)
-    , ICon  (ComprOccIndex impl to) v
-    , Bijection (IKey (ComprOccIndex impl to) v) toType
-    )
-
-  -- this is the only "special" function
-  deleteDocs docIds (KeyProxyIx (ComprIx pt))
-    = mkKeyProxyIx $ mkComprIx $ Ix.map (differenceWithKeySet docIds) pt
-
-  -- everything below is copied toType the more general instance Index (KeyProxyIndex impl)
-  insertList kvs (KeyProxyIx i)
-    = mkKeyProxyIx $ insertList (P.map (first from) kvs) i
-
-  empty
-    = mkKeyProxyIx $ empty
-
-  fromList l
-    = mkKeyProxyIx . fromList $ P.map (first from) l
-
-  toList (KeyProxyIx i)
-    = first to <$> toList i
-
-  search t k (KeyProxyIx i)
-    = first to <$> search t (from k) i
-
-  lookupRange k1 k2 (KeyProxyIx i)
-    = first to <$> lookupRange (from k1) (from k2) i
-
-  unionWith op (KeyProxyIx i1) (KeyProxyIx i2)
-    = mkKeyProxyIx $ unionWith op i1 i2
-
-  unionWithConv t f (KeyProxyIx i1) (KeyProxyIx i2)
-    = mkKeyProxyIx $ unionWithConv t f i1 i2
-
-  map f (KeyProxyIx i)
-    = mkKeyProxyIx $ Ix.map f i
-
-  mapMaybe f (KeyProxyIx i)
-    = mkKeyProxyIx $ Ix.mapMaybe f i
-
-  keys (KeyProxyIx i)
-    = P.map to $ keys i
-
--- ------------------------------------------------------------

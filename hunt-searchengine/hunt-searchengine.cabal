@@ -58,10 +58,6 @@ library
   exposed-modules:
     Control.Concurrent.XMVar
 
-    Codec.Compression.Utility
-    Codec.Compression.BZip.Smart
-    Codec.Compression.Snappy.Lazy.Smart
-
     Data.Bijection
     Data.Bijection.Instances
     Data.IntMap.BinTree.Strict
@@ -72,24 +68,12 @@ library
     GHC.Fingerprint.Binary
     GHC.Stats.Json
 
-    Hunt.Data.Crunch
-
     Hunt.Common
     Hunt.Common.ApiDocument
     Hunt.Common.BasicTypes
-    Hunt.Common.DiffList
     Hunt.Common.DocId
     Hunt.Common.DocIdMap
-    Hunt.Common.Document
-    Hunt.Common.Document.Compression.BZip
-    Hunt.Common.Document.Compression.Snappy
-
     Hunt.Common.Occurrences
-    Hunt.Common.Occurrences.Compression
-    Hunt.Common.Occurrences.Compression.BZip
-    Hunt.Common.Occurrences.Compression.BZipBs
-    Hunt.Common.Occurrences.Compression.Simple9
-    Hunt.Common.Occurrences.Compression.Snappy
     Hunt.Common.Positions
     Hunt.Common.RawResult
 
@@ -102,12 +86,9 @@ library
     Hunt.Index
     Hunt.Index.IndexImpl
     Hunt.Index.PrefixTreeIndex
-    Hunt.Index.ComprPrefixTreeIndex
-    Hunt.Index.ComprPrefixTreeIndex2Dim
+    Hunt.Index.PrefixTreeIndex2Dim
     Hunt.Index.InvertedIndex
 
-    Hunt.Index.Proxy.CompressedIndex
-    Hunt.Index.Proxy.CachedIndex
     Hunt.Index.Proxy.KeyIndex
 
     Hunt.DocTable

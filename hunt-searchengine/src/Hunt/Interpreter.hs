@@ -51,7 +51,6 @@ import           Hunt.Common
 import           Hunt.Common.ApiDocument               as ApiDoc
 import qualified Hunt.Common.DocIdMap                  as DM
 import           Hunt.Common.Document                  (DocumentWrapper, unwrap)
-import           Hunt.Common.Document.Compression.BZip (CompressedDoc)
 
 import qualified Hunt.Index                            as Ix
 import           Hunt.Index.Schema.Analyze
@@ -144,7 +143,7 @@ data HuntEnv dt = HuntEnv
   }
 
 -- | Default Hunt environment type.
-type DefHuntEnv = HuntEnv (Documents CompressedDoc)
+type DefHuntEnv = HuntEnv (Documents Document)
 
 -- | Initialize the Hunt environment with default values.
 initHunt :: DocTable dt => IO (HuntEnv dt)
