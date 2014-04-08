@@ -46,8 +46,11 @@ import qualified Hunt.Index.Proxy.KeyIndex                   as KeyProxy
 
 main :: IO ()
 main = defaultMain
-  -- strictness property for in index data structures
+  -- strictness property for data-structures used in index and
+  -- document table
   [ testProperty "prop_strictness_occurrences"               prop_occs
+  , testProperty "prop_strictness_document"                  prop_doc
+  , testProperty "prop_strictness_description"               prop_desc 
 
   -- strictness property for index implementations
   , testProperty "prop_strictness_prefixtreeindex"           prop_ptix
@@ -56,33 +59,8 @@ main = defaultMain
   , testProperty "prop_strictness_invindex datekey"          prop_invix3
   , testProperty "prop_strictness_invindex geokey"           prop_invix4
 
-  -- strictness property for compression implementations
---  , testProperty "prop_strictness_comprprefixtreeindex bzip" prop_cptix2
---  , testProperty "prop_strictness_comprprefixtreeindex snap" prop_cptix3
-  --            test failing right now because compressedoccurrences are not strict
-  --            but we are not using them at the moment and probably won't in the future
-  --              , testProperty "prop_strictness_comprprefixtreeindex comp" prop_cptix
+  -- strictness property for document table
 
-  -- strictness property for proxies
---  , testProperty "prop_strictness_proxy_cache"               prop_cachedix
-  , testProperty "prop_strictness_proxy_textkey"             prop_textix
-  , testProperty "prop_strictness_proxy_intkey"              prop_intix
-  , testProperty "prop_strictness_proxy_datekey"             prop_dateix
-  , testProperty "prop_strictness_proxy_geokey"              prop_geoix
-
-  -- strictness property for contextindex
-  -- these tests are failing despite the index beeing strict.
-  -- This is caused by the usage of existential types. They are implemented
-  -- as a datatype which stores the actual value as well with the typeclass
-  -- dictionaries. While the actual values are forced to be strict by us,
-  -- there is no way to have GHC do the same for the typeclass dictionaries.
-  --, testProperty "prop_strictness_contextindex empty "       prop_contextix_empty
-  --, testProperty "prop_strictness_contextindex empty ix"     prop_contextix_emptyix
-  --, testProperty "prop_strictness_contextindex"              prop_contextix
-  --, testProperty "prop_strictness_contextindex2"             prop_contextix2
-  -- strictness property of IndexImpl container
-  -- , testProperty "prop_strictness_indeximpl emptyix"         prop_impl_empty
-  -- , testProperty "prop_strictness_indeximpl fullix"          prop_impl_full
   ]
 
 -- ----------------------------------------------------------------------------
@@ -92,8 +70,17 @@ main = defaultMain
 prop_occs :: Property
 prop_occs = monadicIO $ do
   x <- pick arbitrary :: PropertyM IO Occurrences
-  -- $!! needed here - $! does not evaluate everything of course
-  assertNF' $!! x
+  assertNF' $! x
+
+prop_doc :: Property
+prop_doc = monadicIO $ do
+  x <- pick arbitrary :: PropertyM IO Document
+  assertNF' $! x
+
+prop_desc :: Property
+prop_desc = monadicIO $ do
+  x <- pick mkDescription 
+  assertNF' $! x
 
 -- ----------------------------------------------------------------------------
 -- test with simple index
@@ -311,14 +298,27 @@ instance NFData (Tuple x) where
 mkTuple :: Int -> Tuple Int
 mkTuple x = Tuple (inc x) (inc x)
 
+-- --------------------
+-- Arbitrary Documents
 
---instance Arbitrary Text where
---    arbitrary = T.pack <$> arbitrary
---    shrink xs = T.pack <$> shrink (T.unpack xs)
+instance Arbitrary Document where
+  arbitrary = mkDocument
 
---test2 :: Assertion
---test2 = assertNF $ ptIndex
+mkDocument :: Gen Document
+mkDocument = do
+  uri <- niceText1
+  desc <- mkDescription
+  w <- arbitrary
+  return $ Document uri desc w 
 
+
+mkDescription :: Gen Description
+mkDescription = do
+  txt <- niceText1
+  txt2 <- niceText1
+  return $ M.fromList [ ("key1", txt)
+                      , ("key2", txt2)
+                      ]
 -- --------------------
 -- Arbitrary Occurrences
 
