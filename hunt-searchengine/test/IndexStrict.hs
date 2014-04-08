@@ -52,15 +52,36 @@ main = defaultMain
   , testProperty "prop_strictness_document"                  prop_doc
   , testProperty "prop_strictness_description"               prop_desc 
 
-  -- strictness property for index implementations
-  , testProperty "prop_strictness_prefixtreeindex"           prop_ptix
-  , testProperty "prop_strictness_invindex textkey"          prop_invix1
-  , testProperty "prop_strictness_invindex intkey"           prop_invix2
-  , testProperty "prop_strictness_invindex datekey"          prop_invix3
-  , testProperty "prop_strictness_invindex geokey"           prop_invix4
+  -- strictness property for index implementations by function
+  -- insert
+  , testProperty "prop_strictness prefixtreeindex"           prop_ptix
+  , testProperty "prop_strictness invindex textkey"          prop_invix1
+  , testProperty "prop_strictness invindex intkey"           prop_invix2
+  , testProperty "prop_strictness invindex datekey"          prop_invix3
+  , testProperty "prop_strictness invindex geokey"           prop_invix4
+  , testProperty "prop_strictness proxy"                     prop_proxy
+  -- TODO:
+  -- delete
+  -- insertList
+  -- deleteDocs
+  -- unionWith
+  -- unionWithConv
+  -- map
+  -- mapMaybe
 
-  -- strictness property for document table
-
+  -- strictness property for document table by function
+  -- TODO:
+  -- union
+  -- insert
+  -- update
+  -- adjust
+  -- adjustByUri
+  -- delete
+  -- deleteByUri
+  -- differenceByURI
+  -- map
+  -- filter
+  -- mapKeys
   ]
 
 -- ----------------------------------------------------------------------------
@@ -83,11 +104,8 @@ prop_desc = monadicIO $ do
   assertNF' $! x
 
 -- ----------------------------------------------------------------------------
--- test with simple index
+-- index implementations: insert function
 -- ----------------------------------------------------------------------------
-
--- | helper generating random indices
-
 
 prop_ptix :: Property
 prop_ptix
@@ -96,32 +114,6 @@ prop_ptix
     assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
-
-{--
-prop_cptix :: Property
-prop_cptix
-  = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (CPIx.ComprOccPrefixTree Z9.CompressedOccurrences)
-    assertNF' ix
-  where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
-
-prop_cptix2 :: Property
-prop_cptix2
-  = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (CPIx.ComprOccPrefixTree ZB.CompressedOccurrences)
-    assertNF' ix
-  where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
-
-prop_cptix3 :: Property
-prop_cptix3
-  = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (CPIx.ComprOccPrefixTree ZS.CompressedOccurrences)
-    assertNF' ix
-  where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
---}
 
 prop_invix1 :: Property
 prop_invix1
@@ -155,60 +147,18 @@ prop_invix4
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
 
-
--- ----------------------------------------------------------------------------
--- test index proxies
--- ----------------------------------------------------------------------------
-
--- cache
-{--
-prop_cachedix :: Property
-prop_cachedix
-  = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (CacheProxy.CachedIndex (PIx.DmPrefixTree) Positions)
-    assertNF' ix
-  where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
-
---}
--- text proxy
-prop_textix :: Property
-prop_textix
+prop_proxy :: Property
+prop_proxy
   = monadicIO $ do
     ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree) Positions)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
 
--- int proxy
-prop_intix :: Property
-prop_intix
-  = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexInt Positions)
-    assertNF' ix
-  where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1" val Ix.empty
-
--- date proxy
-prop_dateix :: Property
-prop_dateix
-  = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexDate Positions)
-    assertNF' ix
-  where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "2013-01-01" val Ix.empty
-
--- geo proxy
-prop_geoix :: Property
-prop_geoix
-  = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Positions)
-    assertNF' ix
-  where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
 
 -- ----------------------------------------------------------------------------
--- test property contextindex
+-- test property contextindex: cannot be tested right now because of
+-- existential quanticication
 -- ----------------------------------------------------------------------------
 {--
 prop_contextix_empty :: Property
@@ -256,8 +206,10 @@ prop_contextix2
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
   pickIx2 = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
 --}
+
 -- ----------------------------------------------------------------------------
--- test property indeximpl
+-- test property indeximpl: cannot be tested right now, because of 
+-- existential quantification
 -- ----------------------------------------------------------------------------
 
 {--
@@ -275,28 +227,6 @@ prop_impl_empty
     let ix = Ix.empty  :: (InvIx.InvertedIndexPosition Occurrences)
     assertNF' $ mkIndex ix
 --}
-
--- ----------------------------------------------------------------------------
--- test property
--- ----------------------------------------------------------------------------
-prop_simple :: Property
-prop_simple = monadicIO $ do
-  x <- pick arbitrary
-  passed <- run $ isNF $! mkTuple x
-  assert passed
-
-inc :: Int -> Int
-inc x = 1 + x
-
-data Tuple x = Tuple {
-  val1 :: !x,
-  val2 :: !x
-} deriving (Eq, Show)
-
-instance NFData (Tuple x) where
-
-mkTuple :: Int -> Tuple Int
-mkTuple x = Tuple (inc x) (inc x)
 
 -- --------------------
 -- Arbitrary Documents
