@@ -36,8 +36,8 @@ import           Hunt.Utility.Log
 -- | The document representation.
 data Document = Document
   { uri  :: ! URI         -- ^ Unique identifier of the document.
-  , desc :: ! Description -- Description of the Document (simple key-value store).
-  , wght :: ! Float       -- Weight used in ranking (default @1.0@).
+  , desc :: ! Description -- ^ Description of the document (simple key-value store).
+  , wght :: ! Float       -- ^ Weight used in ranking (default @1.0@).
   }
   deriving (Show, Eq, Ord)
 
