@@ -27,14 +27,16 @@ source-repository head
 library
 
   build-depends: base                   >= 4.5  && < 5
-               , aeson                  >= 0.6
-               , binary                 >= 0.5  && < 1
+               , aeson                  <= 0.7
                , bytestring             >= 0.10.4  && < 1
                , bzlib                  >= 0.4  && < 1
                , containers             >= 0.5
                , data-stringmap         >= 1.0.1.1 && < 2
                , data-default               
                , murmur-hash
+               , hunt-searchengine      >= 0.1
+               , deepseq
+               , parallel
                
 
   if impl( ghc >= 7.7 )
@@ -51,12 +53,10 @@ library
     Hunt.Common.Occurrences.Compression
     Hunt.Common.Occurrences.Compression.BZip
     Hunt.Common.Occurrences.Compression.BZipBs
-    Hunt.Common.Occurrences.Compression.Simple9
     Hunt.Common.Occurrences.Compression.Snappy
 
     Hunt.Index.ComprPrefixTreeIndex
     Hunt.Index.ComprPrefixTreeIndex2Dim
-    Hunt.Index.InvertedIndex
 
     Hunt.Index.Proxy.CompressedIndex
 
