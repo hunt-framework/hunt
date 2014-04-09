@@ -23,6 +23,8 @@ import           Test.QuickCheck.Monadic                         (PropertyM,
 
 import           Data.Map                                        (Map)
 import qualified Data.Map                                        as M
+import qualified Data.IntSet                                     as IS
+import qualified Data.Set                                        as S
 import           Data.Text                                       (Text)
 import qualified Data.Text                                       as T
 
@@ -41,6 +43,9 @@ import qualified Hunt.Index.InvertedIndex                    as InvIx
 import qualified Hunt.Index.PrefixTreeIndex                  as PIx
 import qualified Hunt.Index.PrefixTreeIndex2Dim              as PIx2D
 import qualified Hunt.Index.Proxy.KeyIndex                   as KeyProxy
+
+import qualified Hunt.DocTable                               as Dt
+import qualified Hunt.DocTable.HashedDocTable                as HDt
 
 -- ----------------------------------------------------------------------------
 
@@ -95,15 +100,17 @@ main = defaultMain
   , testProperty "prop_strictness unionWith proxy"           prop_proxy_union
  
   -- strictness property for document table by function
+  , testProperty "prop_strictness union doctable"            prop_dt_union
+  , testProperty "prop_strictness insert doctable"           prop_dt_insert
+  , testProperty "prop_strictness update doctable"           prop_dt_update
+
+  , testProperty "prop_strictness delete doctable"           prop_dt_delete
+  , testProperty "prop_strictness delbyuri doctable"         prop_dt_delete2
+  , testProperty "prop_strictness adjust doctable"           prop_dt_adjust
+  , testProperty "prop_strictness adjuri doctable"           prop_dt_adjust2
+  , testProperty "prop_strictness difference doctable"       prop_dt_difference
+  , testProperty "prop_strictness diffusi doctable"          prop_dt_difference2
   -- TODO:
-  -- union
-  -- insert
-  -- update
-  -- adjust
-  -- adjustByUri
-  -- delete
-  -- deleteByUri
-  -- differenceByURI
   -- map
   -- filter
   -- mapKeys
@@ -127,6 +134,119 @@ prop_desc :: Property
 prop_desc = monadicIO $ do
   x <- pick mkDescription 
   assertNF' $! x
+
+-- ----------------------------------------------------------------------------
+-- document table implementation
+-- ----------------------------------------------------------------------------
+
+prop_dt_insert :: Property
+prop_dt_insert
+  = monadicIO $ do
+    (_,dt) <- pickIx :: PropertyM IO (DocId, HDt.Documents Document)
+    assertNF' dt
+  where
+  pickIx = pick arbitrary >>= \doc -> Dt.insert doc Dt.empty
+
+prop_dt_union :: Property
+prop_dt_union
+  = monadicIO $ do
+    dt <- pickIx :: PropertyM IO (HDt.Documents Document)
+    assertNF' dt
+  where
+  pickIx = do
+    (_, dt1) <- pick arbitrary >>= \doc -> Dt.insert doc Dt.empty
+    (_, dt2) <- pick arbitrary >>= \doc -> Dt.insert doc Dt.empty
+    Dt.union dt1 dt2
+
+prop_dt_update :: Property
+prop_dt_update
+  = monadicIO $ do
+    dt <- pickIx :: PropertyM IO (HDt.Documents Document)
+    assertNF' dt
+  where
+  pickIx = do
+    doc1 <- pick arbitrary
+    (docid, dt1) <- Dt.insert doc1 Dt.empty
+    doc2 <- pick arbitrary
+    Dt.update docid doc2 dt1
+
+prop_dt_delete :: Property
+prop_dt_delete
+  = monadicIO $ do
+    dt <- pickIx :: PropertyM IO (HDt.Documents Document)
+    assertNF' dt
+  where
+  pickIx = do
+    doc1 <- pick arbitrary
+    doc2 <- pick arbitrary
+    (docid, dt) <- Dt.insert doc1 Dt.empty
+    (_, dt')    <- Dt.insert doc2 dt
+    Dt.delete docid dt'
+
+prop_dt_delete2 :: Property
+prop_dt_delete2
+  = monadicIO $ do
+    dt <- pickIx :: PropertyM IO (HDt.Documents Document)
+    assertNF' dt
+  where
+  pickIx = do
+    doc1@(Document u _ _) <- pick arbitrary
+    doc2 <- pick arbitrary
+    (_, dt) <- Dt.insert doc1 Dt.empty
+    (_, dt')    <- Dt.insert doc2 dt
+    Dt.deleteByURI u dt'
+
+prop_dt_adjust :: Property
+prop_dt_adjust
+  = monadicIO $ do
+    dt <- pickIx :: PropertyM IO (HDt.Documents Document)
+    assertNF' dt
+  where
+  pickIx = do
+    doc1 <- pick arbitrary
+    doc2 <- pick arbitrary
+    (docid, dt) <- Dt.insert doc1 Dt.empty
+    Dt.adjust (\_ -> return doc2) docid dt
+
+
+prop_dt_adjust2 :: Property
+prop_dt_adjust2
+  = monadicIO $ do
+    dt <- pickIx :: PropertyM IO (HDt.Documents Document)
+    assertNF' dt
+  where
+  pickIx = do
+    doc1@(Document u _ _) <- pick arbitrary
+    doc2 <- pick arbitrary
+    (docid, dt) <- Dt.insert doc1 Dt.empty
+    Dt.adjustByURI (\_ -> return doc2) u dt
+
+
+prop_dt_difference :: Property
+prop_dt_difference
+  = monadicIO $ do
+    dt <- pickIx :: PropertyM IO (HDt.Documents Document)
+    assertNF' dt
+  where
+  pickIx = do
+    doc1 <- pick arbitrary
+    doc2 <- pick arbitrary
+    (docid, dt) <- Dt.insert doc1 Dt.empty
+    (_, dt')    <- Dt.insert doc2 dt
+    Dt.difference (IS.singleton docid) dt'
+
+prop_dt_difference2 :: Property
+prop_dt_difference2
+  = monadicIO $ do
+    dt <- pickIx :: PropertyM IO (HDt.Documents Document)
+    assertNF' dt
+  where
+  pickIx = do
+    doc1@(Document u _ _) <- pick arbitrary
+    doc2 <- pick arbitrary
+    (docid, dt) <- Dt.insert doc1 Dt.empty
+    (_, dt')    <- Dt.insert doc2 dt
+    Dt.differenceByURI (S.singleton u) dt'
 
 -- ----------------------------------------------------------------------------
 -- index implementations: insert function
