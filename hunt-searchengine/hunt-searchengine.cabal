@@ -22,18 +22,12 @@ source-repository head
   type:        git
   location:    https://github.com/hunt-framework/hunt-searchengine.git
 
--- select Data.IntMap.BinTree.Strict as implementation for DocIdMap
-flag with-bintree
-  default:      True
-  manual:       True
-
 library
 
   build-depends: base                   >= 4.5  && < 5
                , aeson                  >= 0.6
                , binary                 >= 0.5  && < 1
-               , bytestring             >= 0.10 && < 1
-               , bzlib                  >= 0.4  && < 1
+               , bytestring             >= 0.10.2 && < 1
                , containers             >= 0.5
                , data-stringmap         >= 1.0.1.1 && < 2
                , data-default
@@ -51,9 +45,6 @@ library
                , unix                   >= 2.3  && < 3
                , unordered-containers   >= 0.2
                , vector                 >= 0.10
-
-  if impl( ghc >= 7.7 )
-    build-depends: snappy               >= 0.1  && < 1
 
   exposed-modules:
     Control.Concurrent.XMVar
@@ -116,10 +107,6 @@ library
 
   ghc-options: -Wall -funbox-strict-fields -fwarn-tabs -threaded
 
-  if flag(with-bintree)
-    cpp-options:
-                -Dbintree=1
-
   extensions: MultiParamTypeClasses
               FlexibleContexts
               OverloadedStrings
@@ -127,11 +114,6 @@ library
               ConstraintKinds
               KindSignatures
               CPP
---              OverlappingInstances
---              FlexibleInstances
---              UndecidableInstances
---              GeneralizedNewtypeDeriving
---              TypeSynonymInstances
 
 test-suite Hunt-Index
   hs-source-dirs:       test

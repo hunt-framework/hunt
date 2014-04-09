@@ -71,11 +71,7 @@ import           Data.Aeson
 import           Data.Binary                (Binary (..))
 import           Data.Foldable              hiding (fold, foldr, toList)
 import qualified Data.HashMap.Strict        as HM
-#if bintree==1
 import qualified Data.IntMap.BinTree.Strict as IM
-#else
-import qualified Data.IntMap.Strict         as IM
-#endif
 import qualified Data.IntSet                as S
 import qualified Data.List                  as L
 import qualified Data.Text                  as T
