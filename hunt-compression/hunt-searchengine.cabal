@@ -27,13 +27,10 @@ source-repository head
 library
 
   build-depends: base                   >= 4.5  && < 5
-               , aeson                  <= 0.7
                , bytestring             >= 0.10.4  && < 1
                , bzlib                  >= 0.4  && < 1
-               , containers             >= 0.5
+               , binary
                , data-stringmap         >= 1.0.1.1 && < 2
-               , data-default               
-               , murmur-hash
                , hunt-searchengine      >= 0.1
                , deepseq
                , parallel
