@@ -89,7 +89,7 @@ install:	; $(MAKE) -e target action=install
 force-install:	; $(MAKE) -e target action=install PROFOPTS="--force-reinstalls $(PROFOPTS)"
 test:		; $(MAKE) -e target action=test PROFOPTS=''
 
-target: searchengine server
+target: compression searchengine server
 
 sandbox:
 	cabal sandbox init --sandbox .cabal-sandbox
@@ -98,6 +98,9 @@ sandbox:
 	cd hunt-client         && cabal sandbox init --sandbox ../.cabal-sandbox
 	cabal sandbox add-source hunt-searchengine
 	cd hunt-demos/geoFrontend && cabal sandbox init --sandbox ../../.cabal-sandbox
+
+compression:
+	cd hunt-compression && cabal $(action) $(PROFOPTS) $(pattern)
 
 searchengine:
 	cd hunt-searchengine && cabal $(action) $(PROFOPTS) $(pattern)
