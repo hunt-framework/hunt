@@ -102,9 +102,6 @@ class (DocumentWrapper (DValue i)) => DocTable i where
     -- | Convert document table to a 'DocIdMap'.
     toMap           :: (Monad m) => i -> m (DocIdMap (DValue i))
 
-    -- | Update 'DocId's.
-    mapKeys         :: (Monad m) => (DocId -> DocId) -> i -> m i
-
     -- | Empty 'DocTable'.
     empty           :: i
 

@@ -134,9 +134,6 @@ instance (DocumentWrapper e) =>
   -- Convert document table to a single map.
   toMap       = return . toMap'
 
-  -- Edit document ids.
-  mapKeys     = error "DocTable.mapKeys: HashedDocTable"
-
   -- | Empty 'DocTable'.
   empty       = empty'
 
