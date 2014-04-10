@@ -68,8 +68,6 @@ instance Index ComprOccPrefixTree where
   insertList kos i
     = unionWithConv compressOcc (\a b -> compressOcc (Occ.merge (decompressOcc a) b)) i ixs
     where
---    ixs = F.foldr' (unionWith Occ.merge) empty $ P.map (fromList . (:[])) kos
-
     ixs = if null m then empty else reduce m
        where
        m = parMap rpar (\ws -> P.foldr (unionWith Occ.merge) empty $ P.map (fromList . (:[])) ws) (partitionListByLength 5000 kos)
@@ -84,6 +82,9 @@ instance Index ComprOccPrefixTree where
        mkPairs []       = []
        mkPairs (a:[])   = [(a,a)]
        mkPairs (a:b:xs) = (a,b):mkPairs xs
+
+    unionWithConv to f (ComprPT i1) (ComprPT i2)
+      = mkComprPT $! SM.unionMapWith to f i1 i2
 
   -- XXX: not the best solution, but is there really another solution?
   deleteDocs ks i
@@ -119,8 +120,7 @@ instance Index ComprOccPrefixTree where
   unionWith op (ComprPT i1) (ComprPT i2)
     = mkComprPT $! SM.unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
 
-  unionWithConv to f (ComprPT i1) (ComprPT i2)
-    = mkComprPT $! SM.unionMapWith to f i1 i2
+
 
   map f (ComprPT i)
     = mkComprPT $! SM.map (compressOcc . f . decompressOcc) i
@@ -132,3 +132,4 @@ instance Index ComprOccPrefixTree where
     = SM.keys i
 
 -- ------------------------------------------------------------
+

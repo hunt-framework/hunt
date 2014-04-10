@@ -79,8 +79,8 @@ instance Index (KeyProxyIndex toType (ComprOccIndex impl to)) where
   unionWith op (KeyProxyIx i1) (KeyProxyIx i2)
     = mkKeyProxyIx $ unionWith op i1 i2
 
-  unionWithConv t f (KeyProxyIx i1) (KeyProxyIx i2)
-    = mkKeyProxyIx $ unionWithConv t f i1 i2
+--  unionWithConv t f (KeyProxyIx i1) (KeyProxyIx i2)
+--    = mkKeyProxyIx $ unionWithConv t f i1 i2
 
   map f (KeyProxyIx i)
     = mkKeyProxyIx $ Ix.map f i

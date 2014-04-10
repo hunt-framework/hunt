@@ -100,8 +100,6 @@ instance Index InvertedIndex where
   unionWith op (InvIx i1) (InvIx i2)
     = mkInvIx $ unionWith op i1 i2
 
-  unionWithConv
-    = error "InvertedIndex unionWithConv: cannot be used there because type variable v is fixed"
 {-
   unionWithConv to f (InvIx i1) (InvIx i2)
     = mkInvIx $ unionWithConv to f i1 i2
@@ -166,8 +164,6 @@ instance Index InvertedIndex2Dim where
   unionWith op (InvIx2D i1) (InvIx2D i2)
     = mkInvIx2D $ unionWith op i1 i2
 
-  unionWithConv
-    = error "InvertedIndex2Dim unionWithConv: cannot be used there because type variable v is fixed"
 {-
   unionWithConv to f (InvIx2D i1) (InvIx2D i2)
     = mkInvIx2D $ unionWithConv to f i1 i2
@@ -245,8 +241,8 @@ instance Index InvertedIndexInt where
   unionWith op (InvIntIx i1) (InvIntIx i2)
     = mkInvIntIx $ unionWith op i1 i2
 
-  unionWithConv to' f (InvIntIx i1) (InvIntIx i2)
-    = mkInvIntIx $ unionWithConv to' f i1 i2
+--  unionWithConv to' f (InvIntIx i1) (InvIntIx i2)
+--    = mkInvIntIx $ unionWithConv to' f i1 i2
 
   map f (InvIntIx i)
     = mkInvIntIx $ Ix.map f i
@@ -320,8 +316,8 @@ instance Index InvertedIndexDate where
   unionWith op (InvDateIx i1) (InvDateIx i2)
     = mkInvDateIx $ unionWith op i1 i2
 
-  unionWithConv to' f (InvDateIx i1) (InvDateIx i2)
-    = mkInvDateIx $ unionWithConv to' f i1 i2
+--  unionWithConv to' f (InvDateIx i1) (InvDateIx i2)
+--    = mkInvDateIx $ unionWithConv to' f i1 i2
 
   map f (InvDateIx i)
     = mkInvDateIx $ Ix.map f i
@@ -395,8 +391,8 @@ instance Index InvertedIndexPosition where
   unionWith op (InvPosIx i1) (InvPosIx i2)
     = mkInvPosIx $ unionWith op i1 i2
 
-  unionWithConv to' f (InvPosIx i1) (InvPosIx i2)
-    = mkInvPosIx $ unionWithConv to' f i1 i2
+--  unionWithConv to' f (InvPosIx i1) (InvPosIx i2)
+--    = mkInvPosIx $ unionWithConv to' f i1 i2
 
   map f (InvPosIx i)
     = mkInvPosIx $ Ix.map f i

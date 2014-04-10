@@ -80,13 +80,13 @@ class Index i where
                 => (IVal i v -> IVal i v -> IVal i v)
                 -> i v -> i v -> i v
 
-  -- | Merge two indexes with combining functions.
+  --   Merge two indexes with combining functions.
   --   The second index may have another value type than the first one.
   --   Conversion and merging of the indexes is done in a single step.
   --   This is much more efficient than mapping the second index and calling 'unionWith'.
-  unionWithConv :: (ICon i v, ICon i v2)
-                => (v2 -> v) -> (v -> v2 -> v)
-                -> i v -> i v2 -> i v
+  --  unionWithConv :: (ICon i v, ICon i v2)
+  --                => (v2 -> v) -> (v -> v2 -> v)
+  --                -> i v -> i v2 -> i v
 
   -- TODO: non-rigid map
   -- | Map a function over the values of the index.
@@ -154,10 +154,10 @@ class Monad m => IndexM m i where
                => (IValM i v -> IValM i v -> IValM i v)
                -> i v -> i v -> m (i v)
 
-  -- | Monadic version of 'unionWithConv'.
-  unionWithConvM :: (IConM i v, Monad m, IConM i v2)
-                 => (v2 -> v) -> (v -> v2 -> v)
-                 -> i v -> i v2 -> m (i v)
+  --  Monadic version of 'unionWithConv'.
+  -- unionWithConvM :: (IConM i v, Monad m, IConM i v2)
+  --               => (v2 -> v) -> (v -> v2 -> v)
+  --               -> i v -> i v2 -> m (i v)
 
   -- | Monadic version of 'map'.
   mapM         :: IConM i v
@@ -191,7 +191,7 @@ instance (Index i, Monad m) => IndexM m i where
   toListM i                  = return $! toList i
   fromListM l                = return $! fromList l
   unionWithM f i1 i2         = return $! unionWith f i1 i2
-  unionWithConvM f1 f2 i1 i2 = return $! unionWithConv f1 f2 i1 i2
+--  unionWithConvM f1 f2 i1 i2 = return $! unionWithConv f1 f2 i1 i2
   mapM f i                   = return $! map f i
   mapMaybeM f i              = return $! mapMaybe f i
   keysM i                    = return $! keys i
