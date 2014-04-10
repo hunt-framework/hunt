@@ -61,6 +61,7 @@ library
     Hunt.Common
     Hunt.Common.ApiDocument
     Hunt.Common.BasicTypes
+    Hunt.Common.DocDesc
     Hunt.Common.DocId
     Hunt.Common.DocIdMap
     Hunt.Common.Occurrences

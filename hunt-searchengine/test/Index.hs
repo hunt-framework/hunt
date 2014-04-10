@@ -17,6 +17,7 @@ import           Hunt.Common.DocIdMap                        (DocIdMap)
 import           Hunt.Common.Positions                       (Positions)
 import           Hunt.Common.Occurrences
 import           Hunt.Common.Document
+import qualified Hunt.Common.DocDesc                         as DD
 
 import           Hunt.ContextIndex                           (addWordsM)
 import qualified Hunt.ContextIndex                           as ConIx
@@ -146,4 +147,4 @@ wrds :: Word -> Words
 wrds w = M.fromList $ [(w, wordList)]
 
 doc :: Document
-doc = Document "id::1" (M.fromList [("name", "Chris"), ("alter", "30")]) 1.0
+doc = Document "id::1" (DD.fromList [("name", "Chris"), ("alter", "30")]) 1.0

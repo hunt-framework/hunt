@@ -62,6 +62,7 @@ import           Hunt.Common
 import qualified Hunt.Common.DocIdMap   as DM
 import           Hunt.Common.Document   (DocumentWrapper (..))
 import qualified Hunt.Common.Positions  as Pos
+import qualified Hunt.Common.DocDesc    as DD
 
 import           Hunt.DocTable          (DocTable)
 import qualified Hunt.DocTable          as Dt
@@ -176,7 +177,7 @@ createDocHits d = DM.traverseWithKey transformDocs
   where
   transformDocs did (ic,db)
     = let doc   = fromMaybe dummy <$> (Dt.lookup did d)
-          dummy = wrap (Document "" M.empty 1.0)
+          dummy = wrap (Document "" DD.empty 1.0)
       in (\doc' -> (DocInfo doc' db 0.0, M.map (M.map snd) ic)) <$> doc
 
 -- | Create the word hits structure from an intermediate result.

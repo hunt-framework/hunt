@@ -11,22 +11,22 @@
 module Hunt.Common.BasicTypes
 where
 
-import           Control.Monad   (mzero)
+import           Control.Monad      (mzero)
 
 import           Data.Map
-import qualified Data.Map.Strict as SM
 import           Data.Text
 
 import           Data.Aeson
-import           Data.Binary     hiding (Word)
+import           Data.Binary         hiding (Word)
 
+import qualified Hunt.Common.DocDesc as SM
 -- ------------------------------------------------------------
 
 -- | The URI describing the location of the original document.
 type URI          = Text
 
 -- | The description of a document is a generic key value map.
-type Description  = SM.Map Text Text
+type Description  = SM.DocDesc Text
 
 -- | The title of a document.
 type Title        = Text

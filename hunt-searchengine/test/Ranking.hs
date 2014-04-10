@@ -13,6 +13,8 @@ import           Test.HUnit
 import           Hunt.Common
 import           Hunt.Common.ApiDocument               as ApiDoc
 import           Hunt.Common.Document
+import qualified Hunt.Common.DocDesc                   as DD
+
 import           Hunt.Interpreter.Command
 import           Hunt.Interpreter
 import           Hunt.Query.Language.Grammar
@@ -149,7 +151,7 @@ test_ranking = testCM $ do
   pp = 1000
   sr = map (first uri) . lrResult . crRes
 
-  descr = M.empty
+  descr = DD.empty
 
   brain    = "brain"
   brainUri = "test://brain"

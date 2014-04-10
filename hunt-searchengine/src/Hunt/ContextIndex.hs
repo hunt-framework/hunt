@@ -73,6 +73,7 @@ import           Hunt.Common
 import           Hunt.Common.DocIdMap        (toDocIdSet)
 import qualified Hunt.Common.Document        as Doc
 import qualified Hunt.Common.Occurrences     as Occ
+import qualified Hunt.Common.DocDesc         as DD
 
 import qualified Hunt.Index                  as Ix
 import           Hunt.Index.IndexImpl        (IndexImpl)
@@ -225,7 +226,7 @@ modifyWithDescription weight descr wrds dId (ContextIndex ii dt s) = do
   return $ ContextIndex newIndex newDocTable s
   where
   -- M.union is left-biased - flip to use new values for existing keys - no flip to keep old values
-  mergeDescr = return . Doc.update (\d -> d{ desc = flip M.union (desc d) descr
+  mergeDescr = return . Doc.update (\d -> d{ desc = flip DD.union (desc d) descr
                                            , wght = fromMaybe (wght d) weight })
 
 -- ------------------------------------------------------------

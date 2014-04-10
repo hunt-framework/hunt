@@ -26,6 +26,7 @@ import           Text.Printf                           (printf)
 import           Hunt.Common
 import           Hunt.Common.ApiDocument               as ApiDoc
 import           Hunt.Common.Document
+import qualified Hunt.Common.DocDesc                   as DD
 --import           Hunt.Common.BasicTypes
 import           Hunt.Interpreter.Command
 import           Hunt.Interpreter
@@ -103,7 +104,7 @@ brainDoc = emptyApiDoc
   }
   where
   td = "Brain"
-  descr = M.fromList [("name", "Brain"), ("mission", "take over the world"), ("legs", "4")]
+  descr = DD.fromList [("name", "Brain"), ("mission", "take over the world"), ("legs", "4")]
 
 dateDoc :: ApiDocument
 dateDoc = emptyApiDoc
@@ -130,10 +131,10 @@ geoDoc = geoDoc' "53.60000-10.00000"
 brainDocUpdate :: ApiDocument
 brainDocUpdate = brainDoc { adDescr = descr }
   where
-  descr = M.fromList [("name", "Pinky"), ("mission", "ask stupid questions")]
+  descr = DD.fromList [("name", "Pinky"), ("mission", "ask stupid questions")]
 
 brainDocMerged :: ApiDocument
-brainDocMerged = brainDocUpdate { adDescr = (adDescr brainDocUpdate) `M.union` (adDescr brainDoc) }
+brainDocMerged = brainDocUpdate { adDescr = (adDescr brainDocUpdate) `DD.union` (adDescr brainDoc) }
 
 defaultContextInfo :: (Context, ContextSchema)
 defaultContextInfo = ("default", ContextSchema Nothing [] 1 True ctText)

@@ -24,6 +24,7 @@ import qualified Data.Text              as T
 import           Data.Text.Binary       ()
 
 import           Hunt.Common.BasicTypes
+import qualified Hunt.Common.DocDesc    as DD
 
 import           Hunt.Utility.Log
 
@@ -76,7 +77,7 @@ emptyApiDocIndexMap = M.empty
 
 -- | Empty 'Document' description.
 emptyApiDocDescr :: Description
-emptyApiDocDescr = M.empty
+emptyApiDocDescr = DD.empty
 
 -- | Empty 'ApiDocument'.
 emptyApiDoc :: ApiDocument
@@ -137,9 +138,9 @@ instance ToJSON ApiDocument where
   toJSON (ApiDocument u im dm wt) = object $
     (maybe [] (\ w -> ["weight" .= w]) wt)
     ++
-    (if M.null dm then [] else ["index"       .= im])
+    (if DD.null dm then [] else ["index"       .= im])
     ++
-    (if M.null dm then [] else ["description" .= dm])
+    (if DD.null dm then [] else ["description" .= dm])
     ++
     [ "uri"         .= u
     ]

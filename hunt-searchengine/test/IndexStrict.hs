@@ -37,6 +37,7 @@ import           Hunt.Common
 import qualified Hunt.Common.Positions                       as Pos
 import qualified Hunt.Common.Occurrences                     as Occ
 import qualified Hunt.Common.DocIdMap                        as DM
+import qualified Hunt.Common.DocDesc                         as DD
 
 import qualified Hunt.Index                                  as Ix
 import qualified Hunt.Index.InvertedIndex                    as InvIx
@@ -696,9 +697,9 @@ mkDescription :: Gen Description
 mkDescription = do
   txt <- niceText1
   txt2 <- niceText1
-  return $ M.fromList [ ("key1", txt)
-                      , ("key2", txt2)
-                      ]
+  return $ DD.fromList [ ("key1", txt)
+                       , ("key2", txt2)
+                       ]
 -- --------------------
 -- Arbitrary Occurrences
 
@@ -743,7 +744,7 @@ niceText1 = fmap T.pack . listOf1 . elements $ concat [" ", ['0'..'9'], ['A'..'Z
 descriptionGen :: Gen Description
 descriptionGen = do
   tuples <- listOf kvTuples
-  return $ M.fromList tuples
+  return $ DD.fromList tuples
   where
   kvTuples = do
     a <- resize 15 niceText1 -- keys are short
@@ -756,7 +757,7 @@ mkIndexData i d = M.fromList
                 $ map (\c -> ("context" `T.append` (T.pack $ show c), prefixx c)) [0..i]
   where
 --  index   = T.pack $ show i
-  prefixx n = T.intercalate " " . map (T.take n . T.filter (/=' ') . snd) . M.toList $ d
+  prefixx n = T.intercalate " " . map (T.take n . T.filter (/=' ') . snd) . DD.toList $ d
 
 -- ------------------------------------------------------------
 
