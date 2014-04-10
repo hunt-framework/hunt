@@ -52,7 +52,7 @@ import           Control.Applicative         (Applicative, (<$>), (<*>))
 import           Control.Arrow
 import           Control.Monad
 import qualified Control.Monad.Parallel      as Par
-import           Control.Parallel.Strategies
+--import           Control.Parallel.Strategies
 
 import           Data.Binary                 (Binary (..))
 import           Data.Binary.Get
@@ -261,6 +261,7 @@ contentForCx cx vs = (concat . map ((\(did, wl) -> map (second (mkOccs did)) $ M
 -- | Add words for a document to the 'Index'.
 --
 --   /Note/: Adds words to /existing/ 'Context's.
+{--
 batchAddWords :: [(DocId, Words)] -> ContextMap Occurrences -> ContextMap Occurrences
 batchAddWords vs (ContextMap m)
   = mkContextMap $ M.fromList $ parMap rpar (\(cx,impl) -> (cx,foldinsertList cx impl)) (M.toList m)
@@ -268,7 +269,7 @@ batchAddWords vs (ContextMap m)
   foldinsertList :: Context -> IndexImpl Occurrences-> IndexImpl Occurrences
   foldinsertList cx (Impl.IndexImpl impl)
     = Impl.mkIndex $ Ix.insertList (contentForCx cx vs) impl
-
+--}
 ----------------------------------------------------------------------------
 -- addWords/batchAddWords functions
 ----------------------------------------------------------------------------
@@ -290,9 +291,6 @@ mapWithKeyM f m =
                 ) $ M.toList m) >>=
     return . M.fromList
 
--- parallel map
---   increasing cpu usage from 30% to 60%
---   but runtime is actually slower
 mapWithKeyMP :: (Par.MonadParallel m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
 mapWithKeyMP f m =
   (Par.mapM (\(k, a) -> do
