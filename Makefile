@@ -87,7 +87,7 @@ configure: 	; $(MAKE) -e target action=configure
 build:		; $(MAKE) -e target action=build PROFOPTS=''
 install:	; $(MAKE) -e target action=install
 force-install:	; $(MAKE) -e target action=install PROFOPTS="--force-reinstalls $(PROFOPTS)"
-test:		; $(MAKE) -e target action=test PROFOPTS=''
+#test:		; $(MAKE) -e target action=test PROFOPTS=''
 
 target: compression searchengine server
 
@@ -98,19 +98,23 @@ sandbox:
 	cd hunt-server         && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd hunt-client         && cabal sandbox init --sandbox ../.cabal-sandbox
 	cabal sandbox add-source hunt-searchengine
+	cabal sandbox add-source hunt-compression
 	cd hunt-demos/geoFrontend && cabal sandbox init --sandbox ../../.cabal-sandbox
 
-compression:
+compression: sandbox
 	cd hunt-compression && cabal $(action) $(PROFOPTS) $(pattern)
 
-searchengine:
+searchengine: sandbox
 	cd hunt-searchengine && cabal $(action) $(PROFOPTS) $(pattern)
 
-server: stopServer
+server: stopServer sandbox
 	cd hunt-server       && cabal $(action) $(PROFOPTS) $(pattern)
 
-client:
+client: sandbox
 	cd hunt-client && cabal $(action) $(PROFOPTS) $(pattern)
+
+test:
+	cd hunt-searchengine && cabal sandbox init && cabal install --enable-tests
 
 startServer: stopServer
 	$(EXE) $(RUNOPTS) &

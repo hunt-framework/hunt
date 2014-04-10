@@ -55,7 +55,7 @@ main = defaultMain
   -- document table
   [ testProperty "prop_strictness_occurrences"               prop_occs
   , testProperty "prop_strictness_document"                  prop_doc
-  , testProperty "prop_strictness_description"               prop_desc 
+  , testProperty "prop_strictness_description"               prop_desc
 
   -- strictness property for index implementations by function
   -- insert / insertList
@@ -98,7 +98,7 @@ main = defaultMain
   , testProperty "prop_strictness unionWith dateindex"       prop_invix3_union
   , testProperty "prop_strictness unionWith geoindex"        prop_invix4_union
   , testProperty "prop_strictness unionWith proxy"           prop_proxy_union
- 
+
   -- strictness property for document table by function
   , testProperty "prop_strictness union doctable"            prop_dt_union
   , testProperty "prop_strictness insert doctable"           prop_dt_insert
@@ -132,7 +132,7 @@ prop_doc = monadicIO $ do
 
 prop_desc :: Property
 prop_desc = monadicIO $ do
-  x <- pick mkDescription 
+  x <- pick mkDescription
   assertNF' $! x
 
 -- ----------------------------------------------------------------------------
@@ -368,18 +368,18 @@ prop_proxy_del
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_delete "key"
-    
+
 insert_and_delete :: forall v (m :: * -> *) (i :: * -> *) v1.
                      (Ix.ICon i v1, Monad m, Ix.Index i, Ix.IVal i v1 ~ DocIdMap v) =>
                      Ix.IKey i v1 -> DocIdMap v -> m (i v1)
-insert_and_delete key v 
+insert_and_delete key v
   = return $ Ix.delete docId
            $ Ix.insert key v Ix.empty
     where
     docId = case DM.toList v of
               ((did,_):_) -> did
               _           -> 0
-                    
+
 -- ----------------------------------------------------------------------------
 -- index implementations: map function
 -- ----------------------------------------------------------------------------
@@ -443,8 +443,8 @@ prop_proxy_map
 insert_and_map :: forall (m :: * -> *) (i :: * -> *) v.
                   (Ix.ICon i v, Monad m, Ix.Index i,
                    Ix.IVal i v ~ DocIdMap Positions) =>
-                  Ix.IKey i v -> DocIdMap Positions -> m (i v)  
-insert_and_map key v 
+                  Ix.IKey i v -> DocIdMap Positions -> m (i v)
+insert_and_map key v
   = return $ Ix.map (DM.insert 1 (Pos.singleton 1))
            $ Ix.insert key v Ix.empty
 
@@ -512,7 +512,7 @@ insert_and_map2 :: forall (m :: * -> *) (i :: * -> *) v.
                    (Ix.ICon i v, Monad m, Ix.Index i,
                     Ix.IVal i v ~ DocIdMap Positions) =>
                    Ix.IKey i v -> DocIdMap Positions -> m (i v)
-insert_and_map2 key v 
+insert_and_map2 key v
   = return $ Ix.mapMaybe (Just . DM.insert 1 (Pos.singleton 1))
            $ Ix.insert key v Ix.empty
 
@@ -527,7 +527,7 @@ prop_ptix_union
     assertNF' ix
   where
   pickIx = do
-    val1 <- pick arbitrary 
+    val1 <- pick arbitrary
     val2 <- pick arbitrary
     insert_and_union "key" val1 val2
 
@@ -538,7 +538,7 @@ prop_ptix2d_union
     assertNF' ix
   where
   pickIx = do
-    val1 <- pick arbitrary 
+    val1 <- pick arbitrary
     val2 <- pick arbitrary
     insert_and_union "11" val1 val2
 
@@ -549,7 +549,7 @@ prop_invix1_union
     assertNF' ix
   where
   pickIx = do
-    val1 <- pick arbitrary 
+    val1 <- pick arbitrary
     val2 <- pick arbitrary
     insert_and_union "key" val1 val2
 
@@ -560,7 +560,7 @@ prop_invix2_union
     assertNF' ix
   where
   pickIx = do
-    val1 <- pick arbitrary 
+    val1 <- pick arbitrary
     val2 <- pick arbitrary
     insert_and_union "1" val1 val2
 
@@ -571,7 +571,7 @@ prop_invix3_union
     assertNF' ix
   where
   pickIx = do
-    val1 <- pick arbitrary 
+    val1 <- pick arbitrary
     val2 <- pick arbitrary
     insert_and_union "2013-01-01" val1 val2
 
@@ -582,7 +582,7 @@ prop_invix4_union
     assertNF' ix
   where
   pickIx = do
-    val1 <- pick arbitrary 
+    val1 <- pick arbitrary
     val2 <- pick arbitrary
     insert_and_union "1-1" val1 val2
 
@@ -593,14 +593,14 @@ prop_proxy_union
     assertNF' ix
   where
   pickIx = do
-    val1 <- pick arbitrary 
+    val1 <- pick arbitrary
     val2 <- pick arbitrary
     insert_and_union "key" val1 val2
 
 insert_and_union :: forall (m :: * -> *) (i :: * -> *) v v1.
                     (Ix.ICon i v, Monad m, Ix.Index i, Ix.IVal i v ~ DocIdMap v1) =>
                     Ix.IKey i v -> DocIdMap v1 -> DocIdMap v1 -> m (i v)
-insert_and_union key v1 v2 
+insert_and_union key v1 v2
   = return $ Ix.unionWith (DM.union)
              (Ix.insert key v1 Ix.empty)
              (Ix.insert key v2 Ix.empty)
@@ -658,7 +658,7 @@ prop_contextix2
 --}
 
 -- ----------------------------------------------------------------------------
--- test property indeximpl: cannot be tested right now, because of 
+-- test property indeximpl: cannot be tested right now, because of
 -- existential quantification
 -- ----------------------------------------------------------------------------
 
@@ -689,7 +689,7 @@ mkDocument = do
   u <- niceText1
   d <- mkDescription
   w <- arbitrary
-  return $ Document u d w 
+  return $ Document u d w
 
 
 mkDescription :: Gen Description
