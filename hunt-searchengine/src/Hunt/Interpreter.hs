@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE MultiWayIf                 #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeFamilies               #-}
@@ -26,6 +27,8 @@ module Hunt.Interpreter
   , DefHuntEnv
   )
 where
+
+import           System.IO.Error
 
 import           Control.Applicative
 import           Control.Concurrent.XMVar
@@ -492,8 +495,13 @@ execDeleteByQuery q ixx@(ContextIndex ix _dt s) = do
 execStore :: (Bin.Binary a, DocTable dt) =>
              FilePath -> a -> Hunt dt CmdResult
 execStore filename x = do
-  liftIO $ Bin.encodeFile filename x
-  return ResOK
+  res <- liftIO . tryIOError $ Bin.encodeFile filename x
+  case res of
+      Left  e -> if | isAlreadyInUseError e -> throwResError 409 $ "Cannot store index: file is already in use"
+                    | isPermissionError   e -> throwResError 403 $ "Cannot store index: no access permission to file"
+                    | isFullError         e -> throwResError 500 $ "Cannot store index: device is full"
+                    | otherwise             -> throwResError 500 $ T.pack . show $ e
+      Right _ -> return ResOK
 
 -- TODO: XMVar functions probably not suited for this, locking for load reasonable
 
@@ -504,13 +512,18 @@ execLoad :: (Bin.Binary dt, DocTable dt) => FilePath -> Hunt dt (ContextIndex dt
 execLoad filename = do
   ts <- asks huntTypes
   let ix = map ctIxImpl ts
-  ixh@(ContextIndex _ _ s) <- liftIO $ decodeFile' ix filename
+  ixh@(ContextIndex _ _ s) <- decodeFile' ix filename
   ls <- TV.mapM reloadSchema s
   return (ixh{ ciSchema = ls }, ResOK)
   where
   decodeFile' ts f = do
-    bs <- BL.readFile f
-    return $ decodeCxIx ts bs
+    res <- liftIO . tryIOError $ decodeCxIx ts <$> BL.readFile f
+    case res of
+      Left  e -> if | isAlreadyInUseError e -> throwResError 409 $ "Cannot load index: file already in use"
+                    | isDoesNotExistError e -> throwResError 404 $ "Cannot load index: file does not exist"
+                    | isPermissionError   e -> throwResError 403 $ "Cannot load index: no access permission to file"
+                    | otherwise             -> throwResError 500 $ T.pack . show $ e
+      Right r -> return r
 
   reloadSchema s = (askType . ctName . cxType) s >>= \t -> return $ s { cxType = t }
 
