@@ -55,6 +55,7 @@ sandbox: .cabal-sandbox
 .cabal-sandbox:
 	cabal sandbox init --sandbox .cabal-sandbox && \
 	cabal sandbox add-source ../../hunt-searchengine/
+	cabal sandbox add-source ../../hunt-compression/
 
 run:
 	./.cabal-sandbox/bin/hunt-perbench +RTS -N$(N) -RTS

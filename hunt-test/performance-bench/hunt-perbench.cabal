@@ -29,6 +29,7 @@ executable hunt-perbench
                  , bytestring                        < 1
                  , filepath
                  , hunt-searchengine      >= 0.1
+                 , hunt-compression
                  , process                >= 1    && < 2
                  , text                  
                  , time                   

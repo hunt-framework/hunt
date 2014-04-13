@@ -48,6 +48,9 @@ import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Ranking
 import           Hunt.Utility
 
+import           Hunt.DocTable.HashedDocTable
+import qualified Hunt.Common.Document.Compression.BZip as BZIP
+import qualified Hunt.Common.Document.Compression.Snappy as SNAPPY
 -- ----------------------------------------------------------------------------
 
 main :: IO ()
@@ -55,7 +58,9 @@ main = do
   let json = "./../data/random/RandomData.js"
 --  let json = "./hayoo.js"
 
-  hunt <- initHunt :: IO DefHuntEnv
+  hunt <- initHunt :: IO (HuntEnv (Documents Document))
+--  hunt <- initHunt :: IO (HuntEnv (Documents BZIP.CompressedDoc))
+--  hunt <- initHunt :: IO (HuntEnv (Documents SNAPPY.CompressedDoc))
   showStats "Index initialized"
   -- read benchmark json data force evaluation with deepseq
   -- to be sure all data is read into memory before starting
