@@ -57,7 +57,7 @@ import           Data.Typeable (Typeable)
 import           Control.Exception (Exception)
 import           Control.Failure (Failure, failure)
 
-import           Control.Lens (over, both, {- _Left, _head, _tail, under, -} each, Mutator, Each)
+import           Control.Lens (over, both, {- _Left, _head, _tail, under, -} each)
 
 import           Control.Monad (mzero)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
@@ -293,7 +293,8 @@ descriptionToCmd d = H.InsertContext {H.icIContext = cxName d, H.icSchema = sche
 --capitalize :: String -> String
 --capitalize = over _head toUpper . over (_tail.each) toLower
 
-lowercase :: Each Mutator s t Char Char => s -> t
+-- lowercase :: Each Mutator s t Char Char => s -> t
+lowercase :: String -> String
 lowercase = over (each) toLower
 
 lowercaseConstructorsOptions :: JSON.Options
