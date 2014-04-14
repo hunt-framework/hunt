@@ -41,27 +41,29 @@ import qualified Data.Aeson.Types as JSON
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Char (isSpace, {- toUpper, -}toLower)
 
-import           Data.Conduit (runResourceT, ResourceT, MonadBaseControl)
+-- import           Data.Conduit ()
 
 import           Data.Default (Default, def)
 
-import           Data.Either ()
+-- import           Data.Either ()
 
-import           Data.String ()
+-- import           Data.String ()
 import           Data.String.Conversions (cs, (<>))
 
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Typeable (Typeable)
 
-import           Control.Exception (Exception)
-import           Control.Failure (Failure, failure)
+import           Control.Exception (Exception, throwIO)
+-- import           Control.Failure (Failure, failure)
 
 import           Control.Lens (over, both, {- _Left, _head, _tail, under, -} each)
 
 import           Control.Monad (mzero)
+import           Control.Monad.Catch (MonadThrow, throwM)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Control.Monad.Trans.Class (MonadTrans, lift)
+import           Control.Monad.Trans.Resource (ResourceT, runResourceT, MonadBaseControl)
 import           Control.Monad.Reader (ReaderT, MonadReader, runReaderT, ask)
 
 
@@ -122,6 +124,9 @@ instance MonadTrans HuntConnectionT where
     -- lift :: (Monad m) => m a -> HuntConnectionT m a
     lift = HuntConnectionT . lift . lift
 
+instance (Monad m, MonadIO m) => MonadThrow (HuntConnectionT m) where
+    throwM = liftIO . throwIO
+
 data HuntClientException =
       ServerError Int [Text]
 --    | HttpException HTTP.HttpException
@@ -165,7 +170,7 @@ encodeRequest :: Text -> Text
 encodeRequest = cs . urlEncode False . cs
 --encodeRequest = under utf8 $ urlEncode False
 
-makeRequest :: (MonadIO m, Failure HTTP.HttpException m) => Text -> HuntConnectionT m HTTP.Request
+makeRequest :: (MonadIO m) => Text -> HuntConnectionT m HTTP.Request
 makeRequest path = do
     sm <- ask
     HTTP.parseUrl $ cs $ T.concat [ unServer sm, path]
@@ -176,7 +181,7 @@ httpLbs request = do
     response <- HTTP.httpLbs request (unManager sm)
     return $ HTTP.responseBody response
 
-handleAutoCompeteResponse :: (Monad m, Failure HuntClientException m) => Text -> ByteString -> m [Text]
+handleAutoCompeteResponse :: (Monad m, MonadThrow m) => Text -> ByteString -> m [Text]
 handleAutoCompeteResponse q result = do
     response <- handleJsonResponse result
     return $ prefixWith $ filterByRest response
@@ -189,47 +194,47 @@ handleAutoCompeteResponse q result = do
         prefixWith :: [Text] -> [Text]
         prefixWith x = map (prefix <> ) x
 
-autocomplete :: (MonadIO m, Failure HTTP.HttpException m, Failure HuntClientException m) => Text  -> HuntConnectionT m [Text]
+autocomplete :: (MonadIO m) => Text  -> HuntConnectionT m [Text]
 autocomplete q = do
     request <- makeRequest $ T.concat [ "completion/", encodeRequest q, "/20"]
     d <- httpLbs request
     handleAutoCompeteResponse q d
 
 
-query :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m, Failure HuntClientException m) => Text -> Int -> HuntConnectionT m  (H.LimitedResult r)
+query :: (MonadIO m, FromJSON r) => Text -> Int -> HuntConnectionT m  (H.LimitedResult r)
 query query offset = do
     request <- makeRequest $ T.concat [ "search/", encodeRequest query, "/", cs $ show offset, "/20"]
     httpLbs request >>= handleJsonResponse
 
-insert :: (MonadIO m, Failure HTTP.HttpException m) => H.ApiDocuments -> HuntConnectionT m ByteString
+insert :: (MonadIO m) => H.ApiDocuments -> HuntConnectionT m ByteString
 insert docs = eval $ map H.Insert docs
 
-evalAutocomplete :: (MonadIO m, Failure HTTP.HttpException m, Failure HuntClientException m) => Text -> Query -> HuntConnectionT m [Text]
+evalAutocomplete :: (MonadIO m) => Text -> Query -> HuntConnectionT m [Text]
 evalAutocomplete qt qq = do
     result <- eval $ [H.Completion qq 20]
     handleAutoCompeteResponse qt result
 
-evalQuery :: (MonadIO m, FromJSON r, Failure HTTP.HttpException m, Failure HuntClientException m) => Query -> Int -> HuntConnectionT m (H.LimitedResult r)
+evalQuery :: (MonadIO m, FromJSON r) => Query -> Int -> HuntConnectionT m (H.LimitedResult r)
 evalQuery query offset = do
     result <- eval $ [H.Search query offset 20]
     handleJsonResponse result
 
-eval :: (MonadIO m, Failure HTTP.HttpException m) => [H.Command] -> HuntConnectionT m ByteString
+eval :: (MonadIO m) => [H.Command] -> HuntConnectionT m ByteString
 eval cmds = do
     request' <- makeRequest "eval"
     let body = JSON.encode cmds
         request = request' { HTTP.method = "POST", HTTP.requestBody = HTTP.RequestBodyLBS body}
     httpLbs request
 
-handleJsonResponse :: (FromJSON a, Monad m, Failure HuntClientException m) => ByteString -> m a
+handleJsonResponse :: (FromJSON a, Monad m, MonadThrow m) => ByteString -> m a
 handleJsonResponse r = safeDecodeJson r >>= unJsonResponse
     where
     unJsonResponse (JsonSuccess r') = return r'
-    unJsonResponse (JsonFailure c err) = failure $ ServerError c err
+    unJsonResponse (JsonFailure c err) = throwM $ ServerError c err
 
     safeDecodeJson bs = case JSON.eitherDecode bs of
         (Right a) -> return a
-        (Left err) -> failure $ JSONDecodeError $ cs $ ("Json decode error: " <> err)
+        (Left err) -> throwM $ JSONDecodeError $ cs $ ("Json decode error: " <> err)
 
 
 data ContextType = TextContext | DateContext | PositionContext | IntContext
