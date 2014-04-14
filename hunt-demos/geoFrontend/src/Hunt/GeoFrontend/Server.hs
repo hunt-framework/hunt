@@ -2,10 +2,10 @@
 -- {-# LANGUAGE DoAndIfThenElse #-}
 
 
-module Hunt.GeoFrontend.Server 
+module Hunt.GeoFrontend.Server
 (
     start
-) 
+)
 where
 
 import           Data.String (fromString)
@@ -93,7 +93,7 @@ dispatcher = do
 
 renderRoot :: [Scotty.Param] -> Scotty.ActionT GeoFrontendError GeoServer ()
 renderRoot params = renderRoot' $ (fmap cs) $ lookup "query" params
-    where 
+    where
     renderRoot' :: Maybe T.Text -> Scotty.ActionT GeoFrontendError GeoServer ()
     renderRoot' Nothing = Scotty.html $ Templates.body ""
     renderRoot' (Just q) = do
@@ -103,7 +103,7 @@ renderRoot params = renderRoot' $ (fmap cs) $ lookup "query" params
 raiseOnLeft :: Monad m => Either T.Text a -> Scotty.ActionT TL.Text m a
 raiseOnLeft (Left err) = Scotty.raise $ cs err
 raiseOnLeft (Right x) = return x
-    
+
 -- | Initializes the loggers with the given priority.
 initLoggers :: Log.Priority -> IO ()
 initLoggers level = do

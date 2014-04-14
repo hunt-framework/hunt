@@ -7,7 +7,7 @@
 
 
 
-module Hunt.GeoFrontend.Common 
+module Hunt.GeoFrontend.Common
 (
     GeoFrontendConfiguration (..),
     OSMType (..),
@@ -80,19 +80,19 @@ geoDocToMap d = M.fromList $ otherTags ++ (map . second) ($ d) [("name", name), 
         otherTags = map (uncurry (,)) $ tags d
 
 geoDocIdToUri :: GeoDocument -> Text
-geoDocIdToUri d = "osm://" `T.append` (fromShow $ osmId d) 
+geoDocIdToUri d = "osm://" `T.append` (fromShow $ osmId d)
 
 geoDocToHuntDoc :: GeoDocument -> H.ApiDocument
 geoDocToHuntDoc d = H.ApiDocument {H.apiDocUri = geoDocIdToUri d, H.apiDocIndexMap = geoDocToMap d, H.apiDocDescrMap = geoDocToMap d}
 
 instance FromJSON GeoDocument where
     parseJSON (JSON.Object o) = do
-        u <- o .: "uri" 
+        u <- o .: "uri"
         (JSON.Object descr) <- o .: "desc"
         n  <- descr .: "name"
         k  <- descr .: "kind"
         p  <- (descr .: "position") :: JSON.Parser Text
-        (lon', lat') <- case parse H.position "(json)" (T.unpack p) of 
+        (lon', lat') <- case parse H.position "(json)" (T.unpack p) of
             Left err -> fail $ show err
             Right res -> return res
 
@@ -101,12 +101,12 @@ instance FromJSON GeoDocument where
         tags'' <- (mapM . traverse) JSON.parseJSON tags'
         let osmId' = read $ snd $ splitAt 6 u
         return $ GeoDocument (osmId') n lon' lat' k (tags'')
-            
+
 
     parseJSON _ = mzero
 
 instance ToJSON GeoDocument where
-    toJSON d = JSON.object $ 
+    toJSON d = JSON.object $
         [ "name"  .= name d
         , "lon"   .= lon d
         , "lat"   .= lat d
@@ -116,7 +116,7 @@ instance ToJSON GeoDocument where
             tags' :: [JSON.Pair]
             tags' = map (second JSON.String) $ tags d
 
-fromShow :: (Show a) => a -> Text 
+fromShow :: (Show a) => a -> Text
 fromShow = T.pack . show
 
 
@@ -124,7 +124,7 @@ newtype GeoServer a = GeoServer { runGeoServer :: ReaderT H.ServerAndManager IO 
     deriving (Monad, MonadIO, MonadReader (H.ServerAndManager))
 
 geoServer :: MonadTrans t => GeoServer a -> t GeoServer a
-geoServer = lift 
+geoServer = lift
 
 runGeoReader :: GeoServer a -> H.ServerAndManager -> IO a
 runGeoReader = runReaderT . runGeoServer
@@ -147,8 +147,8 @@ insert docs = withServerAndManager' $ H.insert $ map geoDocToHuntDoc docs
 
 
 data GeoFrontendConfiguration = GeoFrontendConfiguration {
-    geoFrontendHost :: String, 
-    geoFrontendPort :: Int, 
+    geoFrontendHost :: String,
+    geoFrontendPort :: Int,
     huntUrl :: String,
     loadIndex  :: Maybe FilePath
 } deriving (Show, Data, Typeable)

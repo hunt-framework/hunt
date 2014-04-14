@@ -12,9 +12,9 @@ import           Text.Lorem.Words
 import           Criterion.Main
 
 main :: IO ()
-main = defaultMain $ do 
+main = defaultMain $ do
   [ bench "test" ( quickCheck simple_query) ]
-  
+
 loremText :: Gen Text
 loremText = do
   words <- listOf1 $ elements latin
@@ -40,6 +40,3 @@ query x = do
 --    (Right r) -> do
 --      print $ rspBody r
 --    _ -> return ()
-
-
-

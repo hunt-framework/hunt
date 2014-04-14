@@ -59,7 +59,7 @@ noStopWords tags' = not $ or $ map (\x -> x `elem` tags') [tag "amenity" "toilet
 nwrHasName :: NodeWayRelation -> Bool
 nwrHasName nwr =  hasNameTag tags' && supportedTags tags' && noStopWords tags'
     where
-        tags' = nwrCommonGetTags $ getCommon nwr 
+        tags' = nwrCommonGetTags $ getCommon nwr
 
 getCommon :: NodeWayRelation -> NWRCommon
 getCommon nwr
@@ -95,7 +95,7 @@ filterIndexedTags tags' = filter (flip elem indexedTags' . fst) tags'
         indexedTags' = map cs $ indexedTags
 
 metaIndizes :: [H.ContextDescription]
-metaIndizes = 
+metaIndizes =
     [
           H.def {H.cxName = "type"          , H.cxWeight = 0.1, H.cxDefault = False}
         , H.def {H.cxName = "position"                        , H.cxDefault = False, H.cxType = H.PositionContext}
@@ -103,7 +103,7 @@ metaIndizes =
     ]
 
 tagIndizes :: [H.ContextDescription]
-tagIndizes = 
+tagIndizes =
     [
           H.def {H.cxName = "name"          , H.cxWeight = 1.0}
         , H.def {H.cxName = "amenity"       , H.cxWeight = 0.5}

@@ -34,7 +34,7 @@ main = defaultMainWithOpts
   [
   -- TODO
   -- test: insertList, deleteDocs, toList, fromList, map
-  -- test: intindex, dateindex, geoindex 
+  -- test: intindex, dateindex, geoindex
 
   -- PrefixTree implementation
     testCase "DmPrefixTree:            insert"        insertTestPIx

@@ -187,7 +187,7 @@ handleAutoCompeteResponse q result = do
         filterByRest = map fst . filter (\(_, rs) -> rest `elem` rs)
 
         prefixWith :: [Text] -> [Text]
-        prefixWith x = map (prefix <> ) x 
+        prefixWith x = map (prefix <> ) x
 
 autocomplete :: (MonadIO m, Failure HTTP.HttpException m, Failure HuntClientException m) => Text  -> HuntConnectionT m [Text]
 autocomplete q = do

@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
-module Hunt.Common.DocDesc where
 
+module Hunt.Common.DocDesc where
 
 import           Control.Applicative  ((<$>))
 import           Control.DeepSeq
@@ -13,6 +13,8 @@ import           Data.Text            (Text)
 import           Data.Typeable
 import           Data.Map.Strict      (Map)
 import qualified Data.Map.Strict      as SM
+
+-- ------------------------------------------------------------
 
 newtype DocDesc v
   = DocDesc { unDesc :: Map Text v }
@@ -27,6 +29,8 @@ instance ToJSON v => ToJSON (DocDesc v) where
 
 instance FromJSON v => FromJSON (DocDesc v) where
   parseJSON o = DocDesc <$> parseJSON o
+
+-- ------------------------------------------------------------
 
 -- | The empty description.
 empty :: DocDesc v
@@ -51,3 +55,5 @@ fromList l = DocDesc $! SM.fromList l
 -- | Create a list from a document description.
 toList :: DocDesc v -> [(Text, v)]
 toList (DocDesc m) = SM.toList m
+
+-- ------------------------------------------------------------

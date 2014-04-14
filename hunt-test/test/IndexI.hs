@@ -73,7 +73,7 @@ empty'List = _empty index'List
 
 newtype IsoKey ix1 k1 k v = IsoKey (ix1 k1 v)
 
-index'IsoKey :: Iso k k1 -> IndexI ix1 k1 v -> IndexI (IsoKey ix1 k1) k v 
+index'IsoKey :: Iso k k1 -> IndexI ix1 k1 v -> IndexI (IsoKey ix1 k1) k v
 index'IsoKey iso i1 =
     IndexI
     { _empty  =                       IsoKey $ (_empty  i1)
@@ -81,7 +81,7 @@ index'IsoKey iso i1 =
     , _delete = \ k   (IsoKey ix1) -> IsoKey $ (_delete i1) (fw iso $ k)    ix1
     , _search = \ k   (IsoKey ix1) ->          (_search i1) (fw iso $ k)    ix1
     , _toList = \     (IsoKey ix1) -> fmap (first (bw iso)) $
-                                               (_toList i1)                 ix1 
+                                               (_toList i1)                 ix1
     }
 
 -- ----------------------------------------
@@ -89,7 +89,7 @@ index'IsoKey iso i1 =
 
 newtype IsoVal ix1 v1 k v = IsoVal (ix1 k v1)
 
-index'IsoVal :: Iso v v1 -> IndexI ix1 k v1 -> IndexI (IsoVal ix1 v1) k v 
+index'IsoVal :: Iso v v1 -> IndexI ix1 k v1 -> IndexI (IsoVal ix1 v1) k v
 index'IsoVal iso i1 =
     IndexI
     { _empty  =                       IsoVal $ (_empty  i1)
@@ -98,7 +98,7 @@ index'IsoVal iso i1 =
     , _search = \ k   (IsoVal ix1) -> fmap (bw iso) $
                                                (_search i1) k              ix1
     , _toList = \     (IsoVal ix1) -> fmap (second (bw iso)) $
-                                               (_toList i1)                ix1 
+                                               (_toList i1)                ix1
     }
 
 -- ----------------------------------------
@@ -148,7 +148,7 @@ type WordStringIndex = Map Word String
 
 type StringIndex  k v = IsoKey         Map Int  k v
 type StringIndexI k v = IndexI (IsoKey Map Int) k v
- 
+
 index'StringIntIndex :: StringIndexI String v
 index'StringIntIndex = index'IsoKey isoFromString index'Map
 
@@ -188,4 +188,3 @@ ix3 = foldr (uncurry (_insert index'StringTextIndex)) (_empty index'StringTextIn
 
 lx3 :: [(String, Text)]
 lx3 = (_toList index'StringTextIndex) ix3
-

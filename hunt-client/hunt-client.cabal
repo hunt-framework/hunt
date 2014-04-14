@@ -2,9 +2,9 @@ name:          hunt-client
 version:       0.1
 license:       MIT
 license-file:  LICENSE
-author:        Chris Reumann, Ulf Sauer, Sebastian Philipp
-copyright:     Chris Reumann, Ulf Sauer, Sebastian Philipp
-maintainer:    Chris Reumann, Ulf Sauer, Sebastian Philipp
+author:        Sebastian Philipp
+copyright:     Sebastian Philipp
+maintainer:    Sebastian Philipp
 stability:     experimental
 category:      Text, Data
 synopsis:      A search and indexing engine server.
@@ -33,7 +33,7 @@ library
                 , conduit                >= 1.0
                 , failure                >= 0.2
                 , hunt-searchengine
-                , http-client            >= 0.2 
+                , http-client            >= 0.2
                 , http-conduit           >= 2.0.0
                 , http-types             >= 0.8
                 , lens                   >= 4.0 && < 4.2

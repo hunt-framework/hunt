@@ -141,7 +141,7 @@ instance (Compression v) => Index (CompStrMap v) where
     search k   (CM m) = second decompress <$> search k m
     toList     (CM m) = second decompress <$> toList m
 
-{- nice try, but fmap needs a context (Compression a, Compression b) => 
+{- nice try, but fmap needs a context (Compression a, Compression b) =>
 
 instance Functor CompStrMap where
     fmap f (CM m) = CM $ fmap (compress . f . decompress) m

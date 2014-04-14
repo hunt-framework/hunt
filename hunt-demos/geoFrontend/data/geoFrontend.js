@@ -24,7 +24,7 @@ function initMap() {
     // create the tile layer with correct attribution
     var osmUrl='http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     var osmAttrib='Map data © OpenStreetMap contributors';
-    var osm = new L.TileLayer(osmUrl, {minZoom: 1, maxZoom: 18, attribution: osmAttrib});        
+    var osm = new L.TileLayer(osmUrl, {minZoom: 1, maxZoom: 18, attribution: osmAttrib});
 
     // start the map in South-East England
     map.setView(new L.LatLng((53.5681 + 53.5854) / 2, (9.6960 + 9.7496) / 2), 14);
@@ -37,7 +37,7 @@ function onSearch(){
     query = $("#geoFrontend")[0].value
     $.each(markers, function(i, marker){
          map.removeLayer(marker)
-    })  
+    })
     markers = []
     boundsString = ""
 
@@ -49,7 +49,7 @@ function onSearch(){
         minlng = Math.min(ne.lng, sw.lng)
         maxlat = Math.max(ne.lat, sw.lat)
         maxlng = Math.max(ne.lng, sw.lng)
-        boundsString = " position:[" + minlat + "-" + minlng + " TO " + maxlat + "-" + maxlng + "]" 
+        boundsString = " position:[" + minlat + "-" + minlng + " TO " + maxlat + "-" + maxlng + "]"
     }
 
     var data = {term: query + boundsString}
@@ -72,5 +72,3 @@ $(document).ready(function() {
     initMap()
     $("#submit").click(onSearch)
 });
-
-

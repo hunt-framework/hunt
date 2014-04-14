@@ -39,10 +39,10 @@ import           Data.Maybe
 
 {--
  - the index typeclass should be more lightweight
- - 
+ -
  - in fact: insert,update and delete should do it.
  - (a single and a batch processing version each)
- - 
+ -
  - it would make sense to having the internal DocId
  - transparent to the api users. they should have
  - to deal with URI's only. Not sure how to
@@ -55,11 +55,11 @@ class Index i where
   type IValue    i :: *
   -- | Result type for lookup operations
   type IResult   i :: *
-  -- | Search Operations associated with this index implementation 
+  -- | Search Operations associated with this index implementation
   data ISearchOp i :: *
-   
+
   -- | Insert Key (f.e.: word) with DocInfo (f.e.: Occurrences) for a context
-  insert :: Context -> IKey i -> IValue i -> i -> i 
+  insert :: Context -> IKey i -> IValue i -> i -> i
   -- | Remove DocInfo for DocId from all Contexts
   delete :: IKey i -> i -> i
   -- | Lookup for DocInfo in Index
@@ -129,7 +129,7 @@ insertM_ :: State (Index_, Doc) ()
 insertM_ = do
   (i,d) <- get
   return ()
-  
+
 
 main :: IO ()
 main = print $ evalState insertM_ emptyIndex

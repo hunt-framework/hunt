@@ -12,7 +12,7 @@ data Obj a = Obj a
 mkObj :: a -> Obj a
 mkObj a = Obj $! a
 
--- using a special String constructor to ensure Strings are always 
+-- using a special String constructor to ensure Strings are always
 -- fully evaluated in this example
 mkString :: String -> String
 mkString x = force x
@@ -63,9 +63,7 @@ main = do
   putStr "test: heterogeneous container: "
   (isNF $! xs2) >>= putStrLn . show
   assertNF $! xs2
-  putStr "test: heterogeneous container with NFData: " 
+  putStr "test: heterogeneous container with NFData: "
   (isNF $!! xs3) >>= putStrLn . show
-  assertNF $!! xs3 
+  assertNF $!! xs3
   return ()
-
-

@@ -30,7 +30,7 @@ renderTitle = "Hunt Geo Demo"
 header :: Hamlet.HtmlUrl Routes
 header = [Hamlet.hamlet|
   <head>
-  
+
     <title>#{renderTitle}
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js">
     <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js">
@@ -41,10 +41,10 @@ header = [Hamlet.hamlet|
 
     <link rel="stylesheet" href="//cdn.leafletjs.com/leaflet-0.7.2/leaflet.css" />
     <script src="//cdn.leafletjs.com/leaflet-0.7.2/leaflet.js">
-    
+
     <link href=@{GeoCSS} rel="stylesheet">
     <script src=@{GeoJs}>
-    
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <script type="javascript">
@@ -63,7 +63,7 @@ navigation query = [Hamlet.hamlet|
             <span .icon-bar>
             <span .icon-bar>
             <span .icon-bar>
-       
+
     <div .navbar-collapse .collapse #geoFrontend-navbar-collapse>
         <ul .nav .navbar-nav .navbar-left>
             <li .active>
@@ -85,17 +85,15 @@ footer = [Hamlet.hamlet|
     <a href=@{Home}> Hunt Searchengine
 |]
 
-body :: Text -> T.Text 
+body :: Text -> T.Text
 body query = T.pack $ Blaze.renderHtml $ [Hamlet.hamlet|
 $doctype 5
 <html lang="en">
     ^{header}
     <body>
         ^{navigation query}
-        
+
         <div .container #map style="height:380">
-        
+
         ^{footer}
 |] render
-
-
