@@ -20,6 +20,7 @@ module Hunt.Utility
 
     -- * Monadic Functions
   , foldlWithKeyM, foldrWithKeyM
+  , whenM
 
     -- * Maybe Helper
   , catMaybesSet
@@ -46,6 +47,8 @@ module Hunt.Utility
   , TypeDummy
   )
 where
+
+import           Control.Monad        (when)
 
 import           Data.Aeson           hiding (decode)
 import           Data.Aeson.Types
@@ -187,6 +190,10 @@ foldrWithKeyM f b = FB.foldrM (uncurry f) b . M.toList
 foldlWithKeyM :: (Monad m) => (b -> k -> a -> m b) -> b -> Map k a -> m b
 foldlWithKeyM f b = FB.foldlM f' b . M.toList
   where f' a = uncurry (f a)
+
+-- | Monadic 'when'.
+whenM :: Monad m => m Bool -> m () -> m ()
+whenM bm f = bm >>= \b -> when b f
 
 -- ------------------------------------------------------------
 -- Aeson helper

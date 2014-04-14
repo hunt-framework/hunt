@@ -1,8 +1,12 @@
 module Main where
 
+import           System.Directory
+import           System.IO
+
 import           Control.Applicative
 --import           Control.Arrow
 --import           Control.Monad                         (join)
+import           Control.Exception
 import           Control.Monad.Error
 --import           Control.Monad.Trans                   (liftIO)
 import           Data.Fixed                            (div', mod')
@@ -176,6 +180,15 @@ testCM' b int = do
 testCM :: TestCM () -> Assertion
 testCM = testCM' True
 
+-- Do something with a temporary file and delete it afterwards
+withTmpFile :: (FilePath -> IO a) -> IO a
+withTmpFile io = do
+  tmpDir <- getTemporaryDirectory
+  -- XXX: file exists afterwards!
+  --      hacky, but I don't want to deal with generating names etc.
+  (file, h) <- openTempFile tmpDir "huntix"
+  hClose h -- we just want the filename
+  io file `finally` whenM (doesFileExist file) (removeFile file)
 
 -- search for inserted doc
 -- sequence of commands using the execSeq
@@ -215,7 +228,7 @@ a @@@ f = execCmd a >>= liftIO . f
 a @@= b = a @@@ (@?=b)
 
 test_binary :: Assertion
-test_binary = testCM $ do
+test_binary = withTmpFile $ \tmpfile -> testCM $ do
   -- create contexts
   insertDateContext       @@= ResOK
   insertDefaultContext    @@= ResOK
@@ -229,7 +242,7 @@ test_binary = testCM $ do
   Search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
     @@@ ((@?= ["test://2"]) . searchResultUris)
   -- store index
-  StoreIx "/tmp/ix"       @@= ResOK
+  StoreIx tmpfile            @@= ResOK
   -- reset index
   Delete "test://1"       @@= ResOK
   Delete "test://2"       @@= ResOK
@@ -239,7 +252,7 @@ test_binary = testCM $ do
   Search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
     @@@ ((@?= []) . searchResultUris)
   -- loading previously stored index
-  LoadIx "/tmp/ix"        @@= ResOK
+  LoadIx tmpfile          @@= ResOK
   -- searching for documents - expecting to find them,
   -- since we found them before we stored the index
   Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
@@ -248,7 +261,7 @@ test_binary = testCM $ do
     @@@ ((@?= ["test://2"]) . searchResultUris)
 
 test_binary2 :: Assertion
-test_binary2 = testCM $ do
+test_binary2 = withTmpFile $ \tmpfile -> testCM $ do
   -- create contexts
   insertDateContext       @@= ResOK
   insertDefaultContext    @@= ResOK
@@ -263,9 +276,8 @@ test_binary2 = testCM $ do
         `catchError` const (return ())
 
   -- store index
-  StoreIx "/tmp/ix"       @@= ResOK
-  LoadIx "/tmp/ix"        @@= ResOK
-
+  StoreIx tmpfile         @@= ResOK
+  LoadIx  tmpfile         @@= ResOK
   -- searching for documents - first should be valid second should be invalid
   Search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
     @@@ ((@?= ["test://1"]) . searchResultUris)

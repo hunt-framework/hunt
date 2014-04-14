@@ -140,6 +140,7 @@ test-suite Hunt-Interpreter
 
   build-depends: base
                , containers
+               , directory
                , HUnit
                , hunt-searchengine
                , data-default
