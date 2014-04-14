@@ -8,55 +8,40 @@
 module Main where
 
 import           Numeric
-import           Prelude                      as P
+import           Prelude                                 as P
 
-import           GHC.Stats
-import           GHC.Stats.Json               ()
-import           System.Environment
-import           System.FilePath
-import           System.Mem
-import           System.Posix.Process
-import           System.Process
 import           Data.Default
+import           GHC.Stats
+import           GHC.Stats.Json                          ()
+import           System.Mem
 
-import           Control.Monad
 import           Control.DeepSeq
 
-import qualified Data.Binary                  as Bin
-import qualified Data.Map                     as M
-import           Data.Monoid
-import           Data.Text                    (Text)
-import qualified Data.Text                    as T
+import           Data.Binary
+import qualified Data.Text                               as T
 import           Data.Time.Clock
-import qualified Data.Traversable             as T
-import           Data.Typeable
 
 import           Hunt.Common
 
 import           Hunt.Interpreter
 
 import           Data.Aeson
-import           Data.Aeson.Encode.Pretty
-import qualified Data.ByteString.Lazy         as BL
-import qualified Data.ByteString.Lazy.Char8   as B8
+import qualified Data.ByteString.Lazy                    as BL
 
-import           Hunt.Common.ApiDocument
-import qualified Hunt.Common.Occurrences      as Occ
-import           Hunt.Index.Schema.Analyze
 import           Hunt.Interpreter.Command
 import           Hunt.Query.Language.Grammar
-import           Hunt.Query.Ranking
-import           Hunt.Utility
 
-import           Hunt.DocTable.HashedDocTable
-import qualified Hunt.Common.Document.Compression.BZip as BZIP
+import qualified Hunt.Common.Document.Compression.BZip   as BZIP
 import qualified Hunt.Common.Document.Compression.Snappy as SNAPPY
+import qualified Hunt.DocTable                           as Dt
+import           Hunt.DocTable.HashedDocTable
+
 -- ----------------------------------------------------------------------------
 
 main :: IO ()
 main = do
-  let json = "./../data/random/RandomData.js"
---  let json = "./hayoo.js"
+  let jsonData = "./../data/random/RandomData.js"
+--  let jsonData = "./hayoo.js"
 
   hunt <- initHunt :: IO (HuntEnv (Documents Document))
 --  hunt <- initHunt :: IO (HuntEnv (Documents BZIP.CompressedDoc))
@@ -65,44 +50,46 @@ main = do
   -- read benchmark json data force evaluation with deepseq
   -- to be sure all data is read into memory before starting
   -- the actual benchmark
-  docs <- (getJson json :: IO [ApiDocument])
+  docs <- (getJson jsonData :: IO [ApiDocument])
   showStats $ "JSON loaded and evaluated " ++ (show . head . show . head $!! docs)
 
   -- insert benchmark contexts
-  run hunt `withCmd` Sequence [ InsertContext "context1" def
-                              , InsertContext "context2" def
-                              , InsertContext "context3" def
-                              , InsertContext "context4" def
-                              ]
+  _ <- run hunt $ Sequence [ InsertContext "context1" def
+                           , InsertContext "context2" def
+                           , InsertContext "context3" def
+                           , InsertContext "context4" def
+                           ]
   showStats "contexts created"
 
   -- benchmark insert performance
-  res <- runAndMonitor hunt `withCmd` Sequence (map Insert docs)
---  res <- runListAndMonitor hunt `withCmd` (map Insert docs)
+  _res <- runAndMonitor hunt $ Sequence (map Insert docs)
+--  res <- runListAndMonitor hunt $ (map Insert docs)
   showStats "documents inserted"
 
   -- run query to check success
-  res <- runAndMonitor hunt `withCmd` Search (QWord QNoCase "a") 0 3000
+  _res <- runAndMonitor hunt $ Search (QWord QNoCase "a") 0 3000
   showStats "index used with search and garbage collected"
-  getLine
+  _ <- getLine
   -- benchmark delete performance
-  res <- runAndMonitor hunt `withCmd` Sequence (map (\id -> Delete . T.pack $ "rnd://" ++ show id) [1..(length docs `div` 2)])
---  res <- runListAndMonitor hunt `withCmd` (map (\id -> Delete . T.pack $ "rnd://" ++ show id) [1..(length docs `div` 2)])
+  _res <- runAndMonitor hunt $ Sequence (map (\docId -> Delete . T.pack $ "rnd://" ++ show docId) [1..(length docs `div` 2)])
+--  res <- runListAndMonitor hunt $ (map (\docId -> Delete . T.pack $ "rnd://" ++ show docId) [1..(length docs `div` 2)])
   showStats "documents removed"
 
-  l <- getLine
+  --l <- getLine
   return ()
 
+runAndMonitor :: (Dt.DocTable dt, Binary dt) => HuntEnv dt -> Command -> IO ()
 runAndMonitor hunt cmd = do
   start <- getCurrentTime
-  run hunt `withCmd` cmd
+  _ <- run hunt cmd
   end <- getCurrentTime
   putStrLn $ "command execution time: " ++ show (diffUTCTime end start)
   return ()
 
+runListAndMonitor :: (Dt.DocTable dt, Binary dt) => HuntEnv dt -> [Command] -> IO ()
 runListAndMonitor hunt cmds = do
   start <- getCurrentTime
-  mapM (\cmd -> run hunt `withCmd` cmd) cmds
+  _ <- mapM (\cmd -> run hunt cmd) cmds
   end <- getCurrentTime
   putStrLn $ "command execution time: " ++ show (diffUTCTime end start)
   return ()
@@ -120,6 +107,7 @@ getJson file = do
 -- ----------------------------------------------------------------------------
 -- Utils
 
+run :: (Dt.DocTable dt, Binary dt) => HuntEnv dt -> Command -> IO (Either CmdError CmdResult)
 run = runCmd
 
 withCmd :: (a -> b) -> a -> b

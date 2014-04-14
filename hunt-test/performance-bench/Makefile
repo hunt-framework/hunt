@@ -57,7 +57,7 @@ sandbox: .cabal-sandbox
 	cabal sandbox add-source ../../hunt-searchengine/
 	cabal sandbox add-source ../../hunt-compression/
 
-run:
+run: ../data/random/RandomData.js
 	./.cabal-sandbox/bin/hunt-perbench +RTS -N$(N) -RTS
 
 deps: sandbox

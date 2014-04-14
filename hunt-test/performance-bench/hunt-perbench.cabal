@@ -24,15 +24,14 @@ executable hunt-perbench
   build-depends:   base                   >= 4.5  && < 5
                  , containers             >= 0.5
                  , aeson
-                 , aeson-pretty
                  , binary                 >= 0.5  && < 1
                  , bytestring                        < 1
                  , filepath
                  , hunt-searchengine      >= 0.1
                  , hunt-compression
                  , process                >= 1    && < 2
-                 , text                  
-                 , time                   
+                 , text
+                 , time
                  , unix
                  , deepseq
                  , data-default
