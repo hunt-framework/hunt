@@ -525,7 +525,12 @@ execLoad filename = do
                     | otherwise             -> throwResError 500 $ T.pack . show $ e
       Right r -> return r
 
-  reloadSchema s = (askType . ctName . cxType) s >>= \t -> return $ s { cxType = t }
+  reloadSchema s = do
+    cxt <- (askType . ctName . cxType) s
+    ns  <- mapM (askNormalizer . cnName) (cxNormalizer s)
+    return $ s { cxType = cxt
+               , cxNormalizer = ns
+               }
 
 -- ------------------------------------------------------------
 
