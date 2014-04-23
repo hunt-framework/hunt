@@ -1,18 +1,18 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Hunt.Common.DocDesc where
 
-import           Control.Applicative  ((<$>))
+import           Control.Applicative ((<$>))
 import           Control.DeepSeq
 
 import           Data.Aeson
 import           Data.Binary
-import           Data.Text.Binary     ()
-import           Data.Text            (Text)
+import           Data.Map.Strict     (Map)
+import qualified Data.Map.Strict     as SM
+import           Data.Text           (Text)
+import           Data.Text.Binary    ()
 import           Data.Typeable
-import           Data.Map.Strict      (Map)
-import qualified Data.Map.Strict      as SM
 
 -- ------------------------------------------------------------
 
