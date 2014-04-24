@@ -65,7 +65,10 @@ data LimitedResult x = LimitedResult
 --   The result also includes the size of the complete result.
 mkLimitedResult :: Int -> Int -> [x] -> LimitedResult x
 mkLimitedResult offset mx xs = LimitedResult
-  { lrResult = take mx . drop offset $ xs
+  { lrResult = ( if mx < 0
+                 then id
+                 else take mx
+               ) . drop offset $ xs
   , lrOffset = offset
   , lrMax    = mx
   , lrCount  = length xs
@@ -138,7 +141,7 @@ instance ToJSON ApiDocument where
   toJSON (ApiDocument u im dm wt) = object $
     (maybe [] (\ w -> ["weight" .= w]) wt)
     ++
-    (if DD.null dm then [] else ["index"       .= im])
+    (if M.null  im then [] else ["index"       .= im])
     ++
     (if DD.null dm then [] else ["description" .= dm])
     ++

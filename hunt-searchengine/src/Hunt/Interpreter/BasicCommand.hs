@@ -19,6 +19,7 @@ import           Control.Monad               (mzero)
 import           Data.Aeson
 import qualified Data.Aeson                  as JS (Value (..))
 import           Data.Set                    (Set)
+import           Data.Text                   (Text)
 
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
@@ -35,18 +36,27 @@ data BasicCommand
   = Search        { icQuery    :: Query
                   , icOffsetSR :: Int
                   , icMaxSR    :: Int
+                  , icWeight   :: Bool
+                  , icFields   :: Maybe [Text]
                   }
+
   -- | Auto-completion query with a limit.
   | Completion    { icPrefixCR :: Query
                   , icMaxCR    :: Int
                   }
 
+  -- | Raw query without any ranking, scoring and ordering
+  | Select        { icQuery :: Query }
+
   -- | Insert documents.
   | InsertList    { icDocs :: [ApiDocument] }
+
   -- | Update the document description.
   | Update        { icDoc :: ApiDocument }
+
   -- | Delete documents by 'URI'.
   | DeleteDocs   { icUris :: Set URI }
+
   -- | Delete all documents of the query result.
   | DeleteByQuery { icQueryD :: Query }
 

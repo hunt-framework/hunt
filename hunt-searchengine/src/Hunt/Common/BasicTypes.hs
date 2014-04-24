@@ -11,7 +11,7 @@
 module Hunt.Common.BasicTypes
 where
 
-import           Control.Monad      (mzero)
+import           Control.Monad       (mzero)
 
 import           Data.Map
 import           Data.Text
@@ -20,6 +20,7 @@ import           Data.Aeson
 import           Data.Binary         hiding (Word)
 
 import qualified Hunt.Common.DocDesc as SM
+
 -- ------------------------------------------------------------
 
 -- | The URI describing the location of the original document.

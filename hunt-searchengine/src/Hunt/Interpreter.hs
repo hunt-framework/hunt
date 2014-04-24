@@ -2,7 +2,6 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE MultiWayIf                 #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeFamilies               #-}
@@ -31,61 +30,62 @@ where
 import           System.IO.Error
 
 import           Control.Applicative
+import           Control.Arrow                 (first)
 import           Control.Concurrent.XMVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
-import qualified Data.Aeson                            as JS
-import qualified Data.Binary                           as Bin
-import qualified Data.ByteString.Lazy                  as BL
+import qualified Data.Aeson                    as JS
+import qualified Data.Binary                   as Bin
+import qualified Data.ByteString.Lazy          as BL
 import           Data.Default
-import           Data.Function                         (on)
-import qualified Data.IntSet                           as IS
-import           Data.List                             (sortBy)
-import qualified Data.List                             as L
-import qualified Data.Map                              as M
-import           Data.Set                              (Set)
-import qualified Data.Set                              as S
-import           Data.Text                             (Text)
-import qualified Data.Text                             as T
-import qualified Data.Traversable                      as TV
+import           Data.Function                 (on)
+import qualified Data.IntSet                   as IS
+import           Data.List                     (sortBy)
+import qualified Data.List                     as L
+import qualified Data.Map                      as M
+import           Data.Set                      (Set)
+import qualified Data.Set                      as S
+import           Data.Text                     (Text)
+import qualified Data.Text                     as T
+import qualified Data.Traversable              as TV
 
 import           Hunt.Common
-import           Hunt.Common.ApiDocument               as ApiDoc
-import qualified Hunt.Common.DocIdMap                  as DM
-import           Hunt.Common.Document                  (DocumentWrapper, unwrap)
+import           Hunt.Common.ApiDocument       as ApiDoc
+import qualified Hunt.Common.DocDesc           as SM
+import qualified Hunt.Common.DocIdMap          as DM
+import           Hunt.Common.Document          (DocumentWrapper, unwrap)
 
-import qualified Hunt.Index                            as Ix
+import qualified Hunt.Index                    as Ix
 import           Hunt.Index.Schema.Analyze
 
-import           Hunt.ContextIndex                     (ContextIndex (..),
-                                                        decodeCxIx)
-import qualified Hunt.ContextIndex                     as Ixx
+import           Hunt.ContextIndex             (ContextIndex (..), decodeCxIx)
+import qualified Hunt.ContextIndex             as Ixx
 
-import           Hunt.Index.IndexImpl                  (IndexImpl (..), mkIndex)
-import qualified Hunt.Index.IndexImpl                  as Impl
+import           Hunt.Index.IndexImpl          (IndexImpl (..), mkIndex)
+import qualified Hunt.Index.IndexImpl          as Impl
 
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Processor
-import qualified Hunt.Query.Processor                  as QProc
+import qualified Hunt.Query.Processor          as QProc
 import           Hunt.Query.Ranking
-import           Hunt.Query.Result                     as QRes
+import           Hunt.Query.Result             as QRes
 
-import           Hunt.DocTable                         (DocTable)
-import qualified Hunt.DocTable                         as Dt
+import           Hunt.DocTable                 (DocTable)
+import qualified Hunt.DocTable                 as Dt
 import           Hunt.DocTable.HashedDocTable
 
 import           Hunt.Interpreter.BasicCommand
-import           Hunt.Interpreter.Command              (Command)
-import           Hunt.Interpreter.Command              hiding (Command (..))
+import           Hunt.Interpreter.Command      (Command)
+import           Hunt.Interpreter.Command      hiding (Command (..))
 
-import qualified System.Log.Logger                     as Log
+import qualified System.Log.Logger             as Log
 
 import           Hunt.Utility
 import           Hunt.Utility.Log
 
 import           GHC.Stats
-import           GHC.Stats.Json                        ()
+import           GHC.Stats.Json                ()
 
 -- ------------------------------------------------------------
 --
@@ -267,10 +267,12 @@ execCmd
 
 -- XXX: kind of obsolete now
 -- | Execute the \"low-level\" command in the Hunt monad.
+
 execBasicCmd :: (Bin.Binary dt, DocTable dt) => BasicCommand -> Hunt dt CmdResult
 execBasicCmd cmd@(InsertList _) = do
   debugM $ "Exec: InsertList [..]"
   execCmd' cmd
+
 execBasicCmd cmd = do
   debugM $ "Exec: " ++ logShow cmd
   execCmd' cmd
@@ -279,11 +281,14 @@ execBasicCmd cmd = do
 --
 --   Dispatches basic commands to corresponding functions.
 execCmd' :: (Bin.Binary dt, DocTable dt) => BasicCommand -> Hunt dt CmdResult
-execCmd' (Search q offset mx)
-  = withIx $ execSearch' (wrapSearch offset mx) q
+execCmd' (Search q offset mx wg fields)
+  = withIx $ execSearch' (wrapSearch (mkSelect wg fields) offset mx) q
 
 execCmd' (Completion q mx)
   = withIx $ execSearch' (wrapCompletion mx) q
+
+execCmd' (Select q)
+  = withIx $ execSelect q
 
 execCmd' (Sequence cs)
   = execSequence cs
@@ -322,6 +327,7 @@ execCmd' (DeleteContext cx)
 
 -- | Execute a sequence of commands.
 --   The sequence will be aborted if a command fails, but the previous commands will be permanent.
+
 execSequence :: (DocTable dt, Bin.Binary dt)=> [BasicCommand] -> Hunt dt CmdResult
 execSequence []       = execBasicCmd NOOP
 execSequence [c]      = execBasicCmd c
@@ -441,13 +447,40 @@ execSearch' f q (ContextIndex ix dt s)
       Left  err -> throwError err
       Right res -> (f <$>) . rank rc dt cw $ res
 
+-- | build a selection function for choosing,
+-- which parts of a document are contained in the result
+--
+-- The 1. param determines, whether the weight of the document is included
+-- the 2. is the list of the description keys, if Nothing is given the complete desc is included
+
+execSelect :: DocTable dt => Query -> ContextIndex dt -> Hunt dt CmdResult
+execSelect q (ContextIndex ix dt s)
+    = do r <- lift $ runQueryDocIdsM ix s q
+         case r of
+           Left  err -> throwError err
+           Right res -> do dt' <- Dt.restrict res dt
+                           djs <- Dt.toJSON'DocTable dt'
+                           return $ ResGeneric djs
+
+mkSelect :: Bool -> Maybe [Text] -> (Document -> Document)
+mkSelect withWeight fields
+    = mkSelW withWeight . mkSelF fields
+      where
+        mkSelW True      = id
+        mkSelW False     = \ d -> d { wght = 1.0 }
+
+        mkSelF Nothing   = id
+        mkSelF (Just fs) = \ d -> d {desc = SM.select fs (desc d)}
+
+
 -- FIXME: signature to result
 -- | Wrap the query result for search.
-wrapSearch :: (DocumentWrapper e) => Int -> Int -> Result e -> CmdResult
-wrapSearch offset mx
+wrapSearch :: (DocumentWrapper e) => (Document -> Document) -> Int -> Int -> Result e -> CmdResult
+wrapSearch select offset mx
   = ResSearch
     . mkLimitedResult offset mx
 --    . map fst -- remove score from result
+    . map (first select)
     . sortBy (descending `on` snd) -- sort by score
     . map (\(_did, (di, _dch)) -> (unwrap . document $ di, docScore di))
     . DM.toList
@@ -497,10 +530,11 @@ execStore :: (Bin.Binary a, DocTable dt) =>
 execStore filename x = do
   res <- liftIO . tryIOError $ Bin.encodeFile filename x
   case res of
-      Left  e -> if | isAlreadyInUseError e -> throwResError 409 $ "Cannot store index: file is already in use"
-                    | isPermissionError   e -> throwResError 403 $ "Cannot store index: no access permission to file"
-                    | isFullError         e -> throwResError 500 $ "Cannot store index: device is full"
-                    | otherwise             -> throwResError 500 $ T.pack . show $ e
+      Left  e
+          | isAlreadyInUseError e -> throwResError 409 $ "Cannot store index: file is already in use"
+          | isPermissionError   e -> throwResError 403 $ "Cannot store index: no access permission to file"
+          | isFullError         e -> throwResError 500 $ "Cannot store index: device is full"
+          | otherwise             -> throwResError 500 $ T.pack . show $ e
       Right _ -> return ResOK
 
 -- TODO: XMVar functions probably not suited for this, locking for load reasonable
@@ -519,10 +553,11 @@ execLoad filename = do
   decodeFile' ts f = do
     res <- liftIO . tryIOError $ decodeCxIx ts <$> BL.readFile f
     case res of
-      Left  e -> if | isAlreadyInUseError e -> throwResError 409 $ "Cannot load index: file already in use"
-                    | isDoesNotExistError e -> throwResError 404 $ "Cannot load index: file does not exist"
-                    | isPermissionError   e -> throwResError 403 $ "Cannot load index: no access permission to file"
-                    | otherwise             -> throwResError 500 $ T.pack . show $ e
+      Left  e
+          | isAlreadyInUseError e -> throwResError 409 $ "Cannot load index: file already in use"
+          | isDoesNotExistError e -> throwResError 404 $ "Cannot load index: file does not exist"
+          | isPermissionError   e -> throwResError 403 $ "Cannot load index: no access permission to file"
+          | otherwise             -> throwResError 500 $ T.pack . show $ e
       Right r -> return r
 
   reloadSchema s = do

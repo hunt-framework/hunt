@@ -40,6 +40,15 @@ empty = DocDesc $ SM.empty
 insert :: Text -> v -> DocDesc v -> DocDesc v
 insert k v (DocDesc m) = DocDesc $! SM.insert k v m
 
+-- | Select fields of a DocDesc map
+select :: [Text] -> DocDesc v -> DocDesc v
+select ks (DocDesc m)
+    = DocDesc $ SM.foldrWithKey sel m m
+      where
+        sel k _v m'
+            | k `elem` ks = m'
+            | otherwise   = SM.delete k m'
+
 -- | Check if document description is empty.
 null :: DocDesc v -> Bool
 null (DocDesc m) = SM.null m

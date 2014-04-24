@@ -18,7 +18,8 @@ import           Control.Applicative    (Applicative, (<$>))
 import           Control.Monad
 
 import           Data.Aeson
-import           Data.Maybe             (catMaybes)
+import qualified Data.IntSet            as IS
+import           Data.Maybe             (catMaybes, fromJust)
 import           Data.Set               (Set)
 import qualified Data.Set               as S
 
@@ -26,7 +27,8 @@ import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
 import           Hunt.Common.DocIdMap   (DocIdMap (..), DocIdSet)
 import qualified Hunt.Common.DocIdMap   as DM
-import           Hunt.Common.Document   (Document, DocumentWrapper (wrap, unwrap))
+import           Hunt.Common.Document   (Document,
+                                         DocumentWrapper (wrap, unwrap))
 
 -- ------------------------------------------------------------
 
@@ -104,6 +106,14 @@ class (DocumentWrapper (DValue i)) => DocTable i where
 
     -- | Empty 'DocTable'.
     empty           :: i
+
+
+restrict :: (Functor m, Monad m, Applicative m, DocTable i) => DocIdSet -> i -> m i
+restrict is dt
+    = foldM ins empty $ IS.toList is
+      where
+        ins m i = do v <- fromJust <$> lookup i dt
+                     update i v m
 
 -- ------------------------------------------------------------
 

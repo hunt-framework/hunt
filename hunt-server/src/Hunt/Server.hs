@@ -10,9 +10,11 @@
 
     [@POST \/eval@]                          Evaluates 'Command's.
 
-    [@GET  \/search\/:query\/@]              Search (limited to 1000000 results).
+    [@GET  \/search\/:query\/@]              Search (unlimited # of results).
 
     [@GET  \/search\/:query\/:offset\/:mx@]  Search with pagination.
+
+    [@GET  \/weight\/:query\/@]              Search and return weights of documents
 
     [@GET  \/completion\/:query\/:mx@]       Word completions with maximum.
 
@@ -183,23 +185,33 @@ start config = do
 
     -- ------------------------------------------------------------
 
-    -- simple query
+    -- simple query with unlimited # of hits
     get "/search/:query/" $ do
       query    <- param "query"
-      evalQuery (\q -> Search q 0 1000000) query
+      evalQuery (\q -> Search q 0 (-1) False Nothing) query
 
     -- paged query
     get "/search/:query/:offset/:mx" $ do
       query    <- param "query"
       offset   <- param "offset"
       mx       <- param "mx"
-      evalQuery (\q -> Search q offset mx) query
+      evalQuery (\q -> Search q offset mx False Nothing) query
+
+    -- simple query for reading the weight of documents
+    get "/weight/:query/" $ do
+      query    <- param "query"
+      evalQuery (\q -> Search q 0 (-1) True (Just [])) query
 
     -- completion
     get "/completion/:query/:mx" $ do
       query <- param "query"
       mx    <- param "mx"
       evalQuery (\q -> Completion q mx) query
+
+    -- simple query with unlimited # of hits
+    get "/select/:query/" $ do
+      query    <- param "query"
+      evalQuery (\q -> Select q) query
 
     -- insert a document (fails if a document (the uri) already exists)
     post "/document/insert" $ do

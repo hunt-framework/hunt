@@ -20,13 +20,14 @@ where
 
 import           Control.Applicative
 import           Control.DeepSeq
-import           Control.Monad          (mzero)
+import           Control.Monad           (mzero)
 
 import           Data.Aeson
-import           Data.Binary            (Binary (..))
-import           Data.Text              as T
-import           Data.Text.Binary       ()
+import           Data.Binary             (Binary (..))
+import           Data.Text               as T
+import           Data.Text.Binary        ()
 
+import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
 import           Hunt.Utility
 import           Hunt.Utility.Log
@@ -42,9 +43,24 @@ data Document = Document
   deriving (Show, Eq, Ord)
 
 -- ------------------------------------------------------------
--- JSON instances
+-- JSON instances implemented with ApiDocument
 -- ------------------------------------------------------------
 
+toApiDocument :: Document -> ApiDocument
+toApiDocument (Document uri desc wght)
+    = ApiDocument uri emptyApiDocIndexMap desc (if wght == 1.0 then Nothing else Just wght)
+
+fromApiDocument :: ApiDocument -> Document
+fromApiDocument (ApiDocument uri _ix desc wght)
+    = Document uri desc (maybe 1.0 id wght)
+
+instance ToJSON Document where
+    toJSON = toJSON . toApiDocument
+
+instance FromJSON Document where
+  parseJSON o = fromApiDocument <$> parseJSON o
+
+{-
 instance ToJSON Document where
   toJSON (Document u d w) = object' $
     [ "uri"    .== u
@@ -63,6 +79,7 @@ instance FromJSON Document where
       , wght = parsedWght
       }
   parseJSON _ = mzero
+-}
 
 -- ------------------------------------------------------------
 

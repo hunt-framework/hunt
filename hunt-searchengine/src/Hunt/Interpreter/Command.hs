@@ -13,10 +13,12 @@ module Hunt.Interpreter.Command
   , StatusCmd (..)
   , CmdResult (..)
   , CmdError (..)
+  , CmdRes (..)
   , toBasicCommand
   )
 where
 
+import           Control.Applicative
 import           Control.Monad                 (mzero)
 import           Control.Monad.Error           (Error (..))
 
@@ -48,30 +50,38 @@ data Command
   = Search        { icQuery    :: Query
                   , icOffsetSR :: Int
                   , icMaxSR    :: Int
+                  , icWeight   :: Bool
+                  , icFields   :: Maybe [Text]
                   }
   -- | Auto-completion query with a limit.
   | Completion    { icPrefixCR :: Query
                   , icMaxCR    :: Int
                   }
+  -- | Raw query without any ranking, scoring and ordering
+  | Select        { icQuery :: Query }
 
   -- | Insert a document.
   | Insert        { icDoc :: ApiDocument }
+
   -- | Update a documents' description.
   | Update        { icDoc :: ApiDocument }
+
   -- | Delete a documents by 'URI'.
   | Delete        { icUri :: URI }
+
   -- | Delete all documents of the query result.
   | DeleteByQuery { icQueryD :: Query }
 
   -- | Insert a context and the associated schema.
   | InsertContext { icIContext :: Context
-                  , icSchema :: ContextSchema
+                  , icSchema   :: ContextSchema
                   }
   -- | Delete a context.
   | DeleteContext { icDContext :: Context }
 
   -- | Deserialize the index.
   | LoadIx        { icPath :: FilePath }
+
   -- | Serialize the index.
   | StoreIx       { icPath :: FilePath }
 
@@ -80,6 +90,7 @@ data Command
 
   -- | Sequence commands.
   | Sequence      { icCmdSeq :: [Command] }
+
   -- | No operation. Can be used in control flow and as an alive test.
   | NOOP
   deriving (Show)
@@ -88,10 +99,13 @@ data Command
 data CmdResult
   -- | The command was processed successfully.
   = ResOK
+
   -- | The search results.
   | ResSearch       { crRes :: LimitedResult (Document, Score) }
+
   -- | The auto-completion results.
   | ResCompletion   { crWords :: [(Text, [Text])] }
+
   -- | A generic JSON result.
   | ResGeneric      { crGen :: Value }
   deriving (Show, Eq)
@@ -103,6 +117,23 @@ data CmdError
     { ceCode :: Int  -- ^ Error code.
     , ceMsg  :: Text -- ^ Message describing the error.
     } deriving (Show)
+
+-- ------------------------------------------------------------
+
+-- | auxiliary type for parsing JSON CmdResult's of various kinds
+--
+-- usefull in hunt applications, not used within the hunt server
+
+newtype CmdRes a = CmdRes { unCmdRes :: a }
+    deriving (Show)
+
+instance (FromJSON a) => FromJSON (CmdRes a) where
+    parseJSON (Object o) = do
+      c <- o .: "code"
+      case (c :: Int) of
+        0 -> CmdRes <$> o .: "msg"
+        _ -> mzero
+    parseJSON _ = mzero
 
 -- ------------------------------------------------------------
 
@@ -118,17 +149,31 @@ instance LogShow Command where
 
 instance ToJSON Command where
   toJSON o = case o of
-    Search q ofs mx   -> object . cmd "search"         $ [ "query" .= q, "offset" .= ofs, "max" .= mx ]
-    Completion s mx   -> object . cmd "completion"     $ [ "text"  .= s, "max" .= mx ]
+    Search q ofs mx wght sel
+                      -> object . cmd "search"         $
+                         [ "query"  .= q
+                         , "offset" .= ofs              -- the start of the result list
+                         , "max"    .= mx               -- max length of result list
+                         ]
+                         ++
+                         ( if wght                      -- doc weight included in result (yes/no)
+                           then [ "weight" .= wght ]
+                           else []
+                         )
+                         ++                             -- descr fields included in result
+                         maybe [] (\ fs -> [ "fields" .= fs ]) sel
+
+    Completion s mx   -> object . cmd "completion"     $ [ "text"     .= s, "max" .= mx ]
+    Select q          -> object . cmd "select"         $ [ "query"    .= q ]
     Insert d          -> object . cmd "insert"         $ [ "document" .= d ]
     Update d          -> object . cmd "update"         $ [ "document" .= d ]
-    Delete u          -> object . cmd "delete"         $ [ "uri" .= u ]
-    DeleteByQuery q   -> object . cmd "delete-by-query"$ [ "query" .= q ]
-    InsertContext c s -> object . cmd "insert-context" $ [ "context" .= c, "schema" .= s ]
-    DeleteContext c   -> object . cmd "delete-context" $ [ "context" .= c ]
-    LoadIx  f         -> object . cmd "load"           $ [ "path" .= f ]
-    StoreIx f         -> object . cmd "store"          $ [ "path" .= f ]
-    Status  sc        -> object . cmd "status"         $ [ "status" .= sc ]
+    Delete u          -> object . cmd "delete"         $ [ "uri"      .= u ]
+    DeleteByQuery q   -> object . cmd "delete-by-query"$ [ "query"    .= q ]
+    InsertContext c s -> object . cmd "insert-context" $ [ "context"  .= c, "schema" .= s ]
+    DeleteContext c   -> object . cmd "delete-context" $ [ "context"  .= c ]
+    LoadIx  f         -> object . cmd "load"           $ [ "path"     .= f ]
+    StoreIx f         -> object . cmd "store"          $ [ "path"     .= f ]
+    Status  sc        -> object . cmd "status"         $ [ "status"   .= sc ]
     NOOP              -> object . cmd "noop"           $ []
     Sequence cs       -> toJSON cs
     where
@@ -138,30 +183,32 @@ instance FromJSON Command where
   parseJSON (Object o) = do
     c <- o .: "cmd"
     case (c :: Text) of
-      "search"         -> do
-        q  <- o .: "query"
-        p  <- o .: "offset"
-        pp <- o .: "max"
-        return $ Search q p pp
-      "completion"     -> do
-        txt <- o .: "text"
-        mx  <- o .: "max"
-        return $ Completion txt mx
-      "insert"         -> o .: "document" >>= return . Insert
-      "update"         -> o .: "document" >>= return . Update
-      "delete"         -> o .: "uri"      >>= return . Delete
-      "delete-by-query"-> o .: "query"    >>= return . DeleteByQuery
-      "insert-context" -> do
-        cx  <- o .: "context"
-        s   <- o .: "schema"
-        return $ InsertContext cx s
-      "delete-context" -> o .: "context" >>= return . DeleteContext
-      "load"           -> o .: "path"    >>= return . LoadIx
-      "store"          -> o .: "path"    >>= return . StoreIx
-      "noop"           ->                    return NOOP
-      "status"         -> o .: "status"  >>= return . Status
+      "search"         -> Search        <$> o .:  "query"
+                                        <*> o .:? "offset" .!= 0
+                                        <*> o .:? "max"    .!= (-1)
+                                        <*> o .:? "weight" .!= False
+                                        <*> o .:? "fields"
+
+      "completion"     -> Completion    <$> o .: "text"
+                                        <*> o .: "max"
+
+      "select"         -> Select        <$> o .: "query"
+      "insert"         -> Insert        <$> o .: "document"
+      "update"         -> Update        <$> o .: "document"
+      "delete"         -> Delete        <$> o .: "uri"
+      "delete-by-query"-> DeleteByQuery <$> o .: "query"
+
+      "insert-context" -> InsertContext <$> o .: "context"
+                                        <*> o .: "schema"
+
+      "delete-context" -> DeleteContext <$> o .: "context"
+      "load"           -> LoadIx        <$> o .: "path"
+      "store"          -> StoreIx       <$> o .: "path"
+      "noop"           -> return NOOP
+      "status"         -> Status        <$> o .: "status"
       _                -> mzero
-  parseJSON o = parseJSON o >>= return . Sequence
+
+  parseJSON v          =  Sequence      <$> parseJSON v
 
 instance ToJSON CmdResult where
   toJSON o = case o of
@@ -182,10 +229,8 @@ instance ToJSON CmdError where
     ]
 
 instance FromJSON CmdError where
-  parseJSON (Object o) = do
-    c <- o .: "code"
-    m <- o .: "msg"
-    return $ ResError c m
+  parseJSON (Object o) = ResError <$> o .: "code"
+                                  <*> o .: "msg"
   parseJSON _ = mzero
 
 -- ------------------------------------------------------------
@@ -229,8 +274,9 @@ toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
 
 toBasicCommand (Delete u)          = Cmd.DeleteDocs $ S.singleton u
 toBasicCommand (DeleteByQuery q)   = Cmd.DeleteByQuery q
-toBasicCommand (Search a b c)      = Cmd.Search a b c
+toBasicCommand (Search a b c d e)  = Cmd.Search a b c d e
 toBasicCommand (Completion a b)    = Cmd.Completion a b
+toBasicCommand (Select a)          = Cmd.Select a
 toBasicCommand (Insert a)          = Cmd.InsertList [a]
 toBasicCommand (Update a)          = Cmd.Update a
 toBasicCommand (InsertContext a b) = Cmd.InsertContext a b
@@ -253,3 +299,5 @@ splitEvery _ [] = []
 splitEvery n list = first : splitEvery n rest
   where
   (first,rest) = splitAt n list
+
+-- ------------------------------------------------------------
