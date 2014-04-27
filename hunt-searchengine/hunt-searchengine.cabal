@@ -29,6 +29,7 @@ library
                , binary                 >= 0.5  && < 1
                , bytestring             < 1
                , containers             >= 0.5
+               , data-r-tree            >= 0.0.2.0
                , data-stringmap         >= 1.0.1.1 && < 2
                , data-default
                , deepseq                >= 1.2
@@ -79,6 +80,7 @@ library
     Hunt.Index.IndexImpl
     Hunt.Index.PrefixTreeIndex
     Hunt.Index.PrefixTreeIndex2Dim
+    Hunt.Index.RTreeIndex
     Hunt.Index.InvertedIndex
 
     Hunt.Index.Proxy.KeyIndex
