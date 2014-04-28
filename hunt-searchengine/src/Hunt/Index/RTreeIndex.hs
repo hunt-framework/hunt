@@ -9,7 +9,9 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Index.RTreeIndex
-( DmRTree(..)
+( RTreeIndex(..)
+  , readPosition
+  , showPosition
 )
 where
 
@@ -18,6 +20,9 @@ import           Control.DeepSeq
 import           Data.Binary                (Binary (..))
 import           Data.Typeable
 import qualified Data.Maybe    as Maybe (mapMaybe)
+import           Data.Monoid ((<>))
+import           Data.Text      (Text)
+import qualified Data.Text    as T  (pack, unpack)
 
 import qualified Data.RTree      as RT
 import           Data.RTree.MBB
@@ -25,30 +30,33 @@ import           Data.RTree.MBB
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdMap       as DM
 import           Hunt.Index
-
+import           Hunt.Index.Schema.Normalize.Position (position)
 import           Hunt.Utility
+
+import           Text.Parsec
+
 
 -- ------------------------------------------------------------
 
 -- | Index using 'Data.RTree'
-newtype DmRTree v
+newtype RTreeIndex v
   = DmRT { dmRT :: RT.RTree (DocIdMap v) }
   deriving (Eq, Show, NFData, Typeable)
 
-mkDmRT :: NFData v => RT.RTree (DocIdMap v) -> DmRTree v
+mkDmRT :: NFData v => RT.RTree (DocIdMap v) -> RTreeIndex v
 mkDmRT v = DmRT $! v
 
 -- ------------------------------------------------------------
 
-instance (NFData v,Binary v) => Binary (DmRTree v) where
+instance (NFData v,Binary v) => Binary (RTreeIndex v) where
   put = put . dmRT
   get = get >>= return . mkDmRT
 
 -- ------------------------------------------------------------
 
-instance Index DmRTree where
-  type IKey DmRTree v = RT.MBB
-  type IVal DmRTree v = DocIdMap v
+instance Index RTreeIndex where
+  type IKey RTreeIndex v = RT.MBB
+  type IVal RTreeIndex v = DocIdMap v
 
   insertList kvs (DmRT rt) =
     mkDmRT $ RT.union rt (RT.fromList kvs)
@@ -88,3 +96,12 @@ instance Index DmRTree where
     = RT.keys rt
 
 -- ------------------------------------------------------------
+
+readPosition :: Text -> MBB
+readPosition t
+  = case parse position "" $ T.unpack t of
+     Right (la,lo) -> mbb la lo la lo
+     Left _        -> error "readPosition positon: invalid"
+
+showPosition :: MBB -> Text
+showPosition (MBB la lo _ _ ) = T.pack (show la) <> "-" <> T.pack (show lo)

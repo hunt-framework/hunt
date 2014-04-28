@@ -6,7 +6,7 @@
 
 module Hunt.Index.Schema.Normalize.Position
   ( normalize, denormalize
-  , isPosition
+  , isPosition, position
   )
 where
 

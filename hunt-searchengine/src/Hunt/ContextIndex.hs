@@ -355,7 +355,7 @@ search op k (ContextMap m)
   search' (Impl.IndexImpl ix) = Ix.searchM op k ix
 
 -- XXX: code duplication? - see searchwithcx...
--- | Range query in a context.
+-- | Range query in a context between first and second key.
 lookupRangeCx :: Monad m => Context -> Text -> Text -> ContextMap v -> m [(Text, v)]
 lookupRangeCx c k1 k2 (ContextMap m)
   = case M.lookup c m of
