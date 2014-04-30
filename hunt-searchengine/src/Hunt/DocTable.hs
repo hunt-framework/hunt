@@ -86,7 +86,7 @@ class (DocumentWrapper (DValue i)) => DocTable i where
     deleteByURI u ds
         = maybe (return ds) (flip delete ds) =<< lookupByURI u ds
 
-    -- | Deletes a set of documentss by 'DocId' from the table.
+    -- | Deletes a set of documents by 'DocId' from the table.
     difference      :: (Monad m) => DocIdSet -> i -> m i
 
     -- | Deletes a set of documents by 'URI' from the table.

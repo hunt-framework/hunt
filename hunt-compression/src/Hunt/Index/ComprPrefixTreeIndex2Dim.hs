@@ -28,8 +28,8 @@ import           Data.Typeable
 import           Hunt.Index
 import qualified Hunt.Index                          as Ix
 
-import qualified Data.StringMap.Strict               as SM
 import qualified Data.StringMap.Dim2Search           as SM2
+import qualified Data.StringMap.Strict               as SM
 
 import           Hunt.Common.BasicTypes              (TextSearchOp (..))
 import qualified Hunt.Common.DocIdMap                as DM
@@ -64,10 +64,8 @@ instance Index ComprOccPrefixTree where
   type IVal ComprOccPrefixTree v = Occurrences
   type ICon ComprOccPrefixTree v = (OccCompression v, NFData v)
 
-  -- FIXME: this is ugly
-  -- a simple fromList does not work because there can be duplicates that need to be merged...
-  insertList kos i
-    = unionWithConv compressOcc (\a b -> compressOcc (Occ.merge (decompressOcc a) b)) i ixs
+  insertList op kos i
+    = unionWithConv compressOcc (\a b -> compressOcc (op (decompressOcc a) b)) i ixs
     where
     ixs = if null m then empty else reduce m
        where
@@ -86,8 +84,6 @@ instance Index ComprOccPrefixTree where
 
     unionWithConv to f (ComprPT i1) (ComprPT i2)
       = mkComprPT $! SM.unionMapWith to f i1 i2
-
-
 
   -- XXX: not the best solution, but is there really another solution?
   deleteDocs ks i

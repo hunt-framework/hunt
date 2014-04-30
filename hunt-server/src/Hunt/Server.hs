@@ -248,6 +248,10 @@ start config = do
     get "/status/index" $ do
       eval $ Status StatusIndex         -- status of search index
 
+    get "/status/context/:cx" $ do
+      query <- param "cx"
+      eval $ Status (StatusContext query)
+
     notFound $ raise NotFound
 
 -- ------------------------------------------------------------

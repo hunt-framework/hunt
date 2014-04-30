@@ -22,17 +22,17 @@ module Hunt.Index.Proxy.KeyIndex
 )
 where
 
-import           Prelude                             as P
+import           Prelude             as P
 
-import           Control.Applicative                 ((<$>))
-import           Control.Arrow                       (first)
+import           Control.Applicative ((<$>))
+import           Control.Arrow       (first)
 import           Control.DeepSeq
 
 import           Data.Bijection
-import           Data.Binary                         (Binary (..))
+import           Data.Binary         (Binary (..))
 
-import qualified Hunt.Index                          as Ix
 import           Hunt.Index
+import qualified Hunt.Index          as Ix
 
 -- ------------------------------------------------------------
 
@@ -66,8 +66,8 @@ instance Index (KeyProxyIndex toType impl) where
     , Bijection (IKey impl v) toType
     )
 
-  insertList kvs (KeyProxyIx i)
-    = mkKeyProxyIx $ insertList (P.map (first from) kvs) i
+  insertList op kvs (KeyProxyIx i)
+    = mkKeyProxyIx $ insertList op (P.map (first from) kvs) i
 
   deleteDocs ks (KeyProxyIx i)
     = mkKeyProxyIx $ deleteDocs ks i

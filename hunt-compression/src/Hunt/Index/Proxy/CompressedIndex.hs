@@ -1,8 +1,8 @@
 {-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE FlexibleInstances          #-}
 
 -- ----------------------------------------------------------------------------
 
@@ -58,9 +58,10 @@ instance Index (ComprOccIndex impl to) where
     , ICon impl to
     , OccCompression (IVal impl to)
     )
-
-  insertList kvs (ComprIx i)
-      = mkComprIx $ insertList (P.map (second compressOcc) kvs) i
+  insertList op kvs (ComprIx i)
+      = mkComprIx $ insertList op' (P.map (second compressOcc) kvs) i
+        where
+          op' x y = compressOcc $ decompressOcc x `op` decompressOcc y
 
   deleteDocs ks (ComprIx i)
       = mkComprIx $ deleteDocs ks i
@@ -81,7 +82,9 @@ instance Index (ComprOccIndex impl to) where
       = second decompressOcc <$> lookupRange k1 k2 i
 
   unionWith op (ComprIx i1) (ComprIx i2)
-      = mkComprIx $ unionWith (\o1 o2 -> compressOcc $ op (decompressOcc o1) (decompressOcc o2)) i1 i2
+      = mkComprIx $ unionWith op' i1 i2
+        where
+          op' x y = compressOcc $ decompressOcc x `op` decompressOcc y
 
   map f (ComprIx i)
       = mkComprIx $ Ix.map (compressOcc . f . decompressOcc) i

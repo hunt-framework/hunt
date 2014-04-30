@@ -35,7 +35,7 @@ import           Control.Concurrent.XMVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
 
-import qualified Data.Aeson                    as JS
+import           Data.Aeson                    (ToJSON (..), object, (.=))
 import qualified Data.Binary                   as Bin
 import qualified Data.ByteString.Lazy          as BL
 import           Data.Default
@@ -393,6 +393,7 @@ execInsertList docs ixx@(ContextIndex _ix _dt schema) = do
 --
 -- /Note/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs need to exist.
+
 execUpdate :: DocTable dt
            => ApiDocument -> ContextIndex dt -> Hunt dt(ContextIndex dt, CmdResult)
 execUpdate doc ixx@(ContextIndex _ix dt schema) = do
@@ -601,18 +602,27 @@ execStatus StatusGC
   = do
     statsEnabled <- liftIO getGCStatsEnabled
     if statsEnabled
-      then liftIO getGCStats >>= return . ResGeneric . JS.toJSON
+      then (ResGeneric . toJSON) <$>
+           liftIO getGCStats
       else throwResError 501 ("GC stats not enabled. Use `+RTS -T -RTS' to enable them." :: Text)
 
 execStatus StatusDocTable
     = withIx dumpDocTable
       where
         dumpDocTable (ContextIndex _ix dt _s)
-            = ResGeneric <$> Dt.toJSON'DocTable dt
+            = ResGeneric <$>
+              Dt.toJSON'DocTable dt
 
 execStatus StatusIndex
-  = withIx
-    (\_ix -> return $ ResGeneric $ JS.String "status of Index not yet implemented" )
+  = withIx $
+    \_ix -> throwResError 501 ("status of Index not yet implemented"::Text)
+
+execStatus (StatusContext cx)
+    = withIx dumpContext
+      where
+        dumpContext (ContextIndex ix _dt _s)
+            = (ResGeneric . object . map (uncurry (.=))) <$>
+              Ixx.lookupAllWithCx cx ix
 
 -- ------------------------------------------------------------
 

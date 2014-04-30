@@ -14,12 +14,14 @@ module Hunt.Interpreter.BasicCommand
   )
 where
 
+import           Control.Applicative
 import           Control.Monad               (mzero)
 
 import           Data.Aeson
 import qualified Data.Aeson                  as JS (Value (..))
 import           Data.Set                    (Set)
 import           Data.Text                   (Text)
+import qualified Data.Text                   as T
 
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
@@ -83,24 +85,27 @@ data BasicCommand
 
 -- | Available status commands.
 data StatusCmd
-  = StatusGC       -- ^ Garbage collection statistics.
-  | StatusDocTable -- ^ Document table JSON dump.
-  | StatusIndex    -- ^ Index JSON dump.
+  = StatusGC              -- ^ Garbage collection statistics.
+  | StatusDocTable        -- ^ Document table JSON dump.
+  | StatusIndex           -- ^ Index JSON dump.
+  | StatusContext Context -- ^ Index context dump
     deriving (Show)
 
 -- ------------------------------------------------------------
 -- XXX: maybe duplicate StatusCmd to keep this module clean
 
 instance ToJSON StatusCmd where
-  toJSON StatusGC       = JS.String "gc"
-  toJSON StatusDocTable = JS.String "doctable"
-  toJSON StatusIndex    = JS.String "index"
+  toJSON StatusGC          = JS.String "gc"
+  toJSON StatusDocTable    = JS.String "doctable"
+  toJSON StatusIndex       = JS.String "index"
+  toJSON (StatusContext c) = object ["context" .= c] -- JS.String $ "context/" `T.append` c
 
 instance FromJSON StatusCmd where
+  parseJSON (Object o)             = StatusContext <$> o .: "context"
   parseJSON (JS.String "gc"      ) = return StatusGC
   parseJSON (JS.String "doctable") = return StatusDocTable
   parseJSON (JS.String "index"   ) = return StatusIndex
-  parseJSON _                   = mzero
+  parseJSON _                      = mzero
 
 -- ------------------------------------------------------------
 

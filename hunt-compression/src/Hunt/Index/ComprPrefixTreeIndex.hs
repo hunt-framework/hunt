@@ -63,10 +63,8 @@ instance Index ComprOccPrefixTree where
   type IVal ComprOccPrefixTree v = Occurrences
   type ICon ComprOccPrefixTree v = (OccCompression v, NFData v)
 
-  -- FIXME: this is ugly
-  -- a simple fromList does not work because there can be duplicates that need to be merged...
-  insertList kos i
-    = unionWithConv compressOcc (\a b -> compressOcc (Occ.merge (decompressOcc a) b)) i ixs
+  insertList op kos i
+    = unionWithConv compressOcc (\a b -> compressOcc (op (decompressOcc a) b)) i ixs
     where
     ixs = if null m then empty else reduce m
        where

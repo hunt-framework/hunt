@@ -1,6 +1,6 @@
-{-# LANGUAGE TypeFamilies      #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 -- ----------------------------------------------------------------------------
 

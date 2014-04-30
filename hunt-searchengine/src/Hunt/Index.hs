@@ -51,11 +51,15 @@ class Index i where
 
   -- | Insert occurrences.
   --   This is more efficient than folding with 'insert'.
-  insertList    :: ICon i v => [(IKey i v, IVal i v)] -> i v -> i v
+  insertList    :: ICon i v =>
+                   (IVal i v -> IVal i v -> IVal i v) ->
+                   [(IKey i v, IVal i v)] -> i v -> i v
 
   -- | Insert occurrences.
-  insert        :: ICon i v => IKey i v -> IVal i v -> i v -> i v
-  insert k v    = insertList [(k,v)]
+  insert        :: ICon i v =>
+                   (IVal i v -> IVal i v -> IVal i v) ->
+                   IKey i v -> IVal i v -> i v -> i v
+  insert op k v  = insertList op [(k,v)]
 
   -- | Delete as batch job.
   --   This is more efficient than folding with 'delete'.
@@ -127,11 +131,15 @@ class Monad m => IndexM m i where
   lookupRangeM :: IConM i v => IKeyM i v -> IKeyM i v -> i v -> m [(IKeyM i v, IValM i v)]
 
   -- | Monadic version of 'insertList'.
-  insertListM  :: IConM i v => [(IKeyM i v, IValM i v)] -> i v -> m (i v)
+  insertListM  :: IConM i v =>
+                  (IValM i v -> IValM i v -> IValM i v) ->
+                  [(IKeyM i v, IValM i v)] -> i v -> m (i v)
 
   -- | Monadic version of 'insert'.
-  insertM      :: IConM i v => IKeyM i v -> IValM i v -> i v -> m (i v)
-  insertM k v i = insertListM [(k,v)] i
+  insertM      :: IConM i v =>
+                  (IValM i v -> IValM i v -> IValM i v) ->
+                  IKeyM i v -> IValM i v -> i v -> m (i v)
+  insertM op k v = insertListM op [(k,v)]
 
   -- | Monadic version of 'deleteDocs'.
   deleteDocsM  :: IConM i v => DocIdSet -> i v -> m (i v)
@@ -150,9 +158,9 @@ class Monad m => IndexM m i where
   fromListM    :: IConM i v => [(IKeyM i v, IValM i v)] -> m (i v)
 
   -- | Monadic version of 'unionWith'.
-  unionWithM   :: IConM i v
-               => (IValM i v -> IValM i v -> IValM i v)
-               -> i v -> i v -> m (i v)
+  unionWithM   :: IConM i v =>
+                  (IValM i v -> IValM i v -> IValM i v) ->
+                  i v -> i v -> m (i v)
 
   --  Monadic version of 'unionWithConv'.
   -- unionWithConvM :: (IConM i v, Monad m, IConM i v2)
@@ -183,9 +191,9 @@ instance (Index i, Monad m) => IndexM m i where
 
   searchM op s i             = return $! search op s i
   lookupRangeM l u i         = return $! lookupRange l u i
-  insertListM vs i           = return $! insertList vs i
+  insertListM op vs i        = return $! insertList op vs i
   deleteDocsM ds i           = return $! deleteDocs ds i
-  insertM k v i              = return $! insert k v i
+  insertM op k v i           = return $! insert op k v i
   deleteM k i                = return $! delete k i
   emptyM                     = return $! empty
   toListM i                  = return $! toList i

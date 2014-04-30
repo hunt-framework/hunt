@@ -16,13 +16,13 @@ where
 
 import           Control.DeepSeq
 
-import           Data.Binary                (Binary (..))
+import           Data.Binary            (Binary (..))
 import           Data.Typeable
 
-import qualified Data.StringMap.Strict      as SM
+import qualified Data.StringMap.Strict  as SM
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocIdMap       as DM
+import           Hunt.Common.DocIdMap   as DM
 import           Hunt.Index
 
 import           Hunt.Utility
@@ -51,8 +51,8 @@ instance Index DmPrefixTree where
   type IKey DmPrefixTree v = SM.Key
   type IVal DmPrefixTree v = DocIdMap v
 
-  insertList kvs (DmPT pt) =
-    mkDmPT $ SM.union pt (SM.fromList kvs)
+  insertList op kvs (DmPT pt) =
+    mkDmPT $ SM.unionWith op pt (SM.fromList kvs)
 
   deleteDocs ks (DmPT pt)
     = mkDmPT $ SM.mapMaybe (\m -> let dm = DM.diffWithSet m ks

@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -56,6 +55,10 @@ module Hunt.Common.DocIdMap
   , keys
   , elems
   , toDocIdSet
+
+  , DocIdSet'(..)
+  , toDocIdSet'
+  , toList'DocIdSet'
   )
 where
 
@@ -80,8 +83,6 @@ import           Data.Typeable
 import           Hunt.Common.DocId
 import qualified Hunt.Common.DocId          as DId
 
-import           Text.Read                  (readMaybe)
-
 -- ------------------------------------------------------------
 
 -- TODO: maybe move DocIdSet to separate module.
@@ -94,8 +95,40 @@ toDocIdSet :: [DocId] -> DocIdSet
 toDocIdSet = S.fromList
 
 -- ------------------------------------------------------------
+--
+-- the wrapped DocId set
+-- currently only used for JSON debug output
+
+newtype DocIdSet' = DIS { unDIS :: S.IntSet }
+    deriving (Eq, Show, NFData, Typeable)
+
+instance ToJSON DocIdSet' where
+    toJSON = toJSON . L.map DocId' . S.toList . unDIS
+
+instance FromJSON DocIdSet' where
+    parseJSON x = do l <- parseJSON x
+                     case fromL l of
+                       Nothing -> mzero
+                       Just s  -> return $ DIS s
+        where
+          fromL :: [String] -> Maybe S.IntSet
+          fromL = L.foldr ins (Just S.empty)
+              where
+                ins _ Nothing   = Nothing
+                ins xs (Just s) = case fromHex xs of
+                                    Nothing -> Nothing
+                                    Just i  -> Just $ S.insert i s
+
+toDocIdSet' :: [DocId'] -> DocIdSet'
+toDocIdSet' = DIS . S.fromList . L.map unDocId'
+
+toList'DocIdSet' :: DocIdSet' -> [DocId']
+toList'DocIdSet' = L.map DocId' . S.toList . unDIS
+
+-- ------------------------------------------------------------
 
 -- | An efficient Map implementation for 'DocId's.
+
 newtype DocIdMap v
   = DIM { unDIM :: IM.IntMap v }
   deriving (Eq, Show, Foldable, {-Traversable,-} Functor, NFData, Typeable)
@@ -106,33 +139,21 @@ instance Binary v => Binary (DocIdMap v) where
   put = put . unDIM
   get = get >>= return . DIM
 
--- ------------------------------------------------------------
--- JSON instances
--- ------------------------------------------------------------
-
 instance ToJSON v => ToJSON (DocIdMap v) where
   toJSON = object . L.map toJ . IM.toList . unDIM
     where
-    toJ (k, v) = (T.pack . toH $ k) .= toJSON v
-    toH !y = "0x" ++ toX 16 "" y
-      where
-      toX :: Int -> String -> Int -> String
-      toX !0 !acc _ = acc
-      toX !n !acc x = toX (n - 1) (d : acc) x'
-        where
-        (!x', !r) = x `divMod` 16
-        !d | r < 10    = toEnum (fromEnum '0' + r)
-           | otherwise = toEnum (fromEnum 'a' + r - 10)
+    toJ (k, v) = (T.pack . toHex $ k) .= toJSON v
 
 instance FromJSON v => FromJSON (DocIdMap v) where
   parseJSON (Object o) = DIM <$> foldM parsePair IM.empty (HM.toList o)
     where
     parsePair res (k, v)
-      = case readMaybe . T.unpack $ k of
+      = case fromHex . T.unpack $ k of
           Nothing -> mzero
           Just k' -> do
             v' <- parseJSON v
             return $ IM.insert k' v' res
+
   parseJSON _          = mzero
 
 -- ------------------------------------------------------------
@@ -306,7 +327,7 @@ toList                  = IM.toList . unDIM
 -- | Return all 'DocId's of the map in ascending order.
 --   Subject to list fusion.
 keys                    :: DocIdMap v -> [DocId]
-keys                    = IM.keys . unDIM
+keys                    = {- L.map DocId' . -} IM.keys . unDIM
 
 -- | Return all elements of the map in the ascending order of their 'DocId's.
 --   Subject to list fusion.

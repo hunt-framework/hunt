@@ -14,6 +14,7 @@ module Hunt.Common.Positions where
 import           Control.Applicative    ((<$>))
 import           Control.DeepSeq
 
+import           Data.Aeson
 import           Data.Binary            as B
 import qualified Data.IntSet            as IS
 import           Data.IntSet.Cache      as IS
@@ -32,6 +33,9 @@ newtype Positions    = PS {unPS :: IS.IntSet}
 instance B.Binary Positions where
     put = B.put . toAscList
     get = fromList <$> B.get
+
+instance ToJSON Positions where
+    toJSON = toJSON . unPS
 
 -- ------------------------------------------------------------
 

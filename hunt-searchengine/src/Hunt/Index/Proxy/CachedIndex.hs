@@ -1,6 +1,7 @@
-{-# LANGUAGE TypeFamilies              #-}
-{-# LANGUAGE ConstraintKinds           #-}
-{-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE ConstraintKinds       #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 -- ----------------------------------------------------------------------------
 
@@ -30,15 +31,16 @@ import           Control.Arrow
 import           Control.DeepSeq
 import           Control.Monad
 
+import           Data.Binary                         (Binary (..))
 import qualified Data.IntSet                         as IS
 
 import           Hunt.Common.DocIdMap                (DocIdSet)
 import           Hunt.Common.Occurrences.Compression
+import           Hunt.Index                          as Ix
+
 import           Prelude                             as P
 
-import           Data.Binary                         (Binary (..))
 
-import           Hunt.Index                          as Ix
 
 -- ------------------------------------------------------------
 
@@ -75,8 +77,8 @@ instance Index (CachedIndex impl) where
       , OccCompression (IVal impl v)
       )
 
-  insertList kvs (CachedIx c i)
-    = mkCachedIx c (insertList kvs i)
+  insertList op kvs (CachedIx c i)
+    = mkCachedIx c (insertList op kvs i)
 
   deleteDocs ks (CachedIx c i)
     = if IS.size newSet > 100 -- merge/apply when cache size > 100

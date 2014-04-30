@@ -27,31 +27,31 @@ module Hunt.Index.InvertedIndex
   )
 where
 
-import           Prelude                                  as P
+import           Prelude                              as P
 
 import           Control.DeepSeq
 
-import           Data.Bijection.Instances                 ()
-import           Data.Binary                              (Binary (..))
-import           Data.Text                                (Text)
+import           Data.Bijection.Instances             ()
+import           Data.Binary                          (Binary (..))
+import           Data.Text                            (Text)
 import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.Occurrences                  (Occurrences)
-import           Hunt.Common.Positions                    (Positions)
-import           Hunt.Index                               as Ix
+import           Hunt.Common.Occurrences              (Occurrences)
+import           Hunt.Common.Positions                (Positions)
+import           Hunt.Index                           as Ix
 import           Hunt.Index.PrefixTreeIndex
-import qualified Hunt.Index.PrefixTreeIndex2Dim           as PT2D
-import qualified Hunt.Index.RTreeIndex                    as RTx
+import qualified Hunt.Index.PrefixTreeIndex2Dim       as PT2D
+import qualified Hunt.Index.RTreeIndex                as RTx
 
 import           Hunt.Index.Proxy.KeyIndex
 
-import qualified Hunt.Index.Schema.Normalize.Date         as Date
-import qualified Hunt.Index.Schema.Normalize.Int          as Int
-import qualified Hunt.Index.Schema.Normalize.Position     as Pos
+import qualified Hunt.Index.Schema.Normalize.Date     as Date
+import qualified Hunt.Index.Schema.Normalize.Int      as Int
+import qualified Hunt.Index.Schema.Normalize.Position as Pos
 
 import           Data.Bijection
-import           Data.RTree.MBB                           (MBB)
+import           Data.RTree.MBB                       (MBB)
 
 -- ------------------------------------------------------------
 -- Inverted index using text key
@@ -78,8 +78,8 @@ instance Index InvertedIndex where
   type IKey InvertedIndex v = Word
   type IVal InvertedIndex v = Occurrences
 
-  insertList wos (InvIx i)
-    = mkInvIx $ insertList wos i
+  insertList op wos (InvIx i)
+    = mkInvIx $ insertList op wos i
 
   deleteDocs docIds (InvIx i)
     = mkInvIx $ deleteDocs docIds i
@@ -142,8 +142,8 @@ instance Index InvertedIndex2Dim where
   type IKey InvertedIndex2Dim v = Word
   type IVal InvertedIndex2Dim v = Occurrences
 
-  insertList wos (InvIx2D i)
-    = mkInvIx2D $ insertList wos i
+  insertList op wos (InvIx2D i)
+    = mkInvIx2D $ insertList op wos i
 
   deleteDocs docIds (InvIx2D i)
     = mkInvIx2D $ deleteDocs docIds i
@@ -219,8 +219,8 @@ instance Index InvertedIndexInt where
   type IKey InvertedIndexInt v = Text
   type IVal InvertedIndexInt v = Occurrences
 
-  insertList wos (InvIntIx i)
-    = mkInvIntIx $ insertList wos i
+  insertList op wos (InvIntIx i)
+    = mkInvIntIx $ insertList op wos i
 
   deleteDocs docIds (InvIntIx i)
     = mkInvIntIx $ deleteDocs docIds i
@@ -294,8 +294,8 @@ instance Index InvertedIndexDate where
   type IKey InvertedIndexDate v = Word
   type IVal InvertedIndexDate v = Occurrences
 
-  insertList wos (InvDateIx i)
-    = mkInvDateIx $ insertList wos i
+  insertList op wos (InvDateIx i)
+    = mkInvDateIx $ insertList op wos i
 
   deleteDocs docIds (InvDateIx i)
     = mkInvDateIx $ deleteDocs docIds i
@@ -369,8 +369,8 @@ instance Index InvertedIndexPosition where
   type IKey InvertedIndexPosition v = Word
   type IVal InvertedIndexPosition v = Occurrences
 
-  insertList wos (InvPosIx i)
-    = mkInvPosIx $ insertList wos i
+  insertList op wos (InvPosIx i)
+    = mkInvPosIx $ insertList op wos i
 
   deleteDocs docIds (InvPosIx i)
     = mkInvPosIx $ deleteDocs docIds i
