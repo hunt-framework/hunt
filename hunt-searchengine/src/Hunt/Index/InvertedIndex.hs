@@ -437,8 +437,8 @@ instance Index InvertedIndexRTree where
   type IKey InvertedIndexRTree v = Text
   type IVal InvertedIndexRTree v = Occurrences
 
-  insertList wos (InvRTreeIx i)
-    = mkInvRTreeIx $ insertList wos i
+  insertList op wos (InvRTreeIx i)
+    = mkInvRTreeIx $ insertList op wos i
 
   deleteDocs docIds (InvRTreeIx i)
     = mkInvRTreeIx $ deleteDocs docIds i

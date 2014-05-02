@@ -17,21 +17,21 @@ where
 
 import           Control.DeepSeq
 
-import           Data.Binary                (Binary (..))
+import           Data.Binary                          (Binary (..))
+-- import qualified Data.Maybe                           as Maybe (mapMaybe)
+import           Data.Monoid                          ((<>))
+import           Data.Text                            (Text)
+import qualified Data.Text                            as T (pack, unpack)
 import           Data.Typeable
-import qualified Data.Maybe    as Maybe (mapMaybe)
-import           Data.Monoid ((<>))
-import           Data.Text      (Text)
-import qualified Data.Text    as T  (pack, unpack)
 
-import qualified Data.RTree      as RT
+import qualified Data.RTree                           as RT
 import           Data.RTree.MBB
 
-import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocIdMap       as DM
+-- import           Hunt.Common.BasicTypes
+import           Hunt.Common.DocIdMap                 as DM
 import           Hunt.Index
 import           Hunt.Index.Schema.Normalize.Position (position)
-import           Hunt.Utility
+-- import           Hunt.Utility
 
 import           Text.Parsec
 
@@ -58,8 +58,8 @@ instance Index RTreeIndex where
   type IKey RTreeIndex v = RT.MBB
   type IVal RTreeIndex v = DocIdMap v
 
-  insertList kvs (DmRT rt) =
-    mkDmRT $ RT.union rt (RT.fromList kvs)
+  insertList op kvs (DmRT rt) =
+    mkDmRT $ RT.unionWith op rt (RT.fromList kvs)
 
   deleteDocs ks (DmRT rt)
     = mkDmRT $ RT.mapMaybe (\m -> let dm = DM.diffWithSet m ks
