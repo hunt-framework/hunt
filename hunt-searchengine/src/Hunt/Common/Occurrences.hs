@@ -80,6 +80,10 @@ update f                = DM.foldrWithKey
 merge                   :: Occurrences -> Occurrences -> Occurrences
 merge                   = DM.unionWith Pos.union
 
+-- | Merge occurrences
+merges                  :: [Occurrences] -> Occurrences
+merges                  = DM.unionsWith Pos.union
+
 -- | Difference of occurrences.
 difference              :: Occurrences -> Occurrences -> Occurrences
 difference              = DM.difference

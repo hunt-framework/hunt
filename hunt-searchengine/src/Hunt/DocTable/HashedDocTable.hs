@@ -40,18 +40,14 @@ module Hunt.DocTable.HashedDocTable
 where
 
 import           Data.Binary            (Binary (..))
-import qualified Data.Binary            as B
-
-import           Data.Digest.Murmur64
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocId      (DocId)
-import qualified Hunt.Common.DocId      as DId
+import           Hunt.Common.DocId      (DocId, mkDocId)
 import           Hunt.Common.DocIdMap   (DocIdMap)
 import qualified Hunt.Common.DocIdMap   as DM
+import           Hunt.Common.DocIdSet   (DocIdSet)
 import           Hunt.Common.Document   (Document (..), DocumentWrapper (..))
 import           Hunt.DocTable
-
 import           Hunt.Utility
 
 -- ------------------------------------------------------------
@@ -77,10 +73,6 @@ instance (DocumentWrapper e, Binary e) => Binary (Documents e) where
 -- | An empty document table.
 empty' :: (DocTable (Documents e), DocumentWrapper e) => Documents e
 empty' = Documents DM.empty
-
--- | The hash function from URIs to DocIds
-docToId :: URI -> DocId
-docToId = DId.fromInteger . fromIntegral . asWord64 . hash64 . B.encode
 
 -- | Build a 'DocTable' from a 'DocIdMap' (maps 'DocId's to 'Document's)
 fromMap :: (DocTable (Documents e), DocumentWrapper e) =>
@@ -161,7 +153,7 @@ lookupByURI' u d
     . idToDoc
     $ d
   where
-  i = docToId u
+  i = mkDocId u
 
 disjoint'   :: (DocumentWrapper e) => Documents e -> Documents e -> Bool
 disjoint' dt1 dt2
@@ -186,7 +178,7 @@ insert' d ds
   = maybe reallyInsert (const (newId, ds)) (lookup' newId ds)
   where
   newId
-      = docToId . uri . unwrap $ d
+      = mkDocId . uri . unwrap $ d
   reallyInsert
       = (newId, Documents {idToDoc = DM.insert newId d $ idToDoc ds})
 
@@ -198,7 +190,7 @@ delete'     :: (DocumentWrapper e) => DocId -> Documents e -> Documents e
 delete' d ds
   = Documents {idToDoc = DM.delete d $ idToDoc ds}
 
-difference' :: (DocumentWrapper e) => DM.DocIdSet -> Documents e -> Documents e
+difference' :: (DocumentWrapper e) => DocIdSet -> Documents e -> Documents e
 difference' s ds
   = Documents {idToDoc = idToDoc ds `DM.diffWithSet` s}
 

@@ -26,7 +26,7 @@ import qualified Data.Binary          as B
 import           Data.Digest.Murmur64
 
 -- ------------------------------------------------------------
-
+{-
 -- | The unique identifier of a document.
 type DocId = Int
 
@@ -50,26 +50,27 @@ fromInteger = fromIntegral
 {-# INLINE mkFirst #-}
 {-# INLINE fromInteger #-}
 
+-- -}
 -- ------------------------------------------------------------
 
 -- the wrapped DocId
 -- currently only used for JSON debug output
 
-newtype DocId' = DocId' {unDocId' :: Int}
+newtype DocId = DocId {unDocId :: Int}
     deriving (Eq, Ord)
 
-instance Show DocId' where
-    show = toHex . unDocId'
+instance Show DocId where
+    show = toHex . unDocId
 
-instance Binary DocId' where
-    put = put . unDocId'
-    get = DocId' <$> get
+instance Binary DocId where
+    put = put . unDocId
+    get = DocId <$> get
 
-instance ToJSON DocId' where
-    toJSON (DocId' i) = toJSON $ toHex i
+instance ToJSON DocId where
+    toJSON (DocId i) = toJSON $ toHex i
 
-mkDocId' :: Binary a => a -> DocId'
-mkDocId' = DocId' . fromIntegral . asWord64 . hash64 . B.encode
+mkDocId :: Binary a => a -> DocId
+mkDocId = DocId . fromIntegral . asWord64 . hash64 . B.encode
 
 toHex :: Int -> String
 toHex !y = "0x" ++ toX 16 "" y

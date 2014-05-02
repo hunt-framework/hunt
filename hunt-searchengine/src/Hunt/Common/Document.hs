@@ -20,7 +20,6 @@ where
 
 import           Control.Applicative
 import           Control.DeepSeq
-import           Control.Monad           (mzero)
 
 import           Data.Aeson
 import           Data.Binary             (Binary (..))
@@ -29,7 +28,6 @@ import           Data.Text.Binary        ()
 
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
-import           Hunt.Utility
 import           Hunt.Utility.Log
 
 -- ------------------------------------------------------------
@@ -47,12 +45,12 @@ data Document = Document
 -- ------------------------------------------------------------
 
 toApiDocument :: Document -> ApiDocument
-toApiDocument (Document uri desc wght)
-    = ApiDocument uri emptyApiDocIndexMap desc (if wght == 1.0 then Nothing else Just wght)
+toApiDocument (Document u d w)
+    = ApiDocument u emptyApiDocIndexMap d (if w == 1.0 then Nothing else Just w)
 
 fromApiDocument :: ApiDocument -> Document
-fromApiDocument (ApiDocument uri _ix desc wght)
-    = Document uri desc (maybe 1.0 id wght)
+fromApiDocument (ApiDocument u _ix d w)
+    = Document u d (maybe 1.0 id w)
 
 instance ToJSON Document where
     toJSON = toJSON . toApiDocument

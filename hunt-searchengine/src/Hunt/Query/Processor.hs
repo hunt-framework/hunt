@@ -42,22 +42,20 @@ import qualified Data.Text                   as T
 
 import           Hunt.Common
 import qualified Hunt.Common.DocIdMap        as DM
+import qualified Hunt.Common.DocIdSet        as DS
+import qualified Hunt.Common.Occurrences     as Occ
 import qualified Hunt.Common.Positions       as Pos
-
 import           Hunt.ContextIndex           (ContextMap)
 import qualified Hunt.ContextIndex           as CIx
-
+import           Hunt.DocTable               (DocTable)
+import qualified Hunt.DocTable               as Dt
+import           Hunt.Interpreter.Command    (CmdError (..))
 import           Hunt.Query.Fuzzy            (FuzzyConfig)
 import qualified Hunt.Query.Fuzzy            as F
 import           Hunt.Query.Intermediate     (Intermediate)
 import qualified Hunt.Query.Intermediate     as I
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Result           (Result)
-
-import           Hunt.DocTable               (DocTable)
-import qualified Hunt.DocTable               as Dt
-
-import           Hunt.Interpreter.Command    (CmdError (..))
 
 import qualified System.Log.Logger           as Log
 
@@ -224,7 +222,7 @@ processQuery' f st q = runErrorT . runReaderT (runProcessor processToRes) $ st
 
 -- | Works like 'processQuery', but only returns the 'DocId's.
 processQueryDocIds :: ProcessEnv -> Query -> IO (Either CmdError DocIdSet)
-processQueryDocIds = processQuery' (return . DM.toDocIdSet . DM.keys)
+processQueryDocIds = processQuery' (return . DS.fromList . DM.keys)
 
 -- | Process a Query and construct an intermediate result.
 --   This can be further transformed to a final 'Result' with 'Hunt.Query.Intermediate.toResult'.
@@ -349,7 +347,7 @@ processPhraseInternal f q c = do
   where
   resultM = do
     fw <- f w
-    return . mergeOccurrencesList $ map snd fw
+    return . Occ.merges $ map snd fw
   (w:ws) = T.words q
   processPhrase' :: [Text] -> Position -> Occurrences -> Processor Occurrences
   processPhrase' [] _ o = return o
@@ -359,7 +357,7 @@ processPhraseInternal f q c = do
     where
       nextWord :: [Occurrences] -> DocId -> Positions -> Bool
       nextWord [] _ _  = False
-      nextWord no d np = maybe False hasSuccessor $ DM.lookup d (mergeOccurrencesList no)
+      nextWord no d np = maybe False hasSuccessor $ DM.lookup d (Occ.merges no)
           where
             hasSuccessor :: Positions -> Bool
             hasSuccessor w' = Pos.foldr (\cp r -> r || Pos.member (cp + p) w') False np
@@ -468,12 +466,6 @@ limitDocs _     []      = []
 limitDocs limit _
     | limit <= 0        = []
 limitDocs limit (x:xs)  = x : limitDocs (limit - DM.size (snd x)) xs
-
--- ------------------------------------------------------------
-
--- | Merge occurrences
-mergeOccurrencesList    :: [Occurrences] -> Occurrences
-mergeOccurrencesList    = DM.unionsWith Pos.union
 
 -- ------------------------------------------------------------
 

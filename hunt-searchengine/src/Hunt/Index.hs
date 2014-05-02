@@ -21,10 +21,11 @@ import           Prelude                hiding (map)
 import           GHC.Exts               (Constraint)
 
 import           Control.DeepSeq
-import qualified Data.IntSet            as IS
+
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap   (DocIdSet)
+import           Hunt.Common.DocIdSet   (DocIdSet)
+import qualified Hunt.Common.DocIdSet   as DS
 
 -- ------------------------------------------------------------
 
@@ -67,7 +68,7 @@ class Index i where
 
   -- | Delete occurrences.
   delete        :: ICon i v => DocId -> i v -> i v
-  delete        = deleteDocs . IS.singleton
+  delete        = deleteDocs . DS.singleton
 
   -- | Empty index.
   empty         :: ICon i v => i v
@@ -146,7 +147,7 @@ class Monad m => IndexM m i where
 
   -- | Monadic version of 'delete'.
   deleteM      :: IConM i v => DocId -> i v -> m (i v)
-  deleteM k i  = deleteDocsM (IS.singleton k) i
+  deleteM k i  = deleteDocsM (DS.singleton k) i
 
   -- | Monadic version of 'empty'.
   emptyM       :: IConM i v => m (i v)

@@ -1,7 +1,7 @@
-{-# LANGUAGE TypeSynonymInstances       #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
 
 -- ----------------------------------------------------------------------------
 
@@ -22,11 +22,14 @@ module Hunt.Common.Occurrences.Compression
   )
 where
 
-import qualified Hunt.Common.DocIdMap    as DM
-import           Hunt.Common.Occurrences hiding (delete)
-import           Data.Typeable
 import           Control.DeepSeq
+
 import           Data.Binary
+import           Data.Typeable
+
+import qualified Hunt.Common.DocIdMap    as DocIdMap
+import           Hunt.Common.DocIdSet    (DocIdSet)
+import           Hunt.Common.Occurrences hiding (delete)
 
 -- ------------------------------------------------------------
 
@@ -40,7 +43,7 @@ class OccCompression cv where
   -- XXX: not sure if this is needed/used anymore
   -- | Delete a set of documents efficiently.
   --   Depending on the implementation, the compressed data type may not have to be decompressed.
-  differenceWithKeySet :: DM.DocIdSet -> cv -> cv
+  differenceWithKeySet :: DocIdSet -> cv -> cv
 
 -- ------------------------------------------------------------
 
@@ -64,11 +67,11 @@ instance Binary StrictOccurrences where
 instance OccCompression StrictOccurrences where
   compressOcc   = mkStrictOcc
   decompressOcc = unSOcc
-  differenceWithKeySet s x = compressOcc $ DM.diffWithSet (decompressOcc x) s
+  differenceWithKeySet s x = compressOcc $ DocIdMap.diffWithSet (decompressOcc x) s
 
 instance OccCompression Occurrences where
   compressOcc   = id
   decompressOcc = id
-  differenceWithKeySet = flip DM.diffWithSet
+  differenceWithKeySet = flip DocIdMap.diffWithSet
 
 -- ------------------------------------------------------------

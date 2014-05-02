@@ -65,6 +65,7 @@ library
     Hunt.Common.DocDesc
     Hunt.Common.DocId
     Hunt.Common.DocIdMap
+    Hunt.Common.DocIdSet
     Hunt.Common.Occurrences
     Hunt.Common.Positions
     Hunt.Common.RawResult

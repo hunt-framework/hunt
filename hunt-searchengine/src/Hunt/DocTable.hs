@@ -18,15 +18,16 @@ import           Control.Applicative    (Applicative, (<$>))
 import           Control.Monad
 
 import           Data.Aeson
-import qualified Data.IntSet            as IS
 import           Data.Maybe             (catMaybes, fromJust)
 import           Data.Set               (Set)
 import qualified Data.Set               as S
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap   (DocIdMap (..), DocIdSet)
+import           Hunt.Common.DocIdMap   (DocIdMap (..))
 import qualified Hunt.Common.DocIdMap   as DM
+import           Hunt.Common.DocIdSet   (DocIdSet)
+import qualified Hunt.Common.DocIdSet   as DS
 import           Hunt.Common.Document   (Document,
                                          DocumentWrapper (wrap, unwrap))
 
@@ -92,7 +93,7 @@ class (DocumentWrapper (DValue i)) => DocTable i where
     -- | Deletes a set of documents by 'URI' from the table.
     differenceByURI :: (Monad m) => Set URI -> i -> m i
     differenceByURI uris d = do -- XXX: eliminate S.toList?
-        ids <- liftM (DM.toDocIdSet . catMaybes) . mapM (flip lookupByURI d) . S.toList $ uris
+        ids <- liftM (DS.fromList . catMaybes) . mapM (flip lookupByURI d) . S.toList $ uris
         difference ids d
 
     -- | Map a function over all values of the document table.
@@ -110,7 +111,7 @@ class (DocumentWrapper (DValue i)) => DocTable i where
 
 restrict :: (Functor m, Monad m, Applicative m, DocTable i) => DocIdSet -> i -> m i
 restrict is dt
-    = foldM ins empty $ IS.toList is
+    = foldM ins empty $ DS.toList is
       where
         ins m i = do v <- fromJust <$> lookup i dt
                      update i v m

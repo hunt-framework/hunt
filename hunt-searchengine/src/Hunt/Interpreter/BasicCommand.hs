@@ -21,7 +21,6 @@ import           Data.Aeson
 import qualified Data.Aeson                  as JS (Value (..))
 import           Data.Set                    (Set)
 import           Data.Text                   (Text)
-import qualified Data.Text                   as T
 
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes

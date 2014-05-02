@@ -61,7 +61,6 @@ import           Control.Parallel.Strategies
 import           Data.Binary             (Binary (..))
 import           Data.Binary.Get
 import           Data.ByteString.Lazy    (ByteString)
-import qualified Data.IntSet             as IS
 import           Data.Map                (Map)
 import qualified Data.Map                as M
 import           Data.Maybe
@@ -71,19 +70,17 @@ import           Data.Text               (Text)
 {-
 import qualified Data.Traversable        as TV
 -- -}
-import           Hunt.DocTable           (DocTable)
-import qualified Hunt.DocTable           as Dt
 
 import           Hunt.Common
 import qualified Hunt.Common.DocDesc     as DD
-import           Hunt.Common.DocIdMap    (toDocIdSet)
+import qualified Hunt.Common.DocIdSet    as DS
 import qualified Hunt.Common.Document    as Doc
 import qualified Hunt.Common.Occurrences as Occ
-
+import           Hunt.DocTable           (DocTable)
+import qualified Hunt.DocTable           as Dt
 import qualified Hunt.Index              as Ix
 import           Hunt.Index.IndexImpl    (IndexImpl)
 import qualified Hunt.Index.IndexImpl    as Impl
-
 import           Hunt.Utility
 
 -- ------------------------------------------------------------
@@ -201,7 +198,7 @@ modify f wrds dId (ContextIndex ii dt s) = do
 deleteDocsByURI :: (Par.MonadParallel m, Applicative m, DocTable dt)
                 => Set URI -> ContextIndex dt -> m (ContextIndex dt)
 deleteDocsByURI us ixx@(ContextIndex _ix dt _) = do
-  docIds <- liftM (toDocIdSet . catMaybes) . mapM (flip Dt.lookupByURI dt) . S.toList $ us
+  docIds <- liftM (DS.fromList . catMaybes) . mapM (flip Dt.lookupByURI dt) . S.toList $ us
   delete docIds ixx
 
 
@@ -209,7 +206,7 @@ deleteDocsByURI us ixx@(ContextIndex _ix dt _) = do
 delete :: (Par.MonadParallel m, Applicative m, DocTable dt)
        => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
 delete dIds cix@(ContextIndex ix dt s)
-    | IS.null dIds
+    | DS.null dIds
         = return cix
     | otherwise
         = do newIx <- delete' dIds ix
