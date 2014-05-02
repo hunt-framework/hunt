@@ -50,6 +50,7 @@ sandbox: .cabal-sandbox
 .cabal-sandbox:
 	cabal sandbox init --sandbox .cabal-sandbox && \
 	cabal sandbox add-source ../../hunt-searchengine/
+	cabal sandbox add-source ../../hunt-compression/
 
 deps: sandbox
 #   bytestring

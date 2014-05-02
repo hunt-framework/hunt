@@ -29,6 +29,7 @@ executable hunt-membench
                  , bytestring
                  , filepath
                  , hunt-searchengine      >= 0.1
+                 , hunt-compression       >= 0.1
                  , process                >= 1    && < 2
                  , text
                  , time
@@ -52,6 +53,7 @@ executable hunt-membench-bin
                  , binary                 >= 0.5  && < 1
                  , bytestring
                  , hunt-searchengine      >= 0.1
+                 , hunt-compression       >= 0.1
                  , process
                  , text
                  , time

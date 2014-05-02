@@ -50,7 +50,7 @@ import qualified Hunt.Common.Occurrences                     as Occ
 import           Hunt.Index.Schema.Analyze
 
 import qualified Hunt.Common.Occurrences.Compression.BZip    as ZB
-import qualified Hunt.Common.Occurrences.Compression.Simple9 as Z9
+import qualified Hunt.Common.Occurrences.Compression.BZipBs  as ZBBs
 import qualified Hunt.Common.Occurrences.Compression.Snappy  as ZS
 
 
@@ -189,7 +189,7 @@ addWordsIx :: (Monad m, TextIndex i v) => (Text -> Ix.IKey i v) -> Words -> DocI
 addWordsIx keyConv wrds dId i
   = foldrWithKeyM (\_c wl acc ->
       foldrWithKeyM (\w ps acc' ->
-        return $ let ck = keyConv w in ck `seq` Ix.insert (keyConv w) (mkOccs dId ps) acc')
+        return $ let ck = keyConv w in ck `seq` Ix.insert Occ.merge (keyConv w) (mkOccs dId ps) acc')
       acc wl)
       i wrds
   where
@@ -204,7 +204,7 @@ addWordsIx keyConv wrds dId i
 
 ix0 :: PIx.DmPrefixTree Positions
 ix0 = Ix.empty
-ix1 :: CPIx.ComprOccPrefixTree Z9.CompressedOccurrences
+ix1 :: CPIx.ComprOccPrefixTree ZBBs.CompressedOccurrences
 ix1 = Ix.empty
 ix2 :: CPIx.ComprOccPrefixTree ZB.CompressedOccurrences
 ix2 = Ix.empty
@@ -243,7 +243,7 @@ testIndex dataSet (IndexAll ix f) = do
   --threadDelay (5 * 10^6)
   let docs = P.map (toDocAndWords' (tdSchema dataSet)) apiDocs
   start <- getCurrentTime
-  ix'   <- foldM' (\i ((_d,w),did) -> addWordsIx f w did i) ix (zip docs [0..])
+  ix'   <- foldM' (\i ((_d,_s,w),did) -> addWordsIx f w did i) ix (zip docs $ map mkDocId [(0::Int)..])
   end <- ix' `seq` getCurrentTime
 
   -- output
