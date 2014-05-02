@@ -33,7 +33,6 @@ import qualified Data.StringMap.Strict               as SM
 import           Hunt.Common.BasicTypes              (TextSearchOp (..))
 import qualified Hunt.Common.DocIdMap                as DM
 import           Hunt.Common.Occurrences             (Occurrences)
-import qualified Hunt.Common.Occurrences             as Occ
 import           Hunt.Common.Occurrences.Compression
 
 import           Hunt.Utility
@@ -68,10 +67,10 @@ instance Index ComprOccPrefixTree where
     where
     ixs = if null m then empty else reduce m
        where
-       m = parMap rpar (\ws -> P.foldr (unionWith Occ.merge) empty $ P.map (fromList . (:[])) ws) (partitionListByLength 5000 kos)
+       m = parMap rpar (\ws -> P.foldr (unionWith op) empty $ P.map (fromList . (:[])) ws) (partitionListByLength 5000 kos)
 
        reduce mapRes
-         = case parMap rpar (\(i1,i2) -> unionWith (Occ.merge) i1 i2) $ mkPairs mapRes of
+         = case parMap rpar (\(i1,i2) -> unionWith op i1 i2) $ mkPairs mapRes of
              []     -> error "insertList (ComprOccPrefixTree): impossible case"
              [x]    -> x
              xs     -> reduce xs

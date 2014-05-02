@@ -45,6 +45,7 @@ module Hunt.ContextIndex
   , ContextMap (..)
   )
 where
+import           Debug.Trace             (traceShow)
 
 import           Prelude
 import qualified Prelude                 as P
@@ -139,33 +140,45 @@ insert doc wrds ix = insertList [(doc,wrds)] ix
 
 --   This is more efficient than using fold and with 'insert'.
 -- | Insert multiple documents and words.
-insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
-       => [(Dt.DValue dt, Words)] -> ContextIndex dt -> m (ContextIndex dt)
-insertList docAndWrds (ContextIndex ix docTable s) = do
-  -- insert to doctable and generate docId
-  tables <- Par.mapM subInsert $ partitionListByLength 20 docAndWrds
-  (newDt, docIdsAndWrds) <- reduce tables docTable
 
-  newIx <- batchAddWordsM docIdsAndWrds ix
-  -- OLD newIx <- return $ batchAddWords docIdsAndWrds ix
-  return $! ContextIndex newIx newDt s
+insertList :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
+              [(Dt.DValue dt, Words)] ->
+              ContextIndex dt -> m (ContextIndex dt)
 
-  where
-  subInsert ds = foldM (\(dt, withIds) (doc, wrds) -> do
-                             (dId, dt') <- Dt.insert doc dt
-                             return (dt', (dId, wrds):withIds)
-                          ) (Dt.empty, []) ds
+insertList docAndWrds (ContextIndex ix docTable s)
+    = do -- insert to doctable and generate docId
+         tables <- Par.mapM subInsert $ partitionListByLength 1 -- XXX 20
+                                        (traceShow ("docAndWrds", map snd docAndWrds) docAndWrds)
+         (newDt, docIdsAndWrds) <- reduce tables docTable
 
-  reduce tables old = do
-     step <- Par.mapM (\((dt1, ws1),(dt2, ws2)) -> Dt.union dt1 dt2 >>= \dt -> return (dt, ws1 ++ ws2)) $ mkPairs tables
-     case step of
-      []      -> return (Dt.empty, [])
-      [(d,w)] -> Dt.union old d >>= \n -> return (n, w)
-      xs      -> reduce xs old
+         newIx <- batchAddWordsM (traceShow ("docIdsAndWrds", docIdsAndWrds) docIdsAndWrds) ix
+{- OLD
+         newIx <- return $ batchAddWords docIdsAndWrds ix
+-- -}
+         return $! ContextIndex (traceShow ("newIx", newIx) newIx)
+                                newDt s
 
-  mkPairs []       = []
-  mkPairs (a:[])   = [(a,(Dt.empty,[]))]
-  mkPairs (a:b:xs) = (a,b):mkPairs xs
+    where
+      subInsert ds
+          = foldM (\ (dt, withIds) (doc, wrds) ->
+                   do (dId, dt') <- Dt.insert doc dt
+                      return (dt', (dId, wrds):withIds)
+                  ) (Dt.empty, []) ds
+
+      reduce tables old
+          = do step <- Par.mapM (\ ((dt1, ws1), (dt2, ws2)) ->
+                                 do dt <- Dt.union dt1 dt2
+                                    return (dt, ws1 ++ ws2)
+                                ) $ mkPairs tables
+               case step of
+                 []      -> return (Dt.empty, [])
+                 [(d,w)] -> do n <- Dt.union old d
+                               return (n, w)
+                 xs      -> reduce xs old
+
+      mkPairs []       = []
+      mkPairs (a:[])   = [(a,(Dt.empty,[]))]
+      mkPairs (a:b:xs) = (a,b):mkPairs xs
 
 
 -- XXX: this should not work well atm
@@ -258,50 +271,55 @@ batchAddWordsM vs (ContextMap m)
   where
   foldinsertList :: Monad m => Context -> IndexImpl Occurrences -> m (IndexImpl Occurrences)
   foldinsertList cx (Impl.IndexImpl impl)
-    = Ix.insertListM Occ.merge (contentForCx cx vs) impl >>= return . Impl.mkIndex
+    -- = Ix.insertListM Occ.merge (contentForCx cx vs) impl >>= return . Impl.mkIndex
+    = batchIns (contentForCx cx vs) impl >>= return . Impl.mkIndex
+
+batchIns val impl
+    = return $ traceShow ("batchIns", "val", val, "impl", impl, "res", res) res
+      where
+        res = Ix.insertList Occ.merge val impl
 
 -- | Computes the words and occurrences out of a list for one context
 
-contentForCx :: Content -> [(DocId, Words)] -> [(Word, Occurrences)]
-contentForCx cx vs = (concat . map ((\(did, wl) -> map (second (mkOccs did)) $ M.toList wl) . second (getWlForCx cx)) $ vs)
+contentForCx :: Context -> [(DocId, Words)] -> [(Word, Occurrences)]
+contentForCx cx vs
+    = traceShow ("context", cx, "words", vs, "result", res) res
+      where
+        res = concatMap (invert . second (getWlForCx cx)) $ vs
+            where
+              invert (did, wl)
+                  = map (second (Occ.singleton' did)) $ M.toList wl
+              getWlForCx cx' ws'
+                  = fromMaybe M.empty (M.lookup cx' ws')
 
 -- | Add words for a document to the 'Index'.
 --
 --   /Note/: Adds words to /existing/ 'Context's.
 
-{-- OLD
+-- {-- OLD
 batchAddWords :: [(DocId, Words)] -> ContextMap Occurrences -> ContextMap Occurrences
 batchAddWords vs (ContextMap m)
   = mkContextMap $ M.fromList $ {- XXX parMap rpar -} map (\(cx,impl) -> (cx,foldinsertList cx impl)) (M.toList m)
   where
   foldinsertList :: Context -> IndexImpl Occurrences-> IndexImpl Occurrences
   foldinsertList cx (Impl.IndexImpl impl)
-    = Impl.mkIndex $ Ix.insertList (contentForCx cx vs) impl
+    = Impl.mkIndex $ Ix.insertList Occ.merge (contentForCx cx vs) impl
 --}
 
 ----------------------------------------------------------------------------
 -- addWords/batchAddWords functions
 ----------------------------------------------------------------------------
 
-positionsIntoOccs :: DocId -> [Position] -> Occurrences -> Occurrences
-positionsIntoOccs docId ws os = foldr (Occ.insert docId) os ws
-
-mkOccs            :: DocId -> [Position] -> Occurrences
-mkOccs did pl     = positionsIntoOccs did pl Occ.empty
-
-getWlForCx :: Context -> Words -> WordList
-getWlForCx cx ws = fromMaybe M.empty (M.lookup cx ws)
-
-mapWithKeyM :: (Monad m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
-mapWithKeyM f m =
+mapWithKeyMP :: (Monad m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
+mapWithKeyMP f m =
   (P.mapM (\(k, a) -> do
                   b <- f k a
                   return (k, b)
                 ) $ M.toList m) >>=
     return . M.fromList
 
-mapWithKeyMP :: (Par.MonadParallel m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
-mapWithKeyMP f m =
+mapWithKeyMP' :: (Par.MonadParallel m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
+mapWithKeyMP' f m =
   (Par.mapM (\(k, a) -> do
                   b <- f k a
                   return (k, b)

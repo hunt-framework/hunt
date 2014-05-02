@@ -39,9 +39,13 @@ type Occurrences        = DocIdMap Positions
 empty                   :: Occurrences
 empty                   = DM.empty
 
--- | Create an empty set of positions.
+-- | Create an single doc occ with a single position
 singleton               :: DocId -> Position -> Occurrences
-singleton d p           = insert d p DM.empty
+singleton d p           = singleton' d [p]
+
+-- | Create an single doc occ with a single position
+singleton'              :: DocId -> [Position] -> Occurrences
+singleton' d ps         = DM.insert d (Pos.fromList ps) DM.empty
 
 -- | Test on empty set of positions.
 null                    :: Occurrences -> Bool

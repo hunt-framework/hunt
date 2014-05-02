@@ -10,16 +10,16 @@
 -- TODO: obsolete now?
 
 module Hunt.Index.PrefixTreeIndex
-( DmPrefixTree(..)
-)
+    ( DmPrefixTree(..)
+    )
 where
 
 import           Control.DeepSeq
 
 import           Data.Binary            (Binary (..))
-import           Data.Typeable
-
+import qualified Data.List              as L
 import qualified Data.StringMap.Strict  as SM
+import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdMap   as DM
@@ -32,6 +32,7 @@ import           Hunt.Utility
 -- | Text index using 'DocIdMap' based on the 'StringMap' implementation.
 --   Note that the value parameter is on the type of the 'DocIdMap' value and not the 'Occurrences'
 --   itself.
+
 newtype DmPrefixTree v
   = DmPT { dmPT :: SM.StringMap (DocIdMap v) }
   deriving (Eq, Show, NFData, Typeable)
@@ -52,7 +53,13 @@ instance Index DmPrefixTree where
   type IVal DmPrefixTree v = DocIdMap v
 
   insertList op kvs (DmPT pt) =
-    mkDmPT $ SM.unionWith op pt (SM.fromList kvs)
+    mkDmPT $ L.foldl' (\ m' (k', v') -> SM.insertWith op k' v' m') pt kvs
+
+    {- this is a nice try, but does not do what it should do,
+       at least for [("a", occ1), ("a", occ2)]
+
+       mkDmPT $ SM.unionWith op pt (SM.fromList kvs)
+    -}
 
   deleteDocs ks (DmPT pt)
     = mkDmPT $ SM.mapMaybe (\m -> let dm = DM.diffWithSet m ks
