@@ -3,7 +3,7 @@ module Main where
 import           Control.Applicative
 import           Control.Arrow
 import           Control.Monad.Error
-import qualified Data.Map                              as M
+import qualified Data.Map                       as M
 --import           Data.Default
 
 import           Test.Framework
@@ -11,16 +11,16 @@ import           Test.Framework.Providers.HUnit
 import           Test.HUnit
 
 import           Hunt.Common
-import           Hunt.Common.ApiDocument               as ApiDoc
+import           Hunt.Common.ApiDocument        as ApiDoc
+import qualified Hunt.Common.DocDesc            as DD
 import           Hunt.Common.Document
-import qualified Hunt.Common.DocDesc                   as DD
 
-import           Hunt.Interpreter.Command
+import           Hunt.DocTable.HashedDocTable   (Documents)
 import           Hunt.Interpreter
+import           Hunt.Interpreter.Command
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Ranking
 import           Hunt.Utility
-import           Hunt.DocTable.HashedDocTable          (Documents)
 
 -- ----------------------------------------------------------------------------
 
@@ -90,6 +90,9 @@ a @@= b = a @@@ (@?=b)
 
 -- ----------------------------------------------------------------------------
 
+search :: Query -> Int -> Int -> Command
+search q o m = Search q o m False Nothing
+
 test_ranking :: Assertion
 test_ranking = testCM $ do
   insertTextContext "0"
@@ -98,23 +101,23 @@ test_ranking = testCM $ do
   Insert brainDoc
     @@= ResOK
 
-  Search (QWord QNoCase brain) os pp
+  search (QWord QNoCase brain) os pp
     @@@ ((@?= [(brainUri, 1.0)]) . sr)
 
-  Search (QBoost 2.0 (QWord QNoCase brain)) os pp
+  search (QBoost 2.0 (QWord QNoCase brain)) os pp
     @@@ ((@?= [(brainUri, 2.0)]) . sr)
 
-  Search (QBinary And (QWord QNoCase brain) (QWord QNoCase brain)) os pp
+  search (QBinary And (QWord QNoCase brain) (QWord QNoCase brain)) os pp
     @@@ ((@?= [(brainUri, 1.0)]) . sr)
 
-  Search (QBinary And (QBoost 4.0 (QWord QNoCase brain)) (QBoost 8.0 (QWord QNoCase brain))) os pp
+  search (QBinary And (QBoost 4.0 (QWord QNoCase brain)) (QBoost 8.0 (QWord QNoCase brain))) os pp
     @@@ ((@?= [(brainUri, 6.0)]) . sr)
 
   -- no average calculation
-  Search (QBinary And (QBoost 5.0 (QWord QNoCase brain)) (QWord QNoCase brain)) os pp
+  search (QBinary And (QBoost 5.0 (QWord QNoCase brain)) (QWord QNoCase brain)) os pp
     @@@ ((@?= [(brainUri, 5.0)]) . sr)
 
-  Search (QBinary And (QBoost 5.0 (QWord QNoCase brain)) (QBoost 1.0 (QWord QNoCase brain))) os pp
+  search (QBinary And (QBoost 5.0 (QWord QNoCase brain)) (QBoost 1.0 (QWord QNoCase brain))) os pp
     @@@ ((@?= [(brainUri, 3.0)]) . sr)
 
   Delete brainUri
@@ -126,23 +129,23 @@ test_ranking = testCM $ do
   Insert pinkyDoc
     @@= ResOK
 
-  Search (QWord QNoCase pinky) os pp
+  search (QWord QNoCase pinky) os pp
     @@@ ((@?= [(pinkyUri, 2.0)]) . sr)
 
-  Search (QBoost 2.0 (QWord QNoCase pinky)) os pp
+  search (QBoost 2.0 (QWord QNoCase pinky)) os pp
     @@@ ((@?= [(pinkyUri, 4.0)]) . sr)
 
-  Search (QBinary And (QWord QNoCase pinky) (QWord QNoCase pinky)) os pp
+  search (QBinary And (QWord QNoCase pinky) (QWord QNoCase pinky)) os pp
     @@@ ((@?= [(pinkyUri, 2.0)]) . sr)
 
-  Search (QBinary And (QBoost 4.0 (QWord QNoCase pinky)) (QBoost 8.0 (QWord QNoCase pinky))) os pp
+  search (QBinary And (QBoost 4.0 (QWord QNoCase pinky)) (QBoost 8.0 (QWord QNoCase pinky))) os pp
     @@@ ((@?= [(pinkyUri, 12.0)]) . sr)
 
   -- no average calculation for default/implicit boosts
-  Search (QBinary And (QBoost 4.0 (QWord QNoCase pinky)) (QWord QNoCase pinky)) os pp
+  search (QBinary And (QBoost 4.0 (QWord QNoCase pinky)) (QWord QNoCase pinky)) os pp
     @@@ ((@?= [(pinkyUri, 8.0)]) . sr)
 
-  Search (QBinary And (QBoost 5.0 (QWord QNoCase pinky)) (QBoost 1.0 (QWord QNoCase pinky))) os pp
+  search (QBinary And (QBoost 5.0 (QWord QNoCase pinky)) (QBoost 1.0 (QWord QNoCase pinky))) os pp
     @@@ ((@?= [(pinkyUri, 6.0)]) . sr)
 
 
