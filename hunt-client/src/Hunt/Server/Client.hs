@@ -40,25 +40,14 @@ import qualified Data.Aeson.Types as JSON
 
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Char (isSpace, {- toUpper, -}toLower)
-
--- import           Data.Conduit ()
-
 import           Data.Default (Default, def)
-
--- import           Data.Either ()
-
--- import           Data.String ()
 import           Data.String.Conversions (cs, (<>))
-
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Data.Typeable (Typeable)
 
+import           Control.Applicative (Applicative)
 import           Control.Exception (Exception, throwIO)
--- import           Control.Failure (Failure, failure)
-
-import           Control.Lens (over, both, {- _Left, _head, _tail, under, -} each)
-
 import           Control.Monad (mzero)
 import           Control.Monad.Catch (MonadThrow, throwM)
 import           Control.Monad.IO.Class (MonadIO, liftIO)
@@ -69,16 +58,13 @@ import           Control.Monad.Reader (ReaderT, MonadReader, runReaderT, ask)
 
 import qualified Network.HTTP.Conduit as HTTP
 import qualified Network.HTTP.Client as HTTP (defaultManagerSettings)
-
 import           Network.HTTP.Types.URI (urlEncode)
 
 import qualified Hunt.Common.ApiDocument as H
 import qualified Hunt.Common.BasicTypes as H (RegEx, Weight)
-import qualified Hunt.Index.Schema.Normalize.Position as H
 import qualified Hunt.Interpreter.Command as H (Command(..), CmdResult (..))
 import qualified Hunt.Index.Schema as H (CNormalizer, ContextSchema (..), ContextType (..))
 import           Hunt.Query.Language.Grammar (Query) -- (..), BinOp (..), TextSearchType (..))
--- import           Hunt.Common.BasicTypes
 
 
 data JsonResponse r =
@@ -118,7 +104,7 @@ data ServerAndManager = ServerAndManager {
 }
 
 newtype HuntConnectionT m a = HuntConnectionT { runHuntConnectionT :: ReaderT ServerAndManager (ResourceT m) a }
-    deriving (Monad, MonadReader ServerAndManager, MonadIO)
+    deriving (Functor, Applicative, Monad, MonadReader ServerAndManager, MonadIO)
 
 instance MonadTrans HuntConnectionT where
     -- lift :: (Monad m) => m a -> HuntConnectionT m a
@@ -186,7 +172,7 @@ handleAutoCompeteResponse q result = do
     response <- handleJsonResponse result
     return $ prefixWith $ filterByRest response
     where
-        (rest, prefix) = over both T.reverse $ T.span (\ c -> (not $ isSpace c) && (c /= ':') && (c /= '!') && (c /= '~')) $ T.reverse q
+        (rest, prefix) = mapTuple T.reverse $ T.span (\ c -> (not $ isSpace c) && (c /= ':') && (c /= '!') && (c /= '~')) $ T.reverse q
 
         filterByRest :: [(Text, [Text])] -> [Text]
         filterByRest = map fst . filter (\(_, rs) -> rest `elem` rs)
@@ -202,8 +188,8 @@ autocomplete q = do
 
 
 query :: (MonadIO m, FromJSON r) => Text -> Int -> HuntConnectionT m  (H.LimitedResult r)
-query query offset = do
-    request <- makeRequest $ T.concat [ "search/", encodeRequest query, "/", cs $ show offset, "/20"]
+query query' offset = do
+    request <- makeRequest $ T.concat [ "search/", encodeRequest query', "/", cs $ show offset, "/20"]
     httpLbs request >>= handleJsonResponse
 
 insert :: (MonadIO m) => H.ApiDocuments -> HuntConnectionT m ByteString
@@ -215,8 +201,8 @@ evalAutocomplete qt qq = do
     handleAutoCompeteResponse qt result
 
 evalQuery :: (MonadIO m, FromJSON r) => Query -> Int -> HuntConnectionT m (H.LimitedResult r)
-evalQuery query offset = do
-    result <- eval $ [H.Search query offset 20]
+evalQuery query' offset = do
+    result <- eval $ [H.Search query' offset 20 False Nothing]
     handleJsonResponse result
 
 eval :: (MonadIO m) => [H.Command] -> HuntConnectionT m ByteString
@@ -298,9 +284,8 @@ descriptionToCmd d = H.InsertContext {H.icIContext = cxName d, H.icSchema = sche
 --capitalize :: String -> String
 --capitalize = over _head toUpper . over (_tail.each) toLower
 
--- lowercase :: Each Mutator s t Char Char => s -> t
 lowercase :: String -> String
-lowercase = over (each) toLower
+lowercase = map toLower
 
 lowercaseConstructorsOptions :: JSON.Options
 lowercaseConstructorsOptions = JSON.Options {
@@ -310,3 +295,6 @@ lowercaseConstructorsOptions = JSON.Options {
      , JSON.omitNothingFields       = False
      , JSON.sumEncoding             = JSON.defaultTaggedObject
 }
+
+mapTuple :: (a -> b) -> (a, a) -> (b, b)
+mapTuple f (a1, a2) = (f a1, f a2)
