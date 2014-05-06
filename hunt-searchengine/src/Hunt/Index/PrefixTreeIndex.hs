@@ -62,8 +62,14 @@ instance Index DmPrefixTree where
     -}
 
   deleteDocs ks (DmPT pt)
-    = mkDmPT $ SM.mapMaybe (\m -> let dm = DM.diffWithSet m ks
-                                  in if DM.null dm then Nothing else Just dm) pt
+    = mkDmPT $
+      SM.mapMaybe
+            ( \m -> let dm = DM.diffWithSet m ks
+                    in
+                      if DM.null dm
+                      then Nothing
+                      else Just dm
+            ) pt
 
   empty
     = mkDmPT $ SM.empty

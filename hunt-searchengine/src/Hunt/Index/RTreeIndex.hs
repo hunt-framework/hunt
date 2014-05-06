@@ -18,14 +18,13 @@ where
 import           Control.DeepSeq
 
 import           Data.Binary                          (Binary (..))
--- import qualified Data.Maybe                           as Maybe (mapMaybe)
+import qualified Data.List                            as L
 import           Data.Monoid                          ((<>))
+import qualified Data.RTree                           as RT
+import           Data.RTree.MBB
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T (pack, unpack)
 import           Data.Typeable
-
-import qualified Data.RTree                           as RT
-import           Data.RTree.MBB
 
 -- import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdMap                 as DM
@@ -59,11 +58,22 @@ instance Index RTreeIndex where
   type IVal RTreeIndex v = DocIdMap v
 
   insertList op kvs (DmRT rt) =
-    mkDmRT $ RT.unionWith op rt (RT.fromList kvs)
+    mkDmRT $ L.foldl' (\ m' (k', v') -> RT.insertWith op k' v' m') rt kvs
+
+    {- same problem as in PrefixTreeIndex, the k' in kvs don't need to be unique
+
+       mkDmRT $ RT.unionWith op rt (RT.fromList kvs)
+    -}
 
   deleteDocs ks (DmRT rt)
-    = mkDmRT $ RT.mapMaybe (\m -> let dm = DM.diffWithSet m ks
-                                  in if DM.null dm then Nothing else Just dm) rt
+    = mkDmRT $
+      RT.mapMaybe
+            ( \m -> let dm = DM.diffWithSet m ks
+                    in
+                      if DM.null dm
+                      then Nothing
+                      else Just dm
+            ) rt
 
   empty
     = mkDmRT $ RT.empty
@@ -83,7 +93,6 @@ instance Index RTreeIndex where
 
   unionWith op (DmRT rt1) (DmRT rt2)
     = mkDmRT $ RT.unionWith op rt1 rt2
-
 
   map f (DmRT rt)
     = mkDmRT $ fmap f rt
