@@ -12,7 +12,6 @@ module Hunt.DocTable
 where
 
 import           Prelude                hiding (filter, lookup, map, null)
-import qualified Prelude                as P
 
 import           Control.Applicative    (Applicative, (<$>))
 import           Control.Monad

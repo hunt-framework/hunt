@@ -24,6 +24,7 @@ module Hunt.Index.InvertedIndex
   , InvertedIndexDate
   , InvertedIndexInt
   , InvertedIndexPosition
+  , InvertedIndexRTree
   )
 where
 

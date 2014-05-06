@@ -175,7 +175,9 @@ dateInv = mkIndex (Ix.empty :: InvertedIndexDate Occurrences)
 
 -- | Geographic position index implementation.
 positionInv :: IndexImpl Occurrences
-positionInv = mkIndex (Ix.empty :: InvertedIndexPosition Occurrences)
+--positionInv = mkIndex (Ix.empty :: InvertedIndexPosition Occurrences)
+positionInv = mkIndex (Ix.empty :: InvertedIndexRTree Occurrences)
+
 
 -- ------------------------------------------------------------
 -- Validator

@@ -24,7 +24,6 @@ module Hunt.Common.DocIdSet
 where
 
 import           Prelude           hiding (null)
-import qualified Prelude           as P
 
 import           Control.DeepSeq
 import           Control.Monad     (mzero)
