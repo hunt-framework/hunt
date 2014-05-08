@@ -157,7 +157,7 @@ index _docs =
           var res = "";
           $(docs).each(function(i,e) {
              var doc = e[0]
-             var desc = doc.desc
+             var desc = doc.description
              var first = true;
              var props = Object.keys(desc).length;
              for (var key in desc){
@@ -189,6 +189,8 @@ index _docs =
         if (data.code === 0)
         {
           var pager = data.msg;
+          pagerMax = pager.max;
+          if (pagerMax < 0) { pagerMax = 1000000 };
           globalPage    = pager.offset / pager.max + 1;
           globalPerPage = pager.max;
           globalResults = pager.count;
