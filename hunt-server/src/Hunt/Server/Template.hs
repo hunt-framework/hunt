@@ -157,6 +157,7 @@ index _docs =
           var res = "";
           $(docs).each(function(i,e) {
              var doc = e[0]
+             var score = e[1]
              var desc = doc.description
              var first = true;
              var props = Object.keys(desc).length;
@@ -164,7 +165,7 @@ index _docs =
                res += "<tr>";
                if (first)
                {
-                 res += "<td rowspan=\"" + props +"\">" + doc.uri + "</td>";
+                 res += "<td rowspan=\"" + props +"\">" + doc.uri + "<br>(" + score + ")</td>";
                }
                res += "<th>" + key + "</th><td>" + desc[key] + "</td>>";
                if (first)
