@@ -104,7 +104,7 @@ instance FromJSON Query where
         return $ QRange l u
       "and" -> bin And
       "or"  -> bin Or
-      "but" -> bin AndNot
+      "and not" -> bin AndNot
       _         -> mzero
     where
     bin op = do

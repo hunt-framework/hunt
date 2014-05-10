@@ -155,9 +155,8 @@ index _docs =
           }
 
           var res = "";
-          $(docs).each(function(i,e) {
-             var doc = e[0]
-             var score = e[1]
+          $(docs).each(function(i,doc) {
+             var score = doc.score
              var desc = doc.description
              var first = true;
              var props = Object.keys(desc).length;

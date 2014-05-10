@@ -68,7 +68,7 @@ instance ToJSON Document where
     [ "uri"         .= u
     , "description" .= d] ++
     (if w /= 1.0 then [] else ["weight"       .= w]) ++ 
-    (maybe [] (\s -> (if s /= 1.0 then [] else ["score" .= s])) ms)
+    (maybe [] (\s -> (if s == 1.0 then [] else ["score" .= s])) ms)
     
 
 {-
