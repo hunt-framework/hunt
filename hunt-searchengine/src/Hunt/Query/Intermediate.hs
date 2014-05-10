@@ -177,7 +177,7 @@ createDocHits d = DM.traverseWithKey transformDocs
   where
   transformDocs did (ic,db)
     = let doc   = fromMaybe dummy <$> (Dt.lookup did d)
-          dummy = wrap (Document "" DD.empty 1.0)
+          dummy = wrap (Document "" DD.empty 1.0 Nothing) -- TO
       in (\doc' -> (DocInfo doc' db 0.0, M.map (M.map snd) ic)) <$> doc
 
 -- | Create the word hits structure from an intermediate result.

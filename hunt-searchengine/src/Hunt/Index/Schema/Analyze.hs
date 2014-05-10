@@ -52,6 +52,7 @@ toDocAndWords' schema apiDoc = (doc, weight, ws)
     { uri  = adUri apiDoc
     , desc = descrMap
     , wght = fromMaybe 1 weight
+    , score = Nothing
     }
   ws = M.mapWithKey
         (\context content ->

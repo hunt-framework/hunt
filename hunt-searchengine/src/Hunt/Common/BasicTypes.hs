@@ -60,6 +60,9 @@ type Weight       = Float
 -- | Regular expression.
 type RegEx        = Text
 
+-- | The score of a hit (either a document hit or a word hit).
+type Score           = Float
+
 -- ------------------------------------------------------------
 -- JSON instances
 -- ------------------------------------------------------------

@@ -52,7 +52,7 @@ import           Hunt.Common.ApiDocument       as ApiDoc
 import qualified Hunt.Common.DocDesc           as DocDesc
 import qualified Hunt.Common.DocIdMap          as DocIdMap
 import qualified Hunt.Common.DocIdSet          as DocIdSet
-import           Hunt.Common.Document          (DocumentWrapper, unwrap)
+import           Hunt.Common.Document          (DocumentWrapper, unwrap, setScore)
 
 import           Hunt.ContextIndex             (ContextIndex (..), ContextMap)
 import qualified Hunt.ContextIndex             as CIx
@@ -483,6 +483,7 @@ wrapSearch select offset mx
   = ResSearch
     . mkLimitedResult offset mx
 --    . map fst -- remove score from result
+    . map (uncurry (flip setScore))
     . map (first select)
     . sortBy (descending `on` snd) -- sort by score
     . map (\(_did, (di, _dch)) -> (unwrap . document $ di, docScore di))
@@ -495,7 +496,7 @@ wrapCompletion mx
   = ResCompletion
     . take mx
     . map (\(word,_score,terms') -> (word, terms')) -- remove score from result
-    . sortBy (descending `on` (\(_,score,_) -> score)) -- sort by score
+    . sortBy (descending `on` (\(_,score',_) -> score')) -- sort by score
     . map (\(c, (wi, _wch)) -> (c, wordScore wi, terms wi))
     . M.toList
     . wordHits

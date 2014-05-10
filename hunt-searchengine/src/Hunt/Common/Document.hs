@@ -37,6 +37,7 @@ data Document = Document
   { uri  :: ! URI         -- ^ Unique identifier of the document.
   , desc :: ! Description -- ^ Description of the document (simple key-value store).
   , wght :: ! Float       -- ^ Weight used in ranking (default @1.0@).
+  , score :: Maybe Score
   }
   deriving (Show, Eq, Ord)
 
@@ -45,27 +46,32 @@ data Document = Document
 -- ------------------------------------------------------------
 
 toApiDocument :: Document -> ApiDocument
-toApiDocument (Document u d w)
+toApiDocument (Document u d w _)
     = ApiDocument u emptyApiDocIndexMap d (if w == 1.0 then Nothing else Just w)
 
 fromApiDocument :: ApiDocument -> Document
 fromApiDocument (ApiDocument u _ix d w)
-    = Document u d (maybe 1.0 id w)
+    = Document u d (maybe 1.0 id w) Nothing
 
-instance ToJSON Document where
-    toJSON = toJSON . toApiDocument
+setScore :: Score -> Document -> Document
+setScore s d = d {score = Just s}
+
+--instance ToJSON Document where
+--    toJSON = toJSON . toApiDocument
 
 instance FromJSON Document where
   parseJSON o = fromApiDocument <$> parseJSON o
 
-{-
-instance ToJSON Document where
-  toJSON (Document u d w) = object' $
-    [ "uri"    .== u
-    , "desc"   .== d
-    , "weight" .=? w .\. (== 1.0)
-    ]
 
+instance ToJSON Document where
+  toJSON (Document u d w ms) = object $
+    [ "uri"         .= u
+    , "description" .= d] ++
+    (if w /= 1.0 then [] else ["weight"       .= w]) ++ 
+    (maybe [] (\s -> (if s /= 1.0 then [] else ["score" .= s])) ms)
+    
+
+{-
 instance FromJSON Document where
   parseJSON (Object o) = do
     parsedDesc <- o .: "desc"
@@ -82,11 +88,11 @@ instance FromJSON Document where
 -- ------------------------------------------------------------
 
 instance Binary Document where
-  put (Document u d w) = put u >> put d >> put w
-  get = Document <$> get <*> get <*> get
+  put (Document u d w _) = put u >> put d >> put w
+  get = Document <$> get <*> get <*> get <*> (pure Nothing)
 
 instance NFData Document where
-  rnf (Document t d w) = rnf t `seq` rnf d `seq` rnf w
+  rnf (Document t d w s) = rnf t `seq` rnf d `seq` rnf w `seq` rnf s
 
 -- ------------------------------------------------------------
 

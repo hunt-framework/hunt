@@ -177,7 +177,7 @@ wrds :: Word -> Words
 wrds w = M.fromList $ [(w, wordList)]
 
 doc :: Document
-doc = Document "id::1" (DD.fromList [("name", "Chris"), ("alter", "30")]) 1.0
+doc = Document "id::1" (DD.fromList [("name", "Chris"), ("alter", "30")]) 1.0 Nothing
 
 
 -- | Generic insert test function

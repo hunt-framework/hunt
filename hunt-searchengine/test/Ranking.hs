@@ -1,7 +1,6 @@
 module Main where
 
 import           Control.Applicative
-import           Control.Arrow
 import           Control.Monad.Error
 import qualified Data.Map                       as M
 --import           Data.Default
@@ -48,7 +47,7 @@ testCmd cmd = fst <$> testRunCmd cmd
 
 -- uris of the search results
 searchResultUris :: CmdResult -> [URI]
-searchResultUris = map uri . map fst . lrResult . crRes
+searchResultUris = map uri . lrResult . crRes
 
 defaultContextSchema :: ContextSchema
 defaultContextSchema = ContextSchema Nothing [] 1 True ctText
@@ -152,7 +151,7 @@ test_ranking = testCM $ do
   where
   os = 0
   pp = 1000
-  sr = map (first uri) . lrResult . crRes
+  sr = map (\x -> (uri x, maybe 1.0 id $ score x)) . lrResult . crRes
 
   descr = DD.empty
 

@@ -117,9 +117,6 @@ type WordContextHits = Map Context WordDocHits
 -- | A mapping from a document containing the word to the positions of the word.
 type WordDocHits     = Occurrences
 
--- | The score of a hit (either a document hit or a word hit).
-type Score           = Float
-
 -- | The original search terms entered by the user.
 type Terms           = [Text]
 

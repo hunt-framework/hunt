@@ -101,7 +101,7 @@ data CmdResult
   = ResOK
 
   -- | The search results.
-  | ResSearch       { crRes :: LimitedResult (Document, Score) }
+  | ResSearch       { crRes :: LimitedResult Document }
 
   -- | The auto-completion results.
   | ResCompletion   { crWords :: [(Text, [Text])] }
