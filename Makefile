@@ -12,7 +12,7 @@ A       = 8
 K       = 200
 RTSPROF =
 #RUNOPTS = +RTS -N$(N) -s $(RTSPROF) -K$(K)M -A$(A)M -H$(H)M -RTS
-RUNOPTS = +RTS -N$(N) -s $(RTSPROF) -K$(K)M -I0 -RTS
+RUNOPTS = +RTS -N$(N) -s $(RTSPROF) -K$(K)M  -G2 -c -I3 -RTS
 PATTERN =
 
 SERVER  = http://localhost:3000
