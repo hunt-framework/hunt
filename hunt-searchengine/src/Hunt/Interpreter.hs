@@ -625,11 +625,11 @@ execStatus (StatusContext cx)
               CIx.lookupAllWithCx cx ix
 
 execStatus (StatusIndex {- context -})
-  = withIx dumpIndex
+  = withIx _dumpIndex
     where
-      context = "type"
-      dumpIndex (ContextIndex ix dt _s)
-          = return $ ResGeneric $ JS.String "status of Index not yet implemented"
+      -- context = "type"
+      _dumpIndex (ContextIndex _ix _dt _s)
+          = throwResError 501 $ "status of Index not yet implemented"
 
 -- ------------------------------------------------------------
 
