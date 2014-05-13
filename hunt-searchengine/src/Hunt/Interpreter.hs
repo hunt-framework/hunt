@@ -52,7 +52,8 @@ import           Hunt.Common.ApiDocument       as ApiDoc
 import qualified Hunt.Common.DocDesc           as DocDesc
 import qualified Hunt.Common.DocIdMap          as DocIdMap
 import qualified Hunt.Common.DocIdSet          as DocIdSet
-import           Hunt.Common.Document          (DocumentWrapper, unwrap, setScore)
+import           Hunt.Common.Document          (DocumentWrapper, setScore,
+                                                unwrap)
 
 import           Hunt.ContextIndex             (ContextIndex (..), ContextMap)
 import qualified Hunt.ContextIndex             as CIx
@@ -616,16 +617,19 @@ execStatus StatusDocTable
             = ResGeneric <$>
               DocTable.toJSON'DocTable dt
 
-execStatus StatusIndex
-  = withIx $
-    \_ix -> throwResError 501 ("status of Index not yet implemented"::Text)
-
 execStatus (StatusContext cx)
     = withIx dumpContext
       where
         dumpContext (ContextIndex ix _dt _s)
             = (ResGeneric . object . map (uncurry (.=))) <$>
               CIx.lookupAllWithCx cx ix
+
+execStatus (StatusIndex {- context -})
+  = withIx dumpIndex
+    where
+      context = "type"
+      dumpIndex (ContextIndex ix dt _s)
+          = return $ ResGeneric $ JS.String "status of Index not yet implemented"
 
 -- ------------------------------------------------------------
 
