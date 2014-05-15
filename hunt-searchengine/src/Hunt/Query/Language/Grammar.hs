@@ -21,13 +21,15 @@ module Hunt.Query.Language.Grammar
   , optimize
   , checkWith
   , extractTerms
+  -- * Pretty printing
+  , printQuery
   )
 where
 
 import           Control.Monad
-
 import           Data.Aeson
 import           Data.Binary
+import           Data.Monoid            ((<>))
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import           Data.Text.Binary       ()
@@ -248,3 +250,32 @@ extractTerms (QBinary _ q1 q2)     = extractTerms q1 ++ extractTerms q2
 extractTerms _                     = []
 
 -- ------------------------------------------------------------
+
+-- | Renders a text representation of a Query. 
+printQuery :: Query -> Text
+printQuery (QWord QNoCase w)  = T.replace " " "\\ " w
+printQuery (QWord QCase w)    = "!" <> w
+printQuery (QWord QFuzzy w)   = "~" <> w
+
+printQuery (QPhrase _ w)      = "\"" <> w <> "\""
+
+printQuery (QContext cs' w)    = printCs <> ":" <> (printQPar w)
+    where
+    printCs = foldr1 (\l r -> l <> "," <> r) cs'
+
+printQuery (QBinary o l r)   = (printQPar l) <> (printOp o) <> (printQPar r)
+    where
+    printOp And = " AND "
+    printOp Or = " OR "
+    printOp AndNot = " AND NOT "
+
+printQuery (QBoost w q) = (printQPar q) <> "^" <> (T.pack $ show w)
+
+printQuery (QRange l u) = "[" <> l <> " TO " <> u <> "]"
+
+-- | Maybe render paranthesis.
+printQPar :: Query -> Text
+printQPar q@QWord{}  = printQuery q
+printQPar q@QPhrase{} = printQuery q
+printQPar q@QRange{} = printQuery q
+printQPar q = "(" <> (printQuery q) <> ")"
