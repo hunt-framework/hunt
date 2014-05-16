@@ -39,12 +39,11 @@ import qualified Hunt.Interpreter.BasicCommand as Cmd
 
 import           Hunt.Utility.Log
 
-import           Hunt.Query.Result
-
 -- ------------------------------------------------------------
 
 -- | The \"high-level\" commands accepted by the 'Interpreter' \/ JSON API.
 --   These are translated to 'BasicCommand's.
+
 data Command
   -- | Search query with pagination.
   = Search        { icQuery    :: Query
@@ -95,7 +94,10 @@ data Command
   | NOOP
   deriving (Show)
 
+-- ------------------------------------------------------------
+
 -- | The result of an interpreted command.
+
 data CmdResult
   -- | The command was processed successfully.
   = ResOK
@@ -110,8 +112,10 @@ data CmdResult
   | ResGeneric      { crGen :: Value }
   deriving (Show, Eq)
 
+
 -- | An error during processing of the command.
 --   This includes a error code and a message.
+
 data CmdError
   = ResError
     { ceCode :: Int  -- ^ Error code.

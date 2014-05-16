@@ -59,6 +59,8 @@ library
     GHC.Fingerprint.Binary
     GHC.Stats.Json
 
+    Hunt.ClientInterface
+
     Hunt.Common
     Hunt.Common.ApiDocument
     Hunt.Common.BasicTypes

@@ -32,12 +32,15 @@ import           Hunt.Utility.Log
 
 -- | The document accepted by the interpreter and JSON API.
 data ApiDocument  = ApiDocument
-  { adUri   :: URI                 -- ^ The unique identifier.
-  , adIndex :: Map Context Content -- ^ The data to index according to schema associated with the context.
-  , adDescr :: Description         -- ^ The document description (a simple key-value map).
-  , adWght  :: Maybe Float         -- ^ An optional document boost (internal default is @1.0@).
+  { adUri   :: URI              -- ^ The unique identifier.
+  , adIndex :: IndexMap         -- ^ The data to index according to schema associated with the context.
+  , adDescr :: Description      -- ^ The document description (a simple key-value map).
+  , adWght  :: Maybe Float      -- ^ An optional document boost (internal default is @1.0@).
   }
   deriving (Show)
+
+-- | Context map
+type IndexMap = Map Context Content
 
 -- | Multiple 'ApiDocument's.
 type ApiDocuments = [ApiDocument]
@@ -75,7 +78,7 @@ mkLimitedResult offset mx xs = LimitedResult
   }
 
 -- | Empty index content.
-emptyApiDocIndexMap :: Map Context Content
+emptyApiDocIndexMap :: IndexMap
 emptyApiDocIndexMap = M.empty
 
 -- | Empty 'Document' description.

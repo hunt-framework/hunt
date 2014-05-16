@@ -1,6 +1,6 @@
 {-# OPTIONS -fno-warn-orphans  #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -40,23 +40,23 @@ import           Control.Monad                        (mzero)
 
 import           Data.Aeson
 import           Data.Binary                          hiding (Word)
+import           Data.Default
 import qualified Data.List                            as L
 import           Data.Map                             hiding (null)
+import           Data.Maybe                           (isNothing)
 import           Data.Text                            hiding (null)
 import qualified Data.Text                            as T
 import           Data.Text.Binary                     ()
-import           Data.Maybe                           (isNothing)
-import           Data.Default
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences              (Occurrences)
-import           Hunt.Index.IndexImpl                 (IndexImpl, mkIndex)
 import qualified Hunt.Index                           as Ix
+import           Hunt.Index.IndexImpl                 (IndexImpl, mkIndex)
 import           Hunt.Index.InvertedIndex
 
-import qualified Hunt.Index.Schema.Normalize.Position as Pos
-import qualified Hunt.Index.Schema.Normalize.Int      as Int
 import qualified Hunt.Index.Schema.Normalize.Date     as Date
+import qualified Hunt.Index.Schema.Normalize.Int      as Int
+import qualified Hunt.Index.Schema.Normalize.Position as Pos
 import           Hunt.Utility
 
 -- ------------------------------------------------------------
@@ -70,6 +70,7 @@ type Schema
 --
 --   The regular expression splits the text into words which are then transformed by the given
 --   normalizations functions (e.g. to lower case).
+
 data ContextSchema = ContextSchema
   {
     -- | Optional regex to override the default given by context type.
@@ -78,7 +79,7 @@ data ContextSchema = ContextSchema
   , cxNormalizer :: [CNormalizer]
     -- | Context weight to boost results.
   , cxWeight     :: Weight
-    -- | If the context is searched in queries without context-specifier.
+    -- | Whether the context is searched in queries without context-specifier.
   , cxDefault    :: Bool
     -- | The type of the index (e.g. text, int, date, geo-position).
   , cxType       :: ContextType
@@ -237,6 +238,7 @@ cnZeroFill = CNormalizer "ZeroFill" Int.normalizeToText
 --   The other components are environment-dependent
 --   and cannot be (de-)serialized. We serialize the name
 --   and identify the other compontens of the type later.
+
 instance FromJSON ContextType where
   parseJSON (String s) = return $ def { ctName = s }
   parseJSON _          = mzero

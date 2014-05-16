@@ -1,9 +1,8 @@
 {- |
   Module     : Hunt.Index.Common
-  Copyright  : Copyright (C) 2007-2012 Sebastian M. Schlatt, Timo B. Huebel, Uwe Schmidt
   License    : MIT
 
-  Maintainer : Timo B. Huebel (tbh@holumbus.org)
+  Maintainer : Ulf Sauer
   Stability  : experimental
   Portability: none portable
 
