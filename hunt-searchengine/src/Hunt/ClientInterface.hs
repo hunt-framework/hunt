@@ -23,7 +23,7 @@
 
 module Hunt.ClientInterface
     (
-    -- types used in commands
+    -- * types used in commands
       Command
     , ApiDocument(..)   -- also used in results
     , Content
@@ -37,14 +37,14 @@ module Hunt.ClientInterface
     , URI
     , Weight
 
-    -- types used in results
+    -- * types used in results
     , CmdError(..)
     , CmdRes(..)
     , CmdResult(..)
     , LimitedResult(..)
     , Score
 
-    -- command construction
+    -- * command construction
     , cmdSearch
     , cmdCompletion
     , cmdInsertDoc
@@ -59,13 +59,13 @@ module Hunt.ClientInterface
     , cmdSequence
     , cmdNOOP
 
-    -- configuration options for search and completion
+    -- * configuration options for search and completion
     , withSelectedFields
     , withMaxResults
     , withResultOffset
     , withWeightIncluded
 
-    -- ApiDocument construction and configuration
+    -- * ApiDocument construction and configuration
     , mkApiDoc
     , withDescription
     , addDescription
@@ -75,20 +75,27 @@ module Hunt.ClientInterface
     , changeIndex
     , withDocWeight
 
-    -- query construction
+    -- * query construction
     , qWord
     , qPhrase
     , qRange
     , qAnd
+    , qAnds
     , qOr
+    , qOrs
     , qAndNot
+    , qAndNots
     , withNoCaseSearch
     , withFuzzySearch
     , withinContext
     , withinContexts
     , withBoost
+    , qContext
 
-    -- schema definition
+    -- ** pretty printing
+    , printQuery
+
+    -- * schema definition
     , mkSchema
     , withoutCxDefault
     , withCxWeight
@@ -305,19 +312,30 @@ qRange :: Text -> Text -> Query
 qRange = QRange
 
 -- | and query
-
 qAnd :: Query -> Query -> Query
 qAnd = QBinary And
 
--- | or query
+--  | multiple @and@ queries. The list must not be emtpy
+qAnds :: [Query] -> Query
+qAnds = foldr1 (QBinary And)
 
+-- | or query
 qOr :: Query -> Query -> Query
 qOr = QBinary Or
 
--- | and not query
+--  | multiple @or@ queries. The list must not be emtpy
+qOrs :: [Query] -> Query
+qOrs = foldr1 (QBinary Or)
 
+-- | and not query
 qAndNot :: Query -> Query -> Query
 qAndNot = QBinary AndNot
+
+--  | multiple @and-not@ queries. The list must not be emtpy
+qAndNots :: [Query] -> Query
+qAndNots = foldr1 (QBinary AndNot)
+
+
 
 -- ------------------------------------------------------------
 -- configure simple search queries
@@ -350,6 +368,11 @@ withinContext cx = withinContexts [cx]
 
 withBoost :: Weight -> Query -> Query
 withBoost = QBoost
+
+-- | Shortcut for case sensitive context search
+qContext :: Context -> Text -> Query
+qContext c w = QContext [c] $ QWord QCase w
+
 
 -- ------------------------------------------------------------
 -- context schema construction
