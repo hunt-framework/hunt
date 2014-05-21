@@ -47,6 +47,7 @@ module Hunt.ClientInterface
     -- * command construction
     , cmdSearch
     , cmdCompletion
+    , cmdSelect
     , cmdInsertDoc
     , cmdUpdateDoc
     , cmdDeleteDoc
@@ -160,6 +161,9 @@ cmdCompletion q
     = Completion { icPrefixCR = q
                  , icMaxCR    = (-1)    -- unlimited
                  }
+
+cmdSelect :: Query -> Command
+cmdSelect = Select
 
 -- ------------------------------------------------------------
 -- modifying commands

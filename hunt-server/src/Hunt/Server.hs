@@ -52,10 +52,11 @@ import           Data.Text                            (Text)
 import qualified Network.Wai.Handler.Warp             as W
 import           Network.Wai.Middleware.RequestLogger
 
-import           Hunt.Interpreter.Command
 import           Hunt.Interpreter
+import           Hunt.Interpreter.Command             (StatusCmd (..))
 
-import           Hunt.Query.Language.Parser
+import           Hunt.ClientInterface
+import           Hunt.Query.Language.Parser           (parseQuery)
 
 import           Hunt.Server.Common
 import           Hunt.Server.Schrotty                 hiding (Options)
@@ -129,7 +130,7 @@ start config = do
 
   case readIndexOnStartup config of
     Just filename -> do
-      res <- liftIO $ runCmd env $ LoadIx filename
+      res <- liftIO $ runCmd env $ cmdLoadIndex filename
       case res of
         Right _  -> debugM $ "Index loaded: " ++ filename
         Left err -> fail $ show err
@@ -168,7 +169,7 @@ start config = do
           Right qry -> eval $ mkCmd qry
           Left  err -> raise $ Json 700 err
 
-    let batch cmd = Sequence . map cmd
+    let batch cmd = cmdSequence . map cmd
 
     -- ------------------------------------------------------------
 
@@ -188,69 +189,77 @@ start config = do
     -- simple query with unlimited # of hits
     get "/search/:query/" $ do
       query    <- param "query"
-      evalQuery (\q -> Search q 0 (-1) False Nothing) query
+      evalQuery cmdSearch query
 
     -- paged query
     get "/search/:query/:offset/:mx" $ do
       query    <- param "query"
       offset   <- param "offset"
       mx       <- param "mx"
-      evalQuery (\q -> Search q offset mx False Nothing) query
+      evalQuery ( withResultOffset offset
+                  . withMaxResults mx
+                  . cmdSearch
+                ) query
 
     -- simple query for reading the weight of documents
     get "/weight/:query/" $ do
       query    <- param "query"
-      evalQuery (\q -> Search q 0 (-1) True (Just [])) query
+      evalQuery ( withWeightIncluded
+                  . withSelectedFields []
+                  . cmdSearch
+                ) query
 
     -- completion
     get "/completion/:query/:mx" $ do
       query <- param "query"
       mx    <- param "mx"
-      evalQuery (\q -> Completion q mx) query
+      evalQuery ( withMaxResults mx
+                  . cmdCompletion
+                ) query
 
     -- simple query with unlimited # of hits
     get "/select/:query/" $ do
       query    <- param "query"
-      evalQuery (\q -> Select q) query
+      evalQuery (\q -> cmdSelect q) query
 
     -- insert a document (fails if a document (the uri) already exists)
     post "/document/insert" $ do
       jss <- jsonData
-      eval $ batch Insert jss
+      eval $ batch cmdInsertDoc jss
 
     -- update a document (fails if a document (the uri) does not exist)
     post "/document/update" $ do
       jss <- jsonData
-      eval $ batch Update jss
+      eval $ batch cmdUpdateDoc jss
 
     -- delete a set of documents by URI
     post "/document/delete" $ do
       jss <- jsonData
-      eval $ batch Delete jss
+      eval $ batch cmdDeleteDoc jss
 
     -- write the indexer to disk
     get "/binary/save/:filename" $ do
       filename  <- param "filename"
-      eval $ StoreIx filename
+      eval $ cmdStoreIndex filename
 
     -- load indexer from disk
     get "/binary/load/:filename" $ do
       filename  <- param "filename"
-      eval $ LoadIx filename
+      eval $ cmdLoadIndex filename
 
     -- status commands
     get "/status/gc" $ do
-      eval $ Status StatusGC            -- garbage collector status
+      eval $ cmdStatus StatusGC            -- garbage collector status
 
     get "/status/doctable" $ do
-      eval $ Status StatusDocTable      -- status of document table
+      eval $ cmdStatus StatusDocTable      -- status of document table
 
     get "/status/index" $ do
-      eval $ Status StatusIndex         -- status of search index
+      eval $ cmdStatus StatusIndex         -- status of search index
 
     get "/status/context/:cx" $ do
       query <- param "cx"
-      eval $ Status (StatusContext query)
+      eval $ cmdStatus (StatusContext query)
 
     notFound $ raise NotFound
 
