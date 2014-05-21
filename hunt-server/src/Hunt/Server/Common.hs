@@ -1,6 +1,9 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE GADTs              #-}
+{-# LANGUAGE DeriveDataTypeable        #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE GADTs                     #-}
+{-# LANGUAGE StandaloneDeriving        #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -16,8 +19,8 @@ import           Data.Typeable          (Typeable)
 
 import           Data.Aeson
 
-import           System.Console.CmdArgs (explicit, help, name, program,
-                                         summary, typ, typFile, (&=))
+import           System.Console.CmdArgs (explicit, help, name, program, summary,
+                                         typ, typFile, (&=))
 import           System.Log.Logger      (Priority (..))
 
 

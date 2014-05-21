@@ -317,7 +317,7 @@ qAnd = QBinary And
 
 --  | multiple @and@ queries. The list must not be emtpy
 qAnds :: [Query] -> Query
-qAnds = foldr1 (QBinary And)
+qAnds = foldl1 qAnd	-- foldl more efficient (?) than foldr
 
 -- | or query
 qOr :: Query -> Query -> Query
@@ -325,7 +325,7 @@ qOr = QBinary Or
 
 --  | multiple @or@ queries. The list must not be emtpy
 qOrs :: [Query] -> Query
-qOrs = foldr1 (QBinary Or)
+qOrs = foldl1 qOr	-- foldl more efficient (?) than foldr
 
 -- | and not query
 qAndNot :: Query -> Query -> Query
@@ -333,8 +333,7 @@ qAndNot = QBinary AndNot
 
 --  | multiple @and-not@ queries. The list must not be emtpy
 qAndNots :: [Query] -> Query
-qAndNots = foldr1 (QBinary AndNot)
-
+qAndNots = foldl1 qAndNot	-- foldl due to left associativity of AndNot
 
 
 -- ------------------------------------------------------------
