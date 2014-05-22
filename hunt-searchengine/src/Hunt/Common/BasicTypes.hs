@@ -19,7 +19,7 @@ import           Data.Text
 import           Data.Aeson
 import           Data.Binary         hiding (Word)
 
-import qualified Hunt.Common.DocDesc as SM
+import           Hunt.Common.DocDesc (DocDesc)
 
 -- ------------------------------------------------------------
 
@@ -27,7 +27,7 @@ import qualified Hunt.Common.DocDesc as SM
 type URI          = Text
 
 -- | The description of a document is a generic key value map.
-type Description  = SM.DocDesc Text
+type Description  = DocDesc Text
 
 -- | The title of a document.
 type Title        = Text
@@ -61,7 +61,7 @@ type Weight       = Float
 type RegEx        = Text
 
 -- | The score of a hit (either a document hit or a word hit).
-type Score           = Float
+type Score        = Float
 
 -- ------------------------------------------------------------
 -- JSON instances

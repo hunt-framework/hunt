@@ -60,20 +60,28 @@ module Hunt.ClientInterface
     , cmdNOOP
 
     -- * configuration options for search and completion
-    , withSelectedFields
-    , withMaxResults
-    , withResultOffset
-    , withWeightIncluded
+    , setSelectedFields
+    , setMaxResults
+    , setResultOffset
+    , setWeightIncluded
 
-    -- * ApiDocument construction and configuration
+
+    -- * ApiDocument construction, configuration and access
     , mkApiDoc
-    , withDescription
+    , setDescription
+    , getDescription
     , addDescription
     , changeDescription
-    , withIndex
+    , setIndex
     , addToIndex
+    , getFromIndex
     , changeIndex
-    , withDocWeight
+    , setDocWeight
+
+    -- * description construction
+    , mkDescription
+    , emptyDescription
+    , fromDescription
 
     -- * query construction
     , qWord
@@ -85,11 +93,14 @@ module Hunt.ClientInterface
     , qOrs
     , qAndNot
     , qAndNots
-    , withNoCaseSearch
-    , withFuzzySearch
-    , withinContext
-    , withinContexts
-    , withBoost
+    , setNoCaseSearch
+    , setFuzzySearch
+    , setContext
+    , setContexts
+    , setBoost
+    , withinContexts    -- deprecated
+    , withinContext     -- deprecated
+    , withBoost         -- deprecated
     , qContext
 
     -- ** pretty printing
@@ -97,16 +108,16 @@ module Hunt.ClientInterface
 
     -- * schema definition
     , mkSchema
-    , withoutCxDefault
-    , withCxWeight
-    , withCxRegEx
-    , withCxUpperCase
-    , withCxLowerCase
-    , withCxZeroFill
-    , withCxText
-    , withCxInt
-    , withCxDate
-    , withCxPosition
+    , setCxNoDefault
+    , setCxWeight
+    , setCxRegEx
+    , setCxUpperCase
+    , setCxLowerCase
+    , setCxZeroFill
+    , setCxText
+    , setCxInt
+    , setCxDate
+    , setCxPosition
     )
 where
 
@@ -122,6 +133,7 @@ import           Hunt.Common.ApiDocument     (ApiDocument (..), IndexMap,
 import           Hunt.Common.BasicTypes      (Content, Context, Description,
                                               RegEx, Score, URI, Weight)
 import           Hunt.Common.DocDesc         (DocDesc (..))
+import qualified Hunt.Common.DocDesc         as DD
 import           Hunt.Index.Schema
 import           Hunt.Interpreter.Command
 import           Hunt.Query.Language.Grammar
@@ -210,40 +222,40 @@ cmdNOOP = NOOP
 
 -- | configure search and completion command: set the max # of results
 
-withMaxResults :: Int -> Command -> Command
-withMaxResults mx q@Search{}
+setMaxResults :: Int -> Command -> Command
+setMaxResults mx q@Search{}
     = q { icMaxSR    = mx }
-withMaxResults mx q@Completion{}
+setMaxResults mx q@Completion{}
     = q { icMaxCR    = mx }
-withMaxResults _ q
+setMaxResults _ q
     = q
 
 -- | configure search command: set the starting offset of the result list
-withResultOffset :: Int -> Command -> Command
-withResultOffset off q@Search{}
+setResultOffset :: Int -> Command -> Command
+setResultOffset off q@Search{}
     = q { icOffsetSR = off }
-withResultOffset _ q
+setResultOffset _ q
     = q
 
 -- | configure search command: set the list of attributes of the document decription
 -- to be included in the result list
 --
--- example: @withSelectedFields ["title", "date"]@ restricts the documents
+-- example: @setSelectedFields ["title", "date"]@ restricts the documents
 -- attributes to these to fields
 
-withSelectedFields :: [Text] -> Command -> Command
-withSelectedFields fs q@Search{}
+setSelectedFields :: [Text] -> Command -> Command
+setSelectedFields fs q@Search{}
     = q { icFields = Just fs }
 
-withSelectedFields _ q
+setSelectedFields _ q
     = q
 
 -- |  configure search command: include document weight in result list
 
-withWeightIncluded :: Command -> Command
-withWeightIncluded q@Search{}
+setWeightIncluded :: Command -> Command
+setWeightIncluded q@Search{}
     = q { icWeight = True }
-withWeightIncluded q
+setWeightIncluded q
     = q
 
 -- ------------------------------------------------------------
@@ -262,9 +274,12 @@ mkApiDoc u
 
 -- | add an index map containing the text parts to be indexed
 
-withDescription :: Description -> ApiDocument -> ApiDocument
-withDescription descr d
+setDescription :: Description -> ApiDocument -> ApiDocument
+setDescription descr d
     = d { adDescr = descr }
+
+getDescription :: ApiDocument -> Description
+getDescription = adDescr
 
 addDescription :: Text -> Text -> ApiDocument -> ApiDocument
 addDescription k v
@@ -276,8 +291,8 @@ changeDescription f a = a { adDescr = f . adDescr $ a }
 
 -- | add an index map containing the text parts to be indexed
 
-withIndex :: IndexMap -> ApiDocument -> ApiDocument
-withIndex im d
+setIndex :: IndexMap -> ApiDocument -> ApiDocument
+setIndex im d
     = d { adIndex = im }
 
 addToIndex :: Context -> Content -> ApiDocument -> ApiDocument
@@ -285,15 +300,31 @@ addToIndex cx ct d
     | T.null ct = d
     | otherwise = changeIndex (SM.insert cx ct) d
 
+getFromIndex :: Context -> ApiDocument -> Text
+getFromIndex cx d
+    = maybe "" id . SM.lookup cx . adIndex $ d
+
 changeIndex :: (IndexMap -> IndexMap) -> ApiDocument -> ApiDocument
 changeIndex f a = a { adIndex = f $ adIndex a }
 
 -- | add a document weight
 
-withDocWeight :: Float -> ApiDocument -> ApiDocument
-withDocWeight w d
+setDocWeight :: Float -> ApiDocument -> ApiDocument
+setDocWeight w d
     | w == 1.0  = d
     | otherwise = d { adWght = Just w }
+
+-- ------------------------------------------------------------
+-- document description
+
+mkDescription :: [(Text, Text)] -> Description
+mkDescription = DD.fromList . filter (not . T.null . snd)
+
+emptyDescription :: Description
+emptyDescription = DD.empty
+
+fromDescription :: Description ->  [(Text, Text)]
+fromDescription = DD.toList
 
 -- ------------------------------------------------------------
 -- query construction
@@ -311,13 +342,17 @@ qPhrase = QPhrase QCase
 qRange :: Text -> Text -> Query
 qRange = QRange
 
+-- | shortcut for case sensitive context search
+qContext :: Context -> Text -> Query
+qContext c w = QContext [c] $ QWord QCase w
+
 -- | and query
 qAnd :: Query -> Query -> Query
 qAnd = QBinary And
 
 --  | multiple @and@ queries. The list must not be emtpy
 qAnds :: [Query] -> Query
-qAnds = foldl1 qAnd	-- foldl more efficient (?) than foldr
+qAnds = foldl1 qAnd     -- foldl more efficient (?) than foldr
 
 -- | or query
 qOr :: Query -> Query -> Query
@@ -325,7 +360,7 @@ qOr = QBinary Or
 
 --  | multiple @or@ queries. The list must not be emtpy
 qOrs :: [Query] -> Query
-qOrs = foldl1 qOr	-- foldl more efficient (?) than foldr
+qOrs = foldl1 qOr       -- foldl more efficient (?) than foldr
 
 -- | and not query
 qAndNot :: Query -> Query -> Query
@@ -333,45 +368,52 @@ qAndNot = QBinary AndNot
 
 --  | multiple @and-not@ queries. The list must not be emtpy
 qAndNots :: [Query] -> Query
-qAndNots = foldl1 qAndNot	-- foldl due to left associativity of AndNot
-
+qAndNots = foldl1 qAndNot       -- foldl due to left associativity of AndNot
 
 -- ------------------------------------------------------------
 -- configure simple search queries
 
 -- | case insensitve search, only sensible for word and phrase queries
 
-withNoCaseSearch :: Query -> Query
-withNoCaseSearch (QWord   _ w) = QWord   QNoCase w
-withNoCaseSearch (QPhrase _ w) = QPhrase QNoCase w
-withNoCaseSearch q             = q
+setNoCaseSearch :: Query -> Query
+setNoCaseSearch (QWord   _ w) = QWord   QNoCase w
+setNoCaseSearch (QPhrase _ w) = QPhrase QNoCase w
+setNoCaseSearch q             = q
 
 -- | fuzzy search, only sensible for word and phrase queries
 
-withFuzzySearch :: Query -> Query
-withFuzzySearch (QWord   _ w) = QWord   QFuzzy w
-withFuzzySearch (QPhrase _ w) = QPhrase QFuzzy w
-withFuzzySearch q             = q
+setFuzzySearch :: Query -> Query
+setFuzzySearch (QWord   _ w) = QWord   QFuzzy w
+setFuzzySearch (QPhrase _ w) = QPhrase QFuzzy w
+setFuzzySearch q             = q
 
 -- | restrict search to list of contexts
 
+setContexts :: [Context] -> Query -> Query
+setContexts = QContext
+
 withinContexts :: [Context] -> Query -> Query
 withinContexts = QContext
+{-# DEPRECATED withinContexts "Don't use this, use setContexts" #-}
 
 -- | restrict search to a single context
 
+setContext :: Context -> Query -> Query
+setContext cx = withinContexts [cx]
+
 withinContext :: Context -> Query -> Query
-withinContext cx = withinContexts [cx]
+withinContext cx = setContexts [cx]
+{-# DEPRECATED withinContext "Don't use this, use setContext" #-}
+
 
 -- | boost the search results by a factor
 
+setBoost :: Weight -> Query -> Query
+setBoost = QBoost
+
 withBoost :: Weight -> Query -> Query
 withBoost = QBoost
-
--- | Shortcut for case sensitive context search
-qContext :: Context -> Text -> Query
-qContext c w = QContext [c] $ QWord QCase w
-
+{-# DEPRECATED withBoost "Don't use this, use setBoost" #-}
 
 -- ------------------------------------------------------------
 -- context schema construction
@@ -384,62 +426,62 @@ mkSchema = def
 
 -- | prevent searching in context, when not explicitly set in query
 
-withoutCxDefault :: ContextSchema -> ContextSchema
-withoutCxDefault sc
+setCxNoDefault :: ContextSchema -> ContextSchema
+setCxNoDefault sc
     = sc { cxDefault = False }
 
 -- | set the regex for splitting a text into words
 
-withCxWeight :: Weight -> ContextSchema -> ContextSchema
-withCxWeight w sc
+setCxWeight :: Weight -> ContextSchema -> ContextSchema
+setCxWeight w sc
     = sc { cxWeight = w }
 
 -- | set the regex for splitting a text into words
 
-withCxRegEx :: RegEx -> ContextSchema -> ContextSchema
-withCxRegEx re sc
+setCxRegEx :: RegEx -> ContextSchema -> ContextSchema
+setCxRegEx re sc
     = sc { cxRegEx = Just re }
 
 -- | add a text normalizer for transformation into uppercase
 
-withCxUpperCase :: ContextSchema -> ContextSchema
-withCxUpperCase sc
+setCxUpperCase :: ContextSchema -> ContextSchema
+setCxUpperCase sc
     = sc { cxNormalizer = cnUpperCase : cxNormalizer sc }
 
 -- | add a text normalizer for transformation into lowercase
 
-withCxLowerCase :: ContextSchema -> ContextSchema
-withCxLowerCase sc
+setCxLowerCase :: ContextSchema -> ContextSchema
+setCxLowerCase sc
     = sc { cxNormalizer = cnLowerCase : cxNormalizer sc }
 
 -- | add a text normalizer for transformation into lowercase
 
-withCxZeroFill :: ContextSchema -> ContextSchema
-withCxZeroFill sc
+setCxZeroFill :: ContextSchema -> ContextSchema
+setCxZeroFill sc
     = sc { cxNormalizer = cnZeroFill : cxNormalizer sc }
 
 -- | set the type of a context to text
 
-withCxText :: ContextSchema -> ContextSchema
-withCxText sc
+setCxText :: ContextSchema -> ContextSchema
+setCxText sc
     = sc { cxType = ctText }
 
 -- | set the type of a context to Int
 
-withCxInt :: ContextSchema -> ContextSchema
-withCxInt sc
+setCxInt :: ContextSchema -> ContextSchema
+setCxInt sc
     = sc { cxType = ctInt }
 
 -- | set the type of a context to Date
 
-withCxDate :: ContextSchema -> ContextSchema
-withCxDate sc
+setCxDate :: ContextSchema -> ContextSchema
+setCxDate sc
     = sc { cxType = ctDate }
 
 -- | set the type of a context to Int
 
-withCxPosition :: ContextSchema -> ContextSchema
-withCxPosition sc
+setCxPosition :: ContextSchema -> ContextSchema
+setCxPosition sc
     = sc { cxType = ctPosition }
 
 -- ------------------------------------------------------------
