@@ -1,64 +1,63 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# OPTIONS
-   -fno-warn-orphans
-   -fno-warn-missing-signatures
-   -fno-warn-missing-methods
-   -fno-warn-unused-matches
-   -fno-warn-type-defaults
-#-}
+{-# OPTIONS -fno-warn-orphans #-}
+{-# OPTIONS -fno-warn-missing-signatures #-}
+{-# OPTIONS -fno-warn-missing-methods #-}
+{-# OPTIONS -fno-warn-unused-matches #-}
+{-# OPTIONS -fno-warn-type-defaults #-}
+
 module Main where
 
-import           Control.Applicative                  ((<$>))
+import           Control.Applicative
 
 import           Test.Framework                       hiding (Test)
 import           Test.Framework.Providers.HUnit
-import           Test.HUnit
 import           Test.Framework.Providers.QuickCheck2
+import           Test.HUnit
 import           Test.QuickCheck
 
 import           Control.Monad
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
-import qualified Hunt.Query.Language.Parser       as P
+import           Hunt.ClientInterface
 import           Hunt.Query.Language.Grammar
-
+import qualified Hunt.Query.Language.Parser           as P
 
 -- ----------------------------------------------------------------------------
 -- helper
 --
 
 a :: Query -> Query -> Query
-a = QBinary And
+a = qAnd
 
 o :: Query -> Query -> Query
-o = QBinary Or
+o = qOr
 
 an :: Query -> Query -> Query
-an = QBinary AndNot
+an = qAndNot
 
 w :: Text -> Query
-w = QWord QNoCase
+w = setNoCaseSearch . qWord
 
 p :: Text -> Query
-p = QPhrase QNoCase
+p = setNoCaseSearch . qPhrase
 
 s :: [Text] -> Query -> Query
-s = QContext
+s = setContexts
 
 cw :: Text -> Query
-cw = QWord QCase
+cw = qWord
 
 cp :: Text -> Query
-cp = QPhrase QCase
+cp = qPhrase
 
 fw :: Text -> Query
-fw = QWord QFuzzy
+fw = setFuzzySearch . qWord
 
 rg :: Text -> Text -> Query
-rg = QRange
+rg = qRange
 
 bst :: Float -> Query -> Query
-bst = QBoost
+bst = setBoost
 
 andTests :: Test
 andTests = TestList
@@ -314,21 +313,24 @@ instance Arbitrary Query where
   arbitrary = sized query
 
 query :: Int -> Gen Query
-query num | num == 0 = liftM (QWord QCase) word
+query num | num == 0 = liftM qWord word
           | num < 0 = query (abs num)
-          | num > 0 = frequency [ (4, liftM (QWord QNoCase) word)
-                                , (1, liftM (QWord QCase) word)
-                                , (1, liftM (QWord QFuzzy) word)
-                                , (2, liftM (QPhrase QNoCase) phrase)
-                                , (1, liftM (QPhrase QCase) phrase)
-                                , (1, liftM2 QContext specs subQuery)
-                                , (4, liftM3 QBinary op subQuery subQuery)
+          | num > 0 = frequency [ (4, (setNoCaseSearch . qWord)   <$> word)
+                                , (1,  qWord                      <$> word)
+                                , (1, (setFuzzySearch . qWord)    <$> word)
+                                , (2, (setNoCaseSearch . qPhrase) <$> phrase)
+                                , (1, qPhrase                     <$> phrase)
+                                , (1, setContexts <$> specs <*> subQuery)
+                                , (4, op       <*> subQuery <*> subQuery)
                                 ]
 query _ = error "Error in query generator!"
 
 
 
-op = frequency [(3, return (And)), (1, return (Or)), (1, return (AndNot))]
+op = frequency [ (3, return qAnd)
+               , (1, return qOr)
+               , (1, return qAndNot)
+               ]
 subQuery = sized (\num -> query (num `div` 2))
 
 specs = sequence [ word | i <- [1..2] ]

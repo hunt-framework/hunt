@@ -4,19 +4,12 @@ import           System.Directory
 import           System.IO
 
 import           Control.Applicative
---import           Control.Arrow
---import           Control.Monad                         (join)
 import           Control.Exception
 import           Control.Monad.Error
---import           Control.Monad.Trans                   (liftIO)
 import           Data.Fixed                           (div', mod')
---import           Data.List                             (sort)
 import qualified Data.Map                             as M
 import           Data.Monoid                          ((<>))
---import           Data.Monoid
---import qualified Data.Set                              as S
 import           Data.Text                            (Text, pack)
---import           Data.Default
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -27,19 +20,14 @@ import           Test.QuickCheck.Monadic
 
 import           Text.Printf                          (printf)
 
+import           Hunt.ClientInterface
 import           Hunt.Common
-import           Hunt.Common.ApiDocument              as ApiDoc
 import qualified Hunt.Common.DocDesc                  as DD
 import           Hunt.Common.Document
---import           Hunt.Common.BasicTypes
+import           Hunt.DocTable.HashedDocTable         (Documents)
 import           Hunt.Interpreter
-import           Hunt.Interpreter.Command
-import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Ranking
 import           Hunt.Utility
---import           Hunt.Index.InvertedIndex              (InvertedIndex)
-import           Hunt.DocTable.HashedDocTable         (Documents)
---import           Hunt.Index.Schema.Normalize.Date      (rexDates)
 
 -- ----------------------------------------------------------------------------
 
@@ -86,12 +74,12 @@ testRunCmd cmd = do
 
 
 insertCmd, searchCmd, batchCmd :: Command
-insertCmd = Insert brainDoc
-searchCmd = search (QWord QNoCase "d") 1 100
-batchCmd  = Sequence [insertDefaultContext, insertCmd, searchCmd]
+insertCmd = cmdInsertDoc brainDoc
+searchCmd = search (setNoCaseSearch $ qWord "d") 1 100
+batchCmd  = cmdSequence [insertDefaultContext, insertCmd, searchCmd]
 
 search :: Query -> Int -> Int -> Command
-search q o m = Search q o m False Nothing
+search q o m = setResultOffset o . setMaxResults m . cmdSearch $ q
 
 -- ----------------------------------------------------------------------------
 
@@ -104,56 +92,56 @@ searchResultUris = map uri . lrResult . crRes
 
 -- example apidoc
 brainDoc :: ApiDocument
-brainDoc = emptyApiDoc
-  { adUri   = "test://0"
-  , adIndex = M.fromList [("default", td)]
-  , adDescr = descr
-  }
-  where
-  td = "Brain"
-  descr = DD.fromList [("name", "Brain"), ("mission", "take over the world"), ("legs", "4")]
+brainDoc
+    = addBrainDoc
+      $ mkApiDoc "test://0"
+
+addBrainDoc :: ApiDocument -> ApiDocument
+addBrainDoc
+    = setDescription descr
+      . setIndex (M.fromList [("default", td)])
+    where
+      td = "Brain"
+      descr = DD.fromList [("name", "Brain"), ("mission", "take over the world"), ("legs", "4")]
 
 dateDoc :: ApiDocument
-dateDoc = emptyApiDoc
-  { adUri   = "test://1"
-  , adIndex = M.insert "datecontext" "2013-01-01" ix
-  , adDescr = dt
-  }
-  where
-  ApiDocument _ ix dt _ = brainDoc
+dateDoc
+    = addToIndex "datecontext" "2013-01-01"
+      $ addBrainDoc
+      $ mkApiDoc "test://1"
+
 
 geoDoc' :: Text -> ApiDocument
-geoDoc' position = emptyApiDoc
-  { adUri   = "test://2"
-  , adIndex = M.insert "geocontext" position ix
-  , adDescr = dt
-  }
-  where
-  ApiDocument _ ix dt _ = brainDoc
+geoDoc' position
+    = addToIndex "geocontext" position
+      $ addBrainDoc
+      $ mkApiDoc "test://2"
 
 geoDoc :: ApiDocument
 geoDoc = geoDoc' "53.60000-10.00000"
 
 -- example apidoc
 brainDocUpdate :: ApiDocument
-brainDocUpdate = brainDoc { adDescr = descr }
+brainDocUpdate = setDescription descr $ brainDoc
   where
   descr = DD.fromList [("name", "Pinky"), ("mission", "ask stupid questions")]
 
 brainDocMerged :: ApiDocument
-brainDocMerged = brainDocUpdate { adDescr = (adDescr brainDocUpdate) `DD.union` (adDescr brainDoc) }
+brainDocMerged
+    = changeDescription (`DD.union` (getDescription brainDoc))
+      $ brainDocUpdate
 
 defaultContextInfo :: (Context, ContextSchema)
 defaultContextInfo = ("default", ContextSchema Nothing [] 1 True ctText)
 
 insertDefaultContext :: Command
-insertDefaultContext = uncurry InsertContext defaultContextInfo
+insertDefaultContext = uncurry cmdInsertContext defaultContextInfo
 
 dateContextInfo :: (Context, ContextSchema)
 dateContextInfo = ("datecontext", ContextSchema Nothing [] 1 True ctDate)
 
 insertDateContext :: Command
-insertDateContext = uncurry InsertContext dateContextInfo
+insertDateContext = uncurry cmdInsertContext dateContextInfo
 
 -- XXX: regex ok? examples:
 --      correct: 90-180, -90--180, 0.-0., 0.0-0.0, 0.00-0.00
@@ -166,7 +154,7 @@ geoContextInfo :: (Context, ContextSchema)
 geoContextInfo = ("geocontext", ContextSchema Nothing [] 1 True ctPosition)
 
 insertGeoContext :: Command
-insertGeoContext = uncurry InsertContext geoContextInfo
+insertGeoContext = uncurry cmdInsertContext geoContextInfo
 
 
 -- evaluate CM and check the result
@@ -197,10 +185,10 @@ withTmpFile io = do
 -- sequence of commands using the execSeq
 test_insertAndSearch :: Assertion
 test_insertAndSearch = do
-  res <- testCmd . Sequence $
+  res <- testCmd . cmdSequence $
       [ insertDefaultContext
-      , Insert brainDoc
-      , search (QWord QNoCase "Brain") 0 1000]
+      , cmdInsertDoc brainDoc
+      , search (setNoCaseSearch $ qWord "Brain") 0 1000]
   ["test://0"] @=? (searchResultUris . fromRight) res
 
 
@@ -211,11 +199,11 @@ test_alot = testCM $ do
   --throwNYI "user error"
   insCR <- execCmd insertDefaultContext
   liftIO $ ResOK @=? insCR
-  insR <- execCmd $ Insert brainDoc
+  insR <- execCmd $ cmdInsertDoc brainDoc
   liftIO $ ResOK @=? insR
-  seaR <- execCmd $ search (QWord QNoCase "Brain") os pp
+  seaR <- execCmd $ search (setNoCaseSearch $ qWord "Brain") os pp
   liftIO $ ["test://0"] @=? searchResultUris seaR
-  seaR2 <- execCmd $ search (QWord QCase "brain") os pp
+  seaR2 <- execCmd $ search (qWord "brain") os pp
   liftIO $ [] @=? searchResultUris seaR2
   where
   os = 0
@@ -237,30 +225,30 @@ test_binary = withTmpFile $ \tmpfile -> testCM $ do
   insertDefaultContext    @@= ResOK
   insertGeoContext        @@= ResOK
   -- insert two docuemnts
-  Insert dateDoc          @@= ResOK
-  Insert geoDoc           @@= ResOK
+  cmdInsertDoc dateDoc          @@= ResOK
+  cmdInsertDoc geoDoc           @@= ResOK
   -- searching for documents - expecting to find them
-  search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
+  search (setContexts ["datecontext"] (setNoCaseSearch $ qWord "2013-01-01")) 0 10
     @@@ ((@?= ["test://1"]) . searchResultUris)
-  search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
+  search (setContexts ["geocontext"] (setNoCaseSearch $ qWord "53.60000-10.00000")) 0 10
     @@@ ((@?= ["test://2"]) . searchResultUris)
   -- store index
-  StoreIx tmpfile            @@= ResOK
+  cmdStoreIndex tmpfile            @@= ResOK
   -- reset index
-  Delete "test://1"       @@= ResOK
-  Delete "test://2"       @@= ResOK
+  cmdDeleteDoc "test://1"       @@= ResOK
+  cmdDeleteDoc "test://2"       @@= ResOK
   -- searching for documents - expecting to find none
-  search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
+  search (setContexts ["datecontext"] (setNoCaseSearch $ qWord "2013-01-01")) 0 10
     @@@ ((@?= []) . searchResultUris)
-  search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
+  search (setContexts ["geocontext"] (setNoCaseSearch $ qWord "53.60000-10.00000")) 0 10
     @@@ ((@?= []) . searchResultUris)
   -- loading previously stored index
-  LoadIx tmpfile          @@= ResOK
+  cmdLoadIndex tmpfile          @@= ResOK
   -- searching for documents - expecting to find them,
   -- since we found them before we stored the index
-  search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
+  search (setContexts ["datecontext"] (setNoCaseSearch $ qWord "2013-01-01")) 0 10
     @@@ ((@?= ["test://1"]) . searchResultUris)
-  search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
+  search (setContexts ["geocontext"] (setNoCaseSearch $ qWord "53.60000-10.00000")) 0 10
     @@@ ((@?= ["test://2"]) . searchResultUris)
 
 test_binary2 :: Assertion
@@ -270,21 +258,21 @@ test_binary2 = withTmpFile $ \tmpfile -> testCM $ do
   insertDefaultContext    @@= ResOK
   insertGeoContext        @@= ResOK
   -- insert two docuemnts
-  Insert dateDoc          @@= ResOK
+  cmdInsertDoc dateDoc          @@= ResOK
   -- searching for documents - first should be valid second should be invalid
-  search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
+  search (setContexts ["datecontext"] (setNoCaseSearch $ qWord "2013-01-01")) 0 10
     @@@ ((@?= ["test://1"]) . searchResultUris)
-  (search (QContext ["datecontext"] (QWord QNoCase "invalid")) 0 10
+  (search (setContexts ["datecontext"] (setNoCaseSearch $ qWord "invalid")) 0 10
     @@@ const (assertFailure "date validation failed"))
         `catchError` const (return ())
 
   -- store index
-  StoreIx tmpfile         @@= ResOK
-  LoadIx  tmpfile         @@= ResOK
+  cmdStoreIndex tmpfile         @@= ResOK
+  cmdLoadIndex  tmpfile         @@= ResOK
   -- searching for documents - first should be valid second should be invalid
-  search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
+  search (setContext "datecontext" (setNoCaseSearch $ qWord "2013-01-01")) 0 10
     @@@ ((@?= ["test://1"]) . searchResultUris)
-  (search (QContext ["datecontext"] (QWord QNoCase "invalid")) 0 10
+  (search (setContext "datecontext" (setNoCaseSearch $ qWord "invalid")) 0 10
     @@@ const (assertFailure "date validation failed after store/load index"))
         `catchError` const (return ())
 
@@ -294,9 +282,9 @@ test_dates = testCM $ do
   insertDateContext       @@= ResOK
   insertDefaultContext    @@= ResOK
   -- insert date containing document
-  Insert dateDoc          @@= ResOK
+  cmdInsertDoc dateDoc          @@= ResOK
   -- searching for date
-  search (QContext ["datecontext"] (QWord QNoCase "2013-01-01")) 0 10
+  search (setContext "datecontext" (setNoCaseSearch $ qWord "2013-01-01")) 0 10
     @@@ ((@?= ["test://1"]) . searchResultUris)
 
 
@@ -306,9 +294,9 @@ test_geo = testCM $ do
   insertGeoContext       @@= ResOK
   insertDefaultContext   @@= ResOK
   -- insert date containing document
-  Insert geoDoc          @@= ResOK
+  cmdInsertDoc geoDoc          @@= ResOK
   -- searching for date
-  search (QContext ["geocontext"] (QWord QNoCase "53.60000-10.00000")) 0 10
+  search (setContext "geocontext" (setNoCaseSearch $ qWord "53.60000-10.00000")) 0 10
     @@@ ((@?= ["test://2"]) . searchResultUris)
 
 test_geo2 :: Assertion
@@ -317,9 +305,9 @@ test_geo2 = testCM $ do
   insertGeoContext       @@= ResOK
   insertDefaultContext   @@= ResOK
   -- insert date containing document
-  Insert geoDoc          @@= ResOK
+  cmdInsertDoc geoDoc          @@= ResOK
   -- searching for date
-  search (QContext ["geocontext"] (QRange "1-1" "80-80")) 0 10
+  search (setContext "geocontext" (qRange "1-1" "80-80")) 0 10
     @@@ ((@?= ["test://2"]) . searchResultUris)
 
 test_geo2a :: Assertion
@@ -328,9 +316,9 @@ test_geo2a = testCM $ do
   insertGeoContext       @@= ResOK
   insertDefaultContext   @@= ResOK
 
-  Insert (geoDoc' "89.63-2.75") @@= ResOK
+  cmdInsertDoc (geoDoc' "89.63-2.75") @@= ResOK
 
-  search (QContext ["geocontext"] (QRange "9.40-2.25" "89.25-87.88")) 0 10
+  search (setContext "geocontext" (qRange "9.40-2.25" "89.25-87.88")) 0 10
     @@@ ((@?= []) . searchResultUris)
 
 test_geo3 :: Assertion
@@ -339,19 +327,19 @@ test_geo3 = testCM $ do
   insertGeoContext       @@= ResOK
   insertDefaultContext   @@= ResOK
   -- insert date containing document
-  Insert geoDoc          @@= ResOK
+  cmdInsertDoc geoDoc          @@= ResOK
   -- searching for date
-  search (QContext ["geocontext"] (QRange "-80--80" "1-1")) 0 10
+  search (setContext "geocontext" (qRange "-80--80" "1-1")) 0 10
     @@@ ((@?= []) . searchResultUris)
 
-  search (QContext ["geocontext"] (QRange "60--80" "70--80")) 0 10
+  search (setContext "geocontext" (qRange "60--80" "70--80")) 0 10
     @@@ ((@?= []) . searchResultUris)
 
 -- fancy - equivalent to 'test_alot' plus additional tests
 test_fancy :: Assertion
 test_fancy = testCM $ do
   -- insert into non-existent context results in an error
-  (Insert brainDoc
+  (cmdInsertDoc brainDoc
     @@@ const (assertFailure "insert into non-existent context succeeded"))
         `catchError` const (return ())
   -- insert context succeeds
@@ -364,39 +352,39 @@ test_fancy = testCM $ do
         `catchError` const (return ())
 
   -- insert yields the correct result value
-  Insert brainDoc
+  cmdInsertDoc brainDoc
     @@= ResOK
 
   -- searching "Brain" leads to the doc
-  search (QWord QNoCase "Brain") os pp
+  search (setNoCaseSearch $ qWord "Brain") os pp
     @@@ ((@?= ["test://0"]) . searchResultUris)
   -- case-sensitive search too
-  search (QWord QCase "Brain") os pp
+  search (qWord "Brain") os pp
     @@@ ((@?= ["test://0"]) . searchResultUris)
   -- case-sensitive search yields no result
-  search (QWord QCase "brain") os pp
+  search (qWord "brain") os pp
     @@@ ((@?= []) . searchResultUris)
 
   -- insert with default does not update the description
-  (Insert brainDocUpdate
+  (cmdInsertDoc brainDocUpdate
     @@@ const (assertFailure "inserting twice succeeded"))
         `catchError` const (return ())
   -- search yields the old description
-  search (QWord QCase "Brain") os pp
+  search (qWord "Brain") os pp
     @@@ ((@?= adDescr brainDoc) . desc . head . lrResult . crRes)
 
   -- update the description
-  Update brainDocUpdate
+  cmdUpdateDoc brainDocUpdate
     @@= ResOK
   -- search yields >merged< description
-  search (QWord QCase "Brain") os pp
+  search (qWord "Brain") os pp
     @@@ ((@?= adDescr brainDocMerged) . desc . head . lrResult . crRes)
 
   -- delete return the correct result value
-  Delete ("test://0")
+  cmdDeleteDoc ("test://0")
     @@= ResOK
   -- the doc is gone
-  search (QWord QNoCase "Brain") os pp
+  search (setNoCaseSearch $ qWord "Brain") os pp
     @@@ ((@?= []) . searchResultUris)
   where
   os = 0
@@ -419,8 +407,8 @@ prop_position_range x1' x2' x3' x4' (lon', lat') = monadicIO $ do
     res' <- flip runHunt env $ do
       _ <- execCmd insertDefaultContext
       _ <- execCmd insertGeoContext
-      _ <- execCmd $ Insert $ geoDoc' $ toText p
-      execCmd $ search (QContext ["geocontext"] (QRange (toText nw) (toText se))) 0 10
+      _ <- execCmd $ cmdInsertDoc $ geoDoc' $ toText p
+      execCmd $ search (setContext "geocontext" (qRange (toText nw) (toText se))) 0 10
     -- print $ (show [nw, se, p]) ++ (show $ searchResultUris $ fromRight res') ++ show isIn
     return res'
   Test.QuickCheck.Monadic.assert $ isIn == (not $ null $ searchResultUris $ fromRight res)

@@ -3,6 +3,7 @@ module Main where
 import           Control.Applicative
 import           Control.Monad.Error
 import qualified Data.Map                       as M
+import           Data.Text                      (Text)
 --import           Data.Default
 
 import           Test.Framework
@@ -10,14 +11,12 @@ import           Test.Framework.Providers.HUnit
 import           Test.HUnit
 
 import           Hunt.Common
-import           Hunt.Common.ApiDocument        as ApiDoc
 import qualified Hunt.Common.DocDesc            as DD
 import           Hunt.Common.Document
 
+import           Hunt.ClientInterface
 import           Hunt.DocTable.HashedDocTable   (Documents)
 import           Hunt.Interpreter
-import           Hunt.Interpreter.Command
-import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Ranking
 import           Hunt.Utility
 
@@ -56,10 +55,10 @@ defaultContextInfo :: (Context, ContextSchema)
 defaultContextInfo = ("default", defaultContextSchema)
 
 insertDefaultContext :: Command
-insertDefaultContext = uncurry InsertContext defaultContextInfo
+insertDefaultContext = uncurry cmdInsertContext defaultContextInfo
 
 insertTextContext :: Context -> Command
-insertTextContext cx = InsertContext cx defaultContextSchema
+insertTextContext cx = cmdInsertContext cx defaultContextSchema
 
 -- ----------------------------------------------------------------------------
 
@@ -90,61 +89,64 @@ a @@= b = a @@@ (@?=b)
 -- ----------------------------------------------------------------------------
 
 search :: Query -> Int -> Int -> Command
-search q o m = Search q o m False Nothing
+search q o m = setResultOffset o . setMaxResults m . cmdSearch $ q
+
+qWordNoCase :: Text -> Query
+qWordNoCase = setNoCaseSearch . qWord
 
 test_ranking :: Assertion
 test_ranking = testCM $ do
   insertTextContext "0"
     @@= ResOK
 
-  Insert brainDoc
+  cmdInsertDoc brainDoc
     @@= ResOK
 
-  search (QWord QNoCase brain) os pp
+  search (qWordNoCase brain) os pp
     @@@ ((@?= [(brainUri, 1.0)]) . sr)
 
-  search (QBoost 2.0 (QWord QNoCase brain)) os pp
+  search (setBoost 2.0 (qWordNoCase brain)) os pp
     @@@ ((@?= [(brainUri, 2.0)]) . sr)
 
-  search (QBinary And (QWord QNoCase brain) (QWord QNoCase brain)) os pp
+  search (qAnd (qWordNoCase brain) (qWordNoCase brain)) os pp
     @@@ ((@?= [(brainUri, 1.0)]) . sr)
 
-  search (QBinary And (QBoost 4.0 (QWord QNoCase brain)) (QBoost 8.0 (QWord QNoCase brain))) os pp
+  search (qAnd (setBoost 4.0 (qWordNoCase brain)) (setBoost 8.0 (qWordNoCase brain))) os pp
     @@@ ((@?= [(brainUri, 6.0)]) . sr)
 
   -- no average calculation
-  search (QBinary And (QBoost 5.0 (QWord QNoCase brain)) (QWord QNoCase brain)) os pp
+  search (qAnd (setBoost 5.0 (qWordNoCase brain)) (qWordNoCase brain)) os pp
     @@@ ((@?= [(brainUri, 5.0)]) . sr)
 
-  search (QBinary And (QBoost 5.0 (QWord QNoCase brain)) (QBoost 1.0 (QWord QNoCase brain))) os pp
+  search (qAnd (setBoost 5.0 (qWordNoCase brain)) (setBoost 1.0 (qWordNoCase brain))) os pp
     @@@ ((@?= [(brainUri, 3.0)]) . sr)
 
-  Delete brainUri
+  cmdDeleteDoc brainUri
     @@= ResOK
 
   insertTextContext "1"
     @@= ResOK
 
-  Insert pinkyDoc
+  cmdInsertDoc pinkyDoc
     @@= ResOK
 
-  search (QWord QNoCase pinky) os pp
+  search (qWordNoCase pinky) os pp
     @@@ ((@?= [(pinkyUri, 2.0)]) . sr)
 
-  search (QBoost 2.0 (QWord QNoCase pinky)) os pp
+  search (setBoost 2.0 (qWordNoCase pinky)) os pp
     @@@ ((@?= [(pinkyUri, 4.0)]) . sr)
 
-  search (QBinary And (QWord QNoCase pinky) (QWord QNoCase pinky)) os pp
+  search (qAnd (qWordNoCase pinky) (qWordNoCase pinky)) os pp
     @@@ ((@?= [(pinkyUri, 2.0)]) . sr)
 
-  search (QBinary And (QBoost 4.0 (QWord QNoCase pinky)) (QBoost 8.0 (QWord QNoCase pinky))) os pp
+  search (qAnd (setBoost 4.0 (qWordNoCase pinky)) (setBoost 8.0 (qWordNoCase pinky))) os pp
     @@@ ((@?= [(pinkyUri, 12.0)]) . sr)
 
   -- no average calculation for default/implicit boosts
-  search (QBinary And (QBoost 4.0 (QWord QNoCase pinky)) (QWord QNoCase pinky)) os pp
+  search (qAnd (setBoost 4.0 (qWordNoCase pinky)) (qWordNoCase pinky)) os pp
     @@@ ((@?= [(pinkyUri, 8.0)]) . sr)
 
-  search (QBinary And (QBoost 5.0 (QWord QNoCase pinky)) (QBoost 1.0 (QWord QNoCase pinky))) os pp
+  search (qAnd (setBoost 5.0 (qWordNoCase pinky)) (setBoost 1.0 (qWordNoCase pinky))) os pp
     @@@ ((@?= [(pinkyUri, 6.0)]) . sr)
 
 
@@ -158,17 +160,15 @@ test_ranking = testCM $ do
   brain    = "brain"
   brainUri = "test://brain"
   brainDoc :: ApiDocument
-  brainDoc = emptyApiDoc
-    { adUri   = brainUri
-    , adIndex = M.fromList [("0", brain)]
-    , adDescr = descr
-    }
+  brainDoc
+      = setIndex (M.fromList [("0", brain)])
+        $ setDescription descr
+        $ mkApiDoc brainUri
 
   pinky    = "pinky"
   pinkyUri = "test://pinky"
   pinkyDoc :: ApiDocument
-  pinkyDoc = emptyApiDoc
-    { adUri   = pinkyUri
-    , adIndex = M.fromList [("0", pinky), ("1", pinky)]
-    , adDescr = descr
-    }
+  pinkyDoc
+      = setIndex (M.fromList [("0", pinky), ("1", pinky)])
+        $ setDescription descr
+        $ mkApiDoc pinkyUri

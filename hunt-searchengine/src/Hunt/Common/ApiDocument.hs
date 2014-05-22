@@ -31,41 +31,47 @@ import           Hunt.Utility.Log
 -- ------------------------------------------------------------
 
 -- | The document accepted by the interpreter and JSON API.
+
 data ApiDocument  = ApiDocument
-  { adUri   :: URI              -- ^ The unique identifier.
-  , adIndex :: IndexMap         -- ^ The data to index according to schema associated with the context.
-  , adDescr :: Description      -- ^ The document description (a simple key-value map).
-  , adWght  :: Maybe Float      -- ^ An optional document boost (internal default is @1.0@).
-  }
-  deriving (Show)
+    { adUri   :: URI              -- ^ The unique identifier.
+    , adIndex :: IndexMap         -- ^ The data to index according to schema associated with the context.
+    , adDescr :: Description      -- ^ The document description (a simple key-value map).
+    , adWght  :: Maybe Float      -- ^ An optional document boost (internal default is @1.0@).
+    }
+    deriving (Show)
 
 -- | Context map
 type IndexMap = Map Context Content
 
 -- | Multiple 'ApiDocument's.
+
 type ApiDocuments = [ApiDocument]
 
 -- | Text analysis function
+
 type AnalyzerFunction = Text -> [(Position, Text)]
 
 -- | Types of analyzer
-data AnalyzerType
-  = DefaultAnalyzer
-  deriving (Show)
+
+data AnalyzerType = DefaultAnalyzer
+                    deriving (Show)
+
 
 -- | Paginated result with an offset and chunk size.
+
 data LimitedResult x = LimitedResult
-  { lrResult :: [x] -- ^ The list with at most 'lrMax' elements.
-  , lrOffset :: Int -- ^ The offset of the result.
-  , lrMax    :: Int -- ^ The limit for the result.
-  , lrCount  :: Int -- ^ The size of the complete result.
-  }
-  deriving (Show, Eq)
+    { lrResult :: [x] -- ^ The list with at most 'lrMax' elements.
+    , lrOffset :: Int -- ^ The offset of the result.
+    , lrMax    :: Int -- ^ The limit for the result.
+    , lrCount  :: Int -- ^ The size of the complete result.
+    }
+    deriving (Show, Eq)
 
 -- ------------------------------------------------------------
 
 -- | Create a paginated result with an offset and a chunk size.
 --   The result also includes the size of the complete result.
+
 mkLimitedResult :: Int -> Int -> [x] -> LimitedResult x
 mkLimitedResult offset mx xs = LimitedResult
   { lrResult = ( if mx < 0
@@ -76,6 +82,7 @@ mkLimitedResult offset mx xs = LimitedResult
   , lrMax    = mx
   , lrCount  = length xs
   }
+
 
 -- | Empty index content.
 emptyApiDocIndexMap :: IndexMap

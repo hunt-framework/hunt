@@ -155,6 +155,7 @@ test-suite Hunt-Interpreter
                , test-framework-hunit
                , test-framework-quickcheck2
                , text
+               , vector
 
 test-suite Hunt-Query-Parser
   hs-source-dirs:       test
