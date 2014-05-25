@@ -20,12 +20,15 @@ Installation
 
 ##### Dependencies
 
-- [GHC](https://www.haskell.org/ghc/): The Glasgow Haskell Compiler
-- [Cabal](http://www.haskell.org/cabal/): Haskell package management tool
-- [bzip2][bzip] compression library
-- [Snappy][snappy] compression library
+- Core:
+  - [GHC](https://www.haskell.org/ghc/): The Glasgow Haskell Compiler
+  - [Cabal](http://www.haskell.org/cabal/): Haskell package management tool
+- Compression
+  - [zlib][zlib] compression library
+  - [bzip2][bzip] compression library
+  - [Snappy][snappy] compression library
 
-deb: `apt-get install ghc cabal-install libsnappy-dev libbz2-dev`
+deb: `apt-get install ghc cabal-install zlib1g-dev libbz2-dev libsnappy-dev`
 
 ##### Hunt Installation
 
@@ -51,22 +54,22 @@ A small sample data set can be inserted with:
 make insertJokes
 ```
 
-The [tutorial][hunt-tutorial] illustrates how to use the server and create applications using the
-Hunt framework.
-
-The [wiki][hunt-wiki] provides further documentation on usage and extension of the framework.
-
 
 FAQ
 ----
 
-##### The installation fails with "...bzip failure message...".
+##### The installation fails with "Missing dependency on a foreign library: * Missing (or bad) header file: zlib.h * Missing C library: z".
+zlib1g-dev
+The [zlib][zlib] compression library is missing. Install from source or use the distribution
+packages (deb: `zlib1g-dev`).
+
+##### The installation fails with "Missing dependency on a foreign library: * Missing (or bad) header file: bzlib.h * Missing C library: bz2".
 The [bzip2][bzip] compression library is missing. Install from source or use the distribution
-packages (deb: `libsnappy-dev`, rpm: `libsnappy-devel`).
+packages (deb: `libbz2-dev`).
 
 ##### The installation fails with "...Snappy failure message...".
 The [Snappy][snappy] compression library is missing. Install from source or use the distribution
-packages (deb: `libbz2-dev`, rpm: `libbz2-devel`).
+packages (deb: `libsnappy-dev`).
 
 ##### Why is the CPU usage in idle so high?
 GHC performs a a major garbage collection every 0.3 seconds in idle, which can be computationally
@@ -105,5 +108,6 @@ Both projects were developed at the [FH Wedel][fhwedel] under supervision and ac
 
 [ghc-rts]:       https://www.haskell.org/ghc/docs/latest/html/users_guide/runtime-control.html "GHC RTS options"
 
-[snappy]:        https://code.google.com/p/snappy/          "Snappy"
+[zlib]:          http://www.zlib.net/                       "zlib"
 [bzip]:          http://bzip.org/                           "bzip2"
+[snappy]:        https://code.google.com/p/snappy/          "Snappy"
