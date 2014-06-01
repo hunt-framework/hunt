@@ -196,16 +196,16 @@ start config = do
       query    <- param "query"
       offset   <- param "offset"
       mx       <- param "mx"
-      evalQuery ( withResultOffset offset
-                  . withMaxResults mx
+      evalQuery ( setResultOffset offset
+                  . setMaxResults mx
                   . cmdSearch
                 ) query
 
     -- simple query for reading the weight of documents
     get "/weight/:query/" $ do
       query    <- param "query"
-      evalQuery ( withWeightIncluded
-                  . withSelectedFields []
+      evalQuery ( setWeightIncluded
+                  . setSelectedFields []
                   . cmdSearch
                 ) query
 
@@ -213,7 +213,7 @@ start config = do
     get "/completion/:query/:mx" $ do
       query <- param "query"
       mx    <- param "mx"
-      evalQuery ( withMaxResults mx
+      evalQuery ( setMaxResults mx
                   . cmdCompletion
                 ) query
 
