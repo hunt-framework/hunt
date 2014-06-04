@@ -36,7 +36,8 @@ data ApiDocument  = ApiDocument
     { adUri   :: URI              -- ^ The unique identifier.
     , adIndex :: IndexMap         -- ^ The data to index according to schema associated with the context.
     , adDescr :: Description      -- ^ The document description (a simple key-value map).
-    , adWght  :: Maybe Float      -- ^ An optional document boost (internal default is @1.0@).
+    , adWght  :: ApiWeight        -- ^ An optional document boost, (internal default is @1.0@).
+    , adScore :: Score            -- ^ A document score (used in query results)
     }
     deriving (Show)
 
@@ -44,21 +45,17 @@ data ApiDocument  = ApiDocument
 type IndexMap = Map Context Content
 
 -- | Multiple 'ApiDocument's.
-
 type ApiDocuments = [ApiDocument]
 
 -- | Text analysis function
-
 type AnalyzerFunction = Text -> [(Position, Text)]
 
 -- | Types of analyzer
-
 data AnalyzerType = DefaultAnalyzer
                     deriving (Show)
 
 
 -- | Paginated result with an offset and chunk size.
-
 data LimitedResult x = LimitedResult
     { lrResult :: [x] -- ^ The list with at most 'lrMax' elements.
     , lrOffset :: Int -- ^ The offset of the result.
@@ -94,7 +91,7 @@ emptyApiDocDescr = DD.empty
 
 -- | Empty 'ApiDocument'.
 emptyApiDoc :: ApiDocument
-emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescr Nothing
+emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescr noWeight 1.0
 
 -- ------------------------------------------------------------
 
@@ -104,8 +101,9 @@ instance NFData ApiDocument where
 -- ------------------------------------------------------------
 
 instance Binary ApiDocument where
-  put (ApiDocument a b c d) = put a >> put b >> put c >> put d
-  get = ApiDocument <$> get <*> get <*> get <*> get
+  put (ApiDocument a b c d s)
+      = put a >> put b >> put c >> put d >> put s
+  get = ApiDocument <$> get <*> get <*> get <*> get <*> get
 
 -- ------------------------------------------------------------
 
@@ -138,25 +136,39 @@ instance FromJSON ApiDocument where
     parsedUri <- o    .: "uri"
     indexMap  <- o    .:? "index"       .!= emptyApiDocIndexMap
     descrMap  <- o    .:? "description" .!= emptyApiDocDescr
-    weight    <- o    .:? "weight"
+    weight    <- mkWeight <$>
+                 o    .:? "weight"      .!= 0.0
+    score     <- o    .:? "score"       .!= 1.0
     return ApiDocument
       { adUri    = parsedUri
       , adIndex  = indexMap
       , adDescr  = descrMap
       , adWght   = weight
+      , adScore  = score
       }
   parseJSON _ = mzero
 
 instance ToJSON ApiDocument where
-  toJSON (ApiDocument u im dm wt) = object $
-    (maybe [] (\ w -> ["weight" .= w]) wt)
-    ++
-    (if M.null  im then [] else ["index"       .= im])
-    ++
-    (if DD.null dm then [] else ["description" .= dm])
-    ++
-    [ "uri"         .= u
-    ]
+  toJSON (ApiDocument u im dm wt sc)
+      = object $
+        ( maybe [] (\ x -> ["weight" .= x]) $ getWeight wt )
+        ++
+        ( if sc == 1.0
+          then []
+          else ["score" .= sc]
+        )
+        ++
+        ( if M.null im
+          then []
+          else ["index" .= im]
+        )
+        ++
+        ( if DD.null dm
+          then []
+          else ["description" .= dm]
+        )
+        ++
+        ["uri" .= u]
 
 instance FromJSON AnalyzerType where
   parseJSON (String s) =

@@ -11,6 +11,7 @@
 module Hunt.Common.BasicTypes
 where
 
+import           Control.Applicative
 import           Control.Monad       (mzero)
 
 import           Data.Map
@@ -64,6 +65,27 @@ type RegEx        = Text
 type Score        = Float
 
 -- ------------------------------------------------------------
+
+-- | Weight of API documents,
+-- @0.0@ indicates: not set, so there is no need to work with for Maybe's
+--  wrapped in newtype to not mix up with Score's and Weight's in documents
+
+newtype ApiWeight = AW Float
+    deriving (Eq, Show)
+
+noWeight :: ApiWeight
+noWeight = AW 0.0
+
+mkWeight :: Float -> ApiWeight
+mkWeight x
+    | x > 0.0   = AW x
+    | otherwise = AW 0.0
+
+getWeight :: ApiWeight -> Maybe Float
+getWeight (AW 0.0) = Nothing
+getWeight (AW x  ) = Just x
+
+-- ------------------------------------------------------------
 -- JSON instances
 -- ------------------------------------------------------------
 
@@ -87,6 +109,10 @@ instance ToJSON TextSearchOp where
 -- ------------------------------------------------------------
 -- Binary instances
 -- ------------------------------------------------------------
+
+instance Binary ApiWeight where
+    put (AW x) = put x
+    get = AW <$> get
 
 instance Binary TextSearchOp where
   put (Case)         = put (0 :: Word8)

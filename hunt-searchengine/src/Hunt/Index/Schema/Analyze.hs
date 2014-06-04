@@ -37,13 +37,13 @@ import           Hunt.Index.Schema
 --   compliance with the schema.
 --
 --   /Note/: Contexts mentioned in the 'ApiDocument' need to exist.
-toDocAndWords :: DocumentWrapper e => Schema -> ApiDocument -> (e, Maybe Float, Words)
-toDocAndWords s = (\(d,dw,ws) -> (wrap d,dw,ws)) . toDocAndWords' s
+toDocAndWords :: DocumentWrapper e => Schema -> ApiDocument -> (e, ApiWeight, Words)
+toDocAndWords s = (\(d, dw, ws) -> (wrap d, dw, ws)) . toDocAndWords' s
 
 -- | Extracts the 'Document' and raw index data from an 'ApiDocument' in compliance with the schema.
 --
 --   /Note/: Contexts mentioned in the ApiDoc need to exist.
-toDocAndWords' :: Schema -> ApiDocument -> (Document, Maybe Float, Words)
+toDocAndWords' :: Schema -> ApiDocument -> (Document, ApiWeight, Words)
 toDocAndWords' schema apiDoc = (doc, weight, ws)
   where
   indexMap = adIndex apiDoc
@@ -51,7 +51,7 @@ toDocAndWords' schema apiDoc = (doc, weight, ws)
   doc = Document
     { uri  = adUri apiDoc
     , desc = descrMap
-    , wght = fromMaybe 1 weight
+    , wght = fromMaybe 1.0 $ getWeight weight
     , score = Nothing
     }
   ws = M.mapWithKey
