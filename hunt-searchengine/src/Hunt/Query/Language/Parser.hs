@@ -46,13 +46,14 @@ module Hunt.Query.Language.Parser
   )
 where
 
-import           Control.Applicative             hiding ((<|>))
+import           Control.Applicative           hiding ((<|>))
 
-import           Data.Text                       (Text)
-import qualified Data.Text                       as T
+import           Data.Text                     (Text)
+import qualified Data.Text                     as T
 
 import           Text.ParserCombinators.Parsec
 
+import           Hunt.Common.BasicTypes        (mkScore)
 import           Hunt.Query.Language.Grammar
 
 -- ------------------------------------------------------------
@@ -208,7 +209,7 @@ tryBoost q = try boost <|> return q
   boost = do
           char '^'
           b <- simplePositiveFloat
-          return (QBoost b q)
+          return (QBoost (mkScore b) q)
 
 -- | Parse a character of a word.
 wordChar :: Parser Char

@@ -44,28 +44,27 @@ module Hunt.Query.Intermediate
 )
 where
 
-import           Prelude                hiding (null)
-import qualified Prelude                as P
+import           Prelude               hiding (null)
+import qualified Prelude               as P
 
-import           Control.Applicative    hiding (empty)
+import           Control.Applicative   hiding (empty)
 
 import           Data.Maybe
 
-import qualified Data.List              as L
+import qualified Data.List             as L
 
-import           Data.Map               (Map)
-import qualified Data.Map               as M
+import           Data.Map              (Map)
+import qualified Data.Map              as M
 
-import           Hunt.Query.Result      hiding (null)
+import           Hunt.Query.Result     hiding (null)
 
 import           Hunt.Common
-import qualified Hunt.Common.DocIdMap   as DM
-import           Hunt.Common.Document   (DocumentWrapper (..))
-import qualified Hunt.Common.Positions  as Pos
-import qualified Hunt.Common.DocDesc    as DD
+import qualified Hunt.Common.DocIdMap  as DM
+import           Hunt.Common.Document  (DocumentWrapper (..), emptyDocument)
+import qualified Hunt.Common.Positions as Pos
 
-import           Hunt.DocTable          (DocTable)
-import qualified Hunt.DocTable          as Dt
+import           Hunt.DocTable         (DocTable)
+import qualified Hunt.DocTable         as Dt
 
 -- ------------------------------------------------------------
 
@@ -177,7 +176,7 @@ createDocHits d = DM.traverseWithKey transformDocs
   where
   transformDocs did (ic,db)
     = let doc   = fromMaybe dummy <$> (Dt.lookup did d)
-          dummy = wrap (Document "" DD.empty 1.0 Nothing) -- TO
+          dummy = wrap emptyDocument
       in (\doc' -> (DocInfo doc' db 0.0, M.map (M.map snd) ic)) <$> doc
 
 -- | Create the word hits structure from an intermediate result.

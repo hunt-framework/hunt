@@ -52,7 +52,8 @@ import           Hunt.Common.ApiDocument       as ApiDoc
 import qualified Hunt.Common.DocDesc           as DocDesc
 import qualified Hunt.Common.DocIdMap          as DocIdMap
 import qualified Hunt.Common.DocIdSet          as DocIdSet
-import           Hunt.Common.Document          (DocumentWrapper, unwrap, setScore)
+import           Hunt.Common.Document          (DocumentWrapper, setScore,
+                                                unwrap)
 
 import           Hunt.ContextIndex             (ContextIndex (..), ContextMap)
 import qualified Hunt.ContextIndex             as CIx
@@ -397,7 +398,7 @@ execInsertList docs ixx@(ContextIndex _ix _dt schema) = do
 -- Documents/URIs need to exist.
 
 execUpdate :: DocTable dt
-           => ApiDocument -> ContextIndex dt -> Hunt dt(ContextIndex dt, CmdResult)
+           => ApiDocument -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 execUpdate doc ixx@(ContextIndex _ix dt schema) = do
   let contexts = M.keys $ adIndex doc
   checkContextsExistence contexts ixx

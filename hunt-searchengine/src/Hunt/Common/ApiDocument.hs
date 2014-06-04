@@ -36,7 +36,7 @@ data ApiDocument  = ApiDocument
     { adUri   :: URI              -- ^ The unique identifier.
     , adIndex :: IndexMap         -- ^ The data to index according to schema associated with the context.
     , adDescr :: Description      -- ^ The document description (a simple key-value map).
-    , adWght  :: ApiWeight        -- ^ An optional document boost, (internal default is @1.0@).
+    , adWght  :: Score            -- ^ An optional document boost, (internal default is @1.0@).
     , adScore :: Score            -- ^ A document score (used in query results)
     }
     deriving (Show)
@@ -91,7 +91,7 @@ emptyApiDocDescr = DD.empty
 
 -- | Empty 'ApiDocument'.
 emptyApiDoc :: ApiDocument
-emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescr noWeight 1.0
+emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescr noScore 1.0
 
 -- ------------------------------------------------------------
 
@@ -136,9 +136,10 @@ instance FromJSON ApiDocument where
     parsedUri <- o    .: "uri"
     indexMap  <- o    .:? "index"       .!= emptyApiDocIndexMap
     descrMap  <- o    .:? "description" .!= emptyApiDocDescr
-    weight    <- mkWeight <$>
+    weight    <- mkScore <$>
                  o    .:? "weight"      .!= 0.0
-    score     <- o    .:? "score"       .!= 1.0
+    score     <- mkScore <$>
+                 o    .:? "score"       .!= 0.0
     return ApiDocument
       { adUri    = parsedUri
       , adIndex  = indexMap
@@ -151,9 +152,9 @@ instance FromJSON ApiDocument where
 instance ToJSON ApiDocument where
   toJSON (ApiDocument u im dm wt sc)
       = object $
-        ( maybe [] (\ x -> ["weight" .= x]) $ getWeight wt )
+        ( maybe [] (\ x -> ["weight" .= x]) $ getScore wt )
         ++
-        ( if sc == 1.0
+        ( if sc == 0.0
           then []
           else ["score" .= sc]
         )

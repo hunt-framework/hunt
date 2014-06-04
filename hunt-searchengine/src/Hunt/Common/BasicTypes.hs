@@ -1,4 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
 
 -- ----------------------------------------------------------------------------
 
@@ -21,6 +22,8 @@ import           Data.Aeson
 import           Data.Binary         hiding (Word)
 
 import           Hunt.Common.DocDesc (DocDesc)
+
+import           Prelude             as P
 
 -- ------------------------------------------------------------
 
@@ -56,48 +59,69 @@ data TextSearchOp = Case | NoCase | PrefixCase | PrefixNoCase
   deriving (Eq, Show)
 
 -- | Weight (for ranking).
-type Weight       = Float
+type Weight       = Score
 
 -- | Regular expression.
 type RegEx        = Text
 
 -- | The score of a hit (either a document hit or a word hit).
-type Score        = Float
+-- type Score        = Float
 
 -- ------------------------------------------------------------
 
--- | Weight of API documents,
--- @0.0@ indicates: not set, so there is no need to work with for Maybe's
+-- | Weight or score of a documents,
+-- @0.0@ indicates: not set, so there is no need to work with Maybe's
 --  wrapped in newtype to not mix up with Score's and Weight's in documents
 
-newtype ApiWeight = AW Float
-    deriving (Eq, Show)
+newtype Score = SC {unScore :: Float}
+    deriving (Eq, Ord, Num, Fractional, Show)
 
-noWeight :: ApiWeight
-noWeight = AW 0.0
+noScore :: Score
+noScore = SC 0.0
 
-mkWeight :: Float -> ApiWeight
-mkWeight x
-    | x > 0.0   = AW x
-    | otherwise = AW 0.0
+mkScore :: Float -> Score
+mkScore x
+    | x > 0.0   = SC x
+    | otherwise = noScore
 
-getWeight :: ApiWeight -> Maybe Float
-getWeight (AW 0.0) = Nothing
-getWeight (AW x  ) = Just x
+getScore :: Score -> Maybe Float
+getScore (SC 0.0) = Nothing
+getScore (SC x  ) = Just x
+
+defScore :: Score
+defScore = SC 1.0
+
+toDefScore :: Score -> Score
+toDefScore (SC 0.0) = defScore
+toDefScore sc       = sc
+
+fromDefScore :: Score -> Score
+fromDefScore (SC 1.0) = noScore
+fromDefScore sc       = sc
+
+accScore :: [Score] -> Score
+accScore [] = defScore
+accScore xs = mkScore $ sum (P.map unScore xs) / fromIntegral (P.length xs)
 
 -- ------------------------------------------------------------
 -- JSON instances
 -- ------------------------------------------------------------
 
+instance FromJSON Score where
+    parseJSON x = mkScore <$> parseJSON x
+
+instance ToJSON Score where
+    toJSON (SC x) = toJSON x
+
 instance FromJSON TextSearchOp where
-  parseJSON (String s)
-    = case s of
-        "case"         -> return Case
-        "noCase"       -> return NoCase
-        "prefixCase"   -> return PrefixCase
-        "prefixNoCase" -> return PrefixNoCase
-        _              -> mzero
-  parseJSON _ = mzero
+    parseJSON (String s)
+        = case s of
+            "case"         -> return Case
+            "noCase"       -> return NoCase
+            "prefixCase"   -> return PrefixCase
+            "prefixNoCase" -> return PrefixNoCase
+            _              -> mzero
+    parseJSON _ = mzero
 
 instance ToJSON TextSearchOp where
   toJSON o = case o of
@@ -110,9 +134,9 @@ instance ToJSON TextSearchOp where
 -- Binary instances
 -- ------------------------------------------------------------
 
-instance Binary ApiWeight where
-    put (AW x) = put x
-    get = AW <$> get
+instance Binary Score where
+    put (SC x) = put x
+    get = SC <$> get
 
 instance Binary TextSearchOp where
   put (Case)         = put (0 :: Word8)

@@ -401,7 +401,7 @@ processBin AndNot i1 i2 = return $ I.difference   i1 i2
 
 
 -- | Process query boosting
-processBoost :: Float -> Intermediate -> Processor Intermediate
+processBoost :: Score -> Intermediate -> Processor Intermediate
 processBoost b i = return $ DM.map (second (b:)) i
 
 -- | Process a context query.

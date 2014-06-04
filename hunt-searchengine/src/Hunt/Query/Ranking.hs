@@ -65,15 +65,12 @@ import           Hunt.Utility
 -- | The configuration of the ranking mechanism.
 data RankConfig e
   = RankConfig
-    { docRanking     :: DocRanking e   -- ^ A function to determine the score of a document.
-    , wordRanking    :: WordRanking    -- ^ A function to determine the score of a word.
+    { docRanking  :: DocRanking e   -- ^ A function to determine the score of a document.
+    , wordRanking :: WordRanking    -- ^ A function to determine the score of a word.
     }
 
--- | Weight of a document.
-type DocWeight = Float
-
 -- | The signature of a function to determine the score of a document.
-type DocRanking e = ContextWeights -> DocId -> DocWeight -> DocInfo e -> DocContextHits -> Score
+type DocRanking e = ContextWeights -> DocId -> Score -> DocInfo e -> DocContextHits -> Score
 
 -- TODO: add ContextWeights
 -- | The signature of a function to determine the score of a word.
@@ -94,30 +91,48 @@ defaultRankConfig = RankConfig
 -- ------------------------------------------------------------
 
 -- | Rank the result with custom ranking functions (and the given context weights).
-rank :: (DocTable dt, Monad m, Applicative m) => RankConfig e -> dt -> ContextWeights -> Result e -> m (Result e)
+rank :: (DocTable dt, Monad m, Applicative m) =>
+        RankConfig e -> dt -> ContextWeights -> Result e -> m (Result e)
 rank (RankConfig fd fw {-ld lw-}) dt cw r
   = do
     sdh <- scoredDocHits
     return $ Result sdh scoredWordHits
   where
-  scoredDocHits =
-    DM.traverseWithKey (\k (di, dch) -> do
-      kw <- maybe 1 (wght . unwrap) <$> Dt.lookup k dt
-      return $ (setDocScore (fd cw k kw di dch) di, dch)) $ docHits r
-  scoredWordHits = M.mapWithKey  (\k (wi, wch) -> (setWordScore (fw k wi wch) wi, wch)) $ wordHits r
+    scoredDocHits
+        = DM.traverseWithKey
+          (\k (di, dch) ->
+               do
+                 kw <- maybe defScore (wght . unwrap) <$> Dt.lookup k dt
+                 return $ ( setDocScore (fd cw k kw di dch) di
+                          , dch
+                          )
+          ) $ docHits r
+
+    scoredWordHits
+        = M.mapWithKey
+          (\k (wi, wch) -> ( setWordScore (fw k wi wch) wi
+                           , wch
+                           )
+          ) $ wordHits r
 
 -- ------------------------------------------------------------
 
 -- | Rank documents by count and multiply occurrences with their respective context weights (default @1.0@).
 --   Pass an empty map to discard context weights.
 --
--- @docRankByCount :: DocId -> DocInfo e -> DocContextHits -> Score@
+-- @docRankByCount :: ContextWeights -> DocId -> Score -> DocInfo e -> DocContextHits -> Score@
+
 docRankByCount :: DocRanking e
-docRankByCount cw _ dw di h
-  = (*) dcb . (*) dw $ M.foldrWithKey (\cx -> (*) (cxw cx) .:: flip (M.foldr (\h2 r2 -> fromIntegral (Pos.size h2) + r2))) 0.0 h
-  where
-  dcb = boost di
-  cxw cx = fromMaybe 1.0 $ M.lookup cx cw -- default 1.0
+docRankByCount cw _ docWeight di h
+    = boost di * docWeight * scHits
+    where
+      scHits = M.foldrWithKey
+               (\cx -> (cxw cx *)
+                       .::
+                       flip (M.foldr (\h2 r2 -> mkScore (fromIntegral (Pos.size h2)) + r2))
+               ) noScore h
+
+      cxw cx = fromMaybe defScore $ M.lookup cx cw
 
 -- | Rank words by count.
 --

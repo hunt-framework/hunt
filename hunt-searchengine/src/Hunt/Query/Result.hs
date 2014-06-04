@@ -54,23 +54,22 @@ module Hunt.Query.Result
   )
 where
 
-import           Prelude                  hiding (null)
-import qualified Prelude                  as P
+import           Prelude              hiding (null)
 
-import           Data.Map                 (Map)
-import qualified Data.Map                 as M
-import           Data.Text                (Text)
+import           Data.Map             (Map)
+import qualified Data.Map             as M
+import           Data.Text            (Text)
 
 import           Hunt.Common
-import qualified Hunt.Common.DocIdMap     as DM
+import qualified Hunt.Common.DocIdMap as DM
 
 -- ------------------------------------------------------------
 
 -- | The combined result type for Holumbus queries.
 data Result e
   = Result
-    { docHits   :: DocHits e  -- ^ The documents matching the query.
-    , wordHits  :: WordHits   -- ^ The words which are completions of the query terms.
+    { docHits  :: DocHits e  -- ^ The documents matching the query.
+    , wordHits :: WordHits   -- ^ The words which are completions of the query terms.
     }
 deriving instance Show e => Show (Result e)
 
@@ -182,10 +181,8 @@ getDocuments :: Result e -> [e]
 getDocuments r = map (document . fst . snd) . DM.toList $ docHits r
 
 -- | The boosting factor for the document.
-boost :: DocInfo e -> Float
-boost di = if P.null l then 1.0 else sum l / llen
-  where
-  l    = {-filter (/= 1.0) $-} docBoost di
-  llen = fromIntegral $ length l
+boost :: DocInfo e -> Score
+boost di
+    = accScore $ docBoost di
 
 -- ------------------------------------------------------------
