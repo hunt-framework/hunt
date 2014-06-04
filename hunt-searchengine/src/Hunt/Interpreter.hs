@@ -398,7 +398,7 @@ execInsertList docs ixx@(ContextIndex _ix _dt schema) = do
 -- Documents/URIs need to exist.
 
 execUpdate :: DocTable dt
-           => ApiDocument -> ContextIndex dt -> Hunt dt(ContextIndex dt, CmdResult)
+           => ApiDocument -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 execUpdate doc ixx@(ContextIndex _ix dt schema) = do
   let contexts = M.keys $ adIndex doc
   checkContextsExistence contexts ixx

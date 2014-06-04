@@ -236,8 +236,9 @@ member u (ContextIndex _ii dt _s) = do
 
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
+
 modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
-                         ApiWeight -> Description -> Words -> DocId -> ContextIndex dt ->
+                         Score -> Description -> Words -> DocId -> ContextIndex dt ->
                          m (ContextIndex dt)
 modifyWithDescription weight descr wrds dId (ContextIndex ii dt s)
     = do newDocTable <- Dt.adjust mergeDescr dId dt
@@ -248,12 +249,12 @@ modifyWithDescription weight descr wrds dId (ContextIndex ii dt s)
       -- flip to use new values for existing keys
       -- no flip to keep old values
       mergeDescr
-          = return
-            . Doc.update
-              ( \ d -> d { desc = flip DD.union (desc d) descr
-                         , wght = fromMaybe (wght d) $ getWeight weight
-                         }
-              )
+          = return . Doc.update (updateWeight . updateDescr)
+          where
+            updateWeight d
+                | weight == noScore = d
+                | otherwise         = d {wght = weight}
+            updateDescr d           = d {desc = flip DD.union (desc d) descr}
 
 -- ------------------------------------------------------------
 -- Helper
