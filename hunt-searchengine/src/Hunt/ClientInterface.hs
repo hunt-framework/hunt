@@ -131,7 +131,8 @@ import           Hunt.Common.ApiDocument     (ApiDocument (..), IndexMap,
                                               emptyApiDocDescr,
                                               emptyApiDocIndexMap)
 import           Hunt.Common.BasicTypes      (Content, Context, Description,
-                                              RegEx, Score, URI, Weight)
+                                              RegEx, Score, URI, Weight,
+                                              mkWeight, noWeight)
 import           Hunt.Common.DocDesc         (DocDesc (..))
 import qualified Hunt.Common.DocDesc         as DD
 import           Hunt.Index.Schema
@@ -269,7 +270,8 @@ mkApiDoc u
       { adUri   = u
       , adIndex = emptyApiDocIndexMap
       , adDescr = emptyApiDocDescr
-      , adWght  = Nothing
+      , adWght  = noWeight
+      , adScore = 1.0
       }
 
 -- | add an index map containing the text parts to be indexed
@@ -309,10 +311,9 @@ changeIndex f a = a { adIndex = f $ adIndex a }
 
 -- | add a document weight
 
-setDocWeight :: Float -> ApiDocument -> ApiDocument
+setDocWeight :: Weight -> ApiDocument -> ApiDocument
 setDocWeight w d
-    | w == 1.0  = d
-    | otherwise = d { adWght = Just w }
+    = d { adWght = mkWeight w }
 
 -- ------------------------------------------------------------
 -- document description
@@ -432,7 +433,7 @@ setCxNoDefault sc
 
 -- | set the regex for splitting a text into words
 
-setCxWeight :: Weight -> ContextSchema -> ContextSchema
+setCxWeight :: Float -> ContextSchema -> ContextSchema
 setCxWeight w sc
     = sc { cxWeight = w }
 

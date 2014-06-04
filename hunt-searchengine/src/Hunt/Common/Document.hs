@@ -9,8 +9,9 @@
   This includes the
 
   * URI for identification,
-  * the description for the data itself and
-  * the weight used in ranking.
+  * the description for the data itself
+  * the weight used in ranking and
+  * optionally a score
 -}
 
 -- ----------------------------------------------------------------------------
@@ -23,6 +24,7 @@ import           Control.DeepSeq
 
 import           Data.Aeson
 import           Data.Binary             (Binary (..))
+import           Data.Maybe              (fromMaybe)
 import           Data.Text               as T
 import           Data.Text.Binary        ()
 
@@ -34,9 +36,9 @@ import           Hunt.Utility.Log
 
 -- | The document representation.
 data Document = Document
-  { uri  :: ! URI         -- ^ Unique identifier of the document.
-  , desc :: ! Description -- ^ Description of the document (simple key-value store).
-  , wght :: ! Float       -- ^ Weight used in ranking (default @1.0@).
+  { uri   :: ! URI         -- ^ Unique identifier of the document.
+  , desc  :: ! Description -- ^ Description of the document (simple key-value store).
+  , wght  :: ! Float       -- ^ Weight used in ranking (default @1.0@).
   , score :: Maybe Score
   }
   deriving (Show, Eq, Ord)
@@ -46,30 +48,43 @@ data Document = Document
 -- ------------------------------------------------------------
 
 toApiDocument :: Document -> ApiDocument
-toApiDocument (Document u d w _)
-    = ApiDocument u emptyApiDocIndexMap d (if w == 1.0 then Nothing else Just w)
+toApiDocument (Document u d w s)
+    = ApiDocument u emptyApiDocIndexMap d w' s'
+      where
+        w' = if w == 1.0 then noWeight else mkWeight w
+        s' = fromMaybe 1.0 s
 
 fromApiDocument :: ApiDocument -> Document
-fromApiDocument (ApiDocument u _ix d w)
-    = Document u d (maybe 1.0 id w) Nothing
+fromApiDocument (ApiDocument u _ix d w s)
+    = Document u d (maybe 1.0 id $ getWeight w) (if s == 1.0 then Nothing else Just s)
 
 setScore :: Score -> Document -> Document
 setScore s d = d {score = Just s}
 
---instance ToJSON Document where
---    toJSON = toJSON . toApiDocument
+instance ToJSON Document where
+    toJSON = toJSON . toApiDocument
 
 instance FromJSON Document where
-  parseJSON o = fromApiDocument <$> parseJSON o
+    parseJSON o = fromApiDocument <$> parseJSON o
 
-
+{--
 instance ToJSON Document where
   toJSON (Document u d w ms) = object $
+    ( if w /= 1.0
+      then []
+      else ["weight" .= w]
+    )
+    ++
+    ( maybe [] ( \s -> if s == 1.0
+                       then []
+                       else ["score" .= s]
+               )
+    ) ms
+    ++
     [ "uri"         .= u
-    , "description" .= d] ++
-    (if w /= 1.0 then [] else ["weight"       .= w]) ++ 
-    (maybe [] (\s -> (if s == 1.0 then [] else ["score" .= s])) ms)
-    
+    , "description" .= d
+    ]
+-- -}
 
 {-
 instance FromJSON Document where
@@ -92,7 +107,7 @@ instance Binary Document where
   get = Document <$> get <*> get <*> get <*> (pure Nothing)
 
 instance NFData Document where
-  rnf (Document t d w s) = rnf t `seq` rnf d `seq` rnf w `seq` rnf s
+  rnf (Document t d _w s) = rnf t `seq` rnf d {- `seq` rnf w -} `seq` rnf s
 
 -- ------------------------------------------------------------
 
