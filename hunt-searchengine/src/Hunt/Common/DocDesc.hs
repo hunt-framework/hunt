@@ -3,73 +3,102 @@
 
 module Hunt.Common.DocDesc where
 
-import           Control.Applicative ((<$>))
-import           Control.DeepSeq
+import           Prelude             hiding (lookup)
 
-import           Data.Aeson
-import           Data.Binary
-import           Data.Map.Strict     (Map)
-import qualified Data.Map.Strict     as SM
+import           Control.Arrow       (second)
+import           Control.DeepSeq
+import           Control.Monad       (mzero)
+
+import           Data.Aeson          (FromJSON (..), Object, Result (..),
+                                      ToJSON (..), Value (..), decode, encode,
+                                      fromJSON)
+import           Data.Binary         (Binary (..))
+import qualified Data.HashMap.Strict as HM
+import           Data.Maybe          (fromMaybe)
 import           Data.Text           (Text)
 import           Data.Text.Binary    ()
 import           Data.Typeable
 
 -- ------------------------------------------------------------
+-- {- the new DocDesc with JSON values as attributes
 
-newtype DocDesc v
-  = DocDesc { unDesc :: Map Text v }
-  deriving (Eq, Show, NFData, Typeable, Ord)
+newtype DocDesc
+  = DocDesc { unDesc :: Object }
+  deriving (Eq, Show, NFData, Typeable)
 
-instance Binary v => Binary (DocDesc v) where
-  put = put . unDesc
-  get = DocDesc <$> get
+instance Binary DocDesc where
+    put = put . encode . unDesc
+    get = do bs <- get
+             case decode bs of
+               Nothing -> fail "DocDesc.get: error in decoding from JSON"
+               Just x  -> return (DocDesc x)
 
-instance ToJSON v => ToJSON (DocDesc v) where
-  toJSON (DocDesc v) = toJSON v
+instance ToJSON DocDesc where
+    toJSON = Object . unDesc
 
-instance FromJSON v => FromJSON (DocDesc v) where
-  parseJSON o = DocDesc <$> parseJSON o
-
--- ------------------------------------------------------------
+instance FromJSON DocDesc where
+    parseJSON (Object o) = return (DocDesc o)
+    parseJSON _          = mzero
 
 -- | The empty description.
 
-empty :: DocDesc v
-empty = DocDesc $ SM.empty
-
--- | Insert key value pair into description.
-
-insert :: Text -> v -> DocDesc v -> DocDesc v
-insert k v (DocDesc m) = DocDesc $! SM.insert k v m
-
--- | restrict a DocDesc map to a set of fields
-
-select :: [Text] -> DocDesc v -> DocDesc v
-select ks (DocDesc m)
-    = DocDesc $ SM.foldrWithKey sel m m
-      where
-        sel k _v m'
-            | k `elem` ks = m'
-            | otherwise   = SM.delete k m'
+empty :: DocDesc
+empty = DocDesc $! HM.empty
 
 -- | Check if document description is empty.
 
-null :: DocDesc v -> Bool
-null (DocDesc m) = SM.null m
+null :: DocDesc -> Bool
+null (DocDesc m) = HM.null m
+
+-- | Insert key value pair into description.
+
+insert :: ToJSON v => Text -> v -> DocDesc -> DocDesc
+insert k v (DocDesc m)
+    = DocDesc $! HM.insert k (toJSON v) m
+
+-- | Remove a key value pair
+
+delete :: Text -> DocDesc -> DocDesc
+delete k (DocDesc m)
+    = DocDesc $! HM.delete k m
 
 -- | Union of two descriptions.
 
-union :: DocDesc v -> DocDesc v -> DocDesc v
-union (DocDesc m1) (DocDesc m2) = DocDesc $! SM.union m1 m2
+union :: DocDesc -> DocDesc -> DocDesc
+union (DocDesc m1) (DocDesc m2)
+    = DocDesc $! HM.union m1 m2
+
+-- | restrict a DocDesc map to a set of fields
+
+restrict :: [Text] -> DocDesc -> DocDesc
+restrict ks (DocDesc m)
+    = DocDesc $! HM.filterWithKey sel m
+      where
+        sel k _v = k `elem` ks
+
+lookupValue :: Text -> DocDesc -> Value
+lookupValue k (DocDesc m)
+    = fromMaybe Null $ HM.lookup k m
+
+lookup :: FromJSON v => Text -> DocDesc -> Maybe v
+lookup k d
+    = toMaybe . fromJSON . lookupValue k $ d
+    where
+      toMaybe (Success v) = Just v
+      toMaybe _              = Nothing
+
+lookupText :: Text -> DocDesc -> Text
+lookupText k d
+    = fromMaybe "" . lookup k $ d
 
 -- | Create a document description from as list
 
-fromList :: [(Text,v)] -> DocDesc v
-fromList l = DocDesc $! SM.fromList l
+fromList :: ToJSON v => [(Text, v)] -> DocDesc
+fromList l = DocDesc $! HM.fromList (map (second toJSON) l)
 
 -- | Create a list from a document description.
 
-toList :: DocDesc v -> [(Text, v)]
-toList (DocDesc m) = SM.toList m
+toList :: DocDesc -> [(Text, Value)]
+toList (DocDesc m) = HM.toList m
 
 -- ------------------------------------------------------------

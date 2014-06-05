@@ -474,7 +474,7 @@ mkSelect withWeight fields
         mkSelW False     = \ d -> d { wght = 1.0 }
 
         mkSelF Nothing   = id
-        mkSelF (Just fs) = \ d -> d {desc = DocDesc.select fs (desc d)}
+        mkSelF (Just fs) = \ d -> d {desc = DocDesc.restrict fs (desc d)}
 
 
 -- FIXME: signature to result

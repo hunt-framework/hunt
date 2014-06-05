@@ -71,7 +71,10 @@ module Hunt.ClientInterface
     , setDescription
     , getDescription
     , addDescription
+    , remDescription
     , changeDescription
+    , lookupDescription
+    , lookupDescriptionText
     , setIndex
     , addToIndex
     , getFromIndex
@@ -80,6 +83,7 @@ module Hunt.ClientInterface
 
     -- * description construction
     , mkDescription
+    , insDescription
     , emptyDescription
     , fromDescription
 
@@ -127,6 +131,7 @@ module Hunt.ClientInterface
     )
 where
 
+import           Data.Aeson                  (FromJSON (..), ToJSON (..), Value)
 import           Data.Default
 import qualified Data.Map.Strict             as SM
 import           Data.Text                   (Text)
@@ -140,7 +145,6 @@ import           Hunt.Common.BasicTypes      (Content, Context, Description,
                                               RegEx, Score, URI, Weight,
                                               defScore, getScore, mkScore,
                                               noScore)
-import           Hunt.Common.DocDesc         (DocDesc (..))
 import qualified Hunt.Common.DocDesc         as DD
 import           Hunt.Index.Schema
 import           Hunt.Interpreter.Command
@@ -290,10 +294,21 @@ setDescription descr d
 getDescription :: ApiDocument -> Description
 getDescription = adDescr
 
-addDescription :: Text -> Text -> ApiDocument -> ApiDocument
+lookupDescription :: FromJSON v => Text -> ApiDocument -> Maybe v
+lookupDescription k
+    = DD.lookup k . adDescr
+
+lookupDescriptionText :: Text -> ApiDocument -> Text
+lookupDescriptionText k
+    = DD.lookupText k . adDescr
+
+addDescription :: ToJSON v => Text -> v -> ApiDocument -> ApiDocument
 addDescription k v
-    | T.null v  = changeDescription $ (DocDesc . SM.delete k   . unDesc)
-    | otherwise = changeDescription $ (DocDesc . SM.insert k v . unDesc)
+    = changeDescription $ DD.insert k v
+
+remDescription :: Text -> ApiDocument -> ApiDocument
+remDescription k
+    = changeDescription $ DD.delete k
 
 changeDescription :: (Description -> Description) -> ApiDocument -> ApiDocument
 changeDescription f a = a { adDescr = f . adDescr $ a }
@@ -325,13 +340,24 @@ setDocWeight w d
 -- ------------------------------------------------------------
 -- document description
 
+-- build a document description from a list of key-value pairs with
+-- simple text values
+
 mkDescription :: [(Text, Text)] -> Description
-mkDescription = DD.fromList . filter (not . T.null . snd)
+mkDescription
+    = DD.fromList . filter (not . T.null . snd)
+
+-- insert a key-value pair with an arbitrary value into
+-- a document description
+
+insDescription :: ToJSON v => Text -> v -> Description -> Description
+insDescription
+    = DD.insert
 
 emptyDescription :: Description
 emptyDescription = DD.empty
 
-fromDescription :: Description ->  [(Text, Text)]
+fromDescription :: Description ->  [(Text, Value)]
 fromDescription = DD.toList
 
 -- ------------------------------------------------------------

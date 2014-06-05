@@ -31,7 +31,7 @@ import           Prelude             as P
 type URI          = Text
 
 -- | The description of a document is a generic key value map.
-type Description  = DocDesc Text
+type Description  = DocDesc
 
 -- | The title of a document.
 type Title        = Text
