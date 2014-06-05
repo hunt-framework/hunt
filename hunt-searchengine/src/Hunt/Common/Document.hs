@@ -41,7 +41,7 @@ data Document = Document
   , wght  :: ! Score       -- ^ Weight used in ranking (default @1.0@).
   , score :: ! Score       -- ^ Score of a document in a result set
   }
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq)
 
 emptyDocument :: Document
 emptyDocument = Document "" DD.empty defScore defScore
