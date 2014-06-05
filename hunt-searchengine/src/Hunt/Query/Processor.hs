@@ -16,12 +16,13 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Query.Processor
-( processQuery
-, processQueryDocIds , initProcessor
+    ( processQuery
+    , processQueryDocIds
+    , initProcessor
 
-, ProcessConfig (..)
-, ProcessEnv
-)
+    , ProcessConfig (..)
+    , ProcessEnv
+    )
 
 where
 
@@ -145,16 +146,16 @@ unless' b code text = unless b $ processError code text
 -}
 
 getContexts ::   Processor [Context]
-getContexts = ask >>= return . psContexts
+getContexts = asks psContexts
 
 getFuzzyConfig ::   Processor FuzzyConfig
-getFuzzyConfig = ask >>= return . fuzzyConfig . psConfig
+getFuzzyConfig = asks (fuzzyConfig . psConfig)
 
 getIx ::   Processor QueryIndex
-getIx = ask >>= return . psIndex
+getIx = asks psIndex
 
 getSchema ::   Processor Schema
-getSchema = ask >>= return . psSchema
+getSchema = asks psSchema
 
 -- | Get the schema associated with that context/index.
 --
@@ -206,23 +207,35 @@ initProcessor cfg ix s
 --   Initialize the environment with 'initProcessor'.
 --
 --   The results can be ranked with the default 'Hunt.Query.Ranking.rank' function.
+
 processQuery :: (DocTable d, Dt.DValue d ~ e)
               => ProcessEnv -> d -> Query -> IO (Either CmdError (Result e))
-processQuery st d q = runErrorT . runReaderT (runProcessor processToRes) $ st
+processQuery st d q
+    = runErrorT . runReaderT (runProcessor processToRes) $ st
     where
-    oq = if optimizeQuery (psConfig st) then optimize q else q
-    processToRes = process oq >>= \ir -> I.toResult d ir
+      oq = if optimizeQuery (psConfig st)
+           then optimize q
+           else q
+      processToRes
+          = process oq >>= I.toResult d
 
 -- | Generic 'processQuery' with a function to create the final result from an 'Intermediate'.
+
 processQuery' :: (Intermediate -> Processor e) -> ProcessEnv -> Query -> IO (Either CmdError e)
-processQuery' f st q = runErrorT . runReaderT (runProcessor processToRes) $ st
+processQuery' f st q
+    = runErrorT . runReaderT (runProcessor processToRes) $ st
     where
-    oq = if optimizeQuery (psConfig st) then optimize q else q
-    processToRes = process oq >>= f
+      oq = if optimizeQuery (psConfig st)
+           then optimize q
+           else q
+      processToRes
+          = process oq >>= f
 
 -- | Works like 'processQuery', but only returns the 'DocId's.
+
 processQueryDocIds :: ProcessEnv -> Query -> IO (Either CmdError DocIdSet)
-processQueryDocIds = processQuery' (return . DS.fromList . DM.keys)
+processQueryDocIds
+    = processQuery' (return . DS.fromList . DM.keys)
 
 -- | Process a Query and construct an intermediate result.
 --   This can be further transformed to a final 'Result' with 'Hunt.Query.Intermediate.toResult'.
@@ -269,15 +282,17 @@ forAllContexts' f = getContexts >>= mapM (\c -> get >>= f c) >>= return . I.merg
 
 -- | Process a single, case-insensitive word by finding all documents
 --   which contain the word as prefix.
+
 processWord :: TextSearchOp -> Text -> [Context]
             -> Processor Intermediate
 processWord op q cs = do
-  st <- ask
+  cf <- asks psConfig
+  sc <- asks psSchema
   ix <- getIx
   cq <- normQueryCxs cs q
   -- TODO: limitWords on context-basis?
   res <- CIx.searchWithCxsNormalized op cq ix
-  return . I.fromListCxs q . map (second (limitWords st)) $ res
+  return . I.fromListCxs sc [q] . map (second (limitWords cf)) $ res
 
 -- | Case Sensitive variant of process Word
 processWordCase :: Text -> [Context]
@@ -342,13 +357,17 @@ processPhraseInternal f q c = do
   if DM.null result
     then return I.empty
     else do
+      sc  <- asks psSchema
       pph <- processPhrase' ws 1 result
-      return $ I.fromList q c [(q, pph)]
-  where
+      return $ I.fromList sc ws0 c [(q, pph)]   -- XXX: here we map all occ to our search phrase
+  where                                         -- not to the words really found
   resultM = do
     fw <- f w
-    return . Occ.merges $ map snd fw
-  (w:ws) = T.words q
+    return . Occ.merges $ map snd fw            -- XXX: here we throw away the "real" words found
+
+  ws0@(w:ws) = T.words q        -- split the phrase into a list of words
+                                -- XXX: ought that be done already in the search command?
+
   processPhrase' :: [Text] -> Position -> Occurrences -> Processor Occurrences
   processPhrase' [] _ o = return o
   processPhrase' (x:xs) p o = do
@@ -365,6 +384,7 @@ processPhraseInternal f q c = do
 -- ------------------------------------------------------------
 -- Range Query
 -- ------------------------------------------------------------
+
 processRange ::   Text -> Text -> Processor Intermediate
 processRange l h = forAllContexts' range
   where
@@ -383,17 +403,19 @@ processRange l h = forAllContexts' range
 
   processRange' ::   Text -> Text -> Context -> Processor Intermediate
   processRange' lo hi c = do
-    st <- ask
+    cf <- asks psConfig
+    sc <- asks psSchema
     ix <- getIx
     -- TODO: limit on context basis
     res <- CIx.lookupRangeCx c lo hi ix
-    return . I.fromList lo c . limitWords st $ res -- FIXME: check I.fromList - correct term
+    return . I.fromList sc [lo, hi] c . limitWords cf $ res -- FIXME: check I.fromList - correct term
 
 -- ------------------------------------------------------------
 -- Operators
 -- ------------------------------------------------------------
 
 -- | Process a binary operator by caculating the union or the intersection of the two subqueries.
+
 processBin :: BinOp -> Intermediate -> Intermediate -> Processor Intermediate
 processBin And    i1 i2 = return $ I.intersection i1 i2
 processBin Or     i1 i2 = return $ I.union        i1 i2
@@ -402,17 +424,18 @@ processBin AndNot i1 i2 = return $ I.difference   i1 i2
 
 -- | Process query boosting
 processBoost :: Score -> Intermediate -> Processor Intermediate
-processBoost b i = return $ DM.map (second (b:)) i
+processBoost b i = return $ DM.map (second (b *)) i
 
 -- | Process a context query.
 processContexts :: [Context] -> Query -> Processor Intermediate
-processContexts cs q = do
-  schema <- getSchema
-  let invalidContexts = filter (not . flip M.member schema) cs
-  if null invalidContexts
-    then local setCx $ process q
-    else processError 404 $ "mentioned context(s) do not exist: " -- schema to be precise
-                          `T.append` (T.pack . show $ invalidContexts)
+processContexts cs q
+    = do schema <- getSchema
+         let invalidContexts = filter (not . flip M.member schema) cs
+         if null invalidContexts
+           then local setCx $ process q
+           else processError 404
+                $ "mentioned context(s) do not exist: "         -- schema to be precise
+                  `T.append` (T.pack . show $ invalidContexts)
   where
   setCx cfg = cfg { psContexts = cs}
 
@@ -435,15 +458,15 @@ processContexts cs q = do
 -- The second heuristic isn't that expensive any more when the resul list is cut of by the heuristic
 --
 -- The limit 500 should be part of a configuration
-limitWords              :: ProcessEnv -> RawResult -> RawResult
-limitWords s r          = cutW . cutD $ r
+limitWords              :: ProcessConfig -> RawResult -> RawResult
+limitWords cf r         = cutW . cutD $ r
   where
-  limitD                = docLimit $ psConfig s
+  limitD                = docLimit cf
   cutD
       | limitD > 0      = limitDocs limitD
       | otherwise       = id
 
-  limitW                = wordLimit $ psConfig s
+  limitW                = wordLimit cf
   cutW
       | limitW > 0
         &&

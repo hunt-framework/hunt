@@ -49,13 +49,12 @@ module Hunt.Query.Result
   -- * Transform
   , setDocScore
   , setWordScore
-
-  , boost
   )
 where
 
 import           Prelude              hiding (null)
 
+import qualified Data.List            as L
 import           Data.Map             (Map)
 import qualified Data.Map             as M
 import           Data.Text            (Text)
@@ -77,9 +76,9 @@ deriving instance Show e => Show (Result e)
 -- | Information about an document.
 data DocInfo e
   = DocInfo
-    { document :: e     -- ^ The document itself.
-    , docBoost :: Boost -- ^ The document weight.
-    , docScore :: Score -- ^ The score for the document (initial score for all documents is @0.0@).
+    { document :: e      -- ^ The document itself.
+    , docBoost :: Weight -- ^ The document weight, init with @1.0@
+    , docScore :: Score  -- ^ The score for the document (initial score for all documents is @0.0@).
     }
 deriving instance Show e => Show (DocInfo e)
 
@@ -91,9 +90,15 @@ data WordInfo
     }
     deriving (Eq, Show)
 
+instance Monoid WordInfo where
+    mempty
+        = WordInfo [] noScore
+    mappend (WordInfo t1 s1) (WordInfo t2 s2)
+        = WordInfo (t1 `L.union` t2) (s1 <> s2)
+
 -- XXX: a list for now - maybe useful for testing
 -- | Boosting of a single document.
-type Boost = [Weight]
+type Boost = Weight
 
 -- | Document boosting.
 type DocBoosts       = DocIdMap Boost
@@ -119,29 +124,6 @@ type WordDocHits     = Occurrences
 -- | The original search terms entered by the user.
 type Terms           = [Text]
 
--- ------------------------------------------------------------
-{-
-instance Binary Result where
-  put (Result dh wh)    = put dh >> put wh
-  get                   = liftM2 Result get get
-
-instance Binary DocInfo where
-  put (DocInfo d s)     = put d >> put s
-  get                   = liftM2 DocInfo get get
-
-instance Binary WordInfo where
-  put (WordInfo t s)    = put t >> put s
-  get                   = liftM2 WordInfo get get
-
-instance NFData Result where
-  rnf (Result dh wh)    = rnf dh `seq` rnf wh
-
-instance NFData DocInfo where
-  rnf (DocInfo d s)     = rnf d `seq` rnf s
-
-instance NFData WordInfo where
-  rnf (WordInfo t s)    = rnf t `seq` rnf s
--}
 -- ------------------------------------------------------------
 
 -- | Create an empty result.
@@ -179,10 +161,5 @@ setWordScore s wi@(WordInfo{}) = wi { wordScore = s }
 -- | Extract all documents from a result.
 getDocuments :: Result e -> [e]
 getDocuments r = map (document . fst . snd) . DM.toList $ docHits r
-
--- | The boosting factor for the document.
-boost :: DocInfo e -> Score
-boost di
-    = accScore $ docBoost di
 
 -- ------------------------------------------------------------

@@ -10,16 +10,20 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Common.BasicTypes
+    ( module Hunt.Common.BasicTypes
+    , Monoid(..)
+    , (<>)
+    )
 where
 
 import           Control.Applicative
 import           Control.Monad       (mzero)
 
-import           Data.Map
-import           Data.Text
-
 import           Data.Aeson
 import           Data.Binary         hiding (Word)
+import           Data.Map
+import           Data.Monoid         (Monoid (..), (<>))
+import           Data.Text
 
 import           Hunt.Common.DocDesc (DocDesc)
 
@@ -102,6 +106,13 @@ fromDefScore sc       = sc
 accScore :: [Score] -> Score
 accScore [] = defScore
 accScore xs = mkScore $ sum (P.map unScore xs) / fromIntegral (P.length xs)
+
+-- the Monoid instance is used to accumulate scores
+-- in query results, so tune it here when sum is not appropriate
+
+instance Monoid Score where
+    mempty = noScore
+    mappend = (+)
 
 -- ------------------------------------------------------------
 -- JSON instances

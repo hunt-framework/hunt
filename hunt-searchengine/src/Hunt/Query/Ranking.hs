@@ -33,6 +33,7 @@ module Hunt.Query.Ranking
 
   -- * Predefined word rankings
   , wordRankByCount
+  , wordRankBySimilarity
   --, wordRankWeightedByCount
 
   , defaultRankConfig
@@ -47,9 +48,11 @@ import           Control.Applicative
 --import           Data.Function
 import           Data.Maybe
 
---import qualified Data.List             as L
+import qualified Data.List             as L
 import           Data.Map              (Map)
 import qualified Data.Map              as M
+import           Data.Text             (Text)
+import qualified Data.Text             as T
 
 import           Hunt.Common
 import qualified Hunt.Common.DocIdMap  as DM
@@ -117,14 +120,15 @@ rank (RankConfig fd fw {-ld lw-}) dt cw r
 
 -- ------------------------------------------------------------
 
--- | Rank documents by count and multiply occurrences with their respective context weights (default @1.0@).
+-- | Rank documents by count and multiply occurrences with
+--   their respective context weights (default @1.0@).
 --   Pass an empty map to discard context weights.
 --
 -- @docRankByCount :: ContextWeights -> DocId -> Score -> DocInfo e -> DocContextHits -> Score@
 
 docRankByCount :: DocRanking e
 docRankByCount cw _ docWeight di h
-    = boost di * docWeight * scHits
+    = docBoost di * docWeight * scHits
     where
       scHits = M.foldrWithKey
                (\cx -> (cxw cx *)
@@ -138,8 +142,42 @@ docRankByCount cw _ docWeight di h
 --
 -- @wordRankByCount :: Word -> WordInfo -> WordContextHits -> Score@
 wordRankByCount :: WordRanking
-wordRankByCount _ _ h
-  = fromIntegral $ M.foldr (flip (DM.foldr ((+) . Pos.size))) 0 h
+wordRankByCount _w _i h
+  = countHits h
+
+wordRankBySimilarity :: WordRanking
+wordRankBySimilarity wordFound (WordInfo searchTerms sc) wch
+    = cnt * sc * simBoost
+    where
+      cnt = countHits wch
+
+      simBoost :: Score
+      simBoost
+          | L.null searchTerms            -- make simBoost total
+              = noScore
+          | otherwise
+              = maximum (L.map (similar wordFound) searchTerms)
+
+      similar :: Text -> Text -> Score
+      similar found searched
+          | searched == found
+              = boostExactHit
+          | ls == lf
+              = boostSameLength
+          | ls < lf                     -- reduce score by length of found word
+              = fromIntegral ls / fromIntegral lf
+          | otherwise                   -- make similar total
+              = noScore
+          where
+            boostExactHit   = 10.0
+            boostSameLength =  5.0      -- NoCase hits
+
+            ls = T.length searched
+            lf = T.length found
+
+countHits :: WordContextHits -> Score
+countHits wch
+    = mkScore $ fromIntegral $ M.foldr (flip (DM.foldr ((+) . Pos.size))) 0 wch
 
 -- ------------------------------------------------------------
 
