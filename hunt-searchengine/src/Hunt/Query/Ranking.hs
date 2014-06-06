@@ -20,9 +20,10 @@
 module Hunt.Query.Ranking
   (
   -- * Ranking types
-  RankConfig (..)
+    RankConfig (..)
   , DocRanking
   , WordRanking
+  , ContextWeights
 
   -- * Ranking
   , rank
@@ -63,6 +64,8 @@ import           Hunt.Query.Result
 
 import           Hunt.Utility
 
+-- import           Debug.Trace
+
 -- ------------------------------------------------------------
 
 -- | The configuration of the ranking mechanism.
@@ -86,20 +89,23 @@ type ContextWeights = Map Context Weight
 
 -- | The configuration of the ranking mechanism.
 defaultRankConfig :: DocumentWrapper e => RankConfig e
-defaultRankConfig = RankConfig
-  { docRanking  = docRankByCount
-  , wordRanking = wordRankByCount
-  }
+defaultRankConfig
+    = RankConfig
+      { docRanking  = docRankByCount
+      , wordRanking = wordRankBySimilarity
+      -- , wordRanking = wordRankByCount
+      }
 
 -- ------------------------------------------------------------
 
 -- | Rank the result with custom ranking functions (and the given context weights).
+
 rank :: (DocTable dt, Monad m, Applicative m) =>
         RankConfig e -> dt -> ContextWeights -> Result e -> m (Result e)
+
 rank (RankConfig fd fw {-ld lw-}) dt cw r
-  = do
-    sdh <- scoredDocHits
-    return $ Result sdh scoredWordHits
+  = do sdh <- scoredDocHits
+       return $ Result sdh scoredWordHits
   where
     scoredDocHits
         = DM.traverseWithKey
@@ -113,10 +119,8 @@ rank (RankConfig fd fw {-ld lw-}) dt cw r
 
     scoredWordHits
         = M.mapWithKey
-          (\k (wi, wch) -> ( setWordScore (fw k wi wch) wi
-                           , wch
-                           )
-          ) $ wordHits r
+          ( \ k (WIH wi wch) -> WIH (setWordScore (fw k wi wch) wi) wch )
+          $ wordHits r
 
 -- ------------------------------------------------------------
 
@@ -147,7 +151,7 @@ wordRankByCount _w _i h
 
 wordRankBySimilarity :: WordRanking
 wordRankBySimilarity wordFound (WordInfo searchTerms sc) wch
-    = cnt * sc * simBoost
+    = cnt * toDefScore sc * simBoost
     where
       cnt = countHits wch
 
@@ -177,7 +181,9 @@ wordRankBySimilarity wordFound (WordInfo searchTerms sc) wch
 
 countHits :: WordContextHits -> Score
 countHits wch
-    = mkScore $ fromIntegral $ M.foldr (flip (DM.foldr ((+) . Pos.size))) 0 wch
+    = M.foldr op 0.0 wch
+    where
+      op x res = DM.foldr (+) 0.0 x + res
 
 -- ------------------------------------------------------------
 

@@ -31,6 +31,7 @@ import           Control.Monad     (mzero)
 import           Data.Aeson
 import qualified Data.IntSet       as S
 import qualified Data.List         as L
+import           Data.Monoid       (Monoid (..))
 import           Data.Typeable
 
 import           Hunt.Common.DocId
@@ -41,6 +42,12 @@ import           Hunt.Common.DocId
 
 newtype DocIdSet = DIS { unDIS :: S.IntSet }
     deriving (Eq, Show, NFData, Typeable)
+
+instance Monoid DocIdSet where
+    mempty
+        = DIS S.empty
+    mappend (DIS s1) (DIS s2)
+        = DIS (S.union s1 s2)
 
 instance ToJSON DocIdSet where
     toJSON = toJSON . L.map DocId . S.toList . unDIS

@@ -18,6 +18,7 @@ import           Data.Aeson
 import           Data.Binary            as B
 import qualified Data.IntSet            as IS
 import           Data.IntSet.Cache      as IS
+import           Data.Monoid            ()
 import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
@@ -25,8 +26,10 @@ import           Hunt.Common.BasicTypes
 -- ------------------------------------------------------------
 
 -- | The positions of the word in the document.
-newtype Positions    = PS {unPS :: IS.IntSet}
-                       deriving (Eq, Ord, Read, Show, Typeable, NFData)
+
+newtype Positions
+    = PS {unPS :: IS.IntSet}
+      deriving (Eq, Ord, Read, Show, Typeable, NFData, Monoid)
 
 -- ------------------------------------------------------------
 

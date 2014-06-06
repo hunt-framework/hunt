@@ -65,6 +65,7 @@ import           Data.Foldable              hiding (fold, foldr, toList)
 import qualified Data.HashMap.Strict        as HM
 import qualified Data.IntMap.BinTree.Strict as IM
 import qualified Data.List                  as L
+import           Data.Monoid                (Monoid (..), (<>))
 import qualified Data.Text                  as T
 import           Data.Typeable
 
@@ -80,6 +81,10 @@ newtype DocIdMap v
   deriving (Eq, Show, Foldable, {-Traversable,-} Functor, NFData, Typeable)
 
 -- ------------------------------------------------------------
+
+instance Monoid v => Monoid (DocIdMap v) where
+    mempty  = DIM IM.empty
+    mappend = unionWith (<>)
 
 instance Binary v => Binary (DocIdMap v) where
   put = put . unDIM

@@ -27,9 +27,9 @@ module Hunt.Query.Language.Grammar
 where
 
 import           Control.Monad
+
 import           Data.Aeson
 import           Data.Binary
-import           Data.Monoid            ((<>))
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import           Data.Text.Binary       ()
@@ -251,7 +251,7 @@ extractTerms _                     = []
 
 -- ------------------------------------------------------------
 
--- | Renders a text representation of a Query. 
+-- | Renders a text representation of a Query.
 printQuery :: Query -> Text
 printQuery (QWord QNoCase w)  = T.replace " " "\\ " w
 printQuery (QWord QCase w)    = "!" <> w

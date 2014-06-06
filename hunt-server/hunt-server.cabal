@@ -1,5 +1,5 @@
 name:          hunt-server
-version:       0.1
+version:       0.2.0.0
 license:       MIT
 license-file:  LICENSE
 author:        Chris Reumann, Ulf Sauer, Sebastian Philipp
@@ -37,7 +37,7 @@ executable hunt-server
                  , deepseq                >= 1.2
                  , hamlet                 >= 1.1.7.1   && < 1.2
                  , hunt-compression
-                 , hunt-searchengine      >= 0.1
+                 , hunt-searchengine      >= 0.2
                  , hslogger               >= 1         && < 2
                  , http-types             >= 0.8.0
                  , mtl                    >= 1.1       && < 3

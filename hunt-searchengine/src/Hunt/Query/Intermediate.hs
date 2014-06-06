@@ -195,12 +195,13 @@ unionsDocLimited n = takeOne ((>= n) . size) . scanl union empty
 -- | Create the doc hits structure from an intermediate result.
 createDocHits :: (Applicative m, Monad m, DocTable d, e ~ Dt.DValue d) =>
                  d -> Intermediate -> m (DocHits e)
-createDocHits d = DM.traverseWithKey transformDocs
-  where
-  transformDocs did (ic,db)
-    = let doc   = fromMaybe dummy <$> (Dt.lookup did d)
-          dummy = wrap emptyDocument
-      in (\doc' -> (DocInfo doc' db 0.0, M.map (M.map snd) ic)) <$> doc
+createDocHits d
+    = DM.traverseWithKey transformDocs
+    where
+      transformDocs did (ic, db)
+          = let doc   = fromMaybe dummy <$> (Dt.lookup did d)
+                dummy = wrap emptyDocument
+            in (\doc' -> (DocInfo doc' db 0.0, M.map (M.map snd) ic)) <$> doc
 
 -- | Create the word hits structure from an intermediate result.
 --
@@ -219,18 +220,14 @@ createWordHits
                   insertWord w (wi, pos) wh''
                       = if terms wi == [""]
                         then wh''
-                        else M.insertWith combineWordHits
+                        else M.insertWith (<>)
                              w
-                             (wi, M.singleton c (DM.singleton d pos))
+                             (WIH wi wh3)
                              wh''
-
--- | Combine two tuples with score and context hits.
-combineWordHits :: (WordInfo, WordContextHits) -> (WordInfo, WordContextHits)
-                -> (WordInfo, WordContextHits)
-combineWordHits (i1, c1) (i2, c2)
-  = ( i1 <> i2
-    , M.unionWith (DM.unionWith Pos.union) c1 c2
-    )
+                      where
+                        wh3 = M.singleton c (DM.singleton d (toScore pos))
+                            where
+                              toScore = mkScore . fromIntegral . Pos.size
 
 -- XXX: 'combineContexts' is used in 'union' and 'intersection'.
 --      maybe it should include the merge op as a parameter.

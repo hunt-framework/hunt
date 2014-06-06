@@ -21,15 +21,16 @@
 module Hunt.Query.Result
   (
   -- * Result data types
-  Result (..)
+    Result(..)
   , DocHits
   , DocContextHits
   , DocWordHits
   , WordHits
   , WordContextHits
   , WordDocHits
-  , DocInfo (..)
-  , WordInfo (..)
+  , DocInfo(..)
+  , WordInfo(..)
+  , WordInfoAndHits(..)
   , Score
   , Weight
   , Boost
@@ -75,19 +76,21 @@ deriving instance Show e => Show (Result e)
 
 -- | Information about an document.
 data DocInfo e
-  = DocInfo
-    { document :: e      -- ^ The document itself.
-    , docBoost :: Weight -- ^ The document weight, init with @1.0@
-    , docScore :: Score  -- ^ The score for the document (initial score for all documents is @0.0@).
-    }
-deriving instance Show e => Show (DocInfo e)
+    = DocInfo
+      { document :: e      -- ^ The document itself.
+      , docBoost :: Weight -- ^ The document weight, init with @1.0@
+      , docScore :: Score  -- ^ The score for the document (initial score for all documents is @0.0@).
+      }
+
+instance Show (DocInfo e) where
+    show (DocInfo _d b s) = "DocInfo d " ++ show b ++ " " ++ show s
 
 -- | Information about a word.
 data WordInfo
-  = WordInfo
-    { terms     :: Terms -- ^ The search terms that led to this very word.
-    , wordScore :: Score -- ^ The frequency of the word in the document for a context.
-    }
+    = WordInfo
+      { terms     :: Terms -- ^ The search terms that led to this very word.
+      , wordScore :: Score -- ^ The frequency of the word in the document for a context.
+      }
     deriving (Eq, Show)
 
 instance Monoid WordInfo where
@@ -96,12 +99,22 @@ instance Monoid WordInfo where
     mappend (WordInfo t1 s1) (WordInfo t2 s2)
         = WordInfo (t1 `L.union` t2) (s1 <> s2)
 
+data WordInfoAndHits
+    = WIH WordInfo WordContextHits
+      deriving (Eq, Show)
+
+instance Monoid WordInfoAndHits where
+    mempty
+        = WIH mempty M.empty
+    mappend (WIH wi1 wh1) (WIH wi2 wh2)
+        = WIH (wi1 <> wi2) (M.unionWith (DM.unionWith (+)) wh1 wh2)
+
 -- XXX: a list for now - maybe useful for testing
 -- | Boosting of a single document.
-type Boost = Weight
+type Boost           = Score
 
 -- | Document boosting.
-type DocBoosts       = DocIdMap Boost
+type DocBoosts       = DocIdMap Score
 
 -- | A mapping from a document to it's score and the contexts where it was found.
 type DocHits e       = DocIdMap (DocInfo e, DocContextHits)
@@ -113,13 +126,13 @@ type DocContextHits  = Map Context DocWordHits
 type DocWordHits     = Map Word Positions
 
 -- | A mapping from a word to it's score and the contexts where it was found.
-type WordHits        = Map Word (WordInfo, WordContextHits)
+type WordHits        = Map Word WordInfoAndHits
 
 -- | A mapping from a context to the documents that contain the word that were found in this context.
 type WordContextHits = Map Context WordDocHits
 
 -- | A mapping from a document containing the word to the positions of the word.
-type WordDocHits     = Occurrences
+type WordDocHits     = DocBoosts
 
 -- | The original search terms entered by the user.
 type Terms           = [Text]
@@ -144,7 +157,7 @@ maxScoreDocHits = DM.foldr (\(di, _) r -> max (docScore di) r) 0.0 . docHits
 
 -- | Query the maximum score of the words.
 maxScoreWordHits :: Result e -> Score
-maxScoreWordHits = M.foldr (\(wi, _) r -> max (wordScore wi) r) 0.0 . wordHits
+maxScoreWordHits = M.foldr (\ (WIH wi _) r -> max (wordScore wi) r) 0.0 . wordHits
 
 -- | Test if the result contains anything.
 null :: Result e -> Bool
@@ -152,11 +165,11 @@ null = DM.null . docHits
 
 -- | Set the score in a document info.
 setDocScore :: Score -> DocInfo e -> DocInfo e
-setDocScore s di@(DocInfo{}) = di { docScore = s }
+setDocScore s di = di { docScore = s }
 
 -- | Set the score in a word info.
 setWordScore :: Score -> WordInfo -> WordInfo
-setWordScore s wi@(WordInfo{}) = wi { wordScore = s }
+setWordScore s wi = wi { wordScore = s }
 
 -- | Extract all documents from a result.
 getDocuments :: Result e -> [e]

@@ -76,7 +76,8 @@ import           Hunt.Query.Processor          (ProcessConfig (..),
                                                 processQueryDocIds)
 import           Hunt.Query.Ranking
 import           Hunt.Query.Result             (DocInfo (..), Result (..),
-                                                WordInfo (..))
+                                                WordInfo (..),
+                                                WordInfoAndHits (..))
 
 import           Hunt.Utility
 import           Hunt.Utility.Log
@@ -245,13 +246,15 @@ askNormalizer cn = do
 
 -- | Get the index.
 askIndex :: DocTable dt => Text -> Hunt dt (IndexImpl Occurrences)
-askIndex cn = askType cn >>= return . ctIxImpl
+askIndex cn = ctIxImpl <$> askType cn
+
 {-
 askDocTable :: DocTable dt => Hunt dt dt
 askDocTable = askIx >>= return . ciDocs
--}
+-- -}
+
 -- | Get the context weightings.
-askContextsWeights :: DocTable dt => Hunt dt(M.Map Context Weight)
+askContextsWeights :: DocTable dt => Hunt dt ContextWeights -- (M.Map Context Weight)
 askContextsWeights
   = withIx (\(ContextIndex _ _ schema) -> return $ M.map cxWeight schema)
 
@@ -449,7 +452,12 @@ execSearch' f q (ContextIndex ix dt s)
     cw  <- askContextsWeights
     case r of
       Left  err -> throwError err
-      Right res -> (f <$>) . rank rc dt cw $ res
+      Right res -> do -- debugM ("doc  ranking: " ++ show (docHits  res))
+                      -- debugM ("word ranking: " ++ show (wordHits res))
+                      res' <- rank rc dt cw $ res
+                      -- debugM ("doc  result : " ++ show (docHits  res'))
+                      -- debugM ("word result : " ++ show (wordHits res'))
+                      return (f res')
 
 -- | build a selection function for choosing,
 -- which parts of a document are contained in the result
@@ -498,19 +506,19 @@ wrapCompletion mx
     . take mx
     . map (\(word,_score,terms') -> (word, terms')) -- remove score from result
     . sortBy (descending `on` (\(_,score',_) -> score')) -- sort by score
-    . map (\(c, (wi, _wch)) -> (c, wordScore wi, terms wi))
+    . map (\(c, (WIH wi _wch)) -> (c, wordScore wi, terms wi))
     . M.toList
     . wordHits
 
 
 -- | Delete a set of documents.
-execDeleteDocs :: DocTable dt => Set URI -> ContextIndex dt -> Hunt dt(ContextIndex dt, CmdResult)
+execDeleteDocs :: DocTable dt => Set URI -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 execDeleteDocs d ix = do
   ix' <- lift $ CIx.deleteDocsByURI d ix
   return (ix', ResOK)
 
 -- | Delete all documents matching the query.
-execDeleteByQuery :: DocTable dt => Query -> ContextIndex dt -> Hunt dt(ContextIndex dt, CmdResult)
+execDeleteByQuery :: DocTable dt => Query -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 execDeleteByQuery q ixx@(ContextIndex ix _dt s) = do
   r <- lift $ runQueryDocIdsM ix s q
   case r of
