@@ -173,9 +173,9 @@ start config = do
 
     -- ------------------------------------------------------------
 
-    get "/"         $ redirect "/search"
-    get "/search"   $ html . Tmpl.index $ (0::Int)
-    get "/add"      $ html Tmpl.addDocs
+    get "/"           $ redirect "/search"
+    get "/search"     $ html . Tmpl.index $ (0::Int)
+    get "/quickstart" $ html Tmpl.quickstart
 
     -- ------------------------------------------------------------
 
