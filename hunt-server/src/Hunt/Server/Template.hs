@@ -71,7 +71,7 @@ index _docs =
   $(document).ready(function() {
 
     var globalPage = 1;
-    var globalPerPage = 5;
+    var globalPerPage = 20;
     var globalPages = undefined;
     var globalResults = undefined;
     var globalCompletionMax = 20;
