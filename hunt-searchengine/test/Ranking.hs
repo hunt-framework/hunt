@@ -153,7 +153,7 @@ test_ranking = testCM $ do
   where
   os = 0
   pp = 1000
-  sr = map (\x -> (uri x, maybe 1.0 id $ score x)) . lrResult . crRes
+  sr = map (\x -> (uri x, score x)) . lrResult . crRes
 
   descr = DD.empty
 

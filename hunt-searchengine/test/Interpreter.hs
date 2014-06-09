@@ -102,7 +102,7 @@ addBrainDoc
       . setIndex (M.fromList [("default", td)])
     where
       td = "Brain"
-      descr = DD.fromList [("name", "Brain"), ("mission", "take over the world"), ("legs", "4")]
+      descr = DD.fromList [("name", "Brain" :: String), ("mission", "take over the world"), ("legs", "4")]
 
 dateDoc :: ApiDocument
 dateDoc
@@ -124,7 +124,7 @@ geoDoc = geoDoc' "53.60000-10.00000"
 brainDocUpdate :: ApiDocument
 brainDocUpdate = setDescription descr $ brainDoc
   where
-  descr = DD.fromList [("name", "Pinky"), ("mission", "ask stupid questions")]
+  descr = DD.fromList [("name", "Pinky" :: String), ("mission", "ask stupid questions")]
 
 brainDocMerged :: ApiDocument
 brainDocMerged

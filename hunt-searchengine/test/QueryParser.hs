@@ -56,7 +56,7 @@ fw = setFuzzySearch . qWord
 rg :: Text -> Text -> Query
 rg = qRange
 
-bst :: Float -> Query -> Query
+bst :: Weight -> Query -> Query
 bst = setBoost
 
 andTests :: Test

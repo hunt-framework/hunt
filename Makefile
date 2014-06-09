@@ -116,6 +116,13 @@ client: sandbox
 test:
 	cd hunt-searchengine && cabal sandbox init && cabal install --enable-tests
 
+test-same:
+	cd hunt-searchengine && cabal install --enable-tests
+	cd hunt-searchengine && cabal test
+
+execTest:
+	cd hunt-searchengine && cabal test
+
 startServer: stopServer
 	$(EXE) $(RUNOPTS) &
 
