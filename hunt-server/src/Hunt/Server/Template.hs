@@ -165,7 +165,7 @@ index _docs =
           initMap();
           var res = "";
           $(docs).each(function(i,doc) {
-             var score = doc.score;
+             var score = doc.score !== undefined ? doc.score : 0;
              var desc = doc.description;
              var first = true;
              var props = Object.keys(desc).length;
