@@ -6,6 +6,7 @@ module Data.IntMap.BinTree.Strict where
 
 import           Control.Applicative (Applicative (..), (<$>))
 import           Control.DeepSeq
+import           Control.Monad
 
 import           Data.Binary         (Binary (..), getWord8)
 import qualified Data.Foldable       as F
@@ -288,6 +289,25 @@ null _     = False
 
 size :: Tree v -> Int
 size = foldl' (\ cnt _ -> cnt + 1) 0
+
+-- | retuns the size of a tree or Nothing if @size t > limit@
+--
+-- limits the computation time to O(limit), not O(size)
+
+sizeWithLimit :: Int -> Tree v -> Maybe Int
+sizeWithLimit limit
+    = go 0
+    where
+      go !i Empty
+          = return i
+      go !i t
+          | i == limit
+              = mzero
+          | otherwise
+              = do i' <- go (i+1) l
+                   go i' r
+          where
+            (_k, _v, l, r) = unNode t
 
 -- ------------------------------------------------------------
 

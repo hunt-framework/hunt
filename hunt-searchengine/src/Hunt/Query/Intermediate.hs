@@ -1,7 +1,8 @@
-{-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TypeFamilies          #-}
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -48,12 +49,14 @@ import           Prelude               hiding (null)
 import qualified Prelude               as P
 
 import           Control.Applicative   hiding (empty)
+import           Control.Arrow         (second, (***))
 
 import qualified Data.List             as L
 import           Data.Map              (Map)
 import qualified Data.Map              as M
 import           Data.Maybe
-
+-- import           Data.Text             (Text)
+import qualified Data.Text             as T
 import           Hunt.Query.Result     hiding (null)
 
 import           Hunt.Common
@@ -63,6 +66,482 @@ import qualified Hunt.Common.Positions as Pos
 
 import           Hunt.DocTable         (DocTable)
 import qualified Hunt.DocTable         as Dt
+
+-- ------------------------------------------------------------
+--
+-- The Monoid @mempty@ acts as empty result,
+-- (<>) is the union of scored results
+
+class Monoid a => ScoredResult a where
+    boost            :: Score -> a -> a
+    nullSC           :: a -> Bool
+    differenceSC     :: a -> a -> a
+    intersectSC      :: a -> a -> a
+    intersectDisplSC :: Int -> a -> a -> a
+    intersectFuzzySC :: Int -> Int -> a -> a -> a
+
+-- ------------------------------------------------------------
+
+-- The result type for document search, every doc is associated with a score
+
+newtype ScoredDocs
+    = SDS (DocIdMap Score)
+      deriving (Show)
+
+instance Monoid ScoredDocs where
+    mempty
+        = SDS DM.empty
+    mappend (SDS m1) (SDS m2)
+        = SDS $ DM.unionWith (<>) m1 m2
+
+instance ScoredResult ScoredDocs where
+    boost b (SDS m1)
+        = SDS $ DM.map (b *) m1
+
+    nullSC (SDS m1)
+        = DM.null m1
+
+    differenceSC (SDS m1) (SDS m2)
+        = SDS $ DM.difference m1 m2
+
+    intersectSC (SDS m1) (SDS m2)
+        = SDS $ DM.intersectionWith (+) m1 m2
+
+    intersectDisplSC _disp
+        = intersectSC
+
+    intersectFuzzySC _lb _ub
+        = intersectSC
+
+toScoredDocs :: Occurrences -> ScoredDocs
+toScoredDocs os
+    = SDS $ DM.map toScore os
+      where
+        toScore = mkScore . fromIntegral . Pos.size
+
+-- ------------------------------------------------------------
+
+-- The result type for word search,
+-- this is the required result type for completions search
+
+newtype ScoredWords
+    = SWS (Map Word Score)
+      deriving (Show)
+
+type ScoredContexts = ScoredWords
+
+instance Monoid ScoredWords where
+    mempty
+        = SWS M.empty
+
+    mappend (SWS m1) (SWS m2)
+        = SWS $ M.unionWith (<>) m1 m2
+
+instance ScoredResult ScoredWords where
+    boost b (SWS m1)
+        = SWS $ M.map (b *) m1
+
+    nullSC (SWS m1)
+        = M.null m1
+
+    differenceSC (SWS m1) (SWS m2)
+        = SWS $ M.difference m1 m2
+
+    intersectSC (SWS m1) (SWS m2)
+        = SWS $ M.intersectionWith (+) m1 m2
+
+    intersectDisplSC _disp
+        = intersectSC
+
+    intersectFuzzySC _lb _ub
+        = intersectSC
+
+-- ------------------------------------------------------------
+
+data ScoredOccs
+    = SCO Score Occurrences
+      deriving (Show)
+
+instance Monoid ScoredOccs where
+    mempty
+        = SCO defScore DM.empty
+    mappend (SCO s1 d1) (SCO s2 d2)
+        = SCO ((s1 + s2) / 2.0) (DM.unionWith Pos.union d1 d2)
+
+instance ScoredResult ScoredOccs where
+    boost b (SCO s d)
+        = SCO (b * s) d
+
+    nullSC (SCO _s d)
+        = DM.null d
+
+    differenceSC (SCO s1 d1) (SCO _s2 d2)
+        = SCO s1 (DM.difference d1 d2)
+
+    intersectSC (SCO s1 d1) (SCO s2 d2)
+        = SCO (s1 + s2) (DM.intersectionWith Pos.union d1 d2)
+
+    intersectDisplSC disp (SCO s1 d1) (SCO s2 d2)
+        = SCO (s1 + s2) (DM.intersectionWith (Pos.intersectionWithDispl disp) d1 d2)
+
+    intersectFuzzySC lb ub (SCO s1 d1) (SCO s2 d2)
+        = SCO (s1 + s2) (DM.intersectionWith (Pos.intersectionWithIntervall lb ub) d1 d2)
+
+-- ------------------------------------------------------------
+{-- not yet used,
+
+-- the @ScoredRawDocs@ deals with lists of words,
+-- and that suits better for completion search
+
+-- The(?) result type for searching phrases and context search,
+-- every word hit is associated with a score and a DocIdMap containing
+-- the docs and position.
+--
+-- The positions are neccessary in phrase and context search,
+-- afterwards the positions can be accumulated into a score,
+-- e.g. by counting the occurences
+--
+-- A RawResult can easily be converted into this type
+
+newtype ScoredWordOccs
+    = SCWO (Map Word ScoredOccs)
+      deriving (Show)
+
+instance Monoid ScoredWordOccs where
+    mempty
+        = SCWO M.empty
+    mappend (SCWO m1) (SCWO m2)
+        = SCWO $ M.unionWith (<>) m1 m2
+
+instance ScoredResult ScoredWordOccs where
+    boost b (SCWO m)
+        = SCWO $ M.map (boost b) m
+
+    nullSC (SCWO m)
+        = M.null m
+
+    differenceSC (SCWO m1) (SCWO m2)
+        = scwo $ M.map diff m1
+          where
+            diff :: ScoredOccs -> ScoredOccs
+            diff so = M.foldl differenceSC so m2
+
+    intersectSC
+        = intersectSCWO intersectSC
+
+    intersectDisplSC d
+        = intersectSCWO $ intersectDisplSC d
+
+    intersectFuzzySC lb ub
+        = intersectSCWO $ intersectFuzzySC lb ub
+
+intersectSCWO :: (ScoredOccs -> ScoredOccs -> ScoredOccs)
+              -> ScoredWordOccs -> ScoredWordOccs -> ScoredWordOccs
+intersectSCWO interSCO (SCWO m1) (SCWO m2)
+        = scwo $ M.map intersect m1
+          where
+            intersect s0
+                = M.foldl acc mempty m2
+                  where
+                    acc r s1 = r <> (interSCO s0 s1)
+
+scwo :: Map Word ScoredOccs -> ScoredWordOccs
+scwo = SCWO . M.filter (not . nullSC)
+-- -}
+-- ------------------------------------------------------------
+
+-- A result type for searching phrases and context search,
+-- every word hit or word sequence hit associated with a score and a DocIdMap containing
+-- the docs and position.
+--
+-- The positions are neccessary in phrase and context search,
+-- afterwards the positions can be accumulated into a score,
+-- e.g. by counting the occurences
+--
+-- A RawResult can easily be converted into this type
+
+newtype ScoredRawDocs
+    = SRD [([Word], ScoredOccs)]
+      deriving (Show)
+
+instance Monoid ScoredRawDocs where
+    mempty
+        = SRD []
+    mappend (SRD xs1) (SRD xs2)
+        = SRD $ xs1 ++ xs2
+
+instance ScoredResult ScoredRawDocs where
+    boost b (SRD xs)
+        = SRD $ L.map (second (boost b)) xs
+
+    nullSC (SRD xs)
+        = L.null xs
+
+    differenceSC (SRD xs1) (SRD xs2)
+        = srd $ [(ws1, SCO sc1 (diff occ1 xs2)) | (ws1, SCO sc1 occ1) <- xs1]
+          where
+            diff occ xs
+                = L.foldl op occ xs
+                  where
+                    op occ' (_ws2, SCO _sc2 occ2)
+                        = DM.difference occ' occ2
+
+    intersectSC
+        = intersectSRD intersectSC
+
+    intersectDisplSC d
+        = intersectSRD $ intersectDisplSC d
+
+    intersectFuzzySC lb ub
+        = intersectSRD $ intersectFuzzySC lb ub
+
+-- ------------------------------------------------------------
+--
+-- auxiliary functions for ScoredRawDocs
+
+-- | generalized intersection operator for ScoredRawDocs
+
+intersectSRD :: (ScoredOccs -> ScoredOccs -> ScoredOccs)
+              -> ScoredRawDocs -> ScoredRawDocs -> ScoredRawDocs
+intersectSRD interSRD (SRD xs1) (SRD xs2)
+    = srd $ [ (ws1 ++ ws2, interSRD socc1 socc2)
+            | (ws1, socc1) <- xs1
+            , (ws2, socc2) <- xs2
+            ]
+
+-- | smart constructor for ScoredRawDoc removing empty entries
+
+srd :: [([Word], ScoredOccs)] -> ScoredRawDocs
+srd
+    = SRD . L.filter (not . nullSC . snd)
+
+-- ------------------------------------------------------------
+
+newtype ScoredCx a
+    = SCX (Map Context a)
+      deriving (Show)
+
+type ScoredCxRawDocs
+    = ScoredCx ScoredRawDocs
+
+instance Monoid a => Monoid (ScoredCx a) where
+    mempty
+        = SCX M.empty
+    mappend (SCX m1) (SCX m2)
+        = SCX $ M.unionWith (<>) m1 m2
+
+instance ScoredResult a => ScoredResult (ScoredCx a) where
+    boost b (SCX m)
+        = SCX $ M.map (boost b) m
+
+    nullSC (SCX m)
+        = M.null m
+
+    differenceSC
+        = binopSCX differenceSC
+
+    intersectSC
+        = binopSCX intersectSC
+
+    intersectDisplSC d
+        = binopSCX $ intersectDisplSC d
+
+    intersectFuzzySC lb ub
+        = binopSCX $ intersectFuzzySC lb ub
+
+
+-- | The final op for a search result: boost the partial results of the contexts
+-- with the context weights from the schema and aggregate them
+-- by throwing away the contexts
+
+boostAndAggregateCx :: ScoredResult a => ScoredContexts -> ScoredCx a -> a
+boostAndAggregateCx (SWS sm) (SCX m)
+    = M.foldlWithKey op mempty m
+      where
+        op res k x
+            = boost b x <> res
+              where
+                b = fromMaybe defScore $ M.lookup k sm
+
+-- ------------------------------------------------------------
+--
+-- auxiliary functions for scored context results
+
+binopSCX :: ScoredResult a => (a -> a -> a) -> (ScoredCx a -> ScoredCx a -> ScoredCx a)
+binopSCX op (SCX m1) (SCX m2)
+    = scx $ M.mapWithKey op' m1
+          where
+            op' cx1 sr1
+                = sr1 `op` sr2
+                  where
+                    sr2 = fromMaybe mempty $ M.lookup cx1 m2
+
+
+-- | smart constructore for ScoredCx removing empty contexts
+
+scx :: ScoredResult a => Map Word a -> ScoredCx a
+scx = SCX . M.filter (not . nullSC)
+
+-- ------------------------------------------------------------
+--
+-- conversions from RawResult into scored results
+
+fromRawResult :: Context -> (Word -> Score) -> RawResult -> ScoredCx ScoredRawDocs
+fromRawResult cx sf rr
+    = SCX $ M.singleton cx sr
+      where
+        sr = SRD $ L.map toScored rr
+            where
+              toScored (w, occ)
+                  = ([w], SCO (sf w) occ)
+
+
+{- old stuff, not yet used
+instance FromRawResult ScoredWordOccs where
+    fromRawResult sf r
+        = SCWO . M.fromList . L.map (uncurry toScored) $ r
+          where
+            toScored w occ
+                = (w, SCO (sf w) occ)
+-- -}
+
+-- ------------------------------------------------------------
+--
+-- aggregating (raw) results for various types of scored results
+
+class Aggregate a b where
+    aggregate :: a -> b
+
+-- | allow no aggregation
+
+instance Aggregate a a where
+    aggregate = id
+
+-- | aggregate scored docs to a single score by summing up the scores and throw away the DocIds
+
+instance Aggregate ScoredDocs Score where
+    aggregate (SDS m)
+        = DM.foldr (<>) defScore m
+
+
+-- | aggregate scored occurences by counting the positions per doc and boost the
+-- result with the score.
+--
+-- The positions in a doc are thrown away, so all kinds of phrase search become impossible
+
+instance Aggregate ScoredOccs ScoredDocs where
+    aggregate (SCO sc occ)
+        = SDS $ DM.map toScore occ
+          where
+            toScore = (sc *) . mkScore . fromIntegral . Pos.size
+
+-- | aggregate scored occurences to a score by aggregating first the positions and snd the doc ids
+--
+-- used in computing the score of word in completion search
+
+instance Aggregate ScoredOccs Score where
+    aggregate = agg2 . agg1
+        where
+          agg1 :: ScoredOccs -> ScoredDocs
+          agg1 = aggregate
+          agg2 :: ScoredDocs -> Score
+          agg2 = aggregate
+
+-- | aggregate scored raw results by throwing away the word hits and aggregating
+-- all document hits by throwing away the positions.
+--
+-- The function for computing the scores of documents in a query
+
+instance Aggregate ScoredRawDocs ScoredDocs where
+    aggregate (SRD xs)
+        = L.foldl (<>) mempty
+          $ L.map (aggregate . snd) xs
+
+-- | aggregate the scored raw results by computing the score of all doc per word
+--
+-- Used in completion search.
+-- The sequence of words (in a phrase) is cut to the last word (@L.last@). For this last one
+-- the completions are computed.
+
+instance Aggregate ScoredRawDocs ScoredWords where
+    aggregate (SRD xs)
+        = SWS
+          $ L.foldl (\ res (w, sc) -> M.insertWith (+) w sc res) M.empty
+          $ L.map (L.last *** aggregate) xs
+
+-- | Lifting aggregation to scored context results
+
+instance Aggregate a b => Aggregate (ScoredCx a) (ScoredCx b) where
+    aggregate (SCX m)
+        = SCX $ M.map aggregate m
+
+-- ------------------------------------------------------------
+
+-- query operator evaluation
+
+-- | combine a sequence of results from a phrase query into a single result
+-- and aggregate this result into a simpler structure,
+-- e.g. a @ScoredDocs@ or @ScoredWords@ value
+--
+-- The arguments must be of this unaggregated from, still containing word
+-- positions, else sequences of words are not detected
+
+evalSequence :: (ScoredResult r, Aggregate ScoredRawDocs r) =>
+                (ScoredCx ScoredRawDocs -> ScoredCx r) ->
+                [ScoredCx ScoredRawDocs] -> ScoredCx r
+evalSequence _aggr []
+    = mempty
+evalSequence aggr [r1]
+    = aggr r1
+evalSequence aggr (r1 : rs)
+    = aggr $ L.foldl op r1 (L.zip [(1::Int)..] rs)
+      where
+        op acc (d, r2) = intersectDisplSC d acc r2
+
+evalFollow :: (ScoredResult r, Aggregate ScoredRawDocs r) =>
+              (ScoredCx ScoredRawDocs -> ScoredCx r) ->
+              Int ->
+              [ScoredCx ScoredRawDocs] -> ScoredCx r
+evalFollow _aggr _d []
+    = mempty
+evalFollow aggr _d [r1]
+    = aggr r1
+evalFollow aggr dp (r1 : rs)
+    = aggr $ L.foldl op r1 (L.zip [dp, (2 * dp) ..] rs)
+      where
+        op acc (d, r2) = intersectFuzzySC 1 d acc r2
+
+evalNear :: (ScoredResult r, Aggregate ScoredRawDocs r) =>
+            (ScoredCx ScoredRawDocs -> ScoredCx r) ->
+            Int ->
+           [ScoredCx ScoredRawDocs] -> ScoredCx r
+evalNear _aggr _d []
+    = mempty
+evalNear aggr _d [r1]
+    = aggr r1
+evalNear aggr dp (r1 : rs)
+    = aggr $ L.foldl op r1 (L.zip [dp, (2 * dp) ..] rs)
+      where
+        op acc (d, r2) = intersectFuzzySC (-d) d acc r2
+
+evalOr, evalAnd, evalAndNot :: ScoredResult a => [a] -> a
+evalOr     = evalBinary (<>)
+evalAnd    = evalBinary intersectSC
+evalAndNot = evalBinary differenceSC
+
+evalBinary :: ScoredResult a => (a -> a -> a) -> [a] -> a
+evalBinary _ []
+    = mempty
+evalBinary _ [r]
+    = r
+evalBinary op rs
+    = L.foldl1 op rs
+
+evalBoost :: ScoredResult a => Score -> a -> a
+evalBoost = boost
+
+evalPrim :: Aggregate (ScoredCx ScoredRawDocs) (ScoredCx r) => ScoredCx ScoredRawDocs -> ScoredCx r
+evalPrim = aggregate
 
 -- ------------------------------------------------------------
 

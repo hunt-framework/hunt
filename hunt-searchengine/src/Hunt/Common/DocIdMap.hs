@@ -42,6 +42,7 @@ module Hunt.Common.DocIdMap
   , traverseWithKey
   , foldr
   , foldrWithKey
+  , foldl
   , fromList
   , fromAscList
   , toList
@@ -50,8 +51,8 @@ module Hunt.Common.DocIdMap
   )
 where
 
-import           Prelude                    hiding (filter, foldr, lookup, map,
-                                             null)
+import           Prelude                    hiding (filter, foldl, foldr,
+                                             lookup, map, null)
 import qualified Prelude                    as P
 
 import           Control.Applicative        (Applicative (..), (<$>))
@@ -61,7 +62,7 @@ import           Control.Monad              (foldM, mzero)
 
 import           Data.Aeson
 import           Data.Binary                (Binary (..))
-import           Data.Foldable              hiding (fold, foldr, toList)
+import           Data.Foldable              hiding (fold, foldl, foldr, toList)
 import qualified Data.HashMap.Strict        as HM
 import qualified Data.IntMap.BinTree.Strict as IM
 import qualified Data.List                  as L
@@ -245,6 +246,9 @@ foldr f u               = IM.foldr f u . unDIM
 -- > foldrWithKey f "Map: " (fromList [(5,"a"), (3,"b")]) == "Map: (5:a)(3:b)"
 foldrWithKey            :: (DocId -> v -> b -> b) -> b -> DocIdMap v -> b
 foldrWithKey f u        = IM.foldrWithKey (f . DocId) u . unDIM
+
+foldl                   :: (b -> v -> b) -> b -> DocIdMap v -> b
+foldl f u               = IM.foldl f u . unDIM
 
 -- | Create a map from a list of 'DocId'\/value pairs.
 fromList                :: [(DocId, v)] -> DocIdMap v
