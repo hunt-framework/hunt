@@ -77,9 +77,17 @@ index _docs =
     var globalCompletionMax = 20;
     var snippet_no_results = "<tr><td colspan=\"4\">No results.</td></tr>";
     var map;
+    var mapPos = [20,0]
+    var mapZoom = 2;
 
     var initMap = function() {
-         map = L.map('map').setView([20,0], 1);
+         if (map !== undefined)
+         {
+            mapPos = map.getCenter();
+            mapZoom = map.getZoom();
+            map.remove();
+         }
+         map = L.map('map').setView(mapPos, mapZoom);
          L.tileLayer('https://{s}.tiles.mapbox.com/v3/{id}/{z}/{x}/{y}.png', {
             maxZoom: 18,
             attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
@@ -99,7 +107,6 @@ index _docs =
       ev.preventDefault();
       $("#map-results").show();
       $("#doc-results").hide();
-      map.remove();
       initMap();
       search(ev);
     });
@@ -161,7 +168,6 @@ index _docs =
             $("#result-body").html(snipped_no_results);
             return false;
           }
-          map.remove();
           initMap();
           var res = "";
           $(docs).each(function(i,doc) {
