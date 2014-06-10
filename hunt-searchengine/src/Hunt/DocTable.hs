@@ -35,6 +35,7 @@ import           Hunt.Common.Document   (Document,
 -- | The document table type class which needs to be implemented to be used by the 'Interpreter'.
 --   The type parameter @i@ is the implementation.
 --   The implementation must have a value type parameter.
+
 class (DocumentWrapper (DValue i)) => DocTable i where
     -- | The value type of the document table.
     type DValue i :: *

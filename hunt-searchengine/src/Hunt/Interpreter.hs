@@ -39,7 +39,7 @@ import qualified Data.ByteString.Lazy          as BL
 import           Data.Default
 import           Data.Function                 (on)
 import           Data.List                     (sortBy)
-import qualified Data.List                     as List
+import qualified Data.List                     as L
 import qualified Data.Map                      as M
 import           Data.Set                      (Set)
 import qualified Data.Set                      as S
@@ -250,7 +250,7 @@ withIx f
 askType :: DocTable dt => Text -> Hunt dt ContextType
 askType cn = do
   ts <- asks huntTypes
-  case List.find (\t -> cn == ctName t) ts of
+  case L.find (\t -> cn == ctName t) ts of
     Just t -> return t
     _      -> throwResError 410 ("used unavailable context type: " `T.append` cn)
 
@@ -258,7 +258,7 @@ askType cn = do
 askNormalizer :: DocTable dt => Text -> Hunt dt CNormalizer
 askNormalizer cn = do
   ts <- asks huntNormalizers
-  case List.find (\t -> cn == cnName t) ts of
+  case L.find (\t -> cn == cnName t) ts of
     Just t -> return t
     _      -> throwResError 410 ("used unavailable normalizer: " `T.append` cn)
 
@@ -400,17 +400,48 @@ execDeleteContext cx ixx
 --
 -- /Note/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs must not exist.
+
 execInsertList :: DocTable dt
                 => [ApiDocument] -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
-execInsertList docs ixx@(ContextIndex _ix _dt schema) = do
-  -- TODO: use set for undup
-  let contexts = concatMap (M.keys . adIndex) docs
-  checkContextsExistence contexts ixx
-  -- apidoc should not exist
-  mapM_ (flip (checkApiDocExistence False) ixx) docs
-  let docsAndWords = map ((\(d,_dw,ws) -> (d,ws)) . toDocAndWords schema) docs
-  ixx' <- lift $ CIx.insertList docsAndWords ixx
-  return (ixx', ResOK)
+execInsertList docs ixx@(ContextIndex _ix _dt schema)
+    = do -- all existence of all referenced contexts in all docs
+         checkContextsExistence contexts ixx
+
+         -- check no duplicates in docs
+         checkDuplicates duplicates
+
+         -- apidoc should not exist
+         mapM_ (flip (checkApiDocExistence False) ixx) docs
+
+         -- all checks done, do the real work
+         ixx' <- lift $ CIx.insertList docsAndWords ixx
+         return (ixx', ResOK)
+    where
+      -- compute all contexts in all docs
+      contexts
+          = M.keys
+            . M.unions
+            . L.map (M.map (const ()) . adIndex)
+            $ docs
+
+      docsAndWords
+          = L.map ((\(d, _dw, ws) -> (d, ws)) . toDocAndWords schema) docs
+
+      -- compute duplicate URIs by building a frequency table
+      -- and looking for entries with counts @> 1@
+      duplicates
+          = M.keys
+            . M.filter (> 1)
+            . L.foldl ins M.empty
+            . L.map adUri
+            $ docs
+            where
+              ins m k = M.insertWith (+) k (1::Int) m
+
+      -- check and throw error concerning duplicate URIs
+      checkDuplicates xs
+          = unless' (L.null xs)
+              409 $ "duplicate URIs found in document list:" `T.append` (T.pack $ show xs)
 
 
 -- | Updates an 'ApiDocument'.
