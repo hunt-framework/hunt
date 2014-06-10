@@ -19,6 +19,7 @@ module Control.Concurrent.XMVar
   , newXMVar
   , readXMVar, modifyXMVar, modifyXMVar_
   , takeXMVarWrite, putXMVarWrite
+  , takeXMVarLock, putXMVarLock
   )
 where
 
@@ -77,5 +78,17 @@ takeXMVarWrite (XMVar m l)
 putXMVarWrite :: XMVar a -> a -> IO ()
 putXMVarWrite (XMVar m l) v
   = swapMVar m v >> putMVar l ()
+
+-- | Locks for both reads and writes ('MVar' behaviour).
+--   This may be useful to save space because the old @a@ does not have to be kept in memory for
+--   read access. Note that references to the old @a@ might still lead to memory leaks/issues.
+takeXMVarLock :: XMVar a -> IO a
+takeXMVarLock (XMVar m l)
+  = takeMVar l >> takeMVar m
+
+-- | Replaces the value (since it was locked for potential writers) and unlocks writers.
+putXMVarLock :: XMVar a -> a -> IO ()
+putXMVarLock (XMVar m l) v
+  = putMVar m v >> putMVar l ()
 
 -- ------------------------------------------------------------

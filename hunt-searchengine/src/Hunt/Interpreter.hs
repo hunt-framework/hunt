@@ -211,7 +211,7 @@ askIx = do
 -- FIXME: io exception-safe?
 -- | Modify the context index.
 modIx :: DocTable dt
-      => (ContextIndex dt-> Hunt dt (ContextIndex dt, a)) -> Hunt dt a
+      => (ContextIndex dt -> Hunt dt (ContextIndex dt, a)) -> Hunt dt a
 modIx f = do
   ref <- asks huntIndex
   ix <- liftIO $ takeXMVarWrite ref
@@ -221,6 +221,24 @@ modIx f = do
   where
   putBack ref i e = do
     liftIO $ putXMVarWrite ref i
+    throwError e
+
+-- | Modify the context index.
+--   Locks the index for reads and writes to prevent excessive memory usage.
+--
+--   /Note/: This does not fix the memory issues on load entirely because the old index might
+--   still be referenced by a concurrent read operation.
+modIxLocked :: DocTable dt
+            => (ContextIndex dt -> Hunt dt (ContextIndex dt, a)) -> Hunt dt a
+modIxLocked f = do
+  ref <- asks huntIndex
+  ix <- liftIO $ takeXMVarLock ref
+  (i',a) <- f ix `catchError` putBack ref ix
+  liftIO $ putXMVarLock ref i'
+  return a
+  where
+  putBack ref i e = do
+    liftIO $ putXMVarLock ref i
     throwError e
 
 -- | Do something with the context index.
@@ -321,7 +339,7 @@ execCmd' (StoreIx filename)
   = withIx $ execStore filename
 
 execCmd' (LoadIx filename)
-  = modIx $ \_ix -> execLoad filename
+  = execLoad filename
 
 execCmd' (InsertContext cx ct)
   = modIx $ execInsertContext cx ct
@@ -553,15 +571,18 @@ execStore filename x = do
 -- TODO: XMVar functions probably not suited for this, locking for load reasonable
 
 -- | Load a context index.
---
---   This is deserialization needs to be more specific because of our existential typed index
-execLoad :: (Binary dt, DocTable dt) => FilePath -> Hunt dt (ContextIndex dt, CmdResult)
+--   The deserialization is more specific because of the existentially typed index.
+
+--   This operation locks the index, otherwise two potentially large indexes could be present at a
+--   time. This is still possible if a read operation lasts as long as loading the index.
+execLoad :: (Binary dt, DocTable dt) => FilePath -> Hunt dt CmdResult
 execLoad filename = do
   ts <- asks huntTypes
   let ix = map ctIxImpl ts
-  ixh@(ContextIndex _ _ s) <- decodeFile' ix filename
-  ls <- TV.mapM reloadSchema s
-  return (ixh{ ciSchema = ls }, ResOK)
+  modIxLocked $ \_ -> do
+    ixh@(ContextIndex _ _ s) <- decodeFile' ix filename
+    ls <- TV.mapM reloadSchema s
+    return (ixh{ ciSchema = ls }, ResOK)
   where
   decodeFile' ts f = do
     res <- liftIO . tryIOError $ CIx.decodeCxIx ts <$> BL.readFile f
