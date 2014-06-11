@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""hunt-cli
+
+Usage:
+  hunt-cli.py eval [--server SERVER] <file> 
+  hunt-cli.py load [--server SERVER] <file>
+  hunt-cli.py store [--server SERVER] <file>
+  hunt-cli.py make-schema <file>
+  hunt-cli.py search <query>
+  hunt-cli.py completion <query>
+  hunt-cli.py (-h | --help)
+
+
+Options:
+  -h --help           Show this screen.
+  --server=SERVER     Use this hunt server [default: localhost:3000]
+  make-schema <files> prints a simple schema for this document
+
+
+"""
+
+from __future__ import print_function
+
+from docopt import docopt
+import requests
+import json
+import os
+import time
+import sys
+
+def timing(f):
+    def wrap(*args):
+        time1 = time.time()
+        ret = f(*args)
+        time2 = time.time()
+        print('%s took %0.3f ms' % (f.__name__, (time2-time1)*1000.0), file=sys.stderr)
+        return ret
+    return wrap
+
+def makeUrl(server, part):
+    return 'http://' + server + '/' + part + '/'
+
+def url(server):
+    return makeUrl(server, "eval")
+
+@timing
+def eval(server, path):
+    if path == "-":
+        return requests.post(url(server), data=sys.stdin.read())
+    else:
+        with open(path) as fp:
+            return requests.post(url(server), data=fp.read())
+
+
+@timing
+def load(server, path):
+    data = json.dumps({
+        "cmd": "load",
+        "path": os.path.abspath(path)
+    })
+    return requests.post(url(server), data=data)
+
+@timing
+def store(server, path):
+    data = json.dumps({
+        "cmd": "store",
+        "path": os.path.abspath(path)
+    })
+    return requests.post(url(server), data=data)
+
+@timing
+def search(server, query):
+    return requests.get(makeUrl(server, "search") + query + "/0/20")
+
+@timing
+def completion(server, query):
+    return requests.get(makeUrl(server, "completion") + query + "/20")
+
+
+def context(name, weight=1.0, default=True, normalizers=None, regexp="\\w*", type="text"):
+    if not normalizers: normalizers = []
+    return {
+        "cmd": "insert-context",
+        "context": name,
+        "schema": {
+            "weight": weight,
+            "default": default,
+            "normalizers": normalizers,
+            "regexp": regexp,
+            "type": type
+        }
+    }
+
+
+def insertCommand(d):
+    """
+    @type d: tuple
+    """
+    return {
+        "cmd": d[1],
+        "document": d[0]
+    }
+
+def makeSchema(f):
+    with open(f) as fp:
+        j = json.load(fp)
+    contexts = j["document"]["index"].keys()
+    print(json.dumps(map(context, contexts), indent=4))
+
+
+if __name__ == '__main__':
+    arguments = docopt(__doc__)
+    try:
+        server = arguments['--server'] if arguments['--server'] else 'localhost:3000'
+        if arguments['eval']:
+            r = eval(server, arguments['<file>'])
+            print(r.text)
+        if arguments['load']:
+            r = load(server, arguments['<file>'])
+            print(r.text)
+        if arguments['store']:
+            r = store(server, arguments['<file>'])
+            print(r.text)
+        if arguments['make-schema']:
+            makeSchema(arguments['<file>'])
+        if arguments['search']:
+            r = search(server, arguments['<query>'])
+            print(r.text)
+        if arguments['completion']:
+            r = completion(server, arguments['<query>'])
+            print(r.text)
+
+    except:
+        print(arguments, file=stderr)
+        raise 
+
+
+
