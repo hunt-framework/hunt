@@ -262,7 +262,7 @@ toBasicCommand (Sequence cs) = Cmd.Sequence $ opt cs
   -- groups of Insert to InsertList
   -- TODO: remove constant
   optGroup cs'@(Insert{}:_)
-    = [splitBatch 30000000000 $ foldl (\(Cmd.InsertList us) (Insert u)
+    = [splitBatch maxBound $ foldl (\(Cmd.InsertList us) (Insert u)
                 -> Cmd.InsertList (u:us)) (Cmd.InsertList []) cs']
   optGroup cs'@(Sequence{}:_)
     = map toBasicCommand cs'
