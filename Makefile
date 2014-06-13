@@ -89,7 +89,7 @@ install:	; $(MAKE) -e target action=install
 force-install:	; $(MAKE) -e target action=install PROFOPTS="--force-reinstalls $(PROFOPTS)"
 #test:		; $(MAKE) -e target action=test PROFOPTS=''
 
-target: compression searchengine server
+target: searchengine server
 
 sandbox:
 	cabal sandbox init --sandbox .cabal-sandbox
