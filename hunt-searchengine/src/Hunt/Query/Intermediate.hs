@@ -1,8 +1,9 @@
-{-# LANGUAGE FlexibleContexts      #-}
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -61,6 +62,7 @@ import           Hunt.Query.Result     hiding (null)
 
 import           Hunt.Common
 import qualified Hunt.Common.DocIdMap  as DM
+import qualified Hunt.Common.DocIdSet  as DS
 import           Hunt.Common.Document  (DocumentWrapper (..), emptyDocument)
 import qualified Hunt.Common.Positions as Pos
 
@@ -118,6 +120,40 @@ toScoredDocs os
     = SDS $ DM.map toScore os
       where
         toScore = mkScore . fromIntegral . Pos.size
+
+-- ------------------------------------------------------------
+
+-- | The result type for unscored search of documents
+--
+-- used when all matching docs must be processed,
+-- e.g. in DeleteByQuery commands
+
+newtype UnScoredDocs
+    = UDS DS.DocIdSet
+      deriving (Show, Monoid)
+
+instance ScoredResult UnScoredDocs where
+    boost b uds
+        = uds
+
+    nullSC (UDS s)
+        = DS.null s
+
+    differenceSC (UDS s1) (UDS s2)
+        = UDS $ DS.difference s1 s2
+
+    intersectSC (UDS s1) (UDS s2)
+        = UDS $ DS.intersection s1 s2
+
+    intersectDisplSC _disp
+        = intersectSC
+
+    intersectFuzzySC _lb _ub
+        = intersectSC
+
+toUnScoredDocs :: Occurrences -> UnScoredDocs
+toUnScoredDocs os
+    = UDS . DS.fromList . DM.keys $ os
 
 -- ------------------------------------------------------------
 
@@ -395,16 +431,6 @@ fromRawResult cx sf rr
               toScored (w, occ)
                   = ([w], SCO (sf w) occ)
 
-
-{- old stuff, not yet used
-instance FromRawResult ScoredWordOccs where
-    fromRawResult sf r
-        = SCWO . M.fromList . L.map (uncurry toScored) $ r
-          where
-            toScored w occ
-                = (w, SCO (sf w) occ)
--- -}
-
 -- ------------------------------------------------------------
 --
 -- aggregating (raw) results for various types of scored results
@@ -435,6 +461,11 @@ instance Aggregate ScoredOccs ScoredDocs where
           where
             toScore = (sc *) . mkScore . fromIntegral . Pos.size
 
+-- | aggregate scored occurrences to unscored docs by throwing away the score
+instance Aggregate ScoredOccs UnScoredDocs where
+    aggregate (SCO sc occ)
+        = toUnScoredDocs occ
+
 -- | aggregate scored occurences to a score by aggregating first the positions and snd the doc ids
 --
 -- used in computing the score of word in completion search
@@ -453,6 +484,14 @@ instance Aggregate ScoredOccs Score where
 -- The function for computing the scores of documents in a query
 
 instance Aggregate ScoredRawDocs ScoredDocs where
+    aggregate (SRD xs)
+        = L.foldl (<>) mempty
+          $ L.map (aggregate . snd) xs
+
+-- | aggregate scored raw results into an unscored result by throwing away
+-- the words, scores and occurrences
+
+instance Aggregate ScoredRawDocs UnScoredDocs where
     aggregate (SRD xs)
         = L.foldl (<>) mempty
           $ L.map (aggregate . snd) xs

@@ -20,6 +20,9 @@ module Hunt.Common.DocIdSet
   , null
   , fromList
   , toList
+  , difference
+  , union
+  , intersection
   )
 where
 
@@ -65,6 +68,15 @@ instance FromJSON DocIdSet where
                 ins xs (Just s) = case fromHex xs of
                                     Nothing -> Nothing
                                     Just i  -> Just $ S.insert i s
+
+difference :: DocIdSet -> DocIdSet -> DocIdSet
+difference (DIS s1) (DIS s2) = DIS $ S.difference s1 s2
+
+union :: DocIdSet -> DocIdSet -> DocIdSet
+union (DIS s1) (DIS s2) = DIS $ S.union s1 s2
+
+intersection :: DocIdSet -> DocIdSet -> DocIdSet
+intersection (DIS s1) (DIS s2) = DIS $ S.intersection s1 s2
 
 fromList :: [DocId] -> DocIdSet
 fromList = DIS . S.fromList . L.map unDocId
