@@ -43,6 +43,36 @@ module Hunt.Query.Intermediate
   , fromList
   , fromListCxs
   , toResult
+
+  , ScoredResult(..)
+  , Aggregate(..)
+
+  , ScoredDocs
+  , ScoredWords
+  , ScoredContexts
+  , ScoredOccs
+  , ScoredRawDocs
+  , ScoredCx
+
+  , toScoredDocs
+  , boostAndAggregateCx
+  , fromCxRawResults
+  , fromRawResult
+  , limitRawResult
+  , limitCxRawResults
+  , contextWeights
+  , toDocsResult
+  , sortByScore
+
+  , evalSequence
+  , evalFollow
+  , evalNear
+  , evalOr
+  , evalAnd
+  , evalAndNot
+  , evalBoost
+  , evalPrim
+
 )
 where
 
@@ -52,12 +82,13 @@ import qualified Prelude               as P
 import           Control.Applicative   hiding (empty)
 import           Control.Arrow         (second, (***))
 
+import           Data.Function         (on)
 import qualified Data.List             as L
 import           Data.Map              (Map)
 import qualified Data.Map              as M
 import           Data.Maybe
 -- import           Data.Text             (Text)
-import qualified Data.Text             as T
+-- import qualified Data.Text             as T
 import           Hunt.Query.Result     hiding (null)
 
 import           Hunt.Common
@@ -357,8 +388,8 @@ newtype ScoredCx a
     = SCX (Map Context a)
       deriving (Show)
 
-type ScoredCxRawDocs
-    = ScoredCx ScoredRawDocs
+-- type ScoredCxRawDocs
+--    = ScoredCx ScoredRawDocs
 
 instance Monoid a => Monoid (ScoredCx a) where
     mempty
@@ -399,6 +430,10 @@ boostAndAggregateCx (SWS sm) (SCX m)
               where
                 b = fromMaybe defScore $ M.lookup k sm
 
+contextWeights :: Schema -> ScoredContexts
+contextWeights s
+    = SWS $ M.map cxWeight s
+
 -- ------------------------------------------------------------
 --
 -- auxiliary functions for scored context results
@@ -422,14 +457,65 @@ scx = SCX . M.filter (not . nullSC)
 --
 -- conversions from RawResult into scored results
 
-fromRawResult :: Context -> (Word -> Score) -> RawResult -> ScoredCx ScoredRawDocs
-fromRawResult cx sf rr
+type CxRawResults = [(Context, RawResult)]
+
+fromCxRawResults ::  (Word -> Score) -> CxRawResults -> ScoredCx ScoredRawDocs
+fromCxRawResults sf crs
+    = mconcat $ L.map (uncurry $ fromRawResult sf) crs
+
+fromRawResult :: (Word -> Score) -> Context -> RawResult -> ScoredCx ScoredRawDocs
+fromRawResult sf cx rr
     = SCX $ M.singleton cx sr
       where
         sr = SRD $ L.map toScored rr
             where
               toScored (w, occ)
                   = ([w], SCO (sf w) occ)
+
+limitCxRawResults :: Int -> CxRawResults -> CxRawResults
+limitCxRawResults mx
+    = L.map (second $ limitRawResult mx)
+
+limitRawResult :: Int -> RawResult -> RawResult
+limitRawResult maxDocs rs
+    | maxDocs <= 0 = rs
+    | otherwise = takeDocs maxDocs rs
+    where
+      takeDocs _  xs@[]
+          = xs
+      takeDocs _  xs@[_]
+          = xs
+      takeDocs mx (r@(_w, occ) : xs)
+          = case DM.sizeWithLimit mx occ of
+              Nothing -> [r]
+              Just s  -> let mx' = mx - s in
+                         if mx' <= 0
+                            then [r]
+                            else r : takeDocs mx' xs
+
+-- | convert a set of scored doc ids into a list of documents containing the score
+--
+-- This list may be further sorted by score, partitioned into pages or ...
+
+toDocsResult :: (Applicative m, Monad m, DocTable dt) =>
+                dt -> ScoredDocs -> m [Document]
+toDocsResult dt (SDS m)
+    = mapM toDoc (DM.toList m)
+      where
+        toDoc (did, sc)
+            = (toD . fromJust) <$> Dt.lookup did dt
+            where
+              toD d'
+                  = d {score = score d * sc}
+                  where
+                    d = unwrap d'
+
+sortByScore :: [Document] -> [Document]
+sortByScore = L.sortBy (compare `on` score)
+
+getResultPage :: Int -> Int -> [a] -> [a]
+getResultPage start len
+    = take len . drop start
 
 -- ------------------------------------------------------------
 --
@@ -583,6 +669,7 @@ evalPrim :: Aggregate (ScoredCx ScoredRawDocs) (ScoredCx r) => ScoredCx ScoredRa
 evalPrim = aggregate
 
 -- ------------------------------------------------------------
+-- ------------------------------------------------------------
 
 -- | The intermediate result used during query processing.
 
@@ -693,10 +780,10 @@ fromListCxs :: Schema -> [Word] -> [(Context, RawResult)] -> Intermediate
 fromListCxs sc ts rs = merges $ map (uncurry (fromList sc ts)) rs
 
 -- | Convert to a @Result@ by generating the 'WordHits' structure.
-toResult :: (Applicative m, Monad m, DocTable d, e ~ Dt.DValue d) =>
-            d -> Intermediate -> m (Result e)
-toResult d im = do
-    dh <- createDocHits d im
+toResult :: (Applicative m, Monad m, DocTable dt, e ~ Dt.DValue dt) =>
+            dt -> Intermediate -> m (Result e)
+toResult dt im = do
+    dh <- createDocHits dt im
     return $ Result dh (createWordHits im)
 
 
@@ -711,13 +798,13 @@ unionsDocLimited n = takeOne ((>= n) . size) . scanl union empty
 
 
 -- | Create the doc hits structure from an intermediate result.
-createDocHits :: (Applicative m, Monad m, DocTable d, e ~ Dt.DValue d) =>
-                 d -> Intermediate -> m (DocHits e)
-createDocHits d
+createDocHits :: (Applicative m, Monad m, DocTable dt, e ~ Dt.DValue dt) =>
+                 dt -> Intermediate -> m (DocHits e)
+createDocHits dt
     = DM.traverseWithKey transformDocs
     where
       transformDocs did (ic, db)
-          = let doc   = fromMaybe dummy <$> (Dt.lookup did d)
+          = let doc   = fromMaybe dummy <$> (Dt.lookup did dt)
                 dummy = wrap emptyDocument
             in (\doc' -> (DocInfo doc' db 0.0, M.map (M.map snd) ic)) <$> doc
 

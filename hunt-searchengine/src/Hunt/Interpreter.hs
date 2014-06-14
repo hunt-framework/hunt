@@ -70,10 +70,13 @@ import           Hunt.Interpreter.BasicCommand
 import           Hunt.Interpreter.Command      (Command)
 import           Hunt.Interpreter.Command      hiding (Command (..))
 
+import           Hunt.Query.Intermediate       (ScoredDocs, sortByScore,
+                                                toDocsResult)
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Processor          (ProcessConfig (..),
                                                 initProcessor, processQuery,
-                                                processQueryDocIds)
+                                                processQueryDocIds,
+                                                processQueryScoredDocs)
 import           Hunt.Query.Ranking
 import           Hunt.Query.Result             (DocInfo (..), Result (..),
                                                 WordInfo (..),
@@ -181,9 +184,11 @@ initHuntEnv ixx rnk opt ns qc = do
 -- ------------------------------------------------------------
 
 -- | The Hunt transformer monad. Allows a custom monad to be embedded to combine with other DSLs.
+
 newtype HuntT dt m a
-  = HuntT { runHuntT :: ReaderT (HuntEnv dt) (ErrorT CmdError m) a }
-  deriving (Applicative, Monad, MonadIO, Functor, MonadReader (HuntEnv dt), MonadError CmdError)
+    = HuntT { runHuntT :: ReaderT (HuntEnv dt) (ErrorT CmdError m) a }
+      deriving
+      (Applicative, Monad, MonadIO, Functor, MonadReader (HuntEnv dt), MonadError CmdError)
 
 instance MonadTrans (HuntT dt) where
   lift = HuntT . lift . lift
@@ -194,6 +199,7 @@ type Hunt dt = HuntT dt IO
 -- ------------------------------------------------------------
 
 -- | Run the Hunt monad with the supplied environment/state.
+
 runHunt :: DocTable dt => HuntT dt m a -> HuntEnv dt -> m (Either CmdError a)
 runHunt env = runErrorT . runReaderT (runHuntT env)
 
@@ -400,7 +406,7 @@ execDeleteContext cx ixx
 execInsertList :: DocTable dt
                 => [ApiDocument] -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 execInsertList docs ixx@(ContextIndex _ix _dt schema)
-    = do -- all existence of all referenced contexts in all docs
+    = do -- existence check for all referenced contexts in all docs
          checkContextsExistence contexts ixx
 
          -- check no duplicates in docs
@@ -512,12 +518,20 @@ execSearch' f q (ContextIndex ix dt s)
 
 execSelect :: DocTable dt => Query -> ContextIndex dt -> Hunt dt CmdResult
 execSelect q (ContextIndex ix dt s)
-    = do r <- lift $ runQueryDocIdsM ix s q
+    = do debugM ("execSelect: " ++ show q)
+         r <- lift $ runQueryScoredDocsM ix s q
          case r of
            Left  err -> throwError err
-           Right res -> do dt' <- DocTable.restrict res dt
-                           djs <- DocTable.toJSON'DocTable dt'
-                           return $ ResGeneric djs
+           Right res -> ResSearch <$> toLimitedRes res
+    where
+      toLimitedRes scDocs
+          = do ds <- sortByScore <$> toDocsResult dt scDocs
+               return $ LimitedResult
+                          { lrResult = sortByScore ds
+                          , lrOffset = 0
+                          , lrMax    = -1
+                          , lrCount  = length ds
+                          }
 
 mkSelect :: Bool -> Maybe [Text] -> (Document -> Document)
 mkSelect withWeight fields
@@ -650,9 +664,19 @@ runQueryDocIdsM :: ContextMap Occurrences
                 -> Schema
                 -> Query
                 -> IO (Either CmdError DocIdSet)
-runQueryDocIdsM ix s q = processQueryDocIds st q
-  where
-  st = initProcessor queryConfigDocIds ix s
+runQueryDocIdsM ix s q
+    = processQueryDocIds st q
+      where
+        st = initProcessor queryConfigDocIds ix s
+
+runQueryScoredDocsM :: ContextMap Occurrences
+                    -> Schema
+                    -> Query
+                    -> IO (Either CmdError ScoredDocs)
+runQueryScoredDocsM ix s q
+    = processQueryScoredDocs st q
+      where
+        st = initProcessor queryConfigDocIds ix s
 
 -- ------------------------------------------------------------
 

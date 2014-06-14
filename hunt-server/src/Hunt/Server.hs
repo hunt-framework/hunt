@@ -191,6 +191,11 @@ start config = do
       query    <- param "query"
       evalQuery cmdSearch query
 
+    -- simple query with unlimited # of hits
+    get "/select/:query/" $ do
+      query    <- param "query"
+      evalQuery cmdSelect query
+
     -- paged query
     get "/search/:query/:offset/:mx" $ do
       query    <- param "query"

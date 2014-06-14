@@ -27,6 +27,7 @@ module Hunt.Common.DocIdMap
   , delete
   , insertWith
   , size
+  , sizeWithLimit
   , union
   , intersection
   , difference
@@ -162,6 +163,10 @@ insertWith f x y        = liftDIM $ IM.insertWith f (unDocId x) y
 -- | The number of elements in the map.
 size                    :: DocIdMap v -> Int
 size                    = IM.size . unDIM
+
+-- | The number of elements limited up to a maximum
+sizeWithLimit           :: Int -> DocIdMap v -> Maybe Int
+sizeWithLimit limit     = IM.sizeWithLimit limit . unDIM
 
 -- | The (left-biased) union of two maps.
 --   It prefers the first map when duplicate 'DocId' are encountered,

@@ -403,15 +403,20 @@ searchWithCxs op cs k (ContextMap m)
 -- -}
 
 -- | Search in contexts with key already normalized with respect to each context type.
-searchWithCxsNormalized :: Monad m => TextSearchOp -> [(Context, Text)] -> ContextMap v -> m [(Context, [(Text, v)])]
+
+searchWithCxsNormalized :: Monad m =>
+                           TextSearchOp -> [(Context, Text)] -> ContextMap v ->
+                           m [(Context, [(Text, v)])]
 searchWithCxsNormalized op cks (ContextMap m)
-  = P.mapM search' cks
-  where
-  search' (c, k) = case M.lookup c m of
-    Just (Impl.IndexImpl cm) -> do
-      ix <- Ix.searchM op k cm
-      return (c, ix)
-    _ -> return (c, [])
+    = P.mapM search' cks
+    where
+      search' (c, k)
+          = case M.lookup c m of
+              Just (Impl.IndexImpl cm) ->
+                  do ix <- Ix.searchM op k cm
+                     return (c, ix)
+              Nothing ->
+                  return (c, [])
 
 -- ------------------------------------------------------------
 
