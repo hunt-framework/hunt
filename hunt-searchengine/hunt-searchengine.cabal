@@ -215,6 +215,10 @@ test-suite Hunt-Ranking
 --                , test-framework-quickcheck2
 --                , text
 --                , aeson
+--                , unordered-containers
+--                , time
+--                , old-locale
+--                , monad-parallel
 
 test-suite Hunt-Analyzer
   hs-source-dirs:       test

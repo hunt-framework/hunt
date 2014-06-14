@@ -9,30 +9,21 @@
 
 module Main where
 
+import qualified Control.Monad.Parallel                          as Par
+import           Control.DeepSeq
 import           Control.Monad                                   (foldM)
-
 import           TestHelper
 import           Test.Framework
 import           Test.Framework.Providers.QuickCheck2
-import           System.Random
 import           Test.QuickCheck
-import           Test.QuickCheck.Gen
-import           Test.QuickCheck.Random
 import           Test.QuickCheck.Monadic                         (PropertyM,
                                                                   monadicIO,
-                                                                  monitor,
+                                                                  monitor, assert,
                                                                   pick, run)
 
-import           Data.Maybe                                      (fromMaybe)
-import           Data.Map                                        (Map)
-import qualified Data.Map                                        as M
 import qualified Data.Set                                        as S
 import           Data.Text                                       (Text)
-import qualified Data.Text                                       as T
-import           Data.Aeson                                      (fromJSON)
-import qualified Data.HashMap.Strict                             as HM
-
-import           Control.Arrow                                   (second)
+import qualified Data.Map                                        as M
 
 import           GHC.AssertNF
 import           GHC.HeapView
@@ -43,10 +34,10 @@ import           Hunt.Common
 import qualified Hunt.Common.Positions                       as Pos
 import qualified Hunt.Common.Occurrences                     as Occ
 import qualified Hunt.Common.DocIdMap                        as DM
-import qualified Hunt.Common.DocDesc                         as DD
 import qualified Hunt.Common.DocIdSet                        as IS
 
 import qualified Hunt.Index                                  as Ix
+import           Hunt.ContextIndex
 import qualified Hunt.Index.InvertedIndex                    as InvIx
 import qualified Hunt.Index.PrefixTreeIndex                  as PIx
 import qualified Hunt.Index.PrefixTreeIndex2Dim              as PIx2D
@@ -118,6 +109,11 @@ main = defaultMain
   , testProperty "prop_strictness adjuri doctable"           prop_dt_adjust2
   , testProperty "prop_strictness difference doctable"       prop_dt_difference
   , testProperty "prop_strictness diffusi doctable"          prop_dt_difference2
+
+  , testProperty "prop_strictness_insertList1"               prop_cx_insertlist
+  , testProperty "prop_strictness_insertList2"               prop_cx_insertlist2
+
+
   -- TODO:
   -- map
   -- filter
@@ -146,6 +142,27 @@ prop_desc = monadicIO $ do
 -- ----------------------------------------------------------------------------
 -- document table implementation
 -- ----------------------------------------------------------------------------
+instance Par.MonadParallel (PropertyM IO) where
+
+prop_cx_insertlist ::Property
+prop_cx_insertlist = monadicIO $ do
+  docAndWords <- pickRes :: PropertyM IO (HDt.Documents Document, [(DocId, Words)])
+  assertNF' docAndWords
+  where
+    pickRes = pick mkInsertList >>= createDocTableFromPartition
+
+prop_cx_insertlist2 ::Property
+prop_cx_insertlist2 = monadicIO $ do
+  dt    <- pick mkDocTable :: PropertyM IO (HDt.Documents Document)
+  dts   <- pick $ listOf mkDocTable :: PropertyM IO [(HDt.Documents Document)]
+  input <- mapM (\dt -> return (dt,[])) dts
+  out   <- unionDocTables input dt
+  assertNF' out
+  where
+    mkDocTable = do
+       docs <- listOf arbitrary
+       foldM (\dt doc -> Dt.insert doc dt >>= return . snd) Dt.empty docs
+
 
 prop_dt_insert :: Property
 prop_dt_insert
@@ -226,7 +243,7 @@ prop_dt_adjust2
   pickIx = do
     doc1@(Document u _ _ _) <- pick arbitrary
     doc2 <- pick arbitrary
-    (docid, dt) <- Dt.insert doc1 Dt.empty
+    (_, dt) <- Dt.insert doc1 Dt.empty
     Dt.adjustByURI (\_ -> return doc2) u dt
 
 
@@ -252,7 +269,7 @@ prop_dt_difference2
   pickIx = do
     doc1@(Document u _ _ _) <- pick arbitrary
     doc2 <- pick arbitrary
-    (docid, dt) <- Dt.insert doc1 Dt.empty
+    (_, dt) <- Dt.insert doc1 Dt.empty
     (_, dt')    <- Dt.insert doc2 dt
     Dt.differenceByURI (S.singleton u) dt'
 
@@ -380,6 +397,10 @@ prop_proxy_del
 --insert_and_delete :: forall v (m :: * -> *) (i :: * -> *) v1.
 --                     (Ix.ICon i v1, Monad m, Ix.Index i, Ix.IVal i v1 ~ DocIdMap v) =>
 --                     Ix.IKey i v1 -> DocIdMap v -> m (i v1)
+insert_and_delete :: forall (m :: * -> *) (i :: * -> *) v.
+                     (Ix.ICon i v, Monad m, Ix.Index i,
+                      Ix.IVal i v ~ DocIdMap Positions) =>
+                      Ix.IKey i v -> DocIdMap Positions -> m (i v)
 insert_and_delete key v
   = return $ Ix.delete docId
            $ Ix.insert Occ.merge key v
@@ -606,6 +627,10 @@ prop_proxy_union
     val2 <- pick arbitrary
     insert_and_union "key" val1 val2
 
+insert_and_union :: forall (m :: * -> *) (i :: * -> *) v.
+                    (Ix.ICon i v, Monad m, Ix.Index i,
+                     Ix.IVal i v ~ DocIdMap Positions) =>
+                     Ix.IKey i v -> DocIdMap Positions -> DocIdMap Positions -> m (i v)
 insert_and_union key v1 v2
   = return $ Ix.unionWith (DM.union)
              (Ix.insert Occ.merge key v1 Ix.empty)
@@ -707,6 +732,6 @@ assertNF' = assertNF'' 5
 assertNF'' :: Int -> a -> PropertyM IO ()
 assertNF'' d x = do
   (b,g) <- run $ isNFWithGraph d x
-  monitor $ const $ printTestCase g b
+  monitor $ const $ counterexample  g b
 
 -- ----------------------------------------------------------------------------
