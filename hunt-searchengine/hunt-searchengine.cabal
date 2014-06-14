@@ -215,7 +215,6 @@ test-suite Hunt-Ranking
 --                , test-framework-quickcheck2
 --                , text
 --                , aeson
---                , unordered-containers
 
 test-suite Hunt-Analyzer
   hs-source-dirs:       test
@@ -237,3 +236,5 @@ test-suite Hunt-Analyzer
                , test-framework-quickcheck2
                , text
                , time
+               , unordered-containers
+               , aeson

@@ -5,10 +5,10 @@ module Main where
 
 import           TestHelper
 
-import           Data.Text                              (Text)
+--import           Data.Text                              (Text)
 import qualified Data.Text                              as T
-import           Data.Time
-import           System.Locale
+--import           Data.Time
+--import           System.Locale
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
