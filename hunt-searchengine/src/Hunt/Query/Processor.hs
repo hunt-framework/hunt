@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeFamilies               #-}
@@ -18,10 +19,12 @@
 module Hunt.Query.Processor
     ( processQuery
     , processQueryDocIds
+    , processQueryScoredDocs
     , initProcessor
 
     , ProcessConfig (..)
     , ProcessEnv
+    , similar
     )
 
 where
@@ -53,12 +56,14 @@ import qualified Hunt.DocTable               as Dt
 import           Hunt.Interpreter.Command    (CmdError (..))
 import           Hunt.Query.Fuzzy            (FuzzyConfig)
 import qualified Hunt.Query.Fuzzy            as F
-import           Hunt.Query.Intermediate     (Intermediate)
+import           Hunt.Query.Intermediate
 import qualified Hunt.Query.Intermediate     as I
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Result           (Result)
 
 import qualified System.Log.Logger           as Log
+
+import           Debug.Trace
 
 -- ------------------------------------------------------------
 -- Logging
@@ -121,11 +126,13 @@ data ProcessEnv
 -- Processor monad
 -- ------------------------------------------------------------
 
-type QueryIndex    = ContextMap     Occurrences
+type QueryIndex
+    = ContextMap Occurrences
 
 -- | the processor monad
-newtype ProcessorT m a = PT { runProcessor :: ReaderT ProcessEnv (ErrorT CmdError m) a }
-  deriving (Applicative, Monad, MonadIO, Functor, MonadReader ProcessEnv, MonadError CmdError)
+newtype ProcessorT m a
+    = PT { runProcessor :: ReaderT ProcessEnv (ErrorT CmdError m) a }
+      deriving (Applicative, Monad, MonadIO, Functor, MonadReader ProcessEnv, MonadError CmdError)
 
 instance MonadTrans ProcessorT where
   lift = PT . lift . lift
@@ -136,14 +143,9 @@ type Processor = ProcessorT IO
 -- Helper
 -- ------------------------------------------------------------
 
-processError ::   Int -> Text -> Processor a
-processError n msg
+queryError ::   Int -> Text -> Processor a
+queryError n msg
     = throwError $ ResError n msg
-
-{-
-unless' ::   Bool -> Int -> Text -> Processor ()
-unless' b code text = unless b $ processError code text
--}
 
 getContexts ::   Processor [Context]
 getContexts = asks psContexts
@@ -151,21 +153,21 @@ getContexts = asks psContexts
 getFuzzyConfig ::   Processor FuzzyConfig
 getFuzzyConfig = asks (fuzzyConfig . psConfig)
 
-getIx ::   Processor QueryIndex
+getIx :: Processor QueryIndex
 getIx = asks psIndex
 
-getSchema ::   Processor Schema
+getSchema :: Processor Schema
 getSchema = asks psSchema
 
 -- | Get the schema associated with that context/index.
 --
 --   /Note/: This fails if the schema does not exist.
 getContextSchema ::   Context -> Processor ContextSchema
-getContextSchema c = do
-  schema <- getSchema
-  case M.lookup c schema of
-    Just cs -> return cs
-    _       -> processError 420 ("Context does not exist in schema: " `T.append` c)
+getContextSchema c
+    = do schema <- getSchema
+         case M.lookup c schema of
+           Just cs -> return cs
+           _       -> queryError 420 ("Context does not exist in schema: " <> c)
 
 
 -- | Normalizes the search value with respect to the schema context type.
@@ -180,7 +182,7 @@ normQueryCx c t = do
       liftIO . debugM . debugMsg $ s
       -- apply context schema normalizer
       return $ norm s
-    else processError 400 $ errorMsg s
+    else queryError 400 $ errorMsg s
     where
   norm s     = normalize' (cxNormalizer s) t
   debugMsg s = T.unpack $ T.concat [ "query normalizer: ", c, ": [", t, "=>", norm s, "]"]
@@ -208,16 +210,16 @@ initProcessor cfg ix s
 --
 --   The results can be ranked with the default 'Hunt.Query.Ranking.rank' function.
 
-processQuery :: (DocTable d, Dt.DValue d ~ e)
-              => ProcessEnv -> d -> Query -> IO (Either CmdError (Result e))
-processQuery st d q
+processQuery :: (DocTable dt, Dt.DValue dt ~ e)
+              => ProcessEnv -> dt -> Query -> IO (Either CmdError (Result e))
+processQuery st dt q
     = runErrorT . runReaderT (runProcessor processToRes) $ st
     where
       oq = if optimizeQuery (psConfig st)
            then optimize q
            else q
       processToRes
-          = process oq >>= I.toResult d
+          = process oq >>= I.toResult dt
 
 -- | Generic 'processQuery' with a function to create the final result from an 'Intermediate'.
 
@@ -254,12 +256,12 @@ process o = case o of
                           processBin op pq1 pq2
   QRange l h          -> processRange l h
   QBoost w q          -> process q >>= processBoost w
-
+  _                   -> error $ "Processor.process: query not implemented " ++ show o
 
 -- TODO: previously rdeepseq
 -- TODO: parallelize mapM
 -- | Evaluate (the query) for all contexts.
-forAllContexts :: ([Context] -> Processor Intermediate) -> Processor Intermediate
+forAllContexts :: ([Context] -> Processor a) -> Processor a
 forAllContexts f = getContexts >>= f
 
 forAllContexts' :: (Context -> Processor Intermediate) -> Processor Intermediate
@@ -420,7 +422,7 @@ processBin :: BinOp -> Intermediate -> Intermediate -> Processor Intermediate
 processBin And    i1 i2 = return $ I.intersection i1 i2
 processBin Or     i1 i2 = return $ I.union        i1 i2
 processBin AndNot i1 i2 = return $ I.difference   i1 i2
-
+processBin bop    _  _  = error $ "Processor.processBin: binary query op not supported: " ++ show bop
 
 -- | Process query boosting
 processBoost :: Score -> Intermediate -> Processor Intermediate
@@ -431,11 +433,11 @@ processContexts :: [Context] -> Query -> Processor Intermediate
 processContexts cs q
     = do schema <- getSchema
          let invalidContexts = filter (not . flip M.member schema) cs
-         if null invalidContexts
-           then local setCx $ process q
-           else processError 404
-                $ "mentioned context(s) do not exist: "         -- schema to be precise
-                  `T.append` (T.pack . show $ invalidContexts)
+         if (not $ L.null invalidContexts)
+            then queryError 404
+                     ( "mentioned context(s) do not exist: "
+                       <> (T.pack . show $ invalidContexts) )
+            else local setCx (process q)
   where
   setCx cfg = cfg { psContexts = cs}
 
@@ -544,5 +546,367 @@ succString = succString'
     --minBound' = 'a'
     --maxBound' = 'z'
 -}
+
+-- ------------------------------------------------------------
+-- ------------------------------------------------------------
+
+processQueryUnScoredDocs :: ProcessEnv -> Query -> IO (Either CmdError UnScoredDocs)
+processQueryUnScoredDocs st q
+    = runErrorT . runReaderT (runProcessor $ evalUnScoredDocs q) $ st
+
+-- | evaluate a query into a UnScoredDocs result
+--
+-- all info about contexts, words and positions are is removed by the aggregation
+
+evalUnScoredDocs :: Query -> Processor UnScoredDocs
+evalUnScoredDocs q
+    | isPrimaryQuery q
+        = do res <- forallCx (evalPrimary q)
+             _aggregateToUnScoredDocs res
+
+evalUnScoredDocs (QRange lb ub)
+    = do res <- forallCx (evalRange lb ub)
+         _aggregateToUnScoredDocs res
+
+evalUnScoredDocs (QSeq op qs)
+    | isLocalCxOp op
+        = do res <- forallCxLocal
+                    ( evalSeq' op                     -- do the position aware operation
+                      <$> mapM evalScoredRawDocs qs ) -- switch to the raw evaluator due to positions
+             _aggregateToUnScoredDocs res                -- and aggregate res to UnScoredDocs
+    | otherwise
+        = evalSeq op                                  -- do the result combination
+          <$> mapM evalUnScoredDocs qs                  -- for the args stay in evaluator
+
+evalUnScoredDocs (QContext cxs q)
+    = withCxs cxs $ evalUnScoredDocs q
+
+evalUnScoredDocs (QBoost w q)
+    = evalUnScoredDocs q
+
+evalUnScoredDocs q@QPhrase{}              -- QPhrase is transformed into QFullWord or QSeq Phrase
+    = normQuery q >>= evalUnScoredDocs
+
+evalUnScoredDocs q@QBinary{}              -- QBin is transformed into QSeq
+    = normQuery q >>= evalUnScoredDocs
+
+evalUnScoredDocs q
+    = queryEvalError q
+
+-- ------------------------------------------------------------
+
+processQueryScoredDocs :: ProcessEnv -> Query -> IO (Either CmdError ScoredDocs)
+processQueryScoredDocs st q
+    = runErrorT . runReaderT (runProcessor $ evalScoredDocs q) $ st
+
+-- | evaluate a query into a ScoredDocs result
+--
+-- all info about contexts, words and positions are is removed by the aggregation
+
+evalScoredDocs :: Query -> Processor ScoredDocs
+evalScoredDocs q
+    | isPrimaryQuery q
+        = do res <- forallCx (evalPrimary q)
+             aggregateToScoredDocs res
+
+evalScoredDocs (QRange lb ub)
+    = do res <- forallCx (evalRange lb ub)
+         aggregateToScoredDocs res
+
+evalScoredDocs (QSeq op qs)
+    | isLocalCxOp op
+        = do res <- forallCxLocal
+                    ( evalSeq' op                     -- do the position aware operation
+                      <$> mapM evalScoredRawDocs qs ) -- switch to the raw evaluator due to positions
+             aggregateToScoredDocs res                -- and aggregate res to ScoredDocs
+    | otherwise
+        = evalSeq op                                  -- do the result combination
+          <$> mapM evalScoredDocs qs                  -- for the args stay in evaluator
+
+evalScoredDocs (QContext cxs q)
+    = withCxs cxs $ evalScoredDocs q
+
+evalScoredDocs (QBoost w q)
+    = boost w <$> evalScoredDocs q
+
+evalScoredDocs q@QPhrase{}              -- QPhrase is transformed into QFullWord or QSeq Phrase
+    = normQuery q >>= evalScoredDocs
+
+evalScoredDocs q@QBinary{}              -- QBin is transformed into QSeq
+    = normQuery q >>= evalScoredDocs
+
+evalScoredDocs q
+    = queryEvalError q
+
+-- ------------------------------------------------------------
+
+-- | evaluate a query into a context aware raw docs result
+--
+-- This evaluator is called from evalScoredDocs
+-- in the case of Phrase-, Follow- and Near-queries.
+--
+-- No info about contexts, words and positions is removed by the aggregation.
+-- evalScoredRawDocs always runs in a single context at a time,
+-- becaue the position information does not have any meaning across contexts
+--
+-- Therefore QContext subqueries become meaningless within Phrase, Follow and Near queries
+
+evalScoredRawDocs :: Query -> Processor (ScoredCx ScoredRawDocs)
+evalScoredRawDocs q
+    | isPrimaryQuery q
+        = forallCx (evalPrimary q)
+
+evalScoredRawDocs (QRange lb ub)
+    = forallCx (evalRange lb ub)
+
+evalScoredRawDocs (QSeq op qs)
+    | isLocalCxOp op
+        = evalSeq' op
+          <$> mapM evalScoredRawDocs qs
+    | otherwise
+        = evalSeq  op
+          <$> mapM evalScoredRawDocs qs
+
+evalScoredRawDocs (QContext cxs q)
+    = restrictCxs cxs $ evalScoredRawDocs q
+
+evalScoredRawDocs (QBoost w q)
+    = boost w <$> evalScoredRawDocs q
+
+evalScoredRawDocs q@QPhrase{}              -- QPhrase is transformed into QFullWord or QSeq Phrase
+    = normQuery q >>= evalScoredRawDocs
+
+evalScoredRawDocs q@QBinary{}              -- QBin is transformed into QSeq
+    = normQuery q >>= evalScoredRawDocs
+
+evalScoredRawDocs q
+    = queryEvalError q
+
+-- ------------------------------------------------------------
+--
+-- query normalization: transform "old" queries into generalized new form
+
+normQuery :: Query -> Processor Query
+normQuery (QPhrase op w)
+    = return . QSeq Phrase . L.map (QFullWord op) $ T.words w
+
+normQuery q@(QBinary op _q1 _q2)
+    = return . QSeq op . collect op q $ []
+      where
+        collect
+            | isAssocOp     op = collectAssoc
+            | isLeftAssocOp op = collectLeftAssoc
+            | otherwise        = \ _op q' -> (q':)
+
+normQuery q
+    = return q
+
+collectAssoc :: BinOp -> Query -> [Query] -> [Query]
+collectAssoc op (QBinary op' q1 q2)
+    | op == op'
+        = collectAssoc op q1 . collectAssoc op q2
+collectAssoc _ q
+    = (q :)
+
+collectLeftAssoc :: BinOp -> Query -> [Query] -> [Query]
+collectLeftAssoc op (QBinary op' q1 q2)
+    | op == op'
+        = collectAssoc op q1 . (q2 :)
+collectLeftAssoc _ q
+    = (q :)
+
+isAssocOp :: BinOp -> Bool
+isAssocOp AndNot = False
+isAssocOp _       = True
+
+isLeftAssocOp :: BinOp -> Bool          -- currently AndNot is left assoc
+isLeftAssocOp = not . isAssocOp         -- all others are assoc ops
+
+isLocalCxOp :: BinOp -> Bool
+isLocalCxOp Phrase   = True
+isLocalCxOp Follow{} = True
+isLocalCxOp Near{}   = True
+isLocalCxOp _        = False
+
+-- ------------------------------------------------------------
+
+-- eval query combinators
+
+evalSeq :: (ScoredResult r) => BinOp -> [r] -> r
+evalSeq Or     = evalOr
+evalSeq And    = evalAnd
+evalSeq AndNot = evalAndNot
+evalSeq _op    = const mempty
+
+evalSeq' :: BinOp -> [ScoredCx ScoredRawDocs] -> ScoredCx ScoredRawDocs
+evalSeq' Phrase     = evalSequence id
+evalSeq' (Follow d) = evalFollow   id d
+evalSeq' (Near   d) = evalNear     id d
+evalSeq' _op        = const mempty
+
+-- | restrict the current context for a query
+--
+-- used in evaluating phrase-, follow- and near- queries
+-- there it's meaningless to use other than the current contexts
+
+restrictCxs :: [Context] -> Processor r -> Processor r
+restrictCxs cxs p
+    = do cxs0 <- getContexts
+         withCxs cxs $                                           -- check for legal contexts
+                 local (setCx $ cxs0 `L.intersect` L.nub cxs) p  -- restrict contexts to cxs
+    where
+      setCx cxs' cfg
+          = cfg {psContexts = cxs'}
+
+-- | set the context for a part of a query evaluation
+
+withCxs :: [Context] -> Processor r -> Processor r
+withCxs cxs p
+    = do icxs <- invalidContexts <$> getSchema
+         if L.null icxs
+            then local setCx $ p
+            else queryError 404
+                 $ "mentioned context(s) do not exist: "
+                   <> (T.pack . show $ icxs)
+    where
+      invalidContexts sc
+          = filter (\ c -> not (c `M.member` sc)) cxs
+      setCx cfg
+          = cfg {psContexts = L.nub cxs}
+
+-- | execute a command (query) for all contexts and give the current context
+-- as extra argument
+
+forallCx :: (ScoredResult r) => (Context -> Processor r) -> Processor r
+forallCx action
+    = do cxs <- getContexts
+         res <- mapM action cxs
+         return $ mconcat res
+
+-- | execute a command for all contexts, but restrict the set of contexts
+-- to the current context before executing the command
+--
+-- So the loop over all contexts (forallCx) called in the evaluation of primary
+-- queries is switched off
+
+forallCxLocal :: (ScoredResult r) => Processor r -> Processor r
+forallCxLocal action
+    = do cxs <- getContexts
+         res <- mapM f' cxs
+         return $ mconcat res
+    where
+      f' cx
+          = withCxs [cx] action
+
+isPrimaryQuery :: Query -> Bool
+isPrimaryQuery QWord{}     = True
+isPrimaryQuery QFullWord{} = True
+isPrimaryQuery _           = False
+
+queryEvalError :: Query -> Processor r
+queryEvalError q
+    = queryError 501 $ "Hunt.Query.Processor: query can't be evaluated " <> (T.pack $ show q)
+
+-- ------------------------------------------------------------
+
+aggregateToScoredDocs :: ScoredCx ScoredRawDocs -> Processor ScoredDocs
+aggregateToScoredDocs res
+    = do cxScores <- contextWeights <$> getSchema
+         return $ boostAndAggregateCx cxScores (aggregate res)
+
+-- eval basic queries
+{-
+rawToScoredDocs :: ScoredCx ScoredRawDocs -> Processor ScoredDocs
+rawToScoredDocs
+    = aggr2 . aggr1
+      where
+        aggr1 :: ScoredCx ScoredRawDocs -> ScoredCx ScoredDocs
+        aggr1 = aggregate
+        aggr2 :: ScoredCx ScoredDocs -> Processor ScoredDocs
+        aggr2 = aggregate
+-- -}
+evalPrimary :: Query -> Context -> Processor (ScoredCx ScoredRawDocs)
+evalPrimary (QWord QCase w) cx
+    = searchCx PrefixCase w cx
+
+evalPrimary (QWord QNoCase w) cx
+    = searchCx PrefixNoCase w cx
+
+evalPrimary (QWord QFuzzy w) cx         -- TODO: QFuzzy is processed like nocase search
+    = searchCx PrefixNoCase w cx
+
+evalPrimary (QFullWord QCase w) cx
+    = searchCx Case w cx
+
+evalPrimary (QFullWord QNoCase w) cx
+    = searchCx NoCase w cx
+
+evalPrimary (QFullWord QFuzzy w) cx     -- TODO: QFuzzy is processed like nocase search
+    = searchCx NoCase w cx
+
+evalPrimary q _cx
+    = queryError 501 $ "evalPrimary: not a primary query: " <> (T.pack $ show q)
+
+searchCx :: TextSearchOp -> Word -> Context -> Processor (ScoredCx ScoredRawDocs)
+searchCx op w' cx
+    = do w     <- normQueryCx cx w'                     -- normalize the word with respect to context
+         limit <- asks (docLimit . psConfig)            -- get the max. # of docs
+         ix    <- getIx                                 -- get the context search index
+         rawr  <- limitRawResult limit
+                  <$> CIx.searchWithCx op cx w ix       -- do the real search and limit result
+         return $ fromCxRawResults (similar w) [(cx, rawr)]
+                                                        -- convert the result to a ScoredResult
+                                                        -- the score comes from a similarity test
+
+evalRange :: Word -> Word -> Context -> Processor (ScoredCx ScoredRawDocs)
+evalRange lb0 ub0 cx
+    = do lb    <- normQueryCx cx lb0
+         ub    <- normQueryCx cx ub0
+         limit <- asks (docLimit . psConfig)
+         ix    <- getIx
+         rawr  <- limitRawResult limit
+                  <$> CIx.lookupRangeCx cx lb ub ix
+         return $ fromCxRawResults (similarRange lb) [(cx, rawr)]
+
+-- ------------------------------------------------------------
+
+-- | a similarity heuristic for scoring words found
+-- when doing a fuzzy or prefix search
+--
+-- TODO: this function should be moved to all the index implementations,
+-- this one is just o.k. for words, but not for distances or regions
+
+similar :: Text -> Text -> Score
+similar s f
+    = traceShow ("similar", s, f, r) $
+      r
+    where
+      r = similar' s f
+
+similar' :: Text -> Text -> Score
+similar' searched found
+    | searched == found
+        = boostExactHit
+    | ls == lf
+        = boostSameLength
+    | ls < lf                     -- reduce score by length of found word
+        = fromIntegral ls / fromIntegral lf
+    | otherwise                   -- make similar total
+        = noScore
+    where
+      boostExactHit   = 10.0
+      boostSameLength =  5.0      -- NoCase hits
+
+      ls = T.length searched
+      lf = T.length found
+
+-- | scoring function for hits within a range
+--
+-- all results are of equal quality
+-- TODO: move this into the index implementations to score
+-- the hits dependent on the structure of the index (text vs. int vs. geo)
+
+similarRange :: Text -> Text -> Score
+similarRange _lb _ub = defScore
 
 -- ------------------------------------------------------------
