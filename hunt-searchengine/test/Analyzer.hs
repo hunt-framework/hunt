@@ -3,10 +3,11 @@
 module Main where
 {-- Tests for Normalizers Analyzers Formatters #-}
 
+import           TestHelper
+
 import           Data.Text                              (Text)
 import qualified Data.Text                              as T
 import           Data.Time
---import           Data.Time.Format
 import           System.Locale
 
 import           Test.Framework
@@ -269,15 +270,3 @@ test_scan_date6 :: Assertion
 test_scan_date6 = assert $ length scan == 0
   where
   scan = A.scanTextRE "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))" "2013"
-
-
--- ----------------------------------------------------------------------------
--- helper
-
-niceText1 :: Gen Text
-niceText1 = fmap T.pack . listOf1 . elements $ concat [" ", ['A'..'Z'], ['a'..'z']]
-
-dateYYYYMMDD :: Gen Text
-dateYYYYMMDD = arbitrary >>= \x -> return . T.pack $ formatTime defaultTimeLocale "%Y-%m-%d" (newDate x)
-  where
-  newDate x = addDays (-x) (fromGregorian 2013 12 31)
