@@ -16,17 +16,22 @@ import           Test.Framework.Providers.QuickCheck2
 import           System.Random
 import           Test.QuickCheck
 import           Test.QuickCheck.Gen
+import           Test.QuickCheck.Random
 import           Test.QuickCheck.Monadic                         (PropertyM,
                                                                   monadicIO,
                                                                   monitor,
                                                                   pick, run)
 
+import           Data.Maybe                                      (fromMaybe)
 import           Data.Map                                        (Map)
 import qualified Data.Map                                        as M
-import qualified Data.IntSet                                     as IS
 import qualified Data.Set                                        as S
 import           Data.Text                                       (Text)
 import qualified Data.Text                                       as T
+import           Data.Aeson                                      (fromJSON)
+import qualified Data.HashMap.Strict                             as HM
+
+import           Control.Arrow                                   (second)
 
 import           GHC.AssertNF
 import           GHC.HeapView
@@ -38,6 +43,7 @@ import qualified Hunt.Common.Positions                       as Pos
 import qualified Hunt.Common.Occurrences                     as Occ
 import qualified Hunt.Common.DocIdMap                        as DM
 import qualified Hunt.Common.DocDesc                         as DD
+import qualified Hunt.Common.DocIdSet                        as IS
 
 import qualified Hunt.Index                                  as Ix
 import qualified Hunt.Index.InvertedIndex                    as InvIx
@@ -191,7 +197,7 @@ prop_dt_delete2
     assertNF' dt
   where
   pickIx = do
-    doc1@(Document u _ _) <- pick arbitrary
+    doc1@(Document u _ _ _) <- pick arbitrary
     doc2 <- pick arbitrary
     (_, dt) <- Dt.insert doc1 Dt.empty
     (_, dt')    <- Dt.insert doc2 dt
@@ -217,7 +223,7 @@ prop_dt_adjust2
     assertNF' dt
   where
   pickIx = do
-    doc1@(Document u _ _) <- pick arbitrary
+    doc1@(Document u _ _ _) <- pick arbitrary
     doc2 <- pick arbitrary
     (docid, dt) <- Dt.insert doc1 Dt.empty
     Dt.adjustByURI (\_ -> return doc2) u dt
@@ -243,7 +249,7 @@ prop_dt_difference2
     assertNF' dt
   where
   pickIx = do
-    doc1@(Document u _ _) <- pick arbitrary
+    doc1@(Document u _ _ _) <- pick arbitrary
     doc2 <- pick arbitrary
     (docid, dt) <- Dt.insert doc1 Dt.empty
     (_, dt')    <- Dt.insert doc2 dt
@@ -259,7 +265,7 @@ prop_ptix
     ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Positions)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "key" val Ix.empty
 
 prop_ptix2d :: Property
 prop_ptix2d
@@ -267,7 +273,7 @@ prop_ptix2d
     ix <- pickIx :: PropertyM IO (PIx2D.DmPrefixTree Positions)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "11" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "11" val Ix.empty
 
 prop_invix1 :: Property
 prop_invix1
@@ -275,7 +281,7 @@ prop_invix1
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex Positions)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "key" val Ix.empty
 
 prop_invix2 :: Property
 prop_invix2
@@ -283,7 +289,7 @@ prop_invix2
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexInt Positions)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "1" val Ix.empty
 
 prop_invix3 :: Property
 prop_invix3
@@ -291,7 +297,7 @@ prop_invix3
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexDate Positions)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "2013-01-01" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "2013-01-01" val Ix.empty
 
 prop_invix4 :: Property
 prop_invix4
@@ -299,7 +305,7 @@ prop_invix4
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Positions)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "1-1" val Ix.empty
 
 prop_proxy :: Property
 prop_proxy
@@ -307,7 +313,7 @@ prop_proxy
     ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree) Positions)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "key" val Ix.empty
 
 -- ----------------------------------------------------------------------------
 -- index implementations: delete function
@@ -370,16 +376,17 @@ prop_proxy_del
   where
   pickIx = pick arbitrary >>= insert_and_delete "key"
 
-insert_and_delete :: forall v (m :: * -> *) (i :: * -> *) v1.
-                     (Ix.ICon i v1, Monad m, Ix.Index i, Ix.IVal i v1 ~ DocIdMap v) =>
-                     Ix.IKey i v1 -> DocIdMap v -> m (i v1)
+--insert_and_delete :: forall v (m :: * -> *) (i :: * -> *) v1.
+--                     (Ix.ICon i v1, Monad m, Ix.Index i, Ix.IVal i v1 ~ DocIdMap v) =>
+--                     Ix.IKey i v1 -> DocIdMap v -> m (i v1)
 insert_and_delete key v
   = return $ Ix.delete docId
-           $ Ix.insert key v Ix.empty
+           $ Ix.insert Occ.merge key v
+           $ Ix.empty
     where
     docId = case DM.toList v of
               ((did,_):_) -> did
-              _           -> 0
+              _           -> mkDocId (0::Int)
 
 -- ----------------------------------------------------------------------------
 -- index implementations: map function
@@ -446,8 +453,8 @@ insert_and_map :: forall (m :: * -> *) (i :: * -> *) v.
                    Ix.IVal i v ~ DocIdMap Positions) =>
                   Ix.IKey i v -> DocIdMap Positions -> m (i v)
 insert_and_map key v
-  = return $ Ix.map (DM.insert 1 (Pos.singleton 1))
-           $ Ix.insert key v Ix.empty
+  = return $ Ix.map (DM.insert (mkDocId (1 :: Int)) (Pos.singleton 1))
+           $ Ix.insert Occ.merge key v Ix.empty
 
 -- ----------------------------------------------------------------------------
 -- index implementations: mapMaybe function
@@ -514,8 +521,8 @@ insert_and_map2 :: forall (m :: * -> *) (i :: * -> *) v.
                     Ix.IVal i v ~ DocIdMap Positions) =>
                    Ix.IKey i v -> DocIdMap Positions -> m (i v)
 insert_and_map2 key v
-  = return $ Ix.mapMaybe (Just . DM.insert 1 (Pos.singleton 1))
-           $ Ix.insert key v Ix.empty
+  = return $ Ix.mapMaybe (Just . DM.insert (mkDocId (1 :: Int)) (Pos.singleton 1))
+           $ Ix.insert Occ.merge key v Ix.empty
 
 -- ----------------------------------------------------------------------------
 -- index implementations: unionWith function
@@ -598,13 +605,10 @@ prop_proxy_union
     val2 <- pick arbitrary
     insert_and_union "key" val1 val2
 
-insert_and_union :: forall (m :: * -> *) (i :: * -> *) v v1.
-                    (Ix.ICon i v, Monad m, Ix.Index i, Ix.IVal i v ~ DocIdMap v1) =>
-                    Ix.IKey i v -> DocIdMap v1 -> DocIdMap v1 -> m (i v)
 insert_and_union key v1 v2
   = return $ Ix.unionWith (DM.union)
-             (Ix.insert key v1 Ix.empty)
-             (Ix.insert key v2 Ix.empty)
+             (Ix.insert Occ.merge key v1 Ix.empty)
+             (Ix.insert Occ.merge key v2 Ix.empty)
 
 
 -- ----------------------------------------------------------------------------
@@ -654,8 +658,8 @@ prop_contextix2
             $ CIx.empty
     assertNF' cix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
-  pickIx2 = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "1-1" val Ix.empty
+  pickIx2 = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "1-1" val Ix.empty
 --}
 
 -- ----------------------------------------------------------------------------
@@ -670,7 +674,7 @@ prop_impl_full
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Occurrences)
     assertNF' $ mkIndex ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "1-1" val Ix.empty
 
 prop_impl_empty :: Property
 prop_impl_empty
@@ -690,7 +694,8 @@ mkDocument = do
   u <- niceText1
   d <- mkDescription
   w <- arbitrary
-  return $ Document u d w
+  x <- arbitrary
+  return $ Document u d (SC w) (SC x)
 
 
 mkDescription :: Gen Description
@@ -710,8 +715,8 @@ mkOccurrences :: Gen Occurrences
 mkOccurrences = listOf mkPositions >>= foldM foldOccs Occ.empty
   where
   foldOccs occs ps = do
-    docId <- arbitrary
-    return $ Occ.insert' docId ps occs
+    docId <- arbitrary :: Gen Int
+    return $ Occ.insert' (mkDocId docId) ps occs
 
 mkPositions :: Gen Positions
 mkPositions = listOf arbitrary >>= return . Pos.fromList
@@ -725,7 +730,7 @@ apiDocs = mkData apiDocGen
 
 mkData :: (Int -> Gen a) -> Int -> Int -> IO [a]
 mkData gen minS maxS =
-  do rnd0 <- newStdGen
+  do rnd0 <- newQCGen --newStdGen
      let rnds rnd = rnd1 : rnds rnd2 where (rnd1,rnd2) = split rnd
      return [unGen (gen i) r n | ((r,n),i) <- rnds rnd0 `zip` cycle [minS..maxS] `zip` [1..]] -- simple cycle
 
@@ -734,7 +739,7 @@ apiDocGen :: Int -> Gen ApiDocument
 apiDocGen n = do
   desc_    <- descriptionGen
   let ix  =  mkIndexData n desc_
-  return  $ ApiDocument uri_ ix desc_ (Just 1.0)
+  return  $ ApiDocument uri_ ix desc_  1.0 1.0
   where uri_ = T.pack . ("rnd://" ++) . show $ n
 
 niceText1 :: Gen Text
@@ -757,7 +762,10 @@ mkIndexData i d = M.fromList
                 $ map (\c -> ("context" `T.append` (T.pack $ show c), prefixx c)) [0..i]
   where
 --  index   = T.pack $ show i
-  prefixx n = T.intercalate " " . map (T.take n . T.filter (/=' ') . snd) . DD.toList $ d
+  prefixx n = T.intercalate " " . map (T.take n . T.filter (/=' ')) $ map (fromMaybe "") values
+  values = undefined --map (fromJSON . snd) $ DD.toList d
+
+toList (DD.DocDesc m) = (map (second fromJSON) $ HM.toList m)
 
 -- ------------------------------------------------------------
 
