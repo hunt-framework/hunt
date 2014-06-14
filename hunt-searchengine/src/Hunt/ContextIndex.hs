@@ -32,9 +32,14 @@ module Hunt.ContextIndex
 
     -- * Insert\/Delete Documents
   , insertList
-  , insertWithCx               -- only used in tests
+                                 -- XXX: these functions should be internal
+                                 -- we export them to be able to test them
+                                 -- is there a bedder approach to achieve this?
+  , createDocTableFromPartition  -- only used in tests
+  , unionDocTables               -- only used in tests
+  , insertWithCx                 -- only used in tests
   , modifyWithDescription
-  , addWordsM                  -- only used in tests
+  , addWordsM                    -- only used in tests
   , delete
   , deleteDocsByURI
   , decodeCxIx
@@ -151,31 +156,43 @@ insertList :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
               [(Dt.DValue dt, Words)] ->
               ContextIndex dt -> m (ContextIndex dt)
 
-insertList docAndWrds (ContextIndex ix docTable s)
+insertList docAndWords (ContextIndex ix docTable s)
     = do -- insert to doctable and generate docId
-         tables <- Par.mapM subInsert $ partitionListByLength 20 docAndWrds
-         (newDt, docIdsAndWrds) <- reduce tables docTable
-
-         newIx <- batchAddWordsM docIdsAndWrds ix
+         tablesAndWords <- Par.mapM createDocTableFromPartition
+                         $ partitionListByLength 20 docAndWords
+         -- union doctables and docid-words pairs
+         (newDt, docIdsAndWords) <- unionDocTables tablesAndWords docTable
+         -- insert words to index
+         newIx <- batchAddWordsM docIdsAndWords ix
          return $! ContextIndex newIx newDt s
 
+-- takes list of documents with wordlist. creates new 'DocTable' and
+-- inserts each document of the list into it.
+createDocTableFromPartition :: (Par.MonadParallel m, DocTable dt) =>
+                               [(Dt.DValue dt, Words)] -> m (dt, [(DocId, Words)])
+createDocTableFromPartition ds
+    = foldM toDocTable (Dt.empty, []) ds
     where
-      subInsert ds
-          = foldM (\ (dt, withIds) (doc, wrds) ->
-                   do (dId, dt') <- Dt.insert doc dt
-                      return (dt', (dId, wrds):withIds)
-                  ) (Dt.empty, []) ds
+      toDocTable (dt, resIdsAndWords) (doc, ws)
+        = do (dId, dt') <- Dt.insert doc dt
+             return (dt', (dId, ws):resIdsAndWords)
 
-      reduce tables old
-          = do step <- Par.mapM (\ ((dt1, ws1), (dt2, ws2)) ->
-                                 do dt <- Dt.union dt1 dt2
-                                    return (dt, ws1 ++ ws2)
-                                ) $ mkPairs tables
-               case step of
+-- takes list of doctables with lists of docid-words pairs attached
+-- unions the doctables to one big doctable and concats the docid-words
+-- pairs to one list
+unionDocTables :: (DocTable dt, Par.MonadParallel m) =>
+                  [(dt, [(DocId, Words)])] -> dt -> m (dt, [(DocId, Words)])
+unionDocTables tablesAndWords oldDt
+    = do step <- Par.mapM unionDtsAndWords $ mkPairs tablesAndWords
+         case step of
                  []      -> return (Dt.empty, [])
-                 [(d,w)] -> do n <- Dt.union old d
+                 [(d,w)] -> do n <- Dt.union oldDt d
                                return (n, w)
-                 xs      -> reduce xs old
+                 xs      -> unionDocTables xs oldDt
+    where
+      unionDtsAndWords ((dt1, ws1), (dt2, ws2))
+        = do dt <- Dt.union dt1 dt2
+             return (dt, ws1 ++ ws2)
 
       mkPairs []       = []
       mkPairs (a:[])   = [(a,(Dt.empty,[]))]
