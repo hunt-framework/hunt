@@ -114,9 +114,6 @@ client: sandbox
 	cd hunt-client && cabal $(action) $(PROFOPTS) $(pattern)
 
 test:
-	cd hunt-searchengine && cabal sandbox init && cabal install --enable-tests
-
-test-same:
 	cd hunt-searchengine && cabal install --enable-tests
 	cd hunt-searchengine && cabal test
 
