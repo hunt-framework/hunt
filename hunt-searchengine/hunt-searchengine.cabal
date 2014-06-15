@@ -29,7 +29,7 @@ library
                , binary                 >= 0.5  && < 1
                , bytestring             < 1
                , containers             >= 0.5
-               , data-r-tree            >= 0.0.3.0
+               , data-r-tree            >= 0.0.4.0
                , data-stringmap         >= 1.0.1.1 && < 2
                , data-default
                , deepseq                >= 1.2

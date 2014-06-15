@@ -20,7 +20,7 @@ import           Control.DeepSeq
 import           Data.Binary                          (Binary (..))
 import qualified Data.List                            as L
 import           Data.Monoid                          ((<>))
-import qualified Data.RTree                           as RT
+import qualified Data.RTree.Strict                    as RT
 import           Data.RTree.MBB
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T (pack, unpack)
