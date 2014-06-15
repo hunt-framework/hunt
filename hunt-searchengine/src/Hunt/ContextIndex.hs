@@ -48,6 +48,7 @@ module Hunt.ContextIndex
     -- * Types
   , ContextIndex (..)
   , ContextMap (..)
+  , mkContextMap
   )
 where
 {-
@@ -94,8 +95,8 @@ import           Hunt.Utility
 
 data ContextIndex dt = ContextIndex
   { ciIndex  :: !(ContextMap Occurrences) -- ^ Indexes associated to contexts.
-  , ciDocs   :: dt                        -- ^ Document table.
-  , ciSchema :: Schema                    -- ^ Schema associated to contexts.
+  , ciDocs   :: !dt                        -- ^ Document table.
+  , ciSchema :: !Schema                    -- ^ Schema associated to contexts.
   }
 
 -- | Contexts with associated heterogeneous index implementations.

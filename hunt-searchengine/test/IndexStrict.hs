@@ -37,8 +37,11 @@ import qualified Hunt.Common.DocIdMap                        as DM
 import qualified Hunt.Common.DocIdSet                        as IS
 import qualified Hunt.Common.DocDesc                         as DD
 
+import qualified Data.Map.Strict                             as M
+
 import qualified Hunt.Index                                  as Ix
 import           Hunt.ContextIndex
+import qualified Hunt.Index.IndexImpl                        as Impl
 import qualified Hunt.Index.InvertedIndex                    as InvIx
 import qualified Hunt.Index.PrefixTreeIndex                  as PIx
 import qualified Hunt.Index.PrefixTreeIndex2Dim              as PIx2D
@@ -117,6 +120,8 @@ main = defaultMain
 
   , testProperty "prop_strictness_insertList1"               prop_cx_insertlist
   , testProperty "prop_strictness_insertList2"               prop_cx_insertlist2
+  , testProperty "prop_strictness_insertList3"               prop_cx_insertlist3
+
 
 
   -- TODO:
@@ -163,6 +168,36 @@ prop_dd_union = monadicIO $ do
   y <- pick mkDescription
   assertNF' $! DD.union x y
 
+
+
+-- ----------------------------------------------------------------------------
+-- context index implementation
+-- ----------------------------------------------------------------------------
+
+prop_cx_insertlist3 :: Property
+prop_cx_insertlist3 = monadicIO $ do
+  -- generate mock contextindex
+  ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex Occurrences)
+  let cxmap = mkContextMap $ M.fromList [("context", Impl.mkIndex ix)]
+  dt    <- pick mkDocTable :: PropertyM IO (HDt.Documents Document)
+  assertNF' ix
+  assertNF' dt
+  let cx = ContextIndex cxmap dt M.empty
+  -- generate mock document-word pairs to insert
+  insertData <- pick mkInsertList
+  -- check resulting document table for strictness property
+  (ContextIndex _ dt' _) <- insertList insertData cx
+  assertNF' dt'
+  where
+    pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "key" val Ix.empty
+    mkDocTable = do
+       docs <- listOf arbitrary
+       foldM (\dt doc -> Dt.insert doc dt >>= return . snd) Dt.empty docs
+
+
+
+
+
 -- ----------------------------------------------------------------------------
 -- document table implementation
 -- ----------------------------------------------------------------------------
@@ -170,18 +205,24 @@ instance Par.MonadParallel (PropertyM IO) where
 
 prop_cx_insertlist ::Property
 prop_cx_insertlist = monadicIO $ do
-  docAndWords <- pickRes :: PropertyM IO (HDt.Documents Document, [(DocId, Words)])
-  assertNF' docAndWords
+  (table, idsAndWords) <- pickRes :: PropertyM IO (HDt.Documents Document, [(DocId, Words)])
+  assertNF' table
+  assertNF' idsAndWords
   where
     pickRes = pick mkInsertList >>= createDocTableFromPartition
 
 prop_cx_insertlist2 ::Property
 prop_cx_insertlist2 = monadicIO $ do
+  -- create random doctable and check if it is strict
   dt    <- pick mkDocTable :: PropertyM IO (HDt.Documents Document)
+  assertNF' dt
+  -- generate list of doctables and chekc if they are strict
   dts   <- pick $ listOf mkDocTable :: PropertyM IO [(HDt.Documents Document)]
+  assertNF' dts
   input <- mapM (\dt -> return (dt,[])) dts
+  -- union doctables with insertLists reduce function and check result for strictness
   out   <- unionDocTables input dt
-  assertNF' out
+  assertNF'  out
   where
     mkDocTable = do
        docs <- listOf arbitrary
@@ -196,6 +237,9 @@ prop_dt_insert
   where
   pickIx = pick arbitrary >>= \doc -> Dt.insert doc Dt.empty
 
+-- NOTE: if this tests fails with an error "Doctables are not disjunct ...".
+-- that is not a bug, it just means that the two randomly generated doctables
+-- in one testrun were not disjunct.
 prop_dt_union :: Property
 prop_dt_union
   = monadicIO $ do
