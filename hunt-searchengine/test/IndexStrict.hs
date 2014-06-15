@@ -10,7 +10,7 @@
 module Main where
 
 import qualified Control.Monad.Parallel                          as Par
-import           Control.DeepSeq
+--import           Control.DeepSeq
 import           Control.Monad                                   (foldM)
 import           TestHelper
 import           Test.Framework
@@ -18,12 +18,12 @@ import           Test.Framework.Providers.QuickCheck2
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic                         (PropertyM,
                                                                   monadicIO,
-                                                                  monitor, assert,
+                                                                  monitor,
                                                                   pick, run)
 
 import qualified Data.Set                                        as S
 import           Data.Text                                       (Text)
-import qualified Data.Map                                        as M
+--import qualified Data.Map                                        as M
 
 import           GHC.AssertNF
 import           GHC.HeapView
@@ -35,6 +35,7 @@ import qualified Hunt.Common.Positions                       as Pos
 import qualified Hunt.Common.Occurrences                     as Occ
 import qualified Hunt.Common.DocIdMap                        as DM
 import qualified Hunt.Common.DocIdSet                        as IS
+import qualified Hunt.Common.DocDesc                         as DD
 
 import qualified Hunt.Index                                  as Ix
 import           Hunt.ContextIndex
@@ -54,7 +55,11 @@ main = defaultMain
   -- document table
   [ testProperty "prop_strictness_occurrences"               prop_occs
   , testProperty "prop_strictness_document"                  prop_doc
-  , testProperty "prop_strictness_description"               prop_desc
+
+  , testProperty "prop_strictness_docdesc empty"             prop_dd_empty
+  , testProperty "prop_strictness_docdesc fromList"          prop_dd_empty
+  , testProperty "prop_strictness_docdesc insert"            prop_dd_insert
+  , testProperty "prop_strictness_docdesc union"             prop_dd_union
 
   -- strictness property for index implementations by function
   -- insert / insertList
@@ -134,10 +139,29 @@ prop_doc = monadicIO $ do
   x <- pick arbitrary :: PropertyM IO Document
   assertNF' $! x
 
-prop_desc :: Property
-prop_desc = monadicIO $ do
+prop_dd_empty :: Property
+prop_dd_empty = monadicIO $ do
+  assertNF' $! DD.empty
+
+prop_dd_fromList :: Property
+prop_dd_fromList = monadicIO $ do
+  v1 <- pick niceText1
+  v2 <- pick niceText1
+  k1 <- pick niceText1
+  k2 <- pick niceText1
+  assertNF' $! DD.fromList (list k1 v1 k2 v2)
+  where
+  list k1 v1 k2 v2 = [(k1,v1), (k2,v2)] :: [(Text,Text)]
+
+prop_dd_insert :: Property
+prop_dd_insert = monadicIO $ do
+  assertNF' $! DD.insert "key" ("value"::String) DD.empty
+
+prop_dd_union :: Property
+prop_dd_union = monadicIO $ do
   x <- pick mkDescription
-  assertNF' $! x
+  y <- pick mkDescription
+  assertNF' $! DD.union x y
 
 -- ----------------------------------------------------------------------------
 -- document table implementation

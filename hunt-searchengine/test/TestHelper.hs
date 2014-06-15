@@ -16,31 +16,22 @@
 
 module TestHelper where
 
-import           Test.Framework
-import           Test.Framework.Providers.QuickCheck2
 import           System.Random
 import           Test.QuickCheck
 import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Random
 
 import           Control.Monad                                   (foldM)
-import           Control.Arrow                                   (second)
 
-import           Data.Maybe                                      (fromMaybe)
 import           Data.Map                                        (Map)
 import qualified Data.Map                                        as M
-import qualified Data.Set                                        as S
 import           Data.Text                                       (Text)
 import qualified Data.Text                                       as T
-import           Data.Aeson                                      (fromJSON)
-import qualified Data.HashMap.Strict                             as HM
 
 import           Hunt.Common
 import qualified Hunt.Common.Positions                       as Pos
 import qualified Hunt.Common.Occurrences                     as Occ
-import qualified Hunt.Common.DocIdMap                        as DM
 import qualified Hunt.Common.DocDesc                         as DD
-import qualified Hunt.Common.DocIdSet                        as IS
 
 import           Data.Time
 import           System.Locale
@@ -63,14 +54,14 @@ mkWords :: Gen Words
 mkWords = mapM addWordsToCx cxs >>= return . M.fromList
   where
   addWordsToCx cx = mkWordList >>= \l -> return (cx,l)
-  cxs = map (\i -> T.pack $ "context" ++ (show i)) [1..5]
+  cxs = map (\i -> T.pack $ "context" ++ (show i)) ([1..5] :: [Int])
 
 mkWordList :: Gen WordList
 mkWordList = listOf pair >>= return . M.fromList
   where
   pair = do
     word <- niceText1
-    pos  <- listOf arbitrary
+    pos  <- listOf arbitrary :: Gen [Int]
     return (word, pos)
 
 -- Arbitrary Documents
@@ -88,7 +79,6 @@ mkDocument = do
   w <- arbitrary
   x <- arbitrary
   return $ Document u d (SC w) (SC x)
-
 
 mkDescription :: Gen Description
 mkDescription = do
@@ -154,10 +144,8 @@ mkIndexData i d = M.fromList
                 $ map (\c -> ("context" `T.append` (T.pack $ show c), prefixx c)) [0..i]
   where
 --  index   = T.pack $ show i
-  prefixx n = T.intercalate " " . map (T.take n . T.filter (/=' ')) $ map (fromMaybe "") values
-  values = undefined --map (fromJSON . snd) $ DD.toList d
-
-toList (DD.DocDesc m) = (map (second fromJSON) $ HM.toList m)
+  prefixx n = T.intercalate " " . map (T.take n . T.filter (/=' ')) $ values
+  values = map (T.pack . show . snd) $ DD.toList d
 
 -- --------------------------------------
 -- Other

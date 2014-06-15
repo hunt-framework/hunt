@@ -94,7 +94,7 @@ lookupText k d
 -- | Create a document description from as list
 
 fromList :: ToJSON v => [(Text, v)] -> DocDesc
-fromList l = DocDesc $! HM.fromList (map (second toJSON) l)
+fromList l = DocDesc $!! HM.fromList (map (second toJSON) l)
 
 -- | Create a list from a document description.
 
