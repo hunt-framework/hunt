@@ -4,4 +4,4 @@ ghc: 7.6
 install:
   - cd hunt-searchengine && cabal install --enable-tests --only-dependencies -ftest-strict
 script:
-  - cd hunt-searchengine && cabal configure --enable-tests -ftest-strict && cabal test
+  - cabal configure --enable-tests -ftest-strict && cabal test
