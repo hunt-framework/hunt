@@ -1,5 +1,5 @@
-Hunt
-====
+Hunt [![Build Status](https://travis-ci.org/hunt-framework/hunt.svg)](https://travis-ci.org/hunt-framework/hunt)
+====================
 
 Hunt is a flexible, lightweight search platform written in Haskell.
 
