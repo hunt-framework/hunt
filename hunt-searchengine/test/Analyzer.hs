@@ -180,7 +180,7 @@ prop_norm_pos3 = do
   p <- genPos
   let pos  = T.pack p
   let pos' = NP.denormalize . NP.normalize $ pos
-  return $ printTestCase (p ++ " != " ++ T.unpack pos') $ pos == pos'
+  return $ counterexample (p ++ " != " ++ T.unpack pos') $ pos == pos'
 
 -- ----------------------------------------------------------------------------
 -- normalizer date tests

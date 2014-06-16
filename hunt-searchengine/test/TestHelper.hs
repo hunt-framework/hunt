@@ -33,17 +33,19 @@ import qualified Hunt.Common.Positions                       as Pos
 import qualified Hunt.Common.Occurrences                     as Occ
 import qualified Hunt.Common.DocDesc                         as DD
 
+import qualified Hunt.DocTable                               as Dt
+import qualified Hunt.DocTable.HashedDocTable                as HDt
+import           Hunt.Utility
+
 import           Data.Time
 import           System.Locale
 
 
-mkInsertList :: Gen [(Document, Words)]
-mkInsertList = listOf entries
-  where
-  entries = do
-    doc <- mkDocument
-    wrds <- mkWords
-    return (doc, wrds)
+mkInsertList' :: Gen [(Document, Words)]
+mkInsertList' = mkDocuments >>= mkInsertList
+
+mkInsertList :: [Document] -> Gen [(Document, Words)]
+mkInsertList docs = mapM (\doc -> mkWords >>= \wrds -> return (doc, wrds)) docs
 
 -- --------------------
 -- Arbitrary Words
@@ -64,21 +66,45 @@ mkWordList = listOf pair >>= return . M.fromList
     pos  <- listOf arbitrary :: Gen [Int]
     return (word, pos)
 
--- Arbitrary Documents
+instance Arbitrary (HDt.Documents Document) where
+  arbitrary = mkDocTable'
 
-instance Arbitrary Document where
-  arbitrary = mkDocument
+mkDocTables :: Gen [(HDt.Documents Document)]
+mkDocTables = do
+  -- generate list of distinct documents so
+  -- that generated doctables are disjunct.
+  -- Thats important for some testcases
+  docs <- mkDocuments
+  mapM mkDocTable $ partitionListByLength 10 docs
+
+mkDocTable' :: Gen (HDt.Documents Document)
+mkDocTable' = do
+  docs <- mkDocuments
+  mkDocTable docs
+
+mkDocTable :: [Document] -> Gen (HDt.Documents Document)
+mkDocTable docs = foldM (\dt doc -> Dt.insert doc dt >>= return . snd) Dt.empty docs
+
+instance Arbitrary [Document] where
+   arbitrary = mkDocuments
 
 mkDocuments :: Gen [Document]
-mkDocuments = listOf arbitrary
+mkDocuments = do
+  numberOfDocuments <- arbitrary :: Gen Int
+  mapM mkDocument [1..numberOfDocuments]
 
-mkDocument :: Gen Document
-mkDocument = do
-  u <- niceText1
+instance Arbitrary Document where
+   arbitrary = mkDocument'
+
+mkDocument' :: Gen Document
+mkDocument' = arbitrary >>= mkDocument
+
+mkDocument :: Int -> Gen Document
+mkDocument uri' = do
   d <- mkDescription
   w <- arbitrary
   x <- arbitrary
-  return $ Document u d (SC w) (SC x)
+  return $ Document (T.pack . show $ uri') d (SC w) (SC x)
 
 mkDescription :: Gen Description
 mkDescription = do
@@ -113,7 +139,7 @@ apiDocs = mkData apiDocGen
 mkData :: (Int -> Gen a) -> Int -> Int -> IO [a]
 mkData gen minS maxS =
   do rnd0 <- newQCGen --newStdGen
-     let rnds rnd = rnd1 : rnds rnd2 where (rnd1,rnd2) = split rnd
+     let rnds rnd = rnd1 : rnds rnd2 where (rnd1,rnd2) = System.Random.split rnd
      return [unGen (gen i) r n | ((r,n),i) <- rnds rnd0 `zip` cycle [minS..maxS] `zip` [1..]] -- simple cycle
 
 

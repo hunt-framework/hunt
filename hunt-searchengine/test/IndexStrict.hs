@@ -10,7 +10,6 @@
 module Main where
 
 import qualified Control.Monad.Parallel                          as Par
---import           Control.DeepSeq
 import           Control.Monad                                   (foldM)
 import           TestHelper
 import           Test.Framework
@@ -23,12 +22,10 @@ import           Test.QuickCheck.Monadic                         (PropertyM,
 
 import qualified Data.Set                                        as S
 import           Data.Text                                       (Text)
---import qualified Data.Map                                        as M
 
 import           GHC.AssertNF
 import           GHC.HeapView
 import qualified System.Mem
-
 
 import           Hunt.Common
 import qualified Hunt.Common.Positions                       as Pos
@@ -176,27 +173,25 @@ prop_dd_union = monadicIO $ do
 
 prop_cx_insertlist3 :: Property
 prop_cx_insertlist3 = monadicIO $ do
-  -- generate mock contextindex
-  ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex Occurrences)
-  let cxmap = mkContextMap $ M.fromList [("context", Impl.mkIndex ix)]
-  dt    <- pick mkDocTable :: PropertyM IO (HDt.Documents Document)
-  assertNF' ix
-  assertNF' dt
-  let cx = ContextIndex cxmap dt M.empty
-  -- generate mock document-word pairs to insert
-  insertData <- pick mkInsertList
+  -- generate list of distinct documents (in terms of uri)
+  documents <- pick mkDocuments
+  -- genearte mock ContextIndex to work with.
+  -- Use some of the documents to be initially stored in the
+  -- document table
+  cxIx <- pickContextIx $ take 10 documents
+ -- generate mock document-word pairs to insert.
+ -- use rest of documents for this list
+  insertData <- pick $ mkInsertList $ drop 10 documents
   -- check resulting document table for strictness property
-  (ContextIndex _ dt' _) <- insertList insertData cx
+  (ContextIndex _ dt' _) <- insertList insertData cxIx
   assertNF' dt'
   where
     pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "key" val Ix.empty
-    mkDocTable = do
-       docs <- listOf arbitrary
-       foldM (\dt doc -> Dt.insert doc dt >>= return . snd) Dt.empty docs
-
-
-
-
+    pickContextIx docs = do
+      ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex Occurrences)
+      let cxmap = mkContextMap $ M.fromList [("context", Impl.mkIndex ix)]
+      dt <- pick $ mkDocTable docs
+      return $ ContextIndex cxmap dt M.empty
 
 -- ----------------------------------------------------------------------------
 -- document table implementation
@@ -209,25 +204,19 @@ prop_cx_insertlist = monadicIO $ do
   assertNF' table
   assertNF' idsAndWords
   where
-    pickRes = pick mkInsertList >>= createDocTableFromPartition
+    pickRes = pick mkInsertList' >>= createDocTableFromPartition
 
 prop_cx_insertlist2 ::Property
 prop_cx_insertlist2 = monadicIO $ do
-  -- create random doctable and check if it is strict
-  dt    <- pick mkDocTable :: PropertyM IO (HDt.Documents Document)
-  assertNF' dt
   -- generate list of doctables and chekc if they are strict
-  dts   <- pick $ listOf mkDocTable :: PropertyM IO [(HDt.Documents Document)]
+  dts <- pick mkDocTables
   assertNF' dts
-  input <- mapM (\dt -> return (dt,[])) dts
+  -- create input list to work with
+  let dt = if length dts > 0 then (head dts) else Dt.empty
+  input <- mapM (\dt' -> return (dt',[])) $ drop 1 dts
   -- union doctables with insertLists reduce function and check result for strictness
   out   <- unionDocTables input dt
-  assertNF'  out
-  where
-    mkDocTable = do
-       docs <- listOf arbitrary
-       foldM (\dt doc -> Dt.insert doc dt >>= return . snd) Dt.empty docs
-
+  assertNF' out
 
 prop_dt_insert :: Property
 prop_dt_insert
@@ -237,30 +226,18 @@ prop_dt_insert
   where
   pickIx = pick arbitrary >>= \doc -> Dt.insert doc Dt.empty
 
--- NOTE: if this tests fails with an error "Doctables are not disjunct ...".
--- that is not a bug, it just means that the two randomly generated doctables
--- in one testrun were not disjunct.
 prop_dt_union :: Property
 prop_dt_union
   = monadicIO $ do
-    dt <- pickIx :: PropertyM IO (HDt.Documents Document)
+    dt <- pick mkDocTables >>= foldM Dt.union Dt.empty
     assertNF' dt
-  where
-  pickIx = do
-    (_, dt1) <- pick arbitrary >>= \doc -> Dt.insert doc Dt.empty
-    (_, dt2) <- pick arbitrary >>= \doc -> Dt.insert doc Dt.empty
-    Dt.union dt1 dt2
 
 prop_dt_update :: Property
 prop_dt_update
   = monadicIO $ do
-    dt <- pickIx :: PropertyM IO (HDt.Documents Document)
-    assertNF' dt
-  where
-  pickIx = do
-    doc1 <- pick arbitrary
-    (docid, dt1) <- Dt.insert doc1 Dt.empty
-    doc2 <- pick arbitrary
+    doc1 <- pick mkDocument'
+    (docid, dt1) <- Dt.insert doc1 (Dt.empty :: HDt.Documents Document)
+    doc2 <- pick mkDocument'
     Dt.update docid doc2 dt1
 
 prop_dt_delete :: Property
