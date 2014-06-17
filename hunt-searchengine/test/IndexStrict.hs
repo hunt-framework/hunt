@@ -215,8 +215,8 @@ prop_cx_insertlist2 = monadicIO $ do
   let dt = if length dts > 0 then (head dts) else Dt.empty
   input <- mapM (\dt' -> return (dt',[])) $ drop 1 dts
   -- union doctables with insertLists reduce function and check result for strictness
-  out   <- unionDocTables input dt
-  assertNF' out
+  (outDt,_) <- unionDocTables input dt
+  assertNF' outDt
 
 prop_dt_insert :: Property
 prop_dt_insert
