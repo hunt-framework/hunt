@@ -30,7 +30,7 @@
 
 module Hunt.DocTable.HashedDocTable
     (
-      -- * mkDocuments type
+      -- * Documents type
       Documents (..)
     , DocMap
 
@@ -70,6 +70,7 @@ mkDocuments m = Documents $! m
 -- ------------------------------------------------------------
 
 instance NFData e => NFData (Documents e) where
+  rnf (Documents e) = rnf e
 
 instance (DocumentWrapper e, Binary e) => Binary (Documents e) where
   put = put . idToDoc
