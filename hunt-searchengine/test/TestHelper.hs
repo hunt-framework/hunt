@@ -151,7 +151,7 @@ apiDocGen n = do
   where uri_ = T.pack . ("rnd://" ++) . show $ n
 
 niceText1 :: Gen Text
-niceText1 = fmap T.pack . listOf1 . elements $ concat [" ", ['0'..'9'], ['A'..'Z'], ['a'..'z']]
+niceText1 = fmap T.pack . listOf1 . elements $ concat [" ", ['A'..'Z'], ['a'..'z']]
 
 
 descriptionGen :: Gen Description
