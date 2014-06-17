@@ -26,24 +26,27 @@ newtype DocDesc
   = DocDesc { unDesc :: Object }
   deriving (Eq, Show, NFData, Typeable)
 
+mkDocDesc :: Object -> DocDesc
+mkDocDesc o = DocDesc $!! o
+
 instance Binary DocDesc where
     put = put . encode . unDesc
     get = do bs <- get
              case decode bs of
                Nothing -> fail "DocDesc.get: error in decoding from JSON"
-               Just x  -> return (DocDesc x)
+               Just x  -> return $! (mkDocDesc x)
 
 instance ToJSON DocDesc where
     toJSON = Object . unDesc
 
 instance FromJSON DocDesc where
-    parseJSON (Object o) = return (DocDesc o)
+    parseJSON (Object o) = return $! (mkDocDesc o)
     parseJSON _          = mzero
 
 -- | The empty description.
 
 empty :: DocDesc
-empty = DocDesc $! HM.empty
+empty = mkDocDesc HM.empty
 
 -- | Check if document description is empty.
 
@@ -54,25 +57,25 @@ null (DocDesc m) = HM.null m
 
 insert :: ToJSON v => Text -> v -> DocDesc -> DocDesc
 insert k v (DocDesc m)
-    = DocDesc $! HM.insert k (toJSON v) m
+    = mkDocDesc $ HM.insert k (toJSON v) m
 
 -- | Remove a key value pair
 
 delete :: Text -> DocDesc -> DocDesc
 delete k (DocDesc m)
-    = DocDesc $! HM.delete k m
+    = mkDocDesc $ HM.delete k m
 
 -- | Union of two descriptions.
 
 union :: DocDesc -> DocDesc -> DocDesc
 union (DocDesc m1) (DocDesc m2)
-    = DocDesc $! HM.union m1 m2
+    = mkDocDesc $ HM.union m1 m2
 
 -- | restrict a DocDesc map to a set of fields
 
 restrict :: [Text] -> DocDesc -> DocDesc
 restrict ks (DocDesc m)
-    = DocDesc $! HM.filterWithKey sel m
+    = mkDocDesc $ HM.filterWithKey sel m
       where
         sel k _v = k `elem` ks
 
@@ -94,7 +97,7 @@ lookupText k d
 -- | Create a document description from as list
 
 fromList :: ToJSON v => [(Text, v)] -> DocDesc
-fromList l = DocDesc $!! HM.fromList (map (second toJSON) l)
+fromList l = mkDocDesc $ HM.fromList (map (second toJSON) l)
 
 -- | Create a list from a document description.
 
