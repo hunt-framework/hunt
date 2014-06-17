@@ -79,7 +79,7 @@ instance NFData Document where
 -- ------------------------------------------------------------
 
 -- | Simple bijection between @e@ and 'Document' for compression.
-class DocumentWrapper e where
+class (NFData e) => DocumentWrapper e where
   -- | Get the document.
   unwrap :: e -> Document
   -- | Create e from document.
