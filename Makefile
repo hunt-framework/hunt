@@ -119,7 +119,7 @@ test:
 
 test-strict:
 	cd hunt-searchengine && cabal install --enable-tests -ftest-strict
-	cd hunt-searchengine && cabal test
+	cd hunt-searchengine && cabal configure --enable-tests -ftest-strict && cabal test
 
 execTest:
 	cd hunt-searchengine && cabal test
