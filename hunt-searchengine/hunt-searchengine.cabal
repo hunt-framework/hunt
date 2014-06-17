@@ -199,9 +199,9 @@ test-suite Hunt-Ranking
                , text
                , data-default
 
-test-suite Hunt-IndexStrictess
+test-suite Hunt-Strictness
    hs-source-dirs:       test
-   main-is:              IndexStrict.hs
+   main-is:              Strictness.hs
    type:                 exitcode-stdio-1.0
    ghc-options:          -Wall
    extensions:           OverloadedStrings
