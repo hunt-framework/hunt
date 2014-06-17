@@ -210,7 +210,6 @@ prop_cx_insertlist2 ::Property
 prop_cx_insertlist2 = monadicIO $ do
   -- generate list of doctables and chekc if they are strict
   dts <- pick mkDocTables
-  assertNF' dts
   -- create input list to work with
   let dt = if length dts > 0 then (head dts) else Dt.empty
   input <- mapM (\dt' -> return (dt',[])) $ drop 1 dts
