@@ -20,13 +20,6 @@ module Hunt.Server.Client (
     , evalQuery
 
     -- * Some Reexports from hunt
-    , H.LimitedResult (..)
-    , H.ApiDocument (..)
-    , ContextDescription (..)
-    , ContextType (..)
-    , def
-    , H.Command (..)
-    , H.CmdResult (..)
     , descriptionToCmd
 
     -- * misc
@@ -279,7 +272,7 @@ descriptionToCmd d = H.InsertContext {H.icIContext = cxName d, H.icSchema = sche
         name DateContext = "date"
         name PositionContext = "position"
         name IntContext = "int"
-
+{-# DEPRECATED descriptionToCmd "Don't use these" #-}
 
 --capitalize :: String -> String
 --capitalize = over _head toUpper . over (_tail.each) toLower
