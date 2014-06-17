@@ -25,6 +25,7 @@ import           System.Environment (getArgs)
 import qualified Hunt.Common.ApiDocument as H
 import qualified Hunt.ClientInterface as H
 import qualified Hunt.Server.Client as HC
+import qualified Hunt.Converter.CSV as CSV (convert)
 
 usage :: String
 usage = unlines [
@@ -34,9 +35,10 @@ usage = unlines [
     , "  hunt-server-cli eval [--server SERVER] <file>"
     , "  hunt-server-cli load [--server SERVER] <file>"
     , "  hunt-server-cli store [--server SERVER] <file>"
-    , "  hunt-server-cli make-schema <file>"
     , "  hunt-server-cli search <query>"
     , "  hunt-server-cli completion <query>"
+    , "  hunt-server-cli make-schema <file>"
+    , "  hunt-server-cli from-csv <file>"
     , "  hunt-server-cli (-h | --help)"
     , ""
     , ""
@@ -112,9 +114,6 @@ main = do
     file <- fileArgument
     putStr =<< cs <$> (evalCmd server $ H.cmdStoreIndex file)
 
-  when (isCommand "make-schema") $ do
-    putStr =<< makeSchema =<< fileArgument
-    
   when (isCommand "search") $ do
     query <- queryArgument
     putStr =<< (printTime $ cs <$> search server query)
@@ -123,5 +122,6 @@ main = do
     query <- queryArgument
     putStr =<< show <$> autocomplete server query 
 
--- ------------------------------------------------------------
+  when (isCommand "from-csv") $ do
+    CSV.convert =<< fileArgument
 

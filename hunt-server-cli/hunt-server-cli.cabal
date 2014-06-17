@@ -23,7 +23,7 @@ source-repository head
 executable hunt-server
   main-is:      Main.hs
 
-  other-modules:
+  other-modules: Hunt.Converter.CSV
 
   build-depends:   base                   >= 4
                  , binary
@@ -40,6 +40,12 @@ executable hunt-server
                  , mtl                    >= 1.1       && < 3
                  , text                   >= 1         && < 2
                  , docopt
+                 , csv-conduit            >= 0.6
+                 , resourcet >= 0.3
+                 , conduit
+                 , conduit-extra
+                 , transformers
+                 , unordered-containers
 
   hs-source-dirs: src
 
