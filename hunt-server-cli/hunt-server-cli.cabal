@@ -20,7 +20,7 @@ source-repository head
   type:        git
   location:    https://github.com/hunt-framework/hunt.git
 
-executable hunt-server
+executable hunt-server-cli
   main-is:      Main.hs
 
   other-modules: Hunt.Converter.CSV
