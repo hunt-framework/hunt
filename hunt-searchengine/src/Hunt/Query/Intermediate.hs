@@ -53,6 +53,7 @@ module Hunt.Query.Intermediate
   , ScoredOccs
   , ScoredRawDocs
   , ScoredCx
+  , UnScoredDocs
 
   , toScoredDocs
   , boostAndAggregateCx
@@ -76,29 +77,31 @@ module Hunt.Query.Intermediate
 )
 where
 
-import           Prelude               hiding (null)
-import qualified Prelude               as P
+import           Prelude                 hiding (null)
+import qualified Prelude                 as P
 
-import           Control.Applicative   hiding (empty)
-import           Control.Arrow         (second, (***))
+import           Control.Applicative     hiding (empty)
+import           Control.Arrow           (second, (***))
 
-import           Data.Function         (on)
-import qualified Data.List             as L
-import           Data.Map              (Map)
-import qualified Data.Map              as M
+import           Data.Function           (on)
+import qualified Data.List               as L
+import           Data.Map                (Map)
+import qualified Data.Map                as M
 import           Data.Maybe
 -- import           Data.Text             (Text)
 -- import qualified Data.Text             as T
-import           Hunt.Query.Result     hiding (null)
+import           Hunt.Query.Result       hiding (null)
 
 import           Hunt.Common
-import qualified Hunt.Common.DocIdMap  as DM
-import qualified Hunt.Common.DocIdSet  as DS
-import           Hunt.Common.Document  (DocumentWrapper (..), emptyDocument)
-import qualified Hunt.Common.Positions as Pos
+import qualified Hunt.Common.DocIdMap    as DM
+import qualified Hunt.Common.DocIdSet    as DS
+import           Hunt.Common.Document    (DocumentWrapper (..), emptyDocument)
+import           Hunt.Common.Occurrences (intersectOccurrences)
+import qualified Hunt.Common.Positions   as Pos
+import           Hunt.DocTable           (DocTable)
+import qualified Hunt.DocTable           as Dt
 
-import           Hunt.DocTable         (DocTable)
-import qualified Hunt.DocTable         as Dt
+-- import           Debug.Trace
 
 -- ------------------------------------------------------------
 --
@@ -246,13 +249,13 @@ instance ScoredResult ScoredOccs where
         = SCO s1 (DM.difference d1 d2)
 
     intersectSC (SCO s1 d1) (SCO s2 d2)
-        = SCO (s1 + s2) (DM.intersectionWith Pos.union d1 d2)
+        = SCO (s1 + s2) (intersectOccurrences Pos.union d1 d2)
 
     intersectDisplSC disp (SCO s1 d1) (SCO s2 d2)
-        = SCO (s1 + s2) (DM.intersectionWith (Pos.intersectionWithDispl disp) d1 d2)
+        = SCO (s1 + s2) (intersectOccurrences (Pos.intersectionWithDispl disp) d1 d2)
 
     intersectFuzzySC lb ub (SCO s1 d1) (SCO s2 d2)
-        = SCO (s1 + s2) (DM.intersectionWith (Pos.intersectionWithIntervall lb ub) d1 d2)
+        = SCO (s1 + s2) (intersectOccurrences (Pos.intersectionWithIntervall lb ub) d1 d2)
 
 -- ------------------------------------------------------------
 {-- not yet used,
@@ -461,7 +464,10 @@ type CxRawResults = [(Context, RawResult)]
 
 fromCxRawResults ::  (Word -> Score) -> CxRawResults -> ScoredCx ScoredRawDocs
 fromCxRawResults sf crs
-    = mconcat $ L.map (uncurry $ fromRawResult sf) crs
+    = -- traceShow ("fromCxRawResults:"::String, crs, res) $
+      res
+      where
+        res = mconcat $ L.map (uncurry $ fromRawResult sf) crs
 
 fromRawResult :: (Word -> Score) -> Context -> RawResult -> ScoredCx ScoredRawDocs
 fromRawResult sf cx rr

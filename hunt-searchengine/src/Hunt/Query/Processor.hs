@@ -20,6 +20,8 @@ module Hunt.Query.Processor
     ( processQuery
     , processQueryDocIds
     , processQueryScoredDocs
+    , processQueryUnScoredDocs
+    , processQueryScoredWords
     , initProcessor
 
     , ProcessConfig (..)
@@ -551,29 +553,40 @@ succString = succString'
 -- ------------------------------------------------------------
 
 processQueryUnScoredDocs :: ProcessEnv -> Query -> IO (Either CmdError UnScoredDocs)
-processQueryUnScoredDocs st q
-    = runErrorT . runReaderT (runProcessor $ evalUnScoredDocs q) $ st
+processQueryUnScoredDocs = processQueryScoredResult evalUnScoredDocs
 
 -- | evaluate a query into a UnScoredDocs result
 --
--- all info about contexts, words and positions are is removed by the aggregation
+-- all info about contexts, words and positions and the score of docs
+-- are removed by the aggregation.
+--
+-- This evaluator is called by commands which need to compute just a set of documents,
+-- e.g. DeleteByQuery. When calling evalUnScoredDocs the 'ProcessEnv' value
+-- should be configured such that the limit for document to taken into account
+-- is set to infinity (represented as @0@ in the config), else the result set
+-- may not be complete.
+--
+-- In that case it becomes easy to build a query witch acts as a denial of service
+-- attack, because the intermediate results become too large to be proccessed.
+-- So these queries must be used in applications rather carefully, e.g. a user should
+-- not be able to construct these types of queries by filling in some input fields in a web interface.
 
 evalUnScoredDocs :: Query -> Processor UnScoredDocs
 evalUnScoredDocs q
     | isPrimaryQuery q
         = do res <- forallCx (evalPrimary q)
-             _aggregateToUnScoredDocs res
+             aggregateToScoredResult res
 
 evalUnScoredDocs (QRange lb ub)
     = do res <- forallCx (evalRange lb ub)
-         _aggregateToUnScoredDocs res
+         aggregateToScoredResult res
 
 evalUnScoredDocs (QSeq op qs)
     | isLocalCxOp op
         = do res <- forallCxLocal
                     ( evalSeq' op                     -- do the position aware operation
                       <$> mapM evalScoredRawDocs qs ) -- switch to the raw evaluator due to positions
-             _aggregateToUnScoredDocs res                -- and aggregate res to UnScoredDocs
+             aggregateToScoredResult res              -- and aggregate res to UnScoredDocs
     | otherwise
         = evalSeq op                                  -- do the result combination
           <$> mapM evalUnScoredDocs qs                  -- for the args stay in evaluator
@@ -581,7 +594,7 @@ evalUnScoredDocs (QSeq op qs)
 evalUnScoredDocs (QContext cxs q)
     = withCxs cxs $ evalUnScoredDocs q
 
-evalUnScoredDocs (QBoost w q)
+evalUnScoredDocs (QBoost _w q)
     = evalUnScoredDocs q
 
 evalUnScoredDocs q@QPhrase{}              -- QPhrase is transformed into QFullWord or QSeq Phrase
@@ -596,38 +609,38 @@ evalUnScoredDocs q
 -- ------------------------------------------------------------
 
 processQueryScoredDocs :: ProcessEnv -> Query -> IO (Either CmdError ScoredDocs)
-processQueryScoredDocs st q
-    = runErrorT . runReaderT (runProcessor $ evalScoredDocs q) $ st
+processQueryScoredDocs = processQueryScoredResult evalScoredDocs'
 
 -- | evaluate a query into a ScoredDocs result
 --
--- all info about contexts, words and positions are is removed by the aggregation
+-- all info about contexts, words and positions is removed by the aggregation,
+-- just a set of DocIds and associated scores is computed
 
 evalScoredDocs :: Query -> Processor ScoredDocs
 evalScoredDocs q
     | isPrimaryQuery q
         = do res <- forallCx (evalPrimary q)
-             aggregateToScoredDocs res
+             aggregateToScoredResult res
 
 evalScoredDocs (QRange lb ub)
     = do res <- forallCx (evalRange lb ub)
-         aggregateToScoredDocs res
+         aggregateToScoredResult res
 
 evalScoredDocs (QSeq op qs)
     | isLocalCxOp op
         = do res <- forallCxLocal
                     ( evalSeq' op                     -- do the position aware operation
-                      <$> mapM evalScoredRawDocs qs ) -- switch to the raw evaluator due to positions
-             aggregateToScoredDocs res                -- and aggregate res to ScoredDocs
+                      <$> mapM evalScoredRawDocs' qs ) -- switch to the raw evaluator due to positions
+             aggregateToScoredResult res                -- and aggregate res to ScoredDocs
     | otherwise
         = evalSeq op                                  -- do the result combination
-          <$> mapM evalScoredDocs qs                  -- for the args stay in evaluator
+          <$> mapM evalScoredDocs' qs                  -- for the args stay in evaluator
 
 evalScoredDocs (QContext cxs q)
-    = withCxs cxs $ evalScoredDocs q
+    = withCxs cxs $ evalScoredDocs' q
 
 evalScoredDocs (QBoost w q)
-    = boost w <$> evalScoredDocs q
+    = boost w <$> evalScoredDocs' q
 
 evalScoredDocs q@QPhrase{}              -- QPhrase is transformed into QFullWord or QSeq Phrase
     = normQuery q >>= evalScoredDocs
@@ -638,18 +651,79 @@ evalScoredDocs q@QBinary{}              -- QBin is transformed into QSeq
 evalScoredDocs q
     = queryEvalError q
 
+-- --------------------
+-- {- switch off trace
+
+evalScoredDocs' :: Query -> Processor ScoredDocs
+evalScoredDocs' = evalScoredDocs
+{-# INLINE evalScoredDocs' #-}
+
+-- -}
+{- trace the evaluation
+
+evalScoredDocs' :: Query -> Processor ScoredDocs
+evalScoredDocs' q = trc <$> evalScoredDocs q
+    where
+      trc res = traceShow ("evalScoredDocs: "::String,q  ) $
+                traceShow ("evalScoredDocs: "::String,res) $ res
+-- -}
+-- ------------------------------------------------------------
+
+processQueryScoredWords :: ProcessEnv -> Query -> IO (Either CmdError ScoredWords)
+processQueryScoredWords = processQueryScoredResult evalScoredWords
+
+-- | evaluate a query into a ScoredWords result
+--
+-- all info about contexts, words and positions is removed by the aggregation,
+-- just a set of words and associated scores is computed
+
+evalScoredWords :: Query -> Processor ScoredWords
+evalScoredWords q
+    | isPrimaryQuery q
+        = do res <- forallCx (evalPrimary q)
+             aggregateToScoredResult res
+
+evalScoredWords (QRange lb ub)
+    = do res <- forallCx (evalRange lb ub)
+         aggregateToScoredResult res
+
+evalScoredWords (QSeq op qs)
+    | isLocalCxOp op
+        = do res <- forallCxLocal
+                    ( evalSeq' op                     -- do the position aware operation
+                      <$> mapM evalScoredRawDocs qs ) -- switch to the raw evaluator due to positions
+             aggregateToScoredResult res              -- and aggregate res to ScoredWords
+    | otherwise
+        = evalSeq op                                  -- do the result combination
+          <$> mapM evalScoredWords qs                 -- for the args stay in evaluator
+
+evalScoredWords (QContext cxs q)
+    = withCxs cxs $ evalScoredWords q
+
+evalScoredWords (QBoost w q)
+    = boost w <$> evalScoredWords q
+
+evalScoredWords q@QPhrase{}              -- QPhrase is transformed into QFullWord or QSeq Phrase
+    = normQuery q >>= evalScoredWords
+
+evalScoredWords q@QBinary{}              -- QBin is transformed into QSeq
+    = normQuery q >>= evalScoredWords
+
+evalScoredWords q
+    = queryEvalError q
+
 -- ------------------------------------------------------------
 
 -- | evaluate a query into a context aware raw docs result
 --
--- This evaluator is called from evalScoredDocs
+-- This evaluator is called from 'evalScoredDocs', 'evalUnScoredDocs' and 'evalScoredWords'
 -- in the case of Phrase-, Follow- and Near-queries.
 --
 -- No info about contexts, words and positions is removed by the aggregation.
--- evalScoredRawDocs always runs in a single context at a time,
--- becaue the position information does not have any meaning across contexts
+-- 'evalScoredRawDocs' always runs in a single context at a time,
+-- because the position information does not have any meaning across contexts
 --
--- Therefore QContext subqueries become meaningless within Phrase, Follow and Near queries
+-- Therefore QContext subqueries become meaningless within Phrase-, Follow- and Near-queries
 
 evalScoredRawDocs :: Query -> Processor (ScoredCx ScoredRawDocs)
 evalScoredRawDocs q
@@ -662,16 +736,16 @@ evalScoredRawDocs (QRange lb ub)
 evalScoredRawDocs (QSeq op qs)
     | isLocalCxOp op
         = evalSeq' op
-          <$> mapM evalScoredRawDocs qs
+          <$> mapM evalScoredRawDocs' qs
     | otherwise
         = evalSeq  op
-          <$> mapM evalScoredRawDocs qs
+          <$> mapM evalScoredRawDocs' qs
 
 evalScoredRawDocs (QContext cxs q)
-    = restrictCxs cxs $ evalScoredRawDocs q
+    = restrictCxs cxs $ evalScoredRawDocs' q
 
 evalScoredRawDocs (QBoost w q)
-    = boost w <$> evalScoredRawDocs q
+    = boost w <$> evalScoredRawDocs' q
 
 evalScoredRawDocs q@QPhrase{}              -- QPhrase is transformed into QFullWord or QSeq Phrase
     = normQuery q >>= evalScoredRawDocs
@@ -681,6 +755,31 @@ evalScoredRawDocs q@QBinary{}              -- QBin is transformed into QSeq
 
 evalScoredRawDocs q
     = queryEvalError q
+
+-- --------------------
+-- {- switch off trace
+
+evalScoredRawDocs' :: Query -> Processor (ScoredCx ScoredRawDocs)
+evalScoredRawDocs' = evalScoredRawDocs
+{-# INLINE evalScoredRawDocs' #-}
+
+-- -}
+{- trace the evaluation
+
+evalScoredRawDocs' :: Query -> Processor (ScoredCx ScoredRawDocs)
+evalScoredRawDocs' q = trc <$> evalScoredRawDocs q
+    where
+      trc res = traceShow ("evalScoredRawDocs: "::String,q  ) $
+                traceShow ("evalScoredRawDocs: "::String,res) $ res
+-- -}
+-- ------------------------------------------------------------
+
+-- run a query evaluation
+
+processQueryScoredResult :: (q -> Processor r) -> ProcessEnv -> q -> IO (Either CmdError r)
+processQueryScoredResult eval st q
+    = runErrorT . runReaderT (runProcessor $ eval q) $ st
+
 
 -- ------------------------------------------------------------
 --
@@ -809,10 +908,12 @@ queryEvalError q
 
 -- ------------------------------------------------------------
 
-aggregateToScoredDocs :: ScoredCx ScoredRawDocs -> Processor ScoredDocs
-aggregateToScoredDocs res
+aggregateToScoredResult :: (Aggregate a (ScoredCx b), ScoredResult b) =>
+                           a -> ProcessorT IO b
+aggregateToScoredResult res
     = do cxScores <- contextWeights <$> getSchema
          return $ boostAndAggregateCx cxScores (aggregate res)
+
 
 -- eval basic queries
 {-
@@ -878,7 +979,7 @@ evalRange lb0 ub0 cx
 
 similar :: Text -> Text -> Score
 similar s f
-    = traceShow ("similar", s, f, r) $
+    = traceShow ("similar"::Text, s, f, r) $
       r
     where
       r = similar' s f

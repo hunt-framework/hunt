@@ -46,14 +46,16 @@ module Hunt.Query.Language.Parser
   )
 where
 
-import           Control.Applicative           hiding ((<|>))
+import           Control.Applicative         hiding (many, (<|>))
 
-import           Data.Text                     (Text)
-import qualified Data.Text                     as T
+import           Data.Text                   (Text)
+import qualified Data.Text                   as T
 
-import           Text.ParserCombinators.Parsec
+import           Text.Parsec
+import           Text.Parsec.String
 
-import           Hunt.Common.BasicTypes        (mkScore)
+import           Hunt.ClientInterface
+-- import           Hunt.Common.BasicTypes        (mkScore)
 import           Hunt.Query.Language.Grammar
 
 -- ------------------------------------------------------------
@@ -67,7 +69,68 @@ parseQuery = result . parse query ""
 
 -- | A query may always be surrounded by whitespace
 query :: Parser Query
-query = spaces >> andQuery
+query
+    = do spaces
+         res <- orQuery'
+         spaces >> eof
+         return res
+
+orQuery' :: Parser Query
+orQuery'
+    = do q1 <- andQuery'
+         qs <- many (orOp >> andQuery)
+         return $ qOrs (q1 : qs)
+
+andQuery' :: Parser Query
+andQuery'
+    = do q1 <- neighborQuery
+         qs <- many $
+               do op <- andOp1
+                  q  <- neighborQuery
+                  return (op, q)
+         return $ foldl (\ res (op', q') -> op' res q') q1 qs
+    where
+      andOp1
+          = try andNotOp'
+            <|> try andOp'
+            <|> (spaces1 >> return qAnd)
+          where
+            andNotOp'
+                = do spaces >> string "AND" >> spaces >> string "NOT" >> spaces1
+                     return qAndNot
+            andOp' = do spaces >> string "AND" >> spaces1
+                        return qAnd
+
+
+neighborQuery :: Parser Query
+neighborQuery
+    = do q1 <- contextQuery
+         qs <- many $
+               do op <- neiOp
+                  q  <- contextQuery
+                  return (op, q)
+         return $ foldl (\ res (op', q') -> op' res q') q1 qs
+    where
+      neiOp
+          = try nextOp
+            <|> try nearOp
+            <|> try followOp
+          where
+            nextOp
+                = do spaces >> string "++" >> spaces1
+                     return qNext
+            nearOp
+                = do spaces >> string "NEAR" >> spaces
+                     d <- read <$> many1 digit
+                     spaces1
+                     return $ qNear d
+
+            followOp
+                = do spaces >> string "FOLLOW" >> spaces
+                     d <- read <$> many1 digit
+                     spaces1
+                     return $ qNear d
+
 
 -- TODO: this might need some work for lists
 -- | Parse an and query.
@@ -180,7 +243,11 @@ orOp = try orOp'
 
 -- | Parse a word.
 word :: Parser String
-word = many1 (escapedChar <|> wordChar)
+word = try $
+       do w <- many1 (escapedChar <|> wordChar)
+          if w `elem` ["OR", "AND", "++", "NEAR", "FOLLOW"]
+            then parserZero
+            else return w
 
 -- | Parse an escape sequence. @\@ followed by the character, e.g. @\"@.
 escapedChar :: Parser Char

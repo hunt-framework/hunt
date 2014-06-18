@@ -98,6 +98,12 @@ module Hunt.ClientInterface
     , qOrs
     , qAndNot
     , qAndNots
+    , qNext
+    , qNexts
+    , qFollow
+    , qFollows
+    , qNear
+    , qNears
     , setNoCaseSearch
     , setFuzzySearch
     , setContext
@@ -409,6 +415,25 @@ qAndNot = QBinary AndNot
 --  | multiple @and-not@ queries. The list must not be emtpy
 qAndNots :: [Query] -> Query
 qAndNots = foldl1 qAndNot       -- foldl due to left associativity of AndNot
+
+-- | neighborhood queries. The list must not be empty
+qNext :: Query -> Query -> Query
+qNext = QBinary Phrase
+
+qNexts :: [Query] -> Query
+qNexts = foldl1 qNext
+
+qFollow :: Int -> Query -> Query -> Query
+qFollow d = QBinary (Follow d)
+
+qFollows :: Int -> [Query] -> Query
+qFollows d = foldl1 (qFollow d)
+
+qNear :: Int -> Query -> Query -> Query
+qNear d = QBinary (Near d)
+
+qNears :: Int -> [Query] -> Query
+qNears d = foldl1 (qNear d)
 
 -- ------------------------------------------------------------
 -- configure simple search queries
