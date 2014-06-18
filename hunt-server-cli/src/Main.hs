@@ -21,6 +21,11 @@ import           Data.Text (Text)
 import           Data.Time.Clock.POSIX (getPOSIXTime)
 
 import           System.Console.Docopt (optionsWithUsage, getArg, isPresent, command, argument, longOption)
+import qualified System.Log.Logger as Log
+import qualified System.Log.Formatter as Log (simpleLogFormatter)
+import qualified System.Log.Handler as Log (setFormatter)
+import qualified System.Log.Handler.Simple as Log (streamHandler)
+import qualified System.IO as System (stderr)
 import           System.Environment (getArgs)
 
 import qualified Hunt.Common.ApiDocument as H
@@ -50,6 +55,20 @@ usage = unlines [
 
 -- ------------------------------------------------------------
 
+-- | Initializes the loggers with the given priority.
+initLoggers :: Log.Priority -> IO ()
+initLoggers level = do
+    handlerBare <- Log.streamHandler System.stderr Log.DEBUG
+    let handler = Log.setFormatter handlerBare $ Log.simpleLogFormatter "[$time : $loggername : $prio] $msg"
+
+    Log.updateGlobalLogger "" (Log.setLevel level . Log.setHandlers [handler])
+    rl <- Log.getRootLogger
+    Log.saveGlobalLogger rl
+
+data Options = Options
+  { optLogLevel ::Log.Priority
+  }
+
 printTime :: IO a -> IO a
 printTime act = do
 
@@ -57,7 +76,7 @@ printTime act = do
   result <- act
   end <- getTime
   let delta = end - start
-  putStrLn $ "took " ++ (show (delta))
+  Log.infoM "main" $ "took " ++ (show (delta))
   return result
   where
   getTime = getPOSIXTime -- realToFrac `fmap`
@@ -101,6 +120,7 @@ autocomplete server query = do
 -- | Main function for the executable.
 main :: IO ()
 main = do
+  initLoggers Log.DEBUG
   args <- optionsWithUsage usage =<< getArgs
 
   let isCommand str = args `isPresent` (command str)
@@ -142,5 +162,5 @@ main = do
 
   when (isCommand "make-insert") $ do
     file <- fileArgument
-    putStr =<< makeSchema file
+    putStr =<< makeInserts file
 
