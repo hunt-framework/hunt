@@ -112,10 +112,9 @@ intersectionWithIntervall :: Int -> Int -> Positions -> Positions -> Positions
 intersectionWithIntervall lb ub (PS s1) (PS s2)
     = PS $ IS.filter member' s1
     where
-      member' i = minElem <= ub
+      member' i = minElem <= i + ub
           where
-            (_ls, gt) = IS.split (i + lb - 1) s2
-            minElem = fromMaybe (ub + 1) $ fst <$> IS.minView gt
-
+            (_ls, gt) = IS.split  (i + lb - 1) s2
+            minElem   = fromMaybe (i + ub + 1) $ fst <$> IS.minView gt
 
 -- ------------------------------------------------------------

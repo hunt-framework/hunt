@@ -311,9 +311,9 @@ printOp :: BinOp -> Text
 printOp And        = " AND "
 printOp Or         = " OR "
 printOp AndNot     = " AND NOT "
-printOp Phrase     = " "
-printOp (Follow d) = "FOLLOW " <> (T.pack $ show d)
-printOp (Near   d) = "NEAR "   <> (T.pack $ show d)
+printOp Phrase     = " ++ "
+printOp (Follow d) = " FOLLOW " <> (T.pack $ show d) <> " "
+printOp (Near   d) = " NEAR "   <> (T.pack $ show d) <> " "
 
 -- | Maybe render paranthesis.
 printQPar :: Query -> Text

@@ -99,4 +99,9 @@ subtract                = DM.differenceWith subtractPositions
     where
     diffPos = Pos.difference p1 p2
 
+intersectOccurrences    :: (Positions -> Positions -> Positions) ->
+                           Occurrences -> Occurrences -> Occurrences
+intersectOccurrences pf os1 os2
+    = DM.filter (not . Pos.null) $ DM.intersectionWith pf os1 os2
+
 -- ------------------------------------------------------------
