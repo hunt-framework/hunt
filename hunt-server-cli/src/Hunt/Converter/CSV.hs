@@ -14,7 +14,7 @@ import           Data.ByteString.Lazy.Char8  (putStrLn)
 
 import           Data.Conduit (Consumer, Conduit, ($=), ($$))
 import           Data.Conduit.Binary hiding ( mapM_)
-import           Data.Conduit.List  (mapM_, map, mapAccum)
+import           Data.Conduit.List  (mapM_, map, mapAccum, consume)
 
 import           Data.CSV.Conduit (defCSVSettings, intoCSV, MapRow, runResourceT)
 
@@ -42,10 +42,11 @@ printSink :: (MonadIO m) => Consumer ByteString m ()
 printSink = mapM_ (liftIO . putStrLn )
 
 convert :: FilePath -> IO ()
-convert fileName = runResourceT $
-  sourceFile fileName $=
-  intoCSV defCSVSettings $=
-  rowToApiDocument fileName $=
-  mapToJson $$
-  printSink
+convert fileName = do
+    list <- runResourceT $
+      sourceFile fileName $=
+      intoCSV defCSVSettings $=
+      rowToApiDocument fileName $$
+      consume
+    putStrLn $ encodePretty list
 

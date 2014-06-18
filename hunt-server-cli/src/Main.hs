@@ -7,16 +7,17 @@
 
 module Main where
 
-import           Control.Applicative ((<$>))
+import           Control.Applicative ((<$>), (<|>))
 import           Control.Monad (when)
 
-import           Data.Aeson (encode, decode)
+import           Data.Aeson (encode, decode, FromJSON)
 import           Data.Aeson.Encode.Pretty (encodePretty)
 import           Data.ByteString.Lazy (ByteString)
 import           Data.Char (toUpper)
 import           Data.Map (keys)
 import           Data.Maybe (fromJust)
 import           Data.String.Conversions (cs)
+import           Data.Text (Text)
 import           Data.Time.Clock.POSIX (getPOSIXTime)
 
 import           System.Console.Docopt (optionsWithUsage, getArg, isPresent, command, argument, longOption)
@@ -38,8 +39,8 @@ usage = unlines [
     , "  hunt-server-cli search <query>"
     , "  hunt-server-cli completion <query>"
     , "  hunt-server-cli make-schema <file>"
+    , "  hunt-server-cli make-insert <file>"
     , "  hunt-server-cli from-csv <file>"
-    , "  hunt-server-cli (-h | --help)"
     , ""
     , ""
     , "Options:"
@@ -59,15 +60,25 @@ printTime act = do
   putStrLn $ "took " ++ (show (delta))
   return result
   where
-  getTime = getPOSIXTime -- realToFrac `fmap` 
+  getTime = getPOSIXTime -- realToFrac `fmap`
+
+
+readDocuments :: ByteString -> [H.ApiDocument]
+readDocuments bs = maybe [] id ((return <$> decode bs) <|> decode bs)
 
 makeSchema :: FilePath -> IO String
 makeSchema fileName = do
-  file <- readFile fileName
-  let doc = (fromJust $ decode $ cs file ) :: H.ApiDocument
-      names =  keys $ H.adIndex $ doc
+  file <- cs <$> readFile fileName
+  let docs = readDocuments file
+      names = keys $ H.adIndex $ head docs
       cmds = (\name -> H.cmdInsertContext name H.mkSchema) <$> names        
   return $ cs $ encodePretty cmds
+
+makeInserts :: FilePath -> IO String
+makeInserts fileName = do
+  file <- cs <$> readFile fileName
+  let docs = readDocuments file
+  return $ cs $ encodePretty $ H.cmdSequence $ H.cmdInsertDoc <$> docs
 
 evalCmd :: String -> H.Command -> IO ByteString
 evalCmd server cmd = do
@@ -124,4 +135,12 @@ main = do
 
   when (isCommand "from-csv") $ do
     CSV.convert =<< fileArgument
+
+  when (isCommand "make-schema") $ do
+    file <- fileArgument
+    putStr =<< makeSchema file
+
+  when (isCommand "make-insert") $ do
+    file <- fileArgument
+    putStr =<< makeSchema file
 
