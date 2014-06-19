@@ -78,8 +78,13 @@ query
 orQuery' :: Parser Query
 orQuery'
     = do q1 <- andQuery'
-         qs <- many (orOp >> andQuery)
+         qs <- many (orOp1 >> andQuery')
          return $ qOrs (q1 : qs)
+    where
+      orOp1
+          = try orOp'
+          where
+            orOp' = spaces >> string "OR" >> spaces1
 
 andQuery' :: Parser Query
 andQuery'
@@ -93,7 +98,6 @@ andQuery'
       andOp1
           = try andNotOp'
             <|> try andOp'
-            <|> (spaces1 >> return qAnd)
           where
             andNotOp'
                 = do spaces >> string "AND" >> spaces >> string "NOT" >> spaces1
@@ -104,10 +108,10 @@ andQuery'
 
 neighborQuery :: Parser Query
 neighborQuery
-    = do q1 <- contextQuery
+    = do q1 <- contextSeqQuery
          qs <- many $
                do op <- neiOp
-                  q  <- contextQuery
+                  q  <- contextSeqQuery
                   return (op, q)
          return $ foldl (\ res (op', q') -> op' res q') q1 qs
     where
@@ -131,24 +135,12 @@ neighborQuery
                      spaces1
                      return $ qNear d
 
-
--- TODO: this might need some work for lists
--- | Parse an and query.
-andQuery :: Parser Query
-andQuery = do t <- orQuery
-              try (andOp' t) <|> return t
-  where
-  andOp' r = do op <- andOp
-                q <- andQuery
-                return (QBinary op r q)
-
--- | Parse an or query.
-orQuery :: Parser Query
-orQuery = do t <- contextQuery
-             do orOp
-                q <- orQuery
-                return (QBinary Or t q)
-                <|> return t
+contextSeqQuery :: Parser Query
+contextSeqQuery
+    = do q1 <- contextQuery
+         qs <- many $
+               try (spaces1 >> contextQuery)
+         return $ foldl qAnd q1 qs
 
 -- | Parse a context query.
 contextQuery :: Parser Query
@@ -169,7 +161,7 @@ parQuery = parQuery' <|> rangeQuery
   where
   parQuery' = do char '('
                  spaces
-                 q <- andQuery
+                 q <- orQuery'
                  spaces
                  char ')'
                  tryBoost q
@@ -199,7 +191,10 @@ caseQuery = caseQuery' <|> fuzzyQuery
 
 -- | Parse a fuzzy query.
 fuzzyQuery :: Parser Query
-fuzzyQuery = fuzzyQuery' <|> phraseQuery (QPhrase QNoCase) <|> wordQuery (QWord QNoCase)
+fuzzyQuery
+    = fuzzyQuery'
+      <|> phraseQuery (QPhrase QNoCase)
+      <|> wordQuery (QWord QNoCase)
   where
   fuzzyQuery' = do char '~'
                    spaces
@@ -215,31 +210,6 @@ wordQuery c = do
 phraseQuery :: (Text -> Query) -> Parser Query
 phraseQuery c = do p <- phrase
                    tryBoost (c $ T.pack p)
-
--- | Parse an and operator.
-andOp :: Parser BinOp
-andOp = try andNotOp' <|> try andOp' <|> (spaces1 >> return And)
-  where
-  andNotOp' = do
-    spaces
-    string "AND"
-    spaces
-    string "NOT"
-    spaces1
-    return AndNot
-  andOp' = do spaces
-              string "AND"
-              spaces1
-              return And
-
--- | Parse an or operator.
-orOp :: Parser ()
-orOp = try orOp'
-  where
-  orOp' = do spaces
-             string "OR"
-             spaces1
-             return ()
 
 -- | Parse a word.
 word :: Parser String
