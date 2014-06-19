@@ -73,10 +73,11 @@ library
     Hunt.Common.DocId
     Hunt.Common.DocIdMap
     Hunt.Common.DocIdSet
+    Hunt.Common.Document
+    Hunt.Common.LimitedPriorityQueue
     Hunt.Common.Occurrences
     Hunt.Common.Positions
     Hunt.Common.RawResult
-    Hunt.Common.Document
 
     Hunt.Index.Schema
     Hunt.Index.Schema.Analyze

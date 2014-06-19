@@ -63,7 +63,7 @@ module Hunt.Query.Intermediate
   , limitCxRawResults
   , contextWeights
   , toDocsResult
-  , sortByScore
+  , getDocumentResultPage
 
   , evalSequence
   , evalFollow
@@ -77,29 +77,31 @@ module Hunt.Query.Intermediate
 )
 where
 
-import           Prelude                 hiding (null)
-import qualified Prelude                 as P
+import           Prelude                          hiding (null)
+import qualified Prelude                          as P
 
-import           Control.Applicative     hiding (empty)
-import           Control.Arrow           (second, (***))
+import           Control.Applicative              hiding (empty)
+import           Control.Arrow                    (second, (***))
 
-import           Data.Function           (on)
-import qualified Data.List               as L
-import           Data.Map                (Map)
-import qualified Data.Map                as M
+-- import           Data.Function                    (on)
+import qualified Data.List                        as L
+import           Data.Map                         (Map)
+import qualified Data.Map                         as M
 import           Data.Maybe
 -- import           Data.Text             (Text)
 -- import qualified Data.Text             as T
-import           Hunt.Query.Result       hiding (null)
+import           Hunt.Query.Result                hiding (null)
 
 import           Hunt.Common
-import qualified Hunt.Common.DocIdMap    as DM
-import qualified Hunt.Common.DocIdSet    as DS
-import           Hunt.Common.Document    (DocumentWrapper (..), emptyDocument)
-import           Hunt.Common.Occurrences (intersectOccurrences)
-import qualified Hunt.Common.Positions   as Pos
-import           Hunt.DocTable           (DocTable)
-import qualified Hunt.DocTable           as Dt
+import qualified Hunt.Common.DocIdMap             as DM
+import qualified Hunt.Common.DocIdSet             as DS
+import           Hunt.Common.Document             (DocumentWrapper (..),
+                                                   emptyDocument)
+import qualified Hunt.Common.LimitedPriorityQueue as Q
+import           Hunt.Common.Occurrences          (intersectOccurrences)
+import qualified Hunt.Common.Positions            as Pos
+import           Hunt.DocTable                    (DocTable)
+import qualified Hunt.DocTable                    as Dt
 
 -- import           Debug.Trace
 
@@ -167,7 +169,7 @@ newtype UnScoredDocs
       deriving (Show, Monoid)
 
 instance ScoredResult UnScoredDocs where
-    boost b uds
+    boost _b uds
         = uds
 
     nullSC (UDS s)
@@ -516,12 +518,11 @@ toDocsResult dt (SDS m)
                   where
                     d = unwrap d'
 
-sortByScore :: [Document] -> [Document]
-sortByScore = L.sortBy (compare `on` score)
-
-getResultPage :: Int -> Int -> [a] -> [a]
-getResultPage start len
-    = take len . drop start
+getDocumentResultPage :: Int -> Int -> [Document] -> [Document]
+getDocumentResultPage start len
+    = map fst
+      . Q.pageList start len
+      . map (\ d -> (d, score d))
 
 -- ------------------------------------------------------------
 --
@@ -555,7 +556,7 @@ instance Aggregate ScoredOccs ScoredDocs where
 
 -- | aggregate scored occurrences to unscored docs by throwing away the score
 instance Aggregate ScoredOccs UnScoredDocs where
-    aggregate (SCO sc occ)
+    aggregate (SCO _sc occ)
         = toUnScoredDocs occ
 
 -- | aggregate scored occurences to a score by aggregating first the positions and snd the doc ids
