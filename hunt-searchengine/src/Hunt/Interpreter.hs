@@ -313,7 +313,7 @@ execBasicCmd cmd = do
 --   Dispatches basic commands to corresponding functions.
 execCmd' :: (Binary dt, DocTable dt) => BasicCommand -> Hunt dt CmdResult
 execCmd' (Search q offset mx wg fields)
-  = withIx $ execSearch' (wrapSearch (mkSelect wg fields) offset mx) q
+  = withIx $ execSearch q offset mx wg fields
 
 execCmd' (Completion q mx)
   = withIx $ execSearch' (wrapCompletion mx) q
@@ -511,16 +511,39 @@ execSearch' f q (ContextIndex ix dt s)
                       -- debugM ("word result : " ++ show (wordHits res'))
                       return (f res')
 
--- | build a selection function for choosing,
--- which parts of a document are contained in the result
---
--- The 1. param determines, whether the weight of the document is included
--- the 2. is the list of the description keys, if Nothing is given the complete desc is included
+
+execSearch :: DocTable dt =>
+              Query ->
+              Int -> Int ->
+              Bool -> Maybe [Text] ->
+              ContextIndex dt ->
+              Hunt dt CmdResult
+
+execSearch q offset mx wg fields (ContextIndex ix dt s)
+    = do debugM ("execSearch: " ++ show q)
+         cfg <- asks huntQueryCfg
+         r <- lift $ runQueryScoredDocsM ix s cfg q
+         case r of
+           Left  err    -> throwError err
+           Right scDocs -> formatPage <$> toDocsResult dt scDocs
+    where
+      formatPage ds
+          = ResSearch $
+            LimitedResult
+            { lrResult = ds'
+            , lrOffset = offset
+            , lrMax    = mx
+            , lrCount  = length ds'
+            }
+          where
+            ds' = map (mkSelect wg fields)
+                  . getDocumentResultPage offset mx
+                  $ ds
 
 execSelect :: DocTable dt => Query -> ContextIndex dt -> Hunt dt CmdResult
 execSelect q (ContextIndex ix dt s)
     = do debugM ("execSelect: " ++ show q)
-         r <- lift $ runQueryScoredDocsM ix s q
+         r <- lift $ runQueryScoredDocsM ix s queryConfigDocIds q
          case r of
            Left  err -> throwError err
            Right res -> ResSearch <$> toLimitedRes res
@@ -533,6 +556,12 @@ execSelect q (ContextIndex ix dt s)
                           , lrMax    = -1
                           , lrCount  = length ds
                           }
+
+-- | build a selection function for choosing,
+-- which parts of a document are contained in the result
+--
+-- The 1. param determines, whether the weight of the document is included in the result
+-- the 2. is the list of the description keys, if @Nothing@ is given the complete desc is included
 
 mkSelect :: Bool -> Maybe [Text] -> (Document -> Document)
 mkSelect withWeight fields
@@ -672,12 +701,13 @@ runQueryDocIdsM ix s q
 
 runQueryScoredDocsM :: ContextMap Occurrences
                     -> Schema
+                    -> ProcessConfig
                     -> Query
                     -> IO (Either CmdError ScoredDocs)
-runQueryScoredDocsM ix s q
+runQueryScoredDocsM ix s cfg q
     = processQueryScoredDocs st q
       where
-        st = initProcessor queryConfigDocIds ix s
+        st = initProcessor cfg ix s
 
 -- ------------------------------------------------------------
 
