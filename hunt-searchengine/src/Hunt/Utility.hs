@@ -32,7 +32,6 @@ module Hunt.Utility
     -- * List Helper
   , unbox, unboxM, isSingleton
   , split
-  , join
   , partitionListByLength, partitionListByCount
   , descending
 
@@ -48,21 +47,21 @@ module Hunt.Utility
   )
 where
 
-import           Control.Monad        (when)
+import           Control.Monad    (when)
 
-import           Data.Aeson           hiding (decode)
+import           Data.Aeson       hiding (decode)
 import           Data.Aeson.Types
 import           Data.Char
-import qualified Data.Foldable        as FB
-import qualified Data.List            as L
-import           Data.Map             (Map)
-import qualified Data.Map             as M
-import           Data.Maybe           (fromJust)
-import           Data.Set             (Set)
-import qualified Data.Set             as S
-import           Data.Text            (Text)
+import qualified Data.Foldable    as FB
+import qualified Data.List        as L
+import           Data.Map         (Map)
+import qualified Data.Map         as M
+import           Data.Maybe       (fromJust)
+import           Data.Set         (Set)
+import qualified Data.Set         as S
+import           Data.Text        (Text)
 
-import           Numeric              (showHex)
+import           Numeric          (showHex)
 
 -- ------------------------------------------------------------
 
@@ -125,10 +124,6 @@ split :: Eq a => [a] -> [a] -> [[a]]
 split _ []       = [[]]
 split at w@(x:xs) = maybe ((x:r):rs) ((:) [] . split at) (L.stripPrefix at w)
                     where (r:rs) = split at xs
-
--- | Join with a seperating character sequence.
-join :: Eq a => [a] -> [[a]] -> [a]
-join = L.intercalate
 
 -- | Removes leading and trailing whitespace from a string.
 strip :: String -> String

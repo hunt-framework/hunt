@@ -70,7 +70,8 @@ import           Hunt.Interpreter.BasicCommand
 import           Hunt.Interpreter.Command      (Command)
 import           Hunt.Interpreter.Command      hiding (Command (..))
 
-import           Hunt.Query.Intermediate       (ScoredDocs, sortByScore,
+import           Hunt.Query.Intermediate       (ScoredDocs,
+                                                getDocumentResultPage,
                                                 toDocsResult)
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Processor          (ProcessConfig (..),
@@ -529,9 +530,9 @@ execSelect q (ContextIndex ix dt s)
            Right res -> ResSearch <$> toLimitedRes res
     where
       toLimitedRes scDocs
-          = do ds <- sortByScore <$> toDocsResult dt scDocs
+          = do ds <- getDocumentResultPage 0 (-1) <$> toDocsResult dt scDocs
                return $ LimitedResult
-                          { lrResult = sortByScore ds
+                          { lrResult = ds
                           , lrOffset = 0
                           , lrMax    = -1
                           , lrCount  = length ds

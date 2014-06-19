@@ -26,6 +26,15 @@
 module Hunt.Index.Schema.Normalize.Date
   ( normalize, denormalize
   , isAnyDate
+  , isAnyDate'
+  , isTime
+  , nullDay
+  , showGYearMonth
+  , showGYear
+  , showGMonthDay
+  , showGMonth
+  , showGDay
+  , showTime
   )
 where
 
