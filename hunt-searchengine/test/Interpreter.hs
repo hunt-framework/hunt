@@ -35,9 +35,22 @@ main = defaultMain
   , testCase "Interpreter: search case-insensitive"    test_search_nocase2
   , testCase "Interpreter: search case-sensitive"      test_search_case
   , testCase "Interpreter: search case-sensitive"      test_search_case2
-
+  , testCase "Interpreter: phrase case-insensitive"    test_phrase_nocase
+  , testCase "Interpreter: phrase case-insensitive"    test_phrase_nocase2
+  , testCase "Interpreter: phrase case-sensitive"      test_phrase_case
+  , testCase "Interpreter: phrase case-sensitive"      test_phrase_case2
   , testCase "Interpreter: a little bit of everything" test_everything
+  -- XXX: still a lot of cases uncovered!
 
+  -- test normalization
+  , testCase "Interpreter: norma case-insensitive"     test_norm_search_nocase
+  , testCase "Interpreter: norma case-insensitive"     test_norm_search_nocase2
+  , testCase "Interpreter: norma case-sensitive"       test_norm_search_case
+  , testCase "Interpreter: norma case-sensitive"       test_norm_search_case2
+  , testCase "Interpreter: n.phrase case-insensitive"  test_norm_phrase_nocase
+  , testCase "Interpreter: n.phrase case-insensitive"  test_norm_phrase_nocase2
+  , testCase "Interpreter: n.phrase case-sensitive"    test_norm_phrase_case
+  , testCase "Interpreter: n.phrase case-sensitive"    test_norm_phrase_case2
   -- date search specific tests
   , testCase "Interpreter: date context"               test_dates
 
@@ -123,7 +136,6 @@ a @@@ f = execCmd a >>= liftIO . f
 a @@= b = a @@@ (@?=b)
 
 
-
 -- -----------------------------------------------------------
 -- General Interpreter API tests
 
@@ -134,19 +146,23 @@ test_insert = do
                  $ defaultTestSetup
   True @=? isRight res
 
+--
+-- Word Search
+--
+
 -- insert document and search for it: case insensitive
 test_search_nocase :: Assertion
 test_search_nocase = do
   res <- testCmd . cmdSequence
          $ defaultTestSetup''
-         $ search (setNoCaseSearch $ qWord "Brain") 0 1000
+         $ search (setNoCaseSearch $ qWord "Bra") 0 1000
   ["test://0"] @=? (searchResultUris . fromRight) res
 
 test_search_nocase2 :: Assertion
 test_search_nocase2 = do
   res <- testCmd . cmdSequence
          $ defaultTestSetup''
-         $ search (setNoCaseSearch $ qWord "brain") 0 1000
+         $ search (setNoCaseSearch $ qWord "bra") 0 1000
   ["test://0"] @=? (searchResultUris . fromRight) res
 
 -- insert document and search for it: case sensitive
@@ -154,16 +170,140 @@ test_search_case :: Assertion
 test_search_case = do
   res <- testCmd . cmdSequence
          $ defaultTestSetup''
-         $ search (qWord "Brain") 0 1000
+         $ search (qWord "Bra") 0 1000
   ["test://0"] @=? (searchResultUris . fromRight) res
 
 test_search_case2 :: Assertion
 test_search_case2 = do
   res <- testCmd . cmdSequence
          $ defaultTestSetup''
-         $ search (qWord "brain") 0 1000
+         $ search (qWord "bra") 0 1000
   [] @=? (searchResultUris . fromRight) res
 
+
+--
+-- Phrase Search
+--
+
+-- insert document and search for it: case insensitive
+test_phrase_nocase :: Assertion
+test_phrase_nocase = do
+  res <- testCmd . cmdSequence
+         $ defaultTestSetup''
+         $ search (setNoCaseSearch $ qPhrase "Brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+test_phrase_nocase2 :: Assertion
+test_phrase_nocase2 = do
+  res <- testCmd . cmdSequence
+         $ defaultTestSetup''
+         $ search (setNoCaseSearch $ qPhrase "brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+-- insert document and search for it: case sensitive
+test_phrase_case :: Assertion
+test_phrase_case = do
+  res <- testCmd . cmdSequence
+         $ defaultTestSetup''
+         $ search (qPhrase "Brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+test_phrase_case2 :: Assertion
+test_phrase_case2 = do
+  res <- testCmd . cmdSequence
+         $ defaultTestSetup''
+         $ search (qPhrase "brain") 0 1000
+  [] @=? (searchResultUris . fromRight) res
+
+-- -----------------------------------------------------------
+-- test application of normalization
+
+
+-- | test setup used in nomralizer tests
+normalizerTestSetup :: [Command]
+normalizerTestSetup
+    = [ cmdInsertContext "default" (ContextSchema Nothing [cnUpperCase] 1 True ctText)
+      , cmdInsertDoc brainDoc
+      ]
+
+normalizerTestSetup' :: [Command] -> [Command]
+normalizerTestSetup' cmds = defaultTestSetup ++ cmds
+
+normalizerTestSetup'' :: Command -> [Command]
+normalizerTestSetup'' cmd = defaultTestSetup ++ [cmd]
+
+--
+-- Word search
+--
+
+-- insert document and search for it: case insensitive
+test_norm_search_nocase :: Assertion
+test_norm_search_nocase = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (setNoCaseSearch $ qWord "Bra") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+test_norm_search_nocase2 :: Assertion
+test_norm_search_nocase2 = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (setNoCaseSearch $ qWord "bra") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+-- insert document and search for it: case sensitive
+test_norm_search_case :: Assertion
+test_norm_search_case = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (qWord "Bra") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+-- NOTE: uppercase normalizer makes Case/NoCase irrelevant -> its the same
+test_norm_search_case2 :: Assertion
+test_norm_search_case2 = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (qWord "bra") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+--
+-- Phrase Search
+--
+
+-- insert document and search for it: case insensitive
+test_norm_phrase_nocase :: Assertion
+test_norm_phrase_nocase = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (setNoCaseSearch $ qPhrase "Brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+test_norm_phrase_nocase2 :: Assertion
+test_norm_phrase_nocase2 = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (setNoCaseSearch $ qPhrase "brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+-- insert document and search for it: case sensitive
+test_norm_phrase_case :: Assertion
+test_norm_phrase_case = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (qPhrase "Brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+test_norm_phrase_case2 :: Assertion
+test_norm_phrase_case2 = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (qPhrase "brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+
+-- -----------------------------------------------------------
+-- test binary serialization
 
 test_binary :: Assertion
 test_binary = withTmpFile $ \tmpfile -> testCM $ do
@@ -222,6 +362,10 @@ test_binary2 = withTmpFile $ \tmpfile -> testCM $ do
   (search (setContext "datecontext" (setNoCaseSearch $ qWord "invalid")) 0 10
     @@@ const (assertFailure "date validation failed after store/load index"))
         `catchError` const (return ())
+
+
+-- -----------------------------------------------------------
+-- index specific tests
 
 test_dates :: Assertion
 test_dates = testCM $ do
