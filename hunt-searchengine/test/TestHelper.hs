@@ -33,6 +33,9 @@ import qualified Hunt.Common.Positions                       as Pos
 import qualified Hunt.Common.Occurrences                     as Occ
 import qualified Hunt.Common.DocDesc                         as DD
 
+import           Hunt.Interpreter.Command
+import           Hunt.ClientInterface                        hiding (mkDescription)
+
 import qualified Hunt.DocTable                               as Dt
 import qualified Hunt.DocTable.HashedDocTable                as HDt
 import           Hunt.Utility
@@ -180,3 +183,93 @@ dateYYYYMMDD :: Gen Text
 dateYYYYMMDD = arbitrary >>= \x -> return . T.pack $ formatTime defaultTimeLocale "%Y-%m-%d" (newDate x)
   where
   newDate x = addDays (-x) (fromGregorian 2013 12 31)
+
+-- ------------------------------------------------------------
+-- Example documents and contexts
+
+-- | test document with "brain" document description
+--   and term "brain" added to index
+brainDoc' :: URI -> ApiDocument
+brainDoc' uri'
+    = addBrainDescAndIx
+      $ mkApiDoc uri'
+
+brainDoc :: ApiDocument
+brainDoc
+    = brainDoc' "test://0"
+
+
+addBrainDescAndIx :: ApiDocument -> ApiDocument
+addBrainDescAndIx
+    = setDescription descr
+      . setIndex (M.fromList [("default", td)])
+    where
+      td = "Brain"
+      descr = DD.fromList [ ("name", "Brain" :: String)
+                          , ("mission", "take over the world")
+                          , ("legs", "4")
+                          ]
+
+-- | test document with "brain" description and also a value
+--   added to the datecontext
+dateDoc' :: URI -> ApiDocument
+dateDoc' uri'
+    = addToIndex "datecontext" "2013-01-01"
+      $ addBrainDescAndIx
+      $ mkApiDoc uri'
+
+dateDoc :: ApiDocument
+dateDoc
+    = dateDoc' "test://1"
+
+-- | test document with "brain" description and also a value
+--   added to the geocontext
+geoDoc'' :: URI -> Text -> ApiDocument
+geoDoc'' uri' position
+    = addToIndex "geocontext" position
+      $ addBrainDescAndIx
+      $ mkApiDoc uri'
+
+geoDoc' :: Text -> ApiDocument
+geoDoc' pos
+    = geoDoc'' "test://2" pos
+
+geoDoc :: ApiDocument
+geoDoc = geoDoc' "53.60000-10.00000"
+
+-- example apidoc
+brainDocUpdate :: ApiDocument
+brainDocUpdate = setDescription descr $ brainDoc
+  where
+  descr = DD.fromList [("name", "Pinky" :: String), ("mission", "ask stupid questions")]
+
+brainDocMerged :: ApiDocument
+brainDocMerged
+    = changeDescription (`DD.union` (getDescription brainDoc))
+      $ brainDocUpdate
+
+-- | insert default text context command
+insertDefaultContext :: Command
+insertDefaultContext = uncurry cmdInsertContext defaultContextInfo
+
+-- | insert geo context command
+insertGeoContext :: Command
+insertGeoContext = uncurry cmdInsertContext geoContextInfo
+
+-- | insert date context command
+insertDateContext :: Command
+insertDateContext = uncurry cmdInsertContext dateContextInfo
+
+-- | default text context
+defaultContextInfo :: (Context, ContextSchema)
+defaultContextInfo = ("default", ContextSchema Nothing [] 1 True ctText)
+
+-- | default date context
+dateContextInfo :: (Context, ContextSchema)
+dateContextInfo = ("datecontext", ContextSchema Nothing [] 1 True ctDate)
+
+-- | default geo context
+geoContextInfo :: (Context, ContextSchema)
+geoContextInfo = ("geocontext", ContextSchema Nothing [] 1 True ctPosition)
+
+

@@ -161,6 +161,9 @@ test-suite Hunt-Interpreter
                , test-framework-quickcheck2
                , text
                , vector
+               , old-locale
+               , time
+               , random
 
 test-suite Hunt-Query-Parser
   hs-source-dirs:       test

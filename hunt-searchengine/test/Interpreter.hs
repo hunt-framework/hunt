@@ -7,8 +7,6 @@ import           Control.Applicative
 import           Control.Exception
 import           Control.Monad.Error
 import           Data.Fixed                           (div', mod')
-import qualified Data.Map                             as M
-import           Data.Monoid                          ((<>))
 import           Data.Text                            (Text, pack)
 
 import           Test.Framework
@@ -22,13 +20,12 @@ import           Text.Printf                          (printf)
 
 import           Hunt.ClientInterface
 import           Hunt.Common
-import qualified Hunt.Common.DocDesc                  as DD
 import           Hunt.Common.Document
 import           Hunt.DocTable.HashedDocTable         (Documents)
 import           Hunt.Interpreter
 import           Hunt.Query.Ranking
 import           Hunt.Utility
-
+import           TestHelper
 -- ----------------------------------------------------------------------------
 
 type TestEnv  = HuntEnv (Documents Document)
@@ -89,72 +86,6 @@ testCmd cmd = fst <$> testRunCmd cmd
 -- uris of the search results
 searchResultUris :: CmdResult -> [URI]
 searchResultUris = map uri . lrResult . crRes
-
--- example apidoc
-brainDoc :: ApiDocument
-brainDoc
-    = addBrainDoc
-      $ mkApiDoc "test://0"
-
-addBrainDoc :: ApiDocument -> ApiDocument
-addBrainDoc
-    = setDescription descr
-      . setIndex (M.fromList [("default", td)])
-    where
-      td = "Brain"
-      descr = DD.fromList [("name", "Brain" :: String), ("mission", "take over the world"), ("legs", "4")]
-
-dateDoc :: ApiDocument
-dateDoc
-    = addToIndex "datecontext" "2013-01-01"
-      $ addBrainDoc
-      $ mkApiDoc "test://1"
-
-
-geoDoc' :: Text -> ApiDocument
-geoDoc' position
-    = addToIndex "geocontext" position
-      $ addBrainDoc
-      $ mkApiDoc "test://2"
-
-geoDoc :: ApiDocument
-geoDoc = geoDoc' "53.60000-10.00000"
-
--- example apidoc
-brainDocUpdate :: ApiDocument
-brainDocUpdate = setDescription descr $ brainDoc
-  where
-  descr = DD.fromList [("name", "Pinky" :: String), ("mission", "ask stupid questions")]
-
-brainDocMerged :: ApiDocument
-brainDocMerged
-    = changeDescription (`DD.union` (getDescription brainDoc))
-      $ brainDocUpdate
-
-defaultContextInfo :: (Context, ContextSchema)
-defaultContextInfo = ("default", ContextSchema Nothing [] 1 True ctText)
-
-insertDefaultContext :: Command
-insertDefaultContext = uncurry cmdInsertContext defaultContextInfo
-
-dateContextInfo :: (Context, ContextSchema)
-dateContextInfo = ("datecontext", ContextSchema Nothing [] 1 True ctDate)
-
-insertDateContext :: Command
-insertDateContext = uncurry cmdInsertContext dateContextInfo
-
--- XXX: regex ok? examples:
---      correct: 90-180, -90--180, 0.-0., 0.0-0.0, 0.00-0.00
---      wrong:   91-181, -91--181, 01-01
---using context type default now here
---geoRex :: Text
---geoRex = "-?(90(\\.0*)?|[1-7]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?"
-
-geoContextInfo :: (Context, ContextSchema)
-geoContextInfo = ("geocontext", ContextSchema Nothing [] 1 True ctPosition)
-
-insertGeoContext :: Command
-insertGeoContext = uncurry cmdInsertContext geoContextInfo
 
 
 -- evaluate CM and check the result
