@@ -7,7 +7,7 @@
 {-# LANGUAGE RankNTypes                #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Hunt.Strict.Index 
+module Hunt.Strict.Index
 (indexTests)
 where
 
@@ -32,11 +32,11 @@ import qualified Hunt.Index.InvertedIndex                    as InvIx
 import qualified Hunt.Index.PrefixTreeIndex                  as PIx
 import qualified Hunt.Index.PrefixTreeIndex2Dim              as PIx2D
 import qualified Hunt.Index.Proxy.KeyIndex                   as KeyProxy
-
+import qualified Hunt.Index.RTreeIndex                       as RTree
 -- ----------------------------------------------------------------------------
 
 indexTests :: [Test]
-indexTests = 
+indexTests =
   -- strictness property for data-structures used in index and
   -- document table
   [ testProperty "prop_strictness_occurrences"               prop_occs
@@ -49,6 +49,7 @@ indexTests =
   , testProperty "prop_strictness insert numericindex"       prop_invix2
   , testProperty "prop_strictness insert dateindex"          prop_invix3
   , testProperty "prop_strictness insert geoindex"           prop_invix4
+  , testProperty "prop_strictness insert geoindex rtree"     prop_insert_rtree
   , testProperty "prop_strictness insert proxy"              prop_proxy
   -- delete / deleteDocs
   , testProperty "prop_strictness delete prefixtreeindex"    prop_ptix_del
@@ -57,6 +58,7 @@ indexTests =
   , testProperty "prop_strictness delete numericindex"       prop_invix2_del
   , testProperty "prop_strictness delete dateindex"          prop_invix3_del
   , testProperty "prop_strictness delete geoindex"           prop_invix4_del
+  , testProperty "prop_strictness delete geoindex rtree"     prop_rtree_del
   , testProperty "prop_strictness delete proxy"              prop_proxy_del
   -- map
   , testProperty "prop_strictness map prefixtreeindex"       prop_ptix_map
@@ -65,6 +67,7 @@ indexTests =
   , testProperty "prop_strictness map numericindex"          prop_invix2_map
   , testProperty "prop_strictness map dateindex"             prop_invix3_map
   , testProperty "prop_strictness map geoindex"              prop_invix4_map
+  , testProperty "prop_strictness map geoindex rtree"        prop_rtree_map
   , testProperty "prop_strictness map proxy"                 prop_proxy_map
   -- mapMaybe
   , testProperty "prop_strictness mapMaybe prefixtreeindex"  prop_ptix_map2
@@ -73,6 +76,7 @@ indexTests =
   , testProperty "prop_strictness mapMaybe numericindex"     prop_invix2_map2
   , testProperty "prop_strictness mapMaybe dateindex"        prop_invix3_map2
   , testProperty "prop_strictness mapMaybe geoindex"         prop_invix4_map2
+  , testProperty "prop_strictness mapMaybe geoindex rtree"   prop_rtree_map2
   , testProperty "prop_strictness mapMaybe proxy"            prop_proxy_map2
   -- unionWith
   , testProperty "prop_strictness unionWith prefixtreeindex" prop_ptix_union
@@ -81,6 +85,7 @@ indexTests =
   , testProperty "prop_strictness unionWith numericindex"    prop_invix2_union
   , testProperty "prop_strictness unionWith dateindex"       prop_invix3_union
   , testProperty "prop_strictness unionWith geoindex"        prop_invix4_union
+  , testProperty "prop_strictness unionWith geoindex rtree"  prop_rtree_union
   , testProperty "prop_strictness unionWith proxy"           prop_proxy_union
   ]
 
@@ -145,6 +150,14 @@ prop_invix4
   where
   pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "1-1" val Ix.empty
 
+prop_insert_rtree :: Property
+prop_insert_rtree
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Positions)
+    assertNF' ix
+  where
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge (RTree.readPosition "1-1") val Ix.empty
+
 prop_proxy :: Property
 prop_proxy
   = monadicIO $ do
@@ -205,6 +218,14 @@ prop_invix4_del
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_delete "1-1"
+
+prop_rtree_del :: Property
+prop_rtree_del
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Positions)
+    assertNF' ix
+  where
+  pickIx = pick arbitrary >>= insert_and_delete (RTree.readPosition "1-1")
 
 prop_proxy_del :: Property
 prop_proxy_del
@@ -282,6 +303,14 @@ prop_invix4_map
   where
   pickIx = pick arbitrary >>= insert_and_map "1-1"
 
+prop_rtree_map :: Property
+prop_rtree_map
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Positions)
+    assertNF' ix
+  where
+  pickIx = pick arbitrary >>= insert_and_map (id $!! RTree.readPosition "1-1")
+
 prop_proxy_map :: Property
 prop_proxy_map
   = monadicIO $ do
@@ -349,6 +378,15 @@ prop_invix4_map2
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_map2 "1-1"
+
+
+prop_rtree_map2 :: Property
+prop_rtree_map2
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Positions)
+    assertNF' ix
+  where
+  pickIx = pick arbitrary >>= insert_and_map2 (RTree.readPosition "1-1")
 
 prop_proxy_map2 :: Property
 prop_proxy_map2
@@ -435,6 +473,17 @@ prop_invix4_union
     val1 <- pick arbitrary
     val2 <- pick arbitrary
     insert_and_union "1-1" val1 val2
+
+prop_rtree_union :: Property
+prop_rtree_union
+  = monadicIO $ do
+    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Positions)
+    assertNF' ix
+  where
+  pickIx = do
+    val1 <- pick arbitrary
+    val2 <- pick arbitrary
+    insert_and_union (RTree.readPosition "1-1") val1 val2
 
 prop_proxy_union :: Property
 prop_proxy_union
