@@ -163,6 +163,7 @@ start config = do
               ResOK               -> json $ JsonSuccess ("ok" :: Text)
               ResSearch docs      -> json $ JsonSuccess docs
               ResCompletion wrds  -> json $ JsonSuccess wrds
+              ResSuggestion wrds  -> json $ JsonSuccess wrds
               ResGeneric val      -> json $ JsonSuccess val
 
     let evalQuery mkCmd q = case parseQuery q of

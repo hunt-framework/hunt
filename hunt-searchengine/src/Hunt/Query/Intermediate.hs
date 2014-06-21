@@ -14,91 +14,58 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Query.Intermediate
-(
-  -- * The intermediate result type.
-    Intermediate
-  , IntermediateContexts
-  , IntermediateWords
+    ( ScoredResult(..)
+    , Aggregate(..)
 
-  -- * Construction
-  , empty
+    , ScoredDocs
+    , ScoredWords
+    , ScoredContexts
+    , ScoredOccs
+    , ScoredRawDocs
+    , ScoredCx
+    , UnScoredDocs
 
-  -- * Query
-  , null
-  , size
+    , toScoredDocs
+    , boostAndAggregateCx
+    , fromCxRawResults
+    , fromRawResult
+    , limitRawResult
+    , limitCxRawResults
+    , contextWeights
+    , filterByDocSet
+    , toDocIdSet
+    , toDocsResult
+    , toDocumentResultPage
+    , toWordsResult
 
-  -- * Combine
-  , union
-  , merge
-  , difference
-  , intersection
-  , unions
-  , unionsDocLimited
-  , merges
-  , mergesDocLimited
---  , intersections1
---  , differences1
-
-  -- * Conversion
-  , fromList
-  , fromListCxs
-  , toResult
-
-  , ScoredResult(..)
-  , Aggregate(..)
-
-  , ScoredDocs
-  , ScoredWords
-  , ScoredContexts
-  , ScoredOccs
-  , ScoredRawDocs
-  , ScoredCx
-  , UnScoredDocs
-
-  , toScoredDocs
-  , boostAndAggregateCx
-  , fromCxRawResults
-  , fromRawResult
-  , limitRawResult
-  , limitCxRawResults
-  , contextWeights
-  , toDocsResult
-  , getDocumentResultPage
-
-  , evalSequence
-  , evalFollow
-  , evalNear
-  , evalOr
-  , evalAnd
-  , evalAndNot
-  , evalBoost
-  , evalPrim
-
-)
+    , evalSequence
+    , evalFollow
+    , evalNear
+    , evalOr
+    , evalAnd
+    , evalAndNot
+    , evalBoost
+    , evalPrim
+    )
 where
 
 import           Prelude                          hiding (null)
-import qualified Prelude                          as P
 
 import           Control.Applicative              hiding (empty)
 import           Control.Arrow                    (second, (***))
 
--- import           Data.Function                    (on)
 import qualified Data.List                        as L
 import           Data.Map                         (Map)
 import qualified Data.Map                         as M
 import           Data.Maybe
--- import           Data.Text             (Text)
--- import qualified Data.Text             as T
 import           Hunt.Query.Result                hiding (null)
 
 import           Hunt.Common
 import qualified Hunt.Common.DocIdMap             as DM
 import qualified Hunt.Common.DocIdSet             as DS
-import           Hunt.Common.Document             (DocumentWrapper (..),
-                                                   emptyDocument)
+import           Hunt.Common.Document             (DocumentWrapper (..))
 import qualified Hunt.Common.LimitedPriorityQueue as Q
-import           Hunt.Common.Occurrences          (intersectOccurrences)
+import qualified Hunt.Common.Occurrences          as Occ
 import qualified Hunt.Common.Positions            as Pos
 import           Hunt.DocTable                    (DocTable)
 import qualified Hunt.DocTable                    as Dt
@@ -191,6 +158,9 @@ toUnScoredDocs :: Occurrences -> UnScoredDocs
 toUnScoredDocs os
     = UDS . DS.fromList . DM.keys $ os
 
+toDocIdSet :: UnScoredDocs -> DS.DocIdSet
+toDocIdSet (UDS ds) = ds
+
 -- ------------------------------------------------------------
 
 -- The result type for word search,
@@ -251,75 +221,14 @@ instance ScoredResult ScoredOccs where
         = SCO s1 (DM.difference d1 d2)
 
     intersectSC (SCO s1 d1) (SCO s2 d2)
-        = SCO (s1 + s2) (intersectOccurrences Pos.union d1 d2)
+        = SCO (s1 + s2) (Occ.intersectOccurrences Pos.union d1 d2)
 
     intersectDisplSC disp (SCO s1 d1) (SCO s2 d2)
-        = SCO (s1 + s2) (intersectOccurrences (Pos.intersectionWithDispl disp) d1 d2)
+        = SCO (s1 + s2) (Occ.intersectOccurrences (Pos.intersectionWithDispl disp) d1 d2)
 
     intersectFuzzySC lb ub (SCO s1 d1) (SCO s2 d2)
-        = SCO (s1 + s2) (intersectOccurrences (Pos.intersectionWithIntervall lb ub) d1 d2)
+        = SCO (s1 + s2) (Occ.intersectOccurrences (Pos.intersectionWithIntervall lb ub) d1 d2)
 
--- ------------------------------------------------------------
-{-- not yet used,
-
--- the @ScoredRawDocs@ deals with lists of words,
--- and that suits better for completion search
-
--- The(?) result type for searching phrases and context search,
--- every word hit is associated with a score and a DocIdMap containing
--- the docs and position.
---
--- The positions are neccessary in phrase and context search,
--- afterwards the positions can be accumulated into a score,
--- e.g. by counting the occurences
---
--- A RawResult can easily be converted into this type
-
-newtype ScoredWordOccs
-    = SCWO (Map Word ScoredOccs)
-      deriving (Show)
-
-instance Monoid ScoredWordOccs where
-    mempty
-        = SCWO M.empty
-    mappend (SCWO m1) (SCWO m2)
-        = SCWO $ M.unionWith (<>) m1 m2
-
-instance ScoredResult ScoredWordOccs where
-    boost b (SCWO m)
-        = SCWO $ M.map (boost b) m
-
-    nullSC (SCWO m)
-        = M.null m
-
-    differenceSC (SCWO m1) (SCWO m2)
-        = scwo $ M.map diff m1
-          where
-            diff :: ScoredOccs -> ScoredOccs
-            diff so = M.foldl differenceSC so m2
-
-    intersectSC
-        = intersectSCWO intersectSC
-
-    intersectDisplSC d
-        = intersectSCWO $ intersectDisplSC d
-
-    intersectFuzzySC lb ub
-        = intersectSCWO $ intersectFuzzySC lb ub
-
-intersectSCWO :: (ScoredOccs -> ScoredOccs -> ScoredOccs)
-              -> ScoredWordOccs -> ScoredWordOccs -> ScoredWordOccs
-intersectSCWO interSCO (SCWO m1) (SCWO m2)
-        = scwo $ M.map intersect m1
-          where
-            intersect s0
-                = M.foldl acc mempty m2
-                  where
-                    acc r s1 = r <> (interSCO s0 s1)
-
-scwo :: Map Word ScoredOccs -> ScoredWordOccs
-scwo = SCWO . M.filter (not . nullSC)
--- -}
 -- ------------------------------------------------------------
 
 -- A result type for searching phrases and context search,
@@ -387,14 +296,30 @@ srd :: [([Word], ScoredOccs)] -> ScoredRawDocs
 srd
     = SRD . L.filter (not . nullSC . snd)
 
+filterByDocSet :: UnScoredDocs -> ScoredRawDocs -> ScoredRawDocs
+filterByDocSet (UDS ds) (SRD xs)
+    = SRD $ concatMap filterDocs xs
+      where
+        filterDocs (ws, SCO sc occ)
+            | Occ.null occ'
+                = []
+            | otherwise
+                = [(ws, SCO sc occ')]
+            where
+              occ' = DM.filterWithKey p occ
+                  where
+                    p k _v = k `DS.member` ds
+
 -- ------------------------------------------------------------
+
+-- | Add the Context dimension to a scored result
 
 newtype ScoredCx a
     = SCX (Map Context a)
       deriving (Show)
 
--- type ScoredCxRawDocs
---    = ScoredCx ScoredRawDocs
+instance Functor ScoredCx where
+    fmap f (SCX m) = SCX $ M.map f m
 
 instance Monoid a => Monoid (ScoredCx a) where
     mempty
@@ -518,11 +443,17 @@ toDocsResult dt (SDS m)
                   where
                     d = unwrap d'
 
-getDocumentResultPage :: Int -> Int -> [Document] -> [Document]
-getDocumentResultPage start len
+toDocumentResultPage :: Int -> Int -> [Document] -> [Document]
+toDocumentResultPage start len
     = map fst
       . Q.pageList start len
       . map (\ d -> (d, score d))
+
+toWordsResult :: Int -> ScoredWords -> [(Word, Score)]
+toWordsResult len (SWS m)
+    = Q.toList 0 len
+      . M.foldWithKey Q.insert (Q.mkQueue len)
+      $ m
 
 -- ------------------------------------------------------------
 --
@@ -674,205 +605,5 @@ evalBoost = boost
 
 evalPrim :: Aggregate (ScoredCx ScoredRawDocs) (ScoredCx r) => ScoredCx ScoredRawDocs -> ScoredCx r
 evalPrim = aggregate
-
--- ------------------------------------------------------------
--- ------------------------------------------------------------
-
--- | The intermediate result used during query processing.
-
-type Intermediate         = DocIdMap IntermediateContexts
-type IntermediateContexts = (Map Context IntermediateWords, Boost)
-type IntermediateWords    = Map Word (WordInfo, Positions)
-
--- ------------------------------------------------------------
-
--- | Create an empty intermediate result.
-empty :: Intermediate
-empty = DM.empty
-
--- | Check if the intermediate result is empty.
-null :: Intermediate -> Bool
-null = DM.null
-
--- | Returns the number of documents in the intermediate result.
-size :: Intermediate -> Int
-size = DM.size
-
--- | Merges a bunch of intermediate results into one intermediate result by unioning them.
-unions :: [Intermediate] -> Intermediate
-unions = L.foldl' union empty
-
--- | Intersect two sets of intermediate results.
-intersection :: Intermediate -> Intermediate -> Intermediate
-intersection = DM.intersectionWith combineContexts
-
-{-
--- TODO: make this safe and efficient
--- foldl is inefficient because the neutral element of the intersection is >everything<
-
-intersections1 :: [Intermediate] -> Intermediate
-intersections1 = L.foldl1' intersection
-
--- TODO: same as for 'intersections1' but this is not commutative
-
-differences1 :: [Intermediate] -> Intermediate
-differences1 = L.foldl1' difference
--}
-
--- | Union two sets of intermediate results.
---   Can be used on \"query intermediates\".
---
--- /Note/: See 'merge' for a similar function.
-
-union :: Intermediate -> Intermediate -> Intermediate
-union = DM.unionWith combineContexts
-
--- | Merge two sets of intermediate results.
---   Search term should be the same.
---   Can be used on \"context intermediates\".
---
--- /Note/: See 'union' for a similar function.
-
-merge :: Intermediate -> Intermediate -> Intermediate
-merge = DM.unionWith mergeContexts
-
--- | Merges a bunch of intermediate results into one intermediate result by merging them.
-
-merges :: [Intermediate] -> Intermediate
-merges = L.foldl' merge empty
-
--- | Subtract two sets of intermediate results.
-
-difference :: Intermediate -> Intermediate -> Intermediate
-difference = DM.difference
-
--- | Create an intermediate result from a list of words and their occurrences.
---
--- The first arg is the phrase searched for split into its parts
--- all these parts are stored in the WordInfo as term
---
--- Beware! This is extremly optimized and will not work for merging arbitrary intermediate results!
--- Based on resultByDocument from Hunt.Common.RawResult
---
--- merge of list with 'head' because second argument is always a singleton
--- otherwise >> (flip $ (:) . head) [1,2] [3,4] == [3,1,2]
-
-fromList :: Schema -> [Word] -> Context -> RawResult -> Intermediate
-fromList sc ts c os
-    = DM.map transform                            -- ::   DocIdMap IntermediateContexts
-      $ DM.unionsWith (flip $ (:) . head)         -- ::   DocIdMap [(Word, (WordInfo, Positions))]
-      $ map insertWords os                        -- :: [ DocIdMap [(Word, (WordInfo, Positions))] ]
-    where
-      -- O(size o)
-      insertWords :: (Word, Occurrences) -> DocIdMap [(Word, (WordInfo, Positions))]
-      insertWords (w, o)
-          = DM.map toWordInfo o
-            where
-              toWordInfo o' = [(w, (WordInfo ts 0.0 , o'))] -- singleton list
-
-      -- O(w*log w)
-      transform :: [(Word, (WordInfo, Positions))] -> IntermediateContexts
-      transform wl
-          = ( M.singleton c (M.fromList wl)
-            , weight
-            )
-      weight
-          = fromMaybe defScore (cxWeight <$> M.lookup c sc)
-
--- XXX: optimize if necessary, see comments below
--- | Create an intermediate result from a list of words and their occurrences
---   with their associated context.
-
-fromListCxs :: Schema -> [Word] -> [(Context, RawResult)] -> Intermediate
-fromListCxs sc ts rs = merges $ map (uncurry (fromList sc ts)) rs
-
--- | Convert to a @Result@ by generating the 'WordHits' structure.
-toResult :: (Applicative m, Monad m, DocTable dt, e ~ Dt.DValue dt) =>
-            dt -> Intermediate -> m (Result e)
-toResult dt im = do
-    dh <- createDocHits dt im
-    return $ Result dh (createWordHits im)
-
-
--- XXX: IntMap.size is O(n) :(
--- | Union 'Intermediate's until a certain number of documents is reached/surpassed.
-
-unionsDocLimited :: Int -> [Intermediate] -> Intermediate
-unionsDocLimited n = takeOne ((>= n) . size) . scanl union empty
-  where
-  takeOne b (x:xs) = if P.null xs || b x then x else takeOne b xs
-  takeOne _ _      = error "takeOne with empty list"
-
-
--- | Create the doc hits structure from an intermediate result.
-createDocHits :: (Applicative m, Monad m, DocTable dt, e ~ Dt.DValue dt) =>
-                 dt -> Intermediate -> m (DocHits e)
-createDocHits dt
-    = DM.traverseWithKey transformDocs
-    where
-      transformDocs did (ic, db)
-          = let doc   = fromMaybe dummy <$> (Dt.lookup did dt)
-                dummy = wrap emptyDocument
-            in (\doc' -> (DocInfo doc' db 0.0, M.map (M.map snd) ic)) <$> doc
-
--- | Create the word hits structure from an intermediate result.
---
--- the schema is used for the context weights
-createWordHits :: Intermediate -> WordHits
-createWordHits
-    = DM.foldrWithKey transformDoc M.empty
-    where
-      -- XXX: boosting not used in wordhits
-      transformDoc d (ic, _db) wh
-          = M.foldrWithKey transformContext wh ic
-          where
-            transformContext c iw wh'
-                = M.foldrWithKey insertWord wh' iw
-                where
-                  insertWord w (wi, pos) wh''
-                      = if terms wi == [""]
-                        then wh''
-                        else M.insertWith (<>)
-                             w
-                             (WIH wi wh3)
-                             wh''
-                      where
-                        wh3 = M.singleton c (DM.singleton d (toScore pos))
-                            where
-                              toScore = mkScore . fromIntegral . Pos.size
-
--- XXX: 'combineContexts' is used in 'union' and 'intersection'.
---      maybe it should include the merge op as a parameter.
---      there is a difference in merging "query intermediates" and "context intermediates".
---        docboosts merge:
---          - on context merge: should be always the same since the query introduces it
---          - on query merge: default merge
---      merging "context intermediates" seems inefficient - maybe not because of hedge-union?
-
--- XXX: db merge is skewed on a context merge - include merge op?
--- | Combine two tuples with score and context hits.
-
-combineContexts :: IntermediateContexts -> IntermediateContexts -> IntermediateContexts
-combineContexts (ic1,db1) (ic2,db2)
-    = (M.unionWith (M.unionWith merge') ic1 ic2, db1 * db2)
-    where
-      merge' (i1, p1) (i2, p2)
-          = ( i1 <> i2
-            , Pos.union p1 p2
-            )
-
-mergeContexts :: IntermediateContexts -> IntermediateContexts -> IntermediateContexts
-mergeContexts cx1 (ic2,_db2)
-    = combineContexts cx1 (ic2, defScore)
-
-
--- XXX: IntMap.size is O(n) :(
--- | Merge 'Intermediate's until a certain number of documents is reached/surpassed.
-
-mergesDocLimited :: Int -> [Intermediate] -> Intermediate
-mergesDocLimited n = takeOne ((>= n) . size) . scanl merge empty
-  where
-  takeOne b (x:xs) = if P.null xs || b x then x else takeOne b xs
-  takeOne _ _      = error "takeOne with empty list"
 
 -- ------------------------------------------------------------

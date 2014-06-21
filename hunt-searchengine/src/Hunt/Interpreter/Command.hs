@@ -108,6 +108,10 @@ data CmdResult
   -- | The auto-completion results.
   | ResCompletion   { crWords :: [(Text, [Text])] }
 
+  -- | The simplified completion result
+
+  | ResSuggestion   { crSugg :: [(Text, Score)] }
+
   -- | A generic JSON result.
   | ResGeneric      { crGen :: Value }
   deriving (Show, Eq)
@@ -219,6 +223,7 @@ instance ToJSON CmdResult where
     ResOK           -> object . code 0 $ []
     ResSearch r     -> object . code 0 $ [ "res" .= r ]
     ResCompletion w -> object . code 0 $ [ "res" .= w ]
+    ResSuggestion r -> object . code 0 $ [ "res" .= r ]
     ResGeneric v    -> object . code 0 $ [ "res" .= v ]
     where
     code i = (:) ("code" .= (i :: Int))

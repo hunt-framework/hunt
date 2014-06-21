@@ -39,6 +39,9 @@ module Hunt.Utility
   , strip, stripl, stripr, stripWith
   , escape
 
+    -- * Text Helper
+  , showText
+
     -- * Aeson Helper
   , object', (.=?), (.==), (.\.)
 
@@ -60,6 +63,7 @@ import           Data.Maybe       (fromJust)
 import           Data.Set         (Set)
 import qualified Data.Set         as S
 import           Data.Text        (Text)
+import qualified Data.Text        as T
 
 import           Numeric          (showHex)
 
@@ -69,6 +73,9 @@ import           Numeric          (showHex)
 data TypeDummy
 
 -- ------------------------------------------------------------
+
+showText :: Show a => a -> Text
+showText = T.pack . show
 
 -- | The boob operator.
 (.::) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
