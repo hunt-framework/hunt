@@ -5,7 +5,7 @@
 {-# OPTIONS -fno-warn-unused-matches #-}
 {-# OPTIONS -fno-warn-type-defaults #-}
 
-module Main where
+module Hunt.QueryParserTests where
 
 import           Control.Applicative
 
@@ -23,6 +23,35 @@ import           Hunt.Query.Language.Grammar
 import qualified Hunt.Query.Language.Parser           as P
 
 -- ----------------------------------------------------------------------------
+-- query parser tests
+--
+
+queryParserTests :: [Test]
+queryParserTests = [ allProperties
+                   , allUnitTests
+                   ]
+
+
+allProperties = testGroup "Query Parser Properties"
+                [ testProperty "prop_ParseAnd" prop_ParseAnd
+                , testProperty "prop_ParseSpace" prop_ParseSpace
+                ]
+
+allUnitTests = testGroup "Query Parser Hunit tests" $ hUnitTestToTests $ TestList
+  [ TestLabel "And tests"         andTests
+  , TestLabel "Or tests"          orTests
+  , TestLabel "And Not tests"     andNotTests
+  --, TestLabel "Not tests"         notTests
+  , TestLabel "Specifier tests"   specifierTests
+  , TestLabel "Case tests"        caseTests
+  , TestLabel "Parenthese tests"  parentheseTests
+  , TestLabel "Phrase tests"      phraseTests
+  , TestLabel "Fuzzy tests"       fuzzyTests
+  , TestLabel "Range tests"       rangeTests
+  , TestLabel "Boost tests"       boostTests
+  ]
+
+---- ----------------------------------------------------------------------------
 -- helper
 --
 
@@ -368,26 +397,3 @@ showOpSpace AndNot = "AND NOT"
 prop_ParseAnd q = P.parseQuery (T.unpack $ showQuery showOpAnd q) == Right q
 prop_ParseSpace q = P.parseQuery (T.unpack $ showQuery showOpSpace q) == Right q
 
-allProperties = testGroup "Query Parser Properties"
-                [ testProperty "prop_ParseAnd" prop_ParseAnd
-                , testProperty "prop_ParseSpace" prop_ParseSpace
-                ]
-
-allUnitTests = testGroup "Query Parser Hunit tests" $ hUnitTestToTests $ TestList
-  [ TestLabel "And tests"         andTests
-  , TestLabel "Or tests"          orTests
-  , TestLabel "And Not tests"     andNotTests
-  --, TestLabel "Not tests"         notTests
-  , TestLabel "Specifier tests"   specifierTests
-  , TestLabel "Case tests"        caseTests
-  , TestLabel "Parenthese tests"  parentheseTests
-  , TestLabel "Phrase tests"      phraseTests
-  , TestLabel "Fuzzy tests"       fuzzyTests
-  , TestLabel "Range tests"       rangeTests
-  , TestLabel "Boost tests"       boostTests
-  ]
---
-main :: IO ()
-main = defaultMain $ [ allProperties
-                     , allUnitTests
-                     ]

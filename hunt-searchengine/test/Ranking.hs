@@ -1,4 +1,4 @@
-module Main where
+module Hunt.RankingTests where
 
 import           Control.Applicative
 import           Control.Monad.Error
@@ -28,8 +28,9 @@ type TestCM a = Hunt    (Documents Document) a
 rankConfig :: DocumentWrapper e => RankConfig e
 rankConfig = defaultRankConfig
 
-main :: IO ()
-main = defaultMain
+-- XXX split this up into separate test cases...
+rankingTests :: [Test]
+rankingTests =
   [ testCase "Ranking: Boosting"                    test_ranking
   ]
 

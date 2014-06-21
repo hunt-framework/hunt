@@ -1,4 +1,4 @@
-module Main where
+module Hunt.InterpreterTests where
 
 import           System.Directory
 import           System.IO
@@ -27,8 +27,9 @@ import           Hunt.Query.Ranking
 import           Hunt.Utility
 import           TestHelper
 -- ----------------------------------------------------------------------------
-main :: IO ()
-main = defaultMain
+
+interpreterTests :: [Test]
+interpreterTests = 
   -- general test cases
   [ testCase "Interpreter: insert"                     test_insert
   , testCase "Interpreter: search case-insensitive"    test_search_nocase

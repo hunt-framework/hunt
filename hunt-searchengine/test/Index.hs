@@ -3,7 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
 
-module Main where
+module Hunt.IndexTests where
 
 import qualified Data.Map                       as M
 import           Data.Monoid
@@ -30,10 +30,13 @@ import qualified Hunt.Index.PrefixTreeIndex     as PIx
 
 -- ----------------------------------------------------------------------------
 
-main :: IO ()
-main = defaultMainWithOpts
+indexImplTests :: [Test]
+indexImplTests =
   [
   -- TODO
+  -- REFACTOR THIS INTO MODULS /Hunt/Index/[IndexImpl]Test.hs
+  -- to keep each index implementations tests in one module
+  --
   -- test: insertList, deleteDocs, toList, fromList, map
   -- test: intindex, dateindex, geoindex
 
