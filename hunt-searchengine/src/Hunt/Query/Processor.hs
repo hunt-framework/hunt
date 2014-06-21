@@ -195,7 +195,7 @@ initProcessor :: ProcessConfig -> QueryIndex -> Schema -> ProcessEnv
 initProcessor cfg ix s
   = ProcessEnv cfg cxs ix s
   where -- XXX: kind of inefficient
-  cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault) $ CIx.contexts' ix
+  cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault) $ CIx.contexts ix
 
 -- ------------------------------------------------------------
 -- Processor code

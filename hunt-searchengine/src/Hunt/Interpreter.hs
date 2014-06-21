@@ -366,7 +366,7 @@ execInsertContext :: DocTable dt
 execInsertContext cx ct ixx@(ContextIndex ix dt s)
   = do
     -- check if context already exists
-    contextExists        <- CIx.hasContext cx ixx
+    contextExists        <- CIx.hasContextM cx ixx
     unless' (not contextExists)
            409 $ "context already exists: " `T.append` cx
 
@@ -467,7 +467,7 @@ execUpdate doc ixx@(ContextIndex _ix dt schema) = do
 checkContextsExistence :: DocTable dt
                        => [Context] -> ContextIndex dt -> Hunt dt ()
 checkContextsExistence cs ixx = do
-  ixxContexts        <- S.fromList <$> CIx.contexts ixx
+  ixxContexts        <- S.fromList <$> CIx.contextsM ixx
   let docContexts     = S.fromList cs
   let invalidContexts = S.difference docContexts ixxContexts
   unless' (S.null invalidContexts)

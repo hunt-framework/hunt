@@ -19,7 +19,7 @@ import           Test.Framework
 import           Test.Framework.Providers.QuickCheck2
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic                         (PropertyM,
-                                                                  monadicIO,                                                                  
+                                                                  monadicIO,
                                                                   pick)
 
 import           Hunt.Common
@@ -38,7 +38,7 @@ import qualified Hunt.DocTable.HashedDocTable                as HDt
 -- ----------------------------------------------------------------------------
 
 contextIndexTests :: [Test]
-contextIndexTests = 
+contextIndexTests =
   [ testProperty "prop_strictness_insertList1"               prop_cx_insertlist
   , testProperty "prop_strictness_insertList2"               prop_cx_insertlist2
   , testProperty "prop_strictness_insertList3"               prop_cx_insertlist3

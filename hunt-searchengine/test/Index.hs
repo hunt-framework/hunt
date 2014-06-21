@@ -124,7 +124,7 @@ mergeTestInvIx = do
 insertTestContext :: Assertion
 insertTestContext = "test" @?= insertedContext
   where
-  [insertedContext] = ConIx.contexts' ix
+  [insertedContext] = ConIx.contexts ix
   ix :: ConIx.ContextMap Occurrences
   ix = ConIx.insertContext "test" (mkIndex (Ix.empty :: InvIx.InvertedIndex Occurrences)) ConIx.empty
 
