@@ -18,6 +18,7 @@ module Hunt.Common.DocIdSet
   ( DocIdSet(..)
   , singleton
   , null
+  , member
   , fromList
   , toList
   , difference
@@ -89,5 +90,8 @@ singleton = DIS . S.singleton . unDocId
 
 null :: DocIdSet -> Bool
 null = S.null . unDIS
+
+member :: DocId -> DocIdSet -> Bool
+member x s = unDocId x `S.member` unDIS s
 
 -- ------------------------------------------------------------
