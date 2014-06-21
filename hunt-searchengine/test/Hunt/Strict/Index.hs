@@ -309,7 +309,7 @@ prop_rtree_map
     ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Positions)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= insert_and_map (id $!! RTree.readPosition "1-1")
+  pickIx = pick arbitrary >>= insert_and_map (RTree.readPosition "1-1")
 
 prop_proxy_map :: Property
 prop_proxy_map
