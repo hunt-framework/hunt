@@ -1,4 +1,6 @@
-module Hunt.InterpreterTests where
+module Hunt.InterpreterTests
+(interpreterTests)
+where
 
 import           System.Directory
 import           System.IO
@@ -12,7 +14,7 @@ import           Data.Text                            (Text, pack)
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
-import           Test.HUnit
+import           Test.HUnit                           hiding (Test)
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 
@@ -20,16 +22,16 @@ import           Text.Printf                          (printf)
 
 import           Hunt.ClientInterface
 import           Hunt.Common
-import           Hunt.Common.Document
 import           Hunt.DocTable.HashedDocTable         (Documents)
 import           Hunt.Interpreter
-import           Hunt.Query.Ranking
 import           Hunt.Utility
-import           TestHelper
+
+import           Hunt.TestHelper
+
 -- ----------------------------------------------------------------------------
 
 interpreterTests :: [Test]
-interpreterTests = 
+interpreterTests =
   -- general test cases
   [ testCase "Interpreter: insert"                     test_insert
   , testCase "Interpreter: search case-insensitive"    test_search_nocase
@@ -72,9 +74,6 @@ interpreterTests =
 
 type TestEnv  = HuntEnv (Documents Document)
 type TestCM a = Hunt    (Documents Document) a
-
-rankConfig :: DocumentWrapper e => RankConfig e
-rankConfig = defaultRankConfig
 
 testCmd :: Command -> IO (Either CmdError CmdResult)
 testCmd cmd = fst <$> testRunCmd cmd

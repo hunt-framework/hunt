@@ -3,14 +3,15 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies          #-}
 
-module Hunt.IndexTests where
+module Hunt.IndexTests
+(indexImplTests)
+where
 
 import qualified Data.Map                       as M
-import           Data.Monoid
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
-import           Test.HUnit
+import           Test.HUnit                     hiding (Test)
 
 import           Hunt.Common.BasicTypes
 import qualified Hunt.Common.DocDesc            as DD
@@ -56,7 +57,7 @@ indexImplTests =
   -- helper functions
   , testCase "TextIndex:               addWords"      addWordsTest
   , testCase "Occurrences:             merge"         occMergeTest
-  ] mempty
+  ]
 
 -- ----------------------------------------------------------------------------
 -- Check DmPrefixTree implementation

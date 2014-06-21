@@ -7,18 +7,18 @@
 {-# LANGUAGE RankNTypes                #-}
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Hunt.Strict.DocTable 
+module Hunt.Strict.DocTable
 (docTableTests)
 where
 
 import           Control.Monad                                   (foldM)
-import           TestHelper
+import           Hunt.TestHelper
 import           Hunt.Strict.Helper
 import           Test.Framework
 import           Test.Framework.Providers.QuickCheck2
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic                         (PropertyM,
-                                                                  monadicIO,                                                                  
+                                                                  monadicIO,
                                                                   pick)
 
 import qualified Data.Set                                        as S
@@ -34,7 +34,7 @@ import qualified Hunt.DocTable.HashedDocTable                as HDt
 -- ----------------------------------------------------------------------------
 
 docTableTests :: [Test]
-docTableTests = 
+docTableTests =
   -- tests for data-structures used in contexts of the document table
   [ testProperty "prop_strictness_document"                  prop_doc
 
@@ -59,7 +59,7 @@ docTableTests =
   -- filter
   -- mapKeys
   ]
-  
+
 -- ----------------------------------------------------------------------------
 -- test data structures: Document
 -- ----------------------------------------------------------------------------
@@ -68,7 +68,7 @@ prop_doc :: Property
 prop_doc = monadicIO $ do
   x <- pick arbitrary :: PropertyM IO Document
   assertNF' $! x
-  
+
 -- ----------------------------------------------------------------------------
 -- test data structures: Document description (DocDesc)
 -- ----------------------------------------------------------------------------

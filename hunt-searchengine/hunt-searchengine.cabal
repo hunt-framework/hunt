@@ -21,7 +21,7 @@ build-type:    Simple
 -- enable with cabal test -ftest-strict
 flag test-strict
   default:      False
-  manual:       True  
+  manual:       True
 
 source-repository head
   type:        git
@@ -125,9 +125,9 @@ library
               KindSignatures
               CPP
 
-test-suite Hunt-Index
+test-suite Hunt-Tests
   hs-source-dirs:       test
-  main-is:              Index.hs
+  main-is:              Hunt.hs
   type:                 exitcode-stdio-1.0
   ghc-options:          -Wall
   extensions:           OverloadedStrings
@@ -135,72 +135,19 @@ test-suite Hunt-Index
   build-depends: base
                , containers
                , HUnit
-               , hunt-searchengine
-               , QuickCheck
-               , test-framework
-               , test-framework-hunit
-               , test-framework-quickcheck2
-
-test-suite Hunt-Interpreter
-  hs-source-dirs:       test
-  main-is:              Interpreter.hs
-  type:                 exitcode-stdio-1.0
-  ghc-options:          -Wall
-  extensions:           OverloadedStrings
-
-  build-depends: base
-               , containers
-               , directory
-               , HUnit
-               , hunt-searchengine
-               , data-default
-               , mtl
                , QuickCheck
                , test-framework
                , test-framework-hunit
                , test-framework-quickcheck2
                , text
-               , vector
                , old-locale
                , time
+               , aeson
+               , binary
+               , hunt-searchengine
+               , mtl
                , random
-
-test-suite Hunt-Query-Parser
-  hs-source-dirs:       test
-  main-is:              QueryParser.hs
-  type:                 exitcode-stdio-1.0
-  ghc-options:          -Wall
-  extensions:           OverloadedStrings
-
-  build-depends: base
-               , containers
-               , HUnit
-               , hunt-searchengine
-               , mtl
-               , QuickCheck
-               , test-framework
-               , test-framework-hunit
-               , test-framework-quickcheck2
-               , text
-
-test-suite Hunt-Ranking
-  hs-source-dirs:       test
-  main-is:              Ranking.hs
-  type:                 exitcode-stdio-1.0
-  ghc-options:          -Wall
-  extensions:           OverloadedStrings
-
-  build-depends: base
-               , containers
-               , HUnit
-               , hunt-searchengine
-               , mtl
-               , QuickCheck
-               , test-framework
-               , test-framework-hunit
-               , test-framework-quickcheck2
-               , text
-               , data-default
+               , directory
 
 test-suite Hunt-Strictness
    hs-source-dirs:       test
@@ -230,26 +177,3 @@ test-suite Hunt-Strictness
                   , time
                   , old-locale
                   , monad-parallel
-
-test-suite Hunt-Analyzer
-  hs-source-dirs:       test
-  main-is:              Analyzer.hs
-  type:                 exitcode-stdio-1.0
-  ghc-options:          -Wall
-  extensions:           OverloadedStrings
-
-  build-depends: base
-               , containers
-               , hunt-searchengine
-               , HUnit
-               , mtl
-               , old-locale
-               , QuickCheck
-               , random                       >= 1.0
-               , test-framework
-               , test-framework-hunit
-               , test-framework-quickcheck2
-               , text
-               , time
-               , unordered-containers
-               , aeson

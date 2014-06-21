@@ -1,16 +1,9 @@
 module Hunt.Strict.Helper where
 
-import           System.Random 
 import           Test.QuickCheck
-import           Test.QuickCheck.Gen
-import           Test.QuickCheck.Random          
-import           Test.Framework
-import           Test.Framework.Providers.QuickCheck2
-import           Test.QuickCheck
-import           Test.QuickCheck.Monadic                         (PropertyM,                     
-                                                                  monadicIO,
+import           Test.QuickCheck.Monadic                         (PropertyM,
                                                                   monitor,
-                                                                  pick, run)
+                                                                  run)
 import           GHC.AssertNF
 import           GHC.HeapView
 import qualified System.Mem

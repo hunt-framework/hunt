@@ -11,7 +11,7 @@ module Hunt.Strict.Index
 (indexTests)
 where
 
-import           TestHelper                                      ()
+import           Hunt.TestHelper                                 ()
 import           Hunt.Strict.Helper
 import           Test.Framework
 import           Test.Framework.Providers.QuickCheck2

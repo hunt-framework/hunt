@@ -12,7 +12,7 @@ module Hunt.Strict.ContextIndex
 where
 
 import qualified Control.Monad.Parallel                          as Par
-import           TestHelper
+import           Hunt.TestHelper
 import           Hunt.Strict.Helper
 
 import           Test.Framework

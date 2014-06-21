@@ -5,11 +5,14 @@
 {-# OPTIONS -fno-warn-unused-matches #-}
 {-# OPTIONS -fno-warn-type-defaults #-}
 
-module Hunt.QueryParserTests where
+module Hunt.QueryParserTests
+(queryParserTests)
+where
 
 import           Control.Applicative
 
 import           Test.Framework                       hiding (Test)
+import qualified Test.Framework                       as TF
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
 import           Test.HUnit
@@ -26,7 +29,7 @@ import qualified Hunt.Query.Language.Parser           as P
 -- query parser tests
 --
 
-queryParserTests :: [Test]
+queryParserTests :: [TF.Test]
 queryParserTests = [ allProperties
                    , allUnitTests
                    ]

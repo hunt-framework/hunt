@@ -1,14 +1,15 @@
-module Hunt.RankingTests where
+module Hunt.RankingTests
+(rankingTests)
+where
 
 import           Control.Applicative
 import           Control.Monad.Error
 import qualified Data.Map                       as M
 import           Data.Text                      (Text)
---import           Data.Default
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
-import           Test.HUnit
+import           Test.HUnit                     hiding (Test)
 
 import           Hunt.Common
 import qualified Hunt.Common.DocDesc            as DD

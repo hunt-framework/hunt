@@ -14,7 +14,7 @@
 -}
 -- ----------------------------------------------------------------------------
 
-module TestHelper where
+module Hunt.TestHelper where
 
 import           System.Random
 import           Test.QuickCheck

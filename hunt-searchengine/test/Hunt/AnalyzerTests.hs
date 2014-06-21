@@ -1,16 +1,18 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Hunt.AnalzerTests where
+module Hunt.AnalyzerTests
+(analyzerTests)
+where
 {-- Tests for Normalizers Analyzers Formatters #-}
 
-import           TestHelper
+import           Hunt.TestHelper
 
 import qualified Data.Text                              as T
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
-import           Test.HUnit
+import           Test.HUnit                           hiding (Test)
 import           Test.QuickCheck
 
 import qualified Hunt.Index.Schema.Analyze            as A
@@ -20,7 +22,7 @@ import qualified Hunt.Index.Schema.Normalize.Int      as NI
 
 -- ----------------------------------------------------------------------------
 
-analyzerTests = [Test]
+analyzerTests :: [Test]
 analyzerTests =
   [-- Analyzer tests
     testCase "scanTextRE: text1 "             test_scan_text1
@@ -181,11 +183,6 @@ prop_isAnyDate2 = return . ND.isAnyDate $ "2013-01-01T21:12:12"
 
 prop_isAnyDate3 :: Gen Bool
 prop_isAnyDate3 = return . ND.isAnyDate $ "2013"
-
--- | test date normalization
--- XXX
-prop_norm_date :: Gen Bool
-prop_norm_date = undefined
 
 -- ----------------------------------------------------------------------------
 -- normalizer tests - validation
