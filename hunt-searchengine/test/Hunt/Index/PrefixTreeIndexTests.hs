@@ -20,7 +20,7 @@ prefixTreeIndexTests :: [Test]
 prefixTreeIndexTests = [
     testProperty "DmPrefixTree:            insert"        test_insert
   , testProperty "DmPrefixTree:            delete"        test_delete
-  , testProperty "DmPrefixTree:            merge"         test_merge
+  , testProperty "DmPrefixTree:            merge "        test_merge
   -- TODO:
   -- unionWith
   -- map

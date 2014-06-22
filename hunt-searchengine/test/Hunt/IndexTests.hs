@@ -24,26 +24,24 @@ import           Hunt.Index.IndexImpl
 import qualified Hunt.Index.InvertedIndex       as InvIx
 
 import           Hunt.Index.PrefixTreeIndexTests
+import           Hunt.Index.PrefixTreeIndex2DimTests
+import           Hunt.Index.RTreeIndexTests
+import           Hunt.Index.InvertedIndexTests
 import           Hunt.Index.TestHelper
 -- ----------------------------------------------------------------------------
 
 indexImplTests :: [Test]
 indexImplTests =
   prefixTreeIndexTests ++
+  prefixTreeIndex2DimTests ++
+  rTreeIndexTests ++
+  invertedIndexTests ++
   [
-  -- TODO
-  -- REFACTOR THIS INTO MODULS /Hunt/Index/[IndexImpl]Test.hs
-  -- to keep each index implementations tests in docIdOne module
-  --
   -- test: insertList, deleteDocs, toList, fromList, map
   -- test: intindex, dateindex, geoindex
-  -- InvertedIndex implementation
-    testCase "InvertedIndex:           insert"        insertTestInvIx
-  , testCase "InvertedIndex:           deleteDocs"    deleteDocsTestInvIx
-  , testCase "InvertedIndex:           merge"         mergeTestInvIx
 
   -- ContextIndex implementation
-  , testCase "ContextIndex:            insert"        insertTestContextIx
+    testCase "ContextIndex:            insert"        insertTestContextIx
   , testCase "ContextIndex:            insertContext" insertTestContext
   -- helper functions
   , testCase "TextIndex:               addWords"      addWordsTest
@@ -52,38 +50,6 @@ indexImplTests =
 
 -- ----------------------------------------------------------------------------
 -- Check InvertedIndex implementation
-
--- | check insert InvertedIndex
-insertTestInvIx :: Assertion
-insertTestInvIx = do
-  result <- insertTest
-            (Ix.empty::(InvIx.InvertedIndex Occurrences))
-            "test" occOne
-  True @?= result
-
--- | check deleteDocs with InvertedIndex
-deleteDocsTestInvIx :: Assertion
-deleteDocsTestInvIx = do
-  let occ = occOne
-  ix <- Ix.insertM merge "test" occ (Ix.empty::(InvIx.InvertedIndex Occurrences)) -- the Occurrences type is a dummy in this case
-  [(_,nv)] <- Ix.searchM PrefixNoCase "test" ix
-  nv @?= occ
-  let delNot = DS.fromList [docIdTwo]
-  ix' <- Ix.deleteDocsM delNot ix
-  [(_,nv')] <- Ix.searchM PrefixNoCase "test" ix'
-  nv' @?= occ
-  let delReal = DS.fromList [docIdOne]
-  ix'' <- Ix.deleteDocsM delReal ix'
-  result <- Ix.searchM PrefixNoCase "test" ix''
-  result @?= []
-
--- | test merging of Occurrences in InvertedIndex
-mergeTestInvIx :: Assertion
-mergeTestInvIx = do
-  result <- mergeTest
-            (Ix.empty::(InvIx.InvertedIndex Occurrences))
-            "test" occOne occTwo
-  True @?= result
 
 -- ----------------------------------------------------------------------------
 -- Check ContextIndex
