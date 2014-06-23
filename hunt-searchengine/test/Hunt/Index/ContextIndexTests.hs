@@ -2,18 +2,22 @@ module Hunt.Index.ContextIndexTests
 (contextIndexTests)
 where
 
+import           Data.Maybe
+import           Control.Monad
+
 import           Test.Framework
 import           Test.Framework.Providers.QuickCheck2
 import           Test.Framework.Providers.HUnit
-import           Test.HUnit                    hiding (Test)
+import           Test.HUnit                           hiding (Test)
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences
+import           Hunt.Common.Document
 
-import qualified Hunt.ContextIndex              as ConIx
-
+import qualified Hunt.ContextIndex                    as ConIx
+import qualified Hunt.DocTable                        as Dt
 import           Hunt.TestHelper
 import           Hunt.Index.TestHelper
 
@@ -23,7 +27,7 @@ contextIndexTests
       -- XXX todo: test schema insertion on contextinsert. (ignored right now)
     = [ testCase     "ContextIndex:            insert context"    test_insert_cx
       , testCase     "ContextIndex:            delete context"    test_delete_cx
-      , testCase     "ContextIndex:            insertList"        test_insertlist
+      , testProperty "ContextIndex:            insertList"        test_insertlist
       ]
 
 -- ----------------------------------------------------------------------------
@@ -50,10 +54,16 @@ test_delete_cx
       after   = ConIx.contexts m'
 
 -- | check insert on ContextIndex
-test_insertlist :: Assertion
+test_insertlist :: Property
 test_insertlist
-  = do
-    let (ConIx.ContextIndex cix _ _) = insertCx "context"
-    cix2 <- ConIx.insertWithCx merge "context" "word" occOne cix
-    [(_, insertedElem)] <- ConIx.searchWithCx PrefixNoCase "context" "word" cix2
-    True @?= occOne == insertedElem
+  = monadicIO $ do
+    -- insert random documents and docIds
+    documents <- pick mkDocuments
+    let cxIx = insertCx "context"
+    insertData <- pick $ mkInsertList $ documents
+    (ConIx.ContextIndex ix dt _) <- ConIx.insertList insertData cxIx
+    -- check if docuemnts are in document table
+    docsTrue <- foldM (\b doc -> Dt.lookupByURI (uri doc) dt >>= \mid -> return (b && isJust mid)) True documents
+    -- check if documents are in index
+    -- XXX TODO
+    return docsTrue

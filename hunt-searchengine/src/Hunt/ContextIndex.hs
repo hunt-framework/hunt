@@ -37,7 +37,6 @@ module Hunt.ContextIndex
                                  -- is there a bedder approach to achieve this?
   , createDocTableFromPartition  -- only used in tests
   , unionDocTables               -- only used in tests
-  , insertWithCx                 -- only used in tests
   , modifyWithDescription
   , addWordsM                    -- only used in tests
   , delete
@@ -370,17 +369,6 @@ deleteContext c (ContextIndex ix dt s) = ContextIndex (deleteContext' c ix) dt (
 -- | Removes context (includes the index, but not the schema).
 deleteContext' :: Context -> ContextMap v -> ContextMap v
 deleteContext' cx (ContextMap m) = mkContextMap $ M.delete cx m
-
--- | Insert an element to a 'Context'.
-insertWithCx :: Monad m =>
-                (v -> v -> v) ->
-                Context -> Text -> v -> ContextMap v -> m (ContextMap v)
-insertWithCx op c w v (ContextMap m)
-  = case M.lookup c m of
-      Just (Impl.IndexImpl ix) -> do
-        ix' <- liftM Impl.mkIndex $ Ix.insertListM op [(w,v)] ix
-        return $ ContextMap $ M.insert c ix' m
-      _      -> error "context does not exist"
 
 delete' :: Par.MonadParallel m => DocIdSet -> ContextMap v -> m (ContextMap v)
 delete' dIds (ContextMap m)

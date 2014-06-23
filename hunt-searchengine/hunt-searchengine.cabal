@@ -149,6 +149,7 @@ test-suite Hunt-Tests
                , random
                , directory
                , data-default
+               , monad-parallel
 
 test-suite Hunt-Strictness
    hs-source-dirs:       test

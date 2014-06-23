@@ -18,9 +18,6 @@ import           Hunt.Common.Occurrences
 
 import           Hunt.ContextIndex              (addWordsM)
 import qualified Hunt.ContextIndex              as ConIx
-import qualified Hunt.Index                     as Ix
-import           Hunt.Index.IndexImpl
-import qualified Hunt.Index.InvertedIndex       as InvIx
 
 import           Hunt.Index.PrefixTreeIndexTests
 import           Hunt.Index.PrefixTreeIndex2DimTests

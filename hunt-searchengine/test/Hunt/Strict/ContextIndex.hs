@@ -44,8 +44,6 @@ contextIndexTests =
   , testProperty "prop_strictness_insertList3"               prop_cx_insertlist3
   ]
 
-instance Par.MonadParallel (PropertyM IO) where
-
 -- ----------------------------------------------------------------------------
 -- context index implementation
 -- ----------------------------------------------------------------------------

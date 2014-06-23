@@ -20,14 +20,15 @@ import           System.Random
 import           Test.QuickCheck
 import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Random
+import           Test.QuickCheck.Monadic
+import           Control.Monad                               (foldM)
 
-import           Control.Monad                                   (foldM)
-
-import           Data.Map                                        (Map)
-import qualified Data.Map                                        as M
-import           Data.Text                                       (Text)
-import qualified Data.Text                                       as T
+import           Data.Map                                    (Map)
+import qualified Data.Map                                    as M
+import           Data.Text                                   (Text)
+import qualified Data.Text                                   as T
 import           Data.Default
+import qualified Control.Monad.Parallel                      as Par
 
 import           Hunt.Common
 import qualified Hunt.Common.Positions                       as Pos
@@ -48,6 +49,7 @@ import           Hunt.Utility
 import           Data.Time
 import           System.Locale
 
+instance Par.MonadParallel (PropertyM IO) where
 
 insertCx :: Context -> ConIx.ContextIndex (HDt.Documents Document)
 insertCx cx
