@@ -51,7 +51,7 @@ import           System.Locale
 
 insertCx :: Context -> ConIx.ContextIndex (HDt.Documents Document)
 insertCx cx
-     = ConIx.insertContext cx (mkIndex ix) def ConIx.initContextIndex
+     = ConIx.insertContext cx (mkIndex ix) def ConIx.empty
      where
        ix :: InvIx.InvertedIndex Occurrences
        ix = Ix.empty

@@ -15,7 +15,6 @@ module Hunt.ContextIndex
   (
     -- * Construction
     empty
-  , initContextIndex
 
     -- * Contexts and Schema
   , insertContext
@@ -100,14 +99,18 @@ data ContextIndex dt = ContextIndex
   , ciSchema :: !Schema                    -- ^ Schema associated to contexts.
   }
 
-initContextIndex :: DocTable dt => ContextIndex dt
-initContextIndex = ContextIndex empty Dt.empty M.empty
+empty :: DocTable dt => ContextIndex dt
+empty = ContextIndex emptyContextMap Dt.empty M.empty
 
 -- | Contexts with associated heterogeneous index implementations.
 
 newtype ContextMap v
   = ContextMap { cxMap :: Map Context (Impl.IndexImpl v) }
   deriving (Show)
+
+-- | Empty context map.
+emptyContextMap :: ContextMap v
+emptyContextMap = mkContextMap $ M.empty
 
 
 -- | Strict smart constructor for the 'ContextMap'.
@@ -344,10 +347,6 @@ mapWithKeyMP f m =
     return . M.fromList
 
 ----------------------------------------------------------------------------
-
--- | Empty context map.
-empty :: ContextMap v
-empty = ContextMap $ M.empty
 
 -- | Inserts a new context.
 --
