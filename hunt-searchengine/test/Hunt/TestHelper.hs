@@ -27,6 +27,7 @@ import           Data.Map                                        (Map)
 import qualified Data.Map                                        as M
 import           Data.Text                                       (Text)
 import qualified Data.Text                                       as T
+import           Data.Default
 
 import           Hunt.Common
 import qualified Hunt.Common.Positions                       as Pos
@@ -36,12 +37,24 @@ import qualified Hunt.Common.DocDesc                         as DD
 import           Hunt.Interpreter.Command
 import           Hunt.ClientInterface                        hiding (mkDescription)
 
+import qualified Hunt.Index                                  as Ix
+import           Hunt.Index.IndexImpl
+import qualified Hunt.ContextIndex                           as ConIx
+import qualified Hunt.Index.InvertedIndex                    as InvIx
 import qualified Hunt.DocTable                               as Dt
 import qualified Hunt.DocTable.HashedDocTable                as HDt
 import           Hunt.Utility
 
 import           Data.Time
 import           System.Locale
+
+
+insertCx :: Context -> ConIx.ContextIndex (HDt.Documents Document)
+insertCx cx
+     = ConIx.insertContext cx (mkIndex ix) def ConIx.initContextIndex
+     where
+       ix :: InvIx.InvertedIndex Occurrences
+       ix = Ix.empty
 
 
 mkInsertList' :: Gen [(Document, Words)]

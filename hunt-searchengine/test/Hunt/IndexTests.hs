@@ -28,6 +28,7 @@ import           Hunt.Index.RTreeIndexTests
 import           Hunt.Index.InvertedIndexTests
 import           Hunt.Index.ContextIndexTests
 import           Hunt.Index.TestHelper
+import           Hunt.TestHelper
 
 -- ----------------------------------------------------------------------------
 
@@ -57,10 +58,7 @@ addWordsTest = do
   resList <- ConIx.searchWithCx PrefixNoCase "default" "word" $ resIx
   True @?= length resList == 1
   where
-  emptyIndex :: ConIx.ContextMap Occurrences
-  emptyIndex =  ConIx.insertContext "default" (mkIndex impl) ConIx.empty
-  impl       :: InvIx.InvertedIndex Occurrences
-  impl       = Ix.empty
+  (ConIx.ContextIndex emptyIndex _ _) = insertCx "default"
 
 occMergeTest :: Assertion
 occMergeTest = True @?= (merge occ1 occ2 == occ3)

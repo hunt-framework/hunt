@@ -15,6 +15,7 @@ module Hunt.ContextIndex
   (
     -- * Construction
     empty
+  , initContextIndex
 
     -- * Contexts and Schema
   , insertContext
@@ -98,6 +99,9 @@ data ContextIndex dt = ContextIndex
   , ciDocs   :: !dt                        -- ^ Document table.
   , ciSchema :: !Schema                    -- ^ Schema associated to contexts.
   }
+
+initContextIndex :: DocTable dt => ContextIndex dt
+initContextIndex = ContextIndex empty Dt.empty M.empty
 
 -- | Contexts with associated heterogeneous index implementations.
 
@@ -347,17 +351,26 @@ empty = ContextMap $ M.empty
 
 -- | Inserts a new context.
 --
+
+insertContext :: Context -> Impl.IndexImpl Occurrences -> ContextSchema
+              -> ContextIndex dt -> ContextIndex dt
+insertContext c ix schema (ContextIndex m dt s)
+    = ContextIndex  m' dt s'
+    where
+    m' = insertContext' c ix m
+    s' = M.insert c schema s
+
 --   /Note/: Does nothing if the context already exists.
-insertContext :: Context -> Impl.IndexImpl v -> ContextMap v -> ContextMap v
-insertContext c ix (ContextMap m) = mkContextMap $ M.insertWith (const id) c ix m
+insertContext' :: Context -> Impl.IndexImpl v -> ContextMap v -> ContextMap v
+insertContext' c ix (ContextMap m) = mkContextMap $ M.insertWith (const id) c ix m
 
 -- | Removes context (including the index and the schema).
 deleteContext :: Context -> ContextIndex dt -> ContextIndex dt
 deleteContext c (ContextIndex ix dt s) = ContextIndex (deleteContext' c ix) dt (M.delete c s)
-  where
-  -- | Removes context (includes the index, but not the schema).
-  deleteContext' :: Context -> ContextMap v -> ContextMap v
-  deleteContext' cx (ContextMap m) = mkContextMap $ M.delete cx m
+
+-- | Removes context (includes the index, but not the schema).
+deleteContext' :: Context -> ContextMap v -> ContextMap v
+deleteContext' cx (ContextMap m) = mkContextMap $ M.delete cx m
 
 -- | Insert an element to a 'Context'.
 insertWithCx :: Monad m =>

@@ -148,6 +148,7 @@ test-suite Hunt-Tests
                , mtl
                , random
                , directory
+               , data-default
 
 test-suite Hunt-Strictness
    hs-source-dirs:       test
