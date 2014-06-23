@@ -178,3 +178,4 @@ test-suite Hunt-Strictness
                   , time
                   , old-locale
                   , monad-parallel
+                  , data-default
