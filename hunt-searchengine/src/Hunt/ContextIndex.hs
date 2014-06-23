@@ -38,7 +38,6 @@ module Hunt.ContextIndex
   , createDocTableFromPartition  -- only used in tests
   , unionDocTables               -- only used in tests
   , modifyWithDescription
-  , addWordsM                    -- only used in tests
   , delete
   , deleteDocsByURI
   , decodeCxIx
@@ -60,9 +59,7 @@ import           Control.Applicative     (Applicative, (<$>), (<*>))
 import           Control.Arrow
 import           Control.Monad
 import qualified Control.Monad.Parallel  as Par
-{-
-import           Control.Parallel.Strategies
--- -}
+
 import           Data.Binary             (Binary (..))
 import           Data.Binary.Get
 import           Data.ByteString.Lazy    (ByteString)
@@ -72,9 +69,6 @@ import           Data.Maybe
 import           Data.Set                (Set)
 import qualified Data.Set                as S
 import           Data.Text               (Text)
-{-
-import qualified Data.Traversable        as TV
--- -}
 
 import           Hunt.Common
 import qualified Hunt.Common.DocDesc     as DD
@@ -255,7 +249,7 @@ modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
                          m (ContextIndex dt)
 modifyWithDescription weight descr wrds dId (ContextIndex ii dt s)
     = do newDocTable <- Dt.adjust mergeDescr dId dt
-         newIndex    <- addWordsM wrds dId ii
+         newIndex    <- batchAddWordsM [(dId,wrds)] ii
          return $ ContextIndex newIndex newDocTable s
     where
       -- M.union is left-biased
@@ -275,11 +269,6 @@ modifyWithDescription weight descr wrds dId (ContextIndex ii dt s)
 
 -- | Adds words associated to a document to the index.
 --
---   'insertList' and 'modifyWithDescription' are more convenient in most cases.
-addWordsM :: (Functor m, Par.MonadParallel m) =>
-             Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
-addWordsM wrds dId
-    = batchAddWordsM [(dId, wrds)]
 
 -- | Add words for a document to the 'Index'.
 --
@@ -308,34 +297,9 @@ contentForCx cx vs
             getWlForCx cx' ws'
                 = fromMaybe M.empty (M.lookup cx' ws')
 
--- | Add words for a document to the 'Index'.
---
---   /Note/: Adds words to /existing/ 'Context's.
-
-{-- OLD
-batchAddWords :: [(DocId, Words)] -> ContextMap Occurrences -> ContextMap Occurrences
-batchAddWords vs (ContextMap m)
-  = mkContextMap $ M.fromList $ {- XXX parMap rpar -} map (\(cx,impl) -> (cx,foldinsertList cx impl)) (M.toList m)
-  where
-  foldinsertList :: Context -> IndexImpl Occurrences-> IndexImpl Occurrences
-  foldinsertList cx (Impl.IndexImpl impl)
-    = Impl.mkIndex $ Ix.insertList Occ.merge (contentForCx cx vs) impl
---}
-
 ----------------------------------------------------------------------------
 -- addWords/batchAddWords functions
 ----------------------------------------------------------------------------
-
-{- a reference impl for the parallel mapM
-
-mapWithKeyP :: (Monad m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
-mapWithKeyP f m =
-  (P.mapM (\(k, a) -> do
-                  b <- f k a
-                  return (k, b)
-                ) $ M.toList m) >>=
-    return . M.fromList
--- -}
 
 mapWithKeyMP :: (Par.MonadParallel m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
 mapWithKeyMP f m =
