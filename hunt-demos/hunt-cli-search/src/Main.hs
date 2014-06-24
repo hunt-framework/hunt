@@ -1,19 +1,19 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 module Main where
 
-import           Control.Monad                  (unless)
-import           Data.Text                      (Text, unpack)
+import           Control.Monad               (unless)
+import           Data.Text                   (Text, unpack)
 import           Data.Time.Clock
 
+import           Hunt.ClientInterface
 import           Hunt.Common
 import           Hunt.Common.ApiDocument
 import           Hunt.Index.Schema
 import           Hunt.Interpreter
 import           Hunt.Interpreter.Command
-import           Hunt.Query.Ranking
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Language.Parser
-
+import           Hunt.Query.Ranking
 import           System.Environment
 
 -- ----------------------------------------------------------------------------
@@ -27,7 +27,7 @@ main = do
 
     putStrLn $ "loading index from file " ++ head args
     ix  <- initHunt :: IO DefHuntEnv
-    res <- runCmd ix $ LoadIx (head args)
+    res <- runCmd ix $ cmdLoadIndex (head args)
 
     case res of
        Left err -> error $ show err
@@ -45,7 +45,7 @@ main = do
             putStrLn "searching ..."
             -- no paging here. fetch all results. might lead to slow queries!
             start <- getCurrentTime
-            res <- runCmd ix $ Search query 0 1000000000000
+            res <- runCmd ix $ cmdSearch query
             end <- getCurrentTime
             printQueryResult res (diffUTCTime end start)
             getQuery ix
@@ -61,7 +61,7 @@ printQueryResult res t
             putStrLn "======================================"
             putStrLn $ "Query time: " ++ show t
             putStrLn $ "Query results: " ++ (show . lrCount . crRes $ r)
-            putStr $ "Found uris: "
-            mapM (\(Document uri _,_) -> putStr $ " " ++ unpack uri) (lrResult . crRes $ r)
+            putStrLn $ "Raw result: " ++ show r
+            mapM (\ Document {uri = u} -> putStr $ " " ++ unpack u) (lrResult . crRes $ r)
             putStrLn ""
             return ()

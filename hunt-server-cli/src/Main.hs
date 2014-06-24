@@ -7,31 +7,33 @@
 
 module Main where
 
-import           Control.Applicative ((<$>), (<|>))
-import           Control.Monad (when)
+import           Control.Applicative       ((<$>), (<|>))
+import           Control.Monad             (when)
 
-import           Data.Aeson (encode, decode, FromJSON)
-import           Data.Aeson.Encode.Pretty (encodePretty)
-import           Data.ByteString.Lazy (ByteString)
-import           Data.Char (toUpper)
-import           Data.Map (keys)
-import           Data.Maybe (fromJust)
-import           Data.String.Conversions (cs)
-import           Data.Text (Text)
-import           Data.Time.Clock.POSIX (getPOSIXTime)
+import           Data.Aeson                (FromJSON, decode, encode)
+import           Data.Aeson.Encode.Pretty  (encodePretty)
+import           Data.ByteString.Lazy      (ByteString)
+import           Data.Char                 (toUpper)
+import           Data.Map                  (keys)
+import           Data.Maybe                (fromJust)
+import           Data.String.Conversions   (cs)
+import           Data.Text                 (Text)
+import           Data.Time.Clock.POSIX     (getPOSIXTime)
 
-import           System.Console.Docopt (optionsWithUsage, getArg, isPresent, command, argument, longOption)
-import qualified System.Log.Logger as Log
-import qualified System.Log.Formatter as Log (simpleLogFormatter)
-import qualified System.Log.Handler as Log (setFormatter)
+import           System.Console.Docopt     (argument, command, getArg,
+                                            isPresent, longOption,
+                                            optionsWithUsage)
+import           System.Environment        (getArgs)
+import qualified System.IO                 as System (stderr)
+import qualified System.Log.Formatter      as Log (simpleLogFormatter)
+import qualified System.Log.Handler        as Log (setFormatter)
 import qualified System.Log.Handler.Simple as Log (streamHandler)
-import qualified System.IO as System (stderr)
-import           System.Environment (getArgs)
+import qualified System.Log.Logger         as Log
 
-import qualified Hunt.Common.ApiDocument as H
-import qualified Hunt.ClientInterface as H
-import qualified Hunt.Server.Client as HC
-import qualified Hunt.Converter.CSV as CSV (convert)
+import qualified Hunt.ClientInterface      as H
+import qualified Hunt.Common.ApiDocument   as H
+import qualified Hunt.Converter.CSV        as CSV (convert)
+import qualified Hunt.Server.Client        as HC
 
 usage :: String
 usage = unlines [
@@ -90,7 +92,7 @@ makeSchema fileName = do
   file <- cs <$> readFile fileName
   let docs = readDocuments file
       names = keys $ H.adIndex $ head docs
-      cmds = (\name -> H.cmdInsertContext name H.mkSchema) <$> names        
+      cmds = (\name -> H.cmdInsertContext name H.mkSchema) <$> names
   return $ cs $ encodePretty cmds
 
 makeInserts :: FilePath -> IO String
@@ -109,13 +111,16 @@ eval server fileName = do
   evalCmd server $ fromJust $ decode $ cs file
 
 search :: String -> String -> IO ByteString
-search server query = do
-  cs <$> (encodePretty :: H.LimitedResult H.ApiDocument -> ByteString) <$> (HC.withHuntServer (HC.query (cs query) 0 ) (cs server))
-
+search server query
+    = cs
+      <$> (encodePretty :: H.LimitedResult H.ApiDocument -> ByteString)
+      <$> (HC.withHuntServer (HC.query (cs query) 0 ) (cs server))
 
 autocomplete :: String -> String -> IO String
-autocomplete server query = do
-  show <$> (HC.withHuntServer (HC.autocomplete $ cs query) (cs server))
+autocomplete server query
+    = cs
+      <$> (encodePretty :: [Text] -> ByteString)
+      <$> (HC.withHuntServer (HC.autocomplete $ cs query) (cs server))
 
 -- | Main function for the executable.
 main :: IO ()
@@ -151,7 +156,7 @@ main = do
 
   when (isCommand "completion") $ do
     query <- queryArgument
-    putStr =<< show <$> autocomplete server query 
+    putStr =<< (printTime $ cs <$> autocomplete server query)
 
   when (isCommand "from-csv") $ do
     CSV.convert =<< fileArgument

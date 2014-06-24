@@ -470,7 +470,7 @@ execUpdate doc ixx@(ContextIndex _ix dt schema)
 checkContextsExistence :: DocTable dt
                        => [Context] -> ContextIndex dt -> Hunt dt ()
 checkContextsExistence cs ixx
-    = do ixxContexts        <- S.fromList <$> CIx.contexts ixx
+    = do ixxContexts        <- S.fromList <$> CIx.contextsM ixx
          let docContexts     = S.fromList cs
          let invalidContexts = S.difference docContexts ixxContexts
          unless' (S.null invalidContexts)
