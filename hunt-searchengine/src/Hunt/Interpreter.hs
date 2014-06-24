@@ -158,7 +158,7 @@ type DefHuntEnv = HuntEnv (Documents Document)
 
 -- | Initialize the Hunt environment with default values.
 initHunt :: DocTable dt => IO (HuntEnv dt)
-initHunt = initHuntEnv (ContextIndex CIx.empty DocTable.empty M.empty) defaultRankConfig contextTypes normalizers def
+initHunt = initHuntEnv CIx.empty defaultRankConfig contextTypes normalizers def
 
 -- | Default context types.
 contextTypes :: ContextTypes
@@ -363,10 +363,10 @@ execInsertContext :: DocTable dt
                   -> ContextSchema
                   -> ContextIndex dt
                   -> Hunt dt (ContextIndex dt, CmdResult)
-execInsertContext cx ct ixx@(ContextIndex ix dt s)
+execInsertContext cx ct ixx
   = do
     -- check if context already exists
-    contextExists        <- CIx.hasContext cx ixx
+    contextExists        <- CIx.hasContextM cx ixx
     unless' (not contextExists)
            409 $ "context already exists: " `T.append` cx
 
@@ -376,17 +376,13 @@ execInsertContext cx ct ixx@(ContextIndex ix dt s)
     norms                <- mapM (askNormalizer . cnName) $ cxNormalizer ct
 
     -- create new index instance and insert it with context
-    return ( ContextIndex { ciIndex = CIx.insertContext cx (newIx impl) ix
-                 , ciDocs   = dt
-                 , ciSchema = M.insert cx (ct
-                                            { cxType = cType
-                                            , cxNormalizer = norms
-                                            }) s
-                 }
-           , ResOK )
+    return $ ( CIx.insertContext cx (newIx impl) (newSchema cType norms) ixx
+             , ResOK
+             )
   where
   newIx :: IndexImpl Occurrences -> IndexImpl Occurrences
   newIx (IndexImpl i) = mkIndex $ Ix.empty `asTypeOf` i
+  newSchema cType norms= (ct { cxType = cType, cxNormalizer = norms })
 
 -- | Deletes the context and the schema associated with it.
 execDeleteContext :: DocTable dt
@@ -474,7 +470,7 @@ execUpdate doc ixx@(ContextIndex _ix dt schema)
 checkContextsExistence :: DocTable dt
                        => [Context] -> ContextIndex dt -> Hunt dt ()
 checkContextsExistence cs ixx
-    = do ixxContexts        <- S.fromList <$> CIx.contexts ixx
+    = do ixxContexts        <- S.fromList <$> CIx.contextsM ixx
          let docContexts     = S.fromList cs
          let invalidContexts = S.difference docContexts ixxContexts
          unless' (S.null invalidContexts)

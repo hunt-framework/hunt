@@ -1,4 +1,6 @@
-module Main where
+module Hunt.InterpreterTests
+(interpreterTests)
+where
 
 import           System.Directory
 import           System.IO
@@ -7,14 +9,12 @@ import           Control.Applicative
 import           Control.Exception
 import           Control.Monad.Error
 import           Data.Fixed                           (div', mod')
-import qualified Data.Map                             as M
-import           Data.Monoid                          ((<>))
 import           Data.Text                            (Text, pack)
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
-import           Test.HUnit
+import           Test.HUnit                           hiding (Test)
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 
@@ -22,29 +22,38 @@ import           Text.Printf                          (printf)
 
 import           Hunt.ClientInterface
 import           Hunt.Common
-import qualified Hunt.Common.DocDesc                  as DD
-import           Hunt.Common.Document
 import           Hunt.DocTable.HashedDocTable         (Documents)
 import           Hunt.Interpreter
-import           Hunt.Query.Ranking
 import           Hunt.Utility
+
+import           Hunt.TestHelper
 
 -- ----------------------------------------------------------------------------
 
-type TestEnv  = HuntEnv (Documents Document)
-type TestCM a = Hunt    (Documents Document) a
-
-rankConfig :: DocumentWrapper e => RankConfig e
-rankConfig = defaultRankConfig
-
-main :: IO ()
-main = defaultMain
+interpreterTests :: [Test]
+interpreterTests =
   -- general test cases
-  [ testCase "Interpreter: insert"                     test_insertEmpty
-  , testCase "Interpreter: insertAndSearch"            test_insertAndSearch
-  , testCase "Interpreter: alot"                       test_alot
-  , testCase "Interpreter: fancy"                      test_fancy
+  [ testCase "Interpreter: insert"                     test_insert
+  , testCase "Interpreter: search case-insensitive"    test_search_nocase
+  , testCase "Interpreter: search case-insensitive"    test_search_nocase2
+  , testCase "Interpreter: search case-sensitive"      test_search_case
+  , testCase "Interpreter: search case-sensitive"      test_search_case2
+  , testCase "Interpreter: phrase case-insensitive"    test_phrase_nocase
+  , testCase "Interpreter: phrase case-insensitive"    test_phrase_nocase2
+  , testCase "Interpreter: phrase case-sensitive"      test_phrase_case
+  , testCase "Interpreter: phrase case-sensitive"      test_phrase_case2
+  , testCase "Interpreter: a little bit of everything" test_everything
+  -- XXX: still a lot of cases uncovered!
 
+  -- test normalization
+  , testCase "Interpreter: norma case-insensitive"     test_norm_search_nocase
+  , testCase "Interpreter: norma case-insensitive"     test_norm_search_nocase2
+  , testCase "Interpreter: norma case-sensitive"       test_norm_search_case
+  , testCase "Interpreter: norma case-sensitive"       test_norm_search_case2
+  , testCase "Interpreter: n.phrase case-insensitive"  test_norm_phrase_nocase
+  , testCase "Interpreter: n.phrase case-insensitive"  test_norm_phrase_nocase2
+  , testCase "Interpreter: n.phrase case-sensitive"    test_norm_phrase_case
+  , testCase "Interpreter: n.phrase case-sensitive"    test_norm_phrase_case2
   -- date search specific tests
   , testCase "Interpreter: date context"               test_dates
 
@@ -57,105 +66,23 @@ main = defaultMain
   -- test binary serialization
   , testCase "Interpreter: store/load index"           test_binary
   , testCase "Interpreter: store/load schema"          test_binary2
-  , testProperty "position range query"                prop_position_range
+  , testProperty "Interpreter: position range query"   prop_position_range
   ]
 
--- | check DmPrefixTree
-test_insertEmpty :: Assertion
-test_insertEmpty = do
-  (res, _env) <- testRunCmd batchCmd
-  True @=? isRight res
+-- -----------------------------------------------------------
+-- Helper (for this test suite)
+
+type TestEnv  = HuntEnv (Documents Document)
+type TestCM a = Hunt    (Documents Document) a
+
+testCmd :: Command -> IO (Either CmdError CmdResult)
+testCmd cmd = fst <$> testRunCmd cmd
 
 testRunCmd :: Command -> IO (Either CmdError CmdResult, TestEnv)
 testRunCmd cmd = do
   env <- initHunt :: IO DefHuntEnv
   res <- runCmd env cmd
   return (res, env)
-
-
-insertCmd, searchCmd, batchCmd :: Command
-insertCmd = cmdInsertDoc brainDoc
-searchCmd = search (setNoCaseSearch $ qWord "d") 1 100
-batchCmd  = cmdSequence [insertDefaultContext, insertCmd, searchCmd]
-
-search :: Query -> Int -> Int -> Command
-search q o m = setResultOffset o . setMaxResults m . cmdSearch $ q
-
--- ----------------------------------------------------------------------------
-
-testCmd :: Command -> IO (Either CmdError CmdResult)
-testCmd cmd = fst <$> testRunCmd cmd
-
--- uris of the search results
-searchResultUris :: CmdResult -> [URI]
-searchResultUris = map uri . lrResult . crRes
-
--- example apidoc
-brainDoc :: ApiDocument
-brainDoc
-    = addBrainDoc
-      $ mkApiDoc "test://0"
-
-addBrainDoc :: ApiDocument -> ApiDocument
-addBrainDoc
-    = setDescription descr
-      . setIndex (M.fromList [("default", td)])
-    where
-      td = "Brain"
-      descr = DD.fromList [("name", "Brain" :: String), ("mission", "take over the world"), ("legs", "4")]
-
-dateDoc :: ApiDocument
-dateDoc
-    = addToIndex "datecontext" "2013-01-01"
-      $ addBrainDoc
-      $ mkApiDoc "test://1"
-
-
-geoDoc' :: Text -> ApiDocument
-geoDoc' position
-    = addToIndex "geocontext" position
-      $ addBrainDoc
-      $ mkApiDoc "test://2"
-
-geoDoc :: ApiDocument
-geoDoc = geoDoc' "53.60000-10.00000"
-
--- example apidoc
-brainDocUpdate :: ApiDocument
-brainDocUpdate = setDescription descr $ brainDoc
-  where
-  descr = DD.fromList [("name", "Pinky" :: String), ("mission", "ask stupid questions")]
-
-brainDocMerged :: ApiDocument
-brainDocMerged
-    = changeDescription (`DD.union` (getDescription brainDoc))
-      $ brainDocUpdate
-
-defaultContextInfo :: (Context, ContextSchema)
-defaultContextInfo = ("default", ContextSchema Nothing [] 1 True ctText)
-
-insertDefaultContext :: Command
-insertDefaultContext = uncurry cmdInsertContext defaultContextInfo
-
-dateContextInfo :: (Context, ContextSchema)
-dateContextInfo = ("datecontext", ContextSchema Nothing [] 1 True ctDate)
-
-insertDateContext :: Command
-insertDateContext = uncurry cmdInsertContext dateContextInfo
-
--- XXX: regex ok? examples:
---      correct: 90-180, -90--180, 0.-0., 0.0-0.0, 0.00-0.00
---      wrong:   91-181, -91--181, 01-01
---using context type default now here
---geoRex :: Text
---geoRex = "-?(90(\\.0*)?|[1-7]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?"
-
-geoContextInfo :: (Context, ContextSchema)
-geoContextInfo = ("geocontext", ContextSchema Nothing [] 1 True ctPosition)
-
-insertGeoContext :: Command
-insertGeoContext = uncurry cmdInsertContext geoContextInfo
-
 
 -- evaluate CM and check the result
 testCM' :: Bool -> TestCM () -> Assertion
@@ -164,12 +91,18 @@ testCM' b int = do
   res <- runHunt int env
   (if b then isRight else isLeft) res @? "unexpected interpreter result: " ++ show res
 
-
 -- evaluate CM and check if it yields a result
 -- allows for a whole sequence of commands with tests inbetween
 -- the interpreter can fail prematurely
 testCM :: TestCM () -> Assertion
 testCM = testCM' True
+
+-- uris of the search results
+searchResultUris :: CmdResult -> [URI]
+searchResultUris = map uri . lrResult . crRes
+
+search :: Query -> Int -> Int -> Command
+search q o m = setResultOffset o . setMaxResults m . cmdSearch $ q
 
 -- Do something with a temporary file and delete it afterwards
 withTmpFile :: (FilePath -> IO a) -> IO a
@@ -181,34 +114,18 @@ withTmpFile io = do
   hClose h -- we just want the filename
   io file `finally` whenM (doesFileExist file) (removeFile file)
 
--- search for inserted doc
--- sequence of commands using the execSeq
-test_insertAndSearch :: Assertion
-test_insertAndSearch = do
-  res <- testCmd . cmdSequence $
-      [ insertDefaultContext
+-- | default test setup used in most tests
+defaultTestSetup :: [Command]
+defaultTestSetup
+    = [ insertDefaultContext
       , cmdInsertDoc brainDoc
-      , search (setNoCaseSearch $ qWord "Brain") 0 1000]
-  ["test://0"] @=? (searchResultUris . fromRight) res
+      ]
 
+defaultTestSetup' :: [Command] -> [Command]
+defaultTestSetup' cmds = defaultTestSetup ++ cmds
 
--- test a whole sequence with tests inbetween
--- the interpreter can fail prematurely
-test_alot :: Assertion
-test_alot = testCM $ do
-  --throwNYI "user error"
-  insCR <- execCmd insertDefaultContext
-  liftIO $ ResOK @=? insCR
-  insR <- execCmd $ cmdInsertDoc brainDoc
-  liftIO $ ResOK @=? insR
-  seaR <- execCmd $ search (setNoCaseSearch $ qWord "Brain") os pp
-  liftIO $ ["test://0"] @=? searchResultUris seaR
-  seaR2 <- execCmd $ search (qWord "brain") os pp
-  liftIO $ [] @=? searchResultUris seaR2
-  where
-  os = 0
-  pp = 1000
-
+defaultTestSetup'' :: Command -> [Command]
+defaultTestSetup'' cmd = defaultTestSetup ++ [cmd]
 
 -- fancy functions
 -- characters were chosen without any reason
@@ -217,6 +134,176 @@ a @@@ f = execCmd a >>= liftIO . f
 
 (@@=) :: Command -> CmdResult -> TestCM ()
 a @@= b = a @@@ (@?=b)
+
+
+-- -----------------------------------------------------------
+-- General Interpreter API tests
+
+-- just checks the general workflow cx->doc->search
+test_insert :: Assertion
+test_insert = do
+  (res, _env) <- testRunCmd . cmdSequence
+                 $ defaultTestSetup
+  True @=? isRight res
+
+--
+-- Word Search
+--
+
+-- insert document and search for it: case insensitive
+test_search_nocase :: Assertion
+test_search_nocase = do
+  res <- testCmd . cmdSequence
+         $ defaultTestSetup''
+         $ search (setNoCaseSearch $ qWord "Bra") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+test_search_nocase2 :: Assertion
+test_search_nocase2 = do
+  res <- testCmd . cmdSequence
+         $ defaultTestSetup''
+         $ search (setNoCaseSearch $ qWord "bra") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+-- insert document and search for it: case sensitive
+test_search_case :: Assertion
+test_search_case = do
+  res <- testCmd . cmdSequence
+         $ defaultTestSetup''
+         $ search (qWord "Bra") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+test_search_case2 :: Assertion
+test_search_case2 = do
+  res <- testCmd . cmdSequence
+         $ defaultTestSetup''
+         $ search (qWord "bra") 0 1000
+  [] @=? (searchResultUris . fromRight) res
+
+
+--
+-- Phrase Search
+--
+
+-- insert document and search for it: case insensitive
+test_phrase_nocase :: Assertion
+test_phrase_nocase = do
+  res <- testCmd . cmdSequence
+         $ defaultTestSetup''
+         $ search (setNoCaseSearch $ qPhrase "Brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+test_phrase_nocase2 :: Assertion
+test_phrase_nocase2 = do
+  res <- testCmd . cmdSequence
+         $ defaultTestSetup''
+         $ search (setNoCaseSearch $ qPhrase "brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+-- insert document and search for it: case sensitive
+test_phrase_case :: Assertion
+test_phrase_case = do
+  res <- testCmd . cmdSequence
+         $ defaultTestSetup''
+         $ search (qPhrase "Brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+test_phrase_case2 :: Assertion
+test_phrase_case2 = do
+  res <- testCmd . cmdSequence
+         $ defaultTestSetup''
+         $ search (qPhrase "brain") 0 1000
+  [] @=? (searchResultUris . fromRight) res
+
+-- -----------------------------------------------------------
+-- test application of normalization
+
+
+-- | test setup used in nomralizer tests
+normalizerTestSetup :: [Command]
+normalizerTestSetup
+    = [ cmdInsertContext "default" (ContextSchema Nothing [cnUpperCase] 1 True ctText)
+      , cmdInsertDoc brainDoc
+      ]
+
+normalizerTestSetup' :: [Command] -> [Command]
+normalizerTestSetup' cmds = defaultTestSetup ++ cmds
+
+normalizerTestSetup'' :: Command -> [Command]
+normalizerTestSetup'' cmd = defaultTestSetup ++ [cmd]
+
+--
+-- Word search
+--
+
+-- insert document and search for it: case insensitive
+test_norm_search_nocase :: Assertion
+test_norm_search_nocase = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (setNoCaseSearch $ qWord "Bra") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+test_norm_search_nocase2 :: Assertion
+test_norm_search_nocase2 = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (setNoCaseSearch $ qWord "bra") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+-- insert document and search for it: case sensitive
+test_norm_search_case :: Assertion
+test_norm_search_case = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (qWord "Bra") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+-- NOTE: uppercase normalizer makes Case/NoCase irrelevant -> its the same
+test_norm_search_case2 :: Assertion
+test_norm_search_case2 = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (qWord "bra") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+--
+-- Phrase Search
+--
+
+-- insert document and search for it: case insensitive
+test_norm_phrase_nocase :: Assertion
+test_norm_phrase_nocase = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (setNoCaseSearch $ qPhrase "Brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+test_norm_phrase_nocase2 :: Assertion
+test_norm_phrase_nocase2 = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (setNoCaseSearch $ qPhrase "brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+-- insert document and search for it: case sensitive
+test_norm_phrase_case :: Assertion
+test_norm_phrase_case = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (qPhrase "Brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+test_norm_phrase_case2 :: Assertion
+test_norm_phrase_case2 = do
+  res <- testCmd . cmdSequence
+         $ normalizerTestSetup''
+         $ search (qPhrase "brain") 0 1000
+  ["test://0"] @=? (searchResultUris . fromRight) res
+
+
+-- -----------------------------------------------------------
+-- test binary serialization
 
 test_binary :: Assertion
 test_binary = withTmpFile $ \tmpfile -> testCM $ do
@@ -275,6 +362,10 @@ test_binary2 = withTmpFile $ \tmpfile -> testCM $ do
   (search (setContext "datecontext" (setNoCaseSearch $ qWord "invalid")) 0 10
     @@@ const (assertFailure "date validation failed after store/load index"))
         `catchError` const (return ())
+
+
+-- -----------------------------------------------------------
+-- index specific tests
 
 test_dates :: Assertion
 test_dates = testCM $ do
@@ -336,8 +427,8 @@ test_geo3 = testCM $ do
     @@@ ((@?= []) . searchResultUris)
 
 -- fancy - equivalent to 'test_alot' plus additional tests
-test_fancy :: Assertion
-test_fancy = testCM $ do
+test_everything :: Assertion
+test_everything = testCM $ do
   -- insert into non-existent context results in an error
   (cmdInsertDoc brainDoc
     @@@ const (assertFailure "insert into non-existent context succeeded"))

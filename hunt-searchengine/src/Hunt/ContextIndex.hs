@@ -21,9 +21,9 @@ module Hunt.ContextIndex
   , deleteContext
   , foreachContext
   , contexts
-  , contexts'
-  , hasContext'
+  , contextsM
   , hasContext
+  , hasContextM
 
     -- * Queries
   , lookupRangeCx
@@ -40,9 +40,7 @@ module Hunt.ContextIndex
                                  -- is there a bedder approach to achieve this?
   , createDocTableFromPartition  -- only used in tests
   , unionDocTables               -- only used in tests
-  , insertWithCx                 -- only used in tests
   , modifyWithDescription
-  , addWordsM                    -- only used in tests
   , delete
   , deleteDocsByURI
   , decodeCxIx
@@ -51,6 +49,7 @@ module Hunt.ContextIndex
     -- * Types
   , ContextIndex (..)
   , ContextMap (..)
+  , mkContextMap
   )
 where
 {-
@@ -63,9 +62,7 @@ import           Control.Applicative     (Applicative, (<$>), (<*>))
 import           Control.Arrow
 import           Control.Monad
 import qualified Control.Monad.Parallel  as Par
-{-
-import           Control.Parallel.Strategies
--- -}
+
 import           Data.Binary             (Binary (..))
 import           Data.Binary.Get
 import           Data.ByteString.Lazy    (ByteString)
@@ -75,9 +72,6 @@ import           Data.Maybe
 import           Data.Set                (Set)
 import qualified Data.Set                as S
 import           Data.Text               (Text)
-{-
-import qualified Data.Traversable        as TV
--- -}
 
 import           Hunt.Common
 import qualified Hunt.Common.DocDesc     as DD
@@ -97,15 +91,22 @@ import           Hunt.Utility
 
 data ContextIndex dt = ContextIndex
   { ciIndex  :: !(ContextMap Occurrences) -- ^ Indexes associated to contexts.
-  , ciDocs   :: dt                        -- ^ Document table.
-  , ciSchema :: Schema                    -- ^ Schema associated to contexts.
+  , ciDocs   :: !dt                        -- ^ Document table.
+  , ciSchema :: !Schema                    -- ^ Schema associated to contexts.
   }
+
+empty :: DocTable dt => ContextIndex dt
+empty = ContextIndex emptyContextMap Dt.empty M.empty
 
 -- | Contexts with associated heterogeneous index implementations.
 
 newtype ContextMap v
   = ContextMap { cxMap :: Map Context (Impl.IndexImpl v) }
   deriving (Show)
+
+-- | Empty context map.
+emptyContextMap :: ContextMap v
+emptyContextMap = mkContextMap $ M.empty
 
 
 -- | Strict smart constructor for the 'ContextMap'.
@@ -234,17 +235,6 @@ delete dIds cix@(ContextIndex ix dt s)
              return $ ContextIndex newIx newDt s
 
 
--- | All contexts of the index.
-contexts :: (Monad m, DocTable dt)
-         => ContextIndex dt -> m [Context]
-contexts (ContextIndex ix _dt _s) = return $ contexts' ix
-
--- | Does the context exist?
-hasContext :: (Monad m, DocTable dt)
-           => Context -> ContextIndex dt -> m Bool
-hasContext c (ContextIndex ix _dt _s) = return $ hasContext' c ix
-
-
 -- | Is the document part of the index?
 member :: (Monad m, Applicative m, DocTable dt)
        => URI -> ContextIndex dt -> m Bool
@@ -262,7 +252,7 @@ modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
                          m (ContextIndex dt)
 modifyWithDescription weight descr wrds dId (ContextIndex ii dt s)
     = do newDocTable <- Dt.adjust mergeDescr dId dt
-         newIndex    <- addWordsM wrds dId ii
+         newIndex    <- batchAddWordsM [(dId,wrds)] ii
          return $ ContextIndex newIndex newDocTable s
     where
       -- M.union is left-biased
@@ -282,11 +272,6 @@ modifyWithDescription weight descr wrds dId (ContextIndex ii dt s)
 
 -- | Adds words associated to a document to the index.
 --
---   'insertList' and 'modifyWithDescription' are more convenient in most cases.
-addWordsM :: (Functor m, Par.MonadParallel m) =>
-             Words -> DocId -> ContextMap Occurrences -> m (ContextMap Occurrences)
-addWordsM wrds dId
-    = batchAddWordsM [(dId, wrds)]
 
 -- | Add words for a document to the 'Index'.
 --
@@ -315,34 +300,9 @@ contentForCx cx vs
             getWlForCx cx' ws'
                 = fromMaybe M.empty (M.lookup cx' ws')
 
--- | Add words for a document to the 'Index'.
---
---   /Note/: Adds words to /existing/ 'Context's.
-
-{-- OLD
-batchAddWords :: [(DocId, Words)] -> ContextMap Occurrences -> ContextMap Occurrences
-batchAddWords vs (ContextMap m)
-  = mkContextMap $ M.fromList $ {- XXX parMap rpar -} map (\(cx,impl) -> (cx,foldinsertList cx impl)) (M.toList m)
-  where
-  foldinsertList :: Context -> IndexImpl Occurrences-> IndexImpl Occurrences
-  foldinsertList cx (Impl.IndexImpl impl)
-    = Impl.mkIndex $ Ix.insertList Occ.merge (contentForCx cx vs) impl
---}
-
 ----------------------------------------------------------------------------
 -- addWords/batchAddWords functions
 ----------------------------------------------------------------------------
-
-{- a reference impl for the parallel mapM
-
-mapWithKeyP :: (Monad m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
-mapWithKeyP f m =
-  (P.mapM (\(k, a) -> do
-                  b <- f k a
-                  return (k, b)
-                ) $ M.toList m) >>=
-    return . M.fromList
--- -}
 
 mapWithKeyMP :: (Par.MonadParallel m, Ord k) => (k -> a -> m b) -> M.Map k a -> m (M.Map k b)
 mapWithKeyMP f m =
@@ -354,43 +314,28 @@ mapWithKeyMP f m =
 
 ----------------------------------------------------------------------------
 
--- | Empty context map.
-empty :: ContextMap v
-empty = ContextMap $ M.empty
-
-{-
 -- | Inserts a new context.
 --
---   /Note/: Does nothing if the context already exists.
-insertContext' :: Impl.IndexImplCon ix v
-              => Context -> ix v -> ContextMap v -> ContextMap v
-insertContext' c ix (ContextMap m) = mkContextMap $ M.insertWith (const id) c (Impl.mkIndex ix) m
--}
 
--- | Inserts a new context.
---
+insertContext :: Context -> Impl.IndexImpl Occurrences -> ContextSchema
+              -> ContextIndex dt -> ContextIndex dt
+insertContext c ix schema (ContextIndex m dt s)
+    = ContextIndex  m' dt s'
+    where
+    m' = insertContext' c ix m
+    s' = M.insert c schema s
+
 --   /Note/: Does nothing if the context already exists.
-insertContext :: Context -> Impl.IndexImpl v -> ContextMap v -> ContextMap v
-insertContext c ix (ContextMap m) = mkContextMap $ M.insertWith (const id) c ix m
+insertContext' :: Context -> Impl.IndexImpl v -> ContextMap v -> ContextMap v
+insertContext' c ix (ContextMap m) = mkContextMap $ M.insertWith (const id) c ix m
 
 -- | Removes context (including the index and the schema).
 deleteContext :: Context -> ContextIndex dt -> ContextIndex dt
 deleteContext c (ContextIndex ix dt s) = ContextIndex (deleteContext' c ix) dt (M.delete c s)
-  where
-  -- | Removes context (includes the index, but not the schema).
-  deleteContext' :: Context -> ContextMap v -> ContextMap v
-  deleteContext' cx (ContextMap m) = mkContextMap $ M.delete cx m
 
--- | Insert an element to a 'Context'.
-insertWithCx :: Monad m =>
-                (v -> v -> v) ->
-                Context -> Text -> v -> ContextMap v -> m (ContextMap v)
-insertWithCx op c w v (ContextMap m)
-  = case M.lookup c m of
-      Just (Impl.IndexImpl ix) -> do
-        ix' <- liftM Impl.mkIndex $ Ix.insertListM op [(w,v)] ix
-        return $ ContextMap $ M.insert c ix' m
-      _      -> error "context does not exist"
+-- | Removes context (includes the index, but not the schema).
+deleteContext' :: Context -> ContextMap v -> ContextMap v
+deleteContext' cx (ContextMap m) = mkContextMap $ M.delete cx m
 
 delete' :: Par.MonadParallel m => DocIdSet -> ContextMap v -> m (ContextMap v)
 delete' dIds (ContextMap m)
@@ -478,49 +423,22 @@ foreachContext cxs action
 
 -- ------------------------------------------------------------
 
+-- | All contexts of the index.
+contextsM :: (Monad m, DocTable dt)
+         => ContextIndex dt -> m [Context]
+contextsM (ContextIndex ix _dt _s) = return $ contexts ix
+
 -- | Contexts/keys of 'ContextMap'.
-contexts' :: ContextMap v -> [Context]
-contexts' (ContextMap m) = M.keys m
+contexts :: ContextMap v -> [Context]
+contexts (ContextMap m) = M.keys m
 
 -- | Check if the context exists.
-hasContext' :: Context -> ContextMap v -> Bool
-hasContext' c (ContextMap m) = M.member c m
+hasContext :: Context -> ContextMap v -> Bool
+hasContext c (ContextMap m) = M.member c m
 
-{--
- - this is unused right now
- - the algorithm is implemented within the index instance directly
- -
-mapReduceAddWordsM :: Par.MonadParallel m => [(DocId, Words)] -> ContextMap Occurrences -> m (ContextMap Occurrences)
-mapReduceAddWordsM vs (ContextMap m)
-  = mapWithKeyMP (\cx impl -> mrInsert cx impl) m >>= return . ContextMap
-  where
-  mrInsert :: Par.MonadParallel m => Context -> IndexImpl Occurrences -> m (IndexImpl Occurrences)
-  mrInsert cx ix@(Impl.IndexImpl impl)
-    = case contentForCx cx vs of
-        [] -> return ix
-        cs -> do
-          mapRes <- Par.mapM (\ws -> Ix.insertListM ws (Ix.empty `asTypeOf` impl)) (partitionListByLength 200 cs)
-          reduce mapRes impl >>= return . Impl.mkIndex
-
-  reduce mapRes impl = do
-    x <- Par.mapM (\(i1,i2) -> Ix.unionWithM (Occ.merge) i1 i2) $ mkPairs mapRes
-    case x of
-      []     -> error "this should not be possible..?!?"
-      [x]    -> Ix.unionWithM (Occ.merge) x impl
-      xs     -> reduce xs impl
+-- | Does the context exist?
+hasContextM :: (Monad m, DocTable dt)
+           => Context -> ContextIndex dt -> m Bool
+hasContextM c (ContextIndex ix _dt _s) = return $ hasContext c ix
 
 
-  mkPairs :: [a] -> [(a,a)]
-  mkPairs []       = []
-  mkPairs (a:[])   = [(a,a)]
-  mkPairs (a:b:xs) = (a,b):mkPairs xs
---}
--- | Update elements
---update :: (Par.MonadParallel m, DocTable dt)
---       => DocId -> Dt.DValue dt -> Words
---       -> ContextIndex dt -> m (ContextIndex dt)
---update docId doc' w ix = do
---  ix' <- delete ix (IS.singleton docId)
---  insert doc' w ix'
-
--- ------------------------------------------------------------

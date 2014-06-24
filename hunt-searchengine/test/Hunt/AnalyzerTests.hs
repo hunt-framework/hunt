@@ -1,49 +1,37 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main where
+module Hunt.AnalyzerTests
+(analyzerTests)
+where
 {-- Tests for Normalizers Analyzers Formatters #-}
 
-import           TestHelper
+import           Hunt.TestHelper
 
---import           Data.Text                              (Text)
 import qualified Data.Text                              as T
---import           Data.Time
---import           System.Locale
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
-import           Test.HUnit
+import           Test.HUnit                           hiding (Test)
 import           Test.QuickCheck
---import qualified Test.QuickCheck.Monadic                as QM
 
---import qualified Hunt.Index.Schema                    as S
 import qualified Hunt.Index.Schema.Analyze            as A
---import qualified Hunt.Index.Schema.Normalize          as N
 import qualified Hunt.Index.Schema.Normalize.Date     as ND
 import qualified Hunt.Index.Schema.Normalize.Position as NP
 import qualified Hunt.Index.Schema.Normalize.Int      as NI
 
 -- ----------------------------------------------------------------------------
 
-main :: IO ()
-main = defaultMain
+analyzerTests :: [Test]
+analyzerTests =
   [-- Analyzer tests
-   testCase "scanTextRE: text1 "             test_scan_text1
+    testCase "scanTextRE: text1 "             test_scan_text1
   , testCase "scanTextRE: date inv"           test_scan_date1
   , testCase "scanTextRE: date val"           test_scan_date2
   , testCase "scanTextRE: date val multiple"  test_scan_date3
   , testCase "scanTextRE: date val + inval"   test_scan_date4
   , testCase "scanTextRE: date val short   "  test_scan_date5
   , testCase "scanTextRE: date val shorter"   test_scan_date6
-
-  -- Normalizer tests - validation
-  -- typeValidator does not exist anymore
-  --       , testProperty "typeValidator: text"        prop_validate_text
-  --       , testProperty "typeValidator: int val"     prop_validate_int
-  --       , testProperty "typeValidator: int inv"     prop_validate_int2
-  --       , testProperty "typeValidator: date val"    prop_validate_date
-  --       , testProperty "typeValidator: date inv"    prop_validate_date2
 
   -- Normalizer data - isAnyDate
   , testProperty "Normalizer: date YYYYMMDD"            prop_isAnyDate
@@ -180,7 +168,7 @@ prop_norm_pos3 = do
   p <- genPos
   let pos  = T.pack p
   let pos' = NP.denormalize . NP.normalize $ pos
-  return $ printTestCase (p ++ " != " ++ T.unpack pos') $ pos == pos'
+  return $ counterexample (p ++ " != " ++ T.unpack pos') $ pos == pos'
 
 -- ----------------------------------------------------------------------------
 -- normalizer date tests
@@ -195,11 +183,6 @@ prop_isAnyDate2 = return . ND.isAnyDate $ "2013-01-01T21:12:12"
 
 prop_isAnyDate3 :: Gen Bool
 prop_isAnyDate3 = return . ND.isAnyDate $ "2013"
-
--- | test date normalization
--- XXX
-prop_norm_date :: Gen Bool
-prop_norm_date = undefined
 
 -- ----------------------------------------------------------------------------
 -- normalizer tests - validation

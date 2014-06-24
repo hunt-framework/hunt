@@ -1,0 +1,59 @@
+name:          hunt-server-cli
+version:       0.2.0.0
+license:       MIT
+license-file:  LICENSE
+author:        Chris Reumann, Ulf Sauer, Sebastian Philipp
+copyright:     Chris Reumann, Ulf Sauer, Sebastian Philipp
+maintainer:    Chris Reumann, Ulf Sauer, Sebastian Philipp
+stability:     experimental
+category:      Console
+synopsis:      A Command line Interface for the Hunt server.
+homepage:      http://github.com/hunt-framework
+description:   A Command line Interface for the Hunt server.
+cabal-version: >=1.6
+build-type:    Simple
+
+-- extra-source-files:
+--     README
+
+source-repository head
+  type:        git
+  location:    https://github.com/hunt-framework/hunt.git
+
+executable hunt-server-cli
+  main-is:      Main.hs
+
+  other-modules: Hunt.Converter.CSV
+
+  build-depends:   base                   >= 4
+                 , binary
+                 , bytestring             >= 0.9.1     && < 1
+                 , data-default
+                 , aeson
+                 , aeson-pretty
+                 , containers             >= 0.5
+                 , time
+                 , hunt-searchengine      >= 0.2
+                 , hunt-client
+                 , hslogger 
+                 , http-types             >= 0.8.0
+                 , string-conversions
+                 , mtl                    >= 1.1       && < 3
+                 , text                   >= 1         && < 2
+                 , docopt
+                 , csv-conduit            >= 0.6
+                 , resourcet >= 0.3
+                 , conduit
+                 , conduit-extra
+                 , transformers
+                 , unordered-containers
+
+  hs-source-dirs: src
+
+  ghc-options:   -Wall
+
+  if impl( ghc >= 7 )
+    ghc-options: -rtsopts
+                 -fwarn-tabs
+
+  extensions: OverloadedStrings

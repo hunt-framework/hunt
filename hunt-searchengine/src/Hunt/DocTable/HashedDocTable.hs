@@ -41,6 +41,8 @@ where
 
 import           Data.Binary            (Binary (..))
 
+import           Control.DeepSeq
+
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId      (DocId, mkDocId)
 import           Hunt.Common.DocIdMap   (DocIdMap)
@@ -62,17 +64,23 @@ newtype Documents e
                                           --   the document itself.
   deriving (Eq, Show)
 
+mkDocuments :: NFData e => DocMap e -> Documents e
+mkDocuments m = Documents $! m
+
 -- ------------------------------------------------------------
+
+instance NFData e => NFData (Documents e) where
+  rnf (Documents e) = rnf e
 
 instance (DocumentWrapper e, Binary e) => Binary (Documents e) where
   put = put . idToDoc
-  get = get >>= return . Documents
+  get = get >>= return . mkDocuments
 
 --- ------------------------------------------------------------
 
 -- | An empty document table.
 empty' :: (DocTable (Documents e), DocumentWrapper e) => Documents e
-empty' = Documents DM.empty
+empty' = mkDocuments DM.empty
 
 -- | Build a 'DocTable' from a 'DocIdMap' (maps 'DocId's to 'Document's)
 fromMap :: (DocTable (Documents e), DocumentWrapper e) =>
@@ -169,8 +177,7 @@ unionDocs' dt1 dt2
   where
   unionDocs'' :: (DocumentWrapper e) => Documents e -> Documents e -> Documents e
   unionDocs'' dt1' dt2'
-    = Documents
-      { idToDoc = idToDoc dt1' `DM.union` idToDoc dt2' }
+    = mkDocuments $ idToDoc dt1' `DM.union` idToDoc dt2'
 
 
 insert'     :: (DocumentWrapper e) => e -> Documents e -> (DocId, Documents e)
@@ -180,31 +187,31 @@ insert' d ds
   newId
       = mkDocId . uri . unwrap $ d
   reallyInsert
-      = (newId, Documents {idToDoc = DM.insert newId d $ idToDoc ds})
+      = (newId, mkDocuments $ DM.insert newId d $ idToDoc ds)
 
 update'     :: (DocumentWrapper e) => DocId -> e -> Documents e -> Documents e
 update' i d ds
-  = Documents {idToDoc = DM.insert i d $ idToDoc ds}
+  = mkDocuments $ DM.insert i d $ idToDoc ds
 
 delete'     :: (DocumentWrapper e) => DocId -> Documents e -> Documents e
 delete' d ds
-  = Documents {idToDoc = DM.delete d $ idToDoc ds}
+  = mkDocuments $ DM.delete d $ idToDoc ds
 
 difference' :: (DocumentWrapper e) => DocIdSet -> Documents e -> Documents e
 difference' s ds
-  = Documents {idToDoc = idToDoc ds `DM.diffWithSet` s}
+  = mkDocuments $ idToDoc ds `DM.diffWithSet` s
 
 map'        :: (DocumentWrapper e) => (e -> e) -> Documents e -> Documents e
 map' f d
-  = Documents {idToDoc = DM.map f (idToDoc d)}
+  = mkDocuments $ DM.map f (idToDoc d)
 
 filter'     :: (DocumentWrapper e) => (e -> Bool) -> Documents e -> Documents e
 filter' p d
-  = Documents {idToDoc = DM.filter p (idToDoc d)}
+  = mkDocuments $ DM.filter p (idToDoc d)
 
 fromMap'    :: (DocumentWrapper e) => (Document -> e) -> DocIdMap Document -> Documents e
 fromMap' f itd
-  = Documents {idToDoc = DM.map f itd}
+  = mkDocuments $ DM.map f itd
 
 toMap'      :: Documents e -> DocIdMap e
 toMap'

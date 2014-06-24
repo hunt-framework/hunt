@@ -15,6 +15,6 @@ executable hunt-cli-search
   build-depends:       base                >= 4.6    && < 5
                        , text              >= 1.0    && < 2.0
                        , transformers      >= 0.3    && < 0.4
-                       , hunt-searchengine >= 0.1    && < 0.2                                             
+                       , hunt-searchengine >= 0.2    && < 1.0
                        , containers
                        , time

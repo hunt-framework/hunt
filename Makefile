@@ -97,6 +97,7 @@ sandbox:
 	cd hunt-compression    && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd hunt-server         && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd hunt-client         && cabal sandbox init --sandbox ../.cabal-sandbox
+	cd hunt-server-cli     && cabal sandbox init --sandbox ../.cabal-sandbox
 	cabal sandbox add-source hunt-searchengine
 	cabal sandbox add-source hunt-compression
 	cd hunt-demos/geoFrontend && cabal sandbox init --sandbox ../../.cabal-sandbox
@@ -114,11 +115,12 @@ client: sandbox
 	cd hunt-client && cabal $(action) $(PROFOPTS) $(pattern)
 
 test:
-	cd hunt-searchengine && cabal sandbox init && cabal install --enable-tests
+	cd hunt-searchengine && cabal install --enable-tests   --enable-library-coverage
+	cd hunt-searchengine && cabal configure --enable-tests --enable-library-coverage && cabal test
 
-test-same:
-	cd hunt-searchengine && cabal install --enable-tests
-	cd hunt-searchengine && cabal test
+test-strict:
+	cd hunt-searchengine && cabal install --enable-tests -ftest-strict   --enable-library-coverage
+	cd hunt-searchengine && cabal configure --enable-tests -ftest-strict --enable-library-coverage && cabal test
 
 execTest:
 	cd hunt-searchengine && cabal test

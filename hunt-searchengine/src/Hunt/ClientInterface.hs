@@ -235,7 +235,9 @@ cmdStatus :: StatusCmd -> Command
 cmdStatus = Status
 
 cmdSequence :: [Command] -> Command
-cmdSequence = Sequence
+cmdSequence []  = cmdNOOP
+cmdSequence [c] = c
+cmdSequence cs  = Sequence cs
 
 cmdNOOP :: Command
 cmdNOOP = NOOP
