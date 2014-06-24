@@ -387,29 +387,29 @@ scx = SCX . M.filter (not . nullSC)
 --
 -- conversions from RawResult into scored results
 
-type CxRawResults = [(Context, RawResult)]
+type CxRawResults = [(Context, RawScoredResult)]
 
-fromCxRawResults ::  (Word -> Score) -> CxRawResults -> ScoredCx ScoredRawDocs
-fromCxRawResults sf crs
+fromCxRawResults :: CxRawResults -> ScoredCx ScoredRawDocs
+fromCxRawResults crs
     = -- traceShow ("fromCxRawResults:"::String, crs, res) $
       res
       where
-        res = mconcat $ L.map (uncurry $ fromRawResult sf) crs
+        res = mconcat $ L.map (uncurry $ fromRawResult) crs
 
-fromRawResult :: (Word -> Score) -> Context -> RawResult -> ScoredCx ScoredRawDocs
-fromRawResult sf cx rr
+fromRawResult :: Context -> RawScoredResult -> ScoredCx ScoredRawDocs
+fromRawResult cx rr
     = SCX $ M.singleton cx sr
       where
         sr = SRD $ L.map toScored rr
             where
-              toScored (w, occ)
-                  = ([w], SCO (sf w) occ)
+              toScored (w, (sc, occ))
+                  = ([w], SCO sc occ)
 
 limitCxRawResults :: Int -> CxRawResults -> CxRawResults
 limitCxRawResults mx
     = L.map (second $ limitRawResult mx)
 
-limitRawResult :: Int -> RawResult -> RawResult
+limitRawResult :: Int -> RawScoredResult -> RawScoredResult
 limitRawResult maxDocs rs
     | maxDocs <= 0 = rs
     | otherwise = takeDocs maxDocs rs
@@ -418,7 +418,7 @@ limitRawResult maxDocs rs
           = xs
       takeDocs _  xs@[_]
           = xs
-      takeDocs mx (r@(_w, occ) : xs)
+      takeDocs mx (r@(_w, (_sc, occ)) : xs)
           = case DM.sizeWithLimit mx occ of
               Nothing -> [r]
               Just s  -> let mx' = mx - s in

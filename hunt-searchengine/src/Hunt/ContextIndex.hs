@@ -19,6 +19,7 @@ module Hunt.ContextIndex
     -- * Contexts and Schema
   , insertContext
   , deleteContext
+  , foreachContext
   , contexts
   , contextsM
   , hasContext
@@ -29,6 +30,8 @@ module Hunt.ContextIndex
   , lookupAllWithCx
   , searchWithCx
   , searchWithCxsNormalized
+  , searchWithCxSc
+  , lookupRangeCxSc
 
     -- * Insert\/Delete Documents
   , insertList
@@ -351,72 +354,72 @@ search op k (ContextMap m)
   search' (Impl.IndexImpl ix) = Ix.searchM op k ix
 -- -}
 
--- XXX: code duplication? - see searchwithcx...
 -- | Range query in a context between first and second key.
 lookupRangeCx :: Monad m => Context -> Text -> Text -> ContextMap v -> m [(Text, v)]
-lookupRangeCx c k1 k2 (ContextMap m)
-  = case M.lookup c m of
-      Just (Impl.IndexImpl cm) -> Ix.lookupRangeM k1 k2 cm
-      _                        -> return []
+lookupRangeCx c k1 k2 cm
+    = lookupIndex c cm $ Ix.lookupRangeM k1 k2
 
-{- not yet used
--- | Range query in multiple contexts.
-
-lookupRangeCxs :: Monad m => [Context] -> Text -> Text -> ContextMap v -> m [(Context, [(Text, v)])]
-lookupRangeCxs cs k1 k2 (ContextMap m)
-  = P.mapM search' cs
-  where
-  search' c = case M.lookup c m of
-    Just (Impl.IndexImpl cm) -> do
-      ix <- Ix.lookupRangeM k1 k2 cm
-      return (c, ix)
-    _ -> return (c, [])
--- -}
-
+-- | Dump a context
 lookupAllWithCx :: Monad m => Context -> ContextMap v -> m [(Text, v)]
-lookupAllWithCx c (ContextMap m)
-    = case M.lookup c m of
-        Just (Impl.IndexImpl cm) -> return $ Ix.toList cm
-        _                        -> return []
+lookupAllWithCx cx cm
+    = lookupIndex cx cm $ Ix.toListM
 
 -- | Search query in a context.
 searchWithCx :: Monad m => TextSearchOp -> Context -> Text -> ContextMap v -> m [(Text, v)]
-searchWithCx op c k (ContextMap m)
-  = case M.lookup c m of
-      Just (Impl.IndexImpl cm) -> Ix.searchM op k cm
-      _                        -> return []
+searchWithCx op cx w cm
+    = lookupIndex cx cm $ Ix.searchM op w
 
-{- not yet used
--- XXX: we actually do not have any parallelism here at the moment
---      because everything is evalutated lazy!
--- | Search query in multiple contexts.
 
-searchWithCxs :: Monad m => TextSearchOp -> [Context] -> Text -> ContextMap v -> m [(Context, [(Text, v)])]
-searchWithCxs op cs k (ContextMap m)
-  = P.mapM search' cs
-  where
-  search' c = case M.lookup c m of
-    Just (Impl.IndexImpl cm) -> do
-      ix <- Ix.searchM op k cm
-      return (c, ix)
-    _ -> return (c, [])
--- -}
-
--- | Search in contexts with key already normalized with respect to each context type.
-
-searchWithCxsNormalized :: Monad m =>
+-- | Search over a list of contexts and words
+searchWithCxsNormalized :: (Functor m, Monad m) =>
                            TextSearchOp -> [(Context, Text)] -> ContextMap v ->
                            m [(Context, [(Text, v)])]
-searchWithCxsNormalized op cks (ContextMap m)
-    = P.mapM search' cks
+searchWithCxsNormalized op cxws cm
+    = P.mapM (uncurry search') cxws
     where
-      search' (c, k)
-          = case M.lookup c m of
-              Just (Impl.IndexImpl cm) ->
-                  do ix <- Ix.searchM op k cm
-                     return (c, ix)
-              Nothing ->
-                  return (c, [])
+      search' cx w
+          = (\ x -> (cx, x))
+            <$> (lookupIndex cx cm $ Ix.searchM op w)
+
+-- | Search query with scored results
+searchWithCxSc :: Monad m =>
+                  TextSearchOp -> Context -> Text -> ContextMap v -> m [(Text, (Score, v))]
+searchWithCxSc op cx w cm
+    = lookupIndex cx cm $ Ix.searchMSc op w
+
+-- | Range query in a context between first and second key.
+lookupRangeCxSc :: Monad m => Context -> Text -> Text -> ContextMap v -> m [(Text, (Score, v))]
+lookupRangeCxSc c k1 k2 cm
+    = lookupIndex c cm $ Ix.lookupRangeMSc k1 k2
+
+-- ------------------------------------------------------------
+
+-- | lookup an index by a context and then search this index for a word
+-- result is always a list of values.
+--
+-- This pattern is used in all search variants
+
+lookupIndex :: (Monad m) =>
+               Context -> ContextMap v ->
+               (forall i . Impl.IndexImplCon i v => i v -> m [r]) ->
+               m [r]
+
+lookupIndex cx (ContextMap m) search
+    = case M.lookup cx m of
+        Just (Impl.IndexImpl cm)
+            -> search cm
+        Nothing
+            -> return []
+
+foreachContext :: (Functor m, Monad m) =>
+                  [Context] ->
+                  (Context -> m res) ->
+                  m [(Context, res)]
+foreachContext cxs action
+    = P.mapM action' cxs
+      where
+        action' cx
+            = (\ r -> (cx, r)) <$> action cx
 
 -- ------------------------------------------------------------
 

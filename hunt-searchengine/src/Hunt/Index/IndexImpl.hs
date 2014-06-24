@@ -1,4 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE TypeFamilies              #-}
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -95,7 +96,7 @@ get' ts = do
 
 -- ------------------------------------------------------------
 
--- | Wrap an index using @ExistentialQuantification@ tto allow heterogeneous containers.
+-- | Wrap an index using @ExistentialQuantification@ to allow heterogeneous containers.
 mkIndex :: IndexImplCon i v => i v -> IndexImpl v
 mkIndex i = IndexImpl $! i
 

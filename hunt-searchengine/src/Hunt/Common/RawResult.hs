@@ -31,6 +31,8 @@ import           Hunt.Common.Positions
 -- | The raw result returned when searching the index.
 type RawResult = [(Word, Occurrences)]
 
+type RawScoredResult = [(Word, (Score, Occurrences))]
+
 -- ------------------------------------------------------------
 
 -- | Transform the raw result into a tree structure ordered by word.

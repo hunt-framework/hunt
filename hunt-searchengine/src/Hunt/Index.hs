@@ -21,6 +21,9 @@ import           Prelude                hiding (map)
 import           GHC.Exts               (Constraint)
 
 import           Control.DeepSeq
+import           Control.Arrow          (second)
+
+import qualified Data.List              as L
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
@@ -47,8 +50,15 @@ class Index i where
   -- | General lookup function.
   search        :: ICon i v => TextSearchOp -> IKey i v -> i v -> [(IKey i v, IVal i v)]
 
+  searchSc      :: ICon i v => TextSearchOp -> IKey i v -> i v -> [(IKey i v, (Score, IVal i v))]
+  searchSc op k ix = addDefScore $ search op k ix
+
   -- | Search within a range of two keys.
   lookupRange   :: ICon i v => IKey i v -> IKey i v -> i v -> [(IKey i v, IVal i v)]
+
+  lookupRangeSc :: ICon i v => IKey i v -> IKey i v -> i v -> [(IKey i v, (Score, IVal i v))]
+  lookupRangeSc k1 k2 ix
+                = addDefScore $ lookupRange k1 k2 ix
 
   -- | Insert occurrences.
   --   This is more efficient than folding with 'insert'.
@@ -128,8 +138,17 @@ class Monad m => IndexM m i where
   -- | Monadic version of 'search'.
   searchM      :: IConM i v => TextSearchOp -> IKeyM i v -> i v -> m [(IKeyM i v, IValM i v)]
 
+  -- | Monadic version of 'search' with (default) scoring.
+  searchMSc     :: IConM i v => TextSearchOp -> IKeyM i v -> i v -> m [(IKeyM i v, (Score, IValM i v))]
+  searchMSc op k ix
+                = searchM op k ix >>= return . addDefScore
+
   -- | Monadic version of 'lookupRangeM'.
   lookupRangeM :: IConM i v => IKeyM i v -> IKeyM i v -> i v -> m [(IKeyM i v, IValM i v)]
+
+  lookupRangeMSc :: IConM i v => IKeyM i v -> IKeyM i v -> i v -> m [(IKeyM i v, (Score, IValM i v))]
+  lookupRangeMSc k1 k2 ix
+                = lookupRangeM k1 k2 ix >>= return . addDefScore
 
   -- | Monadic version of 'insertList'.
   insertListM  :: IConM i v =>
@@ -190,19 +209,26 @@ instance (Index i, Monad m) => IndexM m i where
   type IValM i v             = IVal i v
   type IConM i v             = ICon i v
 
-  searchM op s i             = return $! search op s i
-  lookupRangeM l u i         = return $! lookupRange l u i
+  searchM   op s i           = return $  search op s i
+  searchMSc op s i           = return $  searchSc op s i
+  lookupRangeM   l u i       = return $  lookupRange   l u i
+  lookupRangeMSc l u i       = return $  lookupRangeSc l u i
   insertListM op vs i        = return $! insertList op vs i
   deleteDocsM ds i           = return $! deleteDocs ds i
   insertM op k v i           = return $! insert op k v i
   deleteM k i                = return $! delete k i
   emptyM                     = return $! empty
-  toListM i                  = return $! toList i
+  toListM i                  = return $  toList i
   fromListM l                = return $! fromList l
   unionWithM f i1 i2         = return $! unionWith f i1 i2
 --  unionWithConvM f1 f2 i1 i2 = return $! unionWithConv f1 f2 i1 i2
   mapM f i                   = return $! map f i
   mapMaybeM f i              = return $! mapMaybe f i
-  keysM i                    = return $! keys i
+  keysM i                    = return $  keys i
+
+-- ------------------------------------------------------------
+
+addDefScore :: [(a, b)] -> [(a, (Score, b))]
+addDefScore = L.map (second (\ x -> (defScore, x)))
 
 -- ------------------------------------------------------------

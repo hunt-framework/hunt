@@ -20,22 +20,31 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Index.InvertedIndex
+{-
   ( InvertedIndex (..)
   , InvertedIndexDate
   , InvertedIndexInt
   , InvertedIndexPosition
   , InvertedIndexRTree
   )
+-- -}
 where
 
 import           Prelude                              as P
 
 import           Control.DeepSeq
 
+import           Data.Bijection
 import           Data.Bijection.Instances             ()
 import           Data.Binary                          (Binary (..))
+import qualified Data.List                            as L
+import           Data.Maybe                           (fromMaybe)
+import           Data.RTree.MBB                       (MBB)
 import           Data.Text                            (Text)
+import qualified Data.Text                            as T
 import           Data.Typeable
+
+import           Text.Read                            (readMaybe)
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences              (Occurrences)
@@ -51,8 +60,6 @@ import qualified Hunt.Index.Schema.Normalize.Date     as Date
 import qualified Hunt.Index.Schema.Normalize.Int      as Int
 import qualified Hunt.Index.Schema.Normalize.Position as Pos
 
-import           Data.Bijection
-import           Data.RTree.MBB                       (MBB)
 
 -- ------------------------------------------------------------
 -- Inverted index using text key
@@ -97,8 +104,22 @@ instance Index InvertedIndex where
   search t k (InvIx i)
     = search t k i
 
+  -- here the scoring of found word rel. to searched word is added
+  searchSc t k m
+      = L.map scoreWord $ search t k m
+        where
+          dist
+              = similar k
+          scoreWord (w, r)
+              = (w, (dist w, r))
+
+
   lookupRange k1 k2 (InvIx i)
     = lookupRange k1 k2 i
+
+  -- for lookupRangeSc the default scoring (all 1.0) is done
+  --
+  -- no better scoring known
 
   unionWith op (InvIx i1) (InvIx i2)
     = mkInvIx $ unionWith op i1 i2
@@ -117,6 +138,32 @@ instance Index InvertedIndex where
   keys (InvIx i)
     = keys i
 
+
+-- ------------------------------------------------------------
+
+-- | a simple similarity heuristic for scoring words found
+-- when doing a fuzzy or prefix search
+
+similar :: Text -> Text -> Score
+similar s f
+    = -- traceShow ("similar"::Text, s, f, r) $
+      r
+    where
+      r = similar' s f
+
+similar' :: Text -> Text -> Score
+similar' searched found
+    | searched == found
+        = 1.0
+    | ls == lf
+        = 0.75
+    | ls < lf                     -- reduce score by length of found word
+        = 0.5 * (fromIntegral ls / fromIntegral lf)
+    | otherwise                   -- make similar total
+        = noScore
+    where
+      ls = T.length searched
+      lf = T.length found
 
 -- ------------------------------------------------------------
 -- Inverted index using 2-dimensional lookup
@@ -160,6 +207,8 @@ instance Index InvertedIndex2Dim where
 
   search t k (InvIx2D i)
     = search t k i
+
+  -- TODO: searchSc and lookupRangeSc implementation similar to InvertedIndexInt and InvertedIndex
 
   lookupRange k1 k2 (InvIx2D i)
     = lookupRange k1 k2 i
@@ -238,8 +287,24 @@ instance Index InvertedIndexInt where
   search t k (InvIntIx i)
     = search t k i
 
+  searchSc t k m
+      = L.map scoreWord $ search t k m
+        where
+          dist
+              = similarInt k
+          scoreWord (w, r)
+              = (w, (dist w, r))
+
   lookupRange k1 k2 (InvIntIx i)
     = lookupRange k1 k2 i
+
+  lookupRangeSc k1 k2 m
+    = L.map scoreWord $ lookupRange k1 k2 m
+      where
+        dist
+            = similarRangeInt k1 k2
+        scoreWord (w, r)
+            = (w, (dist w, r))
 
   unionWith op (InvIntIx i1) (InvIntIx i2)
     = mkInvIntIx $ unionWith op i1 i2
@@ -256,6 +321,40 @@ instance Index InvertedIndexInt where
   keys (InvIntIx i)
     = keys i
 
+
+similarInt :: Text -> Text -> Score
+similarInt searched found
+    = fromMaybe noScore $
+      do s <- readMaybe $ T.unpack searched
+         f <- readMaybe $ T.unpack found
+         return $ similarFloat (fromIntegral (s::Int)) (fromIntegral (f::Int))
+
+similarRangeInt :: Text -> Text -> Text -> Score
+similarRangeInt lbt ubt found
+    = fromMaybe noScore $
+      do lb <- readMaybe $ T.unpack lbt
+         ub <- readMaybe $ T.unpack ubt
+         f  <- readMaybe $ T.unpack found
+         return $ similarFloat
+                    (fromIntegral ((lb::Int) + (ub::Int)) / 2.0)
+                    (fromIntegral (f::Int))
+
+similarFloat :: Float -> Float -> Score
+similarFloat mu
+    = mkScore . bellCurve (sigma mu) mu
+
+sigma :: Float -> Float
+sigma x
+    = abs x `max` 10.0 / 10.0
+
+-- | Gaussian bell curve for scoring
+bellCurve :: Float -> (Float -> Float -> Float)
+bellCurve sigma'
+    = \ mu x -> exp (- (x - mu) ^ _2 / sigma2'2)
+    where
+      _2 :: Int
+      _2 = 2
+      sigma2'2 = 2.0 * sigma' ^ _2
 
 -- ------------------------------------------------------------
 -- inverted index using date proxy for dates
@@ -312,6 +411,8 @@ instance Index InvertedIndexDate where
 
   search t k (InvDateIx i)
     = search t k i
+
+  -- TODO: searchSc and lookupRangeSc implementation similar to InvertedIndexInt and InvertedIndex
 
   lookupRange k1 k2 (InvDateIx i)
     = lookupRange k1 k2 i
