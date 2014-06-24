@@ -27,6 +27,8 @@ import           Hunt.Index
 
 import           Hunt.Utility
 
+-- import           Debug.Trace
+
 -- ------------------------------------------------------------
 
 -- | Text index using 'DocIdMap' based on the 'StringMap' implementation.

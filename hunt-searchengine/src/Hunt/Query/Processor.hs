@@ -24,10 +24,6 @@ module Hunt.Query.Processor
 
     , ProcessConfig (..)
     , ProcessEnv
-    , similar
-
---    , processQuery
---    , processQueryDocIds
     )
 
 where
@@ -615,8 +611,8 @@ searchCx op w' cx
          limit <- asks (docLimit . psConfig)            -- get the max. # of docs
          ix    <- getIx                                 -- get the context search index
          rawr  <- limitRawResult limit
-                  <$> CIx.searchWithCx op cx w ix       -- do the real search and limit result
-         return $ fromCxRawResults (similar w) [(cx, rawr)]
+                  <$> CIx.searchWithCxSc op cx w ix     -- do the real search and limit result
+         return $ fromCxRawResults [(cx, rawr)]
                                                         -- convert the result to a ScoredResult
                                                         -- the score comes from a similarity test
 
@@ -627,49 +623,8 @@ evalRange lb0 ub0 cx
          limit <- asks (docLimit . psConfig)
          ix    <- getIx
          rawr  <- limitRawResult limit
-                  <$> CIx.lookupRangeCx cx lb ub ix
-         return $ fromCxRawResults (similarRange lb) [(cx, rawr)]
-
--- ------------------------------------------------------------
-
--- | a similarity heuristic for scoring words found
--- when doing a fuzzy or prefix search
---
--- TODO: this function should be moved to all the index implementations,
--- this one is just o.k. for words, but not for distances or regions
-
-similar :: Text -> Text -> Score
-similar s f
-    = -- traceShow ("similar"::Text, s, f, r) $
-      r
-    where
-      r = similar' s f
-
-similar' :: Text -> Text -> Score
-similar' searched found
-    | searched == found
-        = boostExactHit
-    | ls == lf
-        = boostSameLength
-    | ls < lf                     -- reduce score by length of found word
-        = fromIntegral ls / fromIntegral lf
-    | otherwise                   -- make similar total
-        = noScore
-    where
-      boostExactHit   = 10.0
-      boostSameLength =  5.0      -- NoCase hits
-
-      ls = T.length searched
-      lf = T.length found
-
--- | scoring function for hits within a range
---
--- all results are of equal quality
--- TODO: move this into the index implementations to score
--- the hits dependent on the structure of the index (text vs. int vs. geo)
-
-similarRange :: Text -> Text -> Score
-similarRange _lb _ub = defScore
+                  <$> CIx.lookupRangeCxSc cx lb ub ix
+         return $ fromCxRawResults [(cx, rawr)]
 
 -- ------------------------------------------------------------
 
