@@ -90,7 +90,13 @@ module Hunt.ClientInterface
 
     -- * query construction
     , qWord
+    , qWordNoCase
+    , qFullWord
+    , qFullWordNoCase
     , qPhrase
+    , qPhraseNoCase
+    , qPrefixPhrase
+    , qPrefixPhraseNoCase
     , qRange
     , qAnd
     , qAnds
@@ -380,9 +386,54 @@ fromDescription = DD.toList
 qWord :: Text -> Query
 qWord = QWord QCase
 
--- | exact search of a word
+qWordNoCase :: Text -> Query
+qWordNoCase = QWord QNoCase
+
+-- | exact case sensitive search of a single word
+
+qFullWord :: Text -> Query
+qFullWord = QFullWord QCase
+
+-- | exact, but case insensitive search of a single word
+
+qFullWordNoCase :: Text -> Query
+qFullWordNoCase = QFullWord QNoCase
+
+-- --------------------
+--
+-- phrase search
+
+qPhrase' :: (Text -> Query) -> Text -> Query
+qPhrase' qf t
+    = case T.words t of
+        [w] -> qf w
+        ws  -> qNexts $ map qf ws
+
+-- | exact search of a sequence of space separated words.
+-- For each word in the sequence, an exact word search is performed.
+
 qPhrase :: Text -> Query
-qPhrase = QPhrase QCase
+qPhrase = qPhrase' qFullWord
+
+-- | exact, but case insenitive search of a sequence of space separated words.
+-- For each word in the sequence, a word search is performed.
+
+qPhraseNoCase :: Text -> Query
+qPhraseNoCase = qPhrase' qFullWordNoCase
+
+-- | prefix search of a sequence of space separated words.
+-- For each word in the sequence, a prefix search is performed.
+
+qPrefixPhrase :: Text -> Query
+qPrefixPhrase = qPhrase' qWordNoCase
+
+-- | prefix search of a sequence of space separated words.
+-- For each word in the sequence, a prefix search is performed.
+
+qPrefixPhraseNoCase :: Text -> Query
+qPrefixPhraseNoCase = qPhrase' qWordNoCase
+
+-- --------------------
 
 -- | search a range of words or an intervall for numeric contexts
 qRange :: Text -> Text -> Query
@@ -394,46 +445,81 @@ qContext c w = QContext [c] $ QWord QCase w
 
 -- | and query
 qAnd :: Query -> Query -> Query
-qAnd = QBinary And
+qAnd q1 q2 = qAnds [q1, q2]
 
 --  | multiple @and@ queries. The list must not be emtpy
 qAnds :: [Query] -> Query
-qAnds = foldl1 qAnd     -- foldl more efficient (?) than foldr
+qAnds = mkAssocSeq And
 
 -- | or query
 qOr :: Query -> Query -> Query
-qOr = QBinary Or
+qOr q1 q2 = qOrs [q1, q2]
 
 --  | multiple @or@ queries. The list must not be emtpy
 qOrs :: [Query] -> Query
-qOrs = foldl1 qOr       -- foldl more efficient (?) than foldr
+qOrs = mkAssocSeq Or
 
 -- | and not query
 qAndNot :: Query -> Query -> Query
-qAndNot = QBinary AndNot
+qAndNot q1 q2 = qAndNots [q1, q2]
 
 --  | multiple @and-not@ queries. The list must not be emtpy
+-- TODO handle left associativity
+
 qAndNots :: [Query] -> Query
-qAndNots = foldl1 qAndNot       -- foldl due to left associativity of AndNot
+qAndNots = mkLeftAssocSeq AndNot
 
 -- | neighborhood queries. The list must not be empty
+--
+-- TODO: a better name for qNext and qNexts, qPhrase is already used
+
 qNext :: Query -> Query -> Query
-qNext = QBinary Phrase
+qNext q1 q2 = qNexts [q1, q2]
 
 qNexts :: [Query] -> Query
-qNexts = foldl1 qNext
+qNexts = mkAssocSeq Phrase
 
 qFollow :: Int -> Query -> Query -> Query
-qFollow d = QBinary (Follow d)
+qFollow d q1 q2 = qFollows d [q1, q2]
 
 qFollows :: Int -> [Query] -> Query
-qFollows d = foldl1 (qFollow d)
+qFollows d = mkAssocSeq (Follow d)
 
 qNear :: Int -> Query -> Query -> Query
-qNear d = QBinary (Near d)
+qNear d q1 q2 = qNears d [q1, q2]
 
 qNears :: Int -> [Query] -> Query
-qNears d = foldl1 (qNear d)
+qNears d = mkAssocSeq (Near d)
+
+collectAssocs :: BinOp -> [Query] -> [Query]
+collectAssocs op qs
+    = concatMap subqs qs
+    where
+      subqs (QSeq op' qs')
+          | op == op'
+              = qs'
+      subqs q'
+          = [q']
+
+mkAssocSeq :: BinOp -> [Query] -> Query
+mkAssocSeq op qs
+    = remSingle $ QSeq op (collectAssocs op qs)
+
+mkLeftAssocSeq :: BinOp -> [Query] -> Query
+mkLeftAssocSeq op qs
+    = remSingle $ QSeq op qs'
+    where
+      qs' = case qs of
+              (QSeq op' qs1 : qs2)
+                  | op == op'
+                      -> qs1 ++ qs2
+              _       -> qs
+
+remSingle :: Query -> Query
+remSingle (QSeq _ [q])
+    = q
+remSingle q
+    = q
 
 -- ------------------------------------------------------------
 -- configure simple search queries
@@ -441,15 +527,17 @@ qNears d = foldl1 (qNear d)
 -- | case insensitve search, only sensible for word and phrase queries
 
 setNoCaseSearch :: Query -> Query
-setNoCaseSearch (QWord   _ w) = QWord   QNoCase w
-setNoCaseSearch (QPhrase _ w) = QPhrase QNoCase w
+setNoCaseSearch (QWord     _ w) = QWord     QNoCase w
+setNoCaseSearch (QFullWord _ w) = QFullWord QNoCase w
+setNoCaseSearch (QPhrase   _ w) = QPhrase   QNoCase w
 setNoCaseSearch q             = q
 
 -- | fuzzy search, only sensible for word and phrase queries
 
 setFuzzySearch :: Query -> Query
-setFuzzySearch (QWord   _ w) = QWord   QFuzzy w
-setFuzzySearch (QPhrase _ w) = QPhrase QFuzzy w
+setFuzzySearch (QWord     _ w) = QWord     QFuzzy w
+setFuzzySearch (QFullWord _ w) = QFullWord QFuzzy w
+setFuzzySearch (QPhrase   _ w) = QPhrase   QFuzzy w
 setFuzzySearch q             = q
 
 -- | restrict search to list of contexts

@@ -39,6 +39,12 @@ import           Text.Read              (readMaybe)
 
 -- ------------------------------------------------------------
 
+-- TODO: the constructors QPhrase and QBinary can be removed
+-- they can be represented by QFullWord and QSeq.
+--
+-- Currently these operators are transformed during query evaluation
+-- on the fly into QFullWord and QSeq.
+
 -- | The query language.
 data Query
   = QWord     TextSearchType Text  -- ^ prefix search for a word
