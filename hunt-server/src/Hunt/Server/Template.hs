@@ -66,6 +66,7 @@ index _docs =
 <br />
 |]) `LT.append`
   -- generate javascript
+  -- XXX TODO: refactor all this messy javascript into a hunt-client-js library
   renderJavascriptUrl (\_ _ -> "") [julius|
 <script>
   $(document).ready(function() {
@@ -121,19 +122,67 @@ index _docs =
 
     // auto completion for search box
     // TODO: should be improved or removed
+    var shift = false;
+    $("#txt-search").keydown(function(e) {
+       if (e.keyCode == 8) return;
+       if (e.keyCode == 16) { shift = true; }
+    });
+    $("#txt-search").keyup(function(e) {
+        if (e.keyCode == 8) return;
+        if (e.keyCode == 16) shift = false;
+        else if (shift) {
+          if(e.keyCode == 8) return;
+          var val = $(this).val();
+          var newchar = "";
+          if (e.keyCode == 56) newchar = ")";
+          if (e.keyCode == 50) newchar = '"';
+          if (newchar != "")
+          {
+	    $(this).val(val + newchar);
+            setCaretPosition(this);
+          }
+        }
+    });
+    function setCaretPosition(elem) {
+      var caretPos = $(elem).val().length - 1;
+      if(elem != null) {
+        if(elem.createTextRange) {
+            var range = elem.createTextRange();
+            range.move('character', caretPos);
+            range.select();
+        }
+        else {
+            if(elem.selectionStart) {
+                elem.focus();
+                elem.setSelectionRange(caretPos, caretPos);
+            }
+            else
+                elem.focus();
+        }
+      }
+    }
+
+
     $("#txt-search").typeahead({
       source: function(query, callback) {
+        query = query.trim();
+        var norm = query.replace(/[:\(\)\"]/g," ");
+        var rightmost = norm.split (" ").filter(Boolean).pop();
         $.get("/completion/" + encodeURIComponent(query) + "/" + globalCompletionMax, function(data) {
           var result = [];
+          // TODO sort by rank
           if (data.code === 0)
           {
             $(data.msg).each(function(i,e) {
-              result.push(e[0]);
+              e[1] = query.replace(new RegExp(rightmost + "(?=[^" + rightmost +" ]*$)"), e[0]);
+              result.push(e[1]);
             });
           }
+          console.log(result);
           callback(result);
         })
-      }
+      },
+      matcher: function(elem) {return true;},
     });
 
     // search button handler
