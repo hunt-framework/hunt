@@ -357,7 +357,7 @@ evalScoredWords (QBoost w q)
     = boost w <$> evalScoredWords' q
 
 evalScoredWords q@QPhrase{}              -- QPhrase is transformed into QFullWord or QSeq Phrase
-    = normQuery q >>= evalScoredWords
+    = normPhraseQuery q >>= evalScoredWords
 
 evalScoredWords q@QBinary{}              -- QBin is transformed into QSeq
     = normQuery q >>= evalScoredWords
@@ -464,6 +464,20 @@ normQuery q@(QBinary op _q1 _q2)
 
 normQuery q
     = return q
+
+
+normPhraseQuery :: Query -> Processor Query
+normPhraseQuery (QPhrase op w)
+    = return . QSeq Phrase $ normPhrase (T.words w) []
+    where
+      normPhrase (x:[]) r = r ++ [QWord op x]
+      normPhrase (x:xs) r = normPhrase xs $
+                            r ++ [QFullWord op x]
+      normPhrase []     r = r
+normPhraseQuery q
+    = return q
+
+
 
 collectAssoc :: BinOp -> Query -> [Query] -> [Query]
 collectAssoc op (QBinary op' q1 q2)
