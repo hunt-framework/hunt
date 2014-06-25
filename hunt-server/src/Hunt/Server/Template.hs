@@ -165,7 +165,7 @@ index _docs =
           var docs = data.msg;
           if (docs.length === 0)
           {
-            $("#result-body").html(snipped_no_results);
+            $("#result-body").html(snippet_no_results);
             return false;
           }
           initMap();
