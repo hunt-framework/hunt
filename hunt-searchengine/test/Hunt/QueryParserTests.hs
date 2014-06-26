@@ -37,7 +37,6 @@ queryParserTests = [ allProperties
 
 allProperties = testGroup "Query Parser Properties"
                 [ testProperty "prop_ParseAnd" prop_ParseAnd
-                , testProperty "prop_ParseSpace" prop_ParseSpace
                 ]
 
 allUnitTests = testGroup "Query Parser Hunit tests" $ hUnitTestToTests $ TestList
@@ -397,6 +396,5 @@ showOpSpace Or     = "OR"
 showOpSpace AndNot = "AND NOT"
 
 
-prop_ParseAnd q = P.parseQuery (T.unpack $ showQuery showOpAnd q) == Right q
-prop_ParseSpace q = P.parseQuery (T.unpack $ showQuery showOpSpace q) == Right q
+prop_ParseAnd q = (printQuery <$> (P.parseQuery $ T.unpack $ printQuery q)) == Right (printQuery q)
 

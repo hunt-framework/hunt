@@ -93,9 +93,6 @@ a @@= b = a @@@ (@?=b)
 search :: Query -> Int -> Int -> Command
 search q o m = setResultOffset o . setMaxResults m . cmdSearch $ q
 
-qWordNoCase :: Text -> Query
-qWordNoCase = setNoCaseSearch . qWord
-
 test_ranking :: Assertion
 test_ranking = testCM $ do
   insertTextContext "0"
