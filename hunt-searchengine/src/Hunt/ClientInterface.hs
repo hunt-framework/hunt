@@ -123,6 +123,9 @@ module Hunt.ClientInterface
     -- ** pretty printing
     , printQuery
 
+    -- ** query completion
+    , completeQueries
+
     -- * schema definition
     , mkSchema
     , setCxNoDefault
@@ -149,6 +152,7 @@ import           Data.Default
 import qualified Data.Map.Strict             as SM
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
+import           Control.Applicative         ((<$>))
 
 import           Hunt.Common.ApiDocument     (ApiDocument (..), IndexMap,
                                               LimitedResult (..),
@@ -638,3 +642,18 @@ setCxPosition sc
     = sc { cxType = ctPosition }
 
 -- ------------------------------------------------------------
+
+
+completeQueries :: Query -> [Text] -> [Query]
+completeQueries (QWord t s)         comps = (\c -> QWord t (c))    <$> comps
+completeQueries (QFullWord t s)     comps = (\c -> QFullWord t (c))<$> comps
+completeQueries (QPhrase t s)       comps = (\c -> QPhrase t (c))  <$> comps
+completeQueries (QContext cxs q)    comps = (QContext cxs)              <$> (completeQueries q comps)
+completeQueries (QBinary op q1 q2)  comps = (QBinary op q1)             <$> (completeQueries q2 comps)
+completeQueries (QSeq    op qs)     comps = (QSeq op)                   <$> (completeLast qs)
+  where
+  completeLast [] = []
+  completeLast [q] = sequence [completeQueries q comps]
+  completeLast (q:qs) = (q :)  <$> completeLast qs
+completeQueries (QBoost w q)        comps = (QBoost w)                  <$> (completeQueries q comps)
+completeQueries (QRange t1 t2)      comps = [QRange t1 t2] -- TODO
