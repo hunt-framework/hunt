@@ -62,8 +62,7 @@ import qualified Hunt.Common.BasicTypes       as H (RegEx, Score, Weight)
 import qualified Hunt.Index.Schema            as H (CNormalizer,
                                                     ContextSchema (..),
                                                     ContextType (..))
-import qualified Hunt.Interpreter.Command     as H (CmdResult (..),
-                                                    Command (..))
+import qualified Hunt.Interpreter.Command     as H (Command (..))
 import           Hunt.Query.Language.Grammar  (Query)
 
 
@@ -171,8 +170,8 @@ httpLbs request = do
     response <- HTTP.httpLbs request (unManager sm)
     return $ HTTP.responseBody response
 
-handleAutoCompeteResponse :: (Monad m, MonadThrow m) => Text -> ByteString -> m [Text]
-handleAutoCompeteResponse _q result
+handleAutoCompeteResponse :: (Monad m, MonadThrow m) => ByteString -> m [Text]
+handleAutoCompeteResponse result
     = handleJsonResponse result >>= return . toWordList
     where
       toWordList :: [(Text, H.Score)] -> [Text]
@@ -183,7 +182,7 @@ autocomplete q
     = do request <- makeRequest
                     $ T.concat [ "completion/", encodeRequest q, "/20"]
          d <- httpLbs request
-         handleAutoCompeteResponse q d
+         handleAutoCompeteResponse d
 
 query :: (MonadIO m, FromJSON r) => Text -> Int -> HuntConnectionT m  (H.LimitedResult r)
 query query' offset
@@ -195,10 +194,10 @@ insert :: (MonadIO m) => H.ApiDocuments -> HuntConnectionT m ByteString
 insert docs
     = eval $ map H.Insert docs
 
-evalAutocomplete :: (MonadIO m) => Text -> Query -> HuntConnectionT m [Text]
-evalAutocomplete qt qq
+evalAutocomplete :: (MonadIO m) => Query -> HuntConnectionT m [Text]
+evalAutocomplete qq
     = do result <- eval $ [H.Completion qq 20]
-         handleAutoCompeteResponse qt result
+         handleAutoCompeteResponse result
 
 evalQuery :: (MonadIO m, FromJSON r) => Query -> Int -> HuntConnectionT m (H.LimitedResult r)
 evalQuery query' offset = do

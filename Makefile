@@ -100,6 +100,7 @@ sandbox:
 	cd hunt-server-cli     && cabal sandbox init --sandbox ../.cabal-sandbox
 	cabal sandbox add-source hunt-searchengine
 	cabal sandbox add-source hunt-compression
+	cabal sandbox add-source hunt-client
 	cd hunt-demos/geoFrontend && cabal sandbox init --sandbox ../../.cabal-sandbox
 
 compression: sandbox
