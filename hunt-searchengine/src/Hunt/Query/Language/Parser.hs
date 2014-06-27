@@ -187,18 +187,18 @@ caseQuery = caseQuery' <|> fuzzyQuery
   where
   caseQuery' = do char '!'
                   spaces
-                  phraseQuery (QPhrase QCase) <|> wordQuery (QWord QCase)
+                  phraseQuery qPhrase <|> wordQuery qWord
 
 -- | Parse a fuzzy query.
 fuzzyQuery :: Parser Query
 fuzzyQuery
     = fuzzyQuery'
-      <|> phraseQuery (QPhrase QNoCase)
-      <|> wordQuery (QWord QNoCase)
+      <|> phraseQuery qPhraseNoCase
+      <|> wordQuery qPrefixPhraseNoCase
   where
   fuzzyQuery' = do char '~'
                    spaces
-                   wordQuery (QWord QFuzzy)
+                   wordQuery (setFuzzySearch . qWord)
 
 -- | Parse a word query.
 wordQuery :: (Text -> Query) -> Parser Query
@@ -254,7 +254,7 @@ wordChar = noneOf notWordChar
 
 -- | Characters that cannot occur in a word (and have to be escaped).
 notWordChar :: String
-notWordChar = escapeChar : "\")([]^ "
+notWordChar = escapeChar : "\")([]^ \n\r\t"
 
 -- | Parse a character of a phrases.
 phraseChar :: Parser Char

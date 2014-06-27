@@ -14,7 +14,7 @@ start	:
 	../.cabal-sandbox/bin/hunt-server $(RUNOPTS) &
 
 stop	:
-	killall hunt-server || true
+	killall hunt-server && sleep 1 || true
 
 gc	:
 	curl $(HUNT)/status/gc | aeson-pretty

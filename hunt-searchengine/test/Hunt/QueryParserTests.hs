@@ -67,10 +67,10 @@ an :: Query -> Query -> Query
 an = qAndNot
 
 w :: Text -> Query
-w = setNoCaseSearch . qWord
+w = qWordNoCase
 
 p :: Text -> Query
-p = setNoCaseSearch . qPhrase
+p = qPhraseNoCase
 
 s :: [Text] -> Query -> Query
 s = setContexts
@@ -136,7 +136,17 @@ orTests = TestList
   (P.parseQuery "wurst:abc OR def OR ghi OR wurst:jkl"))
 
   , TestCase (assertEqual "Operator precedence"
-  (P.parseQuery "wurst:abc (def OR ghi) wurst:jkl")
+  (Right (o
+          (a
+           (s ["wurst"] (w "abc"))
+           (w "def")
+          )
+          (a
+           (w "ghi")
+           (s ["wurst"] (w "jkl"))
+          )
+         )
+  )
   (P.parseQuery "wurst:abc def OR ghi wurst:jkl"))
 
   , TestCase (assertEqual "Confusing operator"
@@ -151,7 +161,7 @@ specifierTests = TestList
   (P.parseQuery " wurst:\t abc \nbatzen : \r def "))
 
   , TestCase (assertEqual "Specifier priority"
-  (Right (a (w "abc") (a (s ["wurst"] (w "def")) (o (s ["wurst"] (w "ghi")) (s ["wurst"] (w "jkl"))))))
+  (Right (o (a (w "abc") (a (s ["wurst"] (w "def")) (s ["wurst"] (w "ghi")))) (s ["wurst"] (w "jkl"))))
   (P.parseQuery "abc wurst: def wurst: ghi OR wurst: jkl"))
 
   ,TestCase (assertEqual "Specifier and brackets"
@@ -186,15 +196,15 @@ andNotTests = TestList
   (P.parseQuery "abc AND NOT def"))
 
   , TestCase (assertEqual "Concatenating 'and' terms"
-  (Right (an (w "abc") (an (w "def") (w "ghi"))))
+  (Right (an (an (w "abc") (w "def")) (w "ghi")))
   (P.parseQuery "abc AND NOT def AND NOT ghi"))
 
   , TestCase (assertEqual "Ignoring whitespace"
-  (Right (an (w "abc") (an (w "def") (an (w "ghi") (w "jkl")))))
+  (Right (an (an (an (w "abc") (w "def")) (w "ghi")) (w "jkl")))
   (P.parseQuery " \rabc AND NOT\r  def  \tAND NOT ghi AND NOT \njkl \r\n "))
 
   , TestCase (assertEqual "Priorities"
-  (Right (an (s ["wurst"] (w "abc")) (an (w "def") (an (w "ghi") (s ["wurst"] (w "jkl"))))))
+  (Right (an (an (an (s ["wurst"] (w "abc")) (w "def")) (w "ghi")) (s ["wurst"] (w "jkl"))))
   (P.parseQuery "wurst:abc AND NOT def AND NOT ghi AND NOT wurst:jkl"))
 
   , TestCase (assertEqual "Confusing operator"
@@ -261,7 +271,7 @@ boostTests = TestList
     ( P.parseQuery "\"word\"^9")
 
   , TestCase $ assertEqual "Boosting a binary query with parantheses"
-    (Right (bst 9 $ a (w "w") (o (w "k") (w "p"))))
+    (Right (bst 9 $ (o (a (w "w") (w "k")) (w "p"))))
     ( P.parseQuery "(w AND k OR p)^9")
 
   , TestCase $ assertEqual "Boosting a context"
@@ -293,8 +303,8 @@ rangeTests = TestList
 
 parentheseTests :: Test
 parentheseTests = TestList
-  [ TestCase (assertEqual "Parentheses without effect"
-  (P.parseQuery "abc def OR ghi")
+  [ TestCase (assertEqual "Parentheses with effect"
+  (Right (a (w "abc") (o (w "def") (w "ghi"))))
   (P.parseQuery "abc (def OR ghi)"))
 
   , TestCase (assertEqual "Parentheses changing priority of OR"
