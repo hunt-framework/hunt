@@ -295,6 +295,9 @@ printQuery (QFullWord k w)
 printQuery (QPhrase _ w)
     = "\"" <> w <> "\""
 
+printQuery (QContext [] w)
+    = printQPar w
+    
 printQuery (QContext cs' w)
     = printCs <> ":" <> (printQPar w)
       where
@@ -303,6 +306,10 @@ printQuery (QContext cs' w)
 printQuery (QBinary o l r)
     = (printQPar l) <> (printOp o) <> (printQPar r)
 
+printQuery (QSeq _ [])
+    = ""
+printQuery (QSeq _ [q])
+    = printQuery q
 printQuery (QSeq o qs)
     = foldr1 (\ res arg -> res <> printOp o <> arg) $
       map printQPar qs
@@ -314,7 +321,7 @@ printQuery (QRange l u)
     = "[" <> l <> " TO " <> u <> "]"
 
 printOp :: BinOp -> Text
-printOp And        = " AND "
+printOp And        = " " -- the token AND is not required. 
 printOp Or         = " OR "
 printOp AndNot     = " AND NOT "
 printOp Phrase     = " ++ "
@@ -327,6 +334,7 @@ printQPar q@QWord{}     = printQuery q
 printQPar q@QFullWord{} = printQuery q
 printQPar q@QPhrase{}   = printQuery q
 printQPar q@QRange{}    = printQuery q
+printQPar q@QContext{}  = printQuery q
 printQPar q             = "(" <> (printQuery q) <> ")"
 
 -- ------------------------------------------------------------
