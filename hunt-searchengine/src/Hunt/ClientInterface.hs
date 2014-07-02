@@ -139,20 +139,25 @@ module Hunt.ClientInterface
     , setCxDate
     , setCxPosition
 
-    -- Weights and Scores
+    -- * Weights and Scores
     , noScore
     , defScore
     , mkScore
     , getScore
+
+    -- * Output to server and file
+    , sendCmdToServer
+    , sendCmdToFile
+    , defaultServer
     )
 where
 
+import           Control.Applicative         ((<$>))
 import           Data.Aeson                  (FromJSON (..), ToJSON (..), Value)
 import           Data.Default
 import qualified Data.Map.Strict             as SM
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
-import           Control.Applicative         ((<$>))
 
 import           Hunt.Common.ApiDocument     (ApiDocument (..), IndexMap,
                                               LimitedResult (..),
@@ -166,6 +171,8 @@ import qualified Hunt.Common.DocDesc         as DD
 import           Hunt.Index.Schema
 import           Hunt.Interpreter.Command
 import           Hunt.Query.Language.Grammar
+import           Hunt.Utility.Output         (defaultServer, evalOkRes,
+                                              outputValue)
 
 -- ------------------------------------------------------------
 -- lookup commands
@@ -643,7 +650,6 @@ setCxPosition sc
 
 -- ------------------------------------------------------------
 
-
 completeQueries :: Query -> [Text] -> [Query]
 completeQueries (QWord t s)         comps = (\c -> QWord t (c))    <$> comps
 completeQueries (QFullWord t s)     comps = (\c -> QFullWord t (c))<$> comps
@@ -657,3 +663,27 @@ completeQueries (QSeq    op qs)     comps = (QSeq op)                   <$> (com
   completeLast (q:qs) = (q :)  <$> completeLast qs
 completeQueries (QBoost w q)        comps = (QBoost w)                  <$> (completeQueries q comps)
 completeQueries (QRange t1 t2)      comps = [QRange t1 t2] -- TODO
+
+
+-- ------------------------------------------------------------
+
+-- client output and server communication
+
+-- | send a command to a hunt server
+--
+-- In case of an error an @ioerror@ is raised
+
+sendCmdToServer :: String -> Command -> IO ()
+sendCmdToServer url cmd
+    = outputValue (Right url) cmd >>= evalOkRes
+
+-- | send command as JSON into a file
+--
+-- the JSON is pretty printed with aeson-pretty,
+-- @""@ and @"-"@ are used for output to stdout
+
+sendCmdToFile :: String -> Command -> IO ()
+sendCmdToFile fn cmd
+    = outputValue (Left fn) cmd >>= evalOkRes
+
+-- ------------------------------------------------------------
