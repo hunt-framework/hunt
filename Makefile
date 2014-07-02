@@ -102,6 +102,7 @@ sandbox:
 	cabal sandbox add-source hunt-compression
 	cabal sandbox add-source hunt-client
 	cd hunt-demos/geoFrontend && cabal sandbox init --sandbox ../../.cabal-sandbox
+	cd html-hunter         && cabal sandbox init --sandbox ../.cabal-sandbox
 
 compression: sandbox
 	cd hunt-compression && cabal $(action) $(PROFOPTS) $(pattern)
