@@ -28,6 +28,7 @@ executable html-hunter
                  , hxt                    >= 9.1   && < 10
                  , hxt-http               >= 9     && < 10
                  , hxt-regex-xmlschema    >= 9     && < 10
+                 , hxt-xpath              >= 9
                  , mtl                    >= 2.1
                  , network                >= 2.1
 --                 , parsec                 >= 2.1   && < 4

@@ -21,27 +21,23 @@ module Main
 where
 
 import           Control.Applicative
+import qualified Control.Monad                        as CM (when)
 import           Control.Monad.Error                  hiding (when)
 import           Control.Monad.IO.Class               ()
 import           Control.Monad.Reader                 hiding (when)
 
-import           Data.Aeson
-import           Data.Aeson.Encode.Pretty
-import qualified Data.ByteString.Lazy                 as LB
-import qualified Data.ByteString.Lazy.Char8           as LC
 import           Data.Char                            (isAlphaNum)
-import           Data.Map                             (Map)
-import qualified Data.Map                             as M
-import           Data.Maybe
-import           Data.Monoid
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 
 import           Hunt.ClientInterface
 
+import           Text.Regex.XMLSchema.String          (match)
 import           Text.XML.HXT.Arrow.XmlState.TypeDefs
 import           Text.XML.HXT.Core
 import           Text.XML.HXT.HTTP
+import           Text.XML.HXT.XPath                   (getXPathTreesInDoc,
+                                                       parseXPathExpr)
 
 import           System.Console.CmdArgs
 import           System.Exit
@@ -51,13 +47,17 @@ import           System.IO
 
 data AppOpts
      = AO
-       { proxy       :: String
-       , redirect    :: Bool
-       , parse_html  :: Bool
-       , trace_level :: Int
-       , output      :: Maybe String
-       , hunt_server :: Maybe String
-       , source      :: [String]
+       { proxy          :: String
+       , redirect       :: Bool
+       , parse_html     :: Bool
+       , trace_level    :: Int
+       , text_body      :: Bool
+       , text_title     :: Bool
+       , text_headlines :: Bool
+       , contexts       :: [String]
+       , output         :: Maybe String
+       , hunt_server    :: Maybe String
+       , source         :: [String]
        }
     deriving (Data, Typeable, Show)
 
@@ -83,6 +83,28 @@ cmdArgsDescr
                &= name "t"
                &= typ "INT"
                &= help "trace level"
+         , text_body
+             = False
+               &= help "index all text within <body> element into a body context"
+         , text_title
+             = False
+               &= help "index all text within <title> element into a title context"
+         , text_headlines
+             = False
+               &= help "index all text within <h1> to <h6> elements into a headlines context"
+         , contexts
+             = []
+               &= name "c"
+               &= typ "CONTEXT:XPATH"
+               &= help
+                  (unwords [ "additional contexts with an XPATH selector for the parts to be indexed,"
+                           , "several contexts may be given,"
+                           , "example for selecting all text within the"
+                           , "body-part of a document: \"-c body:/html/body\" or"
+                           , "shorter \"body://body\""
+                           , "(same as option \"--text-body\")"
+                           ]
+                  )
          , output
              = Nothing
                &= typ  "FILE"
@@ -114,7 +136,7 @@ cmdArgsDescr
 main :: IO ()
 main
     = do argl <- cmdArgsRun cmdArgsDescr
-         -- print argl
+         print argl
          res  <- runErrorT $ runReaderT doTheWork argl
          either (failure) (const exitSuccess) res
     where
@@ -263,12 +285,51 @@ extractText url dom
 
 getContexts :: HIO [(Text, LA XmlTree String)]
 getContexts
-    = do return defCx
+    = do cx <- asks contexts
+         tb <- asks text_body
+         tt <- asks text_title
+         th <- asks text_headlines
+         if null cx && not tb && not tt && not th
+            then return defCx
+            else addSpecial tb tt th <$> mapM compSelect cx
     where
-      defCx
-          = [ ("contents", getHtmlPlainText)
-            , ("title",   getHtmlTitle)
+      addSpecial tb tt th xs
+          = (if tb then [ctb] else [])
+            ++
+            (if tt then [ctt] else [])
+            ++
+            (if th then [cth] else [])
+            ++
+            xs
+
+      defCx@[ctb, ctt, cth]
+          = [ ("body",      getHtmlPlainText)
+            , ("title",     getHtmlTitle)
+            , ("headlines", getHtmlHeadlines)
             ]
+
+      compSelect cxSpec
+          = do CM.when (not . match "\\p{L}(\\p{L}|\\p{N}|_)*" $ cx) $
+                 throwError (unwords ["context name must be an identifier, found"
+                                     , show cx
+                                     , "in:"
+                                     , show cxSpec
+                                     ]
+                            )
+               CM.when (not $ xpathOk xp) $
+                 throwError (unwords ["not a leagal XPath expression, found"
+                                     , show xp
+                                     , "in:"
+                                     , show cxSpec
+                                     ]
+                            )
+               return (T.pack cx, getAllText (getXPathTreesInDoc xp))
+          where
+            (cx, rs1) = span (/= ':') cxSpec
+            xp        = drop 1 rs1
+            xpathOk s
+                = either (const False) (const True)
+                  $ parseXPathExpr s
 
 -- ------------------------------------------------------------
 --
@@ -285,6 +346,12 @@ getHtmlPlainText                :: ArrowXml a => a XmlTree String
 getHtmlPlainText                = getAllText $
                                   getByPath ["html", "body"]
 
+getHtmlHeadlines                :: ArrowXml a => a XmlTree String
+getHtmlHeadlines                = getAllText $
+                                  getByPath ["html", "body"]
+                                  >>> deep
+                                      (foldr1 (<+>) (map (hasName . ("h" ++) . show) [(1::Int)..6]))
+
 getAllText                      :: ArrowXml a => a XmlTree XmlTree -> a XmlTree String
 getAllText getText'             = ( getText'
                                     >>>
@@ -298,8 +365,8 @@ getTransferUrl                  :: ArrowXml a => a XmlTree String
 getTransferUrl                  = getAttrValue transferURI
 
 -- ------------------------------------------------------------
-
+{-
 todo :: String -> a
 todo = error . ("not yet implemented: " ++)
-
+-- -}
 -- ------------------------------------------------------------
