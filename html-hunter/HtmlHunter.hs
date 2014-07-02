@@ -27,6 +27,8 @@ import           Control.Monad.IO.Class               ()
 import           Control.Monad.Reader                 hiding (when)
 
 import           Data.Char                            (isAlphaNum)
+import           Data.List                            (intercalate)
+import           Data.Maybe                           (fromMaybe)
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 
@@ -47,17 +49,14 @@ import           System.IO
 
 data AppOpts
      = AO
-       { proxy          :: String
-       , redirect       :: Bool
-       , parse_html     :: Bool
-       , trace_level    :: Int
-       , text_body      :: Bool
-       , text_title     :: Bool
-       , text_headlines :: Bool
-       , contexts       :: [String]
-       , output         :: Maybe String
-       , hunt_server    :: Maybe String
-       , source         :: [String]
+       { contexts    :: [String]
+       , output      :: Maybe String
+       , hunt_server :: Maybe String
+       , proxy       :: String
+       , redirect    :: Bool
+       , parse_html  :: Bool
+       , trace_level :: Int
+       , source      :: [String]
        }
     deriving (Data, Typeable, Show)
 
@@ -68,51 +67,49 @@ cmdArgsDescr
     = cmdArgsMode $
       AO { parse_html
                = False
-                 &= help "force HTML parsing"
+                 &= name "H"
+                 &= help "Force HTML parsing even for XHTML."
          , proxy
              = ""
                &= name "p"
                &= typ  "URL"
-               &= help "HTTP acces via proxy"
+               &= help "HTTP acces via proxy."
          , redirect
              = False
                &= name "r"
-               &= help "allow automatic redirects"
+               &= help "Allow automatic redirects."
          , trace_level
              = 0
                &= name "t"
                &= typ "INT"
-               &= help "trace level"
-         , text_body
-             = False
-               &= help "index all text within <body> element into a body context"
-         , text_title
-             = False
-               &= help "index all text within <title> element into a title context"
-         , text_headlines
-             = False
-               &= help "index all text within <h1> to <h6> elements into a headlines context"
+               &= help "Set trace level (sensible values: 0,1,2,3)."
          , contexts
              = []
                &= name "c"
-               &= typ "CONTEXT:XPATH"
+               &= typ "CONTEXT[:XPATH]"
                &= help
-                  (unwords [ "additional contexts with an XPATH selector for the parts to be indexed,"
-                           , "several contexts may be given,"
-                           , "example for selecting all text within the"
-                           , "body-part of a document: \"-c body:/html/body\" or"
-                           , "shorter \"body://body\""
-                           , "(same as option \"--text-body\")"
+                  (unwords [ "Specifiy contexts with an XPATH selector"
+                           , "for parts to be indexed."
+                           , "Several contexts may be given."
+                           , "An example for selecting all text within the"
+                           , "body-part of a document is \"-c body:/html/body\" or"
+                           , "shorter \"-c body://body\"."
+                           , "For the predefined contexts"
+                           , intercalate ", " . map (show . fst) $ defCx
+                           , "the XPath expression can be omitted,"
+                           , "e.g \"-c headlines\"."
+                           , "If no contexts are given, all the predefined contexts are used."
                            ]
                   )
          , output
              = Nothing
                &= typ  "FILE"
-               &= help "output file, \"-\" for stdout"
+               &= help "Output file, \"-\" for stdout."
          , hunt_server
              = Nothing
+               &= name "s"
                &= typ "URL"
-               &= help "hunt server url"
+               &= help "Hunt server url for pushing the indexed data into a hunt server."
          , source
              = []
                &= args
@@ -172,9 +169,16 @@ emitRes cmd
          s <- asks hunt_server
          liftIO $ (sendCmd f s) cmd
     where
-      sendCmd _ (Just s) = sendCmdToServer s
-      sendCmd (Just f) _ = sendCmdToFile f
-      sendCmd _ _        = sendCmdToFile ""
+      sendCmd Nothing Nothing
+          = sendCmdToFile ""                 -- default: sent result to stdout
+      sendCmd Nothing (Just s)
+          = sendCmdToServer s
+      sendCmd (Just f) Nothing
+          = sendCmdToFile f
+      sendCmd (Just f) (Just s)
+          = \ dom -> sendCmdToFile   f dom
+                     >>
+                     sendCmdToServer s dom
 
 notice :: String -> HIO ()
 notice msg
@@ -283,30 +287,20 @@ extractText url dom
             filterAlphaNum
                 = map (\ x -> if isAlphaNum x then x else ' ')
 
+defCx :: [(String, LA XmlTree String)]
+defCx
+    = [ ("body",      getHtmlPlainText)
+      , ("title",     getHtmlTitle)
+      , ("headlines", getHtmlHeadlines)
+      ]
+
 getContexts :: HIO [(Text, LA XmlTree String)]
 getContexts
     = do cx <- asks contexts
-         tb <- asks text_body
-         tt <- asks text_title
-         th <- asks text_headlines
-         if null cx && not tb && not tt && not th
-            then return defCx
-            else addSpecial tb tt th <$> mapM compSelect cx
+         if null cx
+            then return $ map (first T.pack) defCx
+            else mapM compSelect cx
     where
-      addSpecial tb tt th xs
-          = (if tb then [ctb] else [])
-            ++
-            (if tt then [ctt] else [])
-            ++
-            (if th then [cth] else [])
-            ++
-            xs
-
-      defCx@[ctb, ctt, cth]
-          = [ ("body",      getHtmlPlainText)
-            , ("title",     getHtmlTitle)
-            , ("headlines", getHtmlHeadlines)
-            ]
 
       compSelect cxSpec
           = do CM.when (not . match "\\p{L}(\\p{L}|\\p{N}|_)*" $ cx) $
@@ -323,13 +317,27 @@ getContexts
                                      , show cxSpec
                                      ]
                             )
-               return (T.pack cx, getAllText (getXPathTreesInDoc xp))
+               return (T.pack cx, getFilter)
           where
             (cx, rs1) = span (/= ':') cxSpec
             xp        = drop 1 rs1
+
+            getFilter
+                | predefCx
+                    = fromMaybe none $
+                      lookup cx defCx
+                | otherwise
+                    = getAllText (getXPathTreesInDoc xp)
+
+            predefCx
+                = cx `elem` map fst defCx
+                  &&
+                  null rs1
+
             xpathOk s
-                = either (const False) (const True)
-                  $ parseXPathExpr s
+                = predefCx
+                  ||
+                  either (const False) (const True) (parseXPathExpr s)
 
 -- ------------------------------------------------------------
 --
