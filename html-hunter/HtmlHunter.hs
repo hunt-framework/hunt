@@ -54,21 +54,39 @@ data AppOpts
        , hunt_server :: Maybe String
        , proxy       :: String
        , redirect    :: Bool
-       , parse_html  :: Bool
+       , parse_mode  :: ParseMode
        , trace_level :: Int
        , source      :: [String]
        }
     deriving (Data, Typeable, Show)
 
-type HIO = ReaderT AppOpts (ErrorT String IO)
+data ParseMode
+    = ParseByMimeType | ParseHTML | ParseXML
+      deriving (Data, Typeable, Eq, Show)
+
+type HIO
+    = ReaderT AppOpts (ErrorT String IO)
 
 cmdArgsDescr :: Mode (CmdArgs AppOpts)
 cmdArgsDescr
     = cmdArgsMode $
-      AO { parse_html
-               = False
-                 &= name "H"
-                 &= help "Force HTML parsing even for XHTML."
+      AO { parse_mode
+               = enum [ ParseByMimeType
+                        &= help "Parse document by mime type (default)."
+                        &= explicit
+                        &= name "parse-by-mime-type"
+                        &= name "M"
+                      , ParseHTML
+                        &= help "Parse document with HTML parser, ignore warnings and errors."
+                        &= explicit
+                        &= name "parse-html"
+                        &= name "H"
+                      , ParseXML
+                        &= help "Parse document with XML parser."
+                        &= explicit
+                        &= name "parse-xml"
+                        &= name "X"
+                 ]
          , proxy
              = ""
                &= name "p"
@@ -88,8 +106,8 @@ cmdArgsDescr
                &= name "c"
                &= typ "CONTEXT[:XPATH]"
                &= help
-                  (unwords [ "Specifiy contexts with an XPATH selector"
-                           , "for parts to be indexed."
+                  (unwords [ "Define a context and specify the parts of a document"
+                           , "to be indexed by an XPath selector."
                            , "Several contexts may be given."
                            , "An example for selecting all text within the"
                            , "body-part of a document is \"-c body:/html/body\" or"
@@ -118,6 +136,25 @@ cmdArgsDescr
          &= summary (_PROGRAM_INFO ++ ", " ++ _COPYRIGHT)
          &= help    _PROGRAM_ABOUT
          &= program _PROGRAM_NAME
+         &= details
+                [ _PROGRAM_NAME ++ " is a simple but flexible text extractor for HTML pages."
+                , ""
+                , unwords [ _PROGRAM_NAME
+                          , "can be used to parse web pages or local HTML files"
+                          , "and to extract the text out of various parts of a document."
+                          , "The parts to be extracted are specified by XPath path expressions."
+                          , "There are some predefined extractor functions, e.g. for text"
+                          , "in the complete body of a document, for the text in headlines"
+                          , "and for the title text."
+                          ]
+                , ""
+                , unwords [ "The extracted text is formated in a JSON format"
+                          , "suitable for feeding it into the hunt search engine system"
+                          , "to perform a free text search over these documents."
+                          , "Output can be written into files or/and can be directly send"
+                          , "to a hunt server."
+                          ]
+                ]
     where
       _PROGRAM_NAME
           = "html-hunter"
@@ -133,7 +170,7 @@ cmdArgsDescr
 main :: IO ()
 main
     = do argl <- cmdArgsRun cmdArgsDescr
-         print argl
+--         print argl
          res  <- runErrorT $ runReaderT doTheWork argl
          either (failure) (const exitSuccess) res
     where
@@ -232,7 +269,7 @@ getDom url
       configX
           = do p <- setProxy    <$> asks proxy
                r <- setRedirect <$> asks redirect
-               h <- setParser   <$> asks parse_html
+               h <- setParser   <$> asks parse_mode
                t <- setTraceLev <$> asks trace_level
                return $ p ++ r ++ h ++ t
           where
@@ -240,8 +277,11 @@ getDom url
             setProxy x          = [withProxy x]
 
             setRedirect b       = [withRedirect  b]
-            setParser   b       = [withParseHTML b]
             setTraceLev x       = [withTrace     x]
+
+            setParser ParseHTML       = [withParseHTML yes]
+            setParser ParseXML        = [withParseHTML no, withParseByMimeType no]
+            setParser ParseByMimeType = [withParseByMimeType yes]
 
 -- ------------------------------------------------------------
 
