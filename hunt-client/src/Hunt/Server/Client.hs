@@ -231,7 +231,7 @@ handleJsonResponse r
               (Right  a) -> return a
               (Left err) -> throwM $ JSONDecodeError $ cs $ ("Json decode error: " <> err)
 
-
+-- | send a command to a hunt server
 evalOnServer :: (MonadIO m, MonadBaseControl IO m) => Text -> H.Command -> m ByteString
 evalOnServer server cmd = withHuntServer (eval cmd) server        
 

@@ -171,7 +171,7 @@ import qualified Hunt.Common.DocDesc         as DD
 import           Hunt.Index.Schema
 import           Hunt.Interpreter.Command
 import           Hunt.Query.Language.Grammar
-import           Hunt.Utility.Output         (evalOkRes, outputValue)
+import           Hunt.Utility.Output         (outputValue)
 
 -- ------------------------------------------------------------
 -- lookup commands
@@ -666,15 +666,7 @@ completeQueries (QRange t1 t2)      comps = [QRange t1 t2] -- TODO
 
 -- ------------------------------------------------------------
 
--- client output and server communication
-
--- | send a command to a hunt server
---
--- In case of an error an @ioerror@ is raised
-
---sendCmdToServer :: String -> Command -> IO ()
---sendCmdToServer url cmd
---    = outputValue (Right url) cmd >>= evalOkRes
+-- client output
 
 -- | send command as JSON into a file
 --
@@ -683,6 +675,6 @@ completeQueries (QRange t1 t2)      comps = [QRange t1 t2] -- TODO
 
 sendCmdToFile :: String -> Command -> IO ()
 sendCmdToFile fn cmd
-    = outputValue (Left fn) cmd >>= evalOkRes
+    = outputValue fn cmd
 
 -- ------------------------------------------------------------

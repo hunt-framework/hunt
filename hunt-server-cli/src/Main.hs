@@ -103,7 +103,7 @@ makeInserts fileName = do
 
 evalCmd :: String -> H.Command -> IO ByteString
 evalCmd server cmd = do
-  HC.withHuntServer (HC.eval cmd) (cs server)
+  HC.evalOnServer (cs server) cmd
 
 eval :: String -> FilePath -> IO ByteString
 eval server fileName = do
