@@ -116,6 +116,9 @@ server: stopServer sandbox
 client: sandbox
 	cd hunt-client && cabal $(action) $(PROFOPTS) $(pattern)
 
+html-hunter: sandbox
+	cd html-hunter && cabal $(action) $(PROFOPTS) $(pattern)
+
 test:
 	cd hunt-searchengine && cabal install --enable-tests   --enable-library-coverage
 	cd hunt-searchengine && cabal configure --enable-tests --enable-library-coverage && cabal test

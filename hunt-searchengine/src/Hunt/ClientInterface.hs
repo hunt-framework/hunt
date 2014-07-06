@@ -145,10 +145,10 @@ module Hunt.ClientInterface
     , mkScore
     , getScore
 
-    -- * Output to server and file
-    , sendCmdToServer
+--    -- * Output to server and file
+--    , sendCmdToServer
     , sendCmdToFile
-    , defaultServer
+--    , defaultServer
     )
 where
 
@@ -171,8 +171,7 @@ import qualified Hunt.Common.DocDesc         as DD
 import           Hunt.Index.Schema
 import           Hunt.Interpreter.Command
 import           Hunt.Query.Language.Grammar
-import           Hunt.Utility.Output         (defaultServer, evalOkRes,
-                                              outputValue)
+import           Hunt.Utility.Output         (evalOkRes, outputValue)
 
 -- ------------------------------------------------------------
 -- lookup commands
@@ -673,9 +672,9 @@ completeQueries (QRange t1 t2)      comps = [QRange t1 t2] -- TODO
 --
 -- In case of an error an @ioerror@ is raised
 
-sendCmdToServer :: String -> Command -> IO ()
-sendCmdToServer url cmd
-    = outputValue (Right url) cmd >>= evalOkRes
+--sendCmdToServer :: String -> Command -> IO ()
+--sendCmdToServer url cmd
+--    = outputValue (Right url) cmd >>= evalOkRes
 
 -- | send command as JSON into a file
 --

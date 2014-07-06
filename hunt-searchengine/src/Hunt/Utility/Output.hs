@@ -6,22 +6,22 @@
 
 module Hunt.Utility.Output
 where
-import           Control.Applicative
+--import           Control.Applicative
 import           Control.Monad.IO.Class
 
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy       as LB
 import qualified Data.ByteString.Lazy.Char8 as LC
-import           Data.Maybe
+--import           Data.Maybe
 import           Data.Monoid
 import           Data.Text                  (Text)
 
 import           Hunt.Interpreter.Command   (CmdError (..), CmdRes (..))
 
-import           Network.Browser
-import           Network.HTTP
-import           Network.URI
+--import           Network.Browser
+--import           Network.HTTP
+--import           Network.URI
 
 import           System.FilePath
 
@@ -40,14 +40,14 @@ outputValue (Left fn) c
           | otherwise
               = LB.writeFile fn bs
 
-outputValue (Right uri) c
-    = Just <$> liftIO (jsonOutput False toServer c)
-    where
-      toServer bs
-          = postToServer $ mkPostReq (jsonUri uri) bs
+outputValue (Right uri) c = undefined
+--    = Just <$> liftIO (jsonOutput False toServer c)
+--    where
+--      toServer bs
+--          = postToServer $ mkPostReq (jsonUri uri) bs
 
-jsonUri :: String -> String
-jsonUri uri = uri </> "eval"
+--jsonUri :: String -> String
+--jsonUri uri = uri </> "eval"
 
 evalOkRes :: MonadIO m => Maybe LB.ByteString -> m ()
 evalOkRes Nothing
@@ -90,43 +90,43 @@ jsonOutput pretty io x
 
 -- ------------------------------------------------------------
 
-type Req = Request  Bytes
-type Res = Response Bytes
+--type Req = Request  Bytes
+--type Res = Response Bytes
 
 type Bytes = LB.ByteString
 
-mkPostReq :: String -> Bytes -> Req
-mkPostReq uri bs
-    = replaceHeader HdrContentType   "application/json" $
-      replaceHeader HdrAccept        "application/json" $
-      replaceHeader HdrUserAgent     "hayooCrawler/0.0.0.1" $
-      setBody $
-      mkReq
-    where
-      mkReq :: Req
-      mkReq
-          = mkRequest POST
-            (fromJust $ parseURIReference $ uri)
+--mkPostReq :: String -> Bytes -> Req
+--mkPostReq uri bs
+--    = replaceHeader HdrContentType   "application/json" $
+--      replaceHeader HdrAccept        "application/json" $
+--      replaceHeader HdrUserAgent     "hayooCrawler/0.0.0.1" $
+--      setBody $
+--      mkReq
+--    where
+--      mkReq :: Req
+--      mkReq
+--          = mkRequest POST
+--            (fromJust $ parseURIReference $ uri)
 
-      setBody :: Req -> Req
-      setBody rq
-          = replaceHeader HdrContentLength (show l) $
-            rq { rqBody = bs }
-          where
-            l = LB.length bs
+--      setBody :: Req -> Req
+--      setBody rq
+--          = replaceHeader HdrContentLength (show l) $
+--            rq { rqBody = bs }
+--          where
+--            l = LB.length bs
 
-postToServer :: Req -> IO Bytes
-postToServer req
-    = do res <- snd `fmap`
-                (browse $ do setOutHandler (const $ return ()) -- disable trace output
-                             request req
-                )
-         case rspCode res of
-           (2,0,0) -> return $ rspBody res
-           (i,j,k) -> evalErrRes ((i * 10 + j) * 10 + k) (rspBody res)
+--postToServer :: Req -> IO Bytes
+--postToServer req
+--    = do res <- snd `fmap`
+--                (browse $ do setOutHandler (const $ return ()) -- disable trace output
+--                             request req
+--                )
+--         case rspCode res of
+--           (2,0,0) -> return $ rspBody res
+--           (i,j,k) -> evalErrRes ((i * 10 + j) * 10 + k) (rspBody res)
 
-defaultServer :: String
-defaultServer = "http://localhost:3000/"
+--defaultServer :: String
+--defaultServer = "http://localhost:3000/"
 
 -- ------------------------------------------------------------
 

@@ -33,6 +33,7 @@ import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 
 import           Hunt.ClientInterface
+import           Hunt.Server.Client                   (evalOnServer)
 
 import           Text.Regex.XMLSchema.String          (match)
 import           Text.XML.HXT.Arrow.XmlState.TypeDefs
@@ -209,13 +210,13 @@ emitRes cmd
       sendCmd Nothing Nothing
           = sendCmdToFile ""                 -- default: sent result to stdout
       sendCmd Nothing (Just s)
-          = sendCmdToServer s
+          = void . evalOnServer (T.pack s)
       sendCmd (Just f) Nothing
           = sendCmdToFile f
       sendCmd (Just f) (Just s)
-          = \ dom -> sendCmdToFile   f dom
-                     >>
-                     sendCmdToServer s dom
+          = \ dom -> do
+            sendCmdToFile   f dom
+            void $ evalOnServer (T.pack s) dom
 
 notice :: String -> HIO ()
 notice msg

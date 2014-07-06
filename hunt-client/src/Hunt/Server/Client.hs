@@ -23,6 +23,9 @@ module Hunt.Server.Client
     , evalAutocomplete
     , evalQuery
 
+    -- * Simple
+    , evalOnServer
+
     -- * Some Reexports from hunt
     , descriptionToCmd
 
@@ -31,7 +34,7 @@ module Hunt.Server.Client
     )
 where
 
-import           Control.Applicative          (Applicative)
+import           Control.Applicative          (Applicative, (<$>))
 import           Control.Exception            (Exception, throwIO)
 import           Control.Monad                (mzero)
 import           Control.Monad.Catch          (MonadThrow, throwM)
@@ -57,11 +60,12 @@ import qualified Network.HTTP.Client          as HTTP (defaultManagerSettings)
 import qualified Network.HTTP.Conduit         as HTTP
 import           Network.HTTP.Types.URI       (urlEncode)
 
-import qualified Hunt.Common.ApiDocument      as H
-import qualified Hunt.Common.BasicTypes       as H (RegEx, Score, Weight)
+import qualified Hunt.ClientInterface         as H
+import qualified Hunt.Common.ApiDocument      as H (ApiDocuments)
+-- import qualified Hunt.Common.BasicTypes       as H (RegEx, Score, Weight)
 import qualified Hunt.Index.Schema            as H (CNormalizer,
-                                                    ContextSchema (..),
-                                                    ContextType (..))
+                                                   ContextSchema (..),
+                                                  ContextType (..))
 import qualified Hunt.Interpreter.Command     as H (Command (..))
 import           Hunt.Query.Language.Grammar  (Query)
 
@@ -192,22 +196,22 @@ query query' offset
 
 insert :: (MonadIO m) => H.ApiDocuments -> HuntConnectionT m ByteString
 insert docs
-    = eval $ map H.Insert docs
+    = eval $ H.cmdSequence $ H.cmdInsertDoc <$> docs
 
 evalAutocomplete :: (MonadIO m) => Query -> HuntConnectionT m [Text]
 evalAutocomplete qq
-    = do result <- eval $ [H.Completion qq 20]
+    = do result <- eval $ H.setMaxResults 20 $ H.cmdCompletion qq
          handleAutoCompeteResponse result
 
 evalQuery :: (MonadIO m, FromJSON r) => Query -> Int -> HuntConnectionT m (H.LimitedResult r)
-evalQuery query' offset = do
-    result <- eval $ [H.Search query' offset 20 False Nothing]
+evalQuery q offset = do
+    result <- eval $ H.setResultOffset offset $ H.setMaxResults 20 $ H.cmdSearch q
     handleJsonResponse result
 
-eval :: (MonadIO m) => [H.Command] -> HuntConnectionT m ByteString
-eval cmds = do
+eval :: (MonadIO m) => H.Command -> HuntConnectionT m ByteString
+eval cmd = do
     request' <- makeRequest "eval"
-    let body    = JSON.encode cmds
+    let body    = JSON.encode cmd
         request = request'
                   { HTTP.method = "POST"
                   , HTTP.requestBody = HTTP.RequestBodyLBS body
@@ -226,6 +230,10 @@ handleJsonResponse r
           = case JSON.eitherDecode bs of
               (Right  a) -> return a
               (Left err) -> throwM $ JSONDecodeError $ cs $ ("Json decode error: " <> err)
+
+
+evalOnServer :: (MonadIO m, MonadBaseControl IO m) => Text -> H.Command -> m ByteString
+evalOnServer server cmd = withHuntServer (eval cmd) server        
 
 
 data ContextType = TextContext | DateContext | PositionContext | IntContext
