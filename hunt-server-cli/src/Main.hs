@@ -85,7 +85,7 @@ printTime act = do
 
 
 readDocuments :: ByteString -> [H.ApiDocument]
-readDocuments bs = maybe [] id ((return <$> decode bs) <|> decode bs)
+readDocuments bs = maybe [] id ((return <$> decode bs) <|> decode bs <|> (H.insertCmdsToDocuments <$> decode bs))
 
 makeSchema :: FilePath -> IO String
 makeSchema fileName = do

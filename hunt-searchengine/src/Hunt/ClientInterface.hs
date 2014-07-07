@@ -82,6 +82,9 @@ module Hunt.ClientInterface
     , changeIndex
     , setDocWeight
 
+    -- * Misc
+    , insertCmdsToDocuments
+
     -- * description construction
     , mkDescription
     , insDescription
@@ -387,6 +390,11 @@ emptyDescription = DD.empty
 
 fromDescription :: Description ->  [(Text, Value)]
 fromDescription = DD.toList
+
+insertCmdsToDocuments :: Command -> [ApiDocument]
+insertCmdsToDocuments (Insert d)    = [d]
+insertCmdsToDocuments (Sequence cs) = cs >>= insertCmdsToDocuments
+insertCmdsToDocuments _             = []
 
 -- ------------------------------------------------------------
 -- query construction
