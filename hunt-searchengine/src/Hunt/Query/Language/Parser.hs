@@ -200,7 +200,7 @@ caseQuery
            <|>
            wordQuery qWord
            <|>
-           quotedWordQuery qFullWord )
+           quotedWordQuery qWord )
 
 -- | Parse a fuzzy query.
 fuzzyQuery :: Parser Query
@@ -236,6 +236,9 @@ word = try $
           if w `elem` ["OR", "AND", "++", "NEAR", "FOLLOW"]
             then parserZero
             else return w
+    where
+      wordChar :: Parser Char
+      wordChar = noneOf notWordChar
 
 -- | Parse an escape sequence. @\@ followed by the character, e.g. @\"@.
 escapedChar :: Parser Char
@@ -250,12 +253,21 @@ decodeChar = choice (zipWith decode notWordChar notWordChar)
 escapeChar :: Char
 escapeChar = '\\'
 
+escaped :: Char -> Parser Char
+escaped c
+    = do char escapeChar
+         (char c <|> return escapeChar)
+
 -- | Parse a phrase.
 phrase :: Parser String
-phrase = do char '"'
-            p <- many1 phraseChar
-            char '"'
-            return p
+phrase
+    = do char '"'
+         p <- many1 phraseChar
+         char '"'
+         return p
+    where
+      phraseChar
+          = escaped '\"' <|> noneOf "\""
 
 quotedWord :: Parser String
 quotedWord
@@ -265,7 +277,7 @@ quotedWord
          return p
     where
       quotedWordChar
-          = noneOf "'"
+          = escaped '\'' <|> noneOf "'"
 
 -- | Parse a boosted query.
 tryBoost :: Query -> Parser Query
@@ -276,17 +288,10 @@ tryBoost q = try boost <|> return q
           b <- simplePositiveFloat
           return (QBoost (mkScore b) q)
 
--- | Parse a character of a word.
-wordChar :: Parser Char
-wordChar = noneOf notWordChar
 
 -- | Characters that cannot occur in a word (and have to be escaped).
 notWordChar :: String
 notWordChar = escapeChar : "\"')([]^ \n\r\t"
-
--- | Parse a character of a phrases.
-phraseChar :: Parser Char
-phraseChar = noneOf "\""
 
 -- | Parse a list of contexts.
 contexts :: Parser [Text]

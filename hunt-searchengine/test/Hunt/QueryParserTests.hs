@@ -47,6 +47,7 @@ allUnitTests = testGroup "Query Parser Hunit tests" $ hUnitTestToTests $ TestLis
   , TestLabel "Specifier tests"   specifierTests
   , TestLabel "Case tests"        caseTests
   , TestLabel "Parenthese tests"  parentheseTests
+  , TestLabel "Word tests"        wordTests
   , TestLabel "Phrase tests"      phraseTests
   , TestLabel "Fuzzy tests"       fuzzyTests
   , TestLabel "Range tests"       rangeTests
@@ -330,6 +331,24 @@ fuzzyTests = TestList
   (Right (fw "test"))
   (P.parseQuery " ~ test"))
   ]
+
+wordTests :: Test
+wordTests
+    = TestList
+      [ TestCase $
+        assertEqual "Quoted word query"
+        (Right (w "abc"))
+        (P.parseQuery "'abc'")
+      , TestCase $
+        assertEqual "Quoted word with whitespace query"
+        (Right (w "a b c"))
+        (P.parseQuery "'a b c'")
+      , TestCase $
+        assertEqual "Quoted word with single quotes query"
+        (Right (w "a'b"))
+        (P.parseQuery "'a\\'b'")
+      ]
+
 
 phraseTests :: Test
 phraseTests = TestList

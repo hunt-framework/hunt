@@ -291,11 +291,17 @@ printQuery (QWord QCase w)
 printQuery (QWord QFuzzy w)
     = "~" <> printWord w
 
-printQuery (QFullWord k w)
-    = "\"" <> printQuery (QWord k w) <> "\""
+printQuery (QFullWord QNoCase w)
+    = printPhrase w
+
+printQuery (QFullWord QCase w)
+    = "!" <> printPhrase w
+
+printQuery (QFullWord QFuzzy w)
+    = "~" <> printPhrase w
 
 printQuery (QPhrase _ w)
-    = "\"" <> w <> "\""
+    = printPhrase w
 
 printQuery (QContext [] w)
     = printQPar w
@@ -339,12 +345,19 @@ printQPar q@QRange{}    = printQuery q
 printQPar q@QContext{}  = printQuery q
 printQPar q             = "(" <> (printQuery q) <> ")"
 
+printPhrase :: Text -> Text
+printPhrase w
+    = "\"" <> escapeWord toBeQuoted w <> "\""
+    where
+      toBeQuoted = (== '\"')
+
 printWord :: Text -> Text
 printWord w
-    | T.all isAlphaNum w = w
-    | otherwise          = "'" <> w <> "'"
+    | T.any toBeQuoted w = "'" <> escapeWord (== '\'') w <> "'"
+    | otherwise          = w
+    where
+      toBeQuoted c = not $ isAlphaNum c
 
-{-
 escapeWord :: (Char -> Bool) -> Text -> Text
 escapeWord p t
     = T.concatMap esc t
@@ -352,5 +365,5 @@ escapeWord p t
         esc c
             | p c = T.pack ('\\' : c : [])
             | otherwise = T.singleton c
--- -}
+
 -- ------------------------------------------------------------
