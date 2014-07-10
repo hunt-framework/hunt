@@ -137,79 +137,97 @@ neighborQuery
 
 contextSeqQuery :: Parser Query
 contextSeqQuery
-    = do q1 <- contextQuery
+    = do q1 <- boostQuery
          qs <- many $
-               try (spaces1 >> contextQuery)
+               try (spaces1 >> boostQuery)
          return $ foldl qAnd q1 qs
+
+boostQuery :: Parser Query
+boostQuery
+    = do q <- contextQuery
+         tryBoost q
+
 
 -- | Parse a context query.
 contextQuery :: Parser Query
-contextQuery = try contextQuery' <|> parQuery
-  where
-  contextQuery' = do cs <- contexts
-                     spaces
-                     char ':'
-                     spaces
-                     t <- parQuery
-                     tryBoost (QContext cs t)
+contextQuery
+    = do cs <- try contextSpec <|> return []
+         q  <- primaryQuery
+         case cs of
+           [] -> return q
+           _  -> return (QContext cs q)
+    where
+      contextSpec
+          = do cs <- contexts
+               spaces >> char ':' >> spaces
+               return cs
 
-
+primaryQuery :: Parser Query
+primaryQuery
+    = parQuery
+      <|>
+      rangeQuery
+      <|>
+      caseQuery
+      <|>
+      fuzzyQuery
+      <|>
+      noCaseQuery
 
 -- | Parse a query surrounded by parentheses.
 parQuery :: Parser Query
-parQuery = parQuery' <|> rangeQuery
-  where
-  parQuery' = do char '('
-                 spaces
-                 q <- orQuery'
-                 spaces
-                 char ')'
-                 tryBoost q
+parQuery
+    = do char '(' >> spaces
+         q <- orQuery'
+         spaces >> char ')'
+         return q
 
 -- | Parse a range query.
 rangeQuery :: Parser Query
-rangeQuery = rangeQuery' <|> caseQuery
-  where
-  rangeQuery' = do char '['
-                   spaces
-                   l <- word
-                   spaces1
-                   string "TO"
-                   spaces1
-                   u <- word
-                   spaces
-                   char ']'
-                   tryBoost $ QRange (T.pack l) (T.pack u)
+rangeQuery
+    = do char '[' >> spaces
+         l <- word
+         spaces1 >> string "TO" >> spaces1
+         u <- word
+         spaces >> char ']' >> spaces
+         return $ QRange (T.pack l) (T.pack u)
 
 -- | Parse a case-sensitive query.
 caseQuery :: Parser Query
-caseQuery = caseQuery' <|> fuzzyQuery
-  where
-  caseQuery' = do char '!'
-                  spaces
-                  phraseQuery qPhrase <|> wordQuery qWord
+caseQuery
+    = do char '!' >> spaces
+         ( phraseQuery qPhrase
+           <|>
+           wordQuery qWord
+           <|>
+           quotedWordQuery qFullWord )
 
 -- | Parse a fuzzy query.
 fuzzyQuery :: Parser Query
 fuzzyQuery
-    = fuzzyQuery'
-      <|> phraseQuery qPhraseNoCase
-      <|> wordQuery qPrefixPhraseNoCase
-  where
-  fuzzyQuery' = do char '~'
-                   spaces
-                   wordQuery (setFuzzySearch . qWord)
+    =do char '~' >> spaces
+        ( wordQuery (setFuzzySearch . qWord)
+          <|>
+          quotedWordQuery (setFuzzySearch . qWord) )
+
+noCaseQuery :: Parser Query
+noCaseQuery
+    = phraseQuery qPhraseNoCase
+      <|>
+      quotedWordQuery qWordNoCase
+      <|>
+      wordQuery qPrefixPhraseNoCase
 
 -- | Parse a word query.
 wordQuery :: (Text -> Query) -> Parser Query
-wordQuery c = do
-              w <- word
-              tryBoost (c $ T.pack w)
+wordQuery c = word >>= return . c . T.pack
+
+quotedWordQuery :: (Text -> Query) -> Parser Query
+quotedWordQuery c = quotedWord >>= return . c . T.pack
 
 -- | Parse a phrase query.
 phraseQuery :: (Text -> Query) -> Parser Query
-phraseQuery c = do p <- phrase
-                   tryBoost (c $ T.pack p)
+phraseQuery c = phrase >>= return . c . T.pack
 
 -- | Parse a word.
 word :: Parser String
@@ -239,6 +257,16 @@ phrase = do char '"'
             char '"'
             return p
 
+quotedWord :: Parser String
+quotedWord
+    = do char '\''
+         p <- many1 quotedWordChar
+         char '\''
+         return p
+    where
+      quotedWordChar
+          = noneOf "'"
+
 -- | Parse a boosted query.
 tryBoost :: Query -> Parser Query
 tryBoost q = try boost <|> return q
@@ -254,7 +282,7 @@ wordChar = noneOf notWordChar
 
 -- | Characters that cannot occur in a word (and have to be escaped).
 notWordChar :: String
-notWordChar = escapeChar : "\")([]^ \n\r\t"
+notWordChar = escapeChar : "\"')([]^ \n\r\t"
 
 -- | Parse a character of a phrases.
 phraseChar :: Parser Char

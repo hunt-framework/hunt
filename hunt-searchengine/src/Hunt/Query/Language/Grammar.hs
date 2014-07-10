@@ -11,19 +11,18 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Query.Language.Grammar
-  (
-  -- * Query data types
-    Query (..)
-  , BinOp (..)
-  , TextSearchType (..)
+    ( -- * Query data types
+      Query (..)
+    , BinOp (..)
+    , TextSearchType (..)
 
-  -- * Optimizing
-  , optimize
-  , checkWith
-  , extractTerms
-  -- * Pretty printing
-  , printQuery
-  )
+    -- * Optimizing
+    , optimize
+    , checkWith
+    , extractTerms
+    -- * Pretty printing
+    , printQuery
+    )
 where
 
 import           Control.Applicative
@@ -31,10 +30,13 @@ import           Control.Monad
 
 import           Data.Aeson
 import           Data.Binary
+import           Data.Char              (isAlphaNum)
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import           Data.Text.Binary       ()
+
 import           Hunt.Common.BasicTypes as BTy
+
 import           Text.Read              (readMaybe)
 
 -- ------------------------------------------------------------
@@ -281,13 +283,13 @@ extractTerms _                     = []
 
 printQuery :: Query -> Text
 printQuery (QWord QNoCase w)
-    = T.replace " " "\\ " w
+    = printWord w
 
 printQuery (QWord QCase w)
-    = "!" <> w
+    = "!" <> printWord w
 
 printQuery (QWord QFuzzy w)
-    = "~" <> w
+    = "~" <> printWord w
 
 printQuery (QFullWord k w)
     = "\"" <> printQuery (QWord k w) <> "\""
@@ -297,7 +299,7 @@ printQuery (QPhrase _ w)
 
 printQuery (QContext [] w)
     = printQPar w
-    
+
 printQuery (QContext cs' w)
     = printCs <> ":" <> (printQPar w)
       where
@@ -321,7 +323,7 @@ printQuery (QRange l u)
     = "[" <> l <> " TO " <> u <> "]"
 
 printOp :: BinOp -> Text
-printOp And        = " " -- the token AND is not required. 
+printOp And        = " " -- the token AND is not required.
 printOp Or         = " OR "
 printOp AndNot     = " AND NOT "
 printOp Phrase     = " ++ "
@@ -337,4 +339,18 @@ printQPar q@QRange{}    = printQuery q
 printQPar q@QContext{}  = printQuery q
 printQPar q             = "(" <> (printQuery q) <> ")"
 
+printWord :: Text -> Text
+printWord w
+    | T.all isAlphaNum w = w
+    | otherwise          = "'" <> w <> "'"
+
+{-
+escapeWord :: (Char -> Bool) -> Text -> Text
+escapeWord p t
+    = T.concatMap esc t
+      where
+        esc c
+            | p c = T.pack ('\\' : c : [])
+            | otherwise = T.singleton c
+-- -}
 -- ------------------------------------------------------------

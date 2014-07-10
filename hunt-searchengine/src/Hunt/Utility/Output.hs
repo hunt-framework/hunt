@@ -21,7 +21,7 @@ import           System.FilePath
 
 -- ------------------------------------------------------------
 
--- 
+--
 outputValue :: (Functor m, MonadIO m, ToJSON c) => String -> c -> m ()
 outputValue fn c
     = liftIO (jsonOutput True toFile c)
