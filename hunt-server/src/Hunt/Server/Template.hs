@@ -173,7 +173,7 @@ index _docs =
           // TODO sort by rank
           if (data.code === 0)
           {
-            $(data.msg).each(function(i,e) {
+            $(data.msg).forEach(function(e) {
               e[1] = query.replace(new RegExp(rightmost + "(?=[^" + rightmost +" ]*$)"), e[0]);
               result.push(e[1]);
             });
@@ -428,6 +428,12 @@ examplesWidget = [xshamlet|
          <td>phrase query
          <td><strong>"</strong>this is a phrase<strong>"</strong>
        <tr>
+         <td>word query with quoting
+         <td><strong>'</strong>a-&gt;m&nbsp;b<strong>'</strong>
+       <tr>
+         <td>case sensitive word query with quoting
+         <td><strong>!'</strong>a-&gt;M&nbsp;b<strong>'</strong>
+       <tr>
          <td>brackets
          <td><strong>(</strong>...<strong>)</strong>
        <tr>
@@ -438,6 +444,15 @@ examplesWidget = [xshamlet|
        <tr>
          <td>query combinators
          <td>AND, OR, AND NOT
+       <tr>
+         <td>word sequence search<br>++<disp>
+         <td>Charles ++ M ++ Schulz<br>Ginger ++ and ++ Fred
+       <tr>
+         <td>multiple word search<br>FOLLOW <disp>
+         <td>Charles FOLLOW 2 Schulz
+       <tr>
+         <td>multiple word search<br>NEAR <disp>
+         <td>Fred NEAR 2 Ginger
        <tr>
          <td>query boosting
          <td>toAscList<strong>^</strong>1.5 OR toList
