@@ -43,7 +43,7 @@ usage = unlines [
     , "  hunt-server-cli eval [--server SERVER] <file>"
     , "  hunt-server-cli load [--server SERVER] <file>"
     , "  hunt-server-cli store [--server SERVER] <file>"
-    , "  hunt-server-cli search <query>"
+    , "  hunt-server-cli search [--server SERVER] <query>"
     , "  hunt-server-cli completion <query>"
     , "  hunt-server-cli make-schema <file>"
     , "  hunt-server-cli make-insert <file>"

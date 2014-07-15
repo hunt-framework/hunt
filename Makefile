@@ -116,6 +116,9 @@ server: stopServer sandbox
 client: sandbox
 	cd hunt-client && cabal $(action) $(PROFOPTS) $(pattern)
 
+hunt-server-cli: sandbox
+	cd hunt-server-cli && cabal $(action) $(PROFOPTS) $(pattern)
+
 html-hunter: sandbox
 	cd html-hunter && cabal $(action) $(PROFOPTS) $(pattern)
 
