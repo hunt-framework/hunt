@@ -110,6 +110,7 @@ library
     Hunt.Query.Intermediate
     Hunt.Query.Language.Grammar
     Hunt.Query.Language.Parser
+    Hunt.Query.Language.Builder
     Hunt.Query.Processor
     Hunt.Query.Ranking
     Hunt.Query.Result

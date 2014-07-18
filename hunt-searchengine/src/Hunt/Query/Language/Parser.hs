@@ -54,8 +54,8 @@ import qualified Data.Text                   as T
 import           Text.Parsec
 import           Text.Parsec.String
 
-import           Hunt.ClientInterface
--- import           Hunt.Common.BasicTypes        (mkScore)
+import           Hunt.Query.Language.Builder
+import           Hunt.Common.BasicTypes        (mkScore)
 import           Hunt.Query.Language.Grammar
 
 -- ------------------------------------------------------------
