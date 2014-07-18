@@ -188,10 +188,10 @@ autocomplete q
          d <- httpLbs request
          handleAutoCompeteResponse d
 
-query :: (MonadIO m, FromJSON r) => Text -> Int -> HuntConnectionT m  (H.LimitedResult r)
-query query' offset
+query :: (MonadIO m, FromJSON r) => Text -> Int -> Int -> HuntConnectionT m  (H.LimitedResult r)
+query query' maxResults offset
     = do request <- makeRequest
-                    $ T.concat [ "search/", encodeRequest query', "/", cs $ show offset, "/20"]
+                    $ T.concat [ "search/", encodeRequest query', "/", cs $ show offset, "/", cs $ show maxResults]
          httpLbs request >>= handleJsonResponse
 
 insert :: (MonadIO m) => H.ApiDocuments -> HuntConnectionT m ByteString

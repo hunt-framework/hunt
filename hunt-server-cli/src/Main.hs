@@ -43,7 +43,7 @@ usage = unlines [
     , "  hunt-server-cli eval [--server SERVER] <file>"
     , "  hunt-server-cli load [--server SERVER] <file>"
     , "  hunt-server-cli store [--server SERVER] <file>"
-    , "  hunt-server-cli search [--server SERVER] <query>"
+    , "  hunt-server-cli search [--server SERVER] [--max MAX] [--offset OFFSET] <query>"
     , "  hunt-server-cli completion <query>"
     , "  hunt-server-cli make-schema <file>"
     , "  hunt-server-cli make-insert <file>"
@@ -53,6 +53,8 @@ usage = unlines [
     , "Options:"
     , "  -h --help           Show this screen."
     , "  --server=SERVER     Use this hunt server [default: http://localhost:3000]"
+    , "  --max=MAX           Request at most MAX results [default: 20]"
+    , "  --offset=OFFSET     Request results from offset OFFSET [default: 0]"
     , "  make-schema <file>  prints a simple schema for this document" ]
 
 -- ------------------------------------------------------------
@@ -110,11 +112,11 @@ eval server fileName = do
   file <- readFile fileName
   evalCmd server $ fromJust $ decode $ cs file
 
-search :: String -> String -> IO ByteString
-search server query
+search :: String -> String -> Int -> Int -> IO ByteString
+search server query maxResults offsetResults
     = cs
       <$> (encodePretty :: H.LimitedResult H.ApiDocument -> ByteString)
-      <$> (HC.withHuntServer (HC.query (cs query) 0 ) (cs server))
+      <$> (HC.withHuntServer (HC.query (cs query) maxResults offsetResults ) (cs server))
 
 autocomplete :: String -> String -> IO String
 autocomplete server query
@@ -138,6 +140,9 @@ main = do
       else
           return "http://localhost:3000"
 
+  maxResults <- read <$> (args `getArg` (longOption "max"))
+  offsetResults <- read <$> (args `getArg` (longOption "offset"))
+
   when (isCommand "eval") $ do
     file <- fileArgument
     putStr =<< (printTime $ cs <$> eval server file)
@@ -152,7 +157,7 @@ main = do
 
   when (isCommand "search") $ do
     query <- queryArgument
-    putStr =<< (printTime $ cs <$> search server query)
+    putStr =<< (printTime $ cs <$> search server query maxResults offsetResults)
 
   when (isCommand "completion") $ do
     query <- queryArgument
