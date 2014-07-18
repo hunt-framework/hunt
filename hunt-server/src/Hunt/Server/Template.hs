@@ -173,9 +173,9 @@ index _docs =
           // TODO sort by rank
           if (data.code === 0)
           {
-            $(data.msg).forEach(function(e) {
-              e[1] = query.replace(new RegExp(rightmost + "(?=[^" + rightmost +" ]*$)"), e[0]);
-              result.push(e[1]);
+            $(data.msg).each(function(i, e) {
+              var r = query.replace(new RegExp(rightmost + "(?=[^" + rightmost +" ]*$)"), e[0]);
+              result.push(r);
             });
           }
           console.log(result);
