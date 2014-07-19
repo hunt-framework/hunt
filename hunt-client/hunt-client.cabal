@@ -24,13 +24,16 @@ source-repository head
 library
   hs-source-dirs: src
   exposed-modules:
-                Hunt.Server.Client
+    Hunt.Server.Client
+    Hunt.Conduit
 
   build-depends:  base >= 4
                 , aeson                  >= 0.6
+                , aeson-pretty
                 , bytestring             >= 0.9.1
                 , data-default
                 , conduit                >= 1.1 && < 1.2
+                , conduit-extra
                 , exceptions             >= 0.5 && < 0.7
                 , hunt-searchengine
                 , http-client            >= 0.2

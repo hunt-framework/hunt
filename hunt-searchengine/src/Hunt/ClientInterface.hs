@@ -59,11 +59,14 @@ module Hunt.ClientInterface
     , cmdSequence
     , cmdNOOP
 
-    -- * configuration options for search and completion
+    -- ** configuration options for search and completion
     , setSelectedFields
     , setMaxResults
     , setResultOffset
     , setWeightIncluded
+
+    -- ** Misc
+    , createContextCommands
 
 
     -- * ApiDocument construction, configuration and access
@@ -81,11 +84,13 @@ module Hunt.ClientInterface
     , changeIndex
     , setDocWeight
 
-    -- * Misc
+    -- ** Misc
+    , listToApiDoc
     , insertCmdsToDocuments
 
-    -- * description construction
+    -- ** description construction
     , mkDescription
+    , mapToDescr
     , insDescription
     , emptyDescription
     , fromDescription
@@ -131,9 +136,11 @@ module Hunt.ClientInterface
 where
 
 import           Control.Applicative         ((<$>))
-import           Data.Aeson                  (FromJSON (..), ToJSON (..), Value)
+import           Data.Aeson                  (FromJSON (..), ToJSON (..), Value(String))
 import           Data.Default
+import           Data.List                   (nub)
 import qualified Data.Map.Strict             as SM
+import qualified Data.Map.Lazy               as LM
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
@@ -278,6 +285,14 @@ setWeightIncluded q@Search{}
 setWeightIncluded q
     = q
 
+
+-- | create InsertContext Commands by a list of Insert Commands
+-- These contexts are not optimized and shoudn't be used in production code.
+createContextCommands :: [ApiDocument] -> Command
+createContextCommands docs = cmdSequence cmds
+  where
+    names = nub $ docs >>= (LM.keys . adIndex)
+    cmds = (\name -> cmdInsertContext name mkSchema) <$> names
 -- ------------------------------------------------------------
 
 -- | build an api document with an uri as key and a description
@@ -345,6 +360,15 @@ setDocWeight :: Score -> ApiDocument -> ApiDocument
 setDocWeight w d
     = d { adWght = w }
 
+-- | wrapper for building an ApiDocument by lists
+listToApiDoc
+  :: Text -- ^ The uri
+  -> [(Text, Text)] -- ^ The index
+  -> [(Text, Text)] -- ^ The description
+  -> ApiDocument
+listToApiDoc uri k v = setDescription (mkDescription v) $ setIndex (LM.fromList k) $ mkApiDoc $ uri
+
+
 -- ------------------------------------------------------------
 -- document description
 
@@ -354,6 +378,9 @@ setDocWeight w d
 mkDescription :: [(Text, Text)] -> Description
 mkDescription
     = DD.fromList . filter (not . T.null . snd)
+
+mapToDescr :: LM.Map Text Text -> DD.DocDesc
+mapToDescr src = mkDescription $ LM.toList src
 
 -- insert a key-value pair with an arbitrary value into
 -- a document description

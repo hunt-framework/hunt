@@ -3,18 +3,15 @@ module Hunt.Converter.CSV where
 import           Prelude hiding ( mapM_, map, putStrLn)
 
 import           Control.Applicative ((<$>))
-import           Control.Monad.IO.Class  (MonadIO, liftIO)
 
 import           Data.Aeson.Encode.Pretty (encodePretty)
 import           Data.Aeson (Value(..))
-import           Data.Aeson (ToJSON)
 
-import           Data.ByteString.Lazy (ByteString)
 import           Data.ByteString.Lazy.Char8  (putStrLn)
 
-import           Data.Conduit (Consumer, Conduit, ($=), ($$))
+import           Data.Conduit (Conduit, ($=), ($$))
 import           Data.Conduit.Binary hiding ( mapM_)
-import           Data.Conduit.List  (mapM_, map, mapAccum, consume)
+import           Data.Conduit.List  (consume)
 
 import           Data.CSV.Conduit (defCSVSettings, intoCSV, MapRow, runResourceT)
 
@@ -25,21 +22,17 @@ import           Data.Text (Text)
 
 import qualified Hunt.Common.DocDesc (DocDesc, fromList)
 import qualified Hunt.ClientInterface as H
+import qualified Hunt.Conduit as HC
 
-mapToHashMap :: Data.Map.Map Text Text -> Hunt.Common.DocDesc.DocDesc -- Data.HashMap.HashMap Text Value
-mapToHashMap src = Hunt.Common.DocDesc.fromList $ ((\(k,v) -> (k, String v))<$> Data.Map.toList src)
-
-rowToApiDocument :: (Monad m) => FilePath -> Conduit (MapRow Text) m (H.ApiDocument)
-rowToApiDocument fileName = mapAccum convertDoc 0 >> return ()
+convertToDocument :: FilePath -> Int -> MapRow Text -> H.ApiDocument
+convertToDocument fileName i row = H.listToApiDoc uri elems elems
     where
-    convertDoc :: MapRow Text -> Int -> (Int, H.ApiDocument)
-    convertDoc row i = (i+1, H.setDescription (mapToHashMap row) $ H.setIndex row $ H.mkApiDoc $ cs $ "file://" ++ fileName ++ "/" ++ (show i))
+    uri = (cs $ "file://" ++ fileName ++ "/" ++ (show i))
+    elems = (Data.Map.toList row)
 
-mapToJson :: (ToJSON j, Monad m) => Conduit j m (ByteString)
-mapToJson = map encodePretty
+rowToApiDocument :: (Monad m) => FilePath -> Conduit (MapRow Text) m H.Command
+rowToApiDocument fileName = HC.makeInsertsWithIndex (convertToDocument fileName)
 
-printSink :: (MonadIO m) => Consumer ByteString m ()
-printSink = mapM_ (liftIO . putStrLn )
 
 convert :: FilePath -> IO ()
 convert fileName = do

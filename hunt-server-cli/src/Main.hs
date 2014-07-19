@@ -93,8 +93,7 @@ makeSchema :: FilePath -> IO String
 makeSchema fileName = do
   file <- cs <$> readFile fileName
   let docs = readDocuments file
-      names = keys $ H.adIndex $ head docs
-      cmds = (\name -> H.cmdInsertContext name H.mkSchema) <$> names
+      cmds = H.createContextCommands docs
   return $ cs $ encodePretty cmds
 
 makeInserts :: FilePath -> IO String
