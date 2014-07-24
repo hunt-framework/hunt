@@ -2,6 +2,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE GADTs                     #-}
 {-# LANGUAGE StandaloneDeriving        #-}
+{-# LANGUAGE CPP                       #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -58,6 +59,8 @@ data HuntServerConfiguration = HuntServerConfiguration
   , readIndexOnStartup :: Maybe FilePath  -- ^ Serialized index to load on startup.
   , logFile            :: FilePath        -- ^ Location of the logfile.
   , logPriority        :: Priority        -- ^ Priority level to log on stdout.
+  , statsDHost         :: String          -- ^ statsd host name
+  , statsDPort         :: Int             -- ^ statsd port
   } deriving (Show, Data, Typeable)
 
 
@@ -78,6 +81,14 @@ instance Default HuntServerConfiguration where
     logFile = "hunt.log"
       &= explicit &= name "log-file" &= typFile
       &= help "Set logfile location"
+#ifdef SUPPORT_STATSD
+    , statsDHost = ""
+      &= explicit &= name "statsd-host"
+      &= help "statsd host name",
+    statsDPort = (8125 :: Int)
+      &= explicit &= name "statsd-port"
+      &= help "statsd port"
+#endif
   } &= summary "Standalone search server based on the Hunt searchengine."
     &= program "hunt-server"
 

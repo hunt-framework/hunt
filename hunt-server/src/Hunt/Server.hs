@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP #-}
 -- http://ghc.haskell.org/trac/ghc/blog/LetGeneralisationInGhc7
 -- {-# LANGUAGE NoMonoLocalBinds  #-}
 
@@ -48,6 +49,7 @@ import           Control.Monad.Error
 import           Data.String                          (fromString)
 
 import           Data.Text                            (Text)
+import qualified Data.Text                            as T
 
 import qualified Network.Wai.Handler.Warp             as W
 import           Network.Wai.Middleware.RequestLogger
@@ -72,6 +74,10 @@ import           System.Log.Logger                    hiding (debugM, errorM,
                                                        warningM)
 import qualified System.Log.Logger                    as Log
 
+#ifdef SUPPORT_STATSD
+import           System.Remote.Monitoring.Statsd      (defaultStatsdOptions, forkStatsd, StatsdOptions(..))
+import           System.Metrics                       (registerGcMetrics, newStore)
+#endif
 -- ------------------------------------------------------------
 -- Logging
 
@@ -124,6 +130,15 @@ start config = do
   initLoggers config
 
   debugM "Application start"
+
+#ifdef SUPPORT_STATSD
+  when (not $ null $ statsDHost config) $ do
+    statsDStore <- newStore
+    registerGcMetrics statsDStore
+    let statsDOpts = defaultStatsdOptions {host = (T.pack $ statsDHost config), port = (statsDPort config), prefix = "Hunt-Server"}
+    _ <- forkStatsd statsDOpts statsDStore
+    debugM $ "Connected to statsD: " ++ (statsDHost config) ++ ":" ++ (show $ statsDPort config)
+#endif  
 
   -- init interpreter
   env <- initHunt :: IO DefHuntEnv

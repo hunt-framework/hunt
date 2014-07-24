@@ -9,10 +9,9 @@
 N       = 1
 H       = 500
 A       = 8
-K       = 200
 RTSPROF =
 #RUNOPTS = +RTS -N$(N) -s $(RTSPROF) -K$(K)M -A$(A)M -H$(H)M -RTS
-RUNOPTS = +RTS -N$(N) -s $(RTSPROF) -K$(K)M  -G2 -c -I3 -RTS
+RUNOPTS = +RTS $(RTSPROF) -RTS
 PATTERN =
 
 SERVER  = http://localhost:3000
@@ -43,7 +42,7 @@ endif
 #           processors to use automatically)
 # -H<size> Sets the minimum heap size (default 0M)   Egs: -H24m  -H1G
 # -A<size> Sets the minimum allocation area size (default 512k) Egs: -A1m -A10k
-# -K<size> Sets the maximum stack size (default 8M)  Egs: -K32k   -K512k
+# -K<size> Sets the maximum stack size (default 80% avaliable RAM)  Egs: -K32k   -K512k (a low value causes stackoverflows)
 # -t[<file>] One-line GC statistics (if <file> omitted, uses stderr)
 # -s[<file>] Summary  GC statistics (if <file> omitted, uses stderr)
 # -S[<file>] Detailed GC statistics (if <file> omitted, uses stderr)
