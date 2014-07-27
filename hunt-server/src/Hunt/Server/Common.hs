@@ -59,9 +59,11 @@ data HuntServerConfiguration = HuntServerConfiguration
   , readIndexOnStartup :: Maybe FilePath  -- ^ Serialized index to load on startup.
   , logFile            :: FilePath        -- ^ Location of the logfile.
   , logPriority        :: Priority        -- ^ Priority level to log on stdout.
+#ifdef SUPPORT_STATSD
   , statsDHost         :: String          -- ^ statsd host name
   , statsDPort         :: Int             -- ^ statsd port
-  } deriving (Show, Data, Typeable)
+#endif
+ } deriving (Show, Data, Typeable)
 
 
 instance Default HuntServerConfiguration where
