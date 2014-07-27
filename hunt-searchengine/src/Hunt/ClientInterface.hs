@@ -26,6 +26,7 @@ module Hunt.ClientInterface
     -- * types used in commands
       Command
     , ApiDocument(..)   -- also used in results
+    , Huntable(..)
     , Content
     , Context
     , ContextSchema
@@ -162,6 +163,20 @@ import           Hunt.Utility.Output         (outputValue)
 
 -- ------------------------------------------------------------
 -- lookup commands
+
+class Huntable x where
+  huntURI        :: x -> URI
+
+  huntIndexMap   :: x -> IndexMap
+  huntIndexMap x = emptyApiDocIndexMap
+
+  huntDescr      :: x -> Description
+  huntDescr x    = emptyApiDocDescr
+
+  toApiDocument  :: x -> ApiDocument
+  toApiDocument  x = setDescription (huntDescr x) $
+                     setIndex (huntIndexMap x) $
+                     mkApiDoc $ (huntURI x)
 
 
 -- | create simple search command
