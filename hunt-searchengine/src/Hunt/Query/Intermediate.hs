@@ -439,7 +439,7 @@ toDocsResult dt (SDS m)
             = (toD . fromJust) <$> Dt.lookup did dt
             where
               toD d'
-                  = d {score = score d * sc}
+                  = d {score = wght d * sc}
                   where
                     d = unwrap d'
 
