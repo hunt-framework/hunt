@@ -37,7 +37,7 @@ import qualified Data.IntSet       as S
 import qualified Data.List         as L
 import           Data.Monoid       (Monoid (..))
 import           Data.Typeable
-
+import           Data.Binary       (Binary (..))
 import           Hunt.Common.DocId
 
 -- ------------------------------------------------------------
@@ -46,6 +46,10 @@ import           Hunt.Common.DocId
 
 newtype DocIdSet = DIS { unDIS :: S.IntSet }
     deriving (Eq, Show, NFData, Typeable)
+
+instance Binary DocIdSet where
+  put = put . unDIS
+  get = get >>= return . DIS
 
 instance Monoid DocIdSet where
     mempty

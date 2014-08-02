@@ -35,22 +35,21 @@ import           Hunt.Index
 -- ------------------------------------------------------------
 
 -- | Constraint for index implementations.
-type IndexImplCon i v
+type IndexImplCon i
   = ( Index i
-    , IKey i v ~ Text
-    , ICon i v
-    , Show (i v)
-    , IndexValue v
-    , Binary v
-    , Binary (i v)
-    , Typeable (i v)
+    , Show i
+    , ICon i
+    , IndexValue (IVal i)
+    , Binary i
+    , Typeable i
+    , IKey i ~ Text
     )
 
 -- ------------------------------------------------------------
 
 -- | Index using @ExistentialQuantification@ to allow heterogeneous index containers.
 data IndexImpl
-  = forall i v. IndexImplCon i v => IndexImpl { ixImpl :: i v }
+  = forall i. IndexImplCon i => IndexImpl { ixImpl :: i }
 
 -- ------------------------------------------------------------
 
@@ -97,7 +96,7 @@ get' ts = do
 -- ------------------------------------------------------------
 
 -- | Wrap an index using @ExistentialQuantification@ to allow heterogeneous containers.
-mkIndex :: IndexImplCon i v => i v -> IndexImpl
+mkIndex :: IndexImplCon i => i -> IndexImpl
 mkIndex i = IndexImpl $! i
 
 -- ------------------------------------------------------------

@@ -27,6 +27,7 @@ import qualified Data.Text                            as T (pack, unpack)
 import           Data.Typeable
 
 import           Hunt.Index
+import           Hunt.Common.Occurrences              (Occurrences)
 import           Hunt.Index.Schema.Normalize.Position (position)
 
 import           Text.Parsec
@@ -35,26 +36,27 @@ import           Text.Parsec
 -- ------------------------------------------------------------
 
 -- | Index using 'Data.RTree'
-newtype RTreeIndex v
-  = DmRT { dmRT :: RT.RTree v }
+newtype RTreeIndex
+  = DmRT { dmRT :: RT.RTree Occurrences }
   deriving (Eq, Show, NFData, Typeable)
 
-mkDmRT :: NFData v => RT.RTree v -> RTreeIndex v
+mkDmRT :: RT.RTree Occurrences -> RTreeIndex
 mkDmRT v = DmRT $! v
 
 -- ------------------------------------------------------------
 
-instance (NFData v,Binary v) => Binary (RTreeIndex v) where
+instance Binary RTreeIndex where
   put = put . dmRT
   get = get >>= return . mkDmRT
 
 -- ------------------------------------------------------------
 
 instance Index RTreeIndex where
-  type IKey RTreeIndex v = RT.MBB
+  type IKey RTreeIndex = RT.MBB
+  type IVal RTreeIndex = Occurrences
 
   insertList kvs (DmRT rt) =
-    mkDmRT $ L.foldl' (\ m' (k', v') -> RT.insertWith mergeValues k' v' m') rt kvs
+    mkDmRT $ L.foldl' (\ m' (k', v') -> RT.insertWith mergeValues k' v' m') rt (fromIntermediates kvs)
 
     {- same problem as in PrefixTreeIndex, the k' in kvs don't need to be unique
 
@@ -68,17 +70,17 @@ instance Index RTreeIndex where
     = mkDmRT $ RT.empty
 
   fromList
-    = mkDmRT . RT.fromList
+    = mkDmRT . RT.fromList . fromIntermediates
 
   toList (DmRT rt)
-    = RT.toList rt
+    = toIntermediates . RT.toList $ rt
 
   -- MBBs don't have any case or prefix
   search _ k (DmRT rt)
-    = RT.lookupRangeWithKey k rt
+    = toIntermediates $ RT.lookupRangeWithKey k rt
 
   lookupRange k1 k2 (DmRT rt)
-    = RT.lookupRangeWithKey (unionMBB k1 k2) rt
+    = toIntermediates $ RT.lookupRangeWithKey (unionMBB k1 k2) rt
 
   unionWith op (DmRT rt1) (DmRT rt2)
     = mkDmRT $ RT.unionWith op rt1 rt2

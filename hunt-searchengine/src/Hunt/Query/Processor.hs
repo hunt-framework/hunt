@@ -97,10 +97,10 @@ instance Binary ProcessConfig where
 -- | The internal state of the query processor.
 data ProcessEnv
     = ProcessEnv
-      { psConfig   :: ! ProcessConfig           -- ^ The configuration for the query processor.
-      , psContexts :: ! [Context]               -- ^ The current list of contexts.
-      , psIndex    ::   ContextMap Occurrences  -- ^ The index to search.
-      , psSchema   ::   Schema                  -- ^ Schema / Schemas for the contexts.
+      { psConfig   :: ! ProcessConfig  -- ^ The configuration for the query processor.
+      , psContexts :: ! [Context]      -- ^ The current list of contexts.
+      , psIndex    ::   ContextMap     -- ^ The index to search.
+      , psSchema   ::   Schema         -- ^ Schema / Schemas for the contexts.
       }
 
 -- ------------------------------------------------------------
@@ -108,7 +108,7 @@ data ProcessEnv
 -- ------------------------------------------------------------
 
 type QueryIndex
-    = ContextMap Occurrences
+    = ContextMap
 
 -- | the processor monad
 newtype ProcessorT m a

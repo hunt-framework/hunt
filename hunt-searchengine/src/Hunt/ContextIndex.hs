@@ -81,6 +81,7 @@ import qualified Hunt.Common.Occurrences as Occ
 import           Hunt.DocTable           (DocTable)
 import qualified Hunt.DocTable           as Dt
 import qualified Hunt.Index              as Ix
+import           Hunt.Index              (IntermediateValue)
 import           Hunt.Index.IndexImpl    (IndexImpl)
 import qualified Hunt.Index.IndexImpl    as Impl
 import           Hunt.Utility
@@ -122,7 +123,7 @@ getContextMap :: [IndexImpl] -> Get ContextMap
 getContextMap ts = mkContextMap <$>
                    liftM M.fromDistinctAscList (Impl.gets' ts)
 
-instance Binary v => Binary ContextMap where
+instance Binary ContextMap where
   put = put . cxMap
   get = get >>= return . mkContextMap
 
@@ -138,9 +139,9 @@ decodeCxIx ts = runGet (get' ts)
 get' :: Binary dt => [IndexImpl] -> Get (ContextIndex dt)
 get' ts = ContextIndex <$> (getContextMap ts) <*> get <*> get
 
---instance Binary dt => Binary (ContextIndex dt) where
---  get = ContextIndex <$> get <*> get <*> get
---  put (ContextIndex a b c) = put a >> put b >> put c
+instance Binary dt => Binary (ContextIndex dt) where
+  get = ContextIndex <$> get <*> get <*> get
+  put (ContextIndex a b c) = put a >> put b >> put c
 
 -- ------------------------------------------------------------
 
@@ -283,20 +284,18 @@ batchAddWordsM vs (ContextMap m)
   = mkContextMap <$> mapWithKeyMP (\cx impl -> foldinsertList cx impl) m
   where
     foldinsertList :: (Functor m, Monad m) =>
-                      Context -> IndexImpl -> m (IndexImpl)
+                      Context -> IndexImpl -> m IndexImpl
     foldinsertList cx (Impl.IndexImpl impl)
         = Impl.mkIndex <$> Ix.insertListM (contentForCx cx vs) impl
 
 -- | Computes the words and occurrences out of a list for one context
 
-contentForCx :: Ix.IndexValue v => Context -> [(DocId, Words)] -> [(Word, v)]
+contentForCx :: Context -> [(DocId, Words)] -> [(Word, Ix.IntermediateValue)]
 contentForCx cx vs
-    = res
-    where
-      res = concatMap (invert . second (getWlForCx cx)) $ vs
+    = concatMap (invert . second (getWlForCx cx)) $ vs
           where
             invert (did, wl)
-                = map (second (Ix.toOccurrences . Occ.singleton' did)) $ M.toList wl
+                = map (second (Ix.toIntermediate . Occ.singleton' did)) $ M.toList wl
             getWlForCx cx' ws'
                 = fromMaybe M.empty (M.lookup cx' ws')
 
@@ -355,17 +354,17 @@ search op k (ContextMap m)
 -- -}
 
 -- | Range query in a context between first and second key.
-lookupRangeCx :: Monad m => Context -> Text -> Text -> ContextMap -> m [(Text, v)]
+lookupRangeCx :: Monad m => Context -> Text -> Text -> ContextMap -> m [(Text, IntermediateValue)]
 lookupRangeCx c k1 k2 cm
     = lookupIndex c cm $ Ix.lookupRangeM k1 k2
 
 -- | Dump a context
-lookupAllWithCx :: Monad m => Context -> ContextMap -> m [(Text, v)]
+lookupAllWithCx :: Monad m => Context -> ContextMap -> m [(Text, IntermediateValue)]
 lookupAllWithCx cx cm
     = lookupIndex cx cm $ Ix.toListM
 
 -- | Search query in a context.
-searchWithCx :: Monad m => TextSearchOp -> Context -> Text -> ContextMap -> m [(Text, v)]
+searchWithCx :: Monad m => TextSearchOp -> Context -> Text -> ContextMap -> m [(Text, IntermediateValue)]
 searchWithCx op cx w cm
     = lookupIndex cx cm $ Ix.searchM op w
 
@@ -373,7 +372,7 @@ searchWithCx op cx w cm
 -- | Search over a list of contexts and words
 searchWithCxsNormalized :: (Functor m, Monad m) =>
                            TextSearchOp -> [(Context, Text)] -> ContextMap ->
-                           m [(Context, [(Text, v)])]
+                           m [(Context, [(Text, IntermediateValue)])]
 searchWithCxsNormalized op cxws cm
     = P.mapM (uncurry search') cxws
     where
@@ -382,15 +381,17 @@ searchWithCxsNormalized op cxws cm
             <$> (lookupIndex cx cm $ Ix.searchM op w)
 
 -- | Search query with scored results
+-- XXX TODO: this function should return intermediates and query processor should work with those
 searchWithCxSc :: Monad m =>
-                  TextSearchOp -> Context -> Text -> ContextMap -> m [(Text, (Score, v))]
+                  TextSearchOp -> Context -> Text -> ContextMap -> m [(Text, (Score, Occurrences))]
 searchWithCxSc op cx w cm
-    = lookupIndex cx cm $ Ix.searchMSc op w
+    = (lookupIndex cx cm $ Ix.searchMSc op w) >>= return . Ix.fromScoredIntermediates
 
 -- | Range query in a context between first and second key.
-lookupRangeCxSc :: Monad m => Context -> Text -> Text -> ContextMap -> m [(Text, (Score, v))]
+-- XXX TODO: this function should return intermediates and query processor should work with those
+lookupRangeCxSc :: Monad m => Context -> Text -> Text -> ContextMap -> m [(Text, (Score, Occurrences))]
 lookupRangeCxSc c k1 k2 cm
-    = lookupIndex c cm $ Ix.lookupRangeMSc k1 k2
+    = (lookupIndex c cm $ Ix.lookupRangeMSc k1 k2) >>= return. Ix.fromScoredIntermediates
 
 -- ------------------------------------------------------------
 
@@ -399,9 +400,9 @@ lookupRangeCxSc c k1 k2 cm
 --
 -- This pattern is used in all search variants
 
-lookupIndex :: (Monad m) =>
+lookupIndex :: Monad m =>
                Context -> ContextMap ->
-               (forall i . Impl.IndexImplCon i v => i v -> m [r]) ->
+               (forall i . Impl.IndexImplCon i => i -> m [r]) ->
                m [r]
 
 lookupIndex cx (ContextMap m) search

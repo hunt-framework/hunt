@@ -40,17 +40,18 @@ mkDmPT v = DmPT $! v
 
 -- ------------------------------------------------------------
 
-instance (NFData v,Binary v) => Binary (DmPrefixTree v) where
+instance IndexValue v => Binary (DmPrefixTree v) where
   put = put . dmPT
   get = get >>= return . mkDmPT
 
 -- ------------------------------------------------------------
 
-instance Index DmPrefixTree where
-  type IKey DmPrefixTree v = SM.Key
+instance Index (DmPrefixTree v) where
+  type IKey (DmPrefixTree v) = SM.Key
+  type IVal (DmPrefixTree v) = v
 
   insertList kvs (DmPT pt) =
-    mkDmPT $ SM.unionWith mergeValues pt (SM.fromList kvs)
+    mkDmPT $ SM.unionWith mergeValues pt (SM.fromList . fromIntermediates $ kvs)
 
   deleteDocs ks (DmPT pt)
     = mkDmPT $ SM.mapMaybe (diffValues ks) pt
@@ -59,13 +60,13 @@ instance Index DmPrefixTree where
     = mkDmPT $ SM.empty
 
   fromList
-    = mkDmPT . SM.fromList
+    = mkDmPT . SM.fromList . fromIntermediates
 
   toList (DmPT pt)
-    = SM.toList pt
+    = toIntermediates . SM.toList $ pt
 
   search t k (DmPT pt)
-    = case t of
+    = toIntermediates $ case t of
         Case         -> case SM.lookup k pt of
                           Nothing -> []
                           Just xs -> [(k,xs)]
@@ -79,7 +80,7 @@ instance Index DmPrefixTree where
     pfNoCase = toL .:: SM.prefixFilterNoCase
 
   lookupRange k1 k2 (DmPT pt)
-    = SM.toList $ SM2.lookupRange k1 k2 pt
+    = toIntermediates . SM.toList $ SM2.lookupRange k1 k2 pt
 
   unionWith op (DmPT pt1) (DmPT pt2)
     = mkDmPT $ SM.unionWith op pt1 pt2

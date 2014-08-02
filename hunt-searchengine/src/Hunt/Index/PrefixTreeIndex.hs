@@ -43,17 +43,18 @@ mkDmPT v = DmPT $! v
 
 -- ------------------------------------------------------------
 
-instance (NFData v,Binary v) => Binary (DmPrefixTree v) where
+instance IndexValue v => Binary (DmPrefixTree v) where
   put = put . dmPT
   get = get >>= return . mkDmPT
 
 -- ------------------------------------------------------------
 
-instance Index DmPrefixTree where
-  type IKey DmPrefixTree v = SM.Key
+instance Index (DmPrefixTree v)  where
+  type IKey (DmPrefixTree v) = SM.Key
+  type IVal (DmPrefixTree v) = v
 
   insertList kvs (DmPT pt) =
-    mkDmPT $ L.foldl' (\ m' (k', v') -> SM.insertWith mergeValues k' v' m') pt kvs
+    mkDmPT $ L.foldl' (\ m' (k', v') -> SM.insertWith mergeValues k' v' m') pt (fromIntermediates kvs)
 
     {- this is a nice try, but does not do what it should do,
        at least for [("a", occ1), ("a", occ2)]
@@ -68,13 +69,13 @@ instance Index DmPrefixTree where
     = mkDmPT $ SM.empty
 
   fromList
-    = mkDmPT . SM.fromList
+    = mkDmPT . SM.fromList . fromIntermediates
 
   toList (DmPT pt)
-    = SM.toList pt
+    = toIntermediates $ SM.toList pt
 
   search t k (DmPT pt)
-    = case t of
+    = toIntermediates $ case t of
         Case         -> case SM.lookup k pt of
                           Nothing -> []
                           Just xs -> [(k,xs)]
@@ -88,7 +89,7 @@ instance Index DmPrefixTree where
     pfNoCase = toL .:: SM.prefixFilterNoCase
 
   lookupRange k1 k2 (DmPT pt)
-    = SM.toList $ SM.lookupRange k1 k2 pt
+    = toIntermediates . SM.toList $ SM.lookupRange k1 k2 pt
 
   unionWith op (DmPT pt1) (DmPT pt2)
     = mkDmPT $ SM.unionWith op pt1 pt2

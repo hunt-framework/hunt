@@ -4,6 +4,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverlappingInstances       #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE UndecidableInstances        #-}
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -66,24 +67,25 @@ import qualified Hunt.Index.Schema.Normalize.Position as Pos
 -- ------------------------------------------------------------
 
 -- | Text index using a 'StringMap'-implementation.
-newtype InvertedIndex v
-  = InvIx { invIx :: KeyProxyIndex Text DmPrefixTree v }
+newtype InvertedIndex
+  = InvIx { invIx :: KeyProxyIndex Text (DmPrefixTree Occurrences) }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvIx :: KeyProxyIndex Text DmPrefixTree v
-        -> InvertedIndex v
+mkInvIx :: KeyProxyIndex Text (DmPrefixTree Occurrences)
+        -> InvertedIndex
 mkInvIx x = InvIx $! x
 
 -- ------------------------------------------------------------
 
-instance IndexValue v => Binary (InvertedIndex v) where
+instance Binary InvertedIndex where
   put = put . invIx
   get = get >>= return . mkInvIx
 
 -- ------------------------------------------------------------
 
 instance Index InvertedIndex where
-  type IKey InvertedIndex v = Word
+  type IKey InvertedIndex = Word
+  type IVal InvertedIndex = Occurrences
 
   insertList wos (InvIx i)
     = mkInvIx $ insertList wos i
@@ -169,24 +171,25 @@ similar' searched found
 -- ------------------------------------------------------------
 
 -- | Text index with 2-dimensional lookup using a 'StringMap'-implementation.
-newtype InvertedIndex2Dim v
-  = InvIx2D { invIx2D :: KeyProxyIndex Text PT2D.DmPrefixTree v }
+newtype InvertedIndex2Dim
+  = InvIx2D { invIx2D :: KeyProxyIndex Text (PT2D.DmPrefixTree Occurrences) }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvIx2D :: KeyProxyIndex Text PT2D.DmPrefixTree v
-        -> InvertedIndex2Dim v
+mkInvIx2D :: KeyProxyIndex Text (PT2D.DmPrefixTree Occurrences)
+        -> InvertedIndex2Dim
 mkInvIx2D x = InvIx2D $! x
 
 -- ------------------------------------------------------------
 
-instance IndexValue v => Binary (InvertedIndex2Dim v) where
+instance Binary InvertedIndex2Dim where
   put = put . invIx2D
   get = get >>= return . mkInvIx2D
 
 -- ------------------------------------------------------------
 
 instance Index InvertedIndex2Dim where
-  type IKey InvertedIndex2Dim v = Word
+  type IKey InvertedIndex2Dim = Word
+  type IVal InvertedIndex2Dim = Occurrences
 
   insertList wos (InvIx2D i)
     = mkInvIx2D $ insertList wos i
@@ -248,23 +251,24 @@ instance Bijection Text UnInt where
 -- ------------------------------------------------------------
 
 -- | Integer index using a 'StringMap'-implementation.
-newtype InvertedIndexInt v
-  = InvIntIx { invIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt InvertedIndex) v }
+newtype InvertedIndexInt
+  = InvIntIx { invIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt InvertedIndex) }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt InvertedIndex) v -> InvertedIndexInt v
+mkInvIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt InvertedIndex) -> InvertedIndexInt
 mkInvIntIx x = InvIntIx $! x
 
 -- ------------------------------------------------------------
 
-instance IndexValue v => Binary (InvertedIndexInt v) where
+instance Binary InvertedIndexInt where
   put = put . invIntIx
   get = get >>= return . InvIntIx
 
 -- ------------------------------------------------------------
 
 instance Index InvertedIndexInt where
-  type IKey InvertedIndexInt v = Text
+  type IKey InvertedIndexInt = Text
+  type IVal InvertedIndexInt = IVal InvertedIndex
 
   insertList wos (InvIntIx i)
     = mkInvIntIx $ insertList wos i
@@ -372,23 +376,24 @@ instance Bijection Text UnDate where
 -- ------------------------------------------------------------
 
 -- | Date index using a 'StringMap'-implementation.
-newtype InvertedIndexDate v
-  = InvDateIx { invDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate InvertedIndex) v }
+newtype InvertedIndexDate
+  = InvDateIx { invDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate InvertedIndex) }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate InvertedIndex) v -> InvertedIndexDate v
+mkInvDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate InvertedIndex) -> InvertedIndexDate
 mkInvDateIx x = InvDateIx $! x
 
 -- ------------------------------------------------------------
 
-instance IndexValue v => Binary (InvertedIndexDate v) where
+instance Binary InvertedIndexDate where
   put = put . invDateIx
   get = get >>= return . mkInvDateIx
 
 -- ------------------------------------------------------------
 
 instance Index InvertedIndexDate where
-  type IKey InvertedIndexDate v = Word
+  type IKey InvertedIndexDate = Word
+  type IVal InvertedIndexDate = IVal InvertedIndex
 
   insertList wos (InvDateIx i)
     = mkInvDateIx $ insertList wos i
@@ -448,23 +453,24 @@ instance Bijection Text UnPos where
 -- ------------------------------------------------------------
 
 -- | Geo-position index using a 'StringMap'-implementation.
-newtype InvertedIndexPosition v
-  = InvPosIx { invPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex2Dim) v }
+newtype InvertedIndexPosition
+  = InvPosIx { invPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex2Dim) }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex2Dim) v -> InvertedIndexPosition v
+mkInvPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos InvertedIndex2Dim) -> InvertedIndexPosition
 mkInvPosIx x = InvPosIx $! x
 
 -- ------------------------------------------------------------
 
-instance IndexValue v => Binary (InvertedIndexPosition v) where
+instance  Binary InvertedIndexPosition where
   put = put . invPosIx
   get = get >>= return . mkInvPosIx
 
 -- ------------------------------------------------------------
 
 instance Index InvertedIndexPosition where
-  type IKey InvertedIndexPosition v = Word
+  type IKey InvertedIndexPosition = Word
+  type IVal InvertedIndexPosition = IVal InvertedIndex2Dim
 
   insertList wos (InvPosIx i)
     = mkInvPosIx $ insertList wos i
@@ -515,23 +521,24 @@ instance Bijection MBB Text where
 -- ------------------------------------------------------------
 
 -- | Date index using a 'StringMap'-implementation.
-newtype InvertedIndexRTree v
-  = InvRTreeIx { invRTreeIx :: KeyProxyIndex Text RTx.RTreeIndex v}
+newtype InvertedIndexRTree
+  = InvRTreeIx { invRTreeIx :: KeyProxyIndex Text RTx.RTreeIndex}
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvRTreeIx :: KeyProxyIndex Text RTx.RTreeIndex v -> InvertedIndexRTree v
+mkInvRTreeIx :: KeyProxyIndex Text RTx.RTreeIndex -> InvertedIndexRTree
 mkInvRTreeIx x = InvRTreeIx $! x
 
 -- ------------------------------------------------------------
 
-instance IndexValue v => Binary (InvertedIndexRTree v) where
+instance Binary InvertedIndexRTree where
   put = put . invRTreeIx
   get = get >>= return . mkInvRTreeIx
 
 -- ------------------------------------------------------------
 
 instance Index InvertedIndexRTree where
-  type IKey InvertedIndexRTree v = Text
+  type IKey InvertedIndexRTree = Text
+  type IVal InvertedIndexRTree = IVal RTx.RTreeIndex
 
   insertList wos (InvRTreeIx i)
     = mkInvRTreeIx $ insertList wos i

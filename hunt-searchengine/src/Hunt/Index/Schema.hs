@@ -164,20 +164,20 @@ instance Default IndexImpl where
 
 -- | Default (text) index implementation.
 defaultInv :: IndexImpl
-defaultInv = mkIndex (Ix.empty :: InvertedIndex Occurrences)
+defaultInv = mkIndex (Ix.empty :: InvertedIndex)
 
 -- | Int index implementation.
 intInv :: IndexImpl
-intInv = mkIndex (Ix.empty :: InvertedIndexInt Occurrences)
+intInv = mkIndex (Ix.empty :: InvertedIndexInt)
 
 -- | Date index implementation.
 dateInv :: IndexImpl
-dateInv = mkIndex (Ix.empty :: InvertedIndexDate Occurrences)
+dateInv = mkIndex (Ix.empty :: InvertedIndexDate)
 
 -- | Geographic position index implementation.
 positionInv :: IndexImpl
 --positionInv = mkIndex (Ix.empty :: InvertedIndexPosition Occurrences)
-positionInv = mkIndex (Ix.empty :: InvertedIndexRTree Occurrences)
+positionInv = mkIndex (Ix.empty :: InvertedIndexRTree)
 
 
 -- ------------------------------------------------------------

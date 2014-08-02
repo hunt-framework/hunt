@@ -41,31 +41,29 @@ import qualified Hunt.Index          as Ix
 --   There has to be a corresponding 'Bijection' instance:
 --
 --   >  instance Bijection (IKey impl v) toType where ...
-newtype KeyProxyIndex toType impl cv
-  = KeyProxyIx { keyProxyIx :: impl cv }
+newtype KeyProxyIndex toType impl
+  = KeyProxyIx { keyProxyIx :: impl }
   deriving (Eq, Show, NFData)
 
 -- | Wrap an index in a key conversion proxy.
-mkKeyProxyIx :: impl cv -> KeyProxyIndex toType impl cv
+mkKeyProxyIx :: impl -> KeyProxyIndex toType impl
 mkKeyProxyIx v = KeyProxyIx $! v
 
 -- ------------------------------------------------------------
 
-instance Binary (impl v) => Binary (KeyProxyIndex toType impl v) where
+instance Binary (impl) => Binary (KeyProxyIndex toType impl) where
   put = put . keyProxyIx
   get = get >>= return . mkKeyProxyIx
 
 -- ------------------------------------------------------------
 
 instance Index (KeyProxyIndex toType impl) where
-  type IKey      (KeyProxyIndex toType impl) v = toType
-  type IVal      (KeyProxyIndex toType impl) v = v
-
-  type ICon      (KeyProxyIndex toType impl) v =
-    ( Index impl
-    , ICon impl v
-    , Bijection (IKey impl v) toType
-    )
+  type IKey      (KeyProxyIndex toType impl) = toType
+  type IVal      (KeyProxyIndex toType impl) = IVal impl
+  type ICon      (KeyProxyIndex toType impl) = ( Index impl
+                                               , ICon impl
+                                               , Bijection (IKey impl) toType
+                                               )
 
   insertList kvs (KeyProxyIx i)
     = mkKeyProxyIx $ insertList (P.map (first from) kvs) i

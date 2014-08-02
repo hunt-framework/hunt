@@ -270,7 +270,7 @@ askNormalizer cn = do
     _      -> throwResError 410 ("used unavailable normalizer: " `T.append` cn)
 
 -- | Get the index.
-askIndex :: DocTable dt => Text -> Hunt dt (IndexImpl Occurrences)
+askIndex :: DocTable dt => Text -> Hunt dt IndexImpl
 askIndex cn = ctIxImpl <$> askType cn
 
 -- | Throw an error in the Hunt monad.
@@ -380,7 +380,7 @@ execInsertContext cx ct ixx
              , ResOK
              )
   where
-  newIx :: IndexImpl Occurrences -> IndexImpl Occurrences
+  newIx :: IndexImpl -> IndexImpl
   newIx (IndexImpl i) = mkIndex $ Ix.empty `asTypeOf` i
   newSchema cType norms= (ct { cxType = cType, cxNormalizer = norms })
 
@@ -638,7 +638,7 @@ execLoad filename = do
 
 -- for scored docs (DocIdMap with scores
 
-runQueryScoredDocsM :: ContextMap Occurrences
+runQueryScoredDocsM :: ContextMap
                     -> Schema
                     -> ProcessConfig
                     -> Query
@@ -651,7 +651,7 @@ runQueryScoredDocsM ix s cfg q
 
 -- for unscored docs (DocIdSet), usually called with 'queryConfigDocIds'
 
-runQueryUnScoredDocsM :: ContextMap Occurrences
+runQueryUnScoredDocsM :: ContextMap
                     -> Schema
                     -> ProcessConfig
                     -> Query
@@ -664,7 +664,7 @@ runQueryUnScoredDocsM ix s cfg q
 
 -- for scored docs (DocIdMap with scores
 
-runQueryScoredWordsM :: ContextMap Occurrences
+runQueryScoredWordsM :: ContextMap
                      -> Schema
                      -> ProcessConfig
                      -> Query
