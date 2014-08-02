@@ -23,12 +23,34 @@ import           GHC.Exts               (Constraint)
 import           Control.DeepSeq
 import           Control.Arrow          (second)
 
+import           Data.Binary            (Binary (..))
 import qualified Data.List              as L
 
 import           Hunt.Common.BasicTypes
+import           Hunt.Common.Occurrences (Occurrences)
+import qualified Hunt.Common.Occurrences as Occ
 import           Hunt.Common.DocId
 import           Hunt.Common.DocIdSet   (DocIdSet)
 import qualified Hunt.Common.DocIdSet   as DS
+
+
+-- ------------------------------------------------------------
+
+class (Binary x, NFData x) => IndexValue x where
+  toOccurrences   :: x -> Occurrences
+  fromOccurrences :: Occurrences -> x
+  mergeValues     :: x -> x -> x
+  diffValues      :: DocIdSet -> x -> Maybe x
+
+instance IndexValue Occurrences where
+  toOccurrences   = id
+  fromOccurrences = id
+  mergeValues     = Occ.merge
+  diffValues s m  = let z = Occ.diffWithSet m s
+                    in
+                      if Occ.null z
+                      then Nothing
+                      else Just z
 
 -- ------------------------------------------------------------
 
@@ -37,40 +59,37 @@ import qualified Hunt.Common.DocIdSet   as DS
 --   The implementation must have a value type parameter.
 class Index i where
   -- | The key type of the index.
-  type IKey i v
+  type IKey i
 
-  -- | The value type of the index.
   type IVal i v
   type IVal i v = v
 
   -- | Contraints of the index. Constraints can be on the implementation and its value type.
   type ICon i v :: Constraint
-  type ICon i v =  NFData v
+  type ICon i v =  IndexValue v
 
   -- | General lookup function.
-  search        :: ICon i v => TextSearchOp -> IKey i v -> i v -> [(IKey i v, IVal i v)]
+  search        :: (IndexValue (v), ICon i v) => TextSearchOp -> IKey i v -> i v -> [(IKey i v, v)]
 
-  searchSc      :: ICon i v => TextSearchOp -> IKey i v -> i v -> [(IKey i v, (Score, IVal i v))]
+  searchSc      :: (IndexValue (v), ICon i v) => TextSearchOp -> IKey i v -> i v -> [(IKey i v, (Score, v))]
   searchSc op k ix = addDefScore $ search op k ix
 
   -- | Search within a range of two keys.
-  lookupRange   :: ICon i v => IKey i v -> IKey i v -> i v -> [(IKey i v, IVal i v)]
+  lookupRange   :: (IndexValue (v), ICon i v) => IKey i v -> IKey i v -> i v -> [(IKey i v, v)]
 
-  lookupRangeSc :: ICon i v => IKey i v -> IKey i v -> i v -> [(IKey i v, (Score, IVal i v))]
+  lookupRangeSc :: (IndexValue (v), ICon i v) => IKey i v -> IKey i v -> i v -> [(IKey i v, (Score, v))]
   lookupRangeSc k1 k2 ix
                 = addDefScore $ lookupRange k1 k2 ix
 
   -- | Insert occurrences.
   --   This is more efficient than folding with 'insert'.
-  insertList    :: ICon i v =>
-                   (IVal i v -> IVal i v -> IVal i v) ->
-                   [(IKey i v, IVal i v)] -> i v -> i v
+  insertList    :: (IndexValue (v), ICon i v) =>
+                   [(IKey i v, v)] -> i v -> i v
 
   -- | Insert occurrences.
-  insert        :: ICon i v =>
-                   (IVal i v -> IVal i v -> IVal i v) ->
-                   IKey i v -> IVal i v -> i v -> i v
-  insert op k v  = insertList op [(k,v)]
+  insert        :: (IndexValue (v), ICon i v) =>
+                   IKey i v -> v -> i v -> i v
+  insert   k v  = insertList [(k,v)]
 
   -- | Delete as batch job.
   --   This is more efficient than folding with 'delete'.
@@ -85,14 +104,14 @@ class Index i where
 
   -- | Convert an index to a list.
   --   Can be used for easy conversion between different index implementations.
-  toList        :: ICon i v => i v -> [(IKey i v, IVal i v)]
+  toList        :: (IndexValue (v), ICon i v) => i v -> [(IKey i v, v)]
 
   -- | Convert a list of key-value pairs to an index.
-  fromList      :: ICon i v => [(IKey i v, IVal i v)] -> i v
+  fromList      :: (IndexValue (v), ICon i v) => [(IKey i v, v)] -> i v
 
   -- | Merge two indexes with a combining function.
-  unionWith     :: ICon i v
-                => (IVal i v -> IVal i v -> IVal i v)
+  unionWith     :: (IndexValue (v), ICon i v)
+                => (v -> v -> v)
                 -> i v -> i v -> i v
 
   --   Merge two indexes with combining functions.
@@ -105,14 +124,14 @@ class Index i where
 
   -- TODO: non-rigid map
   -- | Map a function over the values of the index.
-  map           :: ICon i v
-                => (IVal i v -> IVal i v)
+  map           :: (IndexValue (v), ICon i v)
+                => (v -> v)
                 -> i v -> i v
   map f = mapMaybe (Just . f)
 
   -- | Updates a value or deletes it if the result of the function is 'Nothing'.
-  mapMaybe      :: ICon i v
-                => (IVal i v -> Maybe (IVal i v))
+  mapMaybe      :: (IndexValue (v), ICon i v)
+                => (v -> Maybe (v))
                 -> i v -> i v
 
   -- | Keys of the index.
@@ -136,86 +155,84 @@ class Monad m => IndexM m i where
   type IConM     i v =  NFData v
 
   -- | Monadic version of 'search'.
-  searchM      :: IConM i v => TextSearchOp -> IKeyM i v -> i v -> m [(IKeyM i v, IValM i v)]
+  searchM      :: (IndexValue (IValM i v), IConM i v) => TextSearchOp -> IKeyM i v -> i v -> m [(IKeyM i v, IValM i v)]
 
   -- | Monadic version of 'search' with (default) scoring.
-  searchMSc     :: IConM i v => TextSearchOp -> IKeyM i v -> i v -> m [(IKeyM i v, (Score, IValM i v))]
+  searchMSc     :: (IndexValue (IValM i v), IConM i v) => TextSearchOp -> IKeyM i v -> i v -> m [(IKeyM i v, (Score, IValM i v))]
   searchMSc op k ix
                 = searchM op k ix >>= return . addDefScore
 
   -- | Monadic version of 'lookupRangeM'.
-  lookupRangeM :: IConM i v => IKeyM i v -> IKeyM i v -> i v -> m [(IKeyM i v, IValM i v)]
+  lookupRangeM :: (IndexValue (IValM i v), IConM i v) => IKeyM i v -> IKeyM i v -> i v -> m [(IKeyM i v, IValM i v)]
 
-  lookupRangeMSc :: IConM i v => IKeyM i v -> IKeyM i v -> i v -> m [(IKeyM i v, (Score, IValM i v))]
+  lookupRangeMSc :: (IndexValue (IValM i v), IConM i v) => IKeyM i v -> IKeyM i v -> i v -> m [(IKeyM i v, (Score, IValM i v))]
   lookupRangeMSc k1 k2 ix
                 = lookupRangeM k1 k2 ix >>= return . addDefScore
 
   -- | Monadic version of 'insertList'.
-  insertListM  :: IConM i v =>
-                  (IValM i v -> IValM i v -> IValM i v) ->
+  insertListM  :: (IndexValue (IValM i v), IConM i v) =>
                   [(IKeyM i v, IValM i v)] -> i v -> m (i v)
 
   -- | Monadic version of 'insert'.
-  insertM      :: IConM i v =>
-                  (IValM i v -> IValM i v -> IValM i v) ->
+  insertM      :: (IndexValue (IValM i v), IConM i v) =>
                   IKeyM i v -> IValM i v -> i v -> m (i v)
-  insertM op k v = insertListM op [(k,v)]
+  insertM k v  = insertListM [(k,v)]
 
   -- | Monadic version of 'deleteDocs'.
-  deleteDocsM  :: IConM i v => DocIdSet -> i v -> m (i v)
+  deleteDocsM  :: (IndexValue (IValM i v), IConM i v) => DocIdSet -> i v -> m (i v)
 
   -- | Monadic version of 'delete'.
-  deleteM      :: IConM i v => DocId -> i v -> m (i v)
+  deleteM      :: (IndexValue (IValM i v), IConM i v) => DocId -> i v -> m (i v)
   deleteM k i  = deleteDocsM (DS.singleton k) i
 
   -- | Monadic version of 'empty'.
-  emptyM       :: IConM i v => m (i v)
+  emptyM       :: (IndexValue (IValM i v), IConM i v) => m (i v)
 
   -- | Monadic version of 'toList'.
-  toListM      :: IConM i v => i v -> m [(IKeyM i v, IValM i v)]
+  toListM      :: (IndexValue (IValM i v), IConM i v) => i v -> m [(IKeyM i v, IValM i v)]
 
   -- | Monadic version of 'fromList'.
-  fromListM    :: IConM i v => [(IKeyM i v, IValM i v)] -> m (i v)
+  fromListM    :: (IndexValue (IValM i v), IConM i v) => [(IKeyM i v, IValM i v)] -> m (i v)
 
   -- | Monadic version of 'unionWith'.
-  unionWithM   :: IConM i v =>
+  unionWithM   :: (IndexValue (IValM i v), IConM i v) =>
                   (IValM i v -> IValM i v -> IValM i v) ->
                   i v -> i v -> m (i v)
 
   --  Monadic version of 'unionWithConv'.
-  -- unionWithConvM :: (IConM i v, Monad m, IConM i v2)
+  -- unionWithConvM :: ((IndexValue (IValM i v), IConM i v), Monad m, (IndexValue (IValM i v), IConM i v)2)
   --               => (v2 -> v) -> (v -> v2 -> v)
   --               -> i v -> i v2 -> m (i v)
 
   -- | Monadic version of 'map'.
-  mapM         :: IConM i v
+  mapM         :: (IndexValue (IValM i v), IConM i v)
                => (IValM i v -> IValM i v)
                -> i v -> m (i v)
   mapM f = mapMaybeM (Just . f)
 
   -- | Monadic version of 'mapMaybe'.
-  mapMaybeM    :: IConM i v
+  mapMaybeM    :: (IndexValue (IValM i v), IConM i v)
                => (IValM i v -> Maybe (IValM i v))
                -> i v -> m (i v)
 
   -- | Monadic version of 'keys'.
-  keysM        :: IConM i v
+  keysM        :: (IndexValue (IValM i v), IConM i v)
                => i v -> m [IKeyM i v]
 
 -- ------------------------------------------------------------
 
 instance (Index i, Monad m) => IndexM m i where
   type IKeyM i v             = IKey i v
-  type IValM i v             = IVal i v
+  type IValM i v             = v
   type IConM i v             = ICon i v
 
   searchM   op s i           = return $  search op s i
   searchMSc op s i           = return $  searchSc op s i
   lookupRangeM   l u i       = return $  lookupRange   l u i
   lookupRangeMSc l u i       = return $  lookupRangeSc l u i
-  insertListM op vs i        = return $! insertList op vs i
+  insertListM  vs i          = return $! insertList vs i
   deleteDocsM ds i           = return $! deleteDocs ds i
-  insertM op k v i           = return $! insert op k v i
+  insertM k v i              = return $! insert k v i
   deleteM k i                = return $! delete k i
   emptyM                     = return $! empty
   toListM i                  = return $  toList i

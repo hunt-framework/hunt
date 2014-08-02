@@ -90,9 +90,9 @@ import           Hunt.Utility
 -- | Context index introduces contexts and combines the major components of Hunt.
 
 data ContextIndex dt = ContextIndex
-  { ciIndex  :: !(ContextMap Occurrences) -- ^ Indexes associated to contexts.
-  , ciDocs   :: !dt                        -- ^ Document table.
-  , ciSchema :: !Schema                    -- ^ Schema associated to contexts.
+  { ciIndex  :: !ContextMap -- ^ Indexes associated to contexts.
+  , ciDocs   :: !dt         -- ^ Document table.
+  , ciSchema :: !Schema     -- ^ Schema associated to contexts.
   }
 
 empty :: DocTable dt => ContextIndex dt
@@ -100,29 +100,29 @@ empty = ContextIndex emptyContextMap Dt.empty M.empty
 
 -- | Contexts with associated heterogeneous index implementations.
 
-newtype ContextMap v
-  = ContextMap { cxMap :: Map Context (Impl.IndexImpl v) }
+newtype ContextMap
+  = ContextMap { cxMap :: Map Context Impl.IndexImpl }
   deriving (Show)
 
 -- | Empty context map.
-emptyContextMap :: ContextMap v
+emptyContextMap :: ContextMap
 emptyContextMap = mkContextMap $ M.empty
 
 
 -- | Strict smart constructor for the 'ContextMap'.
 
-mkContextMap :: Map Context (Impl.IndexImpl v) -> ContextMap v
+mkContextMap :: Map Context Impl.IndexImpl -> ContextMap
 mkContextMap x = ContextMap $! x
 
 -- ------------------------------------------------------------
 -- Binary / Serialization
 -- ------------------------------------------------------------
 
-getContextMap :: [IndexImpl Occurrences] -> Get (ContextMap Occurrences)
+getContextMap :: [IndexImpl] -> Get ContextMap
 getContextMap ts = mkContextMap <$>
                    liftM M.fromDistinctAscList (Impl.gets' ts)
 
-instance Binary v => Binary (ContextMap v) where
+instance Binary v => Binary ContextMap where
   put = put . cxMap
   get = get >>= return . mkContextMap
 
@@ -132,15 +132,15 @@ instance Binary v => Binary (ContextMap v) where
 --   /Note/: The serialized index implementations have to  be in the list of available types,
 --           otherwise this will fail.
 
-decodeCxIx :: (Binary dt, DocTable dt) => [IndexImpl Occurrences] -> ByteString -> ContextIndex dt
+decodeCxIx :: (Binary dt, DocTable dt) => [IndexImpl] -> ByteString -> ContextIndex dt
 decodeCxIx ts = runGet (get' ts)
 
-get' :: Binary dt => [IndexImpl Occurrences] -> Get (ContextIndex dt)
+get' :: Binary dt => [IndexImpl] -> Get (ContextIndex dt)
 get' ts = ContextIndex <$> (getContextMap ts) <*> get <*> get
 
-instance Binary dt => Binary (ContextIndex dt) where
-  get = ContextIndex <$> get <*> get <*> get
-  put (ContextIndex a b c) = put a >> put b >> put c
+--instance Binary dt => Binary (ContextIndex dt) where
+--  get = ContextIndex <$> get <*> get <*> get
+--  put (ContextIndex a b c) = put a >> put b >> put c
 
 -- ------------------------------------------------------------
 
@@ -278,25 +278,25 @@ modifyWithDescription weight descr wrds dId (ContextIndex ii dt s)
 --   /Note/: Adds words to /existing/ 'Context's.
 
 batchAddWordsM :: (Functor m, Par.MonadParallel m) =>
-                  [(DocId, Words)] -> ContextMap Occurrences -> m (ContextMap Occurrences)
+                  [(DocId, Words)] -> ContextMap -> m ContextMap
 batchAddWordsM vs (ContextMap m)
   = mkContextMap <$> mapWithKeyMP (\cx impl -> foldinsertList cx impl) m
   where
     foldinsertList :: (Functor m, Monad m) =>
-                      Context -> IndexImpl Occurrences -> m (IndexImpl Occurrences)
+                      Context -> IndexImpl -> m (IndexImpl)
     foldinsertList cx (Impl.IndexImpl impl)
-        = Impl.mkIndex <$> Ix.insertListM Occ.merge (contentForCx cx vs) impl
+        = Impl.mkIndex <$> Ix.insertListM (contentForCx cx vs) impl
 
 -- | Computes the words and occurrences out of a list for one context
 
-contentForCx :: Context -> [(DocId, Words)] -> [(Word, Occurrences)]
+contentForCx :: Ix.IndexValue v => Context -> [(DocId, Words)] -> [(Word, v)]
 contentForCx cx vs
     = res
     where
       res = concatMap (invert . second (getWlForCx cx)) $ vs
           where
             invert (did, wl)
-                = map (second (Occ.singleton' did)) $ M.toList wl
+                = map (second (Ix.toOccurrences . Occ.singleton' did)) $ M.toList wl
             getWlForCx cx' ws'
                 = fromMaybe M.empty (M.lookup cx' ws')
 
@@ -317,7 +317,7 @@ mapWithKeyMP f m =
 -- | Inserts a new context.
 --
 
-insertContext :: Context -> Impl.IndexImpl Occurrences -> ContextSchema
+insertContext :: Context -> Impl.IndexImpl -> ContextSchema
               -> ContextIndex dt -> ContextIndex dt
 insertContext c ix schema (ContextIndex m dt s)
     = ContextIndex  m' dt s'
@@ -326,7 +326,7 @@ insertContext c ix schema (ContextIndex m dt s)
     s' = M.insert c schema s
 
 --   /Note/: Does nothing if the context already exists.
-insertContext' :: Context -> Impl.IndexImpl v -> ContextMap v -> ContextMap v
+insertContext' :: Context -> Impl.IndexImpl -> ContextMap -> ContextMap
 insertContext' c ix (ContextMap m) = mkContextMap $ M.insertWith (const id) c ix m
 
 -- | Removes context (including the index and the schema).
@@ -334,10 +334,10 @@ deleteContext :: Context -> ContextIndex dt -> ContextIndex dt
 deleteContext c (ContextIndex ix dt s) = ContextIndex (deleteContext' c ix) dt (M.delete c s)
 
 -- | Removes context (includes the index, but not the schema).
-deleteContext' :: Context -> ContextMap v -> ContextMap v
+deleteContext' :: Context -> ContextMap -> ContextMap
 deleteContext' cx (ContextMap m) = mkContextMap $ M.delete cx m
 
-delete' :: Par.MonadParallel m => DocIdSet -> ContextMap v -> m (ContextMap v)
+delete' :: Par.MonadParallel m => DocIdSet -> ContextMap -> m ContextMap
 delete' dIds (ContextMap m)
   = mapWithKeyMP (\_ impl -> adjust' impl) m >>= return . mkContextMap
 --  = TV.mapM adjust' m >>= return . mkContextMap
@@ -347,7 +347,7 @@ delete' dIds (ContextMap m)
 {- not yet used
 
 -- | Search query in all context.
-search :: Monad m => TextSearchOp -> Text -> ContextMap v -> m [(Context, [(Text, v)])]
+search :: Monad m => TextSearchOp -> Text -> ContextMap -> m [(Context, [(Text, v)])]
 search op k (ContextMap m)
   = liftM M.toList $ TV.mapM search' m
   where
@@ -355,24 +355,24 @@ search op k (ContextMap m)
 -- -}
 
 -- | Range query in a context between first and second key.
-lookupRangeCx :: Monad m => Context -> Text -> Text -> ContextMap v -> m [(Text, v)]
+lookupRangeCx :: Monad m => Context -> Text -> Text -> ContextMap -> m [(Text, v)]
 lookupRangeCx c k1 k2 cm
     = lookupIndex c cm $ Ix.lookupRangeM k1 k2
 
 -- | Dump a context
-lookupAllWithCx :: Monad m => Context -> ContextMap v -> m [(Text, v)]
+lookupAllWithCx :: Monad m => Context -> ContextMap -> m [(Text, v)]
 lookupAllWithCx cx cm
     = lookupIndex cx cm $ Ix.toListM
 
 -- | Search query in a context.
-searchWithCx :: Monad m => TextSearchOp -> Context -> Text -> ContextMap v -> m [(Text, v)]
+searchWithCx :: Monad m => TextSearchOp -> Context -> Text -> ContextMap -> m [(Text, v)]
 searchWithCx op cx w cm
     = lookupIndex cx cm $ Ix.searchM op w
 
 
 -- | Search over a list of contexts and words
 searchWithCxsNormalized :: (Functor m, Monad m) =>
-                           TextSearchOp -> [(Context, Text)] -> ContextMap v ->
+                           TextSearchOp -> [(Context, Text)] -> ContextMap ->
                            m [(Context, [(Text, v)])]
 searchWithCxsNormalized op cxws cm
     = P.mapM (uncurry search') cxws
@@ -383,12 +383,12 @@ searchWithCxsNormalized op cxws cm
 
 -- | Search query with scored results
 searchWithCxSc :: Monad m =>
-                  TextSearchOp -> Context -> Text -> ContextMap v -> m [(Text, (Score, v))]
+                  TextSearchOp -> Context -> Text -> ContextMap -> m [(Text, (Score, v))]
 searchWithCxSc op cx w cm
     = lookupIndex cx cm $ Ix.searchMSc op w
 
 -- | Range query in a context between first and second key.
-lookupRangeCxSc :: Monad m => Context -> Text -> Text -> ContextMap v -> m [(Text, (Score, v))]
+lookupRangeCxSc :: Monad m => Context -> Text -> Text -> ContextMap -> m [(Text, (Score, v))]
 lookupRangeCxSc c k1 k2 cm
     = lookupIndex c cm $ Ix.lookupRangeMSc k1 k2
 
@@ -400,7 +400,7 @@ lookupRangeCxSc c k1 k2 cm
 -- This pattern is used in all search variants
 
 lookupIndex :: (Monad m) =>
-               Context -> ContextMap v ->
+               Context -> ContextMap ->
                (forall i . Impl.IndexImplCon i v => i v -> m [r]) ->
                m [r]
 
@@ -429,11 +429,11 @@ contextsM :: (Monad m, DocTable dt)
 contextsM (ContextIndex ix _dt _s) = return $ contexts ix
 
 -- | Contexts/keys of 'ContextMap'.
-contexts :: ContextMap v -> [Context]
+contexts :: ContextMap -> [Context]
 contexts (ContextMap m) = M.keys m
 
 -- | Check if the context exists.
-hasContext :: Context -> ContextMap v -> Bool
+hasContext :: Context -> ContextMap -> Bool
 hasContext c (ContextMap m) = M.member c m
 
 -- | Does the context exist?

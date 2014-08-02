@@ -106,7 +106,7 @@ data ContextType = CType
     -- | Validation function for keys.
   , ctValidate :: CValidator
     -- | The index implementation used for this type.
-  , ctIxImpl   :: IndexImpl Occurrences
+  , ctIxImpl   :: IndexImpl
   }
   deriving Show
 
@@ -157,25 +157,25 @@ ctPosition = CType
 -- IndexImpls
 -- ------------------------------------------------------------
 
-instance Default (IndexImpl Occurrences) where
+instance Default IndexImpl where
   def = defaultInv
 
 -- ------------------------------------------------------------
 
 -- | Default (text) index implementation.
-defaultInv :: IndexImpl Occurrences
+defaultInv :: IndexImpl
 defaultInv = mkIndex (Ix.empty :: InvertedIndex Occurrences)
 
 -- | Int index implementation.
-intInv :: IndexImpl Occurrences
+intInv :: IndexImpl
 intInv = mkIndex (Ix.empty :: InvertedIndexInt Occurrences)
 
 -- | Date index implementation.
-dateInv :: IndexImpl Occurrences
+dateInv :: IndexImpl
 dateInv = mkIndex (Ix.empty :: InvertedIndexDate Occurrences)
 
 -- | Geographic position index implementation.
-positionInv :: IndexImpl Occurrences
+positionInv :: IndexImpl
 --positionInv = mkIndex (Ix.empty :: InvertedIndexPosition Occurrences)
 positionInv = mkIndex (Ix.empty :: InvertedIndexRTree Occurrences)
 

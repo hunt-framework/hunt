@@ -30,7 +30,6 @@ import           Data.Typeable
 import           Data.Typeable.Binary        ()
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.Occurrences     (Occurrences)
 import           Hunt.Index
 
 -- ------------------------------------------------------------
@@ -39,9 +38,10 @@ import           Hunt.Index
 type IndexImplCon i v
   = ( Index i
     , IKey i v ~ Text
-    , IVal i v ~ v
     , ICon i v
     , Show (i v)
+    , IndexValue v
+    , Binary v
     , Binary (i v)
     , Typeable (i v)
     )
@@ -49,23 +49,23 @@ type IndexImplCon i v
 -- ------------------------------------------------------------
 
 -- | Index using @ExistentialQuantification@ to allow heterogeneous index containers.
-data IndexImpl v
-  = forall i. IndexImplCon i v => IndexImpl { ixImpl :: i v }
+data IndexImpl
+  = forall i v. IndexImplCon i v => IndexImpl { ixImpl :: i v }
 
 -- ------------------------------------------------------------
 
-instance Show (IndexImpl v) where
+instance Show IndexImpl where
   show (IndexImpl v) = show v
 
 -- FIXME: not 'rnf v `seq` ()'. is it supposed to be that way?
-instance NFData (IndexImpl v) where
+instance NFData IndexImpl where
   rnf (IndexImpl v) = v `seq` ()
 
 -- ------------------------------------------------------------
 -- Serialization
 
 -- | FIXME: actually implement instance
-instance Binary (IndexImpl v) where
+instance Binary IndexImpl where
   put (IndexImpl i) = put (typeOf i) >> put i
   get = error "existential types cannot be deserialized this way. Use special get' functions"
 
@@ -74,7 +74,7 @@ instance Binary (IndexImpl v) where
 -- | Deserialize a set of 'IndexImpl's. Requires a set of available index implementations.
 --
 --   /Note/: This will fail if a used index implementation is not provided.
-gets' :: [IndexImpl Occurrences] -> Get [(Context, IndexImpl Occurrences)]
+gets' :: [IndexImpl] -> Get [(Context, IndexImpl)]
 gets' ts = do
   n <- get :: Get Int
   go [] n
@@ -87,7 +87,7 @@ gets' ts = do
 -- | Deserialize an 'IndexImpl'. Requires a set of available index implementations.
 --
 --   /Note/: This will fail if a used index implementation is not provided.
-get' :: [IndexImpl Occurrences] -> Get (IndexImpl Occurrences)
+get' :: [IndexImpl] -> Get (IndexImpl)
 get' ts = do
   t <- get :: Get TypeRep
   case L.find (\(IndexImpl i) -> t == typeOf i) ts of
@@ -97,7 +97,7 @@ get' ts = do
 -- ------------------------------------------------------------
 
 -- | Wrap an index using @ExistentialQuantification@ to allow heterogeneous containers.
-mkIndex :: IndexImplCon i v => i v -> IndexImpl v
+mkIndex :: IndexImplCon i v => i v -> IndexImpl
 mkIndex i = IndexImpl $! i
 
 -- ------------------------------------------------------------

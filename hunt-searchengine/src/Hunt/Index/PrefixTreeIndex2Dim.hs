@@ -22,7 +22,6 @@ import qualified Data.StringMap.Dim2Search as SM2
 import qualified Data.StringMap.Strict     as SM
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocIdMap      as DM
 import           Hunt.Index
 
 import           Hunt.Utility
@@ -33,10 +32,10 @@ import           Hunt.Utility
 --   Note that the value parameter is on the type of the 'DocIdMap' value and not the 'Occurrences'
 --   itself.
 newtype DmPrefixTree v
-  = DmPT { dmPT :: SM.StringMap (DocIdMap v) }
+  = DmPT { dmPT :: SM.StringMap v }
   deriving (Eq, Show, NFData, Typeable)
 
-mkDmPT :: NFData v => SM.StringMap (DocIdMap v) -> DmPrefixTree v
+mkDmPT :: NFData v => SM.StringMap v -> DmPrefixTree v
 mkDmPT v = DmPT $! v
 
 -- ------------------------------------------------------------
@@ -49,14 +48,12 @@ instance (NFData v,Binary v) => Binary (DmPrefixTree v) where
 
 instance Index DmPrefixTree where
   type IKey DmPrefixTree v = SM.Key
-  type IVal DmPrefixTree v = DocIdMap v
 
-  insertList op kvs (DmPT pt) =
-    mkDmPT $ SM.unionWith op pt (SM.fromList kvs)
+  insertList kvs (DmPT pt) =
+    mkDmPT $ SM.unionWith mergeValues pt (SM.fromList kvs)
 
   deleteDocs ks (DmPT pt)
-    = mkDmPT $ SM.mapMaybe (\m -> let dm = DM.diffWithSet m ks
-                                  in if DM.null dm then Nothing else Just dm) pt
+    = mkDmPT $ SM.mapMaybe (diffValues ks) pt
 
   empty
     = mkDmPT $ SM.empty

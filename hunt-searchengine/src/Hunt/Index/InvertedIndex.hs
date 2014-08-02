@@ -66,17 +66,17 @@ import qualified Hunt.Index.Schema.Normalize.Position as Pos
 -- ------------------------------------------------------------
 
 -- | Text index using a 'StringMap'-implementation.
-newtype InvertedIndex _v
-  = InvIx { invIx :: KeyProxyIndex Text DmPrefixTree Positions }
+newtype InvertedIndex v
+  = InvIx { invIx :: KeyProxyIndex Text DmPrefixTree v }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvIx :: KeyProxyIndex Text DmPrefixTree Positions
-        -> InvertedIndex _v
+mkInvIx :: KeyProxyIndex Text DmPrefixTree v
+        -> InvertedIndex v
 mkInvIx x = InvIx $! x
 
 -- ------------------------------------------------------------
 
-instance Binary (InvertedIndex v) where
+instance IndexValue v => Binary (InvertedIndex v) where
   put = put . invIx
   get = get >>= return . mkInvIx
 
@@ -84,10 +84,9 @@ instance Binary (InvertedIndex v) where
 
 instance Index InvertedIndex where
   type IKey InvertedIndex v = Word
-  type IVal InvertedIndex v = Occurrences
 
-  insertList op wos (InvIx i)
-    = mkInvIx $ insertList op wos i
+  insertList wos (InvIx i)
+    = mkInvIx $ insertList wos i
 
   deleteDocs docIds (InvIx i)
     = mkInvIx $ deleteDocs docIds i
@@ -170,17 +169,17 @@ similar' searched found
 -- ------------------------------------------------------------
 
 -- | Text index with 2-dimensional lookup using a 'StringMap'-implementation.
-newtype InvertedIndex2Dim _v
-  = InvIx2D { invIx2D :: KeyProxyIndex Text PT2D.DmPrefixTree Positions }
+newtype InvertedIndex2Dim v
+  = InvIx2D { invIx2D :: KeyProxyIndex Text PT2D.DmPrefixTree v }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvIx2D :: KeyProxyIndex Text PT2D.DmPrefixTree Positions
-        -> InvertedIndex2Dim _v
+mkInvIx2D :: KeyProxyIndex Text PT2D.DmPrefixTree v
+        -> InvertedIndex2Dim v
 mkInvIx2D x = InvIx2D $! x
 
 -- ------------------------------------------------------------
 
-instance Binary (InvertedIndex2Dim v) where
+instance IndexValue v => Binary (InvertedIndex2Dim v) where
   put = put . invIx2D
   get = get >>= return . mkInvIx2D
 
@@ -188,10 +187,9 @@ instance Binary (InvertedIndex2Dim v) where
 
 instance Index InvertedIndex2Dim where
   type IKey InvertedIndex2Dim v = Word
-  type IVal InvertedIndex2Dim v = Occurrences
 
-  insertList op wos (InvIx2D i)
-    = mkInvIx2D $ insertList op wos i
+  insertList wos (InvIx2D i)
+    = mkInvIx2D $ insertList wos i
 
   deleteDocs docIds (InvIx2D i)
     = mkInvIx2D $ deleteDocs docIds i
@@ -259,7 +257,7 @@ mkInvIntIx x = InvIntIx $! x
 
 -- ------------------------------------------------------------
 
-instance Binary (InvertedIndexInt v) where
+instance IndexValue v => Binary (InvertedIndexInt v) where
   put = put . invIntIx
   get = get >>= return . InvIntIx
 
@@ -267,10 +265,9 @@ instance Binary (InvertedIndexInt v) where
 
 instance Index InvertedIndexInt where
   type IKey InvertedIndexInt v = Text
-  type IVal InvertedIndexInt v = Occurrences
 
-  insertList op wos (InvIntIx i)
-    = mkInvIntIx $ insertList op wos i
+  insertList wos (InvIntIx i)
+    = mkInvIntIx $ insertList wos i
 
   deleteDocs docIds (InvIntIx i)
     = mkInvIntIx $ deleteDocs docIds i
@@ -384,7 +381,7 @@ mkInvDateIx x = InvDateIx $! x
 
 -- ------------------------------------------------------------
 
-instance Binary (InvertedIndexDate v) where
+instance IndexValue v => Binary (InvertedIndexDate v) where
   put = put . invDateIx
   get = get >>= return . mkInvDateIx
 
@@ -392,10 +389,9 @@ instance Binary (InvertedIndexDate v) where
 
 instance Index InvertedIndexDate where
   type IKey InvertedIndexDate v = Word
-  type IVal InvertedIndexDate v = Occurrences
 
-  insertList op wos (InvDateIx i)
-    = mkInvDateIx $ insertList op wos i
+  insertList wos (InvDateIx i)
+    = mkInvDateIx $ insertList wos i
 
   deleteDocs docIds (InvDateIx i)
     = mkInvDateIx $ deleteDocs docIds i
@@ -461,7 +457,7 @@ mkInvPosIx x = InvPosIx $! x
 
 -- ------------------------------------------------------------
 
-instance Binary (InvertedIndexPosition v) where
+instance IndexValue v => Binary (InvertedIndexPosition v) where
   put = put . invPosIx
   get = get >>= return . mkInvPosIx
 
@@ -469,10 +465,9 @@ instance Binary (InvertedIndexPosition v) where
 
 instance Index InvertedIndexPosition where
   type IKey InvertedIndexPosition v = Word
-  type IVal InvertedIndexPosition v = Occurrences
 
-  insertList op wos (InvPosIx i)
-    = mkInvPosIx $ insertList op wos i
+  insertList wos (InvPosIx i)
+    = mkInvPosIx $ insertList wos i
 
   deleteDocs docIds (InvPosIx i)
     = mkInvPosIx $ deleteDocs docIds i
@@ -520,16 +515,16 @@ instance Bijection MBB Text where
 -- ------------------------------------------------------------
 
 -- | Date index using a 'StringMap'-implementation.
-newtype InvertedIndexRTree _v
-  = InvRTreeIx { invRTreeIx :: KeyProxyIndex Text RTx.RTreeIndex Positions }
+newtype InvertedIndexRTree v
+  = InvRTreeIx { invRTreeIx :: KeyProxyIndex Text RTx.RTreeIndex v}
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvRTreeIx :: KeyProxyIndex Text RTx.RTreeIndex Positions -> InvertedIndexRTree _v
+mkInvRTreeIx :: KeyProxyIndex Text RTx.RTreeIndex v -> InvertedIndexRTree v
 mkInvRTreeIx x = InvRTreeIx $! x
 
 -- ------------------------------------------------------------
 
-instance Binary (InvertedIndexRTree v) where
+instance IndexValue v => Binary (InvertedIndexRTree v) where
   put = put . invRTreeIx
   get = get >>= return . mkInvRTreeIx
 
@@ -537,10 +532,9 @@ instance Binary (InvertedIndexRTree v) where
 
 instance Index InvertedIndexRTree where
   type IKey InvertedIndexRTree v = Text
-  type IVal InvertedIndexRTree v = Occurrences
 
-  insertList op wos (InvRTreeIx i)
-    = mkInvRTreeIx $ insertList op wos i
+  insertList wos (InvRTreeIx i)
+    = mkInvRTreeIx $ insertList wos i
 
   deleteDocs docIds (InvRTreeIx i)
     = mkInvRTreeIx $ deleteDocs docIds i

@@ -26,11 +26,8 @@ import           Data.Text                            (Text)
 import qualified Data.Text                            as T (pack, unpack)
 import           Data.Typeable
 
--- import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocIdMap                 as DM
 import           Hunt.Index
 import           Hunt.Index.Schema.Normalize.Position (position)
--- import           Hunt.Utility
 
 import           Text.Parsec
 
@@ -39,10 +36,10 @@ import           Text.Parsec
 
 -- | Index using 'Data.RTree'
 newtype RTreeIndex v
-  = DmRT { dmRT :: RT.RTree (DocIdMap v) }
+  = DmRT { dmRT :: RT.RTree v }
   deriving (Eq, Show, NFData, Typeable)
 
-mkDmRT :: NFData v => RT.RTree (DocIdMap v) -> RTreeIndex v
+mkDmRT :: NFData v => RT.RTree v -> RTreeIndex v
 mkDmRT v = DmRT $! v
 
 -- ------------------------------------------------------------
@@ -55,10 +52,9 @@ instance (NFData v,Binary v) => Binary (RTreeIndex v) where
 
 instance Index RTreeIndex where
   type IKey RTreeIndex v = RT.MBB
-  type IVal RTreeIndex v = DocIdMap v
 
-  insertList op kvs (DmRT rt) =
-    mkDmRT $ L.foldl' (\ m' (k', v') -> RT.insertWith op k' v' m') rt kvs
+  insertList kvs (DmRT rt) =
+    mkDmRT $ L.foldl' (\ m' (k', v') -> RT.insertWith mergeValues k' v' m') rt kvs
 
     {- same problem as in PrefixTreeIndex, the k' in kvs don't need to be unique
 
@@ -66,14 +62,7 @@ instance Index RTreeIndex where
     -}
 
   deleteDocs ks (DmRT rt)
-    = mkDmRT $
-      RT.mapMaybe
-            ( \m -> let dm = DM.diffWithSet m ks
-                    in
-                      if DM.null dm
-                      then Nothing
-                      else Just dm
-            ) rt
+    = mkDmRT $ RT.mapMaybe (diffValues ks) rt
 
   empty
     = mkDmRT $ RT.empty

@@ -59,15 +59,16 @@ instance Binary (impl v) => Binary (KeyProxyIndex toType impl v) where
 
 instance Index (KeyProxyIndex toType impl) where
   type IKey      (KeyProxyIndex toType impl) v = toType
-  type IVal      (KeyProxyIndex toType impl) v = IVal impl v
+  type IVal      (KeyProxyIndex toType impl) v = v
+
   type ICon      (KeyProxyIndex toType impl) v =
     ( Index impl
     , ICon impl v
     , Bijection (IKey impl v) toType
     )
 
-  insertList op kvs (KeyProxyIx i)
-    = mkKeyProxyIx $ insertList op (P.map (first from) kvs) i
+  insertList kvs (KeyProxyIx i)
+    = mkKeyProxyIx $ insertList (P.map (first from) kvs) i
 
   deleteDocs ks (KeyProxyIx i)
     = mkKeyProxyIx $ deleteDocs ks i

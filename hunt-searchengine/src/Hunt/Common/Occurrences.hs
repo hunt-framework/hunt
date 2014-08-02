@@ -23,6 +23,7 @@ import           Prelude                hiding (subtract)
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
 import           Hunt.Common.DocIdMap   (DocIdMap)
+import           Hunt.Common.DocIdSet   (DocIdSet)
 import qualified Hunt.Common.DocIdMap   as DM
 import           Hunt.Common.Positions  (Positions)
 import qualified Hunt.Common.Positions  as Pos
@@ -87,6 +88,10 @@ merges                  = DM.unionsWith Pos.union
 -- | Difference of occurrences.
 difference              :: Occurrences -> Occurrences -> Occurrences
 difference              = DM.difference
+
+-- | Remove Set of DocIds from Occurrences
+diffWithSet             :: Occurrences -> DocIdSet -> Occurrences
+diffWithSet             = DM.diffWithSet
 
 -- | Subtract occurrences from some other occurrences.
 subtract                :: Occurrences -> Occurrences -> Occurrences

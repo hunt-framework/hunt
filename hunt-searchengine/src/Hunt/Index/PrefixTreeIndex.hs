@@ -22,7 +22,6 @@ import qualified Data.StringMap.Strict  as SM
 import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocIdMap   as DM
 import           Hunt.Index
 
 import           Hunt.Utility
@@ -36,10 +35,10 @@ import           Hunt.Utility
 --   itself.
 
 newtype DmPrefixTree v
-  = DmPT { dmPT :: SM.StringMap (DocIdMap v) }
+  = DmPT { dmPT :: SM.StringMap v}
   deriving (Eq, Show, NFData, Typeable)
 
-mkDmPT :: NFData v => SM.StringMap (DocIdMap v) -> DmPrefixTree v
+mkDmPT :: NFData v => SM.StringMap v -> DmPrefixTree v
 mkDmPT v = DmPT $! v
 
 -- ------------------------------------------------------------
@@ -52,10 +51,9 @@ instance (NFData v,Binary v) => Binary (DmPrefixTree v) where
 
 instance Index DmPrefixTree where
   type IKey DmPrefixTree v = SM.Key
-  type IVal DmPrefixTree v = DocIdMap v
 
-  insertList op kvs (DmPT pt) =
-    mkDmPT $ L.foldl' (\ m' (k', v') -> SM.insertWith op k' v' m') pt kvs
+  insertList kvs (DmPT pt) =
+    mkDmPT $ L.foldl' (\ m' (k', v') -> SM.insertWith mergeValues k' v' m') pt kvs
 
     {- this is a nice try, but does not do what it should do,
        at least for [("a", occ1), ("a", occ2)]
@@ -64,14 +62,7 @@ instance Index DmPrefixTree where
     -}
 
   deleteDocs ks (DmPT pt)
-    = mkDmPT $
-      SM.mapMaybe
-            ( \m -> let dm = DM.diffWithSet m ks
-                    in
-                      if DM.null dm
-                      then Nothing
-                      else Just dm
-            ) pt
+    = mkDmPT $ SM.mapMaybe (diffValues ks) pt
 
   empty
     = mkDmPT $ SM.empty
