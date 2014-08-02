@@ -28,6 +28,7 @@ import           Data.Typeable
 
 import           Hunt.Index
 import           Hunt.Common.Occurrences              (Occurrences)
+import           Hunt.Common.IntermediateValue
 import           Hunt.Index.Schema.Normalize.Position (position)
 
 import           Text.Parsec

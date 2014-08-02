@@ -49,7 +49,6 @@ import           Text.Read                            (readMaybe)
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences              (Occurrences)
-import           Hunt.Common.Positions                (Positions)
 import           Hunt.Index                           as Ix
 import           Hunt.Index.PrefixTreeIndex
 import qualified Hunt.Index.PrefixTreeIndex2Dim       as PT2D

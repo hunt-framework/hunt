@@ -30,6 +30,7 @@ import           Data.Typeable
 import           Data.Typeable.Binary        ()
 
 import           Hunt.Common.BasicTypes
+import           Hunt.Common.IntermediateValue
 import           Hunt.Index
 
 -- ------------------------------------------------------------

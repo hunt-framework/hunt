@@ -49,7 +49,6 @@ import qualified Data.Text                            as T
 import           Data.Text.Binary                     ()
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.Occurrences              (Occurrences)
 import qualified Hunt.Index                           as Ix
 import           Hunt.Index.IndexImpl                 (IndexImpl, mkIndex)
 import           Hunt.Index.InvertedIndex

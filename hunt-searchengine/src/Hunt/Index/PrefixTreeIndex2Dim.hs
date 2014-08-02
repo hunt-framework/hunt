@@ -22,6 +22,7 @@ import qualified Data.StringMap.Dim2Search as SM2
 import qualified Data.StringMap.Strict     as SM
 
 import           Hunt.Common.BasicTypes
+import           Hunt.Common.IntermediateValue
 import           Hunt.Index
 
 import           Hunt.Utility

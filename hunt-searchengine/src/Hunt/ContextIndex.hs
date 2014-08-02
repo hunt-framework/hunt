@@ -78,10 +78,11 @@ import qualified Hunt.Common.DocDesc     as DD
 import qualified Hunt.Common.DocIdSet    as DS
 import qualified Hunt.Common.Document    as Doc
 import qualified Hunt.Common.Occurrences as Occ
+import           Hunt.Common.IntermediateValue
+
 import           Hunt.DocTable           (DocTable)
 import qualified Hunt.DocTable           as Dt
 import qualified Hunt.Index              as Ix
-import           Hunt.Index              (IntermediateValue)
 import           Hunt.Index.IndexImpl    (IndexImpl)
 import qualified Hunt.Index.IndexImpl    as Impl
 import           Hunt.Utility
@@ -290,12 +291,12 @@ batchAddWordsM vs (ContextMap m)
 
 -- | Computes the words and occurrences out of a list for one context
 
-contentForCx :: Context -> [(DocId, Words)] -> [(Word, Ix.IntermediateValue)]
+contentForCx :: Context -> [(DocId, Words)] -> [(Word, IntermediateValue)]
 contentForCx cx vs
     = concatMap (invert . second (getWlForCx cx)) $ vs
           where
             invert (did, wl)
-                = map (second (Ix.toIntermediate . Occ.singleton' did)) $ M.toList wl
+                = map (second (toIntermediate . Occ.singleton' did)) $ M.toList wl
             getWlForCx cx' ws'
                 = fromMaybe M.empty (M.lookup cx' ws')
 
@@ -385,13 +386,13 @@ searchWithCxsNormalized op cxws cm
 searchWithCxSc :: Monad m =>
                   TextSearchOp -> Context -> Text -> ContextMap -> m [(Text, (Score, Occurrences))]
 searchWithCxSc op cx w cm
-    = (lookupIndex cx cm $ Ix.searchMSc op w) >>= return . Ix.fromScoredIntermediates
+    = (lookupIndex cx cm $ Ix.searchMSc op w) >>= return . fromScoredIntermediates
 
 -- | Range query in a context between first and second key.
 -- XXX TODO: this function should return intermediates and query processor should work with those
 lookupRangeCxSc :: Monad m => Context -> Text -> Text -> ContextMap -> m [(Text, (Score, Occurrences))]
 lookupRangeCxSc c k1 k2 cm
-    = (lookupIndex c cm $ Ix.lookupRangeMSc k1 k2) >>= return. Ix.fromScoredIntermediates
+    = (lookupIndex c cm $ Ix.lookupRangeMSc k1 k2) >>= return . fromScoredIntermediates
 
 -- ------------------------------------------------------------
 

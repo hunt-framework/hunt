@@ -81,6 +81,7 @@ library
     Hunt.Common.Occurrences
     Hunt.Common.Positions
     Hunt.Common.RawResult
+    Hunt.Common.IntermediateValue
 
     Hunt.Index.Schema
     Hunt.Index.Schema.Analyze
