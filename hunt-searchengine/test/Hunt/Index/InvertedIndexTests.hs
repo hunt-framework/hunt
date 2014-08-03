@@ -12,6 +12,7 @@ import           Test.QuickCheck.Monadic
 import           Hunt.Common.BasicTypes
 import qualified Hunt.Common.DocIdSet           as DS
 import           Hunt.Common.Occurrences
+import           Hunt.Common.IntermediateValue
 
 import qualified Hunt.Index                     as Ix
 import qualified Hunt.Index.InvertedIndex       as InvIx
@@ -34,7 +35,7 @@ invertedIndexTests = [
   -- fromList
   ]
 
-mkEmpty :: InvIx.InvertedIndex Occurrences
+mkEmpty :: InvIx.InvertedIndex
 mkEmpty = Ix.empty
 
 mkKey :: Word
@@ -44,13 +45,13 @@ mkKey = "test"
 test_delete :: Assertion
 test_delete = do
   let occ = occOne
-  ix <- Ix.insertM merge mkKey occ mkEmpty
+  ix <- Ix.insertM mkKey (toIntermediate occ) mkEmpty
   [(_,nv)] <- Ix.searchM PrefixNoCase mkKey ix
-  nv @?= occ
+  (fromIntermediate nv) @?= occ
   let delNot = DS.fromList [docIdTwo]
   ix' <- Ix.deleteDocsM delNot ix
   [(_,nv')] <- Ix.searchM PrefixNoCase mkKey ix'
-  nv' @?= occ
+  (fromIntermediate nv') @?= occ
   let delReal = DS.fromList [docIdOne]
   ix'' <- Ix.deleteDocsM delReal ix'
   result <- Ix.searchM PrefixNoCase mkKey ix''

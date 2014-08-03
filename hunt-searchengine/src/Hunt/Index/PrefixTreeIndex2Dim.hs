@@ -10,6 +10,7 @@
 
 module Hunt.Index.PrefixTreeIndex2Dim
 ( DmPrefixTree(..)
+, PrefixTreeIndexPosition
 )
 where
 

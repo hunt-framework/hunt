@@ -26,6 +26,9 @@ import           Hunt.Common
 import qualified Hunt.Common.Positions                       as Pos
 import qualified Hunt.Common.Occurrences                     as Occ
 import qualified Hunt.Common.DocIdMap                        as DM
+import qualified Hunt.Common.DocIdSet                        as DS
+
+import           Hunt.Common.IntermediateValue
 
 import qualified Hunt.Index                                  as Ix
 import qualified Hunt.Index.InvertedIndex                    as InvIx
@@ -105,66 +108,66 @@ prop_occs = monadicIO $ do
 prop_ptix :: Property
 prop_ptix
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Positions)
+    ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Occurrences)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "key" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" (toIntermediate (val::Occurrences)) Ix.empty
 
 prop_ptix2d :: Property
 prop_ptix2d
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (PIx2D.DmPrefixTree Positions)
+    ix <- pickIx :: PropertyM IO (PIx2D.DmPrefixTree Occurrences)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "11" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "11" (toIntermediate (val::Occurrences)) Ix.empty
 
 prop_invix1 :: Property
 prop_invix1
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex Positions)
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "key" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" (toIntermediate (val::Occurrences)) Ix.empty
 
 prop_invix2 :: Property
 prop_invix2
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexInt Positions)
+    ix <- pickIx :: PropertyM IO (PIx.PrefixTreeIndexInt)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "1" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1" (toIntermediate (val::Occurrences)) Ix.empty
 
 prop_invix3 :: Property
 prop_invix3
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexDate Positions)
+    ix <- pickIx :: PropertyM IO (PIx.PrefixTreeIndexDate)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "2013-01-01" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "2013-01-01" (toIntermediate (val::Occurrences)) Ix.empty
 
 prop_invix4 :: Property
 prop_invix4
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Positions)
+    ix <- pickIx :: PropertyM IO (PIx2D.PrefixTreeIndexPosition)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "1-1" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" (toIntermediate (val::Occurrences)) Ix.empty
 
 prop_insert_rtree :: Property
 prop_insert_rtree
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Positions)
+    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Occurrences)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge (RTree.readPosition "1-1") val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert (RTree.readPosition "1-1") (toIntermediate (val::Occurrences)) Ix.empty
 
 prop_proxy :: Property
 prop_proxy
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree) Positions)
+    ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree Occurrences))
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert Occ.merge "key" val Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" (toIntermediate (val::Occurrences)) Ix.empty
 
 -- ----------------------------------------------------------------------------
 -- index implementations: delete function
@@ -173,7 +176,7 @@ prop_proxy
 prop_ptix_del :: Property
 prop_ptix_del
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Positions)
+    ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Occurrences)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_delete "key"
@@ -182,7 +185,7 @@ prop_ptix_del
 prop_ptix2d_del :: Property
 prop_ptix2d_del
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (PIx2D.DmPrefixTree Positions)
+    ix <- pickIx :: PropertyM IO (PIx2D.DmPrefixTree Occurrences)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_delete "11"
@@ -190,7 +193,7 @@ prop_ptix2d_del
 prop_invix1_del :: Property
 prop_invix1_del
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex Positions)
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_delete "key"
@@ -198,7 +201,7 @@ prop_invix1_del
 prop_invix2_del :: Property
 prop_invix2_del
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexInt Positions)
+    ix <- pickIx :: PropertyM IO (PIx.PrefixTreeIndexInt)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_delete "1"
@@ -206,7 +209,7 @@ prop_invix2_del
 prop_invix3_del :: Property
 prop_invix3_del
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexDate Positions)
+    ix <- pickIx :: PropertyM IO (PIx.PrefixTreeIndexDate)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_delete "2013-01-01"
@@ -214,7 +217,7 @@ prop_invix3_del
 prop_invix4_del :: Property
 prop_invix4_del
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Positions)
+    ix <- pickIx :: PropertyM IO (PIx2D.PrefixTreeIndexPosition)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_delete "1-1"
@@ -222,7 +225,7 @@ prop_invix4_del
 prop_rtree_del :: Property
 prop_rtree_del
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Positions)
+    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Occurrences)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_delete (RTree.readPosition "1-1")
@@ -230,7 +233,7 @@ prop_rtree_del
 prop_proxy_del :: Property
 prop_proxy_del
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree) Positions)
+    ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree Occurrences))
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_delete "key"
@@ -238,13 +241,13 @@ prop_proxy_del
 --insert_and_delete :: forall v (m :: * -> *) (i :: * -> *) v1.
 --                     (Ix.ICon i v1, Monad m, Ix.Index i, Ix.IVal i v1 ~ DocIdMap v) =>
 --                     Ix.IKey i v1 -> DocIdMap v -> m (i v1)
-insert_and_delete :: forall (m :: * -> *) (i :: * -> *) v.
-                     (Ix.ICon i v, Monad m, Ix.Index i,
-                      Ix.IVal i v ~ DocIdMap Positions) =>
-                      Ix.IKey i v -> DocIdMap Positions -> m (i v)
+--insert_and_delete :: forall (m :: * -> *) (i :: * -> *) v.
+--                     (Ix.ICon i, Monad m, Ix.Index i,
+--                      IndexValue (IVal i)) =>
+--                      Ix.IKey i -> DocIdMap Positions -> m (i v)
 insert_and_delete key v
   = return $ Ix.delete docId
-           $ Ix.insert Occ.merge key v
+           $ Ix.insert key (toIntermediate (v::Occurrences))
            $ Ix.empty
     where
     docId = case DM.toList v of
@@ -258,7 +261,7 @@ insert_and_delete key v
 prop_ptix_map :: Property
 prop_ptix_map
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Positions)
+    ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Occurrences)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_map "key"
@@ -266,7 +269,7 @@ prop_ptix_map
 prop_ptix2d_map :: Property
 prop_ptix2d_map
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (PIx2D.DmPrefixTree Positions)
+    ix <- pickIx :: PropertyM IO (PIx2D.DmPrefixTree Occurrences)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_map "11"
@@ -274,7 +277,7 @@ prop_ptix2d_map
 prop_invix1_map :: Property
 prop_invix1_map
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex Positions)
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_map "key"
@@ -282,31 +285,31 @@ prop_invix1_map
 prop_invix2_map :: Property
 prop_invix2_map
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexInt Positions)
+    ix <- pickIx :: PropertyM IO (PIx.PrefixTreeIndexInt)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= insert_and_map "1"
+  pickIx = pick arbitrary >>= \val -> insert_and_map_withSet "1" (val :: DocIdSet)
 
 prop_invix3_map :: Property
 prop_invix3_map
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexDate Positions)
+    ix <- pickIx :: PropertyM IO (PIx.PrefixTreeIndexDate)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= insert_and_map "2013-01-01"
+  pickIx = pick arbitrary >>= insert_and_map_withSet "2013-01-01"
 
 prop_invix4_map :: Property
 prop_invix4_map
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Positions)
+    ix <- pickIx :: PropertyM IO (PIx2D.PrefixTreeIndexPosition)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= insert_and_map "1-1"
+  pickIx = pick arbitrary >>= insert_and_map_withSet "1-1"
 
 prop_rtree_map :: Property
 prop_rtree_map
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Positions)
+    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Occurrences)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_map (RTree.readPosition "1-1")
@@ -314,18 +317,24 @@ prop_rtree_map
 prop_proxy_map :: Property
 prop_proxy_map
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree) Positions)
+    ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree Occurrences))
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_map "key"
 
-insert_and_map :: forall (m :: * -> *) (i :: * -> *) v.
-                  (Ix.ICon i v, Monad m, Ix.Index i,
-                   Ix.IVal i v ~ DocIdMap Positions) =>
-                  Ix.IKey i v -> DocIdMap Positions -> m (i v)
+--insert_and_map :: forall (m :: * -> *) (i :: * -> *) v.
+--                  (Ix.ICon i v, Monad m, Ix.Index i,
+--                   Ix.IVal i v ~ DocIdMap Positions) =>
+--                  Ix.IKey i v -> DocIdMap Positions -> m (i v)
 insert_and_map key v
   = return $ Ix.map (DM.insert (mkDocId (1 :: Int)) (Pos.singleton 1))
-           $ Ix.insert Occ.merge key v Ix.empty
+           $ Ix.insert key (toIntermediate (v::Occurrences)) Ix.empty
+
+insert_and_map_withSet key v
+  = return $ Ix.map (DS.union (DS.singleton $ mkDocId (1 :: Int)))
+           $ Ix.insert key (toIntermediate (v::DocIdSet)) Ix.empty
+
+
 
 -- ----------------------------------------------------------------------------
 -- index implementations: mapMaybe function
@@ -334,7 +343,7 @@ insert_and_map key v
 prop_ptix_map2 :: Property
 prop_ptix_map2
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Positions)
+    ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Occurrences)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_map2 "key"
@@ -342,7 +351,7 @@ prop_ptix_map2
 prop_ptix2d_map2 :: Property
 prop_ptix2d_map2
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (PIx2D.DmPrefixTree Positions)
+    ix <- pickIx :: PropertyM IO (PIx2D.DmPrefixTree Occurrences)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_map2 "11"
@@ -350,7 +359,7 @@ prop_ptix2d_map2
 prop_invix1_map2 :: Property
 prop_invix1_map2
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex Positions)
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_map2 "key"
@@ -358,32 +367,32 @@ prop_invix1_map2
 prop_invix2_map2 :: Property
 prop_invix2_map2
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexInt Positions)
+    ix <- pickIx :: PropertyM IO (PIx.PrefixTreeIndexInt)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= insert_and_map2 "1"
+  pickIx = pick arbitrary >>= insert_and_map2_withSet "1"
 
 prop_invix3_map2 :: Property
 prop_invix3_map2
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexDate Positions)
+    ix <- pickIx :: PropertyM IO (PIx.PrefixTreeIndexDate)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= insert_and_map2 "2013-01-01"
+  pickIx = pick arbitrary >>= insert_and_map2_withSet "2013-01-01"
 
 prop_invix4_map2 :: Property
 prop_invix4_map2
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Positions)
+    ix <- pickIx :: PropertyM IO (PIx2D.PrefixTreeIndexPosition)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= insert_and_map2 "1-1"
+  pickIx = pick arbitrary >>= insert_and_map2_withSet "1-1"
 
 
 prop_rtree_map2 :: Property
 prop_rtree_map2
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Positions)
+    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Occurrences)
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_map2 (RTree.readPosition "1-1")
@@ -391,18 +400,22 @@ prop_rtree_map2
 prop_proxy_map2 :: Property
 prop_proxy_map2
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree) Positions)
+    ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree Occurrences))
     assertNF' ix
   where
   pickIx = pick arbitrary >>= insert_and_map2 "key"
 
-insert_and_map2 :: forall (m :: * -> *) (i :: * -> *) v.
-                   (Ix.ICon i v, Monad m, Ix.Index i,
-                    Ix.IVal i v ~ DocIdMap Positions) =>
-                   Ix.IKey i v -> DocIdMap Positions -> m (i v)
+--insert_and_map2 :: forall (m :: * -> *) (i :: * -> *) v.
+--                   (Ix.ICon i v, Monad m, Ix.Index i,
+--                    Ix.IVal i v ~ DocIdMap Positions) =>
+--                   Ix.IKey i v -> DocIdMap Positions -> m (i v)
 insert_and_map2 key v
   = return $ Ix.mapMaybe (Just . DM.insert (mkDocId (1 :: Int)) (Pos.singleton 1))
-           $ Ix.insert Occ.merge key v Ix.empty
+           $ Ix.insert key (toIntermediate (v::Occurrences)) Ix.empty
+
+insert_and_map2_withSet key v
+  = return $ Ix.mapMaybe (Just . DS.union (DS.singleton $ mkDocId (1 :: Int)))
+           $ Ix.insert key (toIntermediate (v::DocIdSet)) Ix.empty
 
 -- ----------------------------------------------------------------------------
 -- index implementations: unionWith function
@@ -411,7 +424,7 @@ insert_and_map2 key v
 prop_ptix_union :: Property
 prop_ptix_union
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Positions)
+    ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Occurrences)
     assertNF' ix
   where
   pickIx = do
@@ -422,7 +435,7 @@ prop_ptix_union
 prop_ptix2d_union :: Property
 prop_ptix2d_union
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (PIx2D.DmPrefixTree Positions)
+    ix <- pickIx :: PropertyM IO (PIx2D.DmPrefixTree Occurrences)
     assertNF' ix
   where
   pickIx = do
@@ -433,7 +446,7 @@ prop_ptix2d_union
 prop_invix1_union :: Property
 prop_invix1_union
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex Positions)
+    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex)
     assertNF' ix
   where
   pickIx = do
@@ -444,64 +457,69 @@ prop_invix1_union
 prop_invix2_union :: Property
 prop_invix2_union
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexInt Positions)
+    ix <- pickIx :: PropertyM IO (PIx.PrefixTreeIndexInt)
     assertNF' ix
   where
   pickIx = do
     val1 <- pick arbitrary
     val2 <- pick arbitrary
-    insert_and_union "1" val1 val2
+    insert_and_union_withSet "1" val1 val2
 
 prop_invix3_union :: Property
 prop_invix3_union
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexDate Positions)
+    ix <- pickIx :: PropertyM IO (PIx.PrefixTreeIndexDate)
     assertNF' ix
   where
   pickIx = do
-    val1 <- pick arbitrary
-    val2 <- pick arbitrary
-    insert_and_union "2013-01-01" val1 val2
+    val1 <- pick arbitrary :: PropertyM IO DocIdSet
+    val2 <- pick arbitrary :: PropertyM IO DocIdSet
+    insert_and_union_withSet "2013-01-01" val1 val2
 
 prop_invix4_union :: Property
 prop_invix4_union
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (InvIx.InvertedIndexPosition Positions)
+    ix <- pickIx :: PropertyM IO (PIx2D.PrefixTreeIndexPosition)
     assertNF' ix
   where
   pickIx = do
-    val1 <- pick arbitrary
-    val2 <- pick arbitrary
-    insert_and_union "1-1" val1 val2
+    val1 <- pick arbitrary :: PropertyM IO DocIdSet
+    val2 <- pick arbitrary :: PropertyM IO DocIdSet
+    insert_and_union_withSet "1-1" val1 val2
 
 prop_rtree_union :: Property
 prop_rtree_union
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Positions)
+    ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Occurrences)
     assertNF' ix
   where
   pickIx = do
-    val1 <- pick arbitrary
-    val2 <- pick arbitrary
+    val1 <- pick arbitrary :: PropertyM IO Occurrences
+    val2 <- pick arbitrary :: PropertyM IO Occurrences
     insert_and_union (RTree.readPosition "1-1") val1 val2
 
 prop_proxy_union :: Property
 prop_proxy_union
   = monadicIO $ do
-    ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree) Positions)
+    ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree Occurrences))
     assertNF' ix
   where
   pickIx = do
-    val1 <- pick arbitrary
-    val2 <- pick arbitrary
+    val1 <- pick arbitrary :: PropertyM IO Occurrences
+    val2 <- pick arbitrary :: PropertyM IO Occurrences
     insert_and_union "key" val1 val2
 
-insert_and_union :: forall (m :: * -> *) (i :: * -> *) v.
-                    (Ix.ICon i v, Monad m, Ix.Index i,
-                     Ix.IVal i v ~ DocIdMap Positions) =>
-                     Ix.IKey i v -> DocIdMap Positions -> DocIdMap Positions -> m (i v)
+--insert_and_union :: forall (m :: * -> *) (i :: * -> *) v.
+--                    (Ix.ICon i v, Monad m, Ix.Index i,
+--                    Ix.IVal i v ~ DocIdMap Positions) =>
+--                     Ix.IKey i v -> DocIdMap Positions -> DocIdMap Positions -> m (i v)
 insert_and_union key v1 v2
   = return $ Ix.unionWith (DM.union)
-             (Ix.insert Occ.merge key v1 Ix.empty)
-             (Ix.insert Occ.merge key v2 Ix.empty)
+             (Ix.insert key (toIntermediate (v1::Occurrences)) Ix.empty)
+             (Ix.insert key (toIntermediate (v2::Occurrences)) Ix.empty)
+
+insert_and_union_withSet key v1 v2
+  = return $ Ix.unionWith (DS.union)
+             (Ix.insert key (toIntermediate (v1::DocIdSet)) Ix.empty)
+             (Ix.insert key (toIntermediate (v2::DocIdSet)) Ix.empty)
 

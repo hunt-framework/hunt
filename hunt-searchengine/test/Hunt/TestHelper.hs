@@ -34,6 +34,8 @@ import           Hunt.Common
 import qualified Hunt.Common.Positions                       as Pos
 import qualified Hunt.Common.Occurrences                     as Occ
 import qualified Hunt.Common.DocDesc                         as DD
+import qualified Hunt.Common.DocIdSet                        as DS
+import           Hunt.Common.DocIdSet                        (DocIdSet)
 
 import           Hunt.Interpreter.Command
 import           Hunt.ClientInterface                        hiding (mkDescription)
@@ -55,7 +57,7 @@ insertCx :: Context -> ConIx.ContextIndex (HDt.Documents Document)
 insertCx cx
      = ConIx.insertContext cx (mkIndex ix) def ConIx.empty
      where
-       ix :: InvIx.InvertedIndex Occurrences
+       ix :: InvIx.InvertedIndex
        ix = Ix.empty
 
 
@@ -146,6 +148,16 @@ mkOccurrences = listOf mkPositions >>= foldM foldOccs Occ.empty
 
 mkPositions :: Gen Positions
 mkPositions = listOf arbitrary >>= return . Pos.fromList
+
+instance Arbitrary DocIdSet where
+  arbitrary = mkDocIdSet
+
+instance Arbitrary DocId where
+  arbitrary = arbitrary >>= \i -> return . mkDocId $ (i :: Int)
+
+mkDocIdSet :: Gen DocIdSet
+mkDocIdSet = listOf arbitrary >>= return . DS.fromList
+
 
 -- --------------------
 -- Arbitrary ApiDocument

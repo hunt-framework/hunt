@@ -30,7 +30,7 @@ prefixTreeIndex2DimTests = [
   -- fromList
   ]
 
-mkEmpty :: PIx.DmPrefixTree Positions
+mkEmpty :: PIx.DmPrefixTree Occurrences
 mkEmpty = Ix.empty
 
 test_insert :: Property

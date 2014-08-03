@@ -17,7 +17,7 @@ import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences
 
 --import           Hunt.ContextIndex              (addWordsM)
-import qualified Hunt.ContextIndex              as ConIx
+--import qualified Hunt.ContextIndex              as ConIx
 
 import           Hunt.Index.PrefixTreeIndexTests
 import           Hunt.Index.PrefixTreeIndex2DimTests
@@ -25,7 +25,7 @@ import           Hunt.Index.RTreeIndexTests
 import           Hunt.Index.InvertedIndexTests
 import           Hunt.Index.ContextIndexTests
 import           Hunt.Index.TestHelper
-import           Hunt.TestHelper
+--import           Hunt.TestHelper
 
 -- ----------------------------------------------------------------------------
 

@@ -30,7 +30,7 @@ rTreeIndexTests = [
   -- fromList
   ]
 
-mkEmpty :: PIx.RTreeIndex Positions
+mkEmpty :: PIx.RTreeIndex Occurrences
 mkEmpty = Ix.empty
 
 mkKey = PIx.readPosition "1-1"
