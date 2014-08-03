@@ -11,6 +11,8 @@
 
 module Hunt.Index.PrefixTreeIndex
     ( DmPrefixTree(..)
+    , PrefixTreeIndexInt (..)
+    , PrefixTreeIndexDate (..)
     )
 where
 
@@ -20,12 +22,29 @@ import           Data.Binary            (Binary (..))
 import qualified Data.List              as L
 import qualified Data.StringMap.Strict  as SM
 import           Data.Typeable
+import           Data.Bijection
+import           Data.Bijection.Instances ()
+
+import           Data.Text              (Text)
+import qualified Data.Text              as T
+import           Data.Maybe             (fromMaybe)
+
+import           Text.Read              (readMaybe)
 
 import           Hunt.Common.BasicTypes
+import           Hunt.Common.DocIdSet   (DocIdSet)
 import           Hunt.Common.IntermediateValue
 import           Hunt.Index
+import qualified Hunt.Index             as Ix
+import           Hunt.Index.Proxy.KeyIndex
 
 import           Hunt.Utility
+
+import qualified Hunt.Index.Schema.Normalize.Date     as Date
+import qualified Hunt.Index.Schema.Normalize.Int      as Int
+
+
+
 
 -- import           Debug.Trace
 
@@ -110,3 +129,205 @@ instance Index (DmPrefixTree v)  where
     = SM.keys pt
 
 -- ------------------------------------------------------------
+-- PrefixTree index using int proxy for numeric data
+-- ------------------------------------------------------------
+
+-- | Newtype to allow integer normalization 'Bijection' instance.
+newtype UnInt = UnInt { unInt :: Text }
+  deriving (Show, Eq, NFData)
+
+instance Bijection UnInt Text where
+  to   = Int.denormalizeFromText . unInt
+  from = UnInt . Int.normalizeToText
+
+instance Bijection Text UnInt where
+  to   = UnInt
+  from = unInt
+
+-- ------------------------------------------------------------
+
+-- | Integer index using a 'StringMap'-implementation.
+newtype PrefixTreeIndexInt
+  = InvIntIx { invIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt (KeyProxyIndex Text (DmPrefixTree DocIdSet))) }
+  deriving (Eq, Show, NFData, Typeable)
+
+mkInvIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt (KeyProxyIndex Text (DmPrefixTree DocIdSet))) -> PrefixTreeIndexInt
+mkInvIntIx x = InvIntIx $! x
+
+-- ------------------------------------------------------------
+
+instance Binary PrefixTreeIndexInt where
+  put = put . invIntIx
+  get = get >>= return . InvIntIx
+
+-- ------------------------------------------------------------
+
+instance Index PrefixTreeIndexInt where
+  type IKey PrefixTreeIndexInt = Text
+  type IVal PrefixTreeIndexInt = DocIdSet
+
+  insertList wos (InvIntIx i)
+    = mkInvIntIx $ insertList wos i
+
+  deleteDocs docIds (InvIntIx i)
+    = mkInvIntIx $ deleteDocs docIds i
+
+  empty
+    = mkInvIntIx $ empty
+
+  fromList l
+    = mkInvIntIx $ fromList l
+
+  toList (InvIntIx i)
+    = toList i
+
+  search t k (InvIntIx i)
+    = search t k i
+
+  searchSc t k m
+      = L.map scoreWord $ search t k m
+        where
+          dist
+              = similarInt k
+          scoreWord (w, r)
+              = (w, (dist w, r))
+
+  lookupRange k1 k2 (InvIntIx i)
+    = lookupRange k1 k2 i
+
+  lookupRangeSc k1 k2 m
+    = L.map scoreWord $ lookupRange k1 k2 m
+      where
+        dist
+            = similarRangeInt k1 k2
+        scoreWord (w, r)
+            = (w, (dist w, r))
+
+  unionWith op (InvIntIx i1) (InvIntIx i2)
+    = mkInvIntIx $ unionWith op i1 i2
+
+--  unionWithConv to' f (InvIntIx i1) (InvIntIx i2)
+--    = mkInvIntIx $ unionWithConv to' f i1 i2
+
+  map f (InvIntIx i)
+    = mkInvIntIx $ Ix.map f i
+
+  mapMaybe f (InvIntIx i)
+    = mkInvIntIx $ Ix.mapMaybe f i
+
+  keys (InvIntIx i)
+    = keys i
+
+
+similarInt :: Text -> Text -> Score
+similarInt searched found
+    = fromMaybe noScore $
+      do s <- readMaybe $ T.unpack searched
+         f <- readMaybe $ T.unpack found
+         return $ similarFloat (fromIntegral (s::Int)) (fromIntegral (f::Int))
+
+similarRangeInt :: Text -> Text -> Text -> Score
+similarRangeInt lbt ubt found
+    = fromMaybe noScore $
+      do lb <- readMaybe $ T.unpack lbt
+         ub <- readMaybe $ T.unpack ubt
+         f  <- readMaybe $ T.unpack found
+         return $ similarFloat
+                    (fromIntegral ((lb::Int) + (ub::Int)) / 2.0)
+                    (fromIntegral (f::Int))
+
+similarFloat :: Float -> Float -> Score
+similarFloat mu
+    = mkScore . bellCurve (sigma mu) mu
+
+sigma :: Float -> Float
+sigma x
+    = abs x `max` 10.0 / 10.0
+
+-- | Gaussian bell curve for scoring
+bellCurve :: Float -> (Float -> Float -> Float)
+bellCurve sigma'
+    = \ mu x -> exp (- (x - mu) ^ _2 / sigma2'2)
+    where
+      _2 :: Int
+      _2 = 2
+      sigma2'2 = 2.0 * sigma' ^ _2
+
+-- ------------------------------------------------------------
+-- inverted index using date proxy for dates
+-- ------------------------------------------------------------
+
+-- | Newtype to allow date normalization 'Bijection' instance.
+newtype UnDate = UnDate { unDate :: Text }
+  deriving (Show, Eq, NFData)
+
+instance Bijection UnDate Text where
+  to   = Date.denormalize . unDate
+  from = UnDate . Date.normalize
+
+instance Bijection Text UnDate where
+  to   = UnDate
+  from = unDate
+
+-- ------------------------------------------------------------
+
+-- | Date index using a 'StringMap'-implementation.
+newtype PrefixTreeIndexDate
+  = InvDateIx { invDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate (KeyProxyIndex Text (DmPrefixTree DocIdSet))) }
+  deriving (Eq, Show, NFData, Typeable)
+
+mkInvDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate (KeyProxyIndex Text (DmPrefixTree DocIdSet))) -> PrefixTreeIndexDate
+mkInvDateIx x = InvDateIx $! x
+
+-- ------------------------------------------------------------
+
+instance Binary PrefixTreeIndexDate where
+  put = put . invDateIx
+  get = get >>= return . mkInvDateIx
+
+-- ------------------------------------------------------------
+
+instance Index PrefixTreeIndexDate where
+  type IKey PrefixTreeIndexDate = Word
+  type IVal PrefixTreeIndexDate = DocIdSet
+
+  insertList wos (InvDateIx i)
+    = mkInvDateIx $ insertList wos i
+
+  deleteDocs docIds (InvDateIx i)
+    = mkInvDateIx $ deleteDocs docIds i
+
+  empty
+    = mkInvDateIx $ empty
+
+  fromList l
+    = mkInvDateIx $ fromList l
+
+  toList (InvDateIx i)
+    = toList i
+
+  search t k (InvDateIx i)
+    = search t k i
+
+  -- TODO: searchSc and lookupRangeSc implementation similar to PrefixTreeIndexInt and InvertedIndex
+
+  lookupRange k1 k2 (InvDateIx i)
+    = lookupRange k1 k2 i
+
+  unionWith op (InvDateIx i1) (InvDateIx i2)
+    = mkInvDateIx $ unionWith op i1 i2
+
+--  unionWithConv to' f (InvDateIx i1) (InvDateIx i2)
+--    = mkInvDateIx $ unionWithConv to' f i1 i2
+
+  map f (InvDateIx i)
+    = mkInvDateIx $ Ix.map f i
+
+  mapMaybe f (InvDateIx i)
+    = mkInvDateIx $ Ix.mapMaybe f i
+
+  keys (InvDateIx i)
+    = Ix.keys i
+
+
+

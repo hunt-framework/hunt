@@ -52,6 +52,7 @@ import           Hunt.Common.BasicTypes
 import qualified Hunt.Index                           as Ix
 import           Hunt.Index.IndexImpl                 (IndexImpl, mkIndex)
 import           Hunt.Index.InvertedIndex
+import           Hunt.Index.PrefixTreeIndex           (PrefixTreeIndexInt, PrefixTreeIndexDate)
 import           Hunt.Index.RTreeIndex
 
 import qualified Hunt.Index.Schema.Normalize.Date     as Date
@@ -168,11 +169,11 @@ defaultInv = mkIndex (Ix.empty :: InvertedIndex)
 
 -- | Int index implementation.
 intInv :: IndexImpl
-intInv = mkIndex (Ix.empty :: InvertedIndexInt)
+intInv = mkIndex (Ix.empty :: PrefixTreeIndexInt)
 
 -- | Date index implementation.
 dateInv :: IndexImpl
-dateInv = mkIndex (Ix.empty :: InvertedIndexDate)
+dateInv = mkIndex (Ix.empty :: PrefixTreeIndexDate)
 
 -- | Geographic position index implementation.
 positionInv :: IndexImpl

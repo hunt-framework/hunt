@@ -20,10 +20,18 @@ import           Data.Typeable
 
 import qualified Data.StringMap.Dim2Search as SM2
 import qualified Data.StringMap.Strict     as SM
+import           Data.Bijection
+import           Data.Bijection.Instances  ()
+import           Data.Text                 (Text)
 
 import           Hunt.Common.BasicTypes
+import           Hunt.Common.DocIdSet
 import           Hunt.Common.IntermediateValue
 import           Hunt.Index
+import qualified Hunt.Index                as Ix
+import           Hunt.Index.Proxy.KeyIndex
+
+import qualified Hunt.Index.Schema.Normalize.Position as Pos
 
 import           Hunt.Utility
 
@@ -101,3 +109,79 @@ instance Index (DmPrefixTree v) where
     = SM.keys pt
 
 -- ------------------------------------------------------------
+-- Inverted index using position proxy for geo coordinates
+-- ------------------------------------------------------------
+
+-- | Newtype to allow position normalization 'Bijection' instance.
+newtype UnPos = UnPos { unPos :: Text }
+  deriving (Show, Eq, NFData)
+
+instance Bijection UnPos Text where
+  to   = Pos.denormalize . unPos
+  from = UnPos . Pos.normalize
+
+instance Bijection Text UnPos where
+  to   = UnPos
+  from = unPos
+
+-- ------------------------------------------------------------
+
+-- ------------------------------------------------------------
+
+-- | Geo-position index using a 'StringMap'-implementation.
+--
+newtype PrefixTreeIndexPosition
+  = InvPosIx { invPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos (KeyProxyIndex Text (DmPrefixTree DocIdSet))) }
+  deriving (Eq, Show, NFData, Typeable)
+
+mkInvPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos (KeyProxyIndex Text (DmPrefixTree DocIdSet))) -> PrefixTreeIndexPosition
+mkInvPosIx x = InvPosIx $! x
+
+-- ------------------------------------------------------------
+
+instance  Binary PrefixTreeIndexPosition where
+  put = put . invPosIx
+  get = get >>= return . mkInvPosIx
+
+-- ------------------------------------------------------------
+
+instance Index PrefixTreeIndexPosition where
+  type IKey PrefixTreeIndexPosition = Word
+  type IVal PrefixTreeIndexPosition = DocIdSet
+
+  insertList wos (InvPosIx i)
+    = mkInvPosIx $ insertList wos i
+
+  deleteDocs docIds (InvPosIx i)
+    = mkInvPosIx $ deleteDocs docIds i
+
+  empty
+    = mkInvPosIx $ empty
+
+  fromList l
+    = mkInvPosIx $ Ix.fromList l
+
+  toList (InvPosIx i)
+    = Ix.toList i
+
+  search t k (InvPosIx i)
+    = search t k i
+
+  lookupRange k1 k2 (InvPosIx i)
+    = lookupRange k1 k2 i
+
+  unionWith op (InvPosIx i1) (InvPosIx i2)
+    = mkInvPosIx $ unionWith op i1 i2
+
+--  unionWithConv to' f (InvPosIx i1) (InvPosIx i2)
+--    = mkInvPosIx $ unionWithConv to' f i1 i2
+
+  map f (InvPosIx i)
+    = mkInvPosIx $ Ix.map f i
+
+  mapMaybe f (InvPosIx i)
+    = mkInvPosIx $ Ix.mapMaybe f i
+
+  keys (InvPosIx i)
+    = keys i
+
