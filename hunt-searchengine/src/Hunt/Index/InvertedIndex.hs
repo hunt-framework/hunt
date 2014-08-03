@@ -40,7 +40,6 @@ import           Data.Bijection.Instances             ()
 import           Data.Binary                          (Binary (..))
 import qualified Data.List                            as L
 import           Data.Maybe                           (fromMaybe)
-import           Data.RTree.MBB                       (MBB)
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 import           Data.Typeable
@@ -52,7 +51,6 @@ import           Hunt.Common.Occurrences              (Occurrences)
 import           Hunt.Index                           as Ix
 import           Hunt.Index.PrefixTreeIndex
 import qualified Hunt.Index.PrefixTreeIndex2Dim       as PT2D
-import qualified Hunt.Index.RTreeIndex                as RTx
 
 import           Hunt.Index.Proxy.KeyIndex
 
@@ -507,69 +505,3 @@ instance Index InvertedIndexPosition where
   keys (InvPosIx i)
     = keys i
 
--- ------------------------------------------------------------
--- inverted index using RTree for indexing positions and bounding boxes
--- ------------------------------------------------------------
-
--- | Newtype to allow date normalization 'Bijection' instance.
-
-instance Bijection MBB Text where
-  to   = RTx.showPosition
-  from = RTx.readPosition
-
--- ------------------------------------------------------------
-
--- | Date index using a 'StringMap'-implementation.
-newtype InvertedIndexRTree
-  = InvRTreeIx { invRTreeIx :: KeyProxyIndex Text RTx.RTreeIndex}
-  deriving (Eq, Show, NFData, Typeable)
-
-mkInvRTreeIx :: KeyProxyIndex Text RTx.RTreeIndex -> InvertedIndexRTree
-mkInvRTreeIx x = InvRTreeIx $! x
-
--- ------------------------------------------------------------
-
-instance Binary InvertedIndexRTree where
-  put = put . invRTreeIx
-  get = get >>= return . mkInvRTreeIx
-
--- ------------------------------------------------------------
-
-instance Index InvertedIndexRTree where
-  type IKey InvertedIndexRTree = Text
-  type IVal InvertedIndexRTree = IVal RTx.RTreeIndex
-
-  insertList wos (InvRTreeIx i)
-    = mkInvRTreeIx $ insertList wos i
-
-  deleteDocs docIds (InvRTreeIx i)
-    = mkInvRTreeIx $ deleteDocs docIds i
-
-  empty
-    = mkInvRTreeIx $ empty
-
-  fromList l
-    = mkInvRTreeIx $ fromList l
-
-  toList (InvRTreeIx i)
-    = toList i
-
-  search t k (InvRTreeIx i)
-    = search t k i
-
-  lookupRange k1 k2 (InvRTreeIx i)
-    = lookupRange k1 k2 i
-
-  unionWith op (InvRTreeIx i1) (InvRTreeIx i2)
-    = mkInvRTreeIx $ unionWith op i1 i2
-
-  map f (InvRTreeIx i)
-    = mkInvRTreeIx $ Ix.map f i
-
-  mapMaybe f (InvRTreeIx i)
-    = mkInvRTreeIx $ Ix.mapMaybe f i
-
-  keys (InvRTreeIx i)
-    = keys i
-
--- ------------------------------------------------------------

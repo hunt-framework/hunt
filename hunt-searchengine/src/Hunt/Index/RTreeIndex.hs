@@ -9,7 +9,8 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Index.RTreeIndex
-( RTreeIndex(..)
+(   RTreeIndex(..)
+  , SimpleRTreeIndex(..)
   , readPosition
   , showPosition
 )
@@ -25,10 +26,13 @@ import           Data.RTree.MBB
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T (pack, unpack)
 import           Data.Typeable
+import           Data.Bijection
 
 import           Hunt.Index
-import           Hunt.Common.Occurrences              (Occurrences)
+import qualified Hunt.Index                           as Ix
+import           Hunt.Index.Proxy.KeyIndex
 import           Hunt.Common.IntermediateValue
+import           Hunt.Common.DocIdSet                 (DocIdSet)
 import           Hunt.Index.Schema.Normalize.Position (position)
 
 import           Text.Parsec
@@ -36,25 +40,26 @@ import           Text.Parsec
 
 -- ------------------------------------------------------------
 
--- | Index using 'Data.RTree'
-newtype RTreeIndex
-  = DmRT { dmRT :: RT.RTree Occurrences }
+-- | Index adapter for 'Data.RTree' data structure
+
+newtype RTreeIndex v
+  = DmRT { dmRT :: RT.RTree v }
   deriving (Eq, Show, NFData, Typeable)
 
-mkDmRT :: RT.RTree Occurrences -> RTreeIndex
+mkDmRT :: RT.RTree v -> RTreeIndex v
 mkDmRT v = DmRT $! v
 
 -- ------------------------------------------------------------
 
-instance Binary RTreeIndex where
+instance IndexValue x => Binary (RTreeIndex x) where
   put = put . dmRT
   get = get >>= return . mkDmRT
 
 -- ------------------------------------------------------------
 
-instance Index RTreeIndex where
-  type IKey RTreeIndex = RT.MBB
-  type IVal RTreeIndex = Occurrences
+instance Index (RTreeIndex v) where
+  type IKey (RTreeIndex v) = RT.MBB
+  type IVal (RTreeIndex v) = v
 
   insertList kvs (DmRT rt) =
     mkDmRT $ L.foldl' (\ m' (k', v') -> RT.insertWith mergeValues k' v' m') rt (fromIntermediates kvs)
@@ -106,3 +111,70 @@ readPosition t
 
 showPosition :: MBB -> Text
 showPosition (MBB la lo _ _ ) = T.pack (show la) <> "-" <> T.pack (show lo)
+
+-- ------------------------------------------------------------
+-- Index using RTree for indexing positions and bounding boxes
+-- ------------------------------------------------------------
+
+-- | Newtype to allow date normalization 'Bijection' instance.
+
+instance Bijection MBB Text where
+  to   = showPosition
+  from = readPosition
+
+-- ------------------------------------------------------------
+
+-- | Date index using a 'StringMap'-implementation.
+newtype SimpleRTreeIndex
+  = InvRTreeIx { invRTreeIx :: KeyProxyIndex Text (RTreeIndex DocIdSet)}
+  deriving (Eq, Show, NFData, Typeable)
+
+mkInvRTreeIx :: KeyProxyIndex Text (RTreeIndex DocIdSet) -> SimpleRTreeIndex
+mkInvRTreeIx x = InvRTreeIx $! x
+
+-- ------------------------------------------------------------
+
+instance Binary SimpleRTreeIndex where
+  put = put . invRTreeIx
+  get = get >>= return . mkInvRTreeIx
+
+-- ------------------------------------------------------------
+
+instance Index SimpleRTreeIndex where
+  type IKey SimpleRTreeIndex = Text
+  type IVal SimpleRTreeIndex = DocIdSet
+
+  insertList wos (InvRTreeIx i)
+    = mkInvRTreeIx $ insertList wos i
+
+  deleteDocs docIds (InvRTreeIx i)
+    = mkInvRTreeIx $ deleteDocs docIds i
+
+  empty
+    = mkInvRTreeIx $ empty
+
+  fromList l
+    = mkInvRTreeIx $ fromList l
+
+  toList (InvRTreeIx i)
+    = toList i
+
+  search t k (InvRTreeIx i)
+    = search t k i
+
+  lookupRange k1 k2 (InvRTreeIx i)
+    = lookupRange k1 k2 i
+
+  unionWith op (InvRTreeIx i1) (InvRTreeIx i2)
+    = mkInvRTreeIx $ unionWith op i1 i2
+
+  map f (InvRTreeIx i)
+    = mkInvRTreeIx $ Ix.map f i
+
+  mapMaybe f (InvRTreeIx i)
+    = mkInvRTreeIx $ Ix.mapMaybe f i
+
+  keys (InvRTreeIx i)
+    = keys i
+
+
