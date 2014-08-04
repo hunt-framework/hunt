@@ -515,7 +515,7 @@ execSearch q offset mx wg fields (ContextIndex ix dt s)
             { lrResult = ds'
             , lrOffset = offset
             , lrMax    = mx
-            , lrCount  = length ds'
+            , lrCount  = length ds
             }
           where
             ds' = map (mkSelect wg fields)
