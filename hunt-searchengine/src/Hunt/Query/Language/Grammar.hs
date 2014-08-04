@@ -323,7 +323,7 @@ printQuery (QSeq o qs)
       map printQPar qs
 
 printQuery (QBoost w q)
-    = (printQPar q) <> "^" <> (T.pack $ show w)
+    = (printQPar q) <> "^" <> (T.pack $ show $ unScore $ toDefScore $ w)
 
 printQuery (QRange l u)
     = "[" <> l <> " TO " <> u <> "]"
