@@ -15,6 +15,8 @@ module Hunt.Query.Language.Grammar
       Query (..)
     , BinOp (..)
     , TextSearchType (..)
+    , escapeChar
+    , notWordChar
 
     -- * Optimizing
     , optimize
@@ -225,6 +227,14 @@ instance Binary BinOp where
 
 -- ------------------------------------------------------------
 
+-- | Characters that cannot occur in a word (and have to be escaped).
+notWordChar :: String
+notWordChar = escapeChar : "\"')([]^ \n\r\t"
+
+-- | The character an escape sequence starts with.
+escapeChar :: Char
+escapeChar = '\\'
+
 -- | Minor query optimizations.
 --
 --   /Note/: This can affect the ranking.
@@ -356,7 +366,7 @@ printWord w
     | T.any toBeQuoted w = "'" <> escapeWord (== '\'') w <> "'"
     | otherwise          = w
     where
-      toBeQuoted c = not $ isAlphaNum c
+      toBeQuoted c = elem c $ notWordChar
 
 escapeWord :: (Char -> Bool) -> Text -> Text
 escapeWord p t

@@ -137,7 +137,7 @@ module Hunt.ClientInterface
 where
 
 import           Control.Applicative         ((<$>))
-import           Data.Aeson                  (FromJSON (..), ToJSON (..), Value(String))
+import           Data.Aeson                  (FromJSON (..), ToJSON (..), Value(String), encode)
 import           Data.Default
 import           Data.List                   (nub)
 import qualified Data.Map.Strict             as SM
@@ -504,7 +504,6 @@ completeQueries (QSeq    op qs)     comps = (QSeq op)                   <$> (com
   completeLast (q:qs) = (q :)  <$> completeLast qs
 completeQueries (QBoost w q)        comps = (QBoost w)                  <$> (completeQueries q comps)
 completeQueries (QRange t1 t2)      comps = [QRange t1 t2] -- TODO
-
 
 -- ------------------------------------------------------------
 

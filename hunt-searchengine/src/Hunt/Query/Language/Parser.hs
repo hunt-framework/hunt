@@ -249,10 +249,6 @@ decodeChar :: Parser Char
 decodeChar = choice (zipWith decode notWordChar notWordChar)
     where decode c r = r <$ char c
 
--- | The character an escape sequence starts with.
-escapeChar :: Char
-escapeChar = '\\'
-
 escaped :: Char -> Parser Char
 escaped c
     = do char escapeChar
@@ -288,10 +284,6 @@ tryBoost q = try boost <|> return q
           b <- simplePositiveFloat
           return (QBoost (mkScore b) q)
 
-
--- | Characters that cannot occur in a word (and have to be escaped).
-notWordChar :: String
-notWordChar = escapeChar : "\"')([]^ \n\r\t"
 
 -- | Parse a list of contexts.
 contexts :: Parser [Text]
