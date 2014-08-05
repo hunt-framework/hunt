@@ -14,7 +14,6 @@ import           Hunt.Common.Occurrences (Occurrences)
 import qualified Hunt.Common.Occurrences as Occ
 import           Hunt.Common.DocIdSet    (DocIdSet (..))
 import qualified Hunt.Common.DocIdSet    as DS
-import           Hunt.Common.DocIdMap    (DocIdMap (..))
 import qualified Hunt.Common.DocIdMap    as DM
 
 -- This type represents the interface for a value to the engine
@@ -62,8 +61,8 @@ setToMap s = Occ.merges $ map (\did -> Occ.singleton did 1) $ DS.toList s
 -- TODO: refactor this instance
 -- all functions are not very efficient in this state
 instance IndexValue DocIdSet where
-  toIntermediate s   = IntermediateValue $!! Occ.merges $ map (\did -> Occ.singleton did 1) $ DS.toList s
-  fromIntermediate i = DS.fromList $  (map fst) . DM.toList $ (fromIntermediate i :: Occurrences)
+  toIntermediate     = IntermediateValue . setToMap
+  fromIntermediate   = mapToSet . fromIntermediate
   mergeValues s1 s2  = mergeValues'
                        where
                        mergeValues' = mapToSet $ Occ.merge (setToMap s1) (setToMap s2)
