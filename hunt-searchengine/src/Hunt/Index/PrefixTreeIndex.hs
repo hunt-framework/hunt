@@ -9,7 +9,8 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Index.PrefixTreeIndex
-    ( DmPrefixTree(..)
+    ( DmPrefixTree (..)
+    , SimplePrefixTreeIndex (..)
     , PrefixTreeIndexInt (..)
     , PrefixTreeIndexDate (..)
     )

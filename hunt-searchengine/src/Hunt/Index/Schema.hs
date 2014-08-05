@@ -24,9 +24,11 @@ module Hunt.Index.Schema
 
     -- * Default Context Types
   , ctText
+  , ctTextSimple
   , ctInt
   , ctDate
   , ctPosition
+  , ctPositionRTree
 
   -- * Default Normalizers
   , cnUpperCase
@@ -52,7 +54,11 @@ import           Hunt.Common.BasicTypes
 import qualified Hunt.Index                           as Ix
 import           Hunt.Index.IndexImpl                 (IndexImpl, mkIndex)
 import           Hunt.Index.InvertedIndex
-import           Hunt.Index.PrefixTreeIndex           (PrefixTreeIndexInt, PrefixTreeIndexDate)
+import           Hunt.Index.PrefixTreeIndex           ( PrefixTreeIndexInt
+                                                      , PrefixTreeIndexDate
+                                                      , SimplePrefixTreeIndex )
+import           Hunt.Index.PrefixTreeIndex2Dim       ( PrefixTreeIndexPosition )
+
 import           Hunt.Index.RTreeIndex
 
 import qualified Hunt.Index.Schema.Normalize.Date     as Date
@@ -127,6 +133,17 @@ ctText = CType
   , ctIxImpl   = def
   }
 
+-- | Special text context type
+--   smaller index but not phrase queries possible
+--   (due to not storing the words positions)
+ctTextSimple :: ContextType
+ctTextSimple = CType
+  { ctName     = "text-small"
+  , ctRegEx    = "\\w*"
+  , ctValidate = def
+  , ctIxImpl   = simplePT
+  }
+
 -- | Int context type.
 ctInt :: ContextType
 ctInt = CType
@@ -154,6 +171,15 @@ ctPosition = CType
   , ctIxImpl   = positionInv
   }
 
+ctPositionRTree :: ContextType
+ctPositionRTree = CType
+  { ctName     = "position-rtree"
+  , ctRegEx    = "-?(90(\\.0*)?|[1-8]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?"
+  , ctValidate = CValidator $ Pos.isPosition
+  , ctIxImpl   = positionRTree
+  }
+
+
 -- ------------------------------------------------------------
 -- IndexImpls
 -- ------------------------------------------------------------
@@ -167,6 +193,12 @@ instance Default IndexImpl where
 defaultInv :: IndexImpl
 defaultInv = mkIndex (Ix.empty :: InvertedIndex)
 
+-- | Simpler (text) index, which still enables prefix search,
+--   but not phrase search anymore. Useful for cases where
+--   word positions are not relevant
+simplePT :: IndexImpl
+simplePT = mkIndex (Ix.empty :: SimplePrefixTreeIndex)
+
 -- | Int index implementation.
 intInv :: IndexImpl
 intInv = mkIndex (Ix.empty :: PrefixTreeIndexInt)
@@ -175,10 +207,13 @@ intInv = mkIndex (Ix.empty :: PrefixTreeIndexInt)
 dateInv :: IndexImpl
 dateInv = mkIndex (Ix.empty :: PrefixTreeIndexDate)
 
--- | Geographic position index implementation.
+-- | Geographic position index implementation based on 'StringMap'
 positionInv :: IndexImpl
---positionInv = mkIndex (Ix.empty :: InvertedIndexPosition Occurrences)
-positionInv = mkIndex (Ix.empty :: SimpleRTreeIndex)
+positionInv = mkIndex (Ix.empty :: PrefixTreeIndexPosition)
+
+-- | Geographic position index implementation based on 'RTree'
+positionRTree :: IndexImpl
+positionRTree = mkIndex (Ix.empty :: SimpleRTreeIndex)
 
 
 -- ------------------------------------------------------------
