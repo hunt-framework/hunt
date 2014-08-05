@@ -49,11 +49,8 @@ instance IndexValue Occurrences where
   toIntermediate   x = IntermediateValue $!! x
   fromIntermediate x = unIntermediate $!! x
   mergeValues      = Occ.merge
-  diffValues s m   = let z = Occ.diffWithSet m s
-                     in
-                       if Occ.null z
-                       then Nothing
-                       else Just z
+  diffValues s m   = let z = Occ.diffWithSet m s in
+                     if Occ.null z then Nothing else Just z
 
 -- TODO: refactor this instance
 instance IndexValue DocIdSet where

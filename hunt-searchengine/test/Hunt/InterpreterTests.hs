@@ -62,6 +62,8 @@ interpreterTests =
   , testCase "Interpreter: geo context range"          test_geo2
   , testCase "Interpreter: geo context range_a"        test_geo2a
   , testCase "Interpreter: geo context range2"         test_geo3
+  , testCase "Interpreter: geo delete"                 test_geo_delete
+  , testCase "Interpreter: geo and other"              test_multiple_context
 
   -- test binary serialization
   , testCase "Interpreter: store/load index"           test_binary
@@ -424,6 +426,48 @@ test_geo3 = testCM $ do
     @@@ ((@?= []) . searchResultUris)
 
   search (setContext "geocontext" (qRange "60--80" "70--80")) 0 10
+    @@@ ((@?= []) . searchResultUris)
+
+
+test_geo_delete :: Assertion
+test_geo_delete = testCM $ do
+  -- create contexts
+  insertDefaultContext    @@= ResOK
+  insertGeoContext        @@= ResOK
+  -- insert two docuemnts
+  cmdInsertDoc geoDoc           @@= ResOK
+  -- searching for documents - expecting to find them
+  search (setContexts ["geocontext"] (setNoCaseSearch $ qWord "53.60000-10.00000")) 0 10
+    @@@ ((@?= ["test://2"]) . searchResultUris)
+  -- reset index
+  cmdDeleteDoc "test://1"       @@= ResOK
+  cmdDeleteDoc "test://2"       @@= ResOK
+  -- searching for documents - expecting to find none
+  search (setContexts ["geocontext"] (setNoCaseSearch $ qWord "53.60000-10.00000")) 0 10
+    @@@ ((@?= []) . searchResultUris)
+
+
+test_multiple_context :: Assertion
+test_multiple_context = testCM $ do
+  -- create contexts
+  insertDateContext       @@= ResOK
+  insertDefaultContext    @@= ResOK
+  insertGeoContext        @@= ResOK
+  -- insert two docuemnts
+  cmdInsertDoc dateDoc          @@= ResOK
+  cmdInsertDoc geoDoc           @@= ResOK
+  -- searching for documents - expecting to find them
+  search (setContexts ["datecontext"] (setNoCaseSearch $ qWord "2013-01-01")) 0 10
+    @@@ ((@?= ["test://1"]) . searchResultUris)
+  search (setContexts ["geocontext"] (setNoCaseSearch $ qWord "53.60000-10.00000")) 0 10
+    @@@ ((@?= ["test://2"]) . searchResultUris)
+  -- reset index
+  cmdDeleteDoc "test://1"       @@= ResOK
+  cmdDeleteDoc "test://2"       @@= ResOK
+  -- searching for documents - expecting to find none
+  search (setContexts ["datecontext"] (setNoCaseSearch $ qWord "2013-01-01")) 0 10
+    @@@ ((@?= []) . searchResultUris)
+  search (setContexts ["geocontext"] (setNoCaseSearch $ qWord "53.60000-10.00000")) 0 10
     @@@ ((@?= []) . searchResultUris)
 
 -- fancy - equivalent to 'test_alot' plus additional tests
