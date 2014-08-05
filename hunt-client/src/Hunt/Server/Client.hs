@@ -16,15 +16,16 @@ module Hunt.Server.Client
     , HuntClientException
 
     -- * Conveniece wrapper
-    , autocomplete
-    , query
-    , insert
-    , eval
-    , evalAutocomplete
-    , evalQuery
+    , getAutocomplete
+    , postAutocomplete
+    , getQuery
+    , postQuery
+    , postInsert
+    , postCommand
 
     -- * Simple
     , evalOnServer
+    , evalOnServer_
 
     -- * Some Reexports from hunt
     , descriptionToCmd
@@ -36,7 +37,7 @@ where
 
 import           Control.Applicative          (Applicative, (<$>))
 import           Control.Exception            (Exception, throwIO)
-import           Control.Monad                (mzero)
+import           Control.Monad                (mzero, liftM)
 import           Control.Monad.Catch          (MonadThrow, throwM)
 import           Control.Monad.IO.Class       (MonadIO, liftIO)
 import           Control.Monad.Reader         (MonadReader, ReaderT, ask,
@@ -62,6 +63,7 @@ import           Network.HTTP.Types.URI       (urlEncode)
 
 import qualified Hunt.ClientInterface         as H
 import qualified Hunt.Common.ApiDocument      as H (ApiDocuments)
+-- import qualified Hunt.Interpreter.Command     as H (CmdRes)
 -- import qualified Hunt.Common.BasicTypes       as H (RegEx, Score, Weight)
 import qualified Hunt.Index.Schema            as H (CNormalizer,
                                                    ContextSchema (..),
@@ -90,12 +92,8 @@ instance (FromJSON r) => FromJSON (JsonResponse r) where
     parseJSON (JSON.Object v) = do
         code <- v .: "code"
         case code of
-            0 -> do
-                msg <- v .: "msg"
-                return $ JsonSuccess msg
-            _ -> do
-                msg <- v .: "msg"
-                return $ JsonFailure code msg
+            0 -> JsonSuccess <$> (v .: "msg")
+            _ -> JsonFailure code <$> (v .: "msg")
     parseJSON _ = mzero
 
 -- ------------------------------
@@ -135,17 +133,17 @@ newServerAndManager s = do
     return $ ServerAndManager (checkServerUrl s) m
 
 -- | runs a HuntConnectionT with a ServerAndManager
-withServerAndManager :: MonadBaseControl IO m =>  HuntConnectionT m a -> ServerAndManager -> m a
-withServerAndManager x
-    = runResourceT . runReaderConnectionT x
+withServerAndManager :: MonadBaseControl IO m => ServerAndManager -> HuntConnectionT m a -> m a
+withServerAndManager sm x
+    = runResourceT $ (runReaderConnectionT sm x)
 
 -- | runs a HuntConnectionT in a monad
-withHuntServer :: (MonadIO m, MonadBaseControl IO m) => HuntConnectionT m a -> Text -> m a
-withHuntServer x s
-    = HTTP.withManager (runReaderConnectionT x . ServerAndManager (checkServerUrl s))
+withHuntServer :: (MonadIO m, MonadBaseControl IO m) => Text -> HuntConnectionT m a -> m a
+withHuntServer s x
+    = HTTP.withManager $ \man -> (runReaderConnectionT  (ServerAndManager (checkServerUrl s) man)) x
 
-runReaderConnectionT :: HuntConnectionT m a -> ServerAndManager -> ResourceT m a
-runReaderConnectionT x sm
+runReaderConnectionT :: ServerAndManager -> HuntConnectionT m a -> ResourceT m a
+runReaderConnectionT sm x
     = (runReaderT . runHuntConnectionT) x sm
 
 -- ---------------------------
@@ -168,48 +166,43 @@ makeRequest path = do
     sm <- ask
     HTTP.parseUrl $ cs $ T.concat [ unServer sm, path]
 
-httpLbs :: (MonadIO m) => HTTP.Request -> HuntConnectionT m ByteString
+httpLbs :: (FromJSON a, MonadIO m, MonadThrow m) => HTTP.Request -> HuntConnectionT m a
 httpLbs request = do
     sm <- ask
     response <- HTTP.httpLbs request (unManager sm)
-    return $ HTTP.responseBody response
+    handleJsonResponse (HTTP.responseBody response)
 
-handleAutoCompeteResponse :: (Monad m, MonadThrow m) => ByteString -> m [Text]
-handleAutoCompeteResponse result
-    = handleJsonResponse result >>= return . toWordList
-    where
-      toWordList :: [(Text, H.Score)] -> [Text]
-      toWordList = map fst
+handleAutoCompeteResponse :: (Monad m) => [(Text, H.Score)] -> m [Text]
+handleAutoCompeteResponse res = return $ liftM fst $ res
 
-autocomplete :: (MonadIO m) => Text -> HuntConnectionT m [Text]
-autocomplete q
-    = do request <- makeRequest
+getAutocomplete :: (MonadIO m, MonadThrow m) => Text -> HuntConnectionT m [Text]
+getAutocomplete q = do
+    request <- makeRequest
                     $ T.concat [ "completion/", encodeRequest q, "/20"]
-         d <- httpLbs request
-         handleAutoCompeteResponse d
+    result <- (httpLbs request)
+    handleAutoCompeteResponse result
 
-query :: (MonadIO m, FromJSON r) => Text -> Int -> Int -> HuntConnectionT m  (H.LimitedResult r)
-query query' maxResults offset
-    = do request <- makeRequest
+getQuery :: (MonadIO m, MonadThrow m, FromJSON r) => Text -> Int -> Int -> HuntConnectionT m  (H.LimitedResult r)
+getQuery query' maxResults offset = do
+    request <- makeRequest
                     $ T.concat [ "search/", encodeRequest query', "/", cs $ show offset, "/", cs $ show maxResults]
-         httpLbs request >>= handleJsonResponse
+    httpLbs request
 
-insert :: (MonadIO m) => H.ApiDocuments -> HuntConnectionT m ByteString
-insert docs
-    = eval $ H.cmdSequence $ H.cmdInsertDoc <$> docs
+postInsert :: (MonadIO m, MonadThrow m) => H.ApiDocuments -> HuntConnectionT m Text
+postInsert docs
+    = postCommand $ H.cmdSequence $ H.cmdInsertDoc <$> docs
 
-evalAutocomplete :: (MonadIO m) => Query -> HuntConnectionT m [Text]
-evalAutocomplete qq
-    = do result <- eval $ H.setMaxResults 20 $ H.cmdCompletion qq
-         handleAutoCompeteResponse result
+postAutocomplete :: (MonadIO m, MonadThrow m) => Query -> HuntConnectionT m [Text]
+postAutocomplete qq  = do
+    result <- postCommand $ H.setMaxResults 20 $ H.cmdCompletion qq
+    handleAutoCompeteResponse result
 
-evalQuery :: (MonadIO m, FromJSON r) => Query -> Int -> HuntConnectionT m (H.LimitedResult r)
-evalQuery q offset = do
-    result <- eval $ H.setResultOffset offset $ H.setMaxResults 20 $ H.cmdSearch q
-    handleJsonResponse result
+postQuery :: (MonadIO m, MonadThrow m, FromJSON r) => Query -> Int -> HuntConnectionT m (H.LimitedResult r)
+postQuery q offset = do
+    postCommand $ H.setResultOffset offset $ H.setMaxResults 20 $ H.cmdSearch q
 
-eval :: (MonadIO m) => H.Command -> HuntConnectionT m ByteString
-eval cmd = do
+postCommand :: (FromJSON a, MonadIO m, MonadThrow m) => H.Command -> HuntConnectionT m a
+postCommand cmd = do
     request' <- makeRequest "eval"
     let body    = JSON.encode cmd
         request = request'
@@ -218,6 +211,8 @@ eval cmd = do
                   }
     httpLbs request
 
+postCommand_ :: (MonadIO m, MonadThrow m) => H.Command -> HuntConnectionT m JSON.Value
+postCommand_ = postCommand
 
 handleJsonResponse :: (FromJSON a, Monad m, MonadThrow m) => ByteString -> m a
 handleJsonResponse r
@@ -232,8 +227,12 @@ handleJsonResponse r
               (Left err) -> throwM $ JSONDecodeError $ cs $ ("Json decode error: " <> err)
 
 -- | send a command to a hunt server
-evalOnServer :: (MonadIO m, MonadBaseControl IO m) => Text -> H.Command -> m ByteString
-evalOnServer server cmd = withHuntServer (eval cmd) server        
+evalOnServer :: (MonadIO m, MonadBaseControl IO m, FromJSON a, Monad m, MonadThrow m) => Text -> H.Command -> m a
+evalOnServer server cmd = withHuntServer server (postCommand cmd)
+
+
+evalOnServer_ :: (MonadIO m, MonadBaseControl IO m, Monad m, MonadThrow m) => Text -> H.Command -> m JSON.Value
+evalOnServer_ = evalOnServer
 
 
 data ContextType = TextContext | DateContext | PositionContext | IntContext

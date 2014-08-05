@@ -10,11 +10,11 @@ module Main where
 import           Control.Applicative       ((<$>), (<|>))
 import           Control.Monad             (when)
 
-import           Data.Aeson                (FromJSON, decode, encode)
+import           Data.Aeson                (decode)
 import           Data.Aeson.Encode.Pretty  (encodePretty)
 import           Data.ByteString.Lazy      (ByteString)
-import           Data.Char                 (toUpper)
-import           Data.Map                  (keys)
+-- import           Data.Char                 (toUpper)
+-- import           Data.Map                  (keys)
 import           Data.Maybe                (fromJust)
 import           Data.String.Conversions   (cs)
 import           Data.Text                 (Text)
@@ -31,7 +31,6 @@ import qualified System.Log.Handler.Simple as Log (streamHandler)
 import qualified System.Log.Logger         as Log
 
 import qualified Hunt.ClientInterface      as H
-import qualified Hunt.Common.ApiDocument   as H
 import qualified Hunt.Converter.CSV        as CSV (convert)
 import qualified Hunt.Server.Client        as HC
 
@@ -44,7 +43,7 @@ usage = unlines [
     , "  hunt-server-cli load [--server SERVER] <file>"
     , "  hunt-server-cli store [--server SERVER] <file>"
     , "  hunt-server-cli search [--server SERVER] [--max MAX] [--offset OFFSET] <query>"
-    , "  hunt-server-cli completion <query>"
+    , "  hunt-server-cli completion [--server SERVER] <query>"
     , "  hunt-server-cli make-schema <file>"
     , "  hunt-server-cli make-insert <file>"
     , "  hunt-server-cli from-csv <file>"
@@ -104,7 +103,7 @@ makeInserts fileName = do
 
 evalCmd :: String -> H.Command -> IO ByteString
 evalCmd server cmd = do
-  HC.evalOnServer (cs server) cmd
+  encodePretty <$> HC.evalOnServer_ (cs server) cmd
 
 eval :: String -> FilePath -> IO ByteString
 eval server fileName = do
@@ -115,13 +114,13 @@ search :: String -> String -> Int -> Int -> IO ByteString
 search server query maxResults offsetResults
     = cs
       <$> (encodePretty :: H.LimitedResult H.ApiDocument -> ByteString)
-      <$> (HC.withHuntServer (HC.query (cs query) maxResults offsetResults ) (cs server))
+      <$> HC.withHuntServer (cs server) (HC.getQuery (cs query) maxResults offsetResults )
 
 autocomplete :: String -> String -> IO String
 autocomplete server query
     = cs
       <$> (encodePretty :: [Text] -> ByteString)
-      <$> (HC.withHuntServer (HC.autocomplete $ cs query) (cs server))
+      <$> (HC.withHuntServer (cs server) (HC.getAutocomplete $ cs query))
 
 -- | Main function for the executable.
 main :: IO ()
