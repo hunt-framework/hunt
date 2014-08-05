@@ -7,7 +7,6 @@
   Text index using the 'DocIdMap' based on the 'StringMap' implementation.
 -}
 -- ----------------------------------------------------------------------------
--- TODO: obsolete now?
 
 module Hunt.Index.PrefixTreeIndex
     ( DmPrefixTree(..)
@@ -127,6 +126,83 @@ instance Index (DmPrefixTree v)  where
 
   keys (DmPT pt)
     = SM.keys pt
+
+-- ------------------------------------------------------------
+-- Simple minimal PrefixTreeIndex based on the 'StringMap'
+-- ------------------------------------------------------------
+
+-- | Integer index using a 'StringMap'-implementation.
+newtype SimplePrefixTreeIndex
+  = SimplePTIx { simplePTIx :: KeyProxyIndex Text (DmPrefixTree DocIdSet) }
+  deriving (Eq, Show, NFData, Typeable)
+
+mkSimplePTIx :: KeyProxyIndex Text (DmPrefixTree DocIdSet) -> SimplePrefixTreeIndex
+mkSimplePTIx x = SimplePTIx $! x
+
+-- ------------------------------------------------------------
+
+instance Binary SimplePrefixTreeIndex where
+  put = put . simplePTIx
+  get = get >>= return . mkSimplePTIx
+
+-- ------------------------------------------------------------
+
+instance Index SimplePrefixTreeIndex where
+  type IKey SimplePrefixTreeIndex = Text
+  type IVal SimplePrefixTreeIndex = DocIdSet
+
+  insertList wos (SimplePTIx i)
+    = mkSimplePTIx $ insertList wos i
+
+  deleteDocs docIds (SimplePTIx i)
+    = mkSimplePTIx $ deleteDocs docIds i
+
+  empty
+    = mkSimplePTIx $ empty
+
+  fromList l
+    = mkSimplePTIx $ fromList l
+
+  toList (SimplePTIx i)
+    = toList i
+
+  search t k (SimplePTIx i)
+    = search t k i
+
+  searchSc t k m
+      = L.map scoreWord $ search t k m
+        where
+          dist
+              = similarInt k
+          scoreWord (w, r)
+              = (w, (dist w, r))
+
+  lookupRange k1 k2 (SimplePTIx i)
+    = lookupRange k1 k2 i
+
+  lookupRangeSc k1 k2 m
+    = L.map scoreWord $ lookupRange k1 k2 m
+      where
+        dist
+            = similarRangeInt k1 k2
+        scoreWord (w, r)
+            = (w, (dist w, r))
+
+  unionWith op (SimplePTIx i1) (SimplePTIx i2)
+    = mkSimplePTIx $ unionWith op i1 i2
+
+--  unionWithConv to' f (SimplePTIx i1) (SimplePTIx i2)
+--    = mkSimplePTIx $ unionWithConv to' f i1 i2
+
+  map f (SimplePTIx i)
+    = mkSimplePTIx $ Ix.map f i
+
+  mapMaybe f (SimplePTIx i)
+    = mkSimplePTIx $ Ix.mapMaybe f i
+
+  keys (SimplePTIx i)
+    = keys i
+
 
 -- ------------------------------------------------------------
 -- PrefixTree index using int proxy for numeric data
@@ -328,6 +404,3 @@ instance Index PrefixTreeIndexDate where
 
   keys (InvDateIx i)
     = Ix.keys i
-
-
-
