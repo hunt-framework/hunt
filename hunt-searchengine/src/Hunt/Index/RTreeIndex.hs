@@ -33,6 +33,7 @@ import qualified Hunt.Index                           as Ix
 import           Hunt.Index.Proxy.KeyIndex
 import           Hunt.Common.IntermediateValue
 import           Hunt.Common.DocIdSet                 (DocIdSet)
+import           Hunt.Common.Occurrences              (Occurrences)
 import           Hunt.Index.Schema.Normalize.Position (position)
 
 import           Text.Parsec

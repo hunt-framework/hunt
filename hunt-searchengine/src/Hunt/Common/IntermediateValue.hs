@@ -12,8 +12,9 @@ import qualified Data.List               as L
 
 import           Hunt.Common.Occurrences (Occurrences)
 import qualified Hunt.Common.Occurrences as Occ
-import           Hunt.Common.DocIdSet    (DocIdSet)
+import           Hunt.Common.DocIdSet    (DocIdSet (..))
 import qualified Hunt.Common.DocIdSet    as DS
+import           Hunt.Common.DocIdMap    (DocIdMap (..))
 import qualified Hunt.Common.DocIdMap    as DM
 
 -- This type represents the interface for a value to the engine
@@ -52,12 +53,21 @@ instance IndexValue Occurrences where
   diffValues s m   = let z = Occ.diffWithSet m s in
                      if Occ.null z then Nothing else Just z
 
+mapToSet :: Occurrences -> DocIdSet
+mapToSet = DS.fromList . (map fst) . DM.toList
+
+setToMap :: DocIdSet -> Occurrences
+setToMap s = Occ.merges $ map (\did -> Occ.singleton did 1) $ DS.toList s
+
 -- TODO: refactor this instance
+-- all functions are not very efficient in this state
 instance IndexValue DocIdSet where
   toIntermediate s   = IntermediateValue $!! Occ.merges $ map (\did -> Occ.singleton did 1) $ DS.toList s
   fromIntermediate i = DS.fromList $  (map fst) . DM.toList $ (fromIntermediate i :: Occurrences)
-  mergeValues        = DS.union
-  diffValues s1 s2   = let x = DS.difference s1 s2 in
-                       if DS.null x then Nothing else Just x
+  mergeValues s1 s2  = mergeValues'
+                       where
+                       mergeValues' = mapToSet $ Occ.merge (setToMap s1) (setToMap s2)
+  diffValues s1 s2   = let z = Occ.diffWithSet (setToMap s2) s1 in
+                       if Occ.null z then Nothing else Just (mapToSet z)
 
 
