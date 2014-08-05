@@ -137,7 +137,7 @@ module Hunt.ClientInterface
 where
 
 import           Control.Applicative         ((<$>))
-import           Data.Aeson                  (FromJSON (..), ToJSON (..), Value(String), encode)
+import           Data.Aeson                  (FromJSON (..), ToJSON (..), Value(..), encode)
 import           Data.Default
 import           Data.List                   (nub)
 import qualified Data.Map.Strict             as SM
@@ -168,10 +168,10 @@ class Huntable x where
   huntURI        :: x -> URI
 
   huntIndexMap   :: x -> IndexMap
-  huntIndexMap x = emptyApiDocIndexMap
+  huntIndexMap _ = emptyApiDocIndexMap
 
   huntDescr      :: x -> Description
-  huntDescr x    = emptyApiDocDescr
+  huntDescr _    = emptyApiDocDescr
 
   toApiDocument  :: x -> ApiDocument
   toApiDocument  x = setDescription (huntDescr x) $
@@ -492,18 +492,18 @@ setCxPosition sc
 -- ------------------------------------------------------------
 
 completeQueries :: Query -> [Text] -> [Query]
-completeQueries (QWord t s)         comps = (\c -> QWord t (c))    <$> comps
-completeQueries (QFullWord t s)     comps = (\c -> QFullWord t (c))<$> comps
-completeQueries (QPhrase t s)       comps = (\c -> QPhrase t (c))  <$> comps
+completeQueries (QWord t _)         comps = (\c -> QWord t (c))    <$> comps
+completeQueries (QFullWord t _)     comps = (\c -> QFullWord t (c))<$> comps
+completeQueries (QPhrase t _)       comps = (\c -> QPhrase t (c))  <$> comps
 completeQueries (QContext cxs q)    comps = (QContext cxs)              <$> (completeQueries q comps)
 completeQueries (QBinary op q1 q2)  comps = (QBinary op q1)             <$> (completeQueries q2 comps)
 completeQueries (QSeq    op qs)     comps = (QSeq op)                   <$> (completeLast qs)
   where
   completeLast [] = []
   completeLast [q] = sequence [completeQueries q comps]
-  completeLast (q:qs) = (q :)  <$> completeLast qs
+  completeLast (q:qs') = (q :)  <$> completeLast qs'
 completeQueries (QBoost w q)        comps = (QBoost w)                  <$> (completeQueries q comps)
-completeQueries (QRange t1 t2)      comps = [QRange t1 t2] -- TODO
+completeQueries (QRange t1 t2)      _     = [QRange t1 t2] -- TODO
 
 -- ------------------------------------------------------------
 

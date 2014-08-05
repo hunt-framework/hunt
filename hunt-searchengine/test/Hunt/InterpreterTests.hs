@@ -229,10 +229,10 @@ normalizerTestSetup
       ]
 
 normalizerTestSetup' :: [Command] -> [Command]
-normalizerTestSetup' cmds = defaultTestSetup ++ cmds
+normalizerTestSetup' cmds = normalizerTestSetup ++ cmds
 
 normalizerTestSetup'' :: Command -> [Command]
-normalizerTestSetup'' cmd = defaultTestSetup ++ [cmd]
+normalizerTestSetup'' cmd = normalizerTestSetup ++ [cmd]
 
 --
 -- Word search

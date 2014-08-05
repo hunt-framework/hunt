@@ -11,13 +11,10 @@ import           Control.Monad.IO.Class
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy       as LB
-import qualified Data.ByteString.Lazy.Char8 as LC
 import           Data.Monoid
-import           Data.Text                  (Text)
+import           Data.Text                  ()
 
-import           Hunt.Interpreter.Command   (CmdError (..), CmdRes (..))
-
-import           System.FilePath
+import           System.FilePath            ()
 
 -- ------------------------------------------------------------
 
