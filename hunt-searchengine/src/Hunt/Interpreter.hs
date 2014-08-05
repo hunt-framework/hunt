@@ -162,7 +162,7 @@ initHunt = initHuntEnv CIx.empty defaultRankConfig contextTypes normalizers def
 
 -- | Default context types.
 contextTypes :: ContextTypes
-contextTypes = [ctText, ctInt, ctDate, ctPosition]
+contextTypes = [ctText, ctInt, ctDate, ctPosition, ctTextSimple, ctPositionRTree]
 
 -- | Default normalizers.
 normalizers :: [CNormalizer]
