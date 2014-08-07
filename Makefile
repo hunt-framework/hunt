@@ -145,6 +145,15 @@ insertJokes: hunt-test/data/jokes/FussballerSprueche.js
 	curl -X POST -d @hunt-test/data/jokes/contexts.js $(SERVER)/eval
 	curl -X POST -d @hunt-test/data/jokes/FussballerSprueche.js $(SERVER)/document/insert
 
+hunt-test/data/hayoo/hayoo.index.json:
+	mkdir -p hunt-test/data/hayoo
+	cd hunt-test/data/hayoo && curl -O http://hayoo.fh-wedel.de/download/hayoo-tutorial.tar.gz
+	cd hunt-test/data/hayoo && tar -xf hayoo-tutorial.tar.gz
+	- cd hunt-test/data/hayoo && rm hayoo-tutorial.tar.gz
+
+insertHayooTest: hunt-test/data/hayoo/hayoo.index.json
+	curl -X POST -d @hunt-test/data/hayoo/hayoo.index.json $(SERVER)/eval
+
 # NOTE: profiling does not use the makefile target to start the server (RUNOPTS is discarded)
 profServer: stopServer
 	./hunt-server/prof.sh
