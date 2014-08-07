@@ -542,11 +542,11 @@ execSelect q (ContextIndex ix dt s)
          djs <- DocTable.toJSON'DocTable dt'
          return $ ResGeneric djs
 
--- | build a selection function for choosing,
--- which parts of a document are contained in the result
+-- | Build a selection function for choosing,
+-- which parts of a document are contained in the result.
 --
--- The 1. param determines, whether the weight of the document is included in the result
--- the 2. is the list of the description keys, if @Nothing@ is given the complete desc is included
+-- The 1. param determines, whether the weight of the document is included in the result.
+-- The 2. is the list of the description keys, if @Nothing@ is given the complete desc is included.
 
 mkSelect :: Bool -> Maybe [Text] -> (Document -> Document)
 mkSelect withWeight fields
@@ -636,7 +636,7 @@ execLoad filename = do
 
 -- the query interpreters
 
--- for scored docs (DocIdMap with scores
+-- for scored docs (DocIdMap with scores)
 
 runQueryScoredDocsM :: ContextMap Occurrences
                     -> Schema

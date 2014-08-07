@@ -206,7 +206,7 @@ processQueryUnScoredDocs = processQueryScoredResult evalUnScoredDocs
 -- may not be complete.
 --
 -- In that case it becomes easy to build a query witch acts as a denial of service
--- attack, because the intermediate results become too large to be proccessed.
+-- attack, because the intermediate results become too large to be processed.
 -- So these queries must be used in applications rather carefully, e.g. a user should
 -- not be able to construct these types of queries by filling in some input fields in a web interface.
 

@@ -38,8 +38,8 @@ data Heap v
     | T !Score v (Heap v) (Heap v)
       deriving (Show)
 
--- | create an empty priority queue with a limited capacity
--- if capacity is < 0, no limit is defined
+-- | Create an empty priority queue with a limited capacity.
+-- If capacity is < 0, no limit is defined.
 
 mkQueue :: Int -> Queue v
 mkQueue c
@@ -48,8 +48,8 @@ mkQueue c
     | otherwise
         = Q maxBound 0 E
 
--- | insert an element if there's space in the queue
--- or if element is larger than smallest element
+-- | Insert an element if there is space in the queue
+-- or if element is larger than smallest element.
 
 insert :: v -> Score -> Queue v -> Queue v
 insert di sc q@(Q c s h)
@@ -62,8 +62,8 @@ insert di sc q@(Q c s h)
     where
       (T sc' _di' l r) = h
 
--- | reduce size and capacity of queue
--- by throwing away small elements
+-- | Reduce size and capacity of queue
+-- by throwing away small elements.
 
 reduce :: Int -> Queue v -> Queue v
 reduce i (Q _ s h)
@@ -87,11 +87,11 @@ fromList :: Int -> [(v, Score)] -> Queue v
 fromList c
     = foldl (\ q (di, sc) -> insert di sc q) (mkQueue c)
 
--- | take a list of scored values, sort it and return a page of the result
+-- | Take a list of scored values, sort it and return a page of the result.
 --
 -- @pageList 10 5 xs == take 5 . drop 10 . sortBy snd $ xs@
 --
--- If the length is set to @-1@ no limit on the page length is set
+-- If the length is set to @-1@ no limit on the page length is set.
 
 pageList :: Int -> Int -> [(v, Score)] -> [(v, Score)]
 pageList start len
