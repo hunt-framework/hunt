@@ -182,6 +182,10 @@ hunt-test/data/random/RandomData.js:
 hunt-test/data/jokes/FussballerSprueche.js:
 	$(MAKE) -e -C hunt-test/data/jokes generate
 
+haddock:
+	cd hunt-searchengine && cabal haddock --hyperlink-source
+	- cd hunt-searchengine && xdg-open dist/doc/html/hunt-searchengine/index.html
+
 insertRandom:  hunt-test/data/random/RandomData.js
 	curl -X POST -d @hunt-test/data/random/contexts.js $(SERVER)/eval
 	curl -X POST -d @hunt-test/data/random/RandomData.js $(SERVER)/document/insert
