@@ -7,8 +7,8 @@ import           Test.Framework.Providers.QuickCheck2
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 
+import           Data.RTree.MBB                 as RTree
 import           Hunt.Common.Occurrences
-import           Hunt.Common.Positions          (Positions)
 
 import qualified Hunt.Index                     as Ix
 import qualified Hunt.Index.RTreeIndex          as PIx
@@ -33,6 +33,7 @@ rTreeIndexTests = [
 mkEmpty :: PIx.RTreeIndex Occurrences
 mkEmpty = Ix.empty
 
+mkKey :: RTree.MBB
 mkKey = PIx.readPosition "1-1"
 
 test_insert :: Property

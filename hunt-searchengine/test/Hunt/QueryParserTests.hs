@@ -22,7 +22,6 @@ import           Control.Monad
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 import           Hunt.ClientInterface
-import           Hunt.Query.Language.Grammar
 import qualified Hunt.Query.Language.Parser           as P
 
 -- ----------------------------------------------------------------------------
@@ -401,29 +400,6 @@ word = fmap T.pack . listOf1 . elements $ concat [['0'..'9'], ['A'..'Z'], ['a'..
 phrase = do
          ws <- sequence [ word | i <- [1..3] ]
          return (T.intercalate " " ws)
-
-showQuery :: (BinOp -> String) -> Query -> Text
-showQuery _ (QWord QNoCase st)   = st
-showQuery _ (QPhrase QNoCase st) = T.concat ["\"", st, "\""]
-showQuery _ (QWord QCase st)     = T.concat ["!", st]
-showQuery _ (QPhrase QCase st)   = T.concat ["!\"", st, "\""]
-showQuery _ (QWord QFuzzy st)    = T.concat ["~", st]
-showQuery _ (QPhrase QFuzzy st)  = T.concat ["~\"", st, "\""]
-showQuery f (QContext c q)       = T.concat [(T.intercalate "," c), ":(", (showQuery f q), ")"]
-showQuery f (QBinary opr q1 q2)  = T.concat ["(", (showQuery f q1)
-                                            ," " , (T.pack $ f opr)
-                                            ," " , (showQuery f q2) , ")"]
-showQuery f (QRange l u)         = T.concat [ "[", l, " TO ", u, "]"]
-showQuery f (QBoost factor q)    = T.concat [ showQuery f q, "^", (T.pack . show $ factor) ]
-
-showOpAnd And    = "AND"
-showOpAnd Or     = "OR"
-showOpAnd AndNot = "AND NOT"
-
-showOpSpace And    = " "
-showOpSpace Or     = "OR"
-showOpSpace AndNot = "AND NOT"
-
 
 prop_ParseAnd q = (printQuery <$> (P.parseQuery $ T.unpack $ printQuery q)) == Right (printQuery q)
 

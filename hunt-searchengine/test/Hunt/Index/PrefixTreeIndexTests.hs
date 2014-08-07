@@ -8,7 +8,6 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 
 import           Hunt.Common.Occurrences
-import           Hunt.Common.Positions          (Positions)
 
 import qualified Hunt.Index                     as Ix
 import qualified Hunt.Index.PrefixTreeIndex     as PIx

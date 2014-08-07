@@ -12,15 +12,11 @@ import           Test.HUnit                           hiding (Test)
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
 
-import           Hunt.Common.BasicTypes
-import           Hunt.Common.Occurrences
 import           Hunt.Common.Document
 
 import qualified Hunt.ContextIndex                    as ConIx
 import qualified Hunt.DocTable                        as Dt
 import           Hunt.TestHelper
-import           Hunt.Index.TestHelper
-
 
 contextIndexTests :: [Test]
 contextIndexTests
@@ -61,7 +57,7 @@ test_insertlist
     documents <- pick mkDocuments
     let cxIx = insertCx "context"
     insertData <- pick $ mkInsertList $ documents
-    (ConIx.ContextIndex ix dt _) <- ConIx.insertList insertData cxIx
+    (ConIx.ContextIndex _ dt _) <- ConIx.insertList insertData cxIx
     -- check if docuemnts are in document table
     docsTrue <- foldM (\b doc -> Dt.lookupByURI (uri doc) dt >>= \mid -> return (b && isJust mid)) True documents
     -- check if documents are in index

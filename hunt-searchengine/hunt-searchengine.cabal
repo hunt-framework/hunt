@@ -156,6 +156,7 @@ test-suite Hunt-Tests
                , random
                , directory
                , data-default
+               , data-r-tree
                , monad-parallel
 
 test-suite Hunt-Strictness

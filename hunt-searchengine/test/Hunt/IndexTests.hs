@@ -7,13 +7,13 @@ module Hunt.IndexTests
 (indexImplTests)
 where
 
-import qualified Data.Map                       as M
+--import qualified Data.Map                       as M
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit                     hiding (Test)
 
-import           Hunt.Common.BasicTypes
+--import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences
 
 --import           Hunt.ContextIndex              (addWordsM)
@@ -69,8 +69,8 @@ occMergeTest = True @?= (merge occ1 occ2 == occ3)
 -- test helper
 -- ----------------------------------------------------------------------------
 
-wordList :: WordList
-wordList = M.fromList $ [("word", [1,5,10])]
+--wordList :: WordList
+--wordList = M.fromList $ [("word", [1,5,10])]
 
-wrds :: Word -> Words
-wrds w = M.fromList $ [(w, wordList)]
+--wrds :: Word -> Words
+--wrds w = M.fromList $ [(w, wordList)]

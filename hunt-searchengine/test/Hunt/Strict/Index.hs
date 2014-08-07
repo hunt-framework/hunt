@@ -24,7 +24,6 @@ import           Data.Text                                       (Text)
 
 import           Hunt.Common
 import qualified Hunt.Common.Positions                       as Pos
-import qualified Hunt.Common.Occurrences                     as Occ
 import qualified Hunt.Common.DocIdMap                        as DM
 import qualified Hunt.Common.DocIdSet                        as DS
 
@@ -238,13 +237,9 @@ prop_proxy_del
   where
   pickIx = pick arbitrary >>= insert_and_delete "key"
 
---insert_and_delete :: forall v (m :: * -> *) (i :: * -> *) v1.
---                     (Ix.ICon i v1, Monad m, Ix.Index i, Ix.IVal i v1 ~ DocIdMap v) =>
---                     Ix.IKey i v1 -> DocIdMap v -> m (i v1)
---insert_and_delete :: forall (m :: * -> *) (i :: * -> *) v.
---                     (Ix.ICon i, Monad m, Ix.Index i,
---                      IndexValue (IVal i)) =>
---                      Ix.IKey i -> DocIdMap Positions -> m (i v)
+insert_and_delete :: forall (m :: * -> *) a.
+                     (Ix.ICon a, Monad m, IndexValue (Ix.IVal a), Ix.Index a) =>
+                      Ix.IKey a -> DocIdMap Positions -> m a
 insert_and_delete key v
   = return $ Ix.delete docId
            $ Ix.insert key (toIntermediate (v::Occurrences))
@@ -322,14 +317,16 @@ prop_proxy_map
   where
   pickIx = pick arbitrary >>= insert_and_map "key"
 
---insert_and_map :: forall (m :: * -> *) (i :: * -> *) v.
---                  (Ix.ICon i v, Monad m, Ix.Index i,
---                   Ix.IVal i v ~ DocIdMap Positions) =>
---                  Ix.IKey i v -> DocIdMap Positions -> m (i v)
+insert_and_map :: forall (m :: * -> *) a.
+                  (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DocIdMap Positions) =>
+                  Ix.IKey a -> Occurrences -> m a
 insert_and_map key v
   = return $ Ix.map (DM.insert (mkDocId (1 :: Int)) (Pos.singleton 1))
            $ Ix.insert key (toIntermediate (v::Occurrences)) Ix.empty
 
+insert_and_map_withSet :: forall (m :: * -> *) a.
+                          (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DocIdSet) =>
+                          Ix.IKey a -> DocIdSet -> m a
 insert_and_map_withSet key v
   = return $ Ix.map (DS.union (DS.singleton $ mkDocId (1 :: Int)))
            $ Ix.insert key (toIntermediate (v::DocIdSet)) Ix.empty
@@ -405,14 +402,16 @@ prop_proxy_map2
   where
   pickIx = pick arbitrary >>= insert_and_map2 "key"
 
---insert_and_map2 :: forall (m :: * -> *) (i :: * -> *) v.
---                   (Ix.ICon i v, Monad m, Ix.Index i,
---                    Ix.IVal i v ~ DocIdMap Positions) =>
---                   Ix.IKey i v -> DocIdMap Positions -> m (i v)
+insert_and_map2 :: forall (m :: * -> *) a.
+                   (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DocIdMap Positions) =>
+                   Ix.IKey a -> Occurrences -> m a
 insert_and_map2 key v
   = return $ Ix.mapMaybe (Just . DM.insert (mkDocId (1 :: Int)) (Pos.singleton 1))
            $ Ix.insert key (toIntermediate (v::Occurrences)) Ix.empty
 
+insert_and_map2_withSet :: forall (m :: * -> *) a.
+                           (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DocIdSet) =>
+                           Ix.IKey a -> DocIdSet -> m a
 insert_and_map2_withSet key v
   = return $ Ix.mapMaybe (Just . DS.union (DS.singleton $ mkDocId (1 :: Int)))
            $ Ix.insert key (toIntermediate (v::DocIdSet)) Ix.empty
@@ -509,15 +508,18 @@ prop_proxy_union
     val2 <- pick arbitrary :: PropertyM IO Occurrences
     insert_and_union "key" val1 val2
 
---insert_and_union :: forall (m :: * -> *) (i :: * -> *) v.
---                    (Ix.ICon i v, Monad m, Ix.Index i,
---                    Ix.IVal i v ~ DocIdMap Positions) =>
---                     Ix.IKey i v -> DocIdMap Positions -> DocIdMap Positions -> m (i v)
+insert_and_union :: forall (m :: * -> *) a v.
+                    (Ix.ICon a, Monad m, IndexValue (DocIdMap v), Ix.Index a,
+                    Ix.IVal a ~ DocIdMap v) =>
+                    Ix.IKey a -> Occurrences -> Occurrences -> m a
 insert_and_union key v1 v2
   = return $ Ix.unionWith (DM.union)
              (Ix.insert key (toIntermediate (v1::Occurrences)) Ix.empty)
              (Ix.insert key (toIntermediate (v2::Occurrences)) Ix.empty)
 
+insert_and_union_withSet :: forall (m :: * -> *) a.
+                            (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DocIdSet) =>
+                            Ix.IKey a -> DocIdSet -> DocIdSet -> m a
 insert_and_union_withSet key v1 v2
   = return $ Ix.unionWith (DS.union)
              (Ix.insert key (toIntermediate (v1::DocIdSet)) Ix.empty)

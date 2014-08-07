@@ -11,7 +11,6 @@ module Hunt.Strict.ContextIndex
 (contextIndexTests)
 where
 
-import qualified Control.Monad.Parallel                          as Par
 import           Hunt.TestHelper
 import           Hunt.Strict.Helper
 
@@ -23,7 +22,6 @@ import           Test.QuickCheck.Monadic                         (PropertyM,
                                                                   pick)
 
 import           Hunt.Common
-import qualified Hunt.Common.Occurrences                     as Occ
 import           Hunt.Common.IntermediateValue
 
 import qualified Data.Map.Strict                             as M

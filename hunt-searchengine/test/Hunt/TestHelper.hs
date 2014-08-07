@@ -6,7 +6,7 @@
 {-# LANGUAGE TypeSynonymInstances      #-}
 {-# LANGUAGE RankNTypes                #-}
 {-# LANGUAGE ExistentialQuantification #-}
-
+{-# OPTIONS -fno-warn-orphans          #-}
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -35,7 +35,6 @@ import qualified Hunt.Common.Positions                       as Pos
 import qualified Hunt.Common.Occurrences                     as Occ
 import qualified Hunt.Common.DocDesc                         as DD
 import qualified Hunt.Common.DocIdSet                        as DS
-import           Hunt.Common.DocIdSet                        (DocIdSet)
 
 import           Hunt.Interpreter.Command
 import           Hunt.ClientInterface                        hiding (mkDescription)

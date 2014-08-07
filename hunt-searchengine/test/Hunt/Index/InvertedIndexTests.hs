@@ -11,7 +11,6 @@ import           Test.QuickCheck.Monadic
 
 import           Hunt.Common.BasicTypes
 import qualified Hunt.Common.DocIdSet           as DS
-import           Hunt.Common.Occurrences
 import           Hunt.Common.IntermediateValue
 
 import qualified Hunt.Index                     as Ix
