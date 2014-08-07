@@ -137,7 +137,7 @@ module Hunt.ClientInterface
 where
 
 import           Control.Applicative         ((<$>))
-import           Data.Aeson                  (FromJSON (..), ToJSON (..), Value(..), encode)
+import           Data.Aeson                  (FromJSON (..), ToJSON (..), Value(..))
 import           Data.Default
 import           Data.List                   (nub)
 import qualified Data.Map.Strict             as SM

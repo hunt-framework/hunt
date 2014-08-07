@@ -37,10 +37,8 @@ import           Hunt.Query.Language.Grammar
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
-import           Hunt.Common.BasicTypes      (Content, Context, Description,
-                                              RegEx, Score, URI, Weight,
-                                              defScore, getScore, mkScore,
-                                              noScore)
+import           Hunt.Common.BasicTypes      (Context, Weight)
+
 -- query construction
 
 -- | prefix search of a single word

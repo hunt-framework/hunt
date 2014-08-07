@@ -32,7 +32,6 @@ import           Control.Monad
 
 import           Data.Aeson
 import           Data.Binary
-import           Data.Char              (isAlphaNum)
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import           Data.Text.Binary       ()

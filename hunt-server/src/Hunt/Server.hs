@@ -49,7 +49,6 @@ import           Control.Monad.Error
 import           Data.String                          (fromString)
 
 import           Data.Text                            (Text)
-import qualified Data.Text                            as T
 
 import qualified Network.Wai.Handler.Warp             as W
 import           Network.Wai.Middleware.RequestLogger
@@ -58,7 +57,6 @@ import           Hunt.Interpreter
 import           Hunt.Interpreter.Command             (StatusCmd (..))
 
 import           Hunt.ClientInterface
-import           Hunt.Query.Language.Parser           (parseQuery)
 
 import           Hunt.Server.Common
 import           Hunt.Server.Schrotty                 hiding (Options)
