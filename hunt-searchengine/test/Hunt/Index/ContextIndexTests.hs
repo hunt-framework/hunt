@@ -36,7 +36,7 @@ test_insert_cx
     = True @?= length after == 1 && head after == cxName
     where
      cxName = "context"
-     (ConIx.ContextIndex m _ _) = insertCx cxName
+     (ConIx.ContextIndex m _) = insertCx cxName
      after = ConIx.contexts m
 
 test_delete_cx :: Assertion
@@ -44,9 +44,9 @@ test_delete_cx
     = True @?= length before == 1 && length after == 0
     where
       context = "context"
-      cix@(ConIx.ContextIndex m _ _) = insertCx context
+      cix@(ConIx.ContextIndex m _) = insertCx context
       before  = ConIx.contexts m
-      (ConIx.ContextIndex m' _ _ ) = ConIx.deleteContext context cix
+      (ConIx.ContextIndex m' _ ) = ConIx.deleteContext context cix
       after   = ConIx.contexts m'
 
 -- | check insert on ContextIndex
@@ -57,7 +57,7 @@ test_insertlist
     documents <- pick mkDocuments
     let cxIx = insertCx "context"
     insertData <- pick $ mkInsertList $ documents
-    (ConIx.ContextIndex _ dt _) <- ConIx.insertList insertData cxIx
+    (ConIx.ContextIndex _ dt) <- ConIx.insertList insertData cxIx
     -- check if docuemnts are in document table
     docsTrue <- foldM (\b doc -> Dt.lookupByURI (uri doc) dt >>= \mid -> return (b && isJust mid)) True documents
     -- check if documents are in index

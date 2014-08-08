@@ -25,6 +25,7 @@ import           Hunt.Common
 import           Hunt.Common.IntermediateValue
 
 import qualified Data.Map.Strict                             as M
+import           Data.Default
 
 import qualified Hunt.Index                                  as Ix
 import           Hunt.ContextIndex
@@ -59,7 +60,7 @@ prop_cx_insertlist3 = monadicIO $ do
  -- use rest of documents for this list
   insertData <- pick $ mkInsertList $ drop 10 documents
   -- check resulting document table for strictness property
-  (ContextIndex _ dt' _) <- insertList insertData cxIx
+  (ContextIndex _ dt') <- insertList insertData cxIx
   assertNF' dt'
   where
     pickIx = do
@@ -67,9 +68,9 @@ prop_cx_insertlist3 = monadicIO $ do
              return $ Ix.insert "key" (toIntermediate (val :: Occurrences)) Ix.empty
     pickContextIx docs = do
       ix <- pickIx :: PropertyM IO InvIx.InvertedIndex
-      let cxmap = mkContextMap $ M.fromList [("context", Impl.mkIndex ix)]
+      let cxmap = mkContextMap $ M.fromList [("context", (def, Impl.mkIndex ix))]
       dt <- pick $ mkDocTable docs
-      return $ ContextIndex cxmap dt M.empty
+      return $ ContextIndex cxmap dt
 
 prop_cx_insertlist ::Property
 prop_cx_insertlist = monadicIO $ do

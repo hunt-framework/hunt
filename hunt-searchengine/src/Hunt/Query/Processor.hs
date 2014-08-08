@@ -100,7 +100,6 @@ data ProcessEnv
       { psConfig   :: ! ProcessConfig  -- ^ The configuration for the query processor.
       , psContexts :: ! [Context]      -- ^ The current list of contexts.
       , psIndex    ::   ContextMap     -- ^ The index to search.
-      , psSchema   ::   Schema         -- ^ Schema / Schemas for the contexts.
       }
 
 -- ------------------------------------------------------------
@@ -140,7 +139,7 @@ getIx
 
 getSchema :: Processor Schema
 getSchema
-    = asks psSchema
+    = getIx >>= return . (M.map fst) . CIx.cxMap
 
 -- | Get the schema associated with that context/index.
 --
@@ -182,10 +181,11 @@ normQueryCx c t
                      ]
 
 -- | Initialize the state of the processor.
-initProcessor :: ProcessConfig -> QueryIndex -> Schema -> ProcessEnv
-initProcessor cfg ix s
-    = ProcessEnv cfg cxs ix s
+initProcessor :: ProcessConfig -> QueryIndex -> ProcessEnv
+initProcessor cfg ix
+    = ProcessEnv cfg cxs ix
     where
+      s = CIx.mapToSchema ix
       cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault)
             $ CIx.contexts ix
 
