@@ -317,7 +317,7 @@ printQuery (QContext [] w)
     = printQPar w
 
 printQuery (QContext cs' w)
-    = printCs <> ":" <> (printQPar w)
+    = printCs <> ":(" <> (printQPar w) <> ")"
       where
         printCs = foldr1 (\l r -> l <> "," <> r) cs'
 
