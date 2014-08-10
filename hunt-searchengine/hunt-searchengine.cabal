@@ -50,7 +50,6 @@ library
                , text                   >= 1    && < 2
                , time                   >= 1.4  && < 2
                , transformers           >= 0.3
-               , unix                   >= 2.3  && < 3
                , unordered-containers   >= 0.2
                , vector                 >= 0.10
 
