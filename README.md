@@ -20,22 +20,40 @@ Installation
 
 ##### Dependencies
 
-- Core:
   - [GHC](https://www.haskell.org/ghc/): The Glasgow Haskell Compiler
   - [Cabal](http://www.haskell.org/cabal/): Haskell package management tool
-- Compression
+
+<!--- - Compression
   - [zlib][zlib] compression library
   - [bzip2][bzip] compression library
   - [Snappy][snappy] compression library
-
 deb: `apt-get install ghc cabal-install zlib1g-dev libbz2-dev libsnappy-dev`
+-->
 
 ##### Hunt Installation
+
+The easiest way to get the setup started is to install the current [Haskell Platform](https://www.haskell.org/platform/). 
+
+##### Linux
+----
+
+If you're using linux, you are able to use our Makefile for the build.
 
 ```bash
 git clone https://github.com/hunt-framework/hunt.git
 cd hunt
 make sandbox install
+```
+
+##### Windows
+----
+
+If you're using Windows, you can use cabal for the build. If you like to use sandboxes on Windows, you can copy the neccessary cabal commands from our Makefile. 
+
+```bash
+git clone https://github.com/hunt-framework/hunt.git
+cd hunt/hunt-server
+cabal install
 ```
 
 Getting Started
@@ -57,7 +75,7 @@ make insertJokes
 
 FAQ
 ----
-
+<!---
 ##### The installation fails with "Missing dependency on a foreign library: * Missing (or bad) header file: zlib.h * Missing C library: z".
 zlib1g-dev
 The [zlib][zlib] compression library is missing. Install from source or use the distribution
@@ -70,6 +88,10 @@ packages (deb: `libbz2-dev`).
 ##### The installation fails with "...Snappy failure message...".
 The [Snappy][snappy] compression library is missing. Install from source or use the distribution
 packages (deb: `libsnappy-dev`).
+-->
+
+##### Can i run Hunt on a 32Bit machine.
+This would not be a good idea. First of all we are using 64Bit Hashes for our internal `DocId`s. Despite this source of error the 32Bit machine limits the available memory to 4GB. 
 
 ##### Why is the CPU usage in idle so high?
 GHC performs a a major garbage collection every 0.3 seconds in idle, which can be computationally
