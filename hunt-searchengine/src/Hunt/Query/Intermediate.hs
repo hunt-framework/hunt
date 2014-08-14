@@ -49,26 +49,26 @@ module Hunt.Query.Intermediate
     )
 where
 
-import           Prelude                          hiding (null)
+import           Prelude                   hiding (null)
 
-import           Control.Applicative              hiding (empty)
-import           Control.Arrow                    (second, (***))
+import           Control.Applicative       hiding (empty)
+import           Control.Arrow             (second, (***))
 
-import qualified Data.List                        as L
-import           Data.Map                         (Map)
-import qualified Data.Map                         as M
+import qualified Data.LimitedPriorityQueue as Q
+import qualified Data.List                 as L
+import           Data.Map                  (Map)
+import qualified Data.Map                  as M
 import           Data.Maybe
-import           Hunt.Query.Result                hiding (null)
+import           Hunt.Query.Result         hiding (null)
 
 import           Hunt.Common
-import qualified Hunt.Common.DocIdMap             as DM
-import qualified Hunt.Common.DocIdSet             as DS
-import           Hunt.Common.Document             (DocumentWrapper (..))
-import qualified Hunt.Common.LimitedPriorityQueue as Q
-import qualified Hunt.Common.Occurrences          as Occ
-import qualified Hunt.Common.Positions            as Pos
-import           Hunt.DocTable                    (DocTable)
-import qualified Hunt.DocTable                    as Dt
+import qualified Hunt.Common.DocIdMap      as DM
+import qualified Hunt.Common.DocIdSet      as DS
+import           Hunt.Common.Document      (DocumentWrapper (..))
+import qualified Hunt.Common.Occurrences   as Occ
+import qualified Hunt.Common.Positions     as Pos
+import           Hunt.DocTable             (DocTable)
+import qualified Hunt.DocTable             as Dt
 
 -- import           Debug.Trace
 
@@ -443,16 +443,49 @@ toDocsResult dt (SDS m)
                   where
                     d = unwrap d'
 
+-- ----------------------------------------
+-- ranking of documents
+
+-- define a total ordering over documents by taking score and uri into account
+-- this is used for ranking (only)
+
+newtype RankedDoc = RD {unRD :: Document}
+
+instance Eq RankedDoc where
+    (RD d1) == (RD d2)
+        = score d1 == score d2
+          &&
+          uri   d1 == uri   d2
+
+instance Ord RankedDoc where
+    (RD d1) `compare` (RD d2)
+        = case score d1 `compare` score d2 of
+            EQ -> uri d2 `compare` uri d1
+            r  -> r
+
 toDocumentResultPage :: Int -> Int -> [Document] -> [Document]
 toDocumentResultPage start len
-    = map fst
+    = map unRD
       . Q.pageList start len
-      . map (\ d -> (d, score d))
+      . map RD
+
+-- ----------------------------------------
+-- ranking of completions
+
+data RankedWord = RW Score Word
+                   deriving Eq
+
+instance Ord RankedWord where
+    (RW s1 w1) `compare` (RW s2 w2)
+        = case s1 `compare` s2 of
+            EQ -> w2 `compare` w1
+            r  -> r
 
 toWordsResult :: Int -> ScoredWords -> [(Word, Score)]
 toWordsResult len (SWS m)
-    = Q.toList 0 len
-      . M.foldWithKey Q.insert (Q.mkQueue len)
+    = map (\ (RW s w) -> (w, s))
+      . Q.toList 0 len
+      . M.foldWithKey (\ w s -> Q.insert (RW s w)) (Q.mkQueue len)
       $ m
 
 -- ------------------------------------------------------------
