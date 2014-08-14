@@ -60,6 +60,7 @@ library
     Data.Bijection.Instances
     Data.IntMap.BinTree.Strict
     Data.IntSet.Cache
+    Data.LimitedPriorityQueue
     Data.Text.Binary
     Data.Typeable.Binary
 
@@ -76,7 +77,6 @@ library
     Hunt.Common.DocIdMap
     Hunt.Common.DocIdSet
     Hunt.Common.Document
-    Hunt.Common.LimitedPriorityQueue
     Hunt.Common.Occurrences
     Hunt.Common.Positions
     Hunt.Common.RawResult
