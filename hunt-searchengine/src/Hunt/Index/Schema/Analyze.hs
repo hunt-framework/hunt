@@ -24,11 +24,10 @@ import qualified Data.Text                   as T
 
 import           Text.Regex.XMLSchema.String
 
+import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Document        (Document (..),
                                               DocumentWrapper (..))
-
-import           Hunt.Common.ApiDocument
 import           Hunt.Index.Schema
 
 -- ------------------------------------------------------------

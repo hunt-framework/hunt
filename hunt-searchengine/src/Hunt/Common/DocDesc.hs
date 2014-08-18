@@ -1,7 +1,8 @@
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
-module Hunt.Common.DocDesc where
+module Hunt.Common.DocDesc
+where
 
 import           Prelude             hiding (lookup)
 
@@ -26,8 +27,11 @@ newtype DocDesc
   = DocDesc { unDesc :: Object }
   deriving (Eq, Show, NFData, Typeable)
 
+-- | Smart constructor for document descriptions.
+
 mkDocDesc :: Object -> DocDesc
-mkDocDesc o = DocDesc $!! o
+mkDocDesc o
+    = DocDesc $!! o
 
 instance Binary DocDesc where
     put = put . encode . unDesc
@@ -78,6 +82,13 @@ restrict ks (DocDesc m)
     = mkDocDesc $ HM.filterWithKey sel m
       where
         sel k _v = k `elem` ks
+
+deleteNull :: DocDesc -> DocDesc
+deleteNull (DocDesc m)
+    = mkDocDesc $ HM.filter notNull m
+      where
+        notNull Null = False
+        notNull _    = True
 
 lookupValue :: Text -> DocDesc -> Value
 lookupValue k (DocDesc m)

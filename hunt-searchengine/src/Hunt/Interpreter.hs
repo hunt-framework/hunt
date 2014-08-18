@@ -420,8 +420,15 @@ execInsertList docs ixx@(ContextIndex ix _dt)
             . L.map (M.map (const ()) . adIndex)
             $ docs
 
+      -- convert ApiDocuments to Documents, delete null values,
+      -- and break index data into words by applying the scanner
+      -- given by the schema spec for the appropriate contexts
       docsAndWords
-          = L.map ((\(d, _dw, ws) -> (d, ws)) . toDocAndWords (CIx.mapToSchema ix)) docs
+          = L.map ( (\ (d, _dw, ws) -> (d, ws))
+                    . toDocAndWords (CIx.mapToSchema ix)
+                    . (\ d -> d {adDescr = DocDesc.deleteNull $ adDescr d})
+                  )
+            $ docs
 
       -- compute duplicate URIs by building a frequency table
       -- and looking for entries with counts @> 1@

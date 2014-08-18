@@ -55,38 +55,38 @@ module Hunt.ContextIndex
   )
 where
 {-
-import           Debug.Trace             (traceShow)
+import           Debug.Trace                   (traceShow)
 -- -}
 import           Prelude
-import qualified Prelude                 as P
+import qualified Prelude                       as P
 
-import           Control.Applicative     (Applicative, (<$>), (<*>))
+import           Control.Applicative           (Applicative, (<$>), (<*>))
 import           Control.Arrow
 import           Control.Monad
-import qualified Control.Monad.Parallel  as Par
+import qualified Control.Monad.Parallel        as Par
 
-import           Data.Binary             (Binary (..))
+import           Data.Binary                   (Binary (..))
 import           Data.Binary.Get
-import           Data.ByteString.Lazy    (ByteString)
-import           Data.Map                (Map)
-import qualified Data.Map                as M
+import           Data.ByteString.Lazy          (ByteString)
+import           Data.Map                      (Map)
+import qualified Data.Map                      as M
 import           Data.Maybe
-import           Data.Set                (Set)
-import qualified Data.Set                as S
-import           Data.Text               (Text)
+import           Data.Set                      (Set)
+import qualified Data.Set                      as S
+import           Data.Text                     (Text)
 
 import           Hunt.Common
-import qualified Hunt.Common.DocDesc     as DD
-import qualified Hunt.Common.DocIdSet    as DS
-import qualified Hunt.Common.Document    as Doc
-import qualified Hunt.Common.Occurrences as Occ
+import qualified Hunt.Common.DocDesc           as DocDesc
+import qualified Hunt.Common.DocIdSet          as DS
+import qualified Hunt.Common.Document          as Doc
 import           Hunt.Common.IntermediateValue
+import qualified Hunt.Common.Occurrences       as Occ
 
-import           Hunt.DocTable           (DocTable)
-import qualified Hunt.DocTable           as Dt
-import qualified Hunt.Index              as Ix
-import           Hunt.Index.IndexImpl    (IndexImpl)
-import qualified Hunt.Index.IndexImpl    as Impl
+import           Hunt.DocTable                 (DocTable)
+import qualified Hunt.DocTable                 as Dt
+import qualified Hunt.Index                    as Ix
+import           Hunt.Index.IndexImpl          (IndexImpl)
+import qualified Hunt.Index.IndexImpl          as Impl
 import           Hunt.Utility
 
 -- ------------------------------------------------------------
@@ -94,8 +94,8 @@ import           Hunt.Utility
 -- | Context index introduces contexts and combines the major components of Hunt.
 
 data ContextIndex dt = ContextIndex
-  { ciIndex  :: !ContextMap -- ^ Indexes associated to contexts.
-  , ciDocs   :: !dt         -- ^ Document table.
+  { ciIndex :: !ContextMap -- ^ Indexes associated to contexts.
+  , ciDocs  :: !dt         -- ^ Document table.
   }
 
 empty :: DocTable dt => ContextIndex dt
@@ -279,13 +279,27 @@ modifyWithDescription weight descr wrds dId (ContextIndex ii dt)
       -- M.union is left-biased
       -- flip to use new values for existing keys
       -- no flip to keep old values
+      --
+      -- Null values in new descr will remove associated attributes
       mergeDescr
           = return . Doc.update (updateWeight . updateDescr)
           where
             updateWeight d
                 | weight == noScore = d
                 | otherwise         = d {wght = weight}
-            updateDescr d           = d {desc = flip DD.union (desc d) descr}
+
+            updateDescr d           = -- trc "updateDescr res=" $
+                                      d {desc = DocDesc.deleteNull $
+                                                flip DocDesc.union d' descr'
+                                        }
+                                      where
+                                        d'     = -- trc "updateDescr old=" $
+                                                 desc d
+                                        descr' = -- trc "updateDescr new=" $
+                                                 descr
+
+-- trc :: Show a => String -> a -> a
+-- trc msg x = traceShow (msg, x) x
 
 -- ------------------------------------------------------------
 -- Helper
@@ -300,13 +314,20 @@ modifyWithDescription weight descr wrds dId (ContextIndex ii dt)
 
 batchAddWordsM :: (Functor m, Par.MonadParallel m) =>
                   [(DocId, Words)] -> ContextMap -> m ContextMap
+batchAddWordsM [] ix
+    = return ix
+
 batchAddWordsM vs (ContextMap m)
-  = mkContextMap <$> mapWithKeyMP (\cx (s, impl) -> foldinsertList cx impl >>= \i -> return (s, i)) m
-  where
-    foldinsertList :: (Functor m, Monad m) =>
-                      Context -> IndexImpl -> m IndexImpl
-    foldinsertList cx (Impl.IndexImpl impl)
-        = Impl.mkIndex <$> Ix.insertListM (contentForCx cx vs) impl
+    = mkContextMap <$>
+      mapWithKeyMP ( \cx (s, impl) -> do i <- foldinsertList cx impl
+                                         return (s, i)
+                   ) m
+    where
+      foldinsertList :: (Functor m, Monad m) =>
+                        Context -> IndexImpl -> m IndexImpl
+      foldinsertList cx (Impl.IndexImpl impl)
+          = Impl.mkIndex <$>
+            Ix.insertListM (contentForCx cx vs) impl
 
 -- | Computes the words and occurrences out of a list for one context
 
