@@ -53,7 +53,7 @@ module Hunt.ContextIndex
   )
 where
 {-
-import           Debug.Trace             (traceShow)
+import           Debug.Trace                   (traceShow)
 -- -}
 import           Prelude
 import qualified Prelude                 as P
@@ -258,13 +258,27 @@ modifyWithDescription weight descr wrds dId (ContextIndex ii dt s)
       -- M.union is left-biased
       -- flip to use new values for existing keys
       -- no flip to keep old values
+      --
+      -- Null values in new descr will remove associated attributes
       mergeDescr
           = return . Doc.update (updateWeight . updateDescr)
           where
             updateWeight d
                 | weight == noScore = d
                 | otherwise         = d {wght = weight}
-            updateDescr d           = d {desc = flip DD.union (desc d) descr}
+
+            updateDescr d           = -- trc "updateDescr res=" $
+                                      d {desc = DocDesc.deleteNull $
+                                                flip DocDesc.union d' descr'
+                                        }
+                                      where
+                                        d'     = -- trc "updateDescr old=" $
+                                                 desc d
+                                        descr' = -- trc "updateDescr new=" $
+                                                 descr
+
+-- trc :: Show a => String -> a -> a
+-- trc msg x = traceShow (msg, x) x
 
 -- ------------------------------------------------------------
 -- Helper
@@ -279,6 +293,8 @@ modifyWithDescription weight descr wrds dId (ContextIndex ii dt s)
 
 batchAddWordsM :: (Functor m, Par.MonadParallel m) =>
                   [(DocId, Words)] -> ContextMap Occurrences -> m (ContextMap Occurrences)
+batchAddWordsM [] ix
+  = return ix
 batchAddWordsM vs (ContextMap m)
   = mkContextMap <$> mapWithKeyMP (\cx impl -> foldinsertList cx impl) m
   where
