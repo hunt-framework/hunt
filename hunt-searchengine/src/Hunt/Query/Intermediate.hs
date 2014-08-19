@@ -60,6 +60,7 @@ import           Data.Map                  (Map)
 import qualified Data.Map                  as M
 import           Data.Maybe
 import           Data.Monoid               (Monoid(..),(<>))
+import           Data.Ord
 
 import           Hunt.Common.BasicTypes
 import qualified Hunt.Common.DocIdMap      as DM
@@ -380,9 +381,9 @@ instance Eq RankedDoc where
 
 instance Ord RankedDoc where
     (RD (sc1,d1)) `compare` (RD (sc2,d2))
-        = case sc1 `compare` sc2 of
-            EQ -> uri d2 `compare` uri d1
-            r  -> r
+        = sc1 `compare` sc2
+          <>
+          comparing uri d2 d1
 
 instance ToJSON RankedDoc where
     toJSON (RD (c,d))
@@ -404,9 +405,9 @@ data RankedWord = RW Score Word
 
 instance Ord RankedWord where
     (RW s1 w1) `compare` (RW s2 w2)
-        = case s1 `compare` s2 of
-            EQ -> w2 `compare` w1
-            r  -> r
+        = s1 `compare` s2
+          <>
+          w2 `compare` w1
 
 toWordsResult :: Int -> ScoredWords -> [(Word, Score)]
 toWordsResult len (SWS m)

@@ -38,7 +38,7 @@ data Heap v
       deriving (Show)
 
 -- | Create an empty priority queue with a limited capacity.
--- If capacity is < 0, no limit is set
+-- If capacity is < 0, no limit is set.
 
 mkQueue :: Int -> Queue v
 mkQueue c
