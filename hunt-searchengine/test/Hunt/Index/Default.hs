@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ConstraintKinds  #-}
 {-# LANGUAGE TypeFamilies     #-}
-module Hunt.Index.TestHelper where
+module Hunt.Index.Default where
 
 import           Data.List                      (intersect, null)
 import           Data.Text                      (Text, unpack)
