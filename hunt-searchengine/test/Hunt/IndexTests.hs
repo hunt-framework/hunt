@@ -4,23 +4,22 @@
 {-# LANGUAGE TypeFamilies          #-}
 
 module Hunt.IndexTests
-(indexImplTests)
+(contextTypeTests)
 where
 
 --import qualified Data.Map                       as M
 
 import           Test.Framework
-import           Test.Framework.Providers.HUnit
-import           Test.HUnit                     hiding (Test)
 
-import           Hunt.Common.Occurrences
-import qualified Hunt.Index.Default             as Def
+import qualified Hunt.Index.Default             as Default
+import qualified Hunt.Index.IndexValueTests     as Value
 
 -- ----------------------------------------------------------------------------
 
-indexImplTests :: [Test]
-indexImplTests =
-  Def.indexTests ++
+contextTypeTests :: [Test]
+contextTypeTests =
+  Default.tests ++
+  Value.tests ++
   [
   -- test: insertList, deleteDocs, toList, fromList, map
   -- test: intindex, dateindex, geoindex

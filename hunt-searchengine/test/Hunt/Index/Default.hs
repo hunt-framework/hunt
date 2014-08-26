@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeFamilies     #-}
 module Hunt.Index.Default where
 
-import           Data.List                      (intersect, null)
+import           Data.List                      (null)
 import           Data.Text                      (Text, unpack)
 
 import           Test.Framework
@@ -11,21 +11,22 @@ import           Test.Framework.Providers.QuickCheck2
 import           Test.QuickCheck.Monadic
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocId              (DocId, mkDocId)
 import qualified Hunt.Common.DocIdSet           as Set
-import           Hunt.Common.Occurrences
-import           Hunt.Common.IntermediateValue
 import           Hunt.Index.Schema
 import           Hunt.Index.IndexImpl           (IndexImpl(..))
 
 import qualified Hunt.Index                     as Ix
+import           Hunt.Index.Helper
 
 -- ----------------------------------------------------------------------------
 -- Testsuite for `ContextType`s and underlying `Index` implementations
+--
+-- Note: To test new `ContextType`s, just add the respective `ContextType` to
+-- the `contextTypes` below.
 
 -- | TestSuite for `Index` interface
-indexTests :: [Test]
-indexTests = concat $ map testIndex contextTypes
+tests :: [Test]
+tests = concat $ map testIndex contextTypes
 
 -- | list of `ContextType`s and a valid key for each Type
 contextTypes :: [(ContextType, Text)]
@@ -47,33 +48,6 @@ testIndex (CType name _ _ (IndexImpl impl), key)
     , testProperty (unpack name ++ ": empty")      (monadicIO $ emptyTest impl)
     , testProperty (unpack name ++ ": toList")     (monadicIO $ toListTest impl key)
     ]
-
--- ----------------------------------------------------------------------------
--- `Index` test helpers
-
-docId1 :: DocId
-docId1 = mkDocId (1::Int)
-
-docId2 :: DocId
-docId2 = mkDocId (2::Int)
-
-fromDocId :: DocId -> IntermediateValue
-fromDocId docId = toIntermediate $ singleton docId 1
-
-simpleValue :: Int -> IntermediateValue
-simpleValue i = toIntermediate $ singleton (mkDocId i) i
-
-simpleValue1 :: IntermediateValue
-simpleValue1 = simpleValue 1
-
-simpleValue2 :: IntermediateValue
-simpleValue2 = simpleValue 2
-
-checkResult :: Monad m => [IntermediateValue] -> [(x, IntermediateValue)] -> m Bool
-checkResult vs res = return $ vs == (vs `intersect` map snd res)
-
-addKey :: x -> [IntermediateValue] -> [(x, IntermediateValue)]
-addKey key = map (\v -> (key, v))
 
 -- ----------------------------------------------------------------------------
 -- insert tests

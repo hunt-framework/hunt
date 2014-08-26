@@ -20,7 +20,7 @@ import           Test.Framework
 main :: IO ()
 main = defaultMain
        $ analyzerTests
-       ++ indexImplTests
+       ++ contextTypeTests
        ++ interpreterTests
        ++ queryParserTests
 --     XXX refactor ranking tests to be conform with new ranking
