@@ -69,7 +69,7 @@ instance IndexValue v => Binary (DmPrefixTree v) where
 
 -- ------------------------------------------------------------
 
-instance Index (DmPrefixTree v)  where
+instance (IndexValue v) => Index (DmPrefixTree v)  where
   type IKey (DmPrefixTree v) = SM.Key
   type IVal (DmPrefixTree v) = v
 

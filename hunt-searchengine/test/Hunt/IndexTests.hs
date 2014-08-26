@@ -13,36 +13,21 @@ import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit                     hiding (Test)
 
---import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences
-
---import           Hunt.ContextIndex              (addWordsM)
---import qualified Hunt.ContextIndex              as ConIx
-
-import           Hunt.Index.PrefixTreeIndexTests
-import           Hunt.Index.PrefixTreeIndex2DimTests
-import           Hunt.Index.RTreeIndexTests
-import           Hunt.Index.InvertedIndexTests
-import           Hunt.Index.ContextIndexTests
 import           Hunt.Index.TestHelper
---import           Hunt.TestHelper
 
 -- ----------------------------------------------------------------------------
 
 indexImplTests :: [Test]
 indexImplTests =
-  prefixTreeIndexTests ++
-  prefixTreeIndex2DimTests ++
-  rTreeIndexTests ++
-  invertedIndexTests ++
-  contextIndexTests ++
+  indexTests ++
   [
   -- test: insertList, deleteDocs, toList, fromList, map
   -- test: intindex, dateindex, geoindex
 
   -- helper functions
 --    testCase "TextIndex:               addWords"      addWordsTest
-    testCase "Occurrences:             merge"         occMergeTest
+--    testCase "Occurrences:             merge"         occMergeTest
   ]
 
 -- ----------------------------------------------------------------------------
@@ -57,14 +42,14 @@ addWordsTest = do
   where
   (ConIx.ContextIndex emptyIndex _ _) = insertCx "default"
 --}
-
+{--
 occMergeTest :: Assertion
 occMergeTest = True @?= (merge occ1 occ2 == occ3)
   where
   occ1 = occOne
   occ2 = occTwo
   occ3 = insert (docIdOne) 2 $ occOne
-
+--}
 -- ----------------------------------------------------------------------------
 -- test helper
 -- ----------------------------------------------------------------------------

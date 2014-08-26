@@ -22,18 +22,18 @@ module Hunt.Index.Proxy.KeyIndex
 )
 where
 
-import           Prelude             as P
+import           Prelude                       as P
 
-import           Control.Applicative ((<$>))
-import           Control.Arrow       (first)
+import           Control.Applicative           ((<$>))
+import           Control.Arrow                 (first)
 import           Control.DeepSeq
 
 import           Data.Bijection
-import           Data.Binary         (Binary (..))
+import           Data.Binary                   (Binary (..))
 
 import           Hunt.Index
-import qualified Hunt.Index          as Ix
-
+import qualified Hunt.Index                    as Ix
+import           Hunt.Common.IntermediateValue (IndexValue)
 -- ------------------------------------------------------------
 
 -- | Key conversion proxy.
@@ -57,7 +57,7 @@ instance Binary (impl) => Binary (KeyProxyIndex toType impl) where
 
 -- ------------------------------------------------------------
 
-instance Index (KeyProxyIndex toType impl) where
+instance (IndexValue (IVal impl)) => Index (KeyProxyIndex toType impl) where
   type IKey      (KeyProxyIndex toType impl) = toType
   type IVal      (KeyProxyIndex toType impl) = IVal impl
   type ICon      (KeyProxyIndex toType impl) = ( Index impl

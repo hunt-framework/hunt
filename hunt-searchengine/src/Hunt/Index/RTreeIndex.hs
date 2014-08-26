@@ -57,7 +57,7 @@ instance IndexValue x => Binary (RTreeIndex x) where
 
 -- ------------------------------------------------------------
 
-instance Index (RTreeIndex v) where
+instance IndexValue v => Index (RTreeIndex v) where
   type IKey (RTreeIndex v) = RT.MBB
   type IVal (RTreeIndex v) = v
 

@@ -3,43 +3,153 @@
 {-# LANGUAGE TypeFamilies     #-}
 module Hunt.Index.TestHelper where
 
+import           Data.List                      (intersect, null)
+import           Data.Text                      (Text, unpack)
+
+import           Test.Framework
+import           Test.Framework.Providers.QuickCheck2
+import           Test.QuickCheck.Monadic
+
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId              (DocId, mkDocId)
+import qualified Hunt.Common.DocIdSet           as Set
 import           Hunt.Common.Occurrences
 import           Hunt.Common.IntermediateValue
+import           Hunt.Index.Schema
+import           Hunt.Index.IndexImpl           (IndexImpl(..))
 
 import qualified Hunt.Index                     as Ix
 
-docIdOne, docIdTwo :: DocId
-docIdOne = mkDocId (1::Int)
-docIdTwo = mkDocId (2::Int)
+-- ----------------------------------------------------------------------------
+-- Testsuite for `ContextType`s and underlying `Index` implementations
 
-occOne, occTwo :: Occurrences
-occOne = singleton docIdOne (1::Int)
-occTwo = singleton docIdOne (2::Int)
+-- | TestSuite for `Index` interface
+indexTests :: [Test]
+indexTests = concat $ map testIndex contextTypes
 
--- | Generic insert test function
-insertTest :: (Monad m, Ix.Index i, Eq (Ix.IVal i), (Ix.ICon i), IndexValue (Ix.IVal i)) =>
-              i -> Ix.IKey i -> Ix.IVal i -> m Bool
-insertTest emptyIndex k v = do
-  ix       <- Ix.insertM k (toIntermediate v) emptyIndex
-  [(_,nv)] <- Ix.searchM PrefixNoCase k ix
-  return $ v == (fromIntermediate nv)
+-- | list of `ContextType`s and a valid key for each Type
+contextTypes :: [(ContextType, Text)]
+contextTypes = [ (ctText,          "test")
+               , (ctTextSimple,    "test")
+               , (ctInt,           "1000")
+               , (ctDate,          "2012-01-01")
+               , (ctPosition,      "1-1")
+               , (ctPositionRTree, "1-1")
+               ]
 
--- | Generic delete test function
-deleteTest :: (Monad m, Ix.Index i, Eq (Ix.IVal i), (Ix.ICon i), IndexValue (Ix.IVal i)) =>
-              i -> Ix.IKey i -> Ix.IVal i -> DocId -> m Bool
-deleteTest emptyIndex k v did = do
-  ix       <- Ix.insertM k (toIntermediate v) emptyIndex
-  [(_,nv)] <- Ix.searchM PrefixNoCase k ix
-  ix'      <- Ix.deleteM did ix
-  return $ v == (fromIntermediate nv) && Prelude.null (Ix.toList ix')
+-- | TestSuite for one concrete `ContextType` or `Index` implemation
+testIndex :: (ContextType,Text) -> [Test]
+testIndex (CType name _ _ (IndexImpl impl), key)
+  = [ testProperty (unpack name ++ ": insert")     (monadicIO $ insertTest impl key)
+    , testProperty (unpack name ++ ": insertList") (monadicIO $ insertListTest impl key)
+    , testProperty (unpack name ++ ": delete")     (monadicIO $ deleteTest impl key)
+    , testProperty (unpack name ++ ": deleteDocs") (monadicIO $ deleteDocsTest impl key)
+    , testProperty (unpack name ++ ": empty")      (monadicIO $ emptyTest impl)
+    , testProperty (unpack name ++ ": toList")     (monadicIO $ toListTest impl key)
+    ]
 
--- | Generic Occurrence merge function
-mergeTest :: (Monad m, Ix.ICon i, Ix.Index i, (Eq (Ix.IKey i )), IndexValue (Ix.IVal i)) =>
-             i -> Ix.IKey i-> Occurrences -> Occurrences -> m Bool
-mergeTest emptyIndex k v1 v2 = do
-  mergeIx   <- Ix.insertM k (toIntermediate v2) $ Ix.insert k (toIntermediate v2) emptyIndex
-  [(nk,nv)] <- Ix.searchM PrefixNoCase k mergeIx
-  return $ nk == k && (merge v1 v2) == (fromIntermediate nv)
+-- ----------------------------------------------------------------------------
+-- `Index` test helpers
 
+docId1 :: DocId
+docId1 = mkDocId (1::Int)
+
+docId2 :: DocId
+docId2 = mkDocId (2::Int)
+
+fromDocId :: DocId -> IntermediateValue
+fromDocId docId = toIntermediate $ singleton docId 1
+
+simpleValue :: Int -> IntermediateValue
+simpleValue i = toIntermediate $ singleton (mkDocId i) i
+
+simpleValue1 :: IntermediateValue
+simpleValue1 = simpleValue 1
+
+simpleValue2 :: IntermediateValue
+simpleValue2 = simpleValue 2
+
+checkResult :: Monad m => [IntermediateValue] -> [(x, IntermediateValue)] -> m Bool
+checkResult vs res = return $ vs == (vs `intersect` map snd res)
+
+addKey :: x -> [IntermediateValue] -> [(x, IntermediateValue)]
+addKey key = map (\v -> (key, v))
+
+-- ----------------------------------------------------------------------------
+-- insert tests
+
+-- | Test insert function of `Index` typeclass
+insertTest :: (Ix.Index i, Monad m, Ix.ICon i) => i -> Ix.IKey i -> m Bool
+insertTest impl key
+  = do
+    ix1 <- Ix.insertM key values impl
+    res <- Ix.searchM PrefixNoCase key ix1
+    checkResult [values] res
+    where
+      values = simpleValue1
+
+-- | Test insertList function of `Index` typeclass
+insertListTest :: (Ix.Index i, Monad m, Ix.ICon i) => i -> Ix.IKey i -> m Bool
+insertListTest impl key
+  = do
+    ix1 <- Ix.insertListM (addKey key values) impl
+    res <- Ix.searchM PrefixNoCase key ix1
+    checkResult values res
+    where
+      values  = [simpleValue1, simpleValue2]
+
+-- ----------------------------------------------------------------------------
+-- delete tests
+
+-- | Test delete function of 'Index' typeclass
+deleteTest :: (Ix.Index i, Monad m, Ix.ICon i) => i -> Ix.IKey i -> m Bool
+deleteTest impl key
+  = do
+    -- insert
+    ix1 <- Ix.insertListM (addKey key values) impl
+    rs1 <- Ix.searchM PrefixNoCase key ix1
+    -- delete
+    ix2 <- Ix.deleteDocsM (Set.fromList [docId1, docId2]) ix1
+    rs2 <- Ix.searchM PrefixNoCase key ix2
+    -- check
+    ch1 <- checkResult values rs1
+    ch2 <- checkResult [] rs2
+    return $ ch1 && ch2
+    where
+      values = [simpleValue1, simpleValue2]
+
+deleteDocsTest :: (Ix.Index i, Monad m, Ix.ICon i) => i -> Ix.IKey i -> m Bool
+deleteDocsTest impl key
+  = do
+    -- insert
+    ix1 <- Ix.insertListM (addKey key values) impl
+    rs1 <- Ix.searchM PrefixNoCase key ix1
+    -- delete
+    ix2 <- Ix.deleteM docId1 ix1
+    rs2 <- Ix.searchM PrefixNoCase key ix2
+    -- check
+    ch1 <- checkResult values rs1
+    ch2 <- checkResult [simpleValue2] rs2
+    return $ ch1 && ch2
+    where
+      values = [simpleValue1, simpleValue2]
+
+-- ----------------------------------------------------------------------------
+-- test other functions
+
+-- | test `empty` function from `Index` typeclass
+emptyTest :: (Ix.Index i, Monad m, Ix.ICon i) => i -> m Bool
+emptyTest impl
+  = do
+    let ix = Ix.empty `asTypeOf` impl
+    return . Data.List.null $ Ix.toList ix
+
+-- | test `toList` function from `Index` typeclass
+toListTest :: (Ix.Index i, Monad m, Ix.ICon i) => i -> Ix.IKey i -> m Bool
+toListTest impl key
+  = do
+    ix1 <- Ix.insertListM (addKey key values) impl
+    ls  <- Ix.toListM ix1
+    checkResult values ls
+    where
+      values = [simpleValue1, simpleValue2]
