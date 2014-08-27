@@ -46,8 +46,8 @@ class (Binary x, NFData x) => IndexValue x where
   diffValues       :: DocIdSet -> x -> Maybe x
 
 instance IndexValue Occurrences where
-  toIntermediate   x = IntermediateValue $!! x
-  fromIntermediate x = unIntermediate $!! x
+  toIntermediate   x = IntermediateValue $! x
+  fromIntermediate x = unIntermediate $! x
   mergeValues      = Occ.merge
   diffValues s m   = let z = Occ.diffWithSet m s in
                      if Occ.null z then Nothing else Just z
