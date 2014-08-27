@@ -1,7 +1,6 @@
 
-module Hunt.Query.Language.Builder (
-
-    qWord
+module Hunt.Query.Language.Builder
+  (   qWord
     , qWordNoCase
     , qFullWord
     , qFullWordNoCase
@@ -31,7 +30,8 @@ module Hunt.Query.Language.Builder (
     , withinContext     -- deprecated
     , withBoost         -- deprecated
     , qContext
-) where
+    )
+where
 
 import           Hunt.Query.Language.Grammar
 import           Data.Text                   (Text)
@@ -41,10 +41,12 @@ import           Hunt.Common.BasicTypes      (Context, Weight)
 
 -- query construction
 
--- | prefix search of a single word
+-- | case sensitive prefix search of a single word
 
 qWord :: Text -> Query
 qWord = QWord QCase
+
+-- | case insensitive prefix search of a single word
 
 qWordNoCase :: Text -> Query
 qWordNoCase = QWord QNoCase
