@@ -33,6 +33,13 @@ simpleValue1b = complexValue 1 2
 complexValue :: Int -> Int -> IntermediateValue
 complexValue id' pos = toIntermediate $ singleton (mkDocId id') pos
 
+complexValues :: IntermediateValue
+complexValues = toIntermediate $
+                merges [ singleton docId1 1
+                       , singleton docId1 2
+                       , singleton docId2 10
+                       ]
+
 checkResult :: Monad m => [IntermediateValue] -> [(x, IntermediateValue)] -> m Bool
 checkResult vs res = return $ vs == (vs `intersect` map snd res)
 

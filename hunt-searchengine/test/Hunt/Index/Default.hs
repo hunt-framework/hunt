@@ -39,15 +39,17 @@ contextTypes = [ (ctText,          "test")
                ]
 
 -- | TestSuite for one concrete `ContextType` or `Index` implemation
-testIndex :: (ContextType,Text) -> [Test]
+testIndex :: (ContextType, Text) -> [Test]
 testIndex (CType name _ _ (IndexImpl impl), key)
-  = [ testProperty (unpack name ++ ": insert")     (monadicIO $ insertTest impl key)
-    , testProperty (unpack name ++ ": insertList") (monadicIO $ insertListTest impl key)
-    , testProperty (unpack name ++ ": delete")     (monadicIO $ deleteTest impl key)
-    , testProperty (unpack name ++ ": deleteDocs") (monadicIO $ deleteDocsTest impl key)
-    , testProperty (unpack name ++ ": empty")      (monadicIO $ emptyTest impl)
-    , testProperty (unpack name ++ ": toList")     (monadicIO $ toListTest impl key)
+  = [ testProperty (mkName name "insert")     (monadicIO $ insertTest impl key)
+    , testProperty (mkName name "insertList") (monadicIO $ insertListTest impl key)
+    , testProperty (mkName name "delete")     (monadicIO $ deleteTest impl key)
+    , testProperty (mkName name "deleteDocs") (monadicIO $ deleteDocsTest impl key)
+    , testProperty (mkName name "empty")      (monadicIO $ emptyTest impl)
+    , testProperty (mkName name "toList")     (monadicIO $ toListTest impl key)
     ]
+  where
+   mkName n t = "ContextType " ++ unpack n ++ ": " ++ t
 
 -- ----------------------------------------------------------------------------
 -- insert tests
