@@ -85,20 +85,22 @@ printTime act = do
   getTime = getPOSIXTime -- realToFrac `fmap`
 
 
-readDocuments :: ByteString -> [H.ApiDocument]
-readDocuments bs = maybe [] id ((return <$> decode bs) <|> decode bs <|> (H.insertCmdsToDocuments <$> decode bs))
+readDocuments :: ByteString -> IO [H.ApiDocument]
+readDocuments bs = maybe (do {(Log.infoM "main" $  "unable to parse ApiDocuments") ; return []}) return docs
+  where
+  docs = ((return <$> decode bs) <|> decode bs <|> (H.insertCmdsToDocuments <$> decode bs))
 
 makeSchema :: FilePath -> IO String
 makeSchema fileName = do
   file <- cs <$> readFile fileName
-  let docs = readDocuments file
-      cmds = H.createContextCommands docs
+  docs <- readDocuments file
+  let cmds = H.createContextCommands docs
   return $ cs $ encodePretty cmds
 
 makeInserts :: FilePath -> IO String
 makeInserts fileName = do
   file <- cs <$> readFile fileName
-  let docs = readDocuments file
+  docs <- readDocuments file
   return $ cs $ encodePretty $ H.cmdSequence $ H.cmdInsertDoc <$> docs
 
 evalCmd :: String -> H.Command -> IO ByteString
