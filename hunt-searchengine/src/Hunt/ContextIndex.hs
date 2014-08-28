@@ -74,7 +74,7 @@ import qualified Data.Set                as S
 import           Data.Text               (Text)
 
 import           Hunt.Common
-import qualified Hunt.Common.DocDesc     as DD
+import qualified Hunt.Common.DocDesc     as DocDesc
 import qualified Hunt.Common.DocIdSet    as DS
 import qualified Hunt.Common.Document    as Doc
 import qualified Hunt.Common.Occurrences as Occ
