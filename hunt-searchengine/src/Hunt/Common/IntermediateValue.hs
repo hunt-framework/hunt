@@ -52,21 +52,9 @@ instance IndexValue Occurrences where
   diffValues s m   = let z = Occ.diffWithSet m s in
                      if Occ.null z then Nothing else Just z
 
-mapToSet :: Occurrences -> DocIdSet
-mapToSet = DS.fromList . (map fst) . DM.toList
-
-setToMap :: DocIdSet -> Occurrences
-setToMap s = Occ.merges $ map (\did -> Occ.singleton did 1) $ DS.toList s
-
--- TODO: refactor this instance
--- all functions are not very efficient in this state
 instance IndexValue DocIdSet where
   toIntermediate     = IntermediateValue . setToMap
   fromIntermediate   = mapToSet . fromIntermediate
-  mergeValues s1 s2  = mergeValues'
-                       where
-                       mergeValues' = mapToSet $ Occ.merge (setToMap s1) (setToMap s2)
-  diffValues s1 s2   = let z = Occ.diffWithSet (setToMap s2) s1 in
-                       if Occ.null z then Nothing else Just (mapToSet z)
-
-
+  mergeValues        = DS.union
+  diffValues s1 s2   = let r = DS.difference s2 s1 in
+                       if DS.null r then Nothing else Just r
