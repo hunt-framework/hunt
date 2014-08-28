@@ -26,7 +26,7 @@ import           Data.Bijection.Instances  ()
 import           Data.Text                 (Text)
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocIdSet
+import           Hunt.Common.Occurrences
 import           Hunt.Common.IntermediateValue
 import           Hunt.Index
 import qualified Hunt.Index                as Ix
@@ -132,10 +132,10 @@ instance Bijection Text UnPos where
 -- | Geo-position index using a 'StringMap'-implementation.
 --
 newtype PrefixTreeIndexPosition
-  = InvPosIx { invPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos (KeyProxyIndex Text (DmPrefixTree DocIdSet))) }
+  = InvPosIx { invPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos (KeyProxyIndex Text (DmPrefixTree Occurrences))) }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos (KeyProxyIndex Text (DmPrefixTree DocIdSet))) -> PrefixTreeIndexPosition
+mkInvPosIx :: KeyProxyIndex Text (KeyProxyIndex UnPos (KeyProxyIndex Text (DmPrefixTree Occurrences))) -> PrefixTreeIndexPosition
 mkInvPosIx x = InvPosIx $! x
 
 -- ------------------------------------------------------------
@@ -148,7 +148,7 @@ instance  Binary PrefixTreeIndexPosition where
 
 instance Index PrefixTreeIndexPosition where
   type IKey PrefixTreeIndexPosition = Word
-  type IVal PrefixTreeIndexPosition = DocIdSet
+  type IVal PrefixTreeIndexPosition = Occurrences
 
   insertList wos (InvPosIx i)
     = mkInvPosIx $ insertList wos i
@@ -157,7 +157,7 @@ instance Index PrefixTreeIndexPosition where
     = mkInvPosIx $ deleteDocs docIds i
 
   empty
-    = mkInvPosIx $ empty
+    = mkInvPosIx $ Ix.empty
 
   fromList l
     = mkInvPosIx $ Ix.fromList l

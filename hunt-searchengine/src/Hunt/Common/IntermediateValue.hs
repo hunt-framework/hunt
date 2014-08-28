@@ -19,8 +19,8 @@ import qualified Hunt.Common.DocIdMap    as DM
 -- This type represents the interface for a value to the engine
 -- To have an easy first implementaton the intermediate is
 -- basically the same as Occurrences, but that can be adjusted later
-data IntermediateValue = IntermediateValue
-  { unIntermediate :: !Occurrences
+newtype IntermediateValue = IntermediateValue
+  { unIntermediate :: Occurrences
   }
   deriving (Show, Eq)
 
@@ -52,9 +52,9 @@ instance IndexValue Occurrences where
   diffValues s m   = let z = Occ.diffWithSet m s in
                      if Occ.null z then Nothing else Just z
 
-instance IndexValue DocIdSet where
-  toIntermediate     = IntermediateValue . setToMap
-  fromIntermediate   = mapToSet . fromIntermediate
-  mergeValues        = DS.union
-  diffValues s1 s2   = let r = DS.difference s2 s1 in
-                       if DS.null r then Nothing else Just r
+--instance IndexValue DocIdSet where
+--  toIntermediate   x = IntermediateValue $! x
+--  fromIntermediate x = fromIntermediate $! x
+--  mergeValues        = DS.union
+--  diffValues s1 s2   = let r = DS.difference s2 s1 in
+--                       if DS.null r then Nothing else Just r

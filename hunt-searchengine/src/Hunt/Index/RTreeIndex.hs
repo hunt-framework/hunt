@@ -32,7 +32,7 @@ import           Hunt.Index
 import qualified Hunt.Index                           as Ix
 import           Hunt.Index.Proxy.KeyIndex
 import           Hunt.Common.IntermediateValue
-import           Hunt.Common.DocIdSet                 (DocIdSet)
+import           Hunt.Common.Occurrences                 (Occurrences)
 import           Hunt.Index.Schema.Normalize.Position (position)
 
 import           Text.Parsec
@@ -126,10 +126,10 @@ instance Bijection MBB Text where
 
 -- | Date index using a 'StringMap'-implementation.
 newtype SimpleRTreeIndex
-  = InvRTreeIx { invRTreeIx :: KeyProxyIndex Text (RTreeIndex DocIdSet)}
+  = InvRTreeIx { invRTreeIx :: KeyProxyIndex Text (RTreeIndex Occurrences)}
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvRTreeIx :: KeyProxyIndex Text (RTreeIndex DocIdSet) -> SimpleRTreeIndex
+mkInvRTreeIx :: KeyProxyIndex Text (RTreeIndex Occurrences) -> SimpleRTreeIndex
 mkInvRTreeIx x = InvRTreeIx $! x
 
 -- ------------------------------------------------------------
@@ -142,7 +142,7 @@ instance Binary SimpleRTreeIndex where
 
 instance Index SimpleRTreeIndex where
   type IKey SimpleRTreeIndex = Text
-  type IVal SimpleRTreeIndex = DocIdSet
+  type IVal SimpleRTreeIndex = Occurrences
 
   insertList wos (InvRTreeIx i)
     = mkInvRTreeIx $ insertList wos i

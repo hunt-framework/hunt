@@ -43,7 +43,7 @@ data IndexValueTest
 --   Extend list to add more implementations to test suite.
 values :: [IndexValueTest]
 values = [ IVT "Occurrences" (fromIntermediate simpleValue1 :: Occurrences)
-         , IVT "DocIdSet"    (fromIntermediate simpleValue1 :: DocIdSet)
+--         , IVT "DocIdSet"    (fromIntermediate simpleValue1 :: DocIdSet)
          ]
 
 -- | merge test for `IndexValue` implementation.
