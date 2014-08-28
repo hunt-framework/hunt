@@ -1,17 +1,14 @@
 {-# LANGUAGE ExistentialQuantification #-}
 module Hunt.Index.IndexValueTests where
 
-import           Data.Text                            (Text)
 import           Data.Maybe
 
 import           Test.Framework
-import           Test.Framework.Providers.QuickCheck2
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit                           hiding (Test)
-import           Test.QuickCheck
 
 import qualified Hunt.Common.Occurrences              as Occ
-import           Hunt.Common.Occurrences              (Occurrences, singleton)
+import           Hunt.Common.Occurrences              (Occurrences)
 import qualified Hunt.Common.DocIdSet                 as Set
 import           Hunt.Common.DocIdSet                 (DocIdSet)
 import           Hunt.Common.IntermediateValue
@@ -28,13 +25,13 @@ tests :: [Test]
 tests = concat $ map testValue values
 
 testValue :: IndexValueTest -> [Test]
-testValue ivt@(IVT n _)
-  = [ testCase (mkName "merge"   n) (assertEqual "" True $ mergeTest ivt)
-    , testCase (mkName "diff"    n) (assertEqual "" True $ diffTest ivt)
-    , testCase (mkName "from-to" n) (assertEqual "" True $ conversionTest ivt)
+testValue iv@(IVT n _)
+  = [ testCase (mkLabel "merge"  ) (assertEqual "" True $ mergeTest iv)
+    , testCase (mkLabel "diff"   ) (assertEqual "" True $ diffTest iv)
+    , testCase (mkLabel "from-to") (assertEqual "" True $ conversionTest iv)
     ]
   where
-   mkName t n = "IndexValue " ++ n ++ ": " ++ t
+   mkLabel t = "IndexValue " ++ n ++ ": " ++ t
 
 
 -- | Existential type to enable generic tests
@@ -69,14 +66,15 @@ mergeTest (IVT _ v1)
 -- | diff test for `IndexValue` implementation
 diffTest :: IndexValueTest -> Bool
 diffTest (IVT _ v1)
-  = let diff1 = diffValues set1 v1
+  = let diff1 = diffValues set1 v2
         diff2 = diffValues set2 (fromJust diff1)
 
-        check1 = diffAsOcc set1 v1
+        check1 = diffAsOcc set1 v2
         check2 = diffAsOcc set2 check1
     in
-    check1 == fromInt (fromJust diff1) && Occ.null check2
+	check1 == fromInt (fromJust diff1) && Occ.null check2 && isNothing diff2
   where
+    v2   = from complexValues `asTypeOf` v1
     set1 = Set.singleton docId1
     set2 = Set.singleton docId2
     diffAsOcc set d = Occ.diffWithSet (fromInt d) set
