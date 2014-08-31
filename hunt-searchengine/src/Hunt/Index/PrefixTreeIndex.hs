@@ -32,7 +32,7 @@ import           Data.Maybe             (fromMaybe)
 import           Text.Read              (readMaybe)
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.Occurrences   (Occurrences)
+import           Hunt.Common.DocIdSet   (DocIdSet)
 import           Hunt.Common.IntermediateValue
 import           Hunt.Index
 import qualified Hunt.Index             as Ix
@@ -51,7 +51,7 @@ import qualified Hunt.Index.Schema.Normalize.Int      as Int
 -- ------------------------------------------------------------
 
 -- | Text index using 'DocIdMap' based on the 'StringMap' implementation.
---   Note that the value parameter is on the type of the 'DocIdMap' value and not the 'Occurrences'
+--   Note that the value parameter is on the type of the 'DocIdMap' value and not the 'DocIdSet'
 --   itself.
 
 newtype DmPrefixTree v
@@ -134,10 +134,10 @@ instance (IndexValue v) => Index (DmPrefixTree v)  where
 
 -- | Integer index using a 'StringMap'-implementation.
 newtype SimplePrefixTreeIndex
-  = SimplePTIx { simplePTIx :: KeyProxyIndex Text (DmPrefixTree Occurrences) }
+  = SimplePTIx { simplePTIx :: KeyProxyIndex Text (DmPrefixTree DocIdSet) }
   deriving (Eq, Show, NFData, Typeable)
 
-mkSimplePTIx :: KeyProxyIndex Text (DmPrefixTree Occurrences) -> SimplePrefixTreeIndex
+mkSimplePTIx :: KeyProxyIndex Text (DmPrefixTree DocIdSet) -> SimplePrefixTreeIndex
 mkSimplePTIx x = SimplePTIx $! x
 
 -- ------------------------------------------------------------
@@ -150,7 +150,7 @@ instance Binary SimplePrefixTreeIndex where
 
 instance Index SimplePrefixTreeIndex where
   type IKey SimplePrefixTreeIndex = Text
-  type IVal SimplePrefixTreeIndex = Occurrences
+  type IVal SimplePrefixTreeIndex = DocIdSet
 
   insertList wos (SimplePTIx i)
     = mkSimplePTIx $ insertList wos i
@@ -225,10 +225,10 @@ instance Bijection Text UnInt where
 
 -- | Integer index using a 'StringMap'-implementation.
 newtype PrefixTreeIndexInt
-  = InvIntIx { invIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt (KeyProxyIndex Text (DmPrefixTree Occurrences))) }
+  = InvIntIx { invIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt (KeyProxyIndex Text (DmPrefixTree DocIdSet))) }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt (KeyProxyIndex Text (DmPrefixTree Occurrences))) -> PrefixTreeIndexInt
+mkInvIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt (KeyProxyIndex Text (DmPrefixTree DocIdSet))) -> PrefixTreeIndexInt
 mkInvIntIx x = InvIntIx $! x
 
 -- ------------------------------------------------------------
@@ -241,7 +241,7 @@ instance Binary PrefixTreeIndexInt where
 
 instance Index PrefixTreeIndexInt where
   type IKey PrefixTreeIndexInt = Text
-  type IVal PrefixTreeIndexInt = Occurrences
+  type IVal PrefixTreeIndexInt = DocIdSet
 
   insertList wos (InvIntIx i)
     = mkInvIntIx $ insertList wos i
@@ -350,10 +350,10 @@ instance Bijection Text UnDate where
 
 -- | Date index using a 'StringMap'-implementation.
 newtype PrefixTreeIndexDate
-  = InvDateIx { invDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate (KeyProxyIndex Text (DmPrefixTree Occurrences))) }
+  = InvDateIx { invDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate (KeyProxyIndex Text (DmPrefixTree DocIdSet))) }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate (KeyProxyIndex Text (DmPrefixTree Occurrences))) -> PrefixTreeIndexDate
+mkInvDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate (KeyProxyIndex Text (DmPrefixTree DocIdSet))) -> PrefixTreeIndexDate
 mkInvDateIx x = InvDateIx $! x
 
 -- ------------------------------------------------------------
@@ -366,7 +366,7 @@ instance Binary PrefixTreeIndexDate where
 
 instance Index PrefixTreeIndexDate where
   type IKey PrefixTreeIndexDate = Word
-  type IVal PrefixTreeIndexDate = Occurrences
+  type IVal PrefixTreeIndexDate = DocIdSet
 
   insertList wos (InvDateIx i)
     = mkInvDateIx $ insertList wos i

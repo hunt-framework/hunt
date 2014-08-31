@@ -24,6 +24,9 @@ newtype IntermediateValue = IntermediateValue
   }
   deriving (Show, Eq)
 
+mkIntermediateValue :: Occurrences -> IntermediateValue
+mkIntermediateValue o = IntermediateValue $! o
+
 instance NFData IntermediateValue where
   rnf (IntermediateValue occ) = rnf occ
 
@@ -46,15 +49,21 @@ class (Binary x, NFData x) => IndexValue x where
   diffValues       :: DocIdSet -> x -> Maybe x
 
 instance IndexValue Occurrences where
-  toIntermediate   x = IntermediateValue $! x
+  toIntermediate   x = mkIntermediateValue x
   fromIntermediate x = unIntermediate $! x
   mergeValues      = Occ.merge
   diffValues s m   = let z = Occ.diffWithSet m s in
                      if Occ.null z then Nothing else Just z
 
---instance IndexValue DocIdSet where
---  toIntermediate   x = IntermediateValue $! x
---  fromIntermediate x = fromIntermediate $! x
---  mergeValues        = DS.union
---  diffValues s1 s2   = let r = DS.difference s2 s1 in
---                       if DS.null r then Nothing else Just r
+mapToSet :: Occurrences -> DocIdSet
+mapToSet = DS.fromList . (map fst) . DM.toList
+
+setToMap :: DocIdSet -> Occurrences
+setToMap s = Occ.merges $ map (\did -> Occ.singleton did 1) $ DS.toList s
+
+instance IndexValue DocIdSet where
+  toIntermediate     = mkIntermediateValue . setToMap
+  fromIntermediate   = mapToSet . fromIntermediate
+  mergeValues        = DS.union
+  diffValues s1 s2   = let r = DS.difference s2 s1 in
+                       if DS.null r then Nothing else Just r
