@@ -20,6 +20,7 @@ module Hunt.Common.DocIdSet
   , null
   , member
   , fromList
+  , toIntSet
   , toList
   , difference
   , union
@@ -88,6 +89,9 @@ fromList = DIS . S.fromList . L.map unDocId
 
 toList :: DocIdSet -> [DocId]
 toList = L.map DocId . S.toList . unDIS
+
+toIntSet :: DocIdSet -> S.IntSet
+toIntSet = unDIS
 
 singleton :: DocId -> DocIdSet
 singleton = DIS . S.singleton . unDocId

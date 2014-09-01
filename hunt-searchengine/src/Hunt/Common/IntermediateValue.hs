@@ -56,13 +56,10 @@ instance IndexValue Occurrences where
                      if Occ.null z then Nothing else Just z
 
 mapToSet :: Occurrences -> DocIdSet
-mapToSet = DS.fromList . (map fst) . DM.toList
-
-setToMap :: DocIdSet -> Occurrences
-setToMap s = Occ.merges $ map (\did -> Occ.singleton did 1) $ DS.toList s
+mapToSet = DS.fromList . DM.keys
 
 instance IndexValue DocIdSet where
-  toIntermediate     = mkIntermediateValue . setToMap
+  toIntermediate     = mkIntermediateValue . Occ.fromDocIdSet
   fromIntermediate   = mapToSet . fromIntermediate
   mergeValues        = DS.union
   diffValues s1 s2   = let r = DS.difference s2 s1 in

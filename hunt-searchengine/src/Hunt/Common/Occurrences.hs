@@ -40,6 +40,12 @@ type Occurrences        = DocIdMap Positions
 empty                   :: Occurrences
 empty                   = DM.empty
 
+-- | Create Occurrences from a 'DocIdSet'
+--   Since the 'DocIdSet' contains no position information, we
+--   assume position one for each 'DocId'
+fromDocIdSet            :: DocIdSet -> Occurrences
+fromDocIdSet s          = DM.fromDocIdSet (\_ -> Pos.singleton 1) s
+
 -- | Create a single dcid set with a single position.
 singleton               :: DocId -> Position -> Occurrences
 singleton d p           = singleton' d [p]

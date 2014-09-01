@@ -45,6 +45,7 @@ module Hunt.Common.DocIdMap
   , foldrWithKey
   , foldl
   , fromList
+  , fromDocIdSet
   , fromAscList
   , toList
   , keys
@@ -72,7 +73,7 @@ import qualified Data.Text                  as T
 import           Data.Typeable
 
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdSet       (DocIdSet (..))
+import           Hunt.Common.DocIdSet       (DocIdSet (..), toIntSet)
 
 -- ------------------------------------------------------------
 
@@ -258,6 +259,10 @@ foldl f u               = IM.foldl f u . unDIM
 -- | Create a map from a list of 'DocId'\/value pairs.
 fromList                :: [(DocId, v)] -> DocIdMap v
 fromList                = DIM . IM.fromList . L.map (first unDocId)
+
+-- | Create a map from a set of 'DocId' values
+fromDocIdSet            :: (Int -> v) -> DocIdSet -> DocIdMap v
+fromDocIdSet f s        = DIM $ IM.fromSet f (toIntSet s)
 
 -- | Build a map from a list of 'DocId'\/value pairs where the 'DocId's are in ascending order.
 fromAscList             :: [(DocId, v)] -> DocIdMap v
