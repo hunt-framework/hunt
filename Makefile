@@ -94,12 +94,15 @@ sandbox:
 	cabal sandbox init --sandbox .cabal-sandbox
 	cd hunt-searchengine   && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd hunt-compression    && cabal sandbox init --sandbox ../.cabal-sandbox
+	cd hunt-crawler        && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd hunt-server         && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd hunt-client         && cabal sandbox init --sandbox ../.cabal-sandbox
 	cd hunt-server-cli     && cabal sandbox init --sandbox ../.cabal-sandbox
 	cabal sandbox add-source hunt-searchengine
 	cabal sandbox add-source hunt-compression
+	cabal sandbox add-source hunt-crawler
 	cabal sandbox add-source hunt-client
+	cabal sandbox add-source hunt-server-cli
 	cd hunt-demos/geoFrontend && cabal sandbox init --sandbox ../../.cabal-sandbox
 	cd html-hunter         && cabal sandbox init --sandbox ../.cabal-sandbox
 

@@ -232,7 +232,8 @@ instance ScoredResult ScoredOccs where
 -- ------------------------------------------------------------
 
 -- A result type for searching phrases and context search,
--- every word hit or word sequence hit associated with a score and a DocIdMap containing
+-- every word hit or word sequence hit is
+-- associated with a score and a DocIdMap containing
 -- the docs and position.
 --
 -- The positions are neccessary in phrase and context search,
