@@ -230,19 +230,19 @@ indexCrawlerConfig' insertRaw unionIndex opts followRef getHrefF preDocF titleF0
 
 -- ------------------------------------------------------------
 
-stdIndexer                      :: ( Binary i
-                                   , Binary (d c)
-                                   , Binary c
-                                   , NFData i
-                                   , NFData (d c)
-                                   , NFData c) =>
-                                   IndexCrawlerConfig i d c     -- ^ adapt configuration to special needs,
-                                                                --   use id if default is ok
-                                -> Maybe String                 -- ^ resume from interrupted index run with state
-                                                                --   stored in file
-                                -> [URI]                        -- ^ start indexing with this set of uris
-                                -> IndexerState i d c           -- ^ the initial empty indexer state
-                                -> IO (Either String (IndexCrawlerState i d c)) -- ^ result is a state consisting of the index and the map of indexed documents
+stdIndexer :: ( Binary i
+              , Binary (d c)
+              , Binary c
+              , NFData i
+              , NFData (d c)
+              , NFData c) =>
+              IndexCrawlerConfig i d c        -- ^ adapt configuration to special needs,
+                                              --   use id if default is ok
+              -> Maybe String                 -- ^ resume from interrupted index run with state
+                                              --   stored in file
+              -> [URI]                        -- ^ start indexing with this set of uris
+              -> IndexerState i d c           -- ^ the initial empty indexer state
+              -> IO (Either String (IndexCrawlerState i d c)) -- ^ result is a state consisting of the index and the map of indexed documents
 
 stdIndexer config resumeLoc startUris eis
     = do res <- execCrawler action config (initCrawlerState eis)
