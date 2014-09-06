@@ -1,0 +1,195 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <title>Hunt Searchengine Benchmarks</title>
+        <link href="../examples.css" rel="stylesheet" type="text/css">
+        <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="../../excanvas.min.js"></script><![endif]-->
+        <script type="text/javascript" src="./jquery.js"></script>
+        <script type="text/javascript" src="./flot.js"></script>
+
+        <script type="text/javascript" src="./insert11_memory.js"></script>
+        <script type="text/javascript" src="./insert12_memory.js"></script>
+        <script type="text/javascript" src="./insert21_memory.js"></script>
+        <script type="text/javascript" src="./insert22_memory.js"></script>
+
+        <script type="text/javascript" src="./insert11_performance.js"></script>
+        <script type="text/javascript" src="./insert12_performance.js"></script>
+        <script type="text/javascript" src="./insert21_performance.js"></script>
+        <script type="text/javascript" src="./insert22_performance.js"></script>
+
+        <script type="text/javascript" src="./delete11_performance.js"></script>
+        <script type="text/javascript" src="./delete12_performance.js"></script>
+        <script type="text/javascript" src="./delete21_performance.js"></script>
+        <script type="text/javascript" src="./delete22_performance.js"></script>
+
+        <link rel="stylesheet" href="./bootstrap.css">
+        <style>
+            .demo-container {
+                box-sizing: border-box;
+                width: 500px;
+                height: 300px;
+                padding: 20px 15px 15px 15px;
+                margin: 15px auto 30px auto;
+                border: 1px solid #ddd;
+                background: #fff;
+                background: linear-gradient(#f6f6f6 0, #fff 50px);
+                background: -o-linear-gradient(#f6f6f6 0, #fff 50px);
+                background: -ms-linear-gradient(#f6f6f6 0, #fff 50px);
+                background: -moz-linear-gradient(#f6f6f6 0, #fff 50px);
+                background: -webkit-linear-gradient(#f6f6f6 0, #fff 50px);
+                box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+                -o-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+                -ms-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+                -moz-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+                -webkit-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            }
+            .demo-placeholder {
+                width: 100%;
+                height: 100%;
+                font-size: 14px;
+                line-height: 1.2em;
+            }
+        </style>
+        <script type="text/javascript">
+            $(function() {
+
+                var memory1 = [
+                    {label: "text", data: insert11_memory},
+                    {label: "textSimple", data: insert12_memory}
+                ];
+
+                var memory2 = [
+                    {label: "text", data: insert21_memory},
+                    {label: "textSimple", data: insert22_memory}
+                ];
+
+                var time1 = [
+                    {label: "text", data: insert11_performance},
+                    {label: "textSimple", data: insert12_performance}
+                ];
+
+                var time2 = [
+                    {label: "text", data: insert21_performance},
+                    {label: "textSimple", data: insert22_performance}
+                ];
+
+                var delete1 = [
+                    {label: "text", data: delete11_performance},
+                    {label: "textSimple", data: delete12_performance}
+                ];
+
+                var delete2 = [
+                    {label: "text", data: delete21_performance},
+                    {label: "textSimple", data: delete22_performance}
+                ];
+
+                var options = {
+                    yaxis: {tickFormatter: function(val, axis) {
+                            return val + " KB";
+                        }}
+                };
+
+                var options2 = {
+                    yaxis: {tickFormatter: function(val, axis) {
+                            return roundToTwo(val) + " s";
+                        }}
+                };
+
+                $.plot("#mem1", memory1, options);
+                $.plot("#mem2", memory2, options);
+                $.plot("#insert1", time1, options2);
+                $.plot("#insert2", time2, options2);
+                $.plot("#delete1", delete1, options2);
+                $.plot("#delete2", delete2, options2);
+            });
+            function roundToTwo(num) {
+                return +(Math.round(num + "e+2") + "e-2");
+            }
+        </script>
+    </head>
+    <body>
+
+        <div class="container">
+            <div class="page-header">
+                <h1>Hunt Searchengine: Comparion of FullText ContextType's</h1>
+            </div>
+
+            <h2>Differents between ContextType's</h2>
+
+            <h3>text</h3>
+            <p>
+                Text is the default ContextType for fulltext search based on a PrefixTree.
+                It is required if phrase search is needed.
+            </p>
+            <h3>textSimple</h3>
+            <p>
+                TextSimple is a special ContextType for fulltext search.                 
+                It is based on the same implementation as the default text ContextType, 
+                but does not store the positions of words in documents.
+                Therefore it is not possible to use phrase search on these contexts.
+                This type makes sense in certain cases though where phrase search generally makes less sense anyway, 
+                like search for dates, coordinates or numbers.                 
+            </p>
+
+            <h2>Benchmarks</h2>
+            <p>The benchmarks show that "textSimple" uses less memory and performs equal or bedder on the main operations update and delete.
+            </p>
+            <p>x-axis shows number of documents in index</p>
+            <h3>Small values in index</h3>
+            <p>Indexing a dictionary: Content of each document is just a single word from the dictionary</p>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <h4>Memory</h4>
+                    <div class="demo-container" style="width:1000px">
+                        <div id="mem1" class="demo-placeholder"></div>			
+                    </div>                
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>Insert</h4>
+                    <div class="demo-container">
+                        <div id="insert1" class="demo-placeholder"></div>			
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h4>Deletion of 10 documents</h4>
+                    <div class="demo-container">
+                        <div id="delete1" class="demo-placeholder"></div>			
+                    </div>
+                </div>
+            </div>
+
+            <h3>Big values in index</h3>
+            <p>Each document contains of a 100 words from the dictionary.
+            </p>
+
+            <div class="row">
+                <div class="col-md-12">
+                    <h4>Memory</h4>
+                    <div class="demo-container" style="width:1000px">
+                        <div id="mem2" class="demo-placeholder"></div>			
+                    </div>                
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <h4>Insert</h4>
+                    <div class="demo-container">
+                        <div id="insert2" class="demo-placeholder"></div>			
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h4>Deletion of 10 documents</h4>
+                    <div class="demo-container">
+                        <div id="delete2" class="demo-placeholder"></div>			
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </body>
+</html>
