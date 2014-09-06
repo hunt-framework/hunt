@@ -28,28 +28,40 @@ main
     set1 <- dictSimple dict      -- ^ ApiDocuments contain just single words
     set2 <- dictWithValues dict  -- ^ ApiDocuments contain 100 words each
 
-    -- run benchmark with small-values ApiDocuments.
-    -- Resultting Index is expected to be rather small, because we do not have to store
-    -- a lot of information as IndexValues. More precisely: We only store one
-    -- position for each Document and this position should be cached by the engine
+    ------------------------------------------------------------------------------------
+    -- 1. Fulltext benchmarks
+    --    Comparison of text 'ContextType's
+
+    -- 1.1)
+    -- Benchmark with small-value ApiDocuments.
+    -- Each document indexes only one word, thatby 'IndexValue's are small.
+    --
+    -- Benchmark checks:
+    --   - the size and performance of the underlying index data-structure with minimal values
+    --
     insertBench "insert11" ctText       set1
     insertBench "insert12" ctTextSimple set1
 
     deleteBench "delete11" ctText       set1
     deleteBench "delete12" ctTextSimple set1
 
-    -- run benchmark with bigger-values ApiDocuments
-    -- Resultting index is expected to be bigger, because we store over 100000 ApiDocuments.
-    -- Each ApiDocument contains of 50 words and each words exists in about 50 ApiDocuments.
-    -- This is propably still not a valid benchmark in terms of real documents, but should
-    -- result in a lot of merging on the inserting operation.
+    -- 1.2)
+    -- Benchmark with bigger-values ApiDocuments
+    -- Each document indexes about a hundred words, but only 50 unique words.
+    -- Therefore: Each of those 50 words contains 2 times in a document
+    --
+    -- Benchmark checks:
+    --   - performance of 'IndexValue' implementation. mergeValues used in inserts, while
+    --     diffValues is used in deletes.
+    --   - the size and performance of the underlying index data-structure with big values
+    --
     insertBench "insert21" ctText       set2
     insertBench "insert22" ctTextSimple set2
 
     deleteBench "delete21" ctText       set2
     deleteBench "delete22" ctTextSimple set2
 
-    -- force usage of datasets to prevent their garbage collection.
+    -- force usage of datasets to prevent their garbage collection during a benchmark.
     -- That would propably have an inpact in the benchmarks.
     putStrLn "cleanup..."
     _ <- getAllocatedBytes set1
@@ -58,7 +70,8 @@ main
     return ()
 
 
-
+-- | benchmarks the performance of 10 sequentiell deletes in relation to the size
+--   of the index.
 deleteBench :: Text -> ContextType -> [ApiDocument] -> IO ()
 deleteBench name cxt docs
   = do

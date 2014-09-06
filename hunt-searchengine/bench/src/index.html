@@ -113,24 +113,23 @@
 
         <div class="container">
             <div class="page-header">
-                <h1>Hunt Searchengine: Comparion of FullText ContextType's</h1>
+                <h1>Hunt Searchengine: Comparison of fulltext context types</h1>
             </div>
 
-            <h2>Differents between ContextType's</h2>
+            <h2>Differents in use case and implementation</h2>
 
             <h3>text</h3>
             <p>
-                Text is the default ContextType for fulltext search based on a PrefixTree.
-                It is required if phrase search is needed.
+                "text" is the default context type for fulltext search. It is based on a prefixtree.
+                The index stores all available information including the words position in the indexed content.
+		Therefore it supports phrase search.
             </p>
             <h3>textSimple</h3>
             <p>
-                TextSimple is a special ContextType for fulltext search.                 
-                It is based on the same implementation as the default text ContextType, 
-                but does not store the positions of words in documents.
+                "textSimple" is a special context type for fulltext search.
+                It is based on the same prefixtree as the default "text" context type,
+                but just stores which words occure in which documents, not their exact position.
                 Therefore it is not possible to use phrase search on these contexts.
-                This type makes sense in certain cases though where phrase search generally makes less sense anyway, 
-                like search for dates, coordinates or numbers.                 
             </p>
 
             <h2>Benchmarks</h2>
@@ -144,21 +143,21 @@
                 <div class="col-md-12">
                     <h4>Memory</h4>
                     <div class="demo-container" style="width:1000px">
-                        <div id="mem1" class="demo-placeholder"></div>			
-                    </div>                
+                        <div id="mem1" class="demo-placeholder"></div>
+                    </div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6">
                     <h4>Insert</h4>
                     <div class="demo-container">
-                        <div id="insert1" class="demo-placeholder"></div>			
+                        <div id="insert1" class="demo-placeholder"></div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <h4>Deletion of 10 documents</h4>
                     <div class="demo-container">
-                        <div id="delete1" class="demo-placeholder"></div>			
+                        <div id="delete1" class="demo-placeholder"></div>
                     </div>
                 </div>
             </div>
@@ -171,21 +170,21 @@
                 <div class="col-md-12">
                     <h4>Memory</h4>
                     <div class="demo-container" style="width:1000px">
-                        <div id="mem2" class="demo-placeholder"></div>			
-                    </div>                
+                        <div id="mem2" class="demo-placeholder"></div>
+                    </div>
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6">
                     <h4>Insert</h4>
                     <div class="demo-container">
-                        <div id="insert2" class="demo-placeholder"></div>			
+                        <div id="insert2" class="demo-placeholder"></div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <h4>Deletion of 10 documents</h4>
                     <div class="demo-container">
-                        <div id="delete2" class="demo-placeholder"></div>			
+                        <div id="delete2" class="demo-placeholder"></div>
                     </div>
                 </div>
             </div>
