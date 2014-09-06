@@ -18,6 +18,7 @@ where
 
 import           Control.Applicative
 import           Control.Monad       (mzero)
+import           Control.DeepSeq
 
 import           Data.Aeson
 import           Data.Binary         hiding (Word)
@@ -79,6 +80,9 @@ type RegEx        = Text
 
 newtype Score = SC {unScore :: Float}
     deriving (Eq, Ord, Num, Fractional, Show)
+
+instance NFData Score where
+  rnf (SC f) = f `seq` ()
 
 noScore :: Score
 noScore = SC 0.0

@@ -21,6 +21,7 @@ where
 import           Control.Applicative
 import           Control.Monad                 (mzero)
 import           Control.Monad.Error           (Error (..))
+import           Control.DeepSeq
 
 import           Data.Aeson
 import           Data.List
@@ -116,6 +117,11 @@ data CmdResult
   | ResGeneric      { crGen :: Value }
   deriving (Show, Eq)
 
+instance NFData CmdResult where
+  rnf (ResSearch r)     = r `seq` ()
+  rnf (ResCompletion c) = c `seq` ()
+  rnf (ResSuggestion s) = s `seq` ()
+  rnf _                 = ()
 
 -- | An error during processing of the command.
 --   This includes a error code and a message.
@@ -125,6 +131,9 @@ data CmdError
     { ceCode :: Int  -- ^ Error code.
     , ceMsg  :: Text -- ^ Message describing the error.
     } deriving (Show)
+
+instance NFData CmdError where
+  rnf (ResError i t) = t `seq` i `seq` ()
 
 -- ------------------------------------------------------------
 
