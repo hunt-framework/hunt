@@ -157,7 +157,7 @@ getContextSchema c
 --   First runs the validator that throws an error for invalid values,
 --   then runs the normalizers associated with the context.
 
-normQueryCx :: Context -> Text -> Processor Text
+normQueryCx :: Context -> Text -> Processor (Maybe Text)
 normQueryCx c t
     = do s <- getContextSchema c
          -- apply context type validator
@@ -165,20 +165,15 @@ normQueryCx c t
            then
                do liftIO . debugM . debugMsg $ s
                   -- apply context schema normalizer
-                  return $ norm s
+                  return . Just . norm $ s
            else
-               queryError 400 $ errorMsg s
+               return Nothing
     where
       norm s
           = normalize' (cxNormalizer s) t
 
       debugMsg s
           = T.unpack $ T.concat [ "query normalizer: ", c, ": [", t, "=>", norm s, "]"]
-
-      errorMsg s
-          = T.concat [ "value incompatible with context type: "
-                     , c, ":", t, "(", showText . ctName . cxType $ s, ")"
-                     ]
 
 -- | Initialize the state of the processor.
 initProcessor :: ProcessConfig -> QueryIndex -> ProcessEnv
@@ -620,24 +615,36 @@ evalPrimary q _cx
 
 searchCx :: TextSearchOp -> Word -> Context -> Processor (ScoredCx ScoredRawDocs)
 searchCx op w' cx
-    = do w     <- normQueryCx cx w'                     -- normalize the word with respect to context
-         limit <- asks (docLimit . psConfig)            -- get the max. # of docs
-         ix    <- getIx                                 -- get the context search index
-         rawr  <- limitRawResult limit
-                  <$> CIx.searchWithCxSc op cx w ix     -- do the real search and limit result
-         return $ fromCxRawResults [(cx, rawr)]
-                                                        -- convert the result to a ScoredResult
-                                                        -- the score comes from a similarity test
+    = do mw <- normQueryCx cx w'                         -- normalize the word with respect to context
+         case mw of
+           Nothing  -> return $ fromCxRawResults []      -- if normalization not possible, return empty result
+           (Just w) -> searchCx' w
+    where
+      searchCx' w
+        = do
+          limit <- asks (docLimit . psConfig)            -- get the max. # of docs
+          ix    <- getIx                                 -- get the context search index
+          rawr  <- limitRawResult limit
+                   <$> CIx.searchWithCxSc op cx w ix     -- do the real search and limit result
+          return $ fromCxRawResults [(cx, rawr)]
+                                                         -- convert the result to a ScoredResult
+                                                         -- the score comes from a similarity test
 
 evalRange :: Word -> Word -> Context -> Processor (ScoredCx ScoredRawDocs)
 evalRange lb0 ub0 cx
-    = do lb    <- normQueryCx cx lb0
-         ub    <- normQueryCx cx ub0
-         limit <- asks (docLimit . psConfig)
-         ix    <- getIx
-         rawr  <- limitRawResult limit
-                  <$> CIx.lookupRangeCxSc cx lb ub ix
-         return $ fromCxRawResults [(cx, rawr)]
+    = do mlb    <- normQueryCx cx lb0                         -- normalize the word with respect to context
+         mub    <- normQueryCx cx ub0                         -- normalize the word with respect to context
+         case (mlb, mub) of
+           (Just lb, Just ub) -> evalRange' lb ub
+           _                  -> return $ fromCxRawResults [] -- if one of the words fails validation, return empty result
+    where
+      evalRange' lb ub
+        = do
+          limit <- asks (docLimit . psConfig)
+          ix    <- getIx
+          rawr  <- limitRawResult limit
+                   <$> CIx.lookupRangeCxSc cx lb ub ix
+          return $ fromCxRawResults [(cx, rawr)]
 
 -- ------------------------------------------------------------
 

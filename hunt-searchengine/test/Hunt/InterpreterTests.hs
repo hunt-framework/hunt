@@ -352,8 +352,11 @@ test_binary2 = withTmpFile $ \tmpfile -> testCM $ do
   search (setContexts ["datecontext"] (setNoCaseSearch $ qWord "2013-01-01")) 0 10
     @@@ ((@?= ["test://1"]) . searchResultUris)
   (search (setContexts ["datecontext"] (setNoCaseSearch $ qWord "invalid")) 0 10
-    @@@ const (assertFailure "date validation failed"))
-        `catchError` const (return ())
+  --  new behaviour: just return empty result for invalid contexts
+    @@@ ((@?= []) . searchResultUris))
+  --  old behaviour: throws error on validation failure
+  --  @@@ const (assertFailure "date validation failed"))
+  --   `catchError` const (return ())
 
   -- store index
   cmdStoreIndex tmpfile         @@= ResOK
@@ -362,8 +365,11 @@ test_binary2 = withTmpFile $ \tmpfile -> testCM $ do
   search (setContext "datecontext" (setNoCaseSearch $ qWord "2013-01-01")) 0 10
     @@@ ((@?= ["test://1"]) . searchResultUris)
   (search (setContext "datecontext" (setNoCaseSearch $ qWord "invalid")) 0 10
-    @@@ const (assertFailure "date validation failed after store/load index"))
-        `catchError` const (return ())
+  --  new behaviour: just return empty result for invalid contexts
+    @@@ ((@?= []) . searchResultUris))
+  --  old behaviour: throws error on validation failure
+  --  @@@ const (assertFailure "date validation failed after store/load index"))
+  --      `catchError` const (return ())
 
 
 -- -----------------------------------------------------------
