@@ -35,7 +35,7 @@ executable hunt-server-cli
                  , time
                  , hunt-searchengine      >= 0.2
                  , hunt-client
-                 , hslogger 
+                 , hslogger
                  , http-types             >= 0.8.0
                  , string-conversions
                  , mtl                    >= 1.1       && < 3

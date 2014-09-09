@@ -21,6 +21,10 @@ source-repository head
   type:        git
   location:    http://github.com/hunt-framework/hunt
 
+flag network-uri
+   description: Get Network.URI from the network-uri package
+   default: True
+
 library
   exposed-modules:
     Control.Concurrent.MapFold
@@ -60,7 +64,6 @@ library
               , hxt-regex-xmlschema    >= 9
               , hxt-unicode            >= 9
               , mtl                    >= 1.1
-              , network                >= 2.1
               , parallel               >= 3.1
               , parsec                 >= 2.1
               , process                >= 1
@@ -68,6 +71,11 @@ library
               , text                   >= 0.11
               , unix                   >= 2.3
               , vector                 >= 0.10
+
+  if flag(network-uri)
+     build-depends: network-uri >= 2.6, network >= 2.6
+  else
+     build-depends: network-uri < 2.6, network < 2.6
 
   hs-source-dirs: src
 
