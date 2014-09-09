@@ -39,27 +39,23 @@ data Document = Document
   { uri   :: ! URI         -- ^ Unique identifier of the document.
   , desc  :: ! Description -- ^ Description of the document (simple key-value store).
   , wght  :: ! Score       -- ^ Weight used in ranking (default @1.0@).
-  , score :: ! Score       -- ^ Score of a document in a result set
   }
   deriving (Show, Eq)
 
 emptyDocument :: Document
-emptyDocument = Document "" DD.empty defScore defScore
+emptyDocument = Document "" DD.empty defScore
 
 -- ------------------------------------------------------------
 -- JSON instances implemented with ApiDocument
 -- ------------------------------------------------------------
 
 toApiDocument :: Document -> ApiDocument
-toApiDocument (Document u d w s)
-    = ApiDocument u emptyApiDocIndexMap d (fromDefScore w) (fromDefScore s)
+toApiDocument (Document u d w)
+    = ApiDocument u emptyApiDocIndexMap d (fromDefScore w)
 
 fromApiDocument :: ApiDocument -> Document
-fromApiDocument (ApiDocument u _ix d w s)
-    = Document u d (toDefScore w) (toDefScore s)
-
-setScore :: Score -> Document -> Document
-setScore s d = d {score = s}
+fromApiDocument (ApiDocument u _ix d w)
+    = Document u d (toDefScore w)
 
 instance ToJSON Document where
     toJSON = toJSON . toApiDocument
@@ -70,11 +66,11 @@ instance FromJSON Document where
 -- ------------------------------------------------------------
 
 instance Binary Document where
-  put (Document u d w _) = put u >> put d >> put w
-  get = Document <$> get <*> get <*> get <*> (pure defScore)
+  put (Document u d w) = put u >> put d >> put w
+  get = Document <$> get <*> get <*> get
 
 instance NFData Document where
-  rnf (Document t d _w _s) = rnf t `seq` rnf d
+  rnf (Document t d _w) = rnf t `seq` rnf d
 
 -- ------------------------------------------------------------
 

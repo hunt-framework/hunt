@@ -37,7 +37,6 @@ data ApiDocument  = ApiDocument
     , adIndex :: IndexMap         -- ^ The data to index according to schema associated with the context.
     , adDescr :: Description      -- ^ The document description (a simple key-value map).
     , adWght  :: Score            -- ^ An optional document boost, (internal default is @1.0@).
-    , adScore :: Score            -- ^ A document score (used in query results)
     }
     deriving (Show)
 
@@ -94,7 +93,7 @@ emptyApiDocDescr = DD.empty
 
 -- | Empty 'ApiDocument'.
 emptyApiDoc :: ApiDocument
-emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescr noScore 1.0
+emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescr noScore
 
 -- ------------------------------------------------------------
 
@@ -104,9 +103,9 @@ instance NFData ApiDocument where
 -- ------------------------------------------------------------
 
 instance Binary ApiDocument where
-  put (ApiDocument a b c d s)
-      = put a >> put b >> put c >> put d >> put s
-  get = ApiDocument <$> get <*> get <*> get <*> get <*> get
+  put (ApiDocument a b c d)
+      = put a >> put b >> put c >> put d
+  get = ApiDocument <$> get <*> get <*> get <*> get
 
 -- ------------------------------------------------------------
 
@@ -141,26 +140,18 @@ instance FromJSON ApiDocument where
     descrMap  <- o    .:? "description" .!= emptyApiDocDescr
     weight    <- mkScore <$>
                  o    .:? "weight"      .!= 0.0
-    score     <- mkScore <$>
-                 o    .:? "score"       .!= 0.0
     return ApiDocument
       { adUri    = parsedUri
       , adIndex  = indexMap
       , adDescr  = descrMap
       , adWght   = weight
-      , adScore  = score
       }
   parseJSON _ = mzero
 
 instance ToJSON ApiDocument where
-  toJSON (ApiDocument u im dm wt sc)
+  toJSON (ApiDocument u im dm wt)
       = object $
         ( maybe [] (\ x -> ["weight" .= x]) $ getScore wt )
-        ++
-        ( if sc == 0.0
-          then []
-          else ["score" .= sc]
-        )
         ++
         ( if M.null im
           then []

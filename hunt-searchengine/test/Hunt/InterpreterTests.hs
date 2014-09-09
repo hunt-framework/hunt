@@ -25,6 +25,7 @@ import           Hunt.Common
 import           Hunt.DocTable.HashedDocTable         (Documents)
 import           Hunt.Interpreter
 import           Hunt.Utility
+import           Hunt.Query.Intermediate
 
 import           Hunt.TestHelper
 
@@ -101,7 +102,7 @@ testCM = testCM' True
 
 -- uris of the search results
 searchResultUris :: CmdResult -> [URI]
-searchResultUris = map uri . lrResult . crRes
+searchResultUris = map (uri . snd . unRD) . lrResult . crRes
 
 search :: Query -> Int -> Int -> Command
 search q o m = setResultOffset o . setMaxResults m . cmdSearch $ q
@@ -512,14 +513,14 @@ test_everything = testCM $ do
         `catchError` const (return ())
   -- search yields the old description
   search (qWord "Brain") os pp
-    @@@ ((@?= adDescr brainDoc) . desc . head . lrResult . crRes)
+    @@@ ((@?= adDescr brainDoc) . desc . snd . unRD . head . lrResult . crRes)
 
   -- update the description
   cmdUpdateDoc brainDocUpdate
     @@= ResOK
   -- search yields >merged< description
   search (qWord "Brain") os pp
-    @@@ ((@?= adDescr brainDocMerged) . desc . head . lrResult . crRes)
+    @@@ ((@?= adDescr brainDocMerged) . desc . snd . unRD . head . lrResult . crRes)
 
   -- delete return the correct result value
   cmdDeleteDoc ("test://0")

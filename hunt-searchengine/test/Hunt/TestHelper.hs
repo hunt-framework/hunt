@@ -122,8 +122,7 @@ mkDocument :: Int -> Gen Document
 mkDocument uri' = do
   d <- mkDescription
   w <- arbitrary
-  x <- arbitrary
-  return $ Document (T.pack . show $ uri') d (SC w) (SC x)
+  return $ Document (T.pack . show $ uri') d (SC w)
 
 mkDescription :: Gen Description
 mkDescription = do
@@ -176,7 +175,7 @@ apiDocGen :: Int -> Gen ApiDocument
 apiDocGen n = do
   desc_    <- descriptionGen
   let ix  =  mkIndexData n desc_
-  return  $ ApiDocument uri_ ix desc_  1.0 1.0
+  return  $ ApiDocument uri_ ix desc_  1.0
   where uri_ = T.pack . ("rnd://" ++) . show $ n
 
 niceText1 :: Gen Text

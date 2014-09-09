@@ -24,6 +24,7 @@ module Hunt.Query.Intermediate
     , ScoredRawDocs
     , ScoredCx
     , UnScoredDocs
+    , RankedDoc (..)
 
     , toScoredDocs
     , boostAndAggregateCx
@@ -59,6 +60,8 @@ import qualified Data.List                 as L
 import           Data.Map                  (Map)
 import qualified Data.Map                  as M
 import           Data.Maybe
+import           Data.Aeson
+import qualified Data.HashMap.Strict       as HM
 import           Hunt.Query.Result         hiding (null)
 
 import           Hunt.Common
@@ -432,7 +435,7 @@ limitRawResult maxDocs rs
 -- This list may be further sorted by score, partitioned into pages or ...
 
 toDocsResult :: (Applicative m, Monad m, DocTable dt) =>
-                dt -> ScoredDocs -> m [Document]
+                dt -> ScoredDocs -> m [RankedDoc]
 toDocsResult dt (SDS m)
     = mapM toDoc (DM.toList m)
       where
@@ -440,7 +443,7 @@ toDocsResult dt (SDS m)
             = (toD . fromJust) <$> Dt.lookup did dt
             where
               toD d'
-                  = d {score = wght d * sc}
+                  = RD (wght d * sc, d)
                   where
                     d = unwrap d'
 
@@ -449,26 +452,36 @@ toDocsResult dt (SDS m)
 
 -- define a total ordering over documents by taking score and uri into account
 -- this is used for ranking (only)
+--
+-- XXX TODO: maybe move to Common modules, since this type is now the regular
+--           return type
 
-newtype RankedDoc = RD {unRD :: Document}
+newtype RankedDoc = RD {unRD :: (Score, Document)}
+  deriving Show
 
 instance Eq RankedDoc where
-    (RD d1) == (RD d2)
-        = score d1 == score d2
+    (RD (sc1,d1)) == (RD (sc2,d2))
+        = sc1 == sc2
           &&
           uri   d1 == uri   d2
 
 instance Ord RankedDoc where
-    (RD d1) `compare` (RD d2)
-        = case score d1 `compare` score d2 of
+    (RD (sc1,d1)) `compare` (RD (sc2,d2))
+        = case sc1 `compare` sc2 of
             EQ -> uri d2 `compare` uri d1
             r  -> r
 
-toDocumentResultPage :: Int -> Int -> [Document] -> [Document]
-toDocumentResultPage start len
-    = map unRD
-      . Q.pageList start len
-      . map RD
+instance ToJSON RankedDoc where
+    toJSON (RD (c,d))
+      = addScore $ toJSON d
+      where
+        addScore (Object hm)
+          = Object $ HM.insert "score" (toJSON c) hm
+        addScore _
+          = error "toJSON rankedDoc: propably a bug introduced with #75"
+
+toDocumentResultPage :: Int -> Int -> [RankedDoc] -> [RankedDoc]
+toDocumentResultPage = Q.pageList
 
 -- ----------------------------------------
 -- ranking of completions

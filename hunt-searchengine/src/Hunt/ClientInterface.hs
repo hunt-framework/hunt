@@ -320,7 +320,6 @@ mkApiDoc u
       , adIndex = emptyApiDocIndexMap
       , adDescr = emptyApiDocDescr
       , adWght  = noScore
-      , adScore = noScore
       }
 
 -- | add an index map containing the text parts to be indexed

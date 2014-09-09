@@ -31,9 +31,9 @@ import qualified Data.Text                     as T
 
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.Document          (Document)
 import           Hunt.Index.Schema
 import           Hunt.Query.Language.Grammar   (Query (..))
+import           Hunt.Query.Intermediate       (RankedDoc)
 
 import           Hunt.Interpreter.BasicCommand (BasicCommand, StatusCmd (..))
 import qualified Hunt.Interpreter.BasicCommand as Cmd
@@ -104,7 +104,7 @@ data CmdResult
   = ResOK
 
   -- | The search results.
-  | ResSearch       { crRes :: LimitedResult Document }
+  | ResSearch       { crRes :: LimitedResult RankedDoc }
 
   -- | The auto-completion results.
   | ResCompletion   { crWords :: [(Text, [Text])] }

@@ -28,7 +28,7 @@ module Hunt.Interpreter
 where
 
 import           Control.Applicative
--- import           Control.Arrow                 (first)
+import           Control.Arrow                 (second)
 import           Control.Concurrent.XMVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
@@ -62,7 +62,7 @@ import           Hunt.Interpreter.Command      (Command)
 import           Hunt.Interpreter.Command      hiding (Command (..))
 import           Hunt.Query.Intermediate       (ScoredDocs, ScoredWords,
                                                 UnScoredDocs, toDocIdSet,
-                                                toDocsResult,
+                                                toDocsResult, RankedDoc(..),
                                                 toDocumentResultPage,
                                                 toWordsResult)
 import           Hunt.Query.Language.Grammar
@@ -555,15 +555,15 @@ execSelect q (ContextIndex ix dt)
 -- The 1. param determines, whether the weight of the document is included in the result.
 -- The 2. is the list of the description keys, if @Nothing@ is given the complete desc is included.
 
-mkSelect :: Bool -> Maybe [Text] -> (Document -> Document)
+mkSelect :: Bool -> Maybe [Text] -> (RankedDoc -> RankedDoc)
 mkSelect withWeight fields
     = mkSelW withWeight . mkSelF fields
       where
         mkSelW True      = id
-        mkSelW False     = \ d -> d { wght = 1.0 }
+        mkSelW False     = RD . second (\d -> d { wght = 1.0 }) . unRD
 
         mkSelF Nothing   = id
-        mkSelF (Just fs) = \ d -> d {desc = DocDesc.restrict fs (desc d)}
+        mkSelF (Just fs) = RD . second (\d -> d {desc = DocDesc.restrict fs (desc d)}) . unRD
 
 
 -- | Delete a set of documents.
