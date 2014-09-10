@@ -440,13 +440,14 @@ toDocsResult dt (SDS m)
     = mapM toDoc (DM.toList m)
       where
         toDoc (did, sc)
-            = (toD . fromJust) <$> Dt.lookup did dt
+            = (toD . fromJust') <$> Dt.lookup did dt
             where
               toD d'
                   = RD (wght d * sc, d)
                   where
                     d = unwrap d'
-
+        fromJust' (Just x) = x
+        fromJust' Nothing  = error "Intermediate.toDocsResult: undefined"
 -- ----------------------------------------
 -- ranking of documents
 
