@@ -145,7 +145,7 @@ prop_dt_delete2
     assertNF' dt
   where
   pickIx = do
-    doc1@(Document u _ _ _) <- pick arbitrary
+    doc1@(Document u _ _) <- pick arbitrary
     doc2 <- pick arbitrary
     (_, dt) <- Dt.insert doc1 Dt.empty
     (_, dt')    <- Dt.insert doc2 dt
@@ -171,7 +171,7 @@ prop_dt_adjust2
     assertNF' dt
   where
   pickIx = do
-    doc1@(Document u _ _ _) <- pick arbitrary
+    doc1@(Document u _ _) <- pick arbitrary
     doc2 <- pick arbitrary
     (_, dt) <- Dt.insert doc1 Dt.empty
     Dt.adjustByURI (\_ -> return doc2) u dt
@@ -197,7 +197,7 @@ prop_dt_difference2
     assertNF' dt
   where
   pickIx = do
-    doc1@(Document u _ _ _) <- pick arbitrary
+    doc1@(Document u _ _) <- pick arbitrary
     doc2 <- pick arbitrary
     (_, dt) <- Dt.insert doc1 Dt.empty
     (_, dt')    <- Dt.insert doc2 dt
