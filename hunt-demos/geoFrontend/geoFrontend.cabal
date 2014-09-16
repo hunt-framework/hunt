@@ -27,7 +27,7 @@ executable geoFrontend
                      Hunt.GeoFrontend.Server,
                      Hunt.GeoFrontend.Templates
 
-  build-depends:       base                   == 4.6.*
+  build-depends:       base                   == 4.*
                        , aeson                >= 0.6
                        , blaze-html           >= 0.7   && < 0.8
                        , bytestring           >= 0.10
@@ -41,12 +41,12 @@ executable geoFrontend
                        , mtl                  >= 2
                        , OSM                  >= 0.7
                        , parsec               >= 3.1
-                       , scotty               >= 0.6   && < 0.7
+                       , scotty               >= 0.8
                        , string-conversions   >= 0.3.0.2
                        , text                 >= 1     && < 2
                        , transformers         >= 0.3
                        , unordered-containers >= 0.2
-                       , wai-extra            >= 2.0   && < 2.1
+                       , wai-extra            == 3.*
                        , warp                 >= 2.0
 
   ghc-options: -Wall -funbox-strict-fields -fwarn-tabs

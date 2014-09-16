@@ -49,7 +49,7 @@ function onSearch(){
         minlng = Math.min(ne.lng, sw.lng)
         maxlat = Math.max(ne.lat, sw.lat)
         maxlng = Math.max(ne.lng, sw.lng)
-        boundsString = " position:[" + minlat + "-" + minlng + " TO " + maxlat + "-" + maxlng + "]"
+        boundsString = " position:[" + minlng + "-" + minlat + " TO " + maxlng + "-" + maxlat + "]"
     }
 
     var data = {term: query + boundsString}

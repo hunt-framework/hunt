@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 -- {-# LANGUAGE DoAndIfThenElse #-}
 
 
@@ -35,8 +35,8 @@ import qualified Hunt.GeoFrontend.Templates as Templates
 
 import           Hunt.GeoFrontend.Common
 import           Hunt.GeoFrontend.Feeder
-import           Hunt.Server.Client (newServerAndManager, withServerAndManager)
-import qualified Hunt.Server.Client as H (eval, Command (..), lrResult)
+import           Hunt.Server.Client (newServerAndManager, withServerAndManager, postCommand)
+import qualified Hunt.ClientInterface as H --  (eval, Command (..), lrResult)
 
 import           Paths_geoFrontend
 
@@ -58,7 +58,7 @@ start config = do
     case loadIndex config of
         Just path -> do
             docs <- readXML path
-            t <- withServerAndManager (H.eval $ createIndexCommands ++ map (H.Insert . geoDocToHuntDoc) docs) sm
+            (t :: T.Text) <- withServerAndManager sm (postCommand $ H.cmdSequence $ indizes ++ map (H.cmdInsertDoc . geoDocToHuntDoc) docs)
             Log.debugM modName (cs t)
         Nothing -> return ()
 
@@ -83,11 +83,11 @@ dispatcher = do
         Scotty.file cssPath
     Scotty.get "/autocomplete"$ do
         q <- Scotty.param "term"
-        value <- (lift $ autocomplete q) >>= raiseOnLeft
+        value <- lift $ autocomplete q
         Scotty.json $ value
     Scotty.get "/search"$ do
         q <- Scotty.param "term"
-        value <- (lift $ query q) >>= raiseOnLeft
+        value <- lift $ query q
         Scotty.json $ H.lrResult value
 
 

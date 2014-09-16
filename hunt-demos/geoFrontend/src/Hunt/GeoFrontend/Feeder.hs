@@ -26,8 +26,9 @@ import Data.Geo.OSM
 import Data.Geo.OSM.NWRCommon
 
 import Hunt.GeoFrontend.Common
-import qualified Hunt.Server.Client as H
-
+import qualified Hunt.Server.Client as HC
+import qualified Hunt.ClientInterface as H
+import qualified Hunt.Interpreter.Command as HIC
 
 
 writeJSON :: MonadIO m => FilePath -> m ()
@@ -87,42 +88,39 @@ nwrGetCoords nwr = foldNodeWayRelation nwr fNode fWay undefined
         fWay _ = (0.0, 0.0)
 
 indexedTags :: [Text]
-indexedTags = map H.cxName tagIndizes
+indexedTags = map HIC.icIContext tagIndizes
 
 filterIndexedTags :: [(String, String)] -> [(String, String)]
 filterIndexedTags tags' = filter (flip elem indexedTags' . fst) tags'
     where
         indexedTags' = map cs $ indexedTags
 
-metaIndizes :: [H.ContextDescription]
+metaIndizes :: [H.Command]
 metaIndizes =
     [
-          H.def {H.cxName = "type"          , H.cxWeight = 0.1, H.cxDefault = False}
-        , H.def {H.cxName = "position"                        , H.cxDefault = False, H.cxType = H.PositionContext}
-        , H.def {H.cxName = "kind"          , H.cxWeight = 0.1, H.cxDefault = False}
+          H.cmdInsertContext  "type"           $ H.setCxWeight 0.1 $ H.setCxNoDefault $ H.mkSchema
+        , H.cmdInsertContext  "position"                           $ H.setCxNoDefault $ H.setCxPosition $ H.mkSchema
+        , H.cmdInsertContext  "kind"           $ H.setCxWeight 0.1 $ H.setCxNoDefault $ H.mkSchema
     ]
 
-tagIndizes :: [H.ContextDescription]
+tagIndizes :: [H.Command]
 tagIndizes =
     [
-          H.def {H.cxName = "name"          , H.cxWeight = 1.0}
-        , H.def {H.cxName = "amenity"       , H.cxWeight = 0.5}
-        , H.def {H.cxName = "highway"       , H.cxWeight = 0.5}
-        , H.def {H.cxName = "shop"          , H.cxWeight = 0.5}
-        , H.def {H.cxName = "operator"      , H.cxWeight = 0.3}
-        , H.def {H.cxName = "leisure"       , H.cxWeight = 0.3}
-        , H.def {H.cxName = "tourism"       , H.cxWeight = 0.3}
-        , H.def {H.cxName = "cuisine"       , H.cxWeight = 0.3}
-        , H.def {H.cxName = "historic"      , H.cxWeight = 0.3}
-        , H.def {H.cxName = "place"         , H.cxWeight = 0.3}
-        , H.def {H.cxName = "memorial:type" , H.cxWeight = 0.1, H.cxDefault = False}
-        , H.def {H.cxName = "website"       , H.cxWeight = 0.1, H.cxDefault = False}
-        , H.def {H.cxName = "contact:website", H.cxWeight = 0.1,H.cxDefault = False}
-        , H.def {H.cxName = "phone"         , H.cxWeight = 0.1, H.cxDefault = False}
+          H.cmdInsertContext  "name"           $ H.setCxWeight 1.0 $ H.mkSchema
+        , H.cmdInsertContext  "amenity"        $ H.setCxWeight 0.5 $ H.mkSchema
+        , H.cmdInsertContext  "highway"        $ H.setCxWeight 0.5 $ H.mkSchema
+        , H.cmdInsertContext  "shop"           $ H.setCxWeight 0.5 $ H.mkSchema
+        , H.cmdInsertContext  "operator"       $ H.setCxWeight 0.3 $ H.mkSchema
+        , H.cmdInsertContext  "leisure"        $ H.setCxWeight 0.3 $ H.mkSchema
+        , H.cmdInsertContext  "tourism"        $ H.setCxWeight 0.3 $ H.mkSchema
+        , H.cmdInsertContext  "cuisine"        $ H.setCxWeight 0.3 $ H.mkSchema
+        , H.cmdInsertContext  "historic"       $ H.setCxWeight 0.3 $ H.mkSchema
+        , H.cmdInsertContext  "place"          $ H.setCxWeight 0.3 $ H.mkSchema
+        , H.cmdInsertContext  "memorial:type"  $ H.setCxWeight 0.1 $ H.setCxNoDefault $ H.mkSchema
+        , H.cmdInsertContext  "website"        $ H.setCxWeight 0.1 $ H.setCxNoDefault $ H.mkSchema
+        , H.cmdInsertContext  "contact:website" $ H.setCxWeight 0.1 $ H.setCxNoDefault $ H.mkSchema
+        , H.cmdInsertContext  "phone"          $ H.setCxWeight 0.1 $ H.setCxNoDefault $ H.mkSchema
     ]
 
-indizes :: [H.ContextDescription]
+indizes :: [H.Command]
 indizes = metaIndizes ++ tagIndizes
-
-createIndexCommands :: [H.Command]
-createIndexCommands = map H.descriptionToCmd indizes

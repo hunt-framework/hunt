@@ -52,8 +52,9 @@ import           Control.Monad.IO.Class (MonadIO, liftIO)
 import           Control.Monad.Trans.Class (MonadTrans, lift)
 import           Control.Monad.Reader (ReaderT, MonadReader, ask, runReaderT)
 
-import qualified Hunt.Server.Client as H
--- import qualified Hunt.Index.Schema.Normalize.Position as P
+import qualified Hunt.Server.Client as HC
+import qualified Hunt.ClientInterface as H
+import qualified Hunt.Index.Schema.Normalize.Position as HP
 
 data OSMType = Way | Node
     deriving (Show, Eq, Generic, Ord)
@@ -73,8 +74,8 @@ data GeoDocument = GeoDocument {
     tags :: [(Text, Text)]
 } deriving (Eq, Ord)
 
-geoDocToMap :: GeoDocument -> M.Map Text Text
-geoDocToMap d = M.fromList $ otherTags ++ (map . second) ($ d) [("name", name), ("position", position), ("kind", fromShow . kind)]
+geoDocToMap :: GeoDocument -> [(Text, Text)]
+geoDocToMap d = otherTags ++ (map . second) ($ d) [("name", name), ("position", position), ("kind", fromShow . kind)]
     where
         position d' = ((fromShow $ lon d') `T.append` "-" `T.append` (fromShow $ lat d'))
         otherTags = map (uncurry (,)) $ tags d
@@ -83,16 +84,16 @@ geoDocIdToUri :: GeoDocument -> Text
 geoDocIdToUri d = "osm://" `T.append` (fromShow $ osmId d)
 
 geoDocToHuntDoc :: GeoDocument -> H.ApiDocument
-geoDocToHuntDoc d = H.ApiDocument {H.apiDocUri = geoDocIdToUri d, H.apiDocIndexMap = geoDocToMap d, H.apiDocDescrMap = geoDocToMap d}
+geoDocToHuntDoc d = H.listToApiDoc (geoDocIdToUri d) (geoDocToMap d) (geoDocToMap d)
 
 instance FromJSON GeoDocument where
     parseJSON (JSON.Object o) = do
         u <- o .: "uri"
-        (JSON.Object descr) <- o .: "desc"
+        (JSON.Object descr) <- o .: "description"
         n  <- descr .: "name"
         k  <- descr .: "kind"
         p  <- (descr .: "position") :: JSON.Parser Text
-        (lon', lat') <- case parse H.position "(json)" (T.unpack p) of
+        (lon', lat') <- case parse HP.position "(json)" (T.unpack p) of
             Left err -> fail $ show err
             Right res -> return res
 
@@ -120,30 +121,30 @@ fromShow :: (Show a) => a -> Text
 fromShow = T.pack . show
 
 
-newtype GeoServer a = GeoServer { runGeoServer :: ReaderT H.ServerAndManager IO a }
-    deriving (Monad, MonadIO, MonadReader (H.ServerAndManager))
+newtype GeoServer a = GeoServer { runGeoServer :: ReaderT HC.ServerAndManager IO a }
+    deriving (Monad, MonadIO, MonadReader (HC.ServerAndManager))
 
 geoServer :: MonadTrans t => GeoServer a -> t GeoServer a
 geoServer = lift
 
-runGeoReader :: GeoServer a -> H.ServerAndManager -> IO a
+runGeoReader :: GeoServer a -> HC.ServerAndManager -> IO a
 runGeoReader = runReaderT . runGeoServer
 
-withServerAndManager' :: H.HuntConnectionT IO b -> GeoServer b
+withServerAndManager' :: HC.HuntConnectionT IO b -> GeoServer b
 withServerAndManager' x = do
     sm <- ask
     --sm <- liftIO $ STM.readTVarIO var
-    liftIO $ H.withServerAndManager x sm
+    liftIO $ HC.withServerAndManager sm x
 
-autocomplete :: Text -> GeoServer (Either Text [Text])
-autocomplete q = withServerAndManager' $ H.autocomplete q
+autocomplete :: Text -> GeoServer [Text]
+autocomplete q = withServerAndManager' $ HC.getAutocomplete q
 
-query :: Text -> GeoServer (Either Text (H.LimitedResult GeoDocument))
-query q = withServerAndManager' $ H.query q
+query :: Text -> GeoServer (H.LimitedResult GeoDocument)
+query q = withServerAndManager' $ HC.getQuery q 20 0
 
 
 insert :: [GeoDocument] -> GeoServer Text
-insert docs = withServerAndManager' $ H.insert $ map geoDocToHuntDoc docs
+insert docs = withServerAndManager' $ HC.postCommand $ H.cmdSequence $ map (H.cmdInsertDoc . geoDocToHuntDoc) docs
 
 
 data GeoFrontendConfiguration = GeoFrontendConfiguration {

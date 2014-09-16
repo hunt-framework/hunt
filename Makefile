@@ -6,7 +6,7 @@
 # the default is set to 8M
 # more info on rts opts below
 
-N       = 1
+N       = 8
 H       = 500
 A       = 8
 RTSPROF =
