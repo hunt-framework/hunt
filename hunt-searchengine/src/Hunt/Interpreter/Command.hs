@@ -32,12 +32,11 @@ import qualified Data.Text                     as T
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
-import           Hunt.Query.Language.Grammar   (Query (..))
-import           Hunt.Query.Intermediate       (RankedDoc)
-
 import           Hunt.Interpreter.BasicCommand (BasicCommand, StatusCmd (..))
 import qualified Hunt.Interpreter.BasicCommand as Cmd
-
+import           Hunt.Query.Language.Grammar   (Query (..))
+import           Hunt.Query.Intermediate       (RankedDoc)
+import           Hunt.Scoring.Score            (Score)
 import           Hunt.Utility.Log
 
 -- ------------------------------------------------------------

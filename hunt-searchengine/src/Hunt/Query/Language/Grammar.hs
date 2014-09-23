@@ -32,11 +32,13 @@ import           Control.Monad
 
 import           Data.Aeson
 import           Data.Binary
+import           Data.Monoid            ((<>))
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 import           Data.Text.Binary       ()
 
 import           Hunt.Common.BasicTypes as BTy
+import           Hunt.Scoring.Score     (Score, unScore, toDefScore)
 
 import           Text.Read              (readMaybe)
 
@@ -56,7 +58,7 @@ data Query
   | QContext  [Context] Query      -- ^ Restrict a query to a list of contexts.
   | QBinary   BinOp Query Query    -- ^ Combine two queries with a binary operation.
   | QSeq      BinOp [Query]
-  | QBoost    Weight Query         -- ^ Weight for query.
+  | QBoost    Score  Query         -- ^ Weight for query.
   | QRange    Text Text            -- ^ Range query.
   deriving (Eq, Show)
 

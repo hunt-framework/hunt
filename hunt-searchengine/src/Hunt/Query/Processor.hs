@@ -38,16 +38,19 @@ import           Data.Default
 import qualified Data.List                   as L
 import qualified Data.Map                    as M
 import           Data.Maybe
+import           Data.Monoid                 (Monoid(..), (<>))
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
-import           Hunt.Common
+import           Hunt.Common.BasicTypes      (Context, Word, TextSearchOp(..))
 import           Hunt.ContextIndex           (ContextMap)
 import qualified Hunt.ContextIndex           as CIx
+import           Hunt.Index.Schema
 import           Hunt.Interpreter.Command    (CmdError (..))
 import           Hunt.Query.Fuzzy            (FuzzyConfig)
 import           Hunt.Query.Intermediate
 import           Hunt.Query.Language.Grammar
+import           Hunt.Scoring.SearchResult   (ScoredDocs, UnScoredDocs)
 import           Hunt.Utility                (showText)
 
 import qualified System.Log.Logger           as Log

@@ -17,16 +17,14 @@ module Hunt.Query.Intermediate
     ( ScoredResult(..)
     , Aggregate(..)
 
-    , ScoredDocs
     , ScoredWords
     , ScoredContexts
     , ScoredOccs
     , ScoredRawDocs
     , ScoredCx
-    , UnScoredDocs
     , RankedDoc (..)
 
-    , toScoredDocs
+--    , toScoredDocs
     , boostAndAggregateCx
     , fromCxRawResults
     , fromRawResult
@@ -34,7 +32,6 @@ module Hunt.Query.Intermediate
     , limitCxRawResults
     , contextWeights
     , filterByDocSet
-    , toDocIdSet
     , toDocsResult
     , toDocumentResultPage
     , toWordsResult
@@ -55,114 +52,29 @@ import           Prelude                   hiding (null)
 import           Control.Applicative       hiding (empty)
 import           Control.Arrow             (second, (***))
 
+import           Data.Aeson
+import qualified Data.HashMap.Strict       as HM
 import qualified Data.LimitedPriorityQueue as Q
 import qualified Data.List                 as L
 import           Data.Map                  (Map)
 import qualified Data.Map                  as M
 import           Data.Maybe
-import           Data.Aeson
-import qualified Data.HashMap.Strict       as HM
-import           Hunt.Query.Result         hiding (null)
+import           Data.Monoid               (Monoid(..),(<>))
 
-import           Hunt.Common
+import           Hunt.Common.BasicTypes
 import qualified Hunt.Common.DocIdMap      as DM
-import qualified Hunt.Common.DocIdSet      as DS
-import           Hunt.Common.Document      (DocumentWrapper (..))
+import           Hunt.Common.Document      (DocumentWrapper (..), Document (..))
+import           Hunt.Common.Occurrences   (Occurrences)
 import qualified Hunt.Common.Occurrences   as Occ
 import qualified Hunt.Common.Positions     as Pos
 import           Hunt.DocTable             (DocTable)
 import qualified Hunt.DocTable             as Dt
+import           Hunt.Index.Schema
+import           Hunt.Query.Result         hiding (null)
+import           Hunt.Scoring.Score
+import           Hunt.Scoring.SearchResult
 
 -- import           Debug.Trace
-
--- ------------------------------------------------------------
---
--- The Monoid @mempty@ acts as empty result,
--- (<>) is the union of scored results
-
-class Monoid a => ScoredResult a where
-    boost            :: Score -> a -> a
-    nullSC           :: a -> Bool
-    differenceSC     :: a -> a -> a
-    intersectSC      :: a -> a -> a
-    intersectDisplSC :: Int -> a -> a -> a
-    intersectFuzzySC :: Int -> Int -> a -> a -> a
-
--- ------------------------------------------------------------
-
--- The result type for document search, every doc is associated with a score
-
-newtype ScoredDocs
-    = SDS (DocIdMap Score)
-      deriving (Show)
-
-instance Monoid ScoredDocs where
-    mempty
-        = SDS DM.empty
-    mappend (SDS m1) (SDS m2)
-        = SDS $ DM.unionWith (<>) m1 m2
-
-instance ScoredResult ScoredDocs where
-    boost b (SDS m1)
-        = SDS $ DM.map (b *) m1
-
-    nullSC (SDS m1)
-        = DM.null m1
-
-    differenceSC (SDS m1) (SDS m2)
-        = SDS $ DM.difference m1 m2
-
-    intersectSC (SDS m1) (SDS m2)
-        = SDS $ DM.intersectionWith (+) m1 m2
-
-    intersectDisplSC _disp
-        = intersectSC
-
-    intersectFuzzySC _lb _ub
-        = intersectSC
-
-toScoredDocs :: Occurrences -> ScoredDocs
-toScoredDocs os
-    = SDS $ DM.map toScore os
-      where
-        toScore = mkScore . fromIntegral . Pos.size
-
--- ------------------------------------------------------------
-
--- | The result type for unscored search of documents
---
--- used when all matching docs must be processed,
--- e.g. in DeleteByQuery commands
-
-newtype UnScoredDocs
-    = UDS DS.DocIdSet
-      deriving (Show, Monoid)
-
-instance ScoredResult UnScoredDocs where
-    boost _b uds
-        = uds
-
-    nullSC (UDS s)
-        = DS.null s
-
-    differenceSC (UDS s1) (UDS s2)
-        = UDS $ DS.difference s1 s2
-
-    intersectSC (UDS s1) (UDS s2)
-        = UDS $ DS.intersection s1 s2
-
-    intersectDisplSC _disp
-        = intersectSC
-
-    intersectFuzzySC _lb _ub
-        = intersectSC
-
-toUnScoredDocs :: Occurrences -> UnScoredDocs
-toUnScoredDocs os
-    = UDS . DS.fromList . DM.keys $ os
-
-toDocIdSet :: UnScoredDocs -> DS.DocIdSet
-toDocIdSet (UDS ds) = ds
 
 -- ------------------------------------------------------------
 
@@ -243,10 +155,10 @@ instance ScoredResult ScoredOccs where
 -- afterwards the positions can be accumulated into a score,
 -- e.g. by counting the occurences
 --
--- A RawResult can easily be converted into this type
+-- A raw scored result can easily be converted into this type
 
 newtype ScoredRawDocs
-    = SRD [([Word], ScoredOccs)]
+    = SRD [([Word], ScoredSearchResult)]
       deriving (Show)
 
 instance Monoid ScoredRawDocs where
@@ -263,13 +175,13 @@ instance ScoredResult ScoredRawDocs where
         = L.null xs
 
     differenceSC (SRD xs1) (SRD xs2)
-        = srd $ [(ws1, SCO sc1 (diff occ1 xs2)) | (ws1, SCO sc1 occ1) <- xs1]
+        = srd $ [(ws1, SCD sc1 (diff occ1 xs2)) | (ws1, SCD sc1 occ1) <- xs1]
           where
             diff occ xs
                 = L.foldl op occ xs
                   where
-                    op occ' (_ws2, SCO _sc2 occ2)
-                        = DM.difference occ' occ2
+                    op occ' (_ws2, SCD _sc2 occ2)
+                        = occ' `differenceSC` occ2
 
     intersectSC
         = intersectSRD intersectSC
@@ -286,7 +198,7 @@ instance ScoredResult ScoredRawDocs where
 
 -- | generalized intersection operator for ScoredRawDocs
 
-intersectSRD :: (ScoredOccs -> ScoredOccs -> ScoredOccs)
+intersectSRD :: (ScoredSearchResult -> ScoredSearchResult -> ScoredSearchResult)
               -> ScoredRawDocs -> ScoredRawDocs -> ScoredRawDocs
 intersectSRD interSRD (SRD xs1) (SRD xs2)
     = srd $ [ (ws1 ++ ws2, interSRD socc1 socc2)
@@ -296,7 +208,7 @@ intersectSRD interSRD (SRD xs1) (SRD xs2)
 
 -- | smart constructor for ScoredRawDoc removing empty entries
 
-srd :: [([Word], ScoredOccs)] -> ScoredRawDocs
+srd :: [([Word], ScoredSearchResult)] -> ScoredRawDocs
 srd
     = SRD . L.filter (not . nullSC . snd)
 
@@ -304,15 +216,13 @@ filterByDocSet :: UnScoredDocs -> ScoredRawDocs -> ScoredRawDocs
 filterByDocSet (UDS ds) (SRD xs)
     = SRD $ concatMap filterDocs xs
       where
-        filterDocs (ws, SCO sc occ)
-            | Occ.null occ'
+        filterDocs (ws, SCD sc occ)
+            | nullSC occ'
                 = []
             | otherwise
-                = [(ws, SCO sc occ')]
+                = [(ws, SCD sc occ')]
             where
-              occ' = DM.filterWithKey p occ
-                  where
-                    p k _v = k `DS.member` ds
+              occ' = occ `differenceSC` (mkSRfromUnScoredDocs ds)
 
 -- ------------------------------------------------------------
 
@@ -389,9 +299,11 @@ scx = SCX . M.filter (not . nullSC)
 
 -- ------------------------------------------------------------
 --
--- conversions from RawResult into scored results
+-- conversions from a raw scored result into scored results
 
-type CxRawResults = [(Context, RawScoredResult)]
+type CxRawResults    = [(Context, RawScoredResult)]
+
+type RawScoredResult = [(Word, (Score, SearchResult))]
 
 fromCxRawResults :: CxRawResults -> ScoredCx ScoredRawDocs
 fromCxRawResults crs
@@ -407,7 +319,7 @@ fromRawResult cx rr
         sr = SRD $ L.map toScored rr
             where
               toScored (w, (sc, occ))
-                  = ([w], SCO sc occ)
+                  = ([w], SCD sc occ)
 
 limitCxRawResults :: Int -> CxRawResults -> CxRawResults
 limitCxRawResults mx
@@ -423,7 +335,7 @@ limitRawResult maxDocs rs
       takeDocs _  xs@[_]
           = xs
       takeDocs mx (r@(_w, (_sc, occ)) : xs)
-          = case DM.sizeWithLimit mx occ of
+          = case sizeMaxSC mx occ of
               Nothing -> [r]
               Just s  -> let mx' = mx - s in
                          if mx' <= 0
@@ -504,23 +416,6 @@ toWordsResult len (SWS m)
       $ m
 
 -- ------------------------------------------------------------
---
--- aggregating (raw) results for various types of scored results
-
-class Aggregate a b where
-    aggregate :: a -> b
-
--- | allow no aggregation
-
-instance Aggregate a a where
-    aggregate = id
-
--- | aggregate scored docs to a single score by summing up the scores and throw away the DocIds
-
-instance Aggregate ScoredDocs Score where
-    aggregate (SDS m)
-        = DM.foldr (<>) defScore m
-
 
 -- | aggregate scored occurences by counting the positions per doc and boost the
 -- result with the score.
@@ -536,7 +431,7 @@ instance Aggregate ScoredOccs ScoredDocs where
 -- | aggregate scored occurrences to unscored docs by throwing away the score
 instance Aggregate ScoredOccs UnScoredDocs where
     aggregate (SCO _sc occ)
-        = toUnScoredDocs occ
+        = occurrencesToUnScoredDocs occ
 
 -- | aggregate scored occurences to a score by aggregating first the positions and snd the doc ids
 --

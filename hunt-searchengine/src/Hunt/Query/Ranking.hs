@@ -55,13 +55,14 @@ import qualified Data.Map              as M
 import           Data.Text             (Text)
 import qualified Data.Text             as T
 
-import           Hunt.Common
+import           Hunt.Common.BasicTypes
+import           Hunt.Common.DocId     (DocId)
 import qualified Hunt.Common.DocIdMap  as DM
-import           Hunt.Common.Document  (DocumentWrapper (..))
+import           Hunt.Common.Document  (DocumentWrapper (..), Document (..))
 import           Hunt.Common.Positions as Pos
 import           Hunt.DocTable         as Dt
 import           Hunt.Query.Result
-
+import           Hunt.Scoring.Score    (mkScore, noScore, defScore, toDefScore)
 import           Hunt.Utility
 
 -- import           Debug.Trace
@@ -83,7 +84,7 @@ type DocRanking e = ContextWeights -> DocId -> Score -> DocInfo e -> DocContextH
 type WordRanking  = Word -> WordInfo -> WordContextHits -> Score
 
 -- | Weights for the contexts (optional).
-type ContextWeights = Map Context Weight
+type ContextWeights = Map Context Score
 
 -- ------------------------------------------------------------
 

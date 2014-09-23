@@ -37,7 +37,8 @@ import           Hunt.Query.Language.Grammar
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
-import           Hunt.Common.BasicTypes      (Context, Weight)
+import           Hunt.Common.BasicTypes      (Context)
+import           Hunt.Scoring.Score          (Score)
 
 -- query construction
 
@@ -183,7 +184,6 @@ remSingle (QSeq _ [q])
 remSingle q
     = q
 
-
 -- ------------------------------------------------------------
 -- configure simple search queries
 
@@ -224,9 +224,11 @@ withinContext cx = setContexts [cx]
 
 -- | boost the search results by a factor
 
-setBoost :: Weight -> Query -> Query
+setBoost :: Score -> Query -> Query
 setBoost = QBoost
 
-withBoost :: Weight -> Query -> Query
+withBoost :: Score -> Query -> Query
 withBoost = QBoost
 {-# DEPRECATED withBoost "Don't use this, use setBoost" #-}    
+
+-- ------------------------------------------------------------

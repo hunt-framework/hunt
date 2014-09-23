@@ -18,33 +18,29 @@ where
 
 import           Control.DeepSeq
 
-import           Data.Binary            (Binary (..))
-import qualified Data.List              as L
-import qualified Data.StringMap.Strict  as SM
-import           Data.Typeable
 import           Data.Bijection
 import           Data.Bijection.Instances ()
+import           Data.Binary              (Binary (..))
+import qualified Data.List                as L
+import           Data.Maybe               (fromMaybe)
+import           Data.Monoid              (Monoid(..))
+import qualified Data.StringMap.Strict    as SM
+import           Data.Text                (Text)
+import qualified Data.Text                as T
+import           Data.Typeable
 
-import           Data.Text              (Text)
-import qualified Data.Text              as T
-import           Data.Maybe             (fromMaybe)
-
-import           Text.Read              (readMaybe)
+import           Text.Read                (readMaybe)
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocIdSet   (DocIdSet)
-import           Hunt.Common.IntermediateValue
+import           Hunt.Common.DocIdSet     (DocIdSet)
 import           Hunt.Index
-import qualified Hunt.Index             as Ix
+import qualified Hunt.Index               as Ix
 import           Hunt.Index.Proxy.KeyIndex
-
+import           Hunt.Scoring.Score       (Score, noScore, mkScore)
 import           Hunt.Utility
 
 import qualified Hunt.Index.Schema.Normalize.Date     as Date
 import qualified Hunt.Index.Schema.Normalize.Int      as Int
-
-
-
 
 -- import           Debug.Trace
 
@@ -74,7 +70,7 @@ instance (IndexValue v) => Index (DmPrefixTree v)  where
   type IVal (DmPrefixTree v) = v
 
   insertList kvs (DmPT pt) =
-    mkDmPT $ L.foldl' (\ m' (k', v') -> SM.insertWith mergeValues k' v' m') pt (fromIntermediates kvs)
+    mkDmPT $ L.foldl' (\ m' (k', v') -> SM.insertWith mappend k' (fromOccurrences v') m') pt kvs
 
     {- this is a nice try, but does not do what it should do,
        at least for [("a", occ1), ("a", occ2)]
@@ -89,13 +85,13 @@ instance (IndexValue v) => Index (DmPrefixTree v)  where
     = mkDmPT $ SM.empty
 
   fromList
-    = mkDmPT . SM.fromList . fromIntermediates
+    = mkDmPT . SM.fromList . fromOccurrenceList
 
   toList (DmPT pt)
-    = toIntermediates $ SM.toList pt
+    = toSearchResults . SM.toList $ pt
 
   search t k (DmPT pt)
-    = toIntermediates $ case t of
+    = toSearchResults $ case t of
         Case         -> case SM.lookup k pt of
                           Nothing -> []
                           Just xs -> [(k,xs)]
@@ -109,7 +105,7 @@ instance (IndexValue v) => Index (DmPrefixTree v)  where
     pfNoCase = toL .:: SM.prefixFilterNoCase
 
   lookupRange k1 k2 (DmPT pt)
-    = toIntermediates . SM.toList $ SM.lookupRange k1 k2 pt
+    = toSearchResults . SM.toList $ SM.lookupRange k1 k2 pt
 
   unionWith op (DmPT pt1) (DmPT pt2)
     = mkDmPT $ SM.unionWith op pt1 pt2

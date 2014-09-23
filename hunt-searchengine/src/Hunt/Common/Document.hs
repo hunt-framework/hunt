@@ -30,6 +30,7 @@ import           Data.Text.Binary        ()
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
 import qualified Hunt.Common.DocDesc     as DD
+import           Hunt.Scoring.Score      (Score, defScore, fromDefScore, toDefScore)
 import           Hunt.Utility.Log
 
 -- ------------------------------------------------------------

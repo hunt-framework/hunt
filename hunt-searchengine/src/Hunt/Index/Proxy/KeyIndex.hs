@@ -33,7 +33,7 @@ import           Data.Binary                   (Binary (..))
 
 import           Hunt.Index
 import qualified Hunt.Index                    as Ix
-import           Hunt.Common.IntermediateValue (IndexValue)
+
 -- ------------------------------------------------------------
 
 -- | Key conversion proxy.

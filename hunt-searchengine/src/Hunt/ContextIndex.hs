@@ -75,18 +75,23 @@ import           Data.Set                      (Set)
 import qualified Data.Set                      as S
 import           Data.Text                     (Text)
 
-import           Hunt.Common
+import           Hunt.Common.BasicTypes        (Context, Description, URI, Word, Words, TextSearchOp)
 import qualified Hunt.Common.DocDesc           as DocDesc
+import           Hunt.Common.DocId             (DocId)
+import           Hunt.Common.DocIdSet          (DocIdSet)
 import qualified Hunt.Common.DocIdSet          as DS
+import           Hunt.Common.Document          (Document (..))
 import qualified Hunt.Common.Document          as Doc
-import           Hunt.Common.IntermediateValue
+import           Hunt.Common.Occurrences       (Occurrences)
 import qualified Hunt.Common.Occurrences       as Occ
-
 import           Hunt.DocTable                 (DocTable)
 import qualified Hunt.DocTable                 as Dt
 import qualified Hunt.Index                    as Ix
 import           Hunt.Index.IndexImpl          (IndexImpl)
 import qualified Hunt.Index.IndexImpl          as Impl
+import           Hunt.Index.Schema
+import           Hunt.Scoring.Score            (Score, noScore)
+import           Hunt.Scoring.SearchResult     (SearchResult)
 import           Hunt.Utility
 
 -- ------------------------------------------------------------
@@ -331,12 +336,12 @@ batchAddWordsM vs (ContextMap m)
 
 -- | Computes the words and occurrences out of a list for one context
 
-contentForCx :: Context -> [(DocId, Words)] -> [(Word, IntermediateValue)]
+contentForCx :: Context -> [(DocId, Words)] -> [(Word, Occurrences)]
 contentForCx cx vs
     = concatMap (invert . second (getWlForCx cx)) $ vs
           where
             invert (did, wl)
-                = map (second (toIntermediate . Occ.singleton' did)) $ M.toList wl
+                = map (second (Occ.singleton' did)) $ M.toList wl
             getWlForCx cx' ws'
                 = fromMaybe M.empty (M.lookup cx' ws')
 
@@ -393,17 +398,17 @@ search op k (ContextMap m)
 -- -}
 
 -- | Range query in a context between first and second key.
-lookupRangeCx :: Monad m => Context -> Text -> Text -> ContextMap -> m [(Text, IntermediateValue)]
+lookupRangeCx :: Monad m => Context -> Text -> Text -> ContextMap -> m [(Text, SearchResult)]
 lookupRangeCx c k1 k2 cm
     = lookupIndex c cm $ Ix.lookupRangeM k1 k2
 
 -- | Dump a context
-lookupAllWithCx :: Monad m => Context -> ContextMap -> m [(Text, IntermediateValue)]
+lookupAllWithCx :: Monad m => Context -> ContextMap -> m [(Text, SearchResult)]
 lookupAllWithCx cx cm
     = lookupIndex cx cm $ Ix.toListM
 
 -- | Search query in a context.
-searchWithCx :: Monad m => TextSearchOp -> Context -> Text -> ContextMap -> m [(Text, IntermediateValue)]
+searchWithCx :: Monad m => TextSearchOp -> Context -> Text -> ContextMap -> m [(Text, SearchResult)]
 searchWithCx op cx w cm
     = lookupIndex cx cm $ Ix.searchM op w
 
@@ -411,7 +416,7 @@ searchWithCx op cx w cm
 -- | Search over a list of contexts and words
 searchWithCxsNormalized :: (Functor m, Monad m) =>
                            TextSearchOp -> [(Context, Text)] -> ContextMap ->
-                           m [(Context, [(Text, IntermediateValue)])]
+                           m [(Context, [(Text, SearchResult)])]
 searchWithCxsNormalized op cxws cm
     = P.mapM (uncurry search') cxws
     where
@@ -419,18 +424,15 @@ searchWithCxsNormalized op cxws cm
           = (\ x -> (cx, x))
             <$> (lookupIndex cx cm $ Ix.searchM op w)
 
--- | Search query with scored results
--- XXX TODO: this function should return intermediates and query processor should work with those
 searchWithCxSc :: Monad m =>
-                  TextSearchOp -> Context -> Text -> ContextMap -> m [(Text, (Score, Occurrences))]
+                  TextSearchOp -> Context -> Text -> ContextMap -> m [(Text, (Score, SearchResult))]
 searchWithCxSc op cx w cm
-    = (lookupIndex cx cm $ Ix.searchMSc op w) >>= return . fromScoredIntermediates
+    = lookupIndex cx cm $ Ix.searchMSc op w
 
--- | Range query in a context between first and second key.
--- XXX TODO: this function should return intermediates and query processor should work with those
-lookupRangeCxSc :: Monad m => Context -> Text -> Text -> ContextMap -> m [(Text, (Score, Occurrences))]
+lookupRangeCxSc :: Monad m =>
+                   Context -> Text -> Text -> ContextMap -> m [(Text, (Score, SearchResult))]
 lookupRangeCxSc c k1 k2 cm
-    = (lookupIndex c cm $ Ix.lookupRangeMSc k1 k2) >>= return . fromScoredIntermediates
+    = lookupIndex c cm $ Ix.lookupRangeMSc k1 k2
 
 -- ------------------------------------------------------------
 

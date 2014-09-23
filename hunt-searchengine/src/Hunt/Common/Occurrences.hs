@@ -32,6 +32,7 @@ import qualified Hunt.Common.Positions  as Pos
 
 -- | The occurrences of words in documents.
 --   A mapping from document ids to the positions in the document.
+
 type Occurrences        = DocIdMap Positions
 
 -- ------------------------------------------------------------

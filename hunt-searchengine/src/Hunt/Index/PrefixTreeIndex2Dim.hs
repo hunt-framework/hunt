@@ -17,6 +17,8 @@ where
 import           Control.DeepSeq
 
 import           Data.Binary               (Binary (..))
+import qualified Data.List                 as L
+import           Data.Monoid
 import           Data.Typeable
 
 import qualified Data.StringMap.Dim2Search as SM2
@@ -27,7 +29,6 @@ import           Data.Text                 (Text)
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet
-import           Hunt.Common.IntermediateValue
 import           Hunt.Index
 import qualified Hunt.Index                as Ix
 import           Hunt.Index.Proxy.KeyIndex
@@ -61,7 +62,13 @@ instance IndexValue v => Index (DmPrefixTree v) where
   type IVal (DmPrefixTree v) = v
 
   insertList kvs (DmPT pt) =
-    mkDmPT $ SM.unionWith mergeValues pt (SM.fromList . fromIntermediates $ kvs)
+    mkDmPT $ L.foldl' (\ m' (k', v') -> SM.insertWith mappend k' (fromOccurrences v') m') pt kvs
+
+    {- this is a nice try, but does not do what it should do,
+       at least for [("a", occ1), ("a", occ2)]
+
+       mkDmPT $ SM.unionWith op pt (SM.fromList kvs)
+    -}
 
   deleteDocs ks (DmPT pt)
     = mkDmPT $ SM.mapMaybe (diffValues ks) pt
@@ -70,13 +77,13 @@ instance IndexValue v => Index (DmPrefixTree v) where
     = mkDmPT $ SM.empty
 
   fromList
-    = mkDmPT . SM.fromList . fromIntermediates
+    = mkDmPT . SM.fromList . fromOccurrenceList
 
   toList (DmPT pt)
-    = toIntermediates . SM.toList $ pt
+    = toSearchResults . SM.toList $ pt
 
   search t k (DmPT pt)
-    = toIntermediates $ case t of
+    = toSearchResults $ case t of
         Case         -> case SM.lookup k pt of
                           Nothing -> []
                           Just xs -> [(k,xs)]
@@ -90,7 +97,7 @@ instance IndexValue v => Index (DmPrefixTree v) where
     pfNoCase = toL .:: SM.prefixFilterNoCase
 
   lookupRange k1 k2 (DmPT pt)
-    = toIntermediates . SM.toList $ SM2.lookupRange k1 k2 pt
+    = toSearchResults . SM.toList $ SM2.lookupRange k1 k2 pt
 
   unionWith op (DmPT pt1) (DmPT pt2)
     = mkDmPT $ SM.unionWith op pt1 pt2

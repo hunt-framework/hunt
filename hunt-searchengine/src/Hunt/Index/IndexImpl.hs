@@ -29,13 +29,13 @@ import           Data.Text.Binary            ()
 import           Data.Typeable
 import           Data.Typeable.Binary        ()
 
-import           Hunt.Common.BasicTypes
-import           Hunt.Common.IntermediateValue
+import           Hunt.Common.BasicTypes      (Context)
 import           Hunt.Index
 
 -- ------------------------------------------------------------
 
 -- | Constraint for index implementations.
+
 type IndexImplCon i
   = ( Index i
     , Show i
@@ -49,6 +49,7 @@ type IndexImplCon i
 -- ------------------------------------------------------------
 
 -- | Index using @ExistentialQuantification@ to allow heterogeneous index containers.
+
 data IndexImpl
   = forall i. IndexImplCon i => IndexImpl { ixImpl :: i }
 

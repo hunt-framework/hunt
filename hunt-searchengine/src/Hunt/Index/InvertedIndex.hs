@@ -47,6 +47,7 @@ import           Hunt.Common.Occurrences              (Occurrences)
 import           Hunt.Index                           as Ix
 import           Hunt.Index.PrefixTreeIndex
 import qualified Hunt.Index.PrefixTreeIndex2Dim       as PT2D
+import           Hunt.Scoring.Score                   (Score, noScore)
 
 import           Hunt.Index.Proxy.KeyIndex
 

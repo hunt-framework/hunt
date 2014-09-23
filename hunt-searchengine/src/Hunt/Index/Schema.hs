@@ -58,12 +58,11 @@ import           Hunt.Index.PrefixTreeIndex           ( PrefixTreeIndexInt
                                                       , PrefixTreeIndexDate
                                                       , SimplePrefixTreeIndex )
 import           Hunt.Index.PrefixTreeIndex2Dim       ( PrefixTreeIndexPosition )
-
 import           Hunt.Index.RTreeIndex
-
 import qualified Hunt.Index.Schema.Normalize.Date     as Date
 import qualified Hunt.Index.Schema.Normalize.Int      as Int
 import qualified Hunt.Index.Schema.Normalize.Position as Pos
+import           Hunt.Scoring.Score                   (Score)
 import           Hunt.Utility
 
 -- ------------------------------------------------------------
@@ -85,7 +84,7 @@ data ContextSchema = ContextSchema
     -- | Normalizers to apply on keys.
   , cxNormalizer :: [CNormalizer]
     -- | Context weight to boost results.
-  , cxWeight     :: Weight
+  , cxWeight     :: Score
     -- | Whether the context is searched in queries without context-specifier.
   , cxDefault    :: Bool
     -- | The type of the index (e.g. text, int, date, geo-position).

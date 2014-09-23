@@ -150,16 +150,22 @@ import           Hunt.Common.ApiDocument     (ApiDocument (..), IndexMap,
                                               emptyApiDocDescr,
                                               emptyApiDocIndexMap)
 import           Hunt.Common.BasicTypes      (Content, Context, Description,
-                                              RegEx, Score, URI, Weight,
-                                              defScore, getScore, mkScore,
-                                              noScore)
+                                              RegEx, URI)
 import qualified Hunt.Common.DocDesc         as DD
 import           Hunt.Index.Schema
 import           Hunt.Interpreter.Command
 import           Hunt.Query.Language.Builder
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Language.Parser  (parseQuery)
+import           Hunt.Scoring.Score          (Score, defScore, getScore, mkScore, noScore)
 import           Hunt.Utility.Output         (outputValue)
+
+
+-- ------------------------------------------------------------
+
+-- alias for Score, not longer used internally
+
+type Weight = Score
 
 -- ------------------------------------------------------------
 -- lookup commands

@@ -19,7 +19,7 @@ import           Data.Binary            as B
 import qualified Data.IntSet            as IS
 import           Data.IntSet.Cache      as IS
 import           Data.Maybe             (fromMaybe)
-import           Data.Monoid            ()
+import           Data.Monoid            (Monoid(..))
 import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
