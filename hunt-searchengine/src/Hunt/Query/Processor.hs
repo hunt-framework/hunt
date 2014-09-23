@@ -11,8 +11,15 @@
 {- |
   The query processor to perform 'Query's.
 
-  'processQuery' executes the query and generates the unranked result.
-  The result can be ranked with the default 'Hunt.Query.Ranking.rank' function.
+  There are three variants of the query interperter.
+
+  The simplest one gives an unscored set of DocIds. This is e.g. used
+  in the deleteByQuery command.
+
+  The standard interperter for searching documents computes a set of
+  DocIds with an associated Score. The result is sorted by the score.
+
+  The third one returns a set of scored words for completion commands.
 -}
 -- ----------------------------------------------------------------------------
 

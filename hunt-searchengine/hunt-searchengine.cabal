@@ -108,7 +108,6 @@ library
     Hunt.Query.Language.Parser
     Hunt.Query.Language.Builder
     Hunt.Query.Processor
-    Hunt.Query.Ranking
     Hunt.Query.Result
 
     Hunt.Scoring.Keys
