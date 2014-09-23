@@ -5,7 +5,7 @@
 -- ----------------------------------------------------------------------------
 
 {- |
-  Common types used within Hunt.
+  Basic type for scoring an class ScoredResult for aggregating scores
 -}
 
 -- ----------------------------------------------------------------------------

@@ -22,21 +22,18 @@ import           Data.Bijection
 import           Data.Bijection.Instances ()
 import           Data.Binary              (Binary (..))
 import qualified Data.List                as L
-import           Data.Maybe               (fromMaybe)
 import           Data.Monoid              (Monoid(..))
 import qualified Data.StringMap.Strict    as SM
 import           Data.Text                (Text)
-import qualified Data.Text                as T
 import           Data.Typeable
 
-import           Text.Read                (readMaybe)
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet     (DocIdSet)
 import           Hunt.Index
 import qualified Hunt.Index               as Ix
 import           Hunt.Index.Proxy.KeyIndex
-import           Hunt.Scoring.Score       (Score, noScore, mkScore)
+import           Hunt.Scoring.Keys        (similar, similarInt, similarRangeInt)
 import           Hunt.Utility
 
 import qualified Hunt.Index.Schema.Normalize.Date     as Date
@@ -73,7 +70,7 @@ instance (IndexValue v) => Index (DmPrefixTree v)  where
     mkDmPT $ L.foldl' (\ m' (k', v') -> SM.insertWith mappend k' (fromOccurrences v') m') pt kvs
 
     {- this is a nice try, but does not do what it should do,
-       at least for [("a", occ1), ("a", occ2)]
+       at least not for [("a", occ1), ("a", occ2)]
 
        mkDmPT $ SM.unionWith op pt (SM.fromList kvs)
     -}
@@ -133,7 +130,8 @@ newtype SimplePrefixTreeIndex
   = SimplePTIx { simplePTIx :: KeyProxyIndex Text (DmPrefixTree DocIdSet) }
   deriving (Eq, Show, NFData, Typeable)
 
-mkSimplePTIx :: KeyProxyIndex Text (DmPrefixTree DocIdSet) -> SimplePrefixTreeIndex
+mkSimplePTIx :: KeyProxyIndex Text (DmPrefixTree DocIdSet)
+                -> SimplePrefixTreeIndex
 mkSimplePTIx x = SimplePTIx $! x
 
 -- ------------------------------------------------------------
@@ -169,22 +167,20 @@ instance Index SimplePrefixTreeIndex where
   searchSc t k m
       = L.map scoreWord $ search t k m
         where
-          dist
-              = similarInt k
           scoreWord (w, r)
-              = (w, (dist w, r))
+              = (w, (similar k w, r)) -- not similarInt, it's a word index, not an int index
 
   lookupRange k1 k2 (SimplePTIx i)
     = lookupRange k1 k2 i
-
+      
+  {- it's a word index, similar should be the same as in InvertedIndex, not as in an int index
   lookupRangeSc k1 k2 m
     = L.map scoreWord $ lookupRange k1 k2 m
       where
-        dist
-            = similarRangeInt k1 k2
         scoreWord (w, r)
-            = (w, (dist w, r))
-
+            = (w, (similarRangeInt k1 k2 w, r))
+  -- -}
+  
   unionWith op (SimplePTIx i1) (SimplePTIx i2)
     = mkSimplePTIx $ unionWith op i1 i2
 
@@ -221,10 +217,15 @@ instance Bijection Text UnInt where
 
 -- | Integer index using a 'StringMap'-implementation.
 newtype PrefixTreeIndexInt
-  = InvIntIx { invIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt (KeyProxyIndex Text (DmPrefixTree DocIdSet))) }
+  = InvIntIx { invIntIx :: KeyProxyIndex Text
+                           (KeyProxyIndex UnInt
+                            (KeyProxyIndex Text
+                             (DmPrefixTree DocIdSet)))
+             }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt (KeyProxyIndex Text (DmPrefixTree DocIdSet))) -> PrefixTreeIndexInt
+mkInvIntIx :: KeyProxyIndex Text (KeyProxyIndex UnInt (KeyProxyIndex Text (DmPrefixTree DocIdSet)))
+              -> PrefixTreeIndexInt
 mkInvIntIx x = InvIntIx $! x
 
 -- ------------------------------------------------------------
@@ -260,10 +261,8 @@ instance Index PrefixTreeIndexInt where
   searchSc t k m
       = L.map scoreWord $ search t k m
         where
-          dist
-              = similarInt k
           scoreWord (w, r)
-              = (w, (dist w, r))
+              = (w, (similarInt k w, r))
 
   lookupRange k1 k2 (InvIntIx i)
     = lookupRange k1 k2 i
@@ -271,10 +270,8 @@ instance Index PrefixTreeIndexInt where
   lookupRangeSc k1 k2 m
     = L.map scoreWord $ lookupRange k1 k2 m
       where
-        dist
-            = similarRangeInt k1 k2
         scoreWord (w, r)
-            = (w, (dist w, r))
+            = (w, (similarRangeInt k1 k2 w, r))
 
   unionWith op (InvIntIx i1) (InvIntIx i2)
     = mkInvIntIx $ unionWith op i1 i2
@@ -290,41 +287,6 @@ instance Index PrefixTreeIndexInt where
 
   keys (InvIntIx i)
     = keys i
-
-
-similarInt :: Text -> Text -> Score
-similarInt searched found
-    = fromMaybe noScore $
-      do s <- readMaybe $ T.unpack searched
-         f <- readMaybe $ T.unpack found
-         return $ similarFloat (fromIntegral (s::Int)) (fromIntegral (f::Int))
-
-similarRangeInt :: Text -> Text -> Text -> Score
-similarRangeInt lbt ubt found
-    = fromMaybe noScore $
-      do lb <- readMaybe $ T.unpack lbt
-         ub <- readMaybe $ T.unpack ubt
-         f  <- readMaybe $ T.unpack found
-         return $ similarFloat
-                    (fromIntegral ((lb::Int) + (ub::Int)) / 2.0)
-                    (fromIntegral (f::Int))
-
-similarFloat :: Float -> Float -> Score
-similarFloat mu
-    = mkScore . bellCurve (sigma mu) mu
-
-sigma :: Float -> Float
-sigma x
-    = abs x `max` 10.0 / 10.0
-
--- | Gaussian bell curve for scoring
-bellCurve :: Float -> (Float -> Float -> Float)
-bellCurve sigma'
-    = \ mu x -> exp (- (x - mu) ^ _2 / sigma2'2)
-    where
-      _2 :: Int
-      _2 = 2
-      sigma2'2 = 2.0 * sigma' ^ _2
 
 -- ------------------------------------------------------------
 -- inverted index using date proxy for dates
@@ -346,10 +308,15 @@ instance Bijection Text UnDate where
 
 -- | Date index using a 'StringMap'-implementation.
 newtype PrefixTreeIndexDate
-  = InvDateIx { invDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate (KeyProxyIndex Text (DmPrefixTree DocIdSet))) }
+  = InvDateIx { invDateIx :: KeyProxyIndex Text
+                             (KeyProxyIndex UnDate
+                              (KeyProxyIndex Text
+                               (DmPrefixTree DocIdSet)))
+              }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate (KeyProxyIndex Text (DmPrefixTree DocIdSet))) -> PrefixTreeIndexDate
+mkInvDateIx :: KeyProxyIndex Text (KeyProxyIndex UnDate (KeyProxyIndex Text (DmPrefixTree DocIdSet)))
+               -> PrefixTreeIndexDate
 mkInvDateIx x = InvDateIx $! x
 
 -- ------------------------------------------------------------
@@ -401,3 +368,5 @@ instance Index PrefixTreeIndexDate where
 
   keys (InvDateIx i)
     = Ix.keys i
+
+-- ------------------------------------------------------------

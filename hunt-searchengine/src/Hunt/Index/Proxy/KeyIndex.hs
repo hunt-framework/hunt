@@ -100,3 +100,5 @@ instance (IndexValue (IVal impl)) => Index (KeyProxyIndex toType impl) where
 
   keys (KeyProxyIx i)
     = P.map to $ keys i
+
+-- ------------------------------------------------------------

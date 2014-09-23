@@ -124,7 +124,6 @@ instance Bijection MBB Text where
 
 -- ------------------------------------------------------------
 
--- | Date index using a 'StringMap'-implementation.
 newtype SimpleRTreeIndex
   = InvRTreeIx { invRTreeIx :: KeyProxyIndex Text (RTreeIndex DocIdSet)}
   deriving (Eq, Show, NFData, Typeable)
