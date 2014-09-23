@@ -53,7 +53,7 @@ import qualified Hunt.Common.DocIdSet          as DocIdSet
 import           Hunt.Common.Document          (Document (..))
 import           Hunt.ContextIndex             (ContextIndex (..), ContextMap)
 import qualified Hunt.ContextIndex             as CIx
-import           Hunt.DocTable                 (DValue, DocTable)
+import           Hunt.DocTable                 (DocTable)
 import qualified Hunt.DocTable                 as DocTable
 import           Hunt.DocTable.HashedDocTable
 import qualified Hunt.Index                    as Ix
@@ -73,7 +73,6 @@ import           Hunt.Query.Processor          (ProcessConfig (..),
                                                 processQueryScoredDocs,
                                                 processQueryScoredWords,
                                                 processQueryUnScoredDocs)
-import           Hunt.Query.Ranking
 import           Hunt.Scoring.SearchResult     (ScoredDocs, UnScoredDocs,
                                                 searchResultToOccurrences,
                                                 unScoredDocsToDocIdSet)
@@ -89,17 +88,6 @@ import qualified System.Log.Logger             as Log
 import           GHC.Stats                     (getGCStats, getGCStatsEnabled)
 import           GHC.Stats.Json                ()
 
-{- OLD
-import           Data.Function                 (on)
-import           Data.List                     (sortBy)
-import qualified Hunt.Common.DocIdMap          as DocIdMap
-import           Hunt.Common.Document          (DocumentWrapper, setScore, unwrap)
-import           Hunt.Utility
-import           Hunt.Query.Result             (DocInfo (..), Result (..), WordInfo (..),
-                                                WordInfoAndHits (..))
-import           Hunt.Query.Processor          (processQuery,
-                                                processQueryDocIds)
--- -}
 -- ------------------------------------------------------------
 --
 -- the semantic domains (datatypes for interpretation)
@@ -148,8 +136,6 @@ data HuntEnv dt = HuntEnv
   { -- | The context index (indexes, document table and schema).
     --   Stored in an 'XMVar' so that read access is always possible.
     huntIndex       :: DocTable dt => XMVar (ContextIndex dt)
-    -- | Ranking configuration.
-  , huntRankingCfg  :: RankConfig (DValue dt)
     -- | Available context types.
   , huntTypes       :: ContextTypes
     -- | Available normalizers.
@@ -163,7 +149,7 @@ type DefHuntEnv = HuntEnv (Documents Document)
 
 -- | Initialize the Hunt environment with default values.
 initHunt :: DocTable dt => IO (HuntEnv dt)
-initHunt = initHuntEnv CIx.empty defaultRankConfig contextTypes normalizers def
+initHunt = initHuntEnv CIx.empty contextTypes normalizers def
 
 -- | Default context types.
 contextTypes :: ContextTypes
@@ -176,14 +162,13 @@ normalizers = [cnUpperCase, cnLowerCase, cnZeroFill]
 -- | Initialize the Hunt environment.
 initHuntEnv :: DocTable dt
            => ContextIndex dt
-           -> RankConfig (DValue dt)
            -> ContextTypes
            -> [CNormalizer]
            -> ProcessConfig
            -> IO (HuntEnv dt)
-initHuntEnv ixx rnk opt ns qc = do
+initHuntEnv ixx opt ns qc = do
   ixref <- newXMVar ixx
-  return $ HuntEnv ixref rnk opt ns qc
+  return $ HuntEnv ixref opt ns qc
 
 -- ------------------------------------------------------------
 -- Command evaluation monad
