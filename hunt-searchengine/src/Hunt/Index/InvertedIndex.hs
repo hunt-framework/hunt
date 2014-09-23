@@ -39,7 +39,6 @@ import           Data.Bijection.Instances             ()
 import           Data.Binary                          (Binary (..))
 import qualified Data.List                            as L
 import           Data.Text                            (Text)
-import qualified Data.Text                            as T
 import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
@@ -47,7 +46,7 @@ import           Hunt.Common.Occurrences              (Occurrences)
 import           Hunt.Index                           as Ix
 import           Hunt.Index.PrefixTreeIndex
 import qualified Hunt.Index.PrefixTreeIndex2Dim       as PT2D
-import           Hunt.Scoring.Score                   (Score, noScore)
+import           Hunt.Scoring.Keys                    (similar)
 
 import           Hunt.Index.Proxy.KeyIndex
 
@@ -62,7 +61,7 @@ newtype InvertedIndex
   deriving (Eq, Show, NFData, Typeable)
 
 mkInvIx :: KeyProxyIndex Text (DmPrefixTree Occurrences)
-        -> InvertedIndex
+           -> InvertedIndex
 mkInvIx x = InvIx $! x
 
 -- ------------------------------------------------------------
@@ -99,10 +98,8 @@ instance Index InvertedIndex where
   searchSc t k m
       = L.map scoreWord $ search t k m
         where
-          dist
-              = similar k
           scoreWord (w, r)
-              = (w, (dist w, r))
+              = (w, (similar k w, r))
 
 
   lookupRange k1 k2 (InvIx i)
@@ -128,33 +125,6 @@ instance Index InvertedIndex where
 
   keys (InvIx i)
     = keys i
-
-
--- ------------------------------------------------------------
-
--- | a simple similarity heuristic for scoring words found
--- when doing a fuzzy or prefix search
-
-similar :: Text -> Text -> Score
-similar s f
-    = -- traceShow ("similar"::Text, s, f, r) $
-      r
-    where
-      r = similar' s f
-
-similar' :: Text -> Text -> Score
-similar' searched found
-    | searched == found
-        = 1.0
-    | ls == lf
-        = 0.75
-    | ls < lf                     -- reduce score by length of found word
-        = 0.5 * (fromIntegral ls / fromIntegral lf)
-    | otherwise                   -- make similar total
-        = noScore
-    where
-      ls = T.length searched
-      lf = T.length found
 
 -- ------------------------------------------------------------
 -- Inverted index using 2-dimensional lookup
@@ -221,5 +191,6 @@ instance Index InvertedIndex2Dim where
   keys (InvIx2D i)
     = keys i
 
+-- ------------------------------------------------------------
 
 

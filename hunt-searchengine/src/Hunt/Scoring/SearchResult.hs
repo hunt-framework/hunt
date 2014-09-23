@@ -5,21 +5,9 @@
 
 -- ----------------------------------------------------------------------------
 
-{- |
-  Common types used within Hunt.
--}
-
--- ----------------------------------------------------------------------------
-
 module Hunt.Scoring.SearchResult
 where
 
--- import           Control.Applicative
--- import           Control.DeepSeq
-
--- import           Data.Aeson
--- import           Data.Binary         hiding (Word)
--- import qualified Data.List                 as L
 import           Data.Monoid               (Monoid (..), (<>))
 
 import           Hunt.Common.DocIdMap      (DocIdMap)
@@ -32,7 +20,7 @@ import           Hunt.Common.BasicTypes    (Position)
 import qualified Hunt.Common.Positions     as Pos
 import           Hunt.Scoring.Score
 
-import           Prelude             as P
+import           Prelude                   as P
 
 -- ------------------------------------------------------------
 --
@@ -137,12 +125,18 @@ instance Aggregate ScoredDocs Score where
         = DM.foldr (<>) defScore m
 
 
--- | "downcast": the set of positions is aggregated into a frequency count
+-- | "downcast": the set of positions is aggregated into a ScoredDocs
 occurrencesToScoredDocs :: Occurrences -> ScoredDocs
 occurrencesToScoredDocs
-  = SDS . DM.map toScore
+  = SDS . occurrencesToDocIdMapScore
+
+-- | "downcast": the set of positions is aggregated into DocIdMap with frequency count
+occurrencesToDocIdMapScore :: Occurrences -> DocIdMap Score
+occurrencesToDocIdMapScore
+  = DM.map toScore
   where
     toScore = mkScore . fromIntegral . Pos.size
+
 
 -- | "upcast": all DocId's get a score of 1.0
 docIdsToScoredDocs :: DocIdSet -> ScoredDocs

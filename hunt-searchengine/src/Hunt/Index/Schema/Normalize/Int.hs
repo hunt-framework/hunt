@@ -7,27 +7,37 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Index.Schema.Normalize.Int
-  ( normalizeToText, denormalizeFromText
-  , normalizeToInt, denormalizeFromInt
-  , isInt, integer
+  ( normalizeToText
+  , denormalizeFromText
+  , normalizeToInt
+  , normalizeToInt'
+  , denormalizeFromInt
+  , isInt
   )
 where
 
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
 
-import           Control.Applicative           hiding ((<|>))
-import           Hunt.Common.BasicTypes
-import           Text.ParserCombinators.Parsec
+import           Hunt.Common.BasicTypes        (Word)
+import           Text.Read                     (readMaybe)
 
 -- ------------------------------------------------------------
 -- Normalize Int to actual Int
 -- ------------------------------------------------------------
 
--- | Normalize an integer to an 'Int'.
+-- | Normalize a text representing of an integer to an 'Int'.
 normalizeToInt :: Text -> Int
-normalizeToInt = getInt
+normalizeToInt = maybe (error "normalizeToInt: invalid input") id
+                 . normalizeToInt'
 
+normalizeToInt' :: Text -> Maybe Int
+normalizeToInt' = readMaybe . T.unpack
+
+isInt :: Text -> Bool
+isInt = maybe False (const True)
+        . normalizeToInt'
+  
 -- | Denormalize an integer.
 denormalizeFromInt :: Int -> Text
 denormalizeFromInt = T.pack . show
@@ -61,33 +71,5 @@ denormalizeFromText i
   where
   sign = if T.take 1 i == "1" then id else ('-' `T.cons`)
   raw  = T.dropWhile (== '0') $ T.drop 1 i
-
--- ------------------------------------------------------------
--- Validate int
--- ------------------------------------------------------------
-
--- | Parse a /valid/ integer.
---
---   /Note/: This will fail on invalid integers.
-getInt :: Text -> Int
-getInt int = case parse integer "" $ T.unpack int of
-  Right pint -> pint
-  _          -> error "getInt: invalid input"
-
--- | Validate if the text represents a valid integer.
---   Needs to be within 'Int' range.
-isInt :: Text -> Bool
-isInt int = case parse integer "" $ T.unpack int of
-  Right pint -> int == (T.pack . show $ pint)
-  _          -> False
-
--- | Parse a simple integer representation.
-integer :: Parser Int
-integer = rd <$> (plus <|> minus <|> number)
-  where
-  rd     = read :: String -> Int
-  plus   = char '+' *> number
-  minus  = (:) <$> char '-' <*> number
-  number = many1 digit
 
 -- ------------------------------------------------------------

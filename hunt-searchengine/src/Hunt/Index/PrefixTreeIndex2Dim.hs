@@ -9,9 +9,9 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Index.PrefixTreeIndex2Dim
-( DmPrefixTree(..)
-, PrefixTreeIndexPosition
-)
+  ( DmPrefixTree(..)
+  , PrefixTreeIndexPosition
+  )
 where
 
 import           Control.DeepSeq
@@ -42,6 +42,7 @@ import           Hunt.Utility
 -- | Text index using 'DocIdMap' based on the 'StringMap' implementation.
 --   Note that the value parameter is on the type of the 'DocIdMap' value and not the 'DocIdSet'
 --   itself.
+
 newtype DmPrefixTree v
   = DmPT { dmPT :: SM.StringMap v }
   deriving (Eq, Show, NFData, Typeable)
@@ -134,8 +135,6 @@ instance Bijection Text UnPos where
 
 -- ------------------------------------------------------------
 
--- ------------------------------------------------------------
-
 -- | Geo-position index using a 'StringMap'-implementation.
 --
 newtype PrefixTreeIndexPosition
@@ -193,3 +192,4 @@ instance Index PrefixTreeIndexPosition where
   keys (InvPosIx i)
     = keys i
 
+-- ------------------------------------------------------------

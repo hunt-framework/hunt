@@ -111,6 +111,7 @@ library
     Hunt.Query.Ranking
     Hunt.Query.Result
 
+    Hunt.Scoring.Keys
     Hunt.Scoring.Score
     Hunt.Scoring.SearchResult
 

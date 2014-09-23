@@ -89,6 +89,7 @@ type ContextWeights = Map Context Score
 -- ------------------------------------------------------------
 
 -- | The configuration of the ranking mechanism.
+
 defaultRankConfig :: DocumentWrapper e => RankConfig e
 defaultRankConfig
     = RankConfig
@@ -146,6 +147,7 @@ docRankByCount cw _ docWeight di h
 -- | Rank words by count.
 --
 -- @wordRankByCount :: Word -> WordInfo -> WordContextHits -> Score@
+
 wordRankByCount :: WordRanking
 wordRankByCount _w _i h
   = countHits h
@@ -185,48 +187,5 @@ countHits wch
     = M.foldr op 0.0 wch
     where
       op x res = DM.foldr (+) 0.0 x + res
-
--- ------------------------------------------------------------
-
--- The old weighting mechanism
---   - used a list of context weights
---   - normalizes the weights to a maximum of 1.0
---     - not sure if this is really necessary or the users responsibility
---     - the computation should be done /once/ every time the weights are set, not with every query
---   - seems overall cumbersome
-
-{-
--- | Rank documents by context-weighted count. The weights will be normalized to a maximum of 1.0.
---   Contexts with no weight (or a weight of zero) will be ignored.
-docRankWeightedByCount :: [(Context, Score)] -> DocId -> DocInfo e -> DocContextHits -> Score
-docRankWeightedByCount ws _ _
-  =  M.foldrWithKey (calcWeightedScore ws) 0.0
-
--- | Rank words by context-weighted count. The weights will be normalized to a maximum of 1.0.
---   Contexts with no weight (or a weight of zero) will be ignored.
-wordRankWeightedByCount :: [(Context, Score)] -> Word -> WordInfo -> WordContextHits -> Score
-wordRankWeightedByCount ws _ _
-  = M.foldrWithKey (calcWeightedScore ws) 0.0
-
--- | Calculate the weighted score of occurrences of a word.
-calcWeightedScore :: Foldable f => [(Context, Score)] -> Context -> f Positions -> Score -> Score
-calcWeightedScore ws c h r
-  = maybe r (\w -> r + ((w / mw) * count)) $ lookupWeight c ws
-  where
-  count = fromIntegral $ foldl' (flip $ (+) . Pos.size) 0 h
-  mw    = snd $ L.maximumBy (compare `on` snd) ws
-
--- | Find the weight of a context in a list of weights. If the context was not found or it's
---   weight is equal to zero, 'Nothing' will be returned.
-lookupWeight :: Context -> [(Context, Score)] -> Maybe Score
-lookupWeight _ []     = Nothing
-lookupWeight c (x:xs)
-  = if fst x == c
-    then
-      if snd x /= 0.0
-      then Just (snd x)
-      else Nothing
-    else lookupWeight c xs
--}
 
 -- ------------------------------------------------------------

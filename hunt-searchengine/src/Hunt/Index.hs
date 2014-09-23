@@ -16,24 +16,26 @@
 module Hunt.Index
 where
 
-import           Prelude                 hiding (map)
+import           Prelude                   hiding (map)
 
-import           GHC.Exts                (Constraint)
+import           GHC.Exts                  (Constraint)
 
-import           Control.Arrow           (second)
+import           Control.Arrow             (second)
 import           Control.DeepSeq
 
-import           Data.Binary             (Binary)
-import qualified Data.List               as L
-import           Data.Monoid             (Monoid)
+import           Data.Binary               (Binary)
+import qualified Data.List                 as L
+import           Data.Monoid               (Monoid)
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import qualified Hunt.Common.DocIdMap    as DM
-import           Hunt.Common.DocIdSet    (DocIdSet)
-import qualified Hunt.Common.DocIdSet    as DS
-import           Hunt.Common.Occurrences (Occurrences)
-import qualified Hunt.Common.Occurrences as Occ
+import           Hunt.Common.DocIdMap      (DocIdMap)
+import qualified Hunt.Common.DocIdMap      as DM
+import           Hunt.Common.DocIdSet      (DocIdSet)
+import qualified Hunt.Common.DocIdSet      as DS
+import           Hunt.Common.Occurrences   (Occurrences)
+import qualified Hunt.Common.Occurrences   as Occ
+import           Hunt.Scoring.Keys         (addDefScore)
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
 
@@ -75,6 +77,12 @@ instance IndexValue Occurrences where
   diffValues s m     = let z = Occ.diffWithSet m s in
                        if Occ.null z then Nothing else Just z
 
+instance IndexValue (DocIdMap Score) where
+  fromOccurrences    = occurrencesToDocIdMapScore
+  toSearchResult     = mkSRfromScoredDocs
+  diffValues s m     = let r = DM.diffWithSet m s in
+                       if DM.null r then Nothing else Just r
+
 instance IndexValue DocIdSet where
   fromOccurrences    = DS.fromList . DM.keys
   toSearchResult     = mkSRfromUnScoredDocs
@@ -97,12 +105,21 @@ class (IndexValue (IVal i)) => Index i where
   -- | General lookup function.
   search        :: ICon i => TextSearchOp -> IKey i -> i -> [(IKey i, SearchResult)]
 
+  -- | Search with a scoring of the result by comparing the search key with the key in the result
+  -- and estimating the similarity of these keys.
+  --
+  -- The default implementation is attaching always the default score (1.0)
   searchSc      :: ICon i => TextSearchOp -> IKey i -> i -> [(IKey i, (Score, SearchResult))]
   searchSc op k ix = addDefScore $ search op k ix
 
   -- | Search within a range of two keys.
   lookupRange   :: ICon i => IKey i -> IKey i -> i -> [(IKey i, SearchResult)]
 
+  -- | Search withinin a range and scoring of the result by
+  -- comparing the keys of the bounds with the key in the result
+  -- and estimating the similarity of these keys.
+  --
+  -- The default implementation is attaching always the default score (1.0)
   lookupRangeSc :: ICon i => IKey i -> IKey i -> i -> [(IKey i, (Score, SearchResult))]
   lookupRangeSc k1 k2 ix
                 = addDefScore $ lookupRange k1 k2 ix
@@ -266,10 +283,5 @@ instance (Index i, Monad m) => IndexM m i where
   mapM f i                   = return $! map f i
   mapMaybeM f i              = return $! mapMaybe f i
   keysM i                    = return $  keys i
-
--- ------------------------------------------------------------
-
-addDefScore :: [(a, b)] -> [(a, (Score, b))]
-addDefScore = L.map (second (\ x -> (defScore, x)))
 
 -- ------------------------------------------------------------
