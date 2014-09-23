@@ -32,7 +32,6 @@ module Hunt.Query.Result
   , WordInfo(..)
   , WordInfoAndHits(..)
   , Score
-  , Weight
   , Boost
   , DocBoosts
 
@@ -53,15 +52,19 @@ module Hunt.Query.Result
   )
 where
 
-import           Prelude              hiding (null)
+import           Prelude                 hiding (null)
 
-import qualified Data.List            as L
-import           Data.Map             (Map)
-import qualified Data.Map             as M
-import           Data.Text            (Text)
+import qualified Data.List               as L
+import           Data.Map                (Map)
+import qualified Data.Map                as M
+import           Data.Monoid             (Monoid(..), (<>))
+import           Data.Text               (Text)
 
-import           Hunt.Common
-import qualified Hunt.Common.DocIdMap as DM
+import           Hunt.Common.BasicTypes  (Context, Word)
+import           Hunt.Common.DocIdMap    (DocIdMap)
+import qualified Hunt.Common.DocIdMap    as DM
+import           Hunt.Common.Positions   (Positions)
+import           Hunt.Scoring.Score      (Score, noScore)
 
 -- ------------------------------------------------------------
 
@@ -78,7 +81,7 @@ deriving instance Show e => Show (Result e)
 data DocInfo e
     = DocInfo
       { document :: e      -- ^ The document itself.
-      , docBoost :: Weight -- ^ The document weight, init with @1.0@
+      , docBoost :: Score  -- ^ The document weight, init with @1.0@
       , docScore :: Score  -- ^ The score for the document (initial score for all documents is @0.0@).
       }
 

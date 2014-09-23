@@ -10,20 +10,13 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Common.BasicTypes
-    ( module Hunt.Common.BasicTypes
-    , Monoid(..)
-    , (<>)
-    )
 where
 
-import           Control.Applicative
 import           Control.Monad       (mzero)
-import           Control.DeepSeq
 
 import           Data.Aeson
 import           Data.Binary         hiding (Word)
 import           Data.Map
-import           Data.Monoid         (Monoid (..), (<>))
 import           Data.Text
 
 import           Hunt.Common.DocDesc (DocDesc)
@@ -63,70 +56,10 @@ type WordList     = Map Word [Position]
 data TextSearchOp = Case | NoCase | PrefixCase | PrefixNoCase
   deriving (Eq, Show)
 
--- | Weight (for ranking).
-type Weight       = Score
-
 -- | Regular expression.
 type RegEx        = Text
 
--- | The score of a hit (either a document hit or a word hit).
--- type Score        = Float
-
 -- ------------------------------------------------------------
-
--- | Weight or score of a documents,
--- @0.0@ indicates: not set, so there is no need to work with Maybe's
---  wrapped in newtype to not mix up with Score's and Weight's in documents
-
-newtype Score = SC {unScore :: Float}
-    deriving (Eq, Ord, Num, Fractional, Show)
-
-instance NFData Score where
-  rnf (SC f) = f `seq` ()
-
-noScore :: Score
-noScore = SC 0.0
-
-mkScore :: Float -> Score
-mkScore x
-    | x > 0.0   = SC x
-    | otherwise = noScore
-
-getScore :: Score -> Maybe Float
-getScore (SC 0.0) = Nothing
-getScore (SC x  ) = Just x
-
-defScore :: Score
-defScore = SC 1.0
-
-toDefScore :: Score -> Score
-toDefScore (SC 0.0) = defScore
-toDefScore sc       = sc
-
-fromDefScore :: Score -> Score
-fromDefScore (SC 1.0) = noScore
-fromDefScore sc       = sc
-
-accScore :: [Score] -> Score
-accScore [] = defScore
-accScore xs = mkScore $ sum (P.map unScore xs) / fromIntegral (P.length xs)
-
--- the Monoid instance is used to accumulate scores
--- in query results, so tune it here when sum is not appropriate
-
-instance Monoid Score where
-    mempty = noScore
-    mappend = (+)
-
--- ------------------------------------------------------------
--- JSON instances
--- ------------------------------------------------------------
-
-instance FromJSON Score where
-    parseJSON x = mkScore <$> parseJSON x
-
-instance ToJSON Score where
-    toJSON (SC x) = toJSON x
 
 instance FromJSON TextSearchOp where
     parseJSON (String s)
@@ -144,14 +77,6 @@ instance ToJSON TextSearchOp where
     NoCase       -> "noCase"
     PrefixCase   -> "prefixCase"
     PrefixNoCase -> "prefixNoCase"
-
--- ------------------------------------------------------------
--- Binary instances
--- ------------------------------------------------------------
-
-instance Binary Score where
-    put (SC x) = put x
-    get = SC <$> get
 
 instance Binary TextSearchOp where
   put (Case)         = put (0 :: Word8)

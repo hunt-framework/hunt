@@ -39,16 +39,18 @@ import qualified Data.ByteString.Lazy          as BL
 import           Data.Default
 import qualified Data.List                     as L
 import qualified Data.Map                      as M
+import           Data.Monoid                   ((<>))
 import           Data.Set                      (Set)
 import qualified Data.Set                      as S
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
 import qualified Data.Traversable              as TV
 
-import           Hunt.Common
 import           Hunt.Common.ApiDocument       as ApiDoc
+import           Hunt.Common.BasicTypes        (Context, URI)
 import qualified Hunt.Common.DocDesc           as DocDesc
 import qualified Hunt.Common.DocIdSet          as DocIdSet
+import           Hunt.Common.Document          (Document (..))
 import           Hunt.ContextIndex             (ContextIndex (..), ContextMap)
 import qualified Hunt.ContextIndex             as CIx
 import           Hunt.DocTable                 (DValue, DocTable)
@@ -56,12 +58,12 @@ import qualified Hunt.DocTable                 as DocTable
 import           Hunt.DocTable.HashedDocTable
 import qualified Hunt.Index                    as Ix
 import           Hunt.Index.IndexImpl          (IndexImpl (..), mkIndex)
+import           Hunt.Index.Schema
 import           Hunt.Index.Schema.Analyze
 import           Hunt.Interpreter.BasicCommand
 import           Hunt.Interpreter.Command      (Command)
 import           Hunt.Interpreter.Command      hiding (Command (..))
-import           Hunt.Query.Intermediate       (ScoredDocs, ScoredWords,
-                                                UnScoredDocs, toDocIdSet,
+import           Hunt.Query.Intermediate       (ScoredWords,
                                                 toDocsResult, RankedDoc(..),
                                                 toDocumentResultPage,
                                                 toWordsResult)
@@ -72,6 +74,9 @@ import           Hunt.Query.Processor          (ProcessConfig (..),
                                                 processQueryScoredWords,
                                                 processQueryUnScoredDocs)
 import           Hunt.Query.Ranking
+import           Hunt.Scoring.SearchResult     (ScoredDocs, UnScoredDocs,
+                                                searchResultToOccurrences,
+                                                unScoredDocsToDocIdSet)
 import           Hunt.Utility                  (showText)
 import           Hunt.Utility.Log
 
@@ -545,7 +550,7 @@ execSelect :: DocTable dt => Query -> ContextIndex dt -> Hunt dt CmdResult
 execSelect q (ContextIndex ix dt)
     = do debugM ("execSelect: " ++ show q)
          res <- liftHunt $ runQueryUnScoredDocsM ix queryConfigDocIds q
-         dt' <- DocTable.restrict (toDocIdSet res) dt
+         dt' <- DocTable.restrict (unScoredDocsToDocIdSet res) dt
          djs <- DocTable.toJSON'DocTable dt'
          return $ ResGeneric djs
 
@@ -578,7 +583,7 @@ execDeleteDocs d ix
 execDeleteByQuery :: DocTable dt => Query -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 execDeleteByQuery q ixx@(ContextIndex ix _dt)
     = do debugM ("execDeleteByQuery: " ++ show q)
-         ds <- toDocIdSet <$>
+         ds <- unScoredDocsToDocIdSet <$>
                (liftHunt $ runQueryUnScoredDocsM ix queryConfigDocIds q)
          if DocIdSet.null ds
            then do debugM "DeleteByQuery: Query result set empty"
@@ -712,7 +717,7 @@ execStatus (StatusContext cx)
     = withIx dumpContext
       where
         dumpContext (ContextIndex ix _dt)
-            = (ResGeneric . object . map (uncurry (.=))) <$>
+            = (ResGeneric . object . map (uncurry (.=)) . map (second searchResultToOccurrences)) <$>
               CIx.lookupAllWithCx cx ix
 
 execStatus (StatusIndex {- context -})
@@ -728,93 +733,5 @@ execStatus (StatusIndex {- context -})
 unless' :: DocTable dt
        => Bool -> Int -> Text -> Hunt dt ()
 unless' b code text = unless b $ throwResError code text
-
--- ------------------------------------------------------------
-
-{- OLD
-askDocTable :: DocTable dt => Hunt dt dt
-askDocTable = askIx >>= return . ciDocs
-
--- | Get the context weightings.
-askContextsWeights :: DocTable dt => Hunt dt ContextWeights -- (M.Map Context Weight)
-askContextsWeights
-  = withIx (\(ContextIndex _ _ schema) -> return $ M.map cxWeight schema)
--- -}
-
-
-{- OLD
--- | Run a query.
-runQueryM       :: DocTable dt
-                => ContextMap Occurrences
-                -> Schema
-                -> ProcessConfig
-                -> dt
-                -> Query
-                -> IO (Either CmdError (Result (DValue dt)))
-runQueryM ix s cfg dt q = processQuery st dt q
-  where
-  st = initProcessor cfg ix s
-
-runQueryDocIdsM :: ContextMap Occurrences
-                -> Schema
-                -> Query
-                -> IO (Either CmdError DocIdSet)
-runQueryDocIdsM ix s q
-    = processQueryDocIds st q
-      where
-        st = initProcessor queryConfigDocIds ix s
--- -}
--- ------------------------------------------------------------
-
-{- old stuff, but still used in completions
-
--- | Search the index.
---   Requires a result transformation function, e.g. 'wrapSearch' or 'wrapCompletion'.
-execSearch' :: (DocTable dt, e ~ DValue dt)
-            => (Result e -> CmdResult)
-            -> Query
-            -> ContextIndex dt
-            -> Hunt dt CmdResult
-execSearch' f q (ContextIndex ix dt s)
-  = do
-    cfg <- asks huntQueryCfg
-    r   <- lift $ runQueryM ix s cfg dt q
-    rc  <- asks huntRankingCfg
-    cw  <- askContextsWeights
-    case r of
-      Left  err -> throwError err
-      Right res -> do -- debugM ("doc  ranking: " ++ show (docHits  res))
-                      -- debugM ("word ranking: " ++ show (wordHits res))
-                      res' <- rank rc dt cw $ res
-                      -- debugM ("doc  result : " ++ show (docHits  res'))
-                      -- debugM ("word result : " ++ show (wordHits res'))
-                      return (f res')
-
--- FIXME: signature to result
--- | Wrap the query result for search.
-wrapSearch :: (DocumentWrapper e) => (Document -> Document) -> Int -> Int -> Result e -> CmdResult
-wrapSearch select offset mx
-  = ResSearch
-    . mkLimitedResult offset mx
---    . map fst -- remove score from result
-    . map (uncurry (flip setScore))
-    . map (first select)
-    . sortBy (descending `on` snd) -- sort by score
-    . map (\(_did, (di, _dch)) -> (unwrap . document $ di, docScore di))
-    . DocIdMap.toList
-    . docHits
-
--- | Wrap the query result for auto-completion.
-wrapCompletion :: Int -> Result e -> CmdResult
-wrapCompletion mx
-  = ResCompletion
-    . take mx
-    . map (\(word,_score,terms') -> (word, terms')) -- remove score from result
-    . sortBy (descending `on` (\(_,score',_) -> score')) -- sort by score
-    . map (\(c, (WIH wi _wch)) -> (c, wordScore wi, terms wi))
-    . M.toList
-    . wordHits
-
--- -}
 
 -- ------------------------------------------------------------

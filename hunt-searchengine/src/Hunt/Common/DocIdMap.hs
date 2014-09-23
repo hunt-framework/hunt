@@ -192,7 +192,7 @@ unionWith               :: (v -> v -> v) -> DocIdMap v -> DocIdMap v -> DocIdMap
 unionWith f             = liftDIM2 $ IM.unionWith f
 
 -- | The intersection with a combining function.
-intersectionWith        :: (v -> v -> v) -> DocIdMap v -> DocIdMap v -> DocIdMap v
+intersectionWith        :: (v1 -> v2 -> v3) -> DocIdMap v1 -> DocIdMap v2 -> DocIdMap v3
 intersectionWith f      = liftDIM2 $ IM.intersectionWith f
 
 -- | Difference with a combining function.

@@ -29,6 +29,7 @@ import           Hunt.Common.BasicTypes
 import           Hunt.Common.Document        (Document (..),
                                               DocumentWrapper (..))
 import           Hunt.Index.Schema
+import           Hunt.Scoring.Score          (Score, toDefScore)
 
 -- ------------------------------------------------------------
 

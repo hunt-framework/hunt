@@ -2,6 +2,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies               #-}
 
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 -- ----------------------------------------------------------------------------
 {- |
   Text index using the 'DocIdMap' based on the 'StringMap' implementation.
@@ -9,18 +11,18 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Index.RTreeIndex
-(   RTreeIndex(..)
-  , SimpleRTreeIndex(..)
-  , readPosition
-  , showPosition
-)
+       ( RTreeIndex(..)
+       , SimpleRTreeIndex(..)
+       , readPosition
+       , showPosition
+       )
 where
 
 import           Control.DeepSeq
 
 import           Data.Binary                          (Binary (..))
 import qualified Data.List                            as L
-import           Data.Monoid                          ((<>))
+import           Data.Monoid
 import qualified Data.RTree.Strict                    as RT
 import           Data.RTree.MBB
 import           Data.Text                            (Text)
@@ -31,12 +33,10 @@ import           Data.Bijection
 import           Hunt.Index
 import qualified Hunt.Index                           as Ix
 import           Hunt.Index.Proxy.KeyIndex
-import           Hunt.Common.IntermediateValue
 import           Hunt.Common.DocIdSet                 (DocIdSet)
 import           Hunt.Index.Schema.Normalize.Position (position)
 
 import           Text.Parsec
-
 
 -- ------------------------------------------------------------
 
@@ -62,7 +62,7 @@ instance IndexValue v => Index (RTreeIndex v) where
   type IVal (RTreeIndex v) = v
 
   insertList kvs (DmRT rt) =
-    mkDmRT $ L.foldl' (\ m' (k', v') -> RT.insertWith mergeValues k' v' m') rt (fromIntermediates kvs)
+    mkDmRT $ L.foldl' (\ m' (k', v') -> RT.insertWith mappend k' (fromOccurrences v') m') rt kvs
 
     {- same problem as in PrefixTreeIndex, the k' in kvs don't need to be unique
 
@@ -76,17 +76,17 @@ instance IndexValue v => Index (RTreeIndex v) where
     = mkDmRT $ RT.empty
 
   fromList
-    = mkDmRT . RT.fromList . fromIntermediates
+    = mkDmRT . RT.fromList . fromOccurrenceList
 
   toList (DmRT rt)
-    = toIntermediates . RT.toList $ rt
+    = toSearchResults . RT.toList $ rt
 
   -- MBBs don't have any case or prefix
   search _ k (DmRT rt)
-    = toIntermediates $ RT.lookupRangeWithKey k rt
+    = toSearchResults $ RT.lookupRangeWithKey k rt
 
   lookupRange k1 k2 (DmRT rt)
-    = toIntermediates $ RT.lookupRangeWithKey (unionMBB k1 k2) rt
+    = toSearchResults $ RT.lookupRangeWithKey (unionMBB k1 k2) rt
 
   unionWith op (DmRT rt1) (DmRT rt2)
     = mkDmRT $ RT.unionWith op rt1 rt2
@@ -177,4 +177,4 @@ instance Index SimpleRTreeIndex where
   keys (InvRTreeIx i)
     = keys i
 
-
+-- ------------------------------------------------------------

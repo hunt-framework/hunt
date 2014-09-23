@@ -24,6 +24,7 @@ import qualified Data.Text              as T
 import           Data.Text.Binary       ()
 
 import           Hunt.Common.BasicTypes
+import           Hunt.Scoring.Score     (Score, noScore, mkScore, getScore)
 import qualified Hunt.Common.DocDesc    as DD
 
 import           Hunt.Utility.Log

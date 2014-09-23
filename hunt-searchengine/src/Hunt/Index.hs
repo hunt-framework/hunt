@@ -16,19 +16,70 @@
 module Hunt.Index
 where
 
-import           Prelude                hiding (map)
+import           Prelude                 hiding (map)
 
-import           GHC.Exts               (Constraint)
+import           GHC.Exts                (Constraint)
 
-import           Control.Arrow          (second)
+import           Control.Arrow           (second)
+import           Control.DeepSeq
 
-import qualified Data.List              as L
+import           Data.Binary             (Binary)
+import qualified Data.List               as L
+import           Data.Monoid             (Monoid)
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdSet   (DocIdSet)
-import qualified Hunt.Common.DocIdSet   as DS
-import           Hunt.Common.IntermediateValue
+import qualified Hunt.Common.DocIdMap    as DM
+import           Hunt.Common.DocIdSet    (DocIdSet)
+import qualified Hunt.Common.DocIdSet    as DS
+import           Hunt.Common.Occurrences (Occurrences)
+import qualified Hunt.Common.Occurrences as Occ
+import           Hunt.Scoring.Score
+import           Hunt.Scoring.SearchResult
+
+-- ------------------------------------------------------------
+
+-- | The interface, that an data type must support to be used
+-- value in an index.
+--
+-- The Monoid instance gives us the mergeValues op.
+
+class (Monoid v, Binary v, NFData v) => IndexValue v where
+  fromOccurrences  :: Occurrences -> v
+  toSearchResult   :: v -> SearchResult
+  diffValues       :: DocIdSet -> v -> Maybe v
+
+
+-- | Helper for converting lists of index values to search results
+  
+toSearchResults :: IndexValue u => [(x, u)] -> [(x, SearchResult)]
+toSearchResults = L.map (second toSearchResult)
+
+-- | Helper for converting lists of occurrences to search index values
+
+fromOccurrenceList :: IndexValue u => [(x, Occurrences)] -> [(x, u)]
+fromOccurrenceList = L.map (second fromOccurrences)
+
+-- instances for IndexValue:
+--
+-- Occurrences are the most general type for index values,
+-- the type containing the most information
+--
+-- DocIdSets are the least general type for index values,
+-- the type containing the least information giving still correct answers,
+-- but without any information about the relevance (score) of a document
+
+instance IndexValue Occurrences where
+  fromOccurrences    = id
+  toSearchResult     = mkSRfromOccurrences
+  diffValues s m     = let z = Occ.diffWithSet m s in
+                       if Occ.null z then Nothing else Just z
+
+instance IndexValue DocIdSet where
+  fromOccurrences    = DS.fromList . DM.keys
+  toSearchResult     = mkSRfromUnScoredDocs
+  diffValues s1 s2   = let r = DS.difference s2 s1 in
+                       if DS.null r then Nothing else Just r
 
 -- ------------------------------------------------------------
 
@@ -44,26 +95,26 @@ class (IndexValue (IVal i)) => Index i where
   type ICon i = ()
 
   -- | General lookup function.
-  search        :: ICon i => TextSearchOp -> IKey i -> i -> [(IKey i, IntermediateValue)]
+  search        :: ICon i => TextSearchOp -> IKey i -> i -> [(IKey i, SearchResult)]
 
-  searchSc      :: ICon i => TextSearchOp -> IKey i -> i -> [(IKey i, (Score, IntermediateValue))]
+  searchSc      :: ICon i => TextSearchOp -> IKey i -> i -> [(IKey i, (Score, SearchResult))]
   searchSc op k ix = addDefScore $ search op k ix
 
   -- | Search within a range of two keys.
-  lookupRange   :: ICon i => IKey i -> IKey i -> i -> [(IKey i, IntermediateValue)]
+  lookupRange   :: ICon i => IKey i -> IKey i -> i -> [(IKey i, SearchResult)]
 
-  lookupRangeSc :: ICon i => IKey i -> IKey i -> i -> [(IKey i, (Score, IntermediateValue))]
+  lookupRangeSc :: ICon i => IKey i -> IKey i -> i -> [(IKey i, (Score, SearchResult))]
   lookupRangeSc k1 k2 ix
                 = addDefScore $ lookupRange k1 k2 ix
 
   -- | Insert occurrences.
   --   This is more efficient than folding with 'insert'.
   insertList    :: ICon i =>
-                   [(IKey i, IntermediateValue)] -> i -> i
+                   [(IKey i, Occurrences)] -> i -> i
 
   -- | Insert occurrences.
   insert        :: ICon i =>
-                   IKey i -> IntermediateValue -> i -> i
+                   IKey i -> Occurrences -> i -> i
   insert   k v  = insertList [(k,v)]
 
   -- | Delete as batch job.
@@ -79,10 +130,10 @@ class (IndexValue (IVal i)) => Index i where
 
   -- | Convert an index to a list.
   --   Can be used for easy conversion between different index implementations.
-  toList        :: ICon i => i -> [(IKey i, IntermediateValue)]
+  toList        :: ICon i => i -> [(IKey i, SearchResult)]
 
   -- | Convert a list of key-value pairs to an index.
-  fromList      :: ICon i => [(IKey i, IntermediateValue)] -> i
+  fromList      :: ICon i => [(IKey i, Occurrences)] -> i
 
   -- | Merge two indexes with a combining function.
   unionWith     :: ICon i
@@ -128,27 +179,27 @@ class Monad m => IndexM m i where
   type IConM     i = ()
 
   -- | Monadic version of 'search'.
-  searchM      :: IConM i => TextSearchOp -> IKeyM i -> i -> m [(IKeyM i, IntermediateValue)]
+  searchM      :: IConM i => TextSearchOp -> IKeyM i -> i -> m [(IKeyM i, SearchResult)]
 
   -- | Monadic version of 'search' with (default) scoring.
-  searchMSc     :: IConM i => TextSearchOp -> IKeyM i -> i -> m [(IKeyM i, (Score, IntermediateValue))]
+  searchMSc     :: IConM i => TextSearchOp -> IKeyM i -> i -> m [(IKeyM i, (Score, SearchResult))]
   searchMSc op k ix
                 = searchM op k ix >>= return . addDefScore
 
   -- | Monadic version of 'lookupRangeM'.
-  lookupRangeM :: IConM i => IKeyM i -> IKeyM i -> i -> m [(IKeyM i, IntermediateValue)]
+  lookupRangeM :: IConM i => IKeyM i -> IKeyM i -> i -> m [(IKeyM i, SearchResult)]
 
-  lookupRangeMSc :: IConM i => IKeyM i -> IKeyM i -> i -> m [(IKeyM i, (Score, IntermediateValue))]
+  lookupRangeMSc :: IConM i => IKeyM i -> IKeyM i -> i -> m [(IKeyM i, (Score, SearchResult))]
   lookupRangeMSc k1 k2 ix
                 = lookupRangeM k1 k2 ix >>= return . addDefScore
 
   -- | Monadic version of 'insertList'.
   insertListM  :: IConM i =>
-                  [(IKeyM i, IntermediateValue)] -> i -> m (i)
+                  [(IKeyM i, Occurrences)] -> i -> m (i)
 
   -- | Monadic version of 'insert'.
   insertM      :: IConM i =>
-                  IKeyM i -> IntermediateValue -> i -> m (i)
+                  IKeyM i -> Occurrences -> i -> m (i)
   insertM k v  = insertListM [(k,v)]
 
   -- | Monadic version of 'deleteDocs'.
@@ -162,10 +213,10 @@ class Monad m => IndexM m i where
   emptyM       :: IConM i => m (i)
 
   -- | Monadic version of 'toList'.
-  toListM      :: IConM i => i -> m [(IKeyM i, IntermediateValue)]
+  toListM      :: IConM i => i -> m [(IKeyM i, SearchResult)]
 
   -- | Monadic version of 'fromList'.
-  fromListM    :: IConM i => [(IKeyM i, IntermediateValue)] -> m (i)
+  fromListM    :: IConM i => [(IKeyM i, Occurrences)] -> m (i)
 
   -- | Monadic version of 'unionWith'.
   unionWithM   :: IConM i =>
