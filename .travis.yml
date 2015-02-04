@@ -2,7 +2,6 @@ language: haskell
 
 ghc: 
   - 7.8
-  - 7.6
 
 install:
   - cd hunt-searchengine && cabal install --enable-tests --only-dependencies -ftest-strict
