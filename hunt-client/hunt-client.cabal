@@ -27,22 +27,25 @@ library
     Hunt.Server.Client
     Hunt.Conduit
 
-  build-depends:  base >= 4
-                , aeson                  >= 0.6
+  build-depends:  aeson                  >= 0.6
                 , aeson-pretty
+                , base >= 4
                 , bytestring             >= 0.9.1
-                , data-default
                 , conduit                >= 1.1 && < 1.2
+                , conduit-combinators
                 , conduit-extra
+                , data-default
                 , exceptions             >= 0.5 && < 0.7
-                , hunt-searchengine
                 , http-client            >= 0.2
                 , http-conduit           >= 2.0.0
                 , http-types             >= 0.8
+                , hunt-searchengine
                 , mtl                    >= 1.1 && < 3
+                , primitive
                 , resourcet
                 , string-conversions     >= 0.3.0.2
                 , text                   >= 1    && < 2
                 , transformers           >= 0.3
+                , vector
 
   ghc-options: -Wall -funbox-strict-fields -fwarn-tabs
