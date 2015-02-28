@@ -31,6 +31,7 @@ executable hunt-server
   other-modules:
                 Hunt.Server
                 Hunt.Server.Common
+                Hunt.Server.Schrotty
                 Hunt.Server.Template
 
   build-depends:   base                   >= 4         && < 5
