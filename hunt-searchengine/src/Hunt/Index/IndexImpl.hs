@@ -64,7 +64,6 @@ instance NFData IndexImpl where
 -- ------------------------------------------------------------
 -- Serialization
 
--- | FIXME: actually implement instance
 instance Binary IndexImpl where
   put (IndexImpl i) = put (typeOf i) >> put i
   get = error "existential types cannot be deserialized this way. Use special get' functions"
