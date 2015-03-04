@@ -21,30 +21,35 @@ import           Test.QuickCheck
 import           Test.QuickCheck.Gen
 import           Test.QuickCheck.Random
 import           Test.QuickCheck.Monadic
-import           Control.Monad                               (foldM)
+import           Control.Monad (foldM)
 
-import           Data.Map                                    (Map)
-import qualified Data.Map                                    as M
-import           Data.Text                                   (Text)
-import qualified Data.Text                                   as T
+import           Data.Map (Map)
+import qualified Data.Map as M
+import           Data.Text (Text)
+import qualified Data.Text as T
 import           Data.Default
-import qualified Control.Monad.Parallel                      as Par
+import qualified Control.Monad.Parallel as Par
 
-import           Hunt.Common
-import qualified Hunt.Common.Positions                       as Pos
-import qualified Hunt.Common.Occurrences                     as Occ
-import qualified Hunt.Common.DocDesc                         as DD
-import qualified Hunt.Common.DocIdSet                        as DS
+-- import           Hunt.Common
+import qualified Hunt.Common.Positions as Pos
+import qualified Hunt.Common.Occurrences as Occ
+import qualified Hunt.Common.DocDesc as DD
+import qualified Hunt.Common.DocIdSet as DS
 
 import           Hunt.Interpreter.Command
-import           Hunt.ClientInterface                        hiding (mkDescription)
+import           Hunt.ClientInterface hiding (mkDescription)
 
-import qualified Hunt.Index                                  as Ix
+import           Hunt.Common.BasicTypes
+import           Hunt.Common.DocId
+import           Hunt.Common.Document (Document(..))
+import qualified Hunt.ContextIndex as ConIx
+import qualified Hunt.DocTable as Dt
+import qualified Hunt.DocTable.HashedDocTable as HDt
+import qualified Hunt.Index as Ix
 import           Hunt.Index.IndexImpl
-import qualified Hunt.ContextIndex                           as ConIx
-import qualified Hunt.Index.InvertedIndex                    as InvIx
-import qualified Hunt.DocTable                               as Dt
-import qualified Hunt.DocTable.HashedDocTable                as HDt
+import qualified Hunt.Index.InvertedIndex as InvIx
+import           Hunt.Index.Schema
+import           Hunt.Scoring.Score
 import           Hunt.Utility
 
 import           Data.Time
@@ -134,26 +139,26 @@ mkDescription = do
 -- --------------------
 -- Arbitrary Occurrences
 
-instance Arbitrary Occurrences where
+instance Arbitrary Occ.Occurrences where
   arbitrary = mkOccurrences
 
-mkOccurrences :: Gen Occurrences
+mkOccurrences :: Gen Occ.Occurrences
 mkOccurrences = listOf mkPositions >>= foldM foldOccs Occ.empty
   where
   foldOccs occs ps = do
     docId <- arbitrary :: Gen Int
     return $ Occ.insert' (mkDocId docId) ps occs
 
-mkPositions :: Gen Positions
+mkPositions :: Gen Pos.Positions
 mkPositions = listOf arbitrary >>= return . Pos.fromList
 
-instance Arbitrary DocIdSet where
+instance Arbitrary DS.DocIdSet where
   arbitrary = mkDocIdSet
 
 instance Arbitrary DocId where
   arbitrary = arbitrary >>= \i -> return . mkDocId $ (i :: Int)
 
-mkDocIdSet :: Gen DocIdSet
+mkDocIdSet :: Gen DS.DocIdSet
 mkDocIdSet = listOf arbitrary >>= return . DS.fromList
 
 
@@ -296,5 +301,3 @@ dateContextInfo = ("datecontext", ContextSchema Nothing [] 1 True ctDate)
 -- | default geo context
 geoContextInfo :: (Context, ContextSchema)
 geoContextInfo = ("geocontext", ContextSchema Nothing [] 1 True ctPosition)
-
-

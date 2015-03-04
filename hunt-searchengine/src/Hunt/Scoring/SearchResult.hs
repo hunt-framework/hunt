@@ -29,7 +29,7 @@ import           Prelude                   as P
 
 newtype Occurrences'
     = OCC Occurrences
-      deriving (Show)
+      deriving (Eq, Show)
 
 instance Monoid Occurrences' where
     mempty
@@ -46,7 +46,7 @@ instance ScoredResult Occurrences' where
 
     sizeMaxSC mx (OCC d)
       = DM.sizeWithLimit mx d
-      
+
     nullSC (OCC d)
         = DM.null d
 
@@ -77,14 +77,14 @@ scoredDocsToOccurrences'
     where
       scoreToOcc sc
         = Pos.fromList [(1::Position) .. (floor . maybe 1.0 id . getScore $ sc)]
-          
+
 -- ------------------------------------------------------------
 
 -- The result type for document search: every doc id is associated with a score
 
 newtype ScoredDocs
     = SDS (DocIdMap Score)
-      deriving (Show)
+      deriving (Eq, Show)
 
 instance Monoid ScoredDocs where
     mempty
@@ -105,7 +105,7 @@ instance ScoredResult ScoredDocs where
 
     sizeMaxSC mx (SDS m)
       = DM.sizeWithLimit mx m
-      
+
     differenceSC (SDS m1) (SDS m2)
         = SDS $ DM.difference m1 m2
 
@@ -151,10 +151,10 @@ docIdsToScoredDocs
 -- e.g. in DeleteByQuery commands
 -- and as a variant in SearchResult, when there are only DocId's
 -- stored in an index
-        
+
 newtype UnScoredDocs
     = UDS DocIdSet
-      deriving (Show, Monoid)
+      deriving (Eq, Show, Monoid)
 
 instance ScoredResult UnScoredDocs where
     boost _b uds
@@ -212,7 +212,7 @@ data SearchResult
   = ROC {unROC :: Occurrences'}
   | RSD {unRSD :: ScoredDocs  }
   | RUD {unRUD :: UnScoredDocs}
-    deriving (Show)
+    deriving (Eq, Show)
 
 mkSRfromOccurrences :: Occurrences -> SearchResult
 mkSRfromOccurrences = ROC . OCC
@@ -225,7 +225,7 @@ mkSRfromUnScoredDocs = RUD . UDS
 
 instance Monoid SearchResult where
   mempty        = RUD mempty
-  
+
   x1 `mappend` x2
     | nullSC x1 = x2
     | nullSC x2 = x1
@@ -255,7 +255,7 @@ instance ScoredResult SearchResult where
     | nullSC x1 = mempty
     | nullSC x2 = mempty
     | otherwise = inters0 x1 x2
-                  
+
   intersectDisplSC n x1 x2
     | nullSC x1 = mempty
     | nullSC x2 = mempty
@@ -425,4 +425,3 @@ scoredSearchResultToUnScoredDocs (SCD s (RSD (SDS x)))
   = boost s . scoredDocsToUnScoredDocs $ x
 
 -- ------------------------------------------------------------
-

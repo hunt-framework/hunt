@@ -4,7 +4,8 @@ import           Data.List                      (intersect)
 
 import           Hunt.Common.DocId              (DocId, mkDocId)
 import           Hunt.Common.Occurrences
-import           Hunt.Common.IntermediateValue
+import           Hunt.Scoring.SearchResult
+-- import           Hunt.Common.IntermediateValue
 
 -- ----------------------------------------------------------------------------
 -- `Index` test helpers
@@ -15,36 +16,33 @@ docId1 = mkDocId (1::Int)
 docId2 :: DocId
 docId2 = mkDocId (2::Int)
 
-fromDocId :: DocId -> IntermediateValue
-fromDocId docId = toIntermediate $ singleton docId 1
+fromDocId :: DocId -> SearchResult
+fromDocId docId = mkSRfromOccurrences $ singleton docId 1
 
-simpleValue :: Int -> IntermediateValue
-simpleValue i = toIntermediate $ singleton (mkDocId i) i
+simpleValue :: Int -> SearchResult
+simpleValue i = mkSRfromOccurrences $ singleton (mkDocId i) i
 
-simpleValue1 :: IntermediateValue
+simpleValue1 :: SearchResult
 simpleValue1 = simpleValue 1
 
-simpleValue2 :: IntermediateValue
+simpleValue2 :: SearchResult
 simpleValue2 = simpleValue 2
 
-simpleValue1b :: IntermediateValue
+simpleValue1b :: SearchResult
 simpleValue1b = complexValue 1 2
 
-complexValue :: Int -> Int -> IntermediateValue
-complexValue id' pos = toIntermediate $ singleton (mkDocId id') pos
+complexValue :: Int -> Int -> SearchResult
+complexValue id' pos = mkSRfromOccurrences $ singleton (mkDocId id') pos
 
-complexValues :: IntermediateValue
-complexValues = toIntermediate $
+complexValues :: SearchResult
+complexValues = mkSRfromOccurrences $
                 merges [ singleton docId1 1
                        , singleton docId1 2
                        , singleton docId2 10
                        ]
 
-checkResult :: Monad m => [IntermediateValue] -> [(x, IntermediateValue)] -> m Bool
+checkResult :: Monad m => [SearchResult] -> [(x, SearchResult)] -> m Bool
 checkResult vs res = return $ vs == (vs `intersect` map snd res)
 
-addKey :: x -> [IntermediateValue] -> [(x, IntermediateValue)]
+addKey :: x -> [SearchResult] -> [(x, SearchResult)]
 addKey key = map (\v -> (key, v))
-
-
-

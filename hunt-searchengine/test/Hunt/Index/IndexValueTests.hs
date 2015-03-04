@@ -2,6 +2,7 @@
 module Hunt.Index.IndexValueTests where
 
 import           Data.Maybe
+import           Data.Monoid
 
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -11,9 +12,11 @@ import qualified Hunt.Common.Occurrences              as Occ
 import           Hunt.Common.Occurrences              (Occurrences)
 import qualified Hunt.Common.DocIdSet                 as Set
 import           Hunt.Common.DocIdSet                 (DocIdSet)
-import           Hunt.Common.IntermediateValue
 
+import           Hunt.Index (IndexValue(..))
 import           Hunt.Index.Helper
+
+import           Hunt.Scoring.SearchResult (SearchResult, searchResultToOccurrences, searchResultToOccurrences)
 
 -- ----------------------------------------------------------------------------
 -- Testsuite for `IntermediateValue` index value instances
@@ -42,15 +45,15 @@ data IndexValueTest
 --   existential `IndexValueTest` type.
 --   Extend list to add more implementations to test suite.
 values :: [IndexValueTest]
-values = [ IVT "Occurrences" (fromIntermediate simpleValue1 :: Occurrences)
+values = [ IVT "Occurrences" (searchResultToOccurrences simpleValue1 :: Occurrences)
 --         , IVT "DocIdSet"    (fromIntermediate simpleValue1 :: DocIdSet)
          ]
 
 -- | merge test for `IndexValue` implementation.
 mergeTest :: IndexValueTest -> Bool
 mergeTest (IVT _ v1)
-  = let merge1 = mergeValues v1 v2
-        merge2 = mergeValues v1 v3
+  = let merge1 = v1 `mappend` v2
+        merge2 = v1 `mappend` v3
 
         check1 = mergeAsOcc v1 v2 == fromInt merge1
         check2 = mergeAsOcc v1 v3 == fromInt merge2
@@ -79,15 +82,15 @@ diffTest (IVT _ v1)
     set2 = Set.singleton docId2
     diffAsOcc set d = Occ.diffWithSet (fromInt d) set
 
--- | converstion from and to tests for `IndexValue` implementation
+-- | conversion from and to tests for `IndexValue` implementation
 conversionTest :: IndexValueTest -> Bool
-conversionTest (IVT _ v) = v == (fromIntermediate . toIntermediate $ v)
+conversionTest (IVT _ v) = v == (fromOccurrences . searchResultToOccurrences . toSearchResult $ v)
 
 -- ----------------------------------------------------------------------------
 -- Helper
 
 fromInt :: forall v. IndexValue v => v -> Occurrences
-fromInt i = fromIntermediate . toIntermediate $ i
+fromInt i = searchResultToOccurrences . toSearchResult $ i
 
-from :: forall x. IndexValue x => IntermediateValue -> x
-from = fromIntermediate
+from :: forall x. IndexValue x => SearchResult -> x
+from = fromOccurrences . searchResultToOccurrences

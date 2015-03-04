@@ -2,32 +2,36 @@ module Hunt.InterpreterTests
 (interpreterTests)
 where
 
-import           System.Directory
-import           System.IO
+import System.Directory
+import System.IO
 
-import           Control.Applicative
-import           Control.Exception
-import           Control.Monad.Error
-import           Data.Fixed                           (div', mod')
-import           Data.Text                            (Text, pack)
+import Control.Applicative
+import Control.Exception
+import Control.Monad.Error
+import Data.Fixed (div', mod')
+import Data.Monoid
+import Data.Text (Text, pack)
 
-import           Test.Framework
-import           Test.Framework.Providers.HUnit
-import           Test.Framework.Providers.QuickCheck2
-import           Test.HUnit                           hiding (Test)
-import           Test.QuickCheck
-import           Test.QuickCheck.Monadic
+import Test.Framework
+import Test.Framework.Providers.HUnit
+import Test.Framework.Providers.QuickCheck2
+import Test.HUnit hiding (Test)
+import Test.QuickCheck
+import Test.QuickCheck.Monadic
 
-import           Text.Printf                          (printf)
+import Text.Printf (printf)
 
-import           Hunt.ClientInterface
-import           Hunt.Common
-import           Hunt.DocTable.HashedDocTable         (Documents)
-import           Hunt.Interpreter
-import           Hunt.Utility
-import           Hunt.Query.Intermediate
+import Hunt.ClientInterface
+-- import           Hunt.Common
+import Hunt.DocTable.HashedDocTable (Documents)
+import Hunt.Interpreter
+import Hunt.Utility
+import Hunt.Query.Intermediate
+import Hunt.Common.Document
+import Hunt.Index.Schema
 
-import           Hunt.TestHelper
+
+import Hunt.TestHelper
 
 -- ----------------------------------------------------------------------------
 

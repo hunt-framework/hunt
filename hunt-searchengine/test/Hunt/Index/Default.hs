@@ -3,6 +3,8 @@
 {-# LANGUAGE TypeFamilies     #-}
 module Hunt.Index.Default where
 
+import           Control.Arrow (second)
+
 import           Data.List                      (null)
 import           Data.Text                      (Text, unpack)
 
@@ -17,6 +19,7 @@ import           Hunt.Index.IndexImpl           (IndexImpl(..))
 
 import qualified Hunt.Index                     as Ix
 import           Hunt.Index.Helper
+import qualified Hunt.Scoring.SearchResult      as SearchResult
 
 -- ----------------------------------------------------------------------------
 -- Testsuite for `ContextType`s and underlying `Index` implementations
@@ -58,7 +61,7 @@ testIndex (CType name _ _ (IndexImpl impl), key)
 insertTest :: (Ix.Index i, Monad m, Ix.ICon i) => i -> Ix.IKey i -> m Bool
 insertTest impl key
   = do
-    ix1 <- Ix.insertM key values impl
+    ix1 <- Ix.insertM key (SearchResult.searchResultToOccurrences values) impl
     res <- Ix.searchM PrefixNoCase key ix1
     checkResult [values] res
     where
@@ -68,7 +71,7 @@ insertTest impl key
 insertListTest :: (Ix.Index i, Monad m, Ix.ICon i) => i -> Ix.IKey i -> m Bool
 insertListTest impl key
   = do
-    ix1 <- Ix.insertListM (addKey key values) impl
+    ix1 <- Ix.insertListM (fmap (second SearchResult.searchResultToOccurrences) (addKey key values)) impl
     res <- Ix.searchM PrefixNoCase key ix1
     checkResult values res
     where
@@ -82,7 +85,7 @@ deleteTest :: (Ix.Index i, Monad m, Ix.ICon i) => i -> Ix.IKey i -> m Bool
 deleteTest impl key
   = do
     -- insert
-    ix1 <- Ix.insertListM (addKey key values) impl
+    ix1 <- Ix.insertListM  (fmap (second SearchResult.searchResultToOccurrences) (addKey key values)) impl
     rs1 <- Ix.searchM PrefixNoCase key ix1
     -- delete
     ix2 <- Ix.deleteDocsM (Set.fromList [docId1, docId2]) ix1
@@ -98,7 +101,7 @@ deleteDocsTest :: (Ix.Index i, Monad m, Ix.ICon i) => i -> Ix.IKey i -> m Bool
 deleteDocsTest impl key
   = do
     -- insert
-    ix1 <- Ix.insertListM (addKey key values) impl
+    ix1 <- Ix.insertListM  (fmap (second SearchResult.searchResultToOccurrences) (addKey key values)) impl
     rs1 <- Ix.searchM PrefixNoCase key ix1
     -- delete
     ix2 <- Ix.deleteM docId1 ix1
@@ -124,7 +127,7 @@ emptyTest impl
 toListTest :: (Ix.Index i, Monad m, Ix.ICon i) => i -> Ix.IKey i -> m Bool
 toListTest impl key
   = do
-    ix1 <- Ix.insertListM (addKey key values) impl
+    ix1 <- Ix.insertListM (fmap (second SearchResult.searchResultToOccurrences) (addKey key values)) impl
     ls  <- Ix.toListM ix1
     checkResult values ls
     where
