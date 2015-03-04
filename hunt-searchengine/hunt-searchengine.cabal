@@ -25,7 +25,7 @@ flag test-strict
 
 source-repository head
   type:        git
-  location:    https://github.com/hunt-framework/hunt-searchengine.git
+  location:    https://github.com/hunt-framework/hunt.git
 
 library
 
