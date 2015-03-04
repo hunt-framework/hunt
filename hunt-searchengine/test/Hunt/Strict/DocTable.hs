@@ -21,10 +21,12 @@ import           Test.QuickCheck.Monadic                         (PropertyM,
                                                                   monadicIO,
                                                                   pick)
 
+
 import qualified Data.Set                                        as S
 import           Data.Text                                       (Text)
 
-import           Hunt.Common
+import           Hunt.Common.Document
+import           Hunt.Common.DocId
 import qualified Hunt.Common.DocIdSet                        as IS
 import qualified Hunt.Common.DocDesc                         as DD
 

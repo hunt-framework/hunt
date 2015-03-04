@@ -21,13 +21,17 @@ import           Test.QuickCheck.Monadic                         (PropertyM,
                                                                   monadicIO,
                                                                   pick)
 
-import           Hunt.Common
-import           Hunt.Common.IntermediateValue
+-- import           Hunt.Common
+-- import           Hunt.Common.IntermediateValue
+import           Hunt.Common.Occurrences
+import           Hunt.Common.Document
+import           Hunt.Common.BasicTypes
+import           Hunt.Common.DocId
 
 import qualified Data.Map.Strict                             as M
 import           Data.Default
 
-import qualified Hunt.Index                                  as Ix
+import qualified Hunt.Index as Ix
 import           Hunt.ContextIndex
 import qualified Hunt.Index.IndexImpl                        as Impl
 import qualified Hunt.Index.InvertedIndex                    as InvIx
@@ -65,7 +69,7 @@ prop_cx_insertlist3 = monadicIO $ do
   where
     pickIx = do
              val <- pick arbitrary
-             return $ Ix.insert "key" (toIntermediate (val :: Occurrences)) Ix.empty
+             return $ Ix.insert "key" (val :: Occurrences) Ix.empty
     pickContextIx docs = do
       ix <- pickIx :: PropertyM IO InvIx.InvertedIndex
       let cxmap = mkContextMap $ M.fromList [("context", (def, Impl.mkIndex ix))]

@@ -22,12 +22,15 @@ import           Test.QuickCheck.Monadic                         (PropertyM,
 
 import           Data.Text                                       (Text)
 
-import           Hunt.Common
+import qualified Hunt.Scoring.SearchResult                   as SR
+
 import qualified Hunt.Common.Positions                       as Pos
 import qualified Hunt.Common.DocIdMap                        as DM
 import qualified Hunt.Common.DocIdSet                        as DS
-
-import           Hunt.Common.IntermediateValue
+import           Hunt.Common.Occurrences
+import           Hunt.Common.Document
+import           Hunt.Common.BasicTypes
+import           Hunt.Common.DocId
 
 import qualified Hunt.Index                                  as Ix
 import qualified Hunt.Index.InvertedIndex                    as InvIx
@@ -110,7 +113,7 @@ prop_ptix
     ix <- pickIx :: PropertyM IO (PIx.DmPrefixTree Occurrences)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" (toIntermediate (val::Occurrences)) Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" (val::Occurrences) Ix.empty
 
 prop_ptix2d :: Property
 prop_ptix2d
@@ -118,7 +121,7 @@ prop_ptix2d
     ix <- pickIx :: PropertyM IO (PIx2D.DmPrefixTree Occurrences)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "11" (toIntermediate (val::Occurrences)) Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "11" (val::Occurrences) Ix.empty
 
 prop_invix1 :: Property
 prop_invix1
@@ -126,7 +129,7 @@ prop_invix1
     ix <- pickIx :: PropertyM IO (InvIx.InvertedIndex)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" (toIntermediate (val::Occurrences)) Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" (val::Occurrences) Ix.empty
 
 prop_invix2 :: Property
 prop_invix2
@@ -134,7 +137,7 @@ prop_invix2
     ix <- pickIx :: PropertyM IO (PIx.PrefixTreeIndexInt)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1" (toIntermediate (val::Occurrences)) Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1" (val::Occurrences) Ix.empty
 
 prop_invix3 :: Property
 prop_invix3
@@ -142,7 +145,7 @@ prop_invix3
     ix <- pickIx :: PropertyM IO (PIx.PrefixTreeIndexDate)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "2013-01-01" (toIntermediate (val::Occurrences)) Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "2013-01-01" (val::Occurrences) Ix.empty
 
 prop_invix4 :: Property
 prop_invix4
@@ -150,7 +153,7 @@ prop_invix4
     ix <- pickIx :: PropertyM IO (PIx2D.PrefixTreeIndexPosition)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" (toIntermediate (val::Occurrences)) Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "1-1" (val::Occurrences) Ix.empty
 
 prop_insert_rtree :: Property
 prop_insert_rtree
@@ -158,7 +161,7 @@ prop_insert_rtree
     ix <- pickIx :: PropertyM IO (RTree.RTreeIndex Occurrences)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert (RTree.readPosition "1-1") (toIntermediate (val::Occurrences)) Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert (RTree.readPosition "1-1")  (val::Occurrences) Ix.empty
 
 prop_proxy :: Property
 prop_proxy
@@ -166,7 +169,7 @@ prop_proxy
     ix <- pickIx :: PropertyM IO (KeyProxy.KeyProxyIndex Text (PIx.DmPrefixTree Occurrences))
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key" (toIntermediate (val::Occurrences)) Ix.empty
+  pickIx = pick arbitrary >>= \val -> return $ Ix.insert "key"  (val::Occurrences) Ix.empty
 
 -- ----------------------------------------------------------------------------
 -- index implementations: delete function
@@ -238,11 +241,11 @@ prop_proxy_del
   pickIx = pick arbitrary >>= insert_and_delete "key"
 
 insert_and_delete :: forall (m :: * -> *) a.
-                     (Ix.ICon a, Monad m, IndexValue (Ix.IVal a), Ix.Index a) =>
-                      Ix.IKey a -> DocIdMap Positions -> m a
+                     (Ix.ICon a, Monad m, Ix.IndexValue (Ix.IVal a), Ix.Index a) =>
+                      Ix.IKey a -> DM.DocIdMap Pos.Positions -> m a
 insert_and_delete key v
   = return $ Ix.delete docId
-           $ Ix.insert key (toIntermediate (v::Occurrences))
+           $ Ix.insert key (v::Occurrences)
            $ Ix.empty
     where
     docId = case DM.toList v of
@@ -283,7 +286,7 @@ prop_invix2_map
     ix <- pickIx :: PropertyM IO (PIx.PrefixTreeIndexInt)
     assertNF' ix
   where
-  pickIx = pick arbitrary >>= \val -> insert_and_map_withSet "1" (val :: DocIdSet)
+  pickIx = pick arbitrary >>= \val -> insert_and_map_withSet "1" (val :: DS.DocIdSet)
 
 prop_invix3_map :: Property
 prop_invix3_map
@@ -318,18 +321,18 @@ prop_proxy_map
   pickIx = pick arbitrary >>= insert_and_map "key"
 
 insert_and_map :: forall (m :: * -> *) a.
-                  (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DocIdMap Positions) =>
+                  (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DM.DocIdMap Pos.Positions) =>
                   Ix.IKey a -> Occurrences -> m a
 insert_and_map key v
   = return $ Ix.map (DM.insert (mkDocId (1 :: Int)) (Pos.singleton 1))
-           $ Ix.insert key (toIntermediate (v::Occurrences)) Ix.empty
+           $ Ix.insert key (v::Occurrences) Ix.empty
 
 insert_and_map_withSet :: forall (m :: * -> *) a.
-                          (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DocIdSet) =>
-                          Ix.IKey a -> DocIdSet -> m a
+                          (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DS.DocIdSet) =>
+                          Ix.IKey a -> DS.DocIdSet -> m a
 insert_and_map_withSet key v
   = return $ Ix.map (DS.union (DS.singleton $ mkDocId (1 :: Int)))
-           $ Ix.insert key (toIntermediate (v::DocIdSet)) Ix.empty
+           $ Ix.insert key (toOccurrences (v::DS.DocIdSet)) Ix.empty
 
 
 
@@ -403,18 +406,18 @@ prop_proxy_map2
   pickIx = pick arbitrary >>= insert_and_map2 "key"
 
 insert_and_map2 :: forall (m :: * -> *) a.
-                   (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DocIdMap Positions) =>
+                   (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DM.DocIdMap Pos.Positions) =>
                    Ix.IKey a -> Occurrences -> m a
 insert_and_map2 key v
   = return $ Ix.mapMaybe (Just . DM.insert (mkDocId (1 :: Int)) (Pos.singleton 1))
-           $ Ix.insert key (toIntermediate (v::Occurrences)) Ix.empty
+           $ Ix.insert key (v::Occurrences) Ix.empty
 
 insert_and_map2_withSet :: forall (m :: * -> *) a.
-                           (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DocIdSet) =>
-                           Ix.IKey a -> DocIdSet -> m a
+                           (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DS.DocIdSet) =>
+                           Ix.IKey a -> DS.DocIdSet -> m a
 insert_and_map2_withSet key v
   = return $ Ix.mapMaybe (Just . DS.union (DS.singleton $ mkDocId (1 :: Int)))
-           $ Ix.insert key (toIntermediate (v::DocIdSet)) Ix.empty
+           $ Ix.insert key (toOccurrences (v::DS.DocIdSet)) Ix.empty
 
 -- ----------------------------------------------------------------------------
 -- index implementations: unionWith function
@@ -471,8 +474,8 @@ prop_invix3_union
     assertNF' ix
   where
   pickIx = do
-    val1 <- pick arbitrary :: PropertyM IO DocIdSet
-    val2 <- pick arbitrary :: PropertyM IO DocIdSet
+    val1 <- pick arbitrary :: PropertyM IO DS.DocIdSet
+    val2 <- pick arbitrary :: PropertyM IO DS.DocIdSet
     insert_and_union_withSet "2013-01-01" val1 val2
 
 prop_invix4_union :: Property
@@ -482,8 +485,8 @@ prop_invix4_union
     assertNF' ix
   where
   pickIx = do
-    val1 <- pick arbitrary :: PropertyM IO DocIdSet
-    val2 <- pick arbitrary :: PropertyM IO DocIdSet
+    val1 <- pick arbitrary :: PropertyM IO DS.DocIdSet
+    val2 <- pick arbitrary :: PropertyM IO DS.DocIdSet
     insert_and_union_withSet "1-1" val1 val2
 
 prop_rtree_union :: Property
@@ -509,19 +512,21 @@ prop_proxy_union
     insert_and_union "key" val1 val2
 
 insert_and_union :: forall (m :: * -> *) a v.
-                    (Ix.ICon a, Monad m, IndexValue (DocIdMap v), Ix.Index a,
-                    Ix.IVal a ~ DocIdMap v) =>
+                    (Ix.ICon a, Monad m, Ix.IndexValue (DM.DocIdMap v), Ix.Index a,
+                    Ix.IVal a ~ DM.DocIdMap v) =>
                     Ix.IKey a -> Occurrences -> Occurrences -> m a
 insert_and_union key v1 v2
   = return $ Ix.unionWith (DM.union)
-             (Ix.insert key (toIntermediate (v1::Occurrences)) Ix.empty)
-             (Ix.insert key (toIntermediate (v2::Occurrences)) Ix.empty)
+             (Ix.insert key (v1::Occurrences) Ix.empty)
+             (Ix.insert key (v2::Occurrences) Ix.empty)
 
 insert_and_union_withSet :: forall (m :: * -> *) a.
-                            (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DocIdSet) =>
-                            Ix.IKey a -> DocIdSet -> DocIdSet -> m a
+                            (Ix.ICon a, Monad m, Ix.Index a, Ix.IVal a ~ DS.DocIdSet) =>
+                            Ix.IKey a -> DS.DocIdSet -> DS.DocIdSet -> m a
 insert_and_union_withSet key v1 v2
   = return $ Ix.unionWith (DS.union)
-             (Ix.insert key (toIntermediate (v1::DocIdSet)) Ix.empty)
-             (Ix.insert key (toIntermediate (v2::DocIdSet)) Ix.empty)
+             (Ix.insert key (toOccurrences (v1::DS.DocIdSet)) Ix.empty)
+             (Ix.insert key (toOccurrences (v2::DS.DocIdSet)) Ix.empty)
 
+toOccurrences :: Ix.IndexValue a => a -> Occurrences
+toOccurrences = SR.searchResultToOccurrences . Ix.toSearchResult
