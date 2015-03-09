@@ -72,8 +72,6 @@ executable hunt-server
     build-depends:   ekg-statsd
     ghc-options: "-with-rtsopts=-N -c -s -I3 -H -T"
     cpp-options:  -DSUPPORT_STATSD
-  else
-    ghc-options: "-with-rtsopts=-N -c -s -I3 -H"
 
   if impl( ghc >= 7 )
     ghc-options: -rtsopts
