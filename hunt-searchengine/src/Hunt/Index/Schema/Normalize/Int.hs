@@ -16,11 +16,11 @@ module Hunt.Index.Schema.Normalize.Int
   )
 where
 
-import           Data.Text                     (Text)
-import qualified Data.Text                     as T
+import           Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Text.Read as T
 
-import           Hunt.Common.BasicTypes        (Word)
-import           Text.Read                     (readMaybe)
+import           Hunt.Common.BasicTypes (Word)
 
 -- ------------------------------------------------------------
 -- Normalize Int to actual Int
@@ -32,12 +32,17 @@ normalizeToInt = maybe (error "normalizeToInt: invalid input") id
                  . normalizeToInt'
 
 normalizeToInt' :: Text -> Maybe Int
-normalizeToInt' = readMaybe . T.unpack
+normalizeToInt' t = do
+  (n, "") <- either (const Nothing) Just (T.signed T.decimal t) :: Maybe (Integer, Text)
+  if (n > fromIntegral (maxBound :: Int))
+     || (n < fromIntegral (minBound :: Int))
+    then Nothing
+    else return (fromIntegral n)
 
 isInt :: Text -> Bool
 isInt = maybe False (const True)
         . normalizeToInt'
-  
+
 -- | Denormalize an integer.
 denormalizeFromInt :: Int -> Text
 denormalizeFromInt = T.pack . show
