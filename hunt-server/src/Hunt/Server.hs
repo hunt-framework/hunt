@@ -73,6 +73,7 @@ import           System.Log.Logger                    hiding (debugM, errorM,
 import qualified System.Log.Logger                    as Log
 
 #ifdef SUPPORT_STATSD
+import qualified Data.Text as T
 import           System.Remote.Monitoring.Statsd      (defaultStatsdOptions, forkStatsd, StatsdOptions(..))
 import           System.Metrics                       (registerGcMetrics, newStore)
 #endif
@@ -136,7 +137,7 @@ start config = do
     let statsDOpts = defaultStatsdOptions {host = (T.pack $ statsDHost config), port = (statsDPort config), prefix = "Hunt-Server"}
     _ <- forkStatsd statsDOpts statsDStore
     debugM $ "Connected to statsD: " ++ (statsDHost config) ++ ":" ++ (show $ statsDPort config)
-#endif  
+#endif
 
   -- init interpreter
   env <- initHunt :: IO DefHuntEnv
