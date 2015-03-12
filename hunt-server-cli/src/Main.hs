@@ -20,9 +20,8 @@ import           Data.String.Conversions   (cs)
 import           Data.Text                 (Text)
 import           Data.Time.Clock.POSIX     (getPOSIXTime)
 
-import           System.Console.Docopt     (argument, command, getArg,
-                                            isPresent, longOption,
-                                            optionsWithUsage)
+import           System.Console.Docopt.NoTH hiding (usage)
+
 import           System.Environment        (getArgs)
 import qualified System.IO                 as System (stderr)
 import qualified System.Log.Formatter      as Log (simpleLogFormatter)
@@ -128,49 +127,40 @@ autocomplete server query
 main :: IO ()
 main = do
   initLoggers Log.DEBUG
-  args <- optionsWithUsage usage =<< getArgs
+  docopt <- parseUsageOrExit usage
+  args   <- parseArgsOrExit docopt =<< getArgs
 
   let isCommand str = args `isPresent` (command str)
-      fileArgument = args `getArg` (argument "<file>")
-      queryArgument = args `getArg` (argument "<query>")
+      fileArgument = getArgWithDefault args "" (argument "file")
+      queryArgument = getArgWithDefault args "" (argument "query")
+      file = fileArgument
+      query = queryArgument
 
-  server <- do
-      if (args `isPresent` (longOption "server")) then
-          args `getArg` (longOption "server")
-      else
-          return "http://localhost:3000"
-
-  maxResults <- read <$> (args `getArg` (longOption "max"))
-  offsetResults <- read <$> (args `getArg` (longOption "offset"))
+  let server     = getArgWithDefault args "http://localhost:3000" (longOption "server") 
+      maxResults = read (getArgWithDefault args "0" (longOption "max"))
+      offsetResults = read (getArgWithDefault args "0" (longOption "offset"))
 
   when (isCommand "eval") $ do
-    file <- fileArgument
     putStr =<< (printTime $ cs <$> eval server file)
 
   when (isCommand "load") $ do
-    file <- fileArgument
-    putStr =<< cs <$> (evalCmd server $ H.cmdLoadIndex file)
+     putStr =<< cs <$> (evalCmd server $ H.cmdLoadIndex file)
 
   when (isCommand "store") $ do
-    file <- fileArgument
-    putStr =<< cs <$> (evalCmd server $ H.cmdStoreIndex file)
+     putStr =<< cs <$> (evalCmd server $ H.cmdStoreIndex file)
 
   when (isCommand "search") $ do
-    query <- queryArgument
-    putStr =<< (printTime $ cs <$> search server query maxResults offsetResults)
+     putStr =<< (printTime $ cs <$> search server query maxResults offsetResults)
 
   when (isCommand "completion") $ do
-    query <- queryArgument
-    putStr =<< (printTime $ cs <$> autocomplete server query)
+     putStr =<< (printTime $ cs <$> autocomplete server query)
 
   when (isCommand "from-csv") $ do
-    CSV.convert =<< fileArgument
+    CSV.convert fileArgument
 
   when (isCommand "make-schema") $ do
-    file <- fileArgument
     putStr =<< makeSchema file
 
   when (isCommand "make-insert") $ do
-    file <- fileArgument
     putStr =<< makeInserts file
 
