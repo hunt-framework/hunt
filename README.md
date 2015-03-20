@@ -37,7 +37,7 @@ The easiest way to get the setup started is to install the current [Haskell Plat
 ##### Linux
 ----
 
-If you're using linux, you are able to use our Makefile for the build.
+If you're using linux, you can use ``make`` for the build.
 
 ```bash
 git clone https://github.com/hunt-framework/hunt.git
@@ -48,7 +48,7 @@ make sandbox install
 ##### Windows
 ----
 
-If you're using Windows, you can use cabal for the build. If you like to use sandboxes on Windows, you can copy the neccessary cabal commands from our Makefile. 
+If you're using Windows, you can use cabal for the build. If you would like to use sandboxes on Windows, you can copy the neccessary cabal commands from our Makefile. 
 
 ```bash
 git clone https://github.com/hunt-framework/hunt.git
@@ -90,8 +90,8 @@ The [Snappy][snappy] compression library is missing. Install from source or use 
 packages (deb: `libsnappy-dev`).
 -->
 
-##### Can i run Hunt on a 32Bit machine.
-This would not be a good idea. First of all we are using 64Bit Hashes for our internal `DocId`s. Despite this source of error the 32Bit machine limits the available memory to 4GB. 
+##### Can I run Hunt on a 32-bit machine?
+No, we are using 64-bit hashes for our internal document IDs. Collisions are much more likely for 32-bit hashes and the available memory would be limited to 4GB.
 
 ##### Why is the CPU usage in idle so high?
 GHC performs a a major garbage collection every 0.3 seconds in idle, which can be computationally
