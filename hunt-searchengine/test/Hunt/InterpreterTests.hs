@@ -128,8 +128,8 @@ defaultTestSetup
       , cmdInsertDoc brainDoc
       ]
 
-defaultTestSetup' :: [Command] -> [Command]
-defaultTestSetup' cmds = defaultTestSetup ++ cmds
+-- defaultTestSetup' :: [Command] -> [Command]
+-- defaultTestSetup' cmds = defaultTestSetup ++ cmds
 
 defaultTestSetup'' :: Command -> [Command]
 defaultTestSetup'' cmd = defaultTestSetup ++ [cmd]
@@ -233,8 +233,8 @@ normalizerTestSetup
       , cmdInsertDoc brainDoc
       ]
 
-normalizerTestSetup' :: [Command] -> [Command]
-normalizerTestSetup' cmds = normalizerTestSetup ++ cmds
+-- normalizerTestSetup' :: [Command] -> [Command]
+-- normalizerTestSetup' cmds = normalizerTestSetup ++ cmds
 
 normalizerTestSetup'' :: Command -> [Command]
 normalizerTestSetup'' cmd = normalizerTestSetup ++ [cmd]

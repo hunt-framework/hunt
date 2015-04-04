@@ -11,7 +11,6 @@ import           Test.HUnit                           hiding (Test)
 import qualified Hunt.Common.Occurrences              as Occ
 import           Hunt.Common.Occurrences              (Occurrences)
 import qualified Hunt.Common.DocIdSet                 as Set
-import           Hunt.Common.DocIdSet                 (DocIdSet)
 
 import           Hunt.Index (IndexValue(..))
 import           Hunt.Index.Helper
