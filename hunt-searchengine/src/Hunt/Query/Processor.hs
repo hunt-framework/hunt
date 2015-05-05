@@ -53,8 +53,8 @@ import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
 import           Hunt.Common.BasicTypes      (Context, Word, TextSearchOp(..))
-import           Hunt.ContextIndex1           (ContextIndex)
-import qualified Hunt.ContextIndex1           as CIx
+import           Hunt.ContextIndex           (ContextIndex)
+import qualified Hunt.ContextIndex           as CIx
 import           Hunt.Index.Schema
 import           Hunt.Interpreter.Command    (CmdError (..))
 import           Hunt.Query.Fuzzy            (FuzzyConfig)

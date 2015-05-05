@@ -99,7 +99,6 @@ library
     Hunt.DocTable.HashedDocTable
 
     Hunt.ContextIndex
-    Hunt.ContextIndex1
     Hunt.ContextIndex.Delete
     Hunt.ContextIndex.Insert
     Hunt.ContextIndex.Search                                          

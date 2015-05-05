@@ -47,15 +47,14 @@ import qualified Data.Set                      as S
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
 import qualified Data.Traversable              as TV
-import           Control.Monad.Parallel (MonadParallel)
 
 import           Hunt.Common.ApiDocument       as ApiDoc
 import           Hunt.Common.BasicTypes        (Context, URI)
 import qualified Hunt.Common.DocDesc           as DocDesc
 import qualified Hunt.Common.DocIdSet          as DocIdSet
 import           Hunt.Common.Document          (Document (..))
-import           Hunt.ContextIndex1            (ContextIndex)
-import qualified Hunt.ContextIndex1            as CIx
+import           Hunt.ContextIndex             (ContextIndex)
+import qualified Hunt.ContextIndex             as CIx
 import           Hunt.DocTable                 (DocTable)
 import qualified Hunt.DocTable                 as DocTable
 import           Hunt.DocTable.HashedDocTable
