@@ -1,5 +1,6 @@
 module Hunt.ContextIndex.Types where
 
+import           Data.Binary
 import           Data.Map.Strict (Map)
 import           Data.Monoid
 
@@ -20,6 +21,10 @@ data ContextIndex dt
                  , ciSchema  :: !Schema
                  , ciDocs    :: !dt
                  }
+
+instance Binary dt => Binary (ContextIndex dt) where
+  get = undefined
+  put = undefined
 
 mkContextMap :: Map Context Ix.IndexImpl -> ContextMap
 mkContextMap m = ContextMap $! m

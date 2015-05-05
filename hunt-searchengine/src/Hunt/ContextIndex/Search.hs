@@ -34,9 +34,13 @@ lookupRangeCx c k1 k2 ix
   = lookupIndex c ix merge (Ix.lookupRangeM k1 k2)
 
 lookupRangeCxSc :: Par.MonadParallel  m => Context -> Text ->
-                   Text -> ContextIndex dt -> m [(Text, (Score, SearchResult))]
+                   Text -> ContextIndex dt -> m  [(Text, (Score, SearchResult))]
 lookupRangeCxSc c k1 k2 ix
   = lookupIndex c ix merge (Ix.lookupRangeMSc k1 k2)
+
+lookupAllWithCx :: Par.MonadParallel m => Context -> ContextIndex dt -> m  [(Text, SearchResult)]
+lookupAllWithCx c ix
+  = lookupIndex c ix merge (Ix.toListM)
 
 lookupIndex :: (Par.MonadParallel m) =>
                Context -> ContextIndex dt ->

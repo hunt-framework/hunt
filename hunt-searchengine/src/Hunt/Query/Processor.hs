@@ -6,6 +6,8 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE ExistentialQuantification  #-}
+
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -28,6 +30,7 @@ module Hunt.Query.Processor
     , processQueryUnScoredDocs
     , processQueryScoredWords
     , initProcessor
+    , mkQueryIndex
 
     , ProcessConfig (..)
     , ProcessEnv
@@ -50,8 +53,8 @@ import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
 import           Hunt.Common.BasicTypes      (Context, Word, TextSearchOp(..))
-import           Hunt.ContextIndex           (ContextMap)
-import qualified Hunt.ContextIndex           as CIx
+import           Hunt.ContextIndex1           (ContextIndex)
+import qualified Hunt.ContextIndex1           as CIx
 import           Hunt.Index.Schema
 import           Hunt.Interpreter.Command    (CmdError (..))
 import           Hunt.Query.Fuzzy            (FuzzyConfig)
@@ -109,15 +112,20 @@ data ProcessEnv
     = ProcessEnv
       { psConfig   :: ! ProcessConfig  -- ^ The configuration for the query processor.
       , psContexts :: ! [Context]      -- ^ The current list of contexts.
-      , psIndex    ::   ContextMap     -- ^ The index to search.
+      , psIndex    :: QueryIndex       -- ^ The index to search.
       }
 
 -- ------------------------------------------------------------
 -- Processor monad
 -- ------------------------------------------------------------
 
-type QueryIndex
-    = ContextMap
+data QueryIndex = forall dt. QIx (ContextIndex dt)
+
+mkQueryIndex :: forall dt. ContextIndex dt -> QueryIndex
+mkQueryIndex = QIx
+
+runQuery :: Monad m => QueryIndex -> (forall dt. ContextIndex dt -> m a) -> m a
+runQuery (QIx ixx) f = f ixx
 
 -- | the processor monad
 newtype ProcessorT m a
@@ -149,7 +157,8 @@ getIx
 
 getSchema :: Processor Schema
 getSchema
-    = getIx >>= return . (M.map fst) . CIx.cxMap
+    = do ix <- getIx
+         runQuery ix (return . CIx.schema)
 
 -- | Get the schema associated with that context/index.
 --
@@ -187,12 +196,12 @@ normQueryCx c t
 
 -- | Initialize the state of the processor.
 initProcessor :: ProcessConfig -> QueryIndex -> ProcessEnv
-initProcessor cfg ix
-    = ProcessEnv cfg cxs ix
+initProcessor cfg (QIx ixx)
+    = ProcessEnv cfg cxs (QIx ixx)
     where
-      s = CIx.mapToSchema ix
+      s = CIx.schema ixx
       cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault)
-            $ CIx.contexts ix
+            $ CIx.contexts ixx
 
 -- ------------------------------------------------------------
 
@@ -635,7 +644,7 @@ searchCx op w' cx
           limit <- asks (docLimit . psConfig)            -- get the max. # of docs
           ix    <- getIx                                 -- get the context search index
           rawr  <- limitRawResult limit
-                   <$> CIx.searchWithCxSc op cx w ix     -- do the real search and limit result
+                   <$> liftIO (runQuery ix (CIx.searchWithCxSc op cx w))    -- do the real search and limit result
           return $ fromCxRawResults [(cx, rawr)]
                                                          -- convert the result to a ScoredResult
                                                          -- the score comes from a similarity test
@@ -653,7 +662,7 @@ evalRange lb0 ub0 cx
           limit <- asks (docLimit . psConfig)
           ix    <- getIx
           rawr  <- limitRawResult limit
-                   <$> CIx.lookupRangeCxSc cx lb ub ix
+                   <$> liftIO (runQuery ix (CIx.lookupRangeCxSc cx lb ub))
           return $ fromCxRawResults [(cx, rawr)]
 
 -- ------------------------------------------------------------

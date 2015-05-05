@@ -15,6 +15,7 @@ module Hunt.ContextIndex1 (
   , searchWithCx
   , searchWithCxSc
   , lookupRangeCxSc
+  , lookupAllWithCx
 
     -- * Insert\/Delete Documents
   , insertList
@@ -29,6 +30,9 @@ module Hunt.ContextIndex1 (
   , member
 
   , ContextIndex
+  , schema
+  , docTable
+
   ) where
 
 import           Hunt.Common.BasicTypes
@@ -38,6 +42,7 @@ import           Hunt.ContextIndex.Search
 import           Hunt.ContextIndex.Types
 import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Index.Schema
+import Hunt.DocTable (DocTable)
 
 import qualified Data.Map.Strict as Map
 
@@ -77,3 +82,9 @@ hasContext cx
 hasContextM :: Monad m => Context -> ContextIndex dt -> m Bool
 hasContextM cx
   = return . hasContext cx
+
+schema :: ContextIndex dt -> Schema
+schema = ciSchema
+
+docTable :: ContextIndex dt -> dt
+docTable = ciDocs

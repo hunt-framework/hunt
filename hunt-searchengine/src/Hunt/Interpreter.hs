@@ -5,6 +5,8 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RankNTypes                 #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -45,14 +47,15 @@ import qualified Data.Set                      as S
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
 import qualified Data.Traversable              as TV
+import           Control.Monad.Parallel (MonadParallel)
 
 import           Hunt.Common.ApiDocument       as ApiDoc
 import           Hunt.Common.BasicTypes        (Context, URI)
 import qualified Hunt.Common.DocDesc           as DocDesc
 import qualified Hunt.Common.DocIdSet          as DocIdSet
 import           Hunt.Common.Document          (Document (..))
-import           Hunt.ContextIndex             (ContextIndex (..), ContextMap)
-import qualified Hunt.ContextIndex             as CIx
+import           Hunt.ContextIndex1            (ContextIndex)
+import qualified Hunt.ContextIndex1            as CIx
 import           Hunt.DocTable                 (DocTable)
 import qualified Hunt.DocTable                 as DocTable
 import           Hunt.DocTable.HashedDocTable
@@ -70,6 +73,7 @@ import           Hunt.Query.Intermediate       (ScoredWords,
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Processor          (ProcessConfig (..),
                                                 initProcessor,
+                                                mkQueryIndex,
                                                 processQueryScoredDocs,
                                                 processQueryScoredWords,
                                                 processQueryUnScoredDocs)
@@ -389,7 +393,7 @@ execDeleteContext cx ixx
 
 execInsertList :: DocTable dt
                 => [ApiDocument] -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
-execInsertList docs ixx@(ContextIndex ix _dt)
+execInsertList docs ixx
     = do -- existence check for all referenced contexts in all docs
          checkContextsExistence contexts ixx
 
@@ -414,8 +418,8 @@ execInsertList docs ixx@(ContextIndex ix _dt)
       -- and break index data into words by applying the scanner
       -- given by the schema spec for the appropriate contexts
       docsAndWords
-          = L.map ( (\ (d, _dw, ws) -> (d, ws))
-                    . toDocAndWords (CIx.mapToSchema ix)
+           = L.map ( (\ (d, _dw, ws) -> (d, ws))
+                    . toDocAndWords (CIx.schema ixx)
                     . (\ d -> d {adDescr = DocDesc.deleteNull $ adDescr d})
                   )
             $ docs
@@ -445,9 +449,9 @@ execInsertList docs ixx@(ContextIndex ix _dt)
 execUpdate :: DocTable dt
            => ApiDocument -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 
-execUpdate doc ixx@(ContextIndex ix dt)
+execUpdate doc ixx
     = do checkContextsExistence contexts ixx
-         docIdM <- lift $ DocTable.lookupByURI (uri docs) dt
+         docIdM <- lift $ DocTable.lookupByURI (uri docs) (CIx.docTable ixx)
          case docIdM of
            Just docId
                -> do ixx' <- lift
@@ -459,7 +463,7 @@ execUpdate doc ixx@(ContextIndex ix dt)
       contexts
           = M.keys $ adIndex doc
       (docs, _dw, ws)
-          = toDocAndWords (CIx.mapToSchema ix) doc
+          = toDocAndWords (CIx.schema ixx) doc
 
 
 -- | Test whether the contexts are present and otherwise throw an error.
@@ -486,10 +490,9 @@ checkApiDocExistence switch apidoc ixx
     = do let u = adUri apidoc
          mem <- CIx.member u ixx
          unless' (switch == mem)
-           409 ( ( if mem
+           409 ( if mem
                    then "document already exists: "
                    else "document does not exist: "
-                 ) <> u
                )
 
 execSearch :: DocTable dt =>
@@ -499,12 +502,12 @@ execSearch :: DocTable dt =>
               ContextIndex dt ->
               Hunt dt CmdResult
 
-execSearch q offset mx wg fields (ContextIndex ix dt)
+execSearch q offset mx wg fields ixx
     = do debugM ("execSearch: " ++ show q)
          cfg    <- asks huntQueryCfg
          scDocs <- liftHunt $
-                   runQueryScoredDocsM ix cfg q
-         formatPage <$> toDocsResult dt scDocs
+                   runQueryScoredDocsM ixx cfg q
+         formatPage <$> toDocsResult (CIx.docTable ixx) scDocs
     where
       formatPage ds
           = ResSearch $
@@ -523,19 +526,19 @@ execCompletion :: DocTable dt =>
                   Query ->
                   Int ->
                   ContextIndex dt -> Hunt dt CmdResult
-execCompletion q mx (ContextIndex ix _dt)
+execCompletion q mx ixx
     = do debugM ("execCompletion: " ++ show q)
          cfg     <- asks huntQueryCfg
          scWords <- liftHunt $
-                    runQueryScoredWordsM ix cfg q
+                    runQueryScoredWordsM ixx cfg q
          return $ ResSuggestion $ toWordsResult mx scWords
 
 
 execSelect :: DocTable dt => Query -> ContextIndex dt -> Hunt dt CmdResult
-execSelect q (ContextIndex ix dt)
+execSelect q ixx
     = do debugM ("execSelect: " ++ show q)
-         res <- liftHunt $ runQueryUnScoredDocsM ix queryConfigDocIds q
-         dt' <- DocTable.restrict (unScoredDocsToDocIdSet res) dt
+         res <- liftHunt $ runQueryUnScoredDocsM ixx queryConfigDocIds q
+         dt' <- DocTable.restrict (unScoredDocsToDocIdSet res) (CIx.docTable ixx)
          djs <- DocTable.toJSON'DocTable dt'
          return $ ResGeneric djs
 
@@ -566,10 +569,10 @@ execDeleteDocs d ix
 -- | Delete all documents matching the query.
 
 execDeleteByQuery :: DocTable dt => Query -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
-execDeleteByQuery q ixx@(ContextIndex ix _dt)
+execDeleteByQuery q ixx
     = do debugM ("execDeleteByQuery: " ++ show q)
          ds <- unScoredDocsToDocIdSet <$>
-               (liftHunt $ runQueryUnScoredDocsM ix queryConfigDocIds q)
+               (liftHunt $ runQueryUnScoredDocsM ixx queryConfigDocIds q)
          if DocIdSet.null ds
            then do debugM "DeleteByQuery: Query result set empty"
                    return (ixx, ResOK)
@@ -604,31 +607,7 @@ execStore filename x = do
 --   time. This is still possible if a read operation lasts as long as loading the index.
 
 execLoad :: (Binary dt, DocTable dt) => FilePath -> Hunt dt CmdResult
-execLoad filename = do
-  ts <- asks huntTypes
-  let ix = map ctIxImpl ts
-  modIxLocked $ \_ -> do
-    ixh@(ContextIndex ixs _) <- decodeFile' ix filename
-    ls <- TV.mapM reloadSchema $ CIx.cxMap ixs
-    return (ixh{ ciIndex = CIx.mkContextMap ls }, ResOK)
-  where
-  decodeFile' ts f = do
-    res <- liftIO . tryIOError $ CIx.decodeCxIx ts <$> BL.readFile f
-    case res of
-      Left  e
-          | isAlreadyInUseError e -> throwResError 409 $ "Cannot load index: file already in use"
-          | isDoesNotExistError e -> throwResError 404 $ "Cannot load index: file does not exist"
-          | isPermissionError   e -> throwResError 403 $ "Cannot load index: no access permission to file"
-          | otherwise             -> throwResError 500 $ showText e
-      Right r -> return r
-
-  reloadSchema (s,ix) = do
-    cxt <- askType . ctName . cxType $ s
-    ns  <- mapM (askNormalizer . cnName) (cxNormalizer s)
-    return $ ( s { cxType       = cxt
-                 , cxNormalizer = ns
-                 }
-             , ix )
+execLoad filename = undefined
 
 -- ------------------------------------------------------------
 
@@ -636,38 +615,37 @@ execLoad filename = do
 
 -- for scored docs (DocIdMap with scores)
 
-runQueryScoredDocsM :: ContextMap
+runQueryScoredDocsM :: ContextIndex dt
                     -> ProcessConfig
                     -> Query
                     -> IO (Either CmdError ScoredDocs)
 runQueryScoredDocsM ix cfg q
     = processQueryScoredDocs st q
       where
-        st = initProcessor cfg ix
-
+        st = initProcessor cfg (mkQueryIndex ix)
 
 -- for unscored docs (DocIdSet), usually called with 'queryConfigDocIds'
 
-runQueryUnScoredDocsM :: ContextMap
+runQueryUnScoredDocsM :: ContextIndex dt
                     -> ProcessConfig
                     -> Query
                     -> IO (Either CmdError UnScoredDocs)
 runQueryUnScoredDocsM ix cfg q
     = processQueryUnScoredDocs st q
       where
-        st = initProcessor cfg ix
+        st = initProcessor cfg (mkQueryIndex ix)
 
 
 -- for scored docs (DocIdMap with scores
 
-runQueryScoredWordsM :: ContextMap
+runQueryScoredWordsM :: ContextIndex dt
                      -> ProcessConfig
                      -> Query
                      -> IO (Either CmdError ScoredWords)
 runQueryScoredWordsM ix cfg q
     = processQueryScoredWords st q
       where
-        st = initProcessor cfg ix
+        st = initProcessor cfg (mkQueryIndex ix)
 
 
 -- | Query config for \"delete by query\".
@@ -694,22 +672,22 @@ execStatus StatusGC
 execStatus StatusDocTable
     = withIx dumpDocTable
       where
-        dumpDocTable (ContextIndex _ix dt)
+        dumpDocTable ixx
             = ResGeneric <$>
-              DocTable.toJSON'DocTable dt
+              DocTable.toJSON'DocTable (CIx.docTable ixx)
 
 execStatus (StatusContext cx)
     = withIx dumpContext
       where
-        dumpContext (ContextIndex ix _dt)
+        dumpContext ixx
             = (ResGeneric . object . map (uncurry (.=)) . map (second searchResultToOccurrences)) <$>
-              CIx.lookupAllWithCx cx ix
+              liftIO (CIx.lookupAllWithCx cx ixx)
 
 execStatus (StatusIndex {- context -})
   = withIx _dumpIndex
     where
       -- context = "type"
-      _dumpIndex (ContextIndex _ix _dt)
+      _dumpIndex ixx
           = throwResError 501 $ "status of Index not yet implemented"
 
 -- ------------------------------------------------------------
