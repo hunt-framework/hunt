@@ -125,7 +125,7 @@ html-hunter: sandbox
 	cd html-hunter && cabal $(action) $(PROFOPTS) $(pattern)
 
 test:
-	cd hunt-searchengine && cabal install --enable-tests   --enable-library-coverage
+	cd hunt-searchengine && cabal install --enable-tests   --enable-coverage
 	cd hunt-searchengine && cabal configure --enable-tests --enable-library-coverage && cabal test
 
 test-strict:
