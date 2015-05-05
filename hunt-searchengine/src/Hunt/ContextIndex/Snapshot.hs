@@ -12,6 +12,9 @@ snapshot ixx = (old, snapshot' ixx)
   where
     old = head (ciIndex ixx)
 
+snapshotM :: Monad m => ContextIndex dt -> m (ContextMap, ContextIndex dt)
+snapshotM = return . snapshot
+
 snapshot' :: ContextIndex dt -> ContextIndex dt
 snapshot' ixx = ixx { ciIndex = cm : ciIndex ixx }
   where

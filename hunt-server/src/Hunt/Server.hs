@@ -267,6 +267,9 @@ start config = do
       filename  <- param "filename"
       eval $ cmdLoadIndex filename
 
+    get "/index/snapshot" $ do
+      eval cmdSnapshot
+
     -- status commands
     get "/status/gc" $ do
       eval $ cmdStatus StatusGC            -- garbage collector status

@@ -90,6 +90,9 @@ data Command
   -- | Sequence commands.
   | Sequence      { icCmdSeq :: [Command] }
 
+  -- | Create an index snapshot.
+  | Snapshot
+
   -- | No operation. Can be used in control flow and as an alive test.
   | NOOP
   deriving (Show)
@@ -192,6 +195,7 @@ instance ToJSON Command where
     Status  sc        -> object . cmd "status"         $ [ "status"   .= sc ]
     NOOP              -> object . cmd "noop"           $ []
     Sequence cs       -> toJSON cs
+    Snapshot          -> object . cmd "snapshot"       $ []
     where
     cmd c = (:) ("cmd" .= (c :: Text))
 
@@ -222,6 +226,7 @@ instance FromJSON Command where
       "store"          -> StoreIx       <$> o .: "path"
       "noop"           -> return NOOP
       "status"         -> Status        <$> o .: "status"
+      "snapshot"       -> return Snapshot
       _                -> mzero
 
   parseJSON v          =  Sequence      <$> parseJSON v
@@ -302,6 +307,7 @@ toBasicCommand (LoadIx a)          = Cmd.LoadIx a
 toBasicCommand (StoreIx a)         = Cmd.StoreIx a
 toBasicCommand (Status a)          = Cmd.Status a
 toBasicCommand (NOOP)              = Cmd.NOOP
+toBasicCommand (Snapshot)          = Cmd.Snapshot
 
 -- | Splits big batch inserts to smaller ones with at most @n@ elements.
 --   This can avoid running out of memory for large 'InsertList's.

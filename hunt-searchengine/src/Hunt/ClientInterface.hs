@@ -59,6 +59,7 @@ module Hunt.ClientInterface
     , cmdStatus
     , cmdSequence
     , cmdNOOP
+    , cmdSnapshot
 
     -- ** configuration options for search and completion
     , setSelectedFields
@@ -265,6 +266,9 @@ cmdSequence cs  = Sequence cs
 
 cmdNOOP :: Command
 cmdNOOP = NOOP
+
+cmdSnapshot :: Command
+cmdSnapshot = Snapshot
 
 -- ------------------------------------------------------------
 

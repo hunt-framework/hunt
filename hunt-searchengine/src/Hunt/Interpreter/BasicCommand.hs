@@ -78,6 +78,10 @@ data BasicCommand
 
   -- | Sequence commands.
   | Sequence      { icCmdSeq :: [BasicCommand] }
+
+  -- | Creates an index snapshot.
+  | Snapshot
+
   -- | No operation. Can be used in control flow and as an alive test.
   | NOOP
   deriving (Show)

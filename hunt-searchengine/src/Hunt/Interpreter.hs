@@ -341,6 +341,8 @@ execCmd' (InsertContext cx ct)
 execCmd' (DeleteContext cx)
   = modIx $ execDeleteContext cx
 
+execCmd' Snapshot
+  = modIx $ execSnapshot
 -- ------------------------------------------------------------
 
 -- | Execute a sequence of commands.
@@ -608,6 +610,11 @@ execStore filename x = do
 
 execLoad :: (Binary dt, DocTable dt) => FilePath -> Hunt dt CmdResult
 execLoad filename = undefined
+
+execSnapshot :: DocTable dt => ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
+execSnapshot ixx
+  = do (_, ixx') <- CIx.snapshotM ixx
+       return (ixx', ResOK)
 
 -- ------------------------------------------------------------
 

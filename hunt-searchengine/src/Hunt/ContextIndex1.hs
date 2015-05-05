@@ -29,6 +29,10 @@ module Hunt.ContextIndex1 (
   , deleteDocsByURI
   , member
 
+    -- * Snapshot index
+  , snapshot
+  , snapshotM
+
   , ContextIndex
   , schema
   , docTable
@@ -39,10 +43,11 @@ import           Hunt.Common.BasicTypes
 import           Hunt.ContextIndex.Delete
 import           Hunt.ContextIndex.Insert
 import           Hunt.ContextIndex.Search
+import           Hunt.ContextIndex.Snapshot
 import           Hunt.ContextIndex.Types
+import           Hunt.DocTable (DocTable)
 import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Index.Schema
-import Hunt.DocTable (DocTable)
 
 import qualified Data.Map.Strict as Map
 
