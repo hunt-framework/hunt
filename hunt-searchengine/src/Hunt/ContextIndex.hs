@@ -50,11 +50,12 @@ import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Index.Schema
 
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 
 insertContext :: Context -> Ix.IndexImpl -> ContextSchema
                  -> ContextIndex dt -> ContextIndex dt
 insertContext cx ix schema ixx
-  = ixx { ciIndex  = mapHead (insertContext' cx ix) (ciIndex ixx)
+  = ixx { ciIndex  = insertContext' cx ix (ciIndex ixx)
         , ciSchema = Map.insertWith (const id) cx schema (ciSchema ixx)
         }
 
@@ -64,8 +65,9 @@ insertContext' cx ix
 
 deleteContext :: Context -> ContextIndex dt -> ContextIndex dt
 deleteContext cx ixx
-  = ixx { ciIndex  = mapHead (deleteContext' cx) (ciIndex ixx)
-        , ciSchema = Map.delete cx (ciSchema ixx)
+  = ixx { ciIndex     = deleteContext' cx (ciIndex ixx)
+        , ciSnapshots = fmap (snDiffContexts (Set.singleton cx)) (ciSnapshots ixx)
+        , ciSchema    = Map.delete cx (ciSchema ixx)
         }
 
 deleteContext' :: Context -> ContextMap -> ContextMap

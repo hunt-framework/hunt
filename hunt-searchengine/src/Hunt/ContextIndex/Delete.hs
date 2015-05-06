@@ -7,6 +7,7 @@ module Hunt.ContextIndex.Delete(
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet (DocIdSet)
 import           Hunt.Common.DocIdSet as DocIdSet
+import           Hunt.ContextIndex.Snapshot
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as DocTable
@@ -44,9 +45,9 @@ delete dIds ixx
 
 delete' :: (Monad m, Par.MonadParallel m) => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
 delete' dIds ixx
-  = do ix' <- mapHeadM delIx (ciIndex ixx)
-       return ixx { ciIndex = ix'
-                  , ciDeleted = dIds `DocIdSet.union` (ciDeleted ixx)
+  = do ix' <- delIx (ciIndex ixx)
+       return ixx { ciIndex     = ix'
+                  , ciSnapshots = fmap (snDiffDocs dIds) (ciSnapshots ixx)
                   }
     where
       delIx (ContextMap m)

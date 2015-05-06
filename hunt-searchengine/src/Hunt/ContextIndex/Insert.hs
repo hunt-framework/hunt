@@ -52,9 +52,9 @@ insertList docAndWords ixx
          -- union doctables and docid-words pairs
          (newDt, docIdsAndWords) <- unionDocTables tablesAndWords (ciDocs ixx)
          -- insert words to index
-         newIx <- batchAddWordsM docIdsAndWords (head (ciIndex ixx))
+         newIx <- batchAddWordsM docIdsAndWords (ciIndex ixx)
 
-         return $! ixx { ciIndex = newIx : (tail (ciIndex ixx))
+         return $! ixx { ciIndex = newIx
                        , ciDocs  = newDt
                        }
 
@@ -137,8 +137,8 @@ modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
 modifyWithDescription weight descr wrds dId ixx
     = do ixx'        <- delete' (DocIdSet.singleton dId) ixx -- mark dId as deleted in snapshots
          newDocTable <- Dt.adjust mergeDescr dId (ciDocs ixx')
-         newIndex    <- batchAddWordsM [(dId,wrds)] (head (ciIndex ixx'))
-         return ixx' { ciIndex = newIndex : tail (ciIndex ixx')
+         newIndex    <- batchAddWordsM [(dId,wrds)] (ciIndex ixx')
+         return ixx' { ciIndex = newIndex
                      , ciDocs  = newDocTable
                      }
 

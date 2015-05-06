@@ -425,3 +425,16 @@ scoredSearchResultToUnScoredDocs (SCD s (RSD (SDS x)))
   = boost s . scoredDocsToUnScoredDocs $ x
 
 -- ------------------------------------------------------------
+
+srDiffDocs :: DocIdSet -> SearchResult -> SearchResult
+srDiffDocs dIds sr
+  | DS.null dIds = sr
+  | otherwise     = case sr of
+                     ROC (OCC occ') -> ROC (OCC (Occ.diffWithSet occ' dIds))
+                     RSD (SDS sds)  -> RSD (SDS (DM.diffWithSet sds dIds ))
+                     RUD (UDS uds)  -> RUD (UDS (DS.difference uds dIds))
+
+srNull :: SearchResult -> Bool
+srNull (ROC (OCC occ')) = Occ.null occ'
+srNull (RSD (SDS sds))  = DM.null sds
+srNull (RUD (UDS uds))  = DS.null uds
