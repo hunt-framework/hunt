@@ -3,17 +3,13 @@ module Hunt.ContextIndex.Types where
 
 import           Data.Binary
 import           Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
 import           Data.Monoid
 import           Data.Set (Set)
-import           Data.Word (Word32)
-
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet (DocIdSet)
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as DocTable
-import qualified Hunt.Index as Ix
 import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Index.Schema
 
@@ -29,7 +25,7 @@ data ContextIndex dt
                  }
 
 newtype SnapshotId
-  = SnapshotId { unSnapshotId :: Word32 }
+  = SnapshotId Int
     deriving (Enum, Eq, Ord, Show)
 
 data Snapshot
@@ -54,8 +50,11 @@ empty
                  , ciDocs      = DocTable.empty
                  }
 
-newContextMap :: Schema -> ContextMap
-newContextMap = ContextMap . Map.map (newIx . ctIxImpl . cxType)
-  where
-    newIx :: Ix.IndexImpl -> Ix.IndexImpl
-    newIx (Ix.IndexImpl i) = Ix.mkIndex (Ix.empty `asTypeOf` i)
+mapHead :: (a -> a) -> [a] -> [a]
+mapHead f xs
+  = let y = f (head xs) in y `seq` y : tail xs
+
+mapHeadM :: Monad m => (a -> m a) -> [a] -> m [a]
+mapHeadM f xs
+  = do a' <- f (head xs)
+       return (a' `seq` a' : tail xs)
