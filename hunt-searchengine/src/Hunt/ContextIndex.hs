@@ -32,6 +32,10 @@ module Hunt.ContextIndex (
     -- * Snapshot index
   , snapshot
   , snapshotM
+  , readSnapshots
+  , writeSnapshot
+
+  , loadCxIx
 
   , ContextIndex
   , schema
@@ -42,8 +46,10 @@ module Hunt.ContextIndex (
 import           Hunt.Common.BasicTypes
 import           Hunt.ContextIndex.Delete
 import           Hunt.ContextIndex.Insert
+import           Hunt.ContextIndex.Persistence
 import           Hunt.ContextIndex.Search
 import           Hunt.ContextIndex.Snapshot
+import           Hunt.ContextIndex.Snapshot.ReadWrite
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.Index.IndexImpl as Ix

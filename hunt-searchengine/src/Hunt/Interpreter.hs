@@ -612,7 +612,8 @@ execLoad filename = undefined
 
 execSnapshot :: DocTable dt => ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 execSnapshot ixx
-  = do (_, ixx') <- CIx.snapshotM ixx
+  = do (snapshot, ixx') <- CIx.snapshotM ixx
+       CIx.writeSnapshot snapshot "."
        return (ixx', ResOK)
 
 -- ------------------------------------------------------------

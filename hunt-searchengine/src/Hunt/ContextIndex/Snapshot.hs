@@ -1,17 +1,28 @@
 module Hunt.ContextIndex.Snapshot where
 
-import qualified Data.Map.Strict as Map
-import           Data.Monoid
-import           Data.Set (Set)
-import qualified Data.Set as Set
-
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet (DocIdSet)
 import qualified Hunt.Common.DocIdSet as DocIdSet
+import           Hunt.ContextIndex.Snapshot.Files
 import           Hunt.ContextIndex.Types
 import qualified Hunt.Index as Ix
 import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Index.Schema
+
+import           Control.Monad
+import           Control.Monad.IO.Class
+import           Data.Binary
+import           Data.Binary.Get (Get)
+import qualified Data.Binary.Get as Get
+import           Data.Binary.Put (Put)
+import qualified Data.Binary.Put as Put
+import qualified Data.ByteString.Lazy as LByteString
+import qualified Data.Map.Strict as Map
+import           Data.Monoid
+import           Data.Set (Set)
+import qualified Data.Set as Set
+import           System.FilePath
+import           Text.Printf
 
 zero :: SnapshotId
 zero = SnapshotId 0
@@ -25,30 +36,18 @@ snapshotM :: Monad m => ContextIndex dt -> m (Snapshot, ContextIndex dt)
 snapshotM = return . snapshot
 
 snapshot' :: ContextIndex dt -> ContextIndex dt
-snapshot' ixx = ixx { ciIndex     = cm
+snapshot' ixx = ixx { ciIndex     = newContextMap (ciSchema ixx)
                     , ciSnapshots = sn : ciSnapshots ixx
                     }
   where
-    sn
-      = Snapshot { snId              = sid
-                 , snDeletedDocs     = mempty
-                 , snDeletedContexts = mempty
-                 , snContextMap      = ciIndex ixx
-                 }
-
-    sid
-      = case ciSnapshots ixx of
-         (s:_) -> succ (snId s)
-         _     -> succ zero
-
-    cm
-      = newContextMap (ciSchema ixx)
-
-newContextMap :: Schema -> ContextMap
-newContextMap = ContextMap . Map.map (newIx . ctIxImpl . cxType)
-  where
-    newIx :: Ix.IndexImpl -> Ix.IndexImpl
-    newIx (Ix.IndexImpl i) = Ix.mkIndex (Ix.empty `asTypeOf` i)
+    sn = Snapshot { snId              = sid
+                  , snDeletedDocs     = mempty
+                  , snDeletedContexts = mempty
+                  , snContextMap      = ciIndex ixx
+                  }
+    sid = case ciSnapshots ixx of
+           (s:_) -> succ (snId s)
+           _     -> succ zero
 
 snDiffDocs :: DocIdSet -> Snapshot -> Snapshot
 snDiffDocs dIds sn

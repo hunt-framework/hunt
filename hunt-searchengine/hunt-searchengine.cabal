@@ -31,16 +31,17 @@ source-repository head
 
 library
 
-  build-depends: base                   >= 4.5     && < 5
-               , aeson                  >= 0.6
+  build-depends: aeson                  >= 0.6
                , aeson-pretty           >= 0.7
+               , base                   >= 4.5     && < 5
                , binary                 >= 0.5     && < 1
                , bytestring                           < 1
                , containers             >= 0.5
+               , data-default
                , data-r-tree            >= 0.0.5.0
                , data-stringmap         >= 1.0.1.1 && < 2
-               , data-default
                , deepseq                >= 1.2
+               , directory
                , dlist
                , filepath               >= 1
                , hslogger               >= 1       && < 2
@@ -101,8 +102,11 @@ library
     Hunt.ContextIndex
     Hunt.ContextIndex.Delete
     Hunt.ContextIndex.Insert
+    Hunt.ContextIndex.Persistence
     Hunt.ContextIndex.Search                                          
     Hunt.ContextIndex.Snapshot
+    Hunt.ContextIndex.Snapshot.Files
+    Hunt.ContextIndex.Snapshot.ReadWrite
     Hunt.ContextIndex.Types
 
     Hunt.Interpreter
@@ -156,25 +160,27 @@ test-suite Hunt-Tests
   ghc-options:          -Wall
   extensions:           OverloadedStrings
 
-  build-depends: base
-               , containers
-               , HUnit
+  build-depends: HUnit
                , QuickCheck
+               , aeson
+               , base
+               , binary
+               , containers
+               , data-default
+               , data-r-tree
+               , directory
+               , directory
+               , either
+               , hunt-searchengine
+               , monad-parallel
+               , mtl
+               , old-locale
+               , random
                , test-framework
                , test-framework-hunit
                , test-framework-quickcheck2
                , text
-               , old-locale
                , time
-               , aeson
-               , binary
-               , hunt-searchengine
-               , mtl
-               , random
-               , directory
-               , data-default
-               , data-r-tree
-               , monad-parallel
 
 test-suite Hunt-Strictness
    hs-source-dirs:       test
