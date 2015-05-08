@@ -29,20 +29,22 @@ module Hunt.ContextIndex (
   , deleteDocsByURI
   , member
 
-    -- * Snapshot index
-  , snapshot
-  , snapshotM
+    -- * Documents
+  , lookupDocumentByURI
+  , lookupDocument
+  , selectDocuments
 
   , ContextIndex
   , schema
-  , docTable
 
   ) where
 
 import           Hunt.Common.BasicTypes
 import           Hunt.ContextIndex.Delete
+import           Hunt.ContextIndex.Documents
 import           Hunt.ContextIndex.Insert
 import           Hunt.ContextIndex.Search
+import           Hunt.ContextIndex.Segment
 import           Hunt.ContextIndex.Snapshot
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable)
@@ -55,9 +57,7 @@ import qualified Data.Set as Set
 insertContext :: Context -> Ix.IndexImpl -> ContextSchema
                  -> ContextIndex dt -> ContextIndex dt
 insertContext cx ix schema ixx
-  = ixx { ciIndex  = insertContext' cx ix (ciIndex ixx)
-        , ciSchema = Map.insertWith (const id) cx schema (ciSchema ixx)
-        }
+  = ixx { ciSchema = Map.insertWith (const id) cx schema (ciSchema ixx) }
 
 insertContext' :: Context -> Ix.IndexImpl -> ContextMap -> ContextMap
 insertContext' cx ix
@@ -65,9 +65,8 @@ insertContext' cx ix
 
 deleteContext :: Context -> ContextIndex dt -> ContextIndex dt
 deleteContext cx ixx
-  = ixx { ciIndex     = deleteContext' cx (ciIndex ixx)
-        , ciSnapshots = fmap (snDiffContexts (Set.singleton cx)) (ciSnapshots ixx)
-        , ciSchema    = Map.delete cx (ciSchema ixx)
+  = ixx { ciSegments = mapIxs' (segmentDeleteContext cx) ixx
+        , ciSchema   = Map.delete cx (ciSchema ixx)
         }
 
 deleteContext' :: Context -> ContextMap -> ContextMap
@@ -92,6 +91,3 @@ hasContextM cx
 
 schema :: ContextIndex dt -> Schema
 schema = ciSchema
-
-docTable :: ContextIndex dt -> dt
-docTable = ciDocs

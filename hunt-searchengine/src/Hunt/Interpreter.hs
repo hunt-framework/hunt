@@ -452,20 +452,19 @@ execUpdate :: DocTable dt
 
 execUpdate doc ixx
     = do checkContextsExistence contexts ixx
-         docIdM <- lift $ DocTable.lookupByURI (uri docs) (CIx.docTable ixx)
+         docIdM <- CIx.lookupDocumentByURI (uri docs) ixx
          case docIdM of
-           Just docId
-               -> do ixx' <- lift
-                             $ CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
-                     return (ixx', ResOK)
-           Nothing
-               -> throwResError 409 $ "document for update not found: " `T.append` uri docs
-    where
+          Just docId
+            -> do ixx' <- lift
+                          $ CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
+                  return (ixx', ResOK)
+          Nothing
+            -> throwResError 409 $ "document for update not found: " `T.append` uri docs
+  where
       contexts
           = M.keys $ adIndex doc
       (docs, _dw, ws)
           = toDocAndWords (CIx.schema ixx) doc
-
 
 -- | Test whether the contexts are present and otherwise throw an error.
 
@@ -489,7 +488,7 @@ checkApiDocExistence :: DocTable dt
                      => Bool -> ApiDocument -> ContextIndex dt -> Hunt dt ()
 checkApiDocExistence switch apidoc ixx
     = do let u = adUri apidoc
-         mem <- CIx.member u ixx
+         mem <- liftIO $ CIx.member u ixx
          unless' (switch == mem)
            409 ( if mem
                    then "document already exists: "
@@ -508,7 +507,7 @@ execSearch q offset mx wg fields ixx
          cfg    <- asks huntQueryCfg
          scDocs <- liftHunt $
                    runQueryScoredDocsM ixx cfg q
-         formatPage <$> toDocsResult (CIx.docTable ixx) scDocs
+         formatPage <$> toDocsResult (CIx.lookupDocument ixx) scDocs
     where
       formatPage ds
           = ResSearch $
@@ -539,7 +538,7 @@ execSelect :: DocTable dt => Query -> ContextIndex dt -> Hunt dt CmdResult
 execSelect q ixx
     = do debugM ("execSelect: " ++ show q)
          res <- liftHunt $ runQueryUnScoredDocsM ixx queryConfigDocIds q
-         dt' <- DocTable.restrict (unScoredDocsToDocIdSet res) (CIx.docTable ixx)
+         dt' <- CIx.selectDocuments ixx (unScoredDocsToDocIdSet res)
          djs <- DocTable.toJSON'DocTable dt'
          return $ ResGeneric djs
 
@@ -612,8 +611,7 @@ execLoad filename = undefined
 
 execSnapshot :: DocTable dt => ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 execSnapshot ixx
-  = do (_, ixx') <- CIx.snapshotM ixx
-       return (ixx', ResOK)
+  = do undefined
 
 -- ------------------------------------------------------------
 
@@ -679,8 +677,8 @@ execStatus StatusDocTable
     = withIx dumpDocTable
       where
         dumpDocTable ixx
-            = ResGeneric <$>
-              DocTable.toJSON'DocTable (CIx.docTable ixx)
+            = ResGeneric <$> undefined
+              -- DocTable.toJSON'DocTable (CIx.docTable ixx)
 
 execStatus (StatusContext cx)
     = withIx dumpContext

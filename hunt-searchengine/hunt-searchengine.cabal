@@ -100,9 +100,10 @@ library
 
     Hunt.ContextIndex
     Hunt.ContextIndex.Delete
+    Hunt.ContextIndex.Documents              
     Hunt.ContextIndex.Insert
     Hunt.ContextIndex.Search                                          
-    Hunt.ContextIndex.Snapshot
+    Hunt.ContextIndex.Segment
     Hunt.ContextIndex.Types
 
     Hunt.Interpreter

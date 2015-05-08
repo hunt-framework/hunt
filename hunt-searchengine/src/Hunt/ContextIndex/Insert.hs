@@ -28,7 +28,7 @@ import           Control.Monad
 import qualified Control.Monad.Parallel as Par
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-
+import Data.Monoid
 
 {-
 -- | Insert a Document and Words.
@@ -48,15 +48,28 @@ insertList :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
 insertList docAndWords ixx
     = do -- insert to doctable and generate docId
          tablesAndWords <- Par.mapM createDocTableFromPartition
-                         $ partitionListByLength 20 docAndWords
-         -- union doctables and docid-words pairs
-         (newDt, docIdsAndWords) <- unionDocTables tablesAndWords (ciDocs ixx)
-         -- insert words to index
-         newIx <- batchAddWordsM docIdsAndWords (ciIndex ixx)
+                           $ partitionListByLength 20 docAndWords
 
-         return $! ixx { ciIndex = newIx
-                       , ciDocs  = newDt
-                       }
+         -- union doctables and docid-words pairs
+         (newDt, docIdsAndWords) <- unionDocTables tablesAndWords Dt.empty
+
+         -- insert words to index
+         newIx <- batchAddWordsM docIdsAndWords (newContextMap (ciSchema ixx))
+
+         let newSeg = Segment { segId          = newSegId
+                              , segIndex       = newIx
+                              , segDocs        = newDt
+                              , segIsDirty     = False
+                              , segDeletedDocs = mempty
+                              , segDeletedCxs  = mempty
+                              }
+
+         return $! ixx { ciSegments = newSeg : ciSegments ixx }
+  where
+    newSegId
+      = case ciSegments ixx of
+         []    -> SegmentId 0
+         (x:_) -> succ (segId x)
 
 -- takes list of documents with wordlist. creates new 'DocTable' and
 -- inserts each document of the list into it.
@@ -136,19 +149,21 @@ modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
                          m (ContextIndex dt)
 modifyWithDescription weight descr wrds dId ixx
     = do ixx'        <- delete' (DocIdSet.singleton dId) ixx -- mark dId as deleted in snapshots
-         newDocTable <- Dt.adjust mergeDescr dId (ciDocs ixx')
-         newIndex    <- batchAddWordsM [(dId,wrds)] (ciIndex ixx')
-         return ixx' { ciIndex = newIndex
-                     , ciDocs  = newDocTable
-                     }
+         return undefined
 
-    where
+--         newDocTable <- Dt.adjust mergeDescr dId (ciDocs ixx')
+--         newIndex    <- batchAddWordsM [(dId,wrds)] (ciIndex ixx')
+--         return ixx' { ciIndex = newIndex
+--                     , ciDocs  = newDocTable
+--                     }
+
+  --  where
       -- M.union is left-biased
       -- flip to use new values for existing keys
       -- no flip to keep old values
       --
       -- Null values in new descr will remove associated attributes
-      mergeDescr
+{-      mergeDescr
           = return . Doc.update (updateWeight . updateDescr)
           where
             updateWeight d
@@ -164,3 +179,4 @@ modifyWithDescription weight descr wrds dId ixx
                                                  desc d
                                         descr' = -- trc "updateDescr new=" $
                                                  descr
+-}

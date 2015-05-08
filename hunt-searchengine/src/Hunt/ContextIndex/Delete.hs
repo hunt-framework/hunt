@@ -7,6 +7,7 @@ module Hunt.ContextIndex.Delete(
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet (DocIdSet)
 import           Hunt.Common.DocIdSet as DocIdSet
+import           Hunt.ContextIndex.Segment
 import           Hunt.ContextIndex.Snapshot
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable)
@@ -20,6 +21,7 @@ import qualified Control.Monad.Parallel as Par
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Maybe
+import           Data.Monoid
 import           Data.Set (Set)
 import qualified Data.Set as Set
 
@@ -27,11 +29,12 @@ import qualified Data.Set as Set
 -- | Delete a set of documents by 'URI'.
 deleteDocsByURI :: (Par.MonadParallel m, Applicative m, DocTable dt)
                 => Set URI -> ContextIndex dt -> m (ContextIndex dt)
-deleteDocsByURI us ixx = do
-  docIds <- liftM (DocIdSet.fromList . catMaybes)
-            . mapM (flip DocTable.lookupByURI (ciDocs ixx))
-            . Set.toList $ us
-  delete docIds ixx
+deleteDocsByURI us ixx
+  = do dIdsx <- mapIxsP (\seg ->
+                          do raw <- mapM (\uri -> DocTable.lookupByURI uri (segDocs seg)) (Set.toList us)
+                             return (DocIdSet.fromList (catMaybes raw))
+                        ) ixx
+       delete (mconcat dIdsx) ixx
 
 -- | Delete a set of documents by 'DocId'.
 delete :: (Par.MonadParallel m, Applicative m, DocTable dt)
@@ -39,30 +42,9 @@ delete :: (Par.MonadParallel m, Applicative m, DocTable dt)
 delete dIds ixx
     | DocIdSet.null dIds = return ixx
     | otherwise
-        = do  newIx <- delete' dIds ixx
-              newDt <- DocTable.difference dIds (ciDocs newIx)
-              return $ newIx { ciDocs = newDt }
+        = do delete' dIds ixx
 
-delete' :: (Monad m, Par.MonadParallel m) => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
+delete' :: Par.MonadParallel m => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
 delete' dIds ixx
-  = do ix' <- delIx (ciIndex ixx)
-       return ixx { ciIndex     = ix'
-                  , ciSnapshots = fmap (snDiffDocs dIds) (ciSnapshots ixx)
-                  }
-    where
-      delIx (ContextMap m)
-        = do m' <- mapWithKeyMP adjust' m
-             return (mkContextMap m')
-
-      adjust' _ (Ix.IndexImpl ix)
-        = do ix' <- Ix.deleteDocsM dIds ix
-             return (Ix.mkIndex ix')
-
--- TODO: duplicate
-mapWithKeyMP :: (Par.MonadParallel m, Ord k) => (k -> a -> m b) -> Map k a -> m (Map k b)
-mapWithKeyMP f m =
-  (Par.mapM (\(k, a) ->
-              do b <- f k a
-                 return (k, b)
-            ) $ Map.toAscList m) >>=
-    return . Map.fromAscList
+  = do sx <- mapIxsP (return . segmentDeleteDocs dIds) ixx
+       return ixx { ciSegments = sx }

@@ -16,6 +16,7 @@ import           Control.Applicative
 import           Control.Arrow
 import           Control.Monad
 import qualified Control.Monad.Parallel as Par
+import qualified Data.List as List
 import qualified Data.Map.Strict as Map
 import           Data.Maybe
 import           Data.Monoid
@@ -67,21 +68,14 @@ lookupIndex :: (Par.MonadParallel m) =>
                ([[r]] -> [r]) ->
                (forall i . Ix.IndexImplCon i => i -> m [r]) ->
                m [r]
-lookupIndex cx ixx filterDocs merge search
-  = do rx <- Par.mapM (\sn ->
-                        do
-                          if Set.member cx (snDeletedContexts sn)
+lookupIndex cx ixx rmDocs mergeResults search
+  = do rx <- mapIxsP (\seg ->
+                       do if Set.member cx (segDeletedCxs seg)
                             then return []
-                            else do r <- lookupIndex' cx (snContextMap sn) search
-                                    return (filterDocs (snDeletedDocs sn) r)
-                      ) (dummy:ciSnapshots ixx)
-       return (merge rx)
-  where
-    dummy = Snapshot { snId              = SnapshotId 0
-                     , snDeletedDocs     = mempty
-                     , snDeletedContexts = mempty
-                     , snContextMap      = ciIndex ixx
-                     }
+                            else do r <- lookupIndex' cx (segIndex seg) search
+                                    return (rmDocs (segDeletedDocs seg) r)
+                     ) ixx
+       return (mergeResults rx)
 
 lookupIndex' :: Monad m =>
                 Context -> ContextMap ->
@@ -97,8 +91,8 @@ merge
   = Map.toList . Map.unionsWith mappend . fmap Map.fromList
 
 -- | Is the document part of the index?
-member :: (Monad m, Applicative m, DocTable dt)
+member :: (Par.MonadParallel m, Applicative m, DocTable dt)
        => URI -> ContextIndex dt -> m Bool
 member u ixx = do
-  mem <- DocTable.lookupByURI u (ciDocs ixx)
-  return $ isJust mem
+  mems <- mapIxsP (DocTable.lookupByURI u . segDocs) ixx
+  return (List.any isJust mems)
