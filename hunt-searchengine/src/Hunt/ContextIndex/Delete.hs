@@ -18,24 +18,23 @@ import           Data.Monoid
 import           Data.Set (Set)
 import qualified Data.Set as Set
 
-
 -- | Delete a set of documents by 'URI'.
 deleteDocsByURI :: (Par.MonadParallel m, Applicative m, DocTable dt)
                 => Set URI -> ContextIndex dt -> m (ContextIndex dt)
 deleteDocsByURI us ixx
-  = do dIdsx <- mapIxsP (\seg ->
-                          do raw <- mapM (\uri -> DocTable.lookupByURI uri (segDocs seg)) (Set.toList us)
-                             return (DocIdSet.fromList (catMaybes raw))
-                        ) ixx
+  = do dIdsx <- mapIxsP docs ixx
        delete (mconcat dIdsx) ixx
+  where
+    docs seg
+      = do raw <- mapM (\uri -> DocTable.lookupByURI uri (segDocs seg)) (Set.toList us)
+           return (DocIdSet.fromList (catMaybes raw))
 
 -- | Delete a set of documents by 'DocId'.
 delete :: (Par.MonadParallel m, Applicative m, DocTable dt)
        => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
 delete dIds ixx
     | DocIdSet.null dIds = return ixx
-    | otherwise
-        = do delete' dIds ixx
+    | otherwise          = delete' dIds ixx
 
 delete' :: Par.MonadParallel m => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
 delete' dIds ixx
