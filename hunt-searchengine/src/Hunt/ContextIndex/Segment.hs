@@ -47,7 +47,7 @@ segmentDocs seg
 searchSegment :: (Monad m, Ix.HasSearchResult r) => Context -> Segment dt
                  -> (forall i. (Ix.IndexImplCon i) => i -> m [r]) -> m [r]
 searchSegment cx seg search
-  = if not (Set.member cx (segDeletedCxs seg))
+  = if Set.notMember cx (segDeletedCxs seg)
        then case Map.lookup cx (cxMap (segIndex seg)) of
              Just (Ix.IndexImpl ix)
                -> do rx <- search ix
@@ -58,10 +58,7 @@ searchSegment cx seg search
     delDocs
       = SearchResult.srDiffDocs (segDeletedDocs seg)
 
-mergeSegments :: (Monad m, DocTable dt)
-                 =>  Segment dt
-                 -> Segment dt
-                 -> m (Segment dt)
+mergeSegments :: (Monad m, DocTable dt) => Segment dt -> Segment dt -> m (Segment dt)
 mergeSegments seg1 seg2
   = undefined
 
@@ -75,7 +72,7 @@ commitSegment :: (MonadIO m, Binary dt, DocTable dt)
                  -> m ()
 commitSegment dir seg
   = liftIO $ do withFile (dir </> ixName) WriteMode $ \h ->
-                  do mapM_ (uncurry (commitIx h)) contexts
+                  mapM_ (uncurry (commitIx h)) contexts
                 withFile (dir </> docsName) WriteMode $ \h ->
                   do dt <- DocTable.difference (segDeletedDocs seg) (segDocs seg)
                      LByteString.hPut h (Put.runPut (put dt))
@@ -87,7 +84,7 @@ commitSegment dir seg
       = Printf.printf "%.10o.docs" (unSegmentId (segId seg))
 
     contexts
-      = List.filter (\cx -> not (Set.member (fst cx) (segDeletedCxs seg)))
+      = List.filter (\cx -> Set.notMember (fst cx) (segDeletedCxs seg))
         . Map.toAscList
         . cxMap
         . segIndex
