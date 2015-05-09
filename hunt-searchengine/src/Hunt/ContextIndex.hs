@@ -36,6 +36,7 @@ module Hunt.ContextIndex (
 
   , ContextIndex
   , schema
+  , commit
 
   ) where
 
@@ -51,7 +52,12 @@ import           Hunt.DocTable (DocTable)
 import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Index.Schema
 
+import           Control.Monad
+import           Control.Monad.IO.Class
+import           Data.Binary
+import qualified Data.List as List
 import qualified Data.Map.Strict as Map
+import           Data.Monoid
 import qualified Data.Set as Set
 
 insertContext :: Context -> Ix.IndexImpl -> ContextSchema
@@ -91,3 +97,18 @@ hasContextM cx
 
 schema :: ContextIndex dt -> Schema
 schema = ciSchema
+
+commit :: (Binary dt, DocTable dt, MonadIO m) => FilePath -> ContextIndex dt -> m (ContextIndex dt)
+commit dir ixx
+  = do segments' <- mapM (\s -> do when (isUnstaged s) $ do
+                                     commitSegment dir s
+                                   when (segIsDirty s) $ do
+                                     commitDirtySegment dir s
+                                   return s { segIsDirty = False }
+                         ) (ciSegments ixx)
+
+       return ixx { ciSegments   = segments'
+                  , ciUncommited = mempty
+                  }
+  where
+    isUnstaged s = Set.member (segId s) (ciUncommited ixx)

@@ -22,12 +22,13 @@ newtype ContextMap
   deriving (Show)
 
 data ContextIndex dt
-  = ContextIndex { ciSegments  :: ![Segment dt]
-                 , ciSchema    :: !Schema
+  = ContextIndex { ciSegments   :: ![Segment dt]
+                 , ciSchema     :: !Schema
+                 , ciUncommited :: !(Set SegmentId)
                  }
 
 newtype SegmentId
-  = SegmentId Int
+  = SegmentId { unSegmentId :: Int }
     deriving (Enum, Eq, Ord, Show)
 
 data Segment dt
@@ -39,25 +40,15 @@ data Segment dt
             , segDeletedCxs  :: !(Set Context)
             }
 
-newtype SnapshotId
-  = SnapshotId Int
-    deriving (Enum, Eq, Ord, Show)
-
-data Snapshot
-  = Snapshot { snId              :: !SnapshotId
-             , snDeletedDocs     :: !DocIdSet
-             , snDeletedContexts :: !(Set Context)
-             , snContextMap      :: !ContextMap
-             }
-
 instance Binary dt => Binary (ContextIndex dt) where
   get = undefined
   put = undefined
 
 empty :: DocTable dt => ContextIndex dt
 empty
-  = ContextIndex { ciSegments = mempty
-                 , ciSchema   = mempty
+  = ContextIndex { ciSegments   = mempty
+                 , ciSchema     = mempty
+                 , ciUncommited = mempty
                  }
 
 mkContextMap :: Map Context Ix.IndexImpl -> ContextMap

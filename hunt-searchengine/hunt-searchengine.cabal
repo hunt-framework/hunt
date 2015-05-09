@@ -31,15 +31,15 @@ source-repository head
 
 library
 
-  build-depends: base                   >= 4.5     && < 5
-               , aeson                  >= 0.6
+  build-depends: aeson                  >= 0.6
                , aeson-pretty           >= 0.7
+               , base                   >= 4.5     && < 5
                , binary                 >= 0.5     && < 1
                , bytestring                           < 1
                , containers             >= 0.5
+               , data-default
                , data-r-tree            >= 0.0.5.0
                , data-stringmap         >= 1.0.1.1 && < 2
-               , data-default
                , deepseq                >= 1.2
                , dlist
                , filepath               >= 1

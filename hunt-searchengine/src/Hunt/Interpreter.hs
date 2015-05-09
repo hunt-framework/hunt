@@ -452,7 +452,7 @@ execUpdate :: DocTable dt
 
 execUpdate doc ixx
     = do checkContextsExistence contexts ixx
-         docIdM <- CIx.lookupDocumentByURI (uri docs) ixx
+         docIdM <- liftIO $ CIx.lookupDocumentByURI (uri docs) ixx
          case docIdM of
           Just docId
             -> do ixx' <- lift
@@ -507,7 +507,7 @@ execSearch q offset mx wg fields ixx
          cfg    <- asks huntQueryCfg
          scDocs <- liftHunt $
                    runQueryScoredDocsM ixx cfg q
-         formatPage <$> toDocsResult (CIx.lookupDocument ixx) scDocs
+         formatPage <$> toDocsResult (liftIO . CIx.lookupDocument ixx) scDocs
     where
       formatPage ds
           = ResSearch $
@@ -533,12 +533,11 @@ execCompletion q mx ixx
                     runQueryScoredWordsM ixx cfg q
          return $ ResSuggestion $ toWordsResult mx scWords
 
-
 execSelect :: DocTable dt => Query -> ContextIndex dt -> Hunt dt CmdResult
 execSelect q ixx
     = do debugM ("execSelect: " ++ show q)
          res <- liftHunt $ runQueryUnScoredDocsM ixx queryConfigDocIds q
-         dt' <- CIx.selectDocuments ixx (unScoredDocsToDocIdSet res)
+         dt' <- liftIO $ CIx.selectDocuments ixx (unScoredDocsToDocIdSet res)
          djs <- DocTable.toJSON'DocTable dt'
          return $ ResGeneric djs
 
@@ -609,9 +608,10 @@ execStore filename x = do
 execLoad :: (Binary dt, DocTable dt) => FilePath -> Hunt dt CmdResult
 execLoad filename = undefined
 
-execSnapshot :: DocTable dt => ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
+execSnapshot :: (Binary dt, DocTable dt) => ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 execSnapshot ixx
-  = do undefined
+  = do ixx' <- CIx.commit "." ixx
+       return (ixx', ResOK)
 
 -- ------------------------------------------------------------
 

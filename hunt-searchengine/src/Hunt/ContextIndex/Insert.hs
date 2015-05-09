@@ -19,16 +19,15 @@ import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Scoring.Score
 import           Hunt.Utility
 
-
-
-import qualified Data.Maybe as Maybe
-import           Control.Arrow
 import           Control.Applicative
+import           Control.Arrow
 import           Control.Monad
 import qualified Control.Monad.Parallel as Par
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import Data.Monoid
+import qualified Data.Maybe as Maybe
+import           Data.Monoid
+import qualified Data.Set as Set
 
 {-
 -- | Insert a Document and Words.
@@ -64,7 +63,9 @@ insertList docAndWords ixx
                               , segDeletedCxs  = mempty
                               }
 
-         return $! ixx { ciSegments = newSeg : ciSegments ixx }
+         return $! ixx { ciSegments   = newSeg : ciSegments ixx
+                       , ciUncommited = Set.insert newSegId (ciUncommited ixx)
+                       }
   where
     newSegId
       = case ciSegments ixx of
