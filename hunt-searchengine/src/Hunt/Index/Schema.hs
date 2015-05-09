@@ -111,6 +111,8 @@ data ContextType = CType
   , ctRegEx    :: RegEx
     -- | Validation function for keys.
   , ctValidate :: CValidator
+    -- | Merges indicies of this type
+  , ctMerge    :: CMerge
     -- | The index implementation used for this type.
   , ctIxImpl   :: IndexImpl
   }
@@ -129,6 +131,7 @@ ctText = CType
   { ctName     = "text"
   , ctRegEx    = "\\w*"
   , ctValidate = def
+  , ctMerge    = def
   , ctIxImpl   = def
   }
 
@@ -140,6 +143,7 @@ ctTextSimple = CType
   { ctName     = "text-small"
   , ctRegEx    = "\\w*"
   , ctValidate = def
+  , ctMerge    = def
   , ctIxImpl   = simplePT
   }
 
@@ -149,6 +153,7 @@ ctInt = CType
   { ctName     = "int"
   , ctRegEx    = "([-]?[0-9]*)"
   , ctValidate = CValidator $ Int.isInt
+  , ctMerge    = def
   , ctIxImpl   = intInv
   }
 
@@ -158,6 +163,7 @@ ctDate = CType
   { ctName     = "date"
   , ctRegEx    = "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))"
   , ctValidate = CValidator $ Date.isAnyDate . unpack
+  , ctMerge    = def
   , ctIxImpl   = dateInv
   }
 
@@ -167,6 +173,7 @@ ctPosition = CType
   { ctName     = "position"
   , ctRegEx    = "-?(90(\\.0*)?|[1-8]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?"
   , ctValidate = CValidator $ Pos.isPosition
+  , ctMerge    = def
   , ctIxImpl   = positionInv
   }
 
@@ -175,6 +182,7 @@ ctPositionRTree = CType
   { ctName     = "position-rtree"
   , ctRegEx    = "-?(90(\\.0*)?|[1-8]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?"
   , ctValidate = CValidator $ Pos.isPosition
+  , ctMerge    = def
   , ctIxImpl   = positionRTree
   }
 
@@ -265,6 +273,22 @@ cnLowerCase = CNormalizer "LowerCase" T.toLower
 cnZeroFill :: CNormalizer
 cnZeroFill = CNormalizer "ZeroFill" Int.normalizeToText
 
+
+-- ------------------------------------------------------------
+-- Merger
+-- ------------------------------------------------------------
+
+data CMerge
+  = CMerge { cmName :: Text
+           , merge  :: [IndexImpl] -> IndexImpl
+           }
+
+instance Show CMerge where
+  show = unpack . cmName
+
+instance Default CMerge where
+  def = CMerge "" L.head
+
 -- ------------------------------------------------------------
 -- JSON instances
 -- ------------------------------------------------------------
@@ -279,7 +303,7 @@ instance FromJSON ContextType where
   parseJSON _          = mzero
 
 instance ToJSON ContextType where
-  toJSON (CType n _ _ _) = String n
+  toJSON (CType n _ _ _ _) = String n
 
 instance FromJSON CNormalizer where
   parseJSON (String s) = return $ def { cnName = s }
@@ -287,6 +311,13 @@ instance FromJSON CNormalizer where
 
 instance ToJSON CNormalizer where
   toJSON (CNormalizer n _) = String n
+
+instance FromJSON CMerge where
+  parseJSON (String s) = return $ def { cmName = s }
+  parseJSON _          = mzero
+
+instance ToJSON CMerge where
+  toJSON (CMerge n _) = String n
 
 instance FromJSON ContextSchema where
   parseJSON (Object o) = do
@@ -317,9 +348,13 @@ instance Binary ContextSchema where
   put (ContextSchema a b c d e) = put a >> put b >> put c >> put d >> put e
 
 instance Binary ContextType where
-  put (CType n _ _ _) = put n
+  put (CType n _ _ _ _) = put n
   get = get >>= \n -> return $ def { ctName = n }
 
 instance Binary CNormalizer where
   put (CNormalizer n _) = put n
   get = get >>= \n -> return $ def { cnName = n }
+
+instance Binary CMerge where
+  put (CMerge n _) = put n
+  get = get >>= \n -> return $ def { cmName = n}

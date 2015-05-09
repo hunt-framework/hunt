@@ -54,20 +54,23 @@ empty
 mkContextMap :: Map Context Ix.IndexImpl -> ContextMap
 mkContextMap m = ContextMap $! m
 
-mapIxs :: Monad m => (Segment dt -> m a) -> ContextIndex dt -> m [a]
-mapIxs f
-  = mapM f . ciSegments
-
-mapIxs' :: (Segment dt -> a) -> ContextIndex dt -> [a]
-mapIxs' f
-  = fmap f . ciSegments
-
-mapIxsP :: Par.MonadParallel m => (Segment dt -> m a) -> ContextIndex dt -> m [a]
-mapIxsP f
-  = Par.mapM f . ciSegments
-
 newContextMap :: Schema -> ContextMap
 newContextMap = ContextMap . Map.map (newIx . ctIxImpl . cxType)
   where
     newIx :: Ix.IndexImpl -> Ix.IndexImpl
     newIx (Ix.IndexImpl i) = Ix.mkIndex (Ix.empty `asTypeOf` i)
+
+mapIxs :: Monad m => (Segment dt -> m a) -> ContextIndex dt -> m [a]
+mapIxs f
+  = mapM f . ciSegments
+{-# INLINE mapIxs #-}
+
+mapIxs' :: (Segment dt -> a) -> ContextIndex dt -> [a]
+mapIxs' f
+  = fmap f . ciSegments
+{-# INLINE mapIxs' #-}
+
+mapIxsP :: Par.MonadParallel m => (Segment dt -> m a) -> ContextIndex dt -> m [a]
+mapIxsP f
+  = Par.mapM f . ciSegments
+{-# INLINE mapIxsP #-}

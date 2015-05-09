@@ -78,9 +78,11 @@ mergeSegments seg1 seg2
 commitDirtySegment :: (MonadIO m) => FilePath -> Segment dt -> m ()
 commitDirtySegment dir seg
   = liftIO $ do withFile (dir </> delDocsName) WriteMode $ \h ->
-                  LByteString.hPut h (Put.runPut (put (segDeletedDocs seg)))
+                  do LByteString.hPut h (Put.runPut (put (segDeletedDocs seg)))
+                     hFlush h
                 withFile (dir </> delCxName) WriteMode $ \h ->
-                  LByteString.hPut h (Put.runPut (put (segDeletedCxs seg)))
+                  do LByteString.hPut h (Put.runPut (put (segDeletedCxs seg)))
+                     hFlush h
   where
     delDocsName
       = Printf.printf "%.10o.docs.del" (unSegmentId (segId seg))
@@ -95,10 +97,13 @@ commitSegment :: (MonadIO m, Binary dt, DocTable dt)
                  -> m ()
 commitSegment dir seg
   = liftIO $ do withFile (dir </> ixName) WriteMode $ \h ->
-                  mapM_ (uncurry (commitIx h)) contexts
+                  do mapM_ (uncurry (commitIx h)) contexts
+                     hFlush h
+
                 withFile (dir </> docsName) WriteMode $ \h ->
                   do dt <- DocTable.difference (segDeletedDocs seg) (segDocs seg)
                      LByteString.hPut h (Put.runPut (put dt))
+                     hFlush h
   where
     ixName
       = Printf.printf "%.10o.terms" (unSegmentId (segId seg))
@@ -115,10 +120,10 @@ commitSegment dir seg
     commitIx :: MonadIO m => Handle -> Context -> Ix.IndexImpl -> m ()
     commitIx h cx (Ix.IndexImpl ix)
       = do rx <- Ix.toListM ix
-           liftIO (LByteString.hPut h (mkBytes rx))
+           liftIO $ LByteString.hPut h (mkBytes rx)
         where
           mkBytes
-            = Put.runPut . void. foldM writeTermDelta mempty
+            = Put.runPut . void . foldM writeTermDelta mempty
 
           writeTermDelta lastTerm (term, sr)
             = do put (Text.length prefix)

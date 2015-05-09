@@ -48,9 +48,9 @@ lookupIndex :: (Par.MonadParallel m, Ix.HasSearchResult r) =>
                ([[r]] -> [r]) ->
                (forall i . Ix.IndexImplCon i => i -> m [r]) ->
                m [r]
-lookupIndex cx ixx mergeResults search
+lookupIndex cx ixx mrg search
   = do rx <- mapIxsP (\seg -> searchSegment cx seg search) ixx
-       return (mergeResults rx)
+       return (mrg rx)
 {-# INLINE lookupIndex #-}
 
 merge :: (Ord a, Monoid b) => [[(a, b)]] -> [(a, b)]

@@ -65,27 +65,19 @@ insertContext :: Context -> Ix.IndexImpl -> ContextSchema
 insertContext cx ix schema ixx
   = ixx { ciSchema = Map.insertWith (const id) cx schema (ciSchema ixx) }
 
-insertContext' :: Context -> Ix.IndexImpl -> ContextMap -> ContextMap
-insertContext' cx ix
-  = mkContextMap . Map.insertWith (const id) cx ix . cxMap
-
 deleteContext :: Context -> ContextIndex dt -> ContextIndex dt
 deleteContext cx ixx
   = ixx { ciSegments = mapIxs' (segmentDeleteContext cx) ixx
         , ciSchema   = Map.delete cx (ciSchema ixx)
         }
 
-deleteContext' :: Context -> ContextMap -> ContextMap
-deleteContext' cx
-  = mkContextMap . Map.delete cx . cxMap
+defaultContexts :: ContextIndex dt -> [Context]
+defaultContexts
+  = Map.keys . Map.filter cxDefault . ciSchema
 
 contexts :: ContextIndex dt -> [Context]
 contexts
   = Map.keys . ciSchema
-
-defaultContexts :: ContextIndex dt -> [Context]
-defaultContexts
-  = Map.keys . Map.filter cxDefault . ciSchema
 
 contextsM :: Monad m => ContextIndex dt -> m [Context]
 contextsM
