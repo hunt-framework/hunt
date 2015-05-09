@@ -1,5 +1,4 @@
 {-# LANGUAGE Rank2Types      #-}
-{-# LANGUAGE RecordWildCards #-}
 module Hunt.ContextIndex.Segment where
 
 import           Hunt.Common.BasicTypes
@@ -48,7 +47,7 @@ segmentDocs seg
 searchSegment :: (Monad m, Ix.HasSearchResult r) => Context -> Segment dt
                  -> (forall i. (Ix.IndexImplCon i) => i -> m [r]) -> m [r]
 searchSegment cx seg search
-  = if Set.member cx (segDeletedCxs seg)
+  = if not (Set.member cx (segDeletedCxs seg))
        then case Map.lookup cx (cxMap (segIndex seg)) of
              Just (Ix.IndexImpl ix)
                -> do rx <- search ix

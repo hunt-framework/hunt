@@ -7,7 +7,6 @@
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE StandaloneDeriving         #-}
 
-
 -- ----------------------------------------------------------------------------
 {- |
   The interpreter to evaluate 'Command's.
