@@ -28,22 +28,31 @@ import           System.FilePath
 import           System.IO
 import qualified Text.Printf as Printf
 
+-- | Marks given documents as deleted. Segment is marked as dirty.
+--
 segmentDeleteDocs :: DocIdSet -> Segment dt -> Segment dt
 segmentDeleteDocs dIds seg
   = seg { segIsDirty     = True
         , segDeletedDocs = dIds `mappend` segDeletedDocs seg
         }
 
+-- | Marks given Context as deleted. Segment is marked dirty.
+--
 segmentDeleteContext :: Context -> Segment dt -> Segment dt
 segmentDeleteContext cx seg
   = seg { segIsDirty    = True
         , segDeletedCxs = Set.insert cx (segDeletedCxs seg)
         }
 
+-- | Returns the segments `DocTable`. Respects deleted documents.
+--
 segmentDocs :: (Monad m, DocTable dt) => Segment dt -> m dt
 segmentDocs seg
   = DocTable.difference (segDeletedDocs seg) (segDocs seg)
 
+-- | Searches a segment given a search function. Respects deleted contexts
+--   and documents.
+--
 searchSegment :: (Monad m, Ix.HasSearchResult r) => Context -> Segment dt
                  -> (forall i. (Ix.IndexImplCon i) => i -> m [r]) -> m [r]
 searchSegment cx seg search
@@ -58,14 +67,28 @@ searchSegment cx seg search
     delDocs
       = SearchResult.srDiffDocs (segDeletedDocs seg)
 
+-- | Merges two `Segment`s.
+--
 mergeSegments :: (Monad m, DocTable dt) => Segment dt -> Segment dt -> m (Segment dt)
 mergeSegments seg1 seg2
   = undefined
 
+-- | Flushes deleted documents and deleted contexts to index directory
+--
 commitDirtySegment :: (MonadIO m) => FilePath -> Segment dt -> m ()
 commitDirtySegment dir seg
-  = undefined
+  = liftIO $ do withFile (dir </> delDocsName) WriteMode $ \h ->
+                  LByteString.hPut h (Put.runPut (put (segDeletedDocs seg)))
+                withFile (dir </> delCxName) WriteMode $ \h ->
+                  LByteString.hPut h (Put.runPut (put (segDeletedCxs seg)))
+  where
+    delDocsName
+      = Printf.printf "%.10o.docs.del" (unSegmentId (segId seg))
+    delCxName
+      = Printf.printf "%.10o.cx.del" (unSegmentId (segId seg))
 
+-- | Writes the immutable DocumentTable and ContextMap to index directory
+--
 commitSegment :: (MonadIO m, Binary dt, DocTable dt)
                  => FilePath
                  -> Segment dt
@@ -79,7 +102,6 @@ commitSegment dir seg
   where
     ixName
       = Printf.printf "%.10o.terms" (unSegmentId (segId seg))
-
     docsName
       = Printf.printf "%.10o.docs" (unSegmentId (segId seg))
 

@@ -197,11 +197,7 @@ normQueryCx c t
 -- | Initialize the state of the processor.
 initProcessor :: ProcessConfig -> QueryIndex -> ProcessEnv
 initProcessor cfg (QIx ixx)
-    = ProcessEnv cfg cxs (QIx ixx)
-    where
-      s = CIx.schema ixx
-      cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault)
-            $ CIx.contexts ixx
+    = ProcessEnv cfg (CIx.defaultContexts ixx) (QIx ixx)
 
 -- ------------------------------------------------------------
 

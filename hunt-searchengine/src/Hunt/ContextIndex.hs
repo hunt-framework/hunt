@@ -7,8 +7,10 @@ module Hunt.ContextIndex (
   , deleteContext
   , contexts
   , contextsM
+  , defaultContexts
   , hasContext
   , hasContextM
+  , schema
 
     -- * Queries
   , lookupRangeCx
@@ -35,7 +37,6 @@ module Hunt.ContextIndex (
   , selectDocuments
 
   , ContextIndex
-  , schema
   , commit
 
   ) where
@@ -82,6 +83,10 @@ contexts :: ContextIndex dt -> [Context]
 contexts
   = Map.keys . ciSchema
 
+defaultContexts :: ContextIndex dt -> [Context]
+defaultContexts
+  = Map.keys . Map.filter cxDefault . ciSchema
+
 contextsM :: Monad m => ContextIndex dt -> m [Context]
 contextsM
   = return . contexts
@@ -97,17 +102,21 @@ hasContextM cx
 schema :: ContextIndex dt -> Schema
 schema = ciSchema
 
+-- | Flushes all dirty and not yet written `Segment`s to the index directory
+--
 commit :: (Binary dt, DocTable dt, MonadIO m) => FilePath -> ContextIndex dt -> m (ContextIndex dt)
 commit dir ixx
-  = do segments' <- mapM (\s ->
-                           do when (isUnstaged s) $
-                                commitSegment dir s
-                              when (segIsDirty s) $
-                                commitDirtySegment dir s
-                              return s { segIsDirty = False }
-                         ) (ciSegments ixx)
+  = do segments' <- mapM commitSeg (ciSegments ixx)
        return ixx { ciSegments   = segments'
                   , ciUncommited = mempty
                   }
   where
-    isUnstaged s = Set.member (segId s) (ciUncommited ixx)
+    isUnstaged s
+      = Set.member (segId s) (ciUncommited ixx)
+
+    commitSeg s
+      = do when (isUnstaged s) $
+             commitSegment dir s
+           when (segIsDirty s) $
+             commitDirtySegment dir s
+           return s { segIsDirty = False }

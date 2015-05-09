@@ -41,7 +41,7 @@ import           Hunt.Scoring.SearchResult
 
 -- ------------------------------------------------------------
 
--- | An interface for post-search-mapping on SearchResult
+-- | An interface for post-search mapping on SearchResult
 class HasSearchResult a where
   mapSR :: (SearchResult -> SearchResult) -> a -> a
 
