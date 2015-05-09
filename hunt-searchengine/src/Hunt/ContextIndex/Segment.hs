@@ -1,5 +1,5 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE Rank2Types  #-}
+{-# LANGUAGE Rank2Types      #-}
+{-# LANGUAGE RecordWildCards #-}
 module Hunt.ContextIndex.Segment where
 
 import           Hunt.Common.BasicTypes
@@ -13,6 +13,7 @@ import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Scoring.SearchResult (SearchResult)
 import qualified Hunt.Scoring.SearchResult as SearchResult
 
+import           Control.Applicative
 import           Control.Monad
 import           Control.Monad.IO.Class
 import           Data.Binary
@@ -40,11 +41,39 @@ segmentDeleteContext cx seg
         , segDeletedCxs = Set.insert cx (segDeletedCxs seg)
         }
 
+segmentDocs :: (Monad m, DocTable dt) => Segment dt -> m dt
+segmentDocs seg
+  = DocTable.difference (segDeletedDocs seg) (segDocs seg)
+
+searchSegment :: (Monad m, Ix.HasSearchResult r) => Context -> Segment dt
+                 -> (forall i. (Ix.IndexImplCon i) => i -> m [r]) -> m [r]
+searchSegment cx seg search
+  = if Set.member cx (segDeletedCxs seg)
+       then case Map.lookup cx (cxMap (segIndex seg)) of
+             Just (Ix.IndexImpl ix)
+               -> do rx <- search ix
+                     return (fmap (Ix.mapSR delDocs) rx)
+             Nothing -> return []
+    else return []
+  where
+    delDocs
+      = SearchResult.srDiffDocs (segDeletedDocs seg)
+
+mergeSegments :: (Monad m, DocTable dt)
+                 =>  Segment dt
+                 -> Segment dt
+                 -> m (Segment dt)
+mergeSegments seg1 seg2
+  = undefined
+
 commitDirtySegment :: (MonadIO m) => FilePath -> Segment dt -> m ()
 commitDirtySegment dir seg
   = undefined
 
-commitSegment :: (MonadIO m, Binary dt, DocTable dt) => FilePath -> Segment dt -> m ()
+commitSegment :: (MonadIO m, Binary dt, DocTable dt)
+                 => FilePath
+                 -> Segment dt
+                 -> m ()
 commitSegment dir seg
   = liftIO $ do withFile (dir </> ixName) WriteMode $ \h ->
                   do mapM_ (uncurry (commitIx h)) contexts

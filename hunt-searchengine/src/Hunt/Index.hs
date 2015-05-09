@@ -41,6 +41,18 @@ import           Hunt.Scoring.SearchResult
 
 -- ------------------------------------------------------------
 
+-- | An interface for post-search-mapping on SearchResult
+class HasSearchResult a where
+  mapSR :: (SearchResult -> SearchResult) -> a -> a
+
+instance HasSearchResult SearchResult where
+  mapSR f = f
+  {-# INLINE mapSR #-}
+
+instance HasSearchResult b => HasSearchResult (a, b) where
+  mapSR f = second (mapSR f)
+  {-# INLINE mapSR #-}
+
 -- | The interface, that an data type must support to be used
 -- value in an index.
 --
@@ -53,7 +65,7 @@ class (Monoid v, Binary v, NFData v) => IndexValue v where
 
 
 -- | Helper for converting lists of index values to search results
-  
+
 toSearchResults :: IndexValue u => [(x, u)] -> [(x, SearchResult)]
 toSearchResults = L.map (second toSearchResult)
 

@@ -65,12 +65,10 @@ import           Data.Ord
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
 import qualified Hunt.Common.DocIdMap as DM
-import           Hunt.Common.Document (DocumentWrapper (..), Document (..))
+import           Hunt.Common.Document (Document (..))
 import           Hunt.Common.Occurrences (Occurrences)
 import qualified Hunt.Common.Occurrences as Occ
 import qualified Hunt.Common.Positions as Pos
-import           Hunt.DocTable (DocTable)
-import qualified Hunt.DocTable as Dt
 import           Hunt.Index.Schema
 import           Hunt.Query.Result hiding (null)
 import           Hunt.Scoring.Score

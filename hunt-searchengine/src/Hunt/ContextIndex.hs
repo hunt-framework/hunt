@@ -46,7 +46,6 @@ import           Hunt.ContextIndex.Documents
 import           Hunt.ContextIndex.Insert
 import           Hunt.ContextIndex.Search
 import           Hunt.ContextIndex.Segment
-import           Hunt.ContextIndex.Snapshot
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.Index.IndexImpl as Ix
@@ -100,13 +99,13 @@ schema = ciSchema
 
 commit :: (Binary dt, DocTable dt, MonadIO m) => FilePath -> ContextIndex dt -> m (ContextIndex dt)
 commit dir ixx
-  = do segments' <- mapM (\s -> do when (isUnstaged s) $ do
-                                     commitSegment dir s
-                                   when (segIsDirty s) $ do
-                                     commitDirtySegment dir s
-                                   return s { segIsDirty = False }
+  = do segments' <- mapM (\s ->
+                           do when (isUnstaged s) $
+                                commitSegment dir s
+                              when (segIsDirty s) $
+                                commitDirtySegment dir s
+                              return s { segIsDirty = False }
                          ) (ciSegments ixx)
-
        return ixx { ciSegments   = segments'
                   , ciUncommited = mempty
                   }

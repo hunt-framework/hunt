@@ -5,21 +5,14 @@ module Hunt.ContextIndex.Delete(
   ) where
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocIdSet (DocIdSet)
 import           Hunt.Common.DocIdSet as DocIdSet
 import           Hunt.ContextIndex.Segment
-import           Hunt.ContextIndex.Snapshot
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as DocTable
-import qualified Hunt.Index as Ix
-import qualified Hunt.Index.IndexImpl as Ix
 
 import           Control.Applicative
-import           Control.Monad
 import qualified Control.Monad.Parallel as Par
-import           Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Set (Set)

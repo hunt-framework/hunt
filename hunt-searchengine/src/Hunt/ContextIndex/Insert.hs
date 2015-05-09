@@ -3,11 +3,8 @@
 module Hunt.ContextIndex.Insert where
 
 import           Hunt.Common.BasicTypes
-import qualified Hunt.Common.DocDesc as DocDesc
 import           Hunt.Common.DocId
 import qualified Hunt.Common.DocIdSet as DocIdSet
-import           Hunt.Common.Document (Document(..))
-import qualified Hunt.Common.Document as Doc
 import           Hunt.Common.Occurrences (Occurrences)
 import qualified Hunt.Common.Occurrences as Occ
 import           Hunt.ContextIndex.Delete (delete')
@@ -25,7 +22,6 @@ import           Control.Monad
 import qualified Control.Monad.Parallel as Par
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
-import qualified Data.Maybe as Maybe
 import           Data.Monoid
 import qualified Data.Set as Set
 
@@ -40,7 +36,6 @@ insert doc wrds ix = insertList [(doc,wrds)] ix
 
 --   This is more efficient than using fold and with 'insert'.
 -- | Insert multiple documents and words.
-
 insertList :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
               [(Dt.DValue dt, Words)] ->
               ContextIndex dt -> m (ContextIndex dt)

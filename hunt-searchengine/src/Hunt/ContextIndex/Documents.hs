@@ -2,20 +2,17 @@ module Hunt.ContextIndex.Documents where
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap (DocIdMap)
-import qualified Hunt.Common.DocIdMap as DocIdMap
 import           Hunt.Common.DocIdSet (DocIdSet)
 import qualified Hunt.Common.DocIdSet as DocIdSet
 import           Hunt.Common.Document (Document)
 import qualified Hunt.Common.Document as Document
 import           Hunt.ContextIndex.Types
-import           Hunt.DocTable (DocTable, DValue)
+import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as DocTable
 
 import           Control.Applicative
 import           Control.Monad
 import qualified Control.Monad.Parallel as Par
-import qualified Data.List as List
 import           Data.Maybe
 
 reduceMaybes' :: [Maybe a] -> Maybe a

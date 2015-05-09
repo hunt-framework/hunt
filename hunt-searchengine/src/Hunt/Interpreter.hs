@@ -37,7 +37,6 @@ import           Control.Monad.Reader
 
 import           Data.Aeson                    (ToJSON (..), object, (.=))
 import           Data.Binary                   (Binary, encodeFile)
-import qualified Data.ByteString.Lazy          as BL
 import           Data.Default
 import qualified Data.List                     as L
 import qualified Data.Map                      as M
@@ -46,7 +45,6 @@ import           Data.Set                      (Set)
 import qualified Data.Set                      as S
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
-import qualified Data.Traversable              as TV
 
 import           Hunt.Common.ApiDocument       as ApiDoc
 import           Hunt.Common.BasicTypes        (Context, URI)
