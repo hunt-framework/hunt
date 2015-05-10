@@ -49,7 +49,7 @@ lookupIndex :: (Par.MonadParallel m, Ix.HasSearchResult r) =>
                (forall i . Ix.IndexImplCon i => i -> m [r]) ->
                m [r]
 lookupIndex cx ixx mrg search
-  = do rx <- mapIxsP (\seg -> searchSegment cx seg search) ixx
+  = do rx <- mapIxsP (searchSegment cx search) ixx
        return (mrg rx)
 {-# INLINE lookupIndex #-}
 
