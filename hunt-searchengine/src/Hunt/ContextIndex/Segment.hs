@@ -60,7 +60,10 @@ searchSegment cx seg search
        then case Map.lookup cx (cxMap (segIndex seg)) of
              Just (Ix.IndexImpl ix)
                -> do rx <- search ix
-                     return (fmap (Ix.mapSR delDocs) rx)
+                     return (if DocIdSet.null (segDeletedDocs seg)
+                             then rx
+                             else fmap (Ix.mapSR delDocs) rx
+                            )
              Nothing -> return []
     else return []
   where
