@@ -63,13 +63,20 @@ searchSegment cx search seg
                -> do rx <- search ix
                      return (if DocIdSet.null (segDeletedDocs seg)
                              then rx
-                             else fmap (Ix.mapSR delDocs) rx
+                             else List.filter testNotEmpty
+                                  . fmap (Ix.mapSR delDocs)
+                                  $ rx
                             )
              Nothing -> return []
     else return []
   where
     delDocs
       = SearchResult.srDiffDocs (segDeletedDocs seg)
+
+    testNotEmpty :: (Ix.HasSearchResult r) => r -> Bool
+    testNotEmpty
+      = not . Ix.testSR SearchResult.srNull
+
 
 -- | Merges two `Segment`s.
 --
