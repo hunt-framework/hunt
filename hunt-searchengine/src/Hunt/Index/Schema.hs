@@ -20,6 +20,7 @@ module Hunt.Index.Schema
   , ContextTypes
   , CValidator (..)
   , CNormalizer (..)
+  , CMerge (..)
   , normalize'
 
     -- * Default Context Types

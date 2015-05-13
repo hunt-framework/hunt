@@ -9,10 +9,12 @@ import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as DocTable
 import qualified Hunt.Index as Ix
 import qualified Hunt.Index.IndexImpl as Ix
+import           Hunt.Index.Schema
 import           Hunt.Scoring.SearchResult (SearchResult)
 import qualified Hunt.Scoring.SearchResult as SearchResult
 
 import           Control.Applicative
+import           Control.Arrow
 import           Control.Monad
 import           Control.Monad.IO.Class
 import           Data.Binary
@@ -20,6 +22,7 @@ import qualified Data.Binary.Put as Put
 import qualified Data.ByteString.Lazy as LByteString
 import qualified Data.List as List
 import qualified Data.Map.Strict as Map
+import           Data.Maybe
 import           Data.Monoid
 import qualified Data.Set as Set
 import           Data.Text (Text)
@@ -50,6 +53,16 @@ segmentDocs :: (Monad m, DocTable dt) => Segment dt -> m dt
 segmentDocs seg
   = DocTable.difference (segDeletedDocs seg) (segDocs seg)
 
+-- | Returns the `ContextMap` of a `Segment`. Respects deleted contexts.
+--
+segmentCxMap :: Monad m => Segment dt -> m ContextMap
+segmentCxMap seg
+  = return
+    . mkContextMap
+    . Map.filterWithKey (\k _ -> Set.notMember k (segDeletedCxs seg))
+    . cxMap
+    $ segIndex seg
+
 -- | Searches a segment given a search function. Respects deleted contexts
 --   and documents.
 --
@@ -77,12 +90,48 @@ searchSegment cx search seg
     testNotEmpty
       = not . Ix.testSR SearchResult.srNull
 
-
 -- | Merges two `Segment`s.
 --
-mergeSegments :: (Monad m, DocTable dt) => Segment dt -> Segment dt -> m (Segment dt)
-mergeSegments seg1 seg2
-  = undefined
+mergeSegments :: (Monad m, DocTable dt) => Schema -> Segment dt -> Segment dt -> m (Segment dt)
+mergeSegments schema seg1 seg2
+  = do dt1 <- segmentDocs seg1
+       dt2 <- segmentDocs seg2
+       newDt <- DocTable.union dt1 dt2
+
+       ContextMap m1 <- segmentCxMap seg1
+       ContextMap m2 <- segmentCxMap seg2
+
+       newCxMap <- forM (Map.toList schema) $ \(cx, st) ->
+         do let cx1 = Map.lookup cx m1
+                cx2 = Map.lookup cx m2
+                newIx' = case (cx1, cx2) of
+                  (Just ix1, Nothing)  -> Just ix1
+                  (Nothing, Just ix2)  -> Just ix2
+                  (Just ix1, Just ix2) ->
+                    let ix1' = prepIx (segDeletedDocs seg1) ix1
+                        ix2' = prepIx (segDeletedDocs seg2) ix2
+                    in Just $ merge (ctMerge (cxType st)) [ix1', ix2']
+                  (Nothing, Nothing)   -> Nothing
+            return (cx, newIx')
+
+       let ctxMap
+             = mkContextMap (Map.fromList
+                             (List.map (second fromJust)
+                              (List.filter (isJust . snd) newCxMap)))
+
+       return Segment { segId          = max (segId seg1) (segId seg2)
+                      , segIndex       = ctxMap
+                      , segDocs        = newDt
+                      , segIsDirty     = False
+                      , segDeletedDocs = mempty
+                      , segDeletedCxs  = mempty
+                      }
+  where
+    -- | This should be removed, modification of indicies is NOT ALLOWED..
+    prepIx :: DocIdSet -> Ix.IndexImpl -> Ix.IndexImpl
+    prepIx delDocs (Ix.IndexImpl ix)
+      = Ix.mkIndex (Ix.deleteDocs delDocs ix `asTypeOf` ix)
+
 
 -- | Flushes deleted documents and deleted contexts to index directory
 --
