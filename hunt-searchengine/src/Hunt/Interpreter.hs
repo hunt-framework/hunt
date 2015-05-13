@@ -39,7 +39,7 @@ import           Data.Binary                   (Binary, encodeFile)
 import           Data.Default
 import qualified Data.List                     as L
 import qualified Data.Map                      as M
-import           Data.Monoid                   ((<>))
+import           Data.Monoid
 import           Data.Set                      (Set)
 import qualified Data.Set                      as S
 import           Data.Text                     (Text)
@@ -50,7 +50,8 @@ import           Hunt.Common.BasicTypes        (Context, URI)
 import qualified Hunt.Common.DocDesc           as DocDesc
 import qualified Hunt.Common.DocIdSet          as DocIdSet
 import           Hunt.Common.Document          (Document (..))
-import           Hunt.ContextIndex             (ContextIndex)
+import           Hunt.ContextIndex             (ContextIndex, MergeLock,
+                                                MergeResult(..))
 import qualified Hunt.ContextIndex             as CIx
 import           Hunt.DocTable                 (DocTable)
 import qualified Hunt.DocTable                 as DocTable
@@ -136,6 +137,8 @@ data HuntEnv dt = HuntEnv
   { -- | The context index (indexes, document table and schema).
     --   Stored in an 'XMVar' so that read access is always possible.
     huntIndex       :: DocTable dt => XMVar (ContextIndex dt)
+    -- | Mergelock for concurrent merges
+  , huntMergeLock   :: XMVar MergeLock
     -- | Available context types.
   , huntTypes       :: ContextTypes
     -- | Available normalizers.
@@ -168,7 +171,8 @@ initHuntEnv :: DocTable dt
            -> IO (HuntEnv dt)
 initHuntEnv ixx opt ns qc = do
   ixref <- newXMVar ixx
-  return $ HuntEnv ixref opt ns qc
+  ml    <- newXMVar mempty
+  return $ HuntEnv ixref ml opt ns qc
 
 -- ------------------------------------------------------------
 -- Command evaluation monad
@@ -237,6 +241,18 @@ modIxLocked f = do
   putBack ref i e = do
     liftIO $ putXMVarLock ref i
     throwError e
+
+withMergeLock :: DocTable dt => (MergeLock -> Hunt dt (MergeLock, a)) -> Hunt dt a
+withMergeLock f
+  = do ref <- asks huntMergeLock
+       ml  <- liftIO $ takeXMVarLock ref
+       (ml', a) <- f ml `catchError` putBack ref ml
+       liftIO $ putXMVarLock ref ml'
+       return a
+  where
+    putBack ref i e = do
+      liftIO $ putXMVarLock ref i
+      throwError e
 
 -- | Do something with the context index.
 withIx :: DocTable dt => (ContextIndex dt -> Hunt dt a) -> Hunt dt a
@@ -338,7 +354,7 @@ execCmd' (DeleteContext cx)
   = modIx $ execDeleteContext cx
 
 execCmd' Snapshot
-  = modIx $ execSnapshot
+  = execMerge
 -- ------------------------------------------------------------
 
 -- | Execute a sequence of commands.
@@ -660,6 +676,20 @@ liftHunt cmd
 
 -- ------------------------------------------------------------
 
+execMerge :: DocTable dt => Hunt dt CmdResult
+execMerge
+  = do doMerge <- withMergeLock $ \l -> do
+         modIx $ \ixx -> do
+           CIx.TryMerge l' merge <- CIx.tryMerge l ixx
+           return (ixx, (l', merge))
+
+       -- TODO: This call is considered expensive
+       MergeResult modIx' modLock <- CIx.runMerge doMerge
+
+       withMergeLock $ \l -> do
+         modIx $ \ixx -> do
+           return (modIx' ixx, (modLock l, ResOK))
+
 -- | Get status information about the server\/index, e.g. garbage collection statistics.
 execStatus :: DocTable dt => StatusCmd -> Hunt dt CmdResult
 execStatus StatusGC
@@ -685,11 +715,11 @@ execStatus (StatusContext cx)
               liftIO (CIx.lookupAllWithCx cx ixx)
 
 execStatus (StatusIndex {- context -})
-  = withIx _dumpIndex
+  = withIx dumpIxx
     where
-      -- context = "type"
-      _dumpIndex ixx
-          = throwResError 501 $ "status of Index not yet implemented"
+      dumpIxx ixx
+        = do st <- CIx.status ixx
+             return (ResGeneric (toJSON st))
 
 -- ------------------------------------------------------------
 

@@ -40,6 +40,21 @@ data Segment dt
             , segDeletedCxs  :: !(Set Context)
             }
 
+newtype MergeLock
+  = MergeLock (Set SegmentId)
+  deriving (Eq, Monoid)
+
+newtype Merge m dt
+  = Merge { runMerge :: m (MergeResult dt) }
+
+data MergeResult dt
+  = MergeResult { mrModIxx      :: ContextIndex dt -> ContextIndex dt
+                , mrReleaseLock :: MergeLock -> MergeLock
+                }
+
+data TryMerge m dt
+  = TryMerge !MergeLock !(Merge m dt)
+
 instance Binary dt => Binary (ContextIndex dt) where
   get = undefined
   put = undefined
