@@ -31,11 +31,16 @@ import           System.FilePath
 import           System.IO
 import qualified Text.Printf as Printf
 
+modSegState :: SegmentState -> SegmentState -> SegmentState
+modSegState SegUncommited SegDirty = SegDirtyAndUncommited
+modSegState SegDirty SegUncommited = SegDirtyAndUncommited
+modSegState _        s             = s
+
 -- | Marks given documents as deleted. Segment is marked as dirty.
 --
 segmentDeleteDocs :: DocIdSet -> Segment dt -> Segment dt
 segmentDeleteDocs dIds seg
-  = seg { segIsDirty     = True
+  = seg { segState       = segState seg `modSegState` SegDirty
         , segDeletedDocs = dIds `mappend` segDeletedDocs seg
         }
 
@@ -43,7 +48,7 @@ segmentDeleteDocs dIds seg
 --
 segmentDeleteContext :: Context -> Segment dt -> Segment dt
 segmentDeleteContext cx seg
-  = seg { segIsDirty    = True
+  = seg { segState      = segState seg `modSegState` SegDirty
         , segDeletedCxs = Set.insert cx (segDeletedCxs seg)
         }
 
@@ -122,7 +127,7 @@ mergeSegments schema seg1 seg2
        return Segment { segId          = max (segId seg1) (segId seg2)
                       , segIndex       = ctxMap
                       , segDocs        = newDt
-                      , segIsDirty     = False
+                      , segState       = SegUncommited
                       , segDeletedDocs = mempty
                       , segDeletedCxs  = mempty
                       }

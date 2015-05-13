@@ -125,11 +125,13 @@ tryMerge (MergeLock lockedSegs) ixx
     segmentMerge segs
       = do seg <- foldM1' (mergeSegments schema') segs
 
+           -- | TODO: ModIxx needs to diff against deletedDocs/deletedContexts in
+           --         ixx', since they could have changed since the time of `tryMerge`
+           --         This isn't a problem since segment values increase monotonically
+           --         (always add, never remove any items from the sets of deleted docs and contexts)
            let modIxx ixx'
                  = let sx = List.filter (\s -> Set.notMember (segId s) mergedIds) (ciSegments ixx')
-                   in ixx' { ciSegments   = seg : sx
-                           , ciUncommited = Set.insert (segId seg) (Set.difference (ciUncommited ixx') mergedIds)
-                           }
+                   in ixx' { ciSegments   = seg : sx }
                modLock (MergeLock m)
                  = MergeLock (Set.difference m mergedIds)
 
@@ -154,15 +156,19 @@ commit :: (Binary dt, DocTable dt, MonadIO m) => FilePath -> ContextIndex dt -> 
 commit dir ixx
   = do segments' <- mapM commitSeg (ciSegments ixx)
        return ixx { ciSegments   = segments'
-                  , ciUncommited = mempty
                   }
   where
-    isUnstaged s
-      = Set.member (segId s) (ciUncommited ixx)
-
     commitSeg s
       = do when (isUnstaged s) $
              commitSegment dir s
-           when (segIsDirty s) $
+           when (isDirty s) $
              commitDirtySegment dir s
-           return s { segIsDirty = False }
+           return s { segState = SegClean }
+      where
+            isUnstaged s = st == SegUncommited || st == SegDirtyAndUncommited
+              where
+                st = segState s
+
+            isDirty s = st == SegDirty || st == SegDirtyAndUncommited
+              where
+                st = segState s

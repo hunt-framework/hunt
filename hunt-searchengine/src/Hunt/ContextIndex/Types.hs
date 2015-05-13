@@ -24,18 +24,24 @@ newtype ContextMap
 data ContextIndex dt
   = ContextIndex { ciSegments   :: ![Segment dt]
                  , ciSchema     :: !Schema
-                 , ciUncommited :: !(Set SegmentId)
                  }
 
 newtype SegmentId
   = SegmentId { unSegmentId :: Int }
     deriving (Enum, Eq, Ord, Show)
 
+data SegmentState
+  = SegUncommited
+  | SegDirty
+  | SegDirtyAndUncommited
+  | SegClean
+  deriving (Eq, Show)
+
 data Segment dt
   = Segment { segId          :: !SegmentId
             , segIndex       :: !ContextMap
             , segDocs        :: !dt
-            , segIsDirty     :: !Bool
+            , segState       :: !SegmentState
             , segDeletedDocs :: !DocIdSet
             , segDeletedCxs  :: !(Set Context)
             }
@@ -63,7 +69,6 @@ empty :: DocTable dt => ContextIndex dt
 empty
   = ContextIndex { ciSegments   = mempty
                  , ciSchema     = mempty
-                 , ciUncommited = mempty
                  }
 
 mkContextMap :: Map Context Ix.IndexImpl -> ContextMap

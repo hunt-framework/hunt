@@ -53,14 +53,12 @@ insertList docAndWords ixx
          let newSeg = Segment { segId          = newSegId
                               , segIndex       = newIx
                               , segDocs        = newDt
-                              , segIsDirty     = False
+                              , segState       = SegUncommited
                               , segDeletedDocs = mempty
                               , segDeletedCxs  = mempty
                               }
 
-         return $! ixx { ciSegments   = newSeg : ciSegments ixx
-                       , ciUncommited = Set.insert newSegId (ciUncommited ixx)
-                       }
+         return $! ixx { ciSegments = newSeg : ciSegments ixx }
   where
     newSegId
       = case ciSegments ixx of
