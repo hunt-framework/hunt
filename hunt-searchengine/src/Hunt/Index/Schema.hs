@@ -38,31 +38,32 @@ module Hunt.Index.Schema
 where
 
 import           Control.Applicative
-import           Control.Monad                        (mzero)
+import           Control.Monad (mzero)
 
 import           Data.Aeson
-import           Data.Binary                          hiding (Word)
+import           Data.Binary hiding (Word)
 import           Data.Default
-import qualified Data.List                            as L
-import           Data.Map                             hiding (null)
-import           Data.Maybe                           (isNothing)
-import           Data.Text                            hiding (null)
-import qualified Data.Text                            as T
-import           Data.Text.Binary                     ()
+import qualified Data.List as L
+import           Data.Map hiding (null)
+import           Data.Maybe (isNothing)
+import           Data.Text hiding (null)
+import qualified Data.Text as T
+import           Data.Text.Binary ()
 
 import           Hunt.Common.BasicTypes
-import qualified Hunt.Index                           as Ix
-import           Hunt.Index.IndexImpl                 (IndexImpl, mkIndex)
+import qualified Hunt.Index as Ix
+import           Hunt.Index.IndexImpl (IndexImpl, mkIndex)
 import           Hunt.Index.InvertedIndex
+import           Hunt.Index.Merge
 import           Hunt.Index.PrefixTreeIndex           ( PrefixTreeIndexInt
                                                       , PrefixTreeIndexDate
                                                       , SimplePrefixTreeIndex )
-import           Hunt.Index.PrefixTreeIndex2Dim       ( PrefixTreeIndexPosition )
+import           Hunt.Index.PrefixTreeIndex2Dim ( PrefixTreeIndexPosition )
 import           Hunt.Index.RTreeIndex
-import qualified Hunt.Index.Schema.Normalize.Date     as Date
-import qualified Hunt.Index.Schema.Normalize.Int      as Int
+import qualified Hunt.Index.Schema.Normalize.Date as Date
+import qualified Hunt.Index.Schema.Normalize.Int as Int
 import qualified Hunt.Index.Schema.Normalize.Position as Pos
-import           Hunt.Scoring.Score                   (Score)
+import           Hunt.Scoring.Score (Score)
 import           Hunt.Utility
 
 -- ------------------------------------------------------------
@@ -287,7 +288,7 @@ instance Show CMerge where
   show = unpack . cmName
 
 instance Default CMerge where
-  def = CMerge "" L.head
+  def = CMerge "text" gMerge
 
 -- ------------------------------------------------------------
 -- JSON instances
