@@ -25,7 +25,6 @@ import           Control.DeepSeq
 import           Data.Aeson
 import           Data.Binary             (Binary (..))
 import           Data.Text               as T
-import           Data.Text.Binary        ()
 
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes

@@ -17,7 +17,6 @@ import           Data.Binary         (Binary (..))
 import qualified Data.HashMap.Strict as HM
 import           Data.Maybe          (fromMaybe)
 import           Data.Text           (Text)
-import           Data.Text.Binary    ()
 import           Data.Typeable
 
 -- ------------------------------------------------------------

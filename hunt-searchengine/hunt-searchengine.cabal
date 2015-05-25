@@ -47,7 +47,7 @@ library
                , mtl                    >= 1.1     && < 3
                , murmur-hash
                , parsec                 >= 2.1     && < 4
-               , text                   >= 1       && < 1.3
+               , text                   >= 1.2     && < 2
                , time                   >= 1.4     && < 2
                , transformers           >= 0.3
                , unordered-containers   >= 0.2
@@ -61,7 +61,6 @@ library
     Data.IntMap.BinTree.Strict
     Data.IntSet.Cache
     Data.LimitedPriorityQueue
-    Data.Text.Binary
     Data.Typeable.Binary
 
     GHC.Fingerprint.Binary

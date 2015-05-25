@@ -48,7 +48,6 @@ import           Data.Map                             hiding (null)
 import           Data.Maybe                           (isNothing)
 import           Data.Text                            hiding (null)
 import qualified Data.Text                            as T
-import           Data.Text.Binary                     ()
 
 import           Hunt.Common.BasicTypes
 import qualified Hunt.Index                           as Ix

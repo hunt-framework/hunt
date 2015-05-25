@@ -35,7 +35,6 @@ import           Data.Binary
 import           Data.Monoid            ((<>))
 import           Data.Text              (Text)
 import qualified Data.Text              as T
-import           Data.Text.Binary       ()
 
 import           Hunt.Common.BasicTypes as BTy
 import           Hunt.Scoring.Score     (Score, unScore, toDefScore)
