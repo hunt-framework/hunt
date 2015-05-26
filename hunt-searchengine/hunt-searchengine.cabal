@@ -13,6 +13,8 @@ description:   The Hunt-Searchengine library provides a toolkit to
                create fast and flexible searchengines.
 cabal-version: >=1.8
 build-type:    Simple
+extra-source-files: CHANGELOG
+
 -- tested-with:   ghc-7.8.2
 
 -- extra-source-files:
@@ -22,9 +24,6 @@ build-type:    Simple
 flag test-strict
   default:      False
   manual:       True
-
-Extra-Source-Files:
-        CHANGELOG
 
 source-repository head
   type:        git
