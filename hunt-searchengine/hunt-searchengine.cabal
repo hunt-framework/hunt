@@ -23,6 +23,9 @@ flag test-strict
   default:      False
   manual:       True
 
+Extra-Source-Files:
+        CHANGELOG
+
 source-repository head
   type:        git
   location:    https://github.com/hunt-framework/hunt.git
