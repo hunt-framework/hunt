@@ -3,11 +3,14 @@
 module Hunt.ContextIndex.Insert where
 
 import           Hunt.Common.BasicTypes
+import           Hunt.Common.DocDesc as DocDesc
 import           Hunt.Common.DocId
 import qualified Hunt.Common.DocIdSet as DocIdSet
+import           Hunt.Common.Document as Doc
 import           Hunt.Common.Occurrences (Occurrences)
 import qualified Hunt.Common.Occurrences as Occ
 import           Hunt.ContextIndex.Delete (delete')
+import           Hunt.ContextIndex.Documents
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as Dt
@@ -142,35 +145,47 @@ modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
                          Score -> Description -> Words -> DocId -> ContextIndex dt ->
                          m (ContextIndex dt)
 modifyWithDescription weight descr wrds dId ixx
-    = do ixx'        <- delete' (DocIdSet.singleton dId) ixx -- mark dId as deleted in snapshots
-         return undefined
+  = do Just doc <- lookupDocument ixx dId
+       ixx'     <- delete' (DocIdSet.singleton dId) ixx -- mark dId as deleted in snapshots
+       newDoc'  <- wrap <$> mergeDescr (unwrap doc)
 
---         newDocTable <- Dt.adjust mergeDescr dId (ciDocs ixx')
---         newIndex    <- batchAddWordsM [(dId,wrds)] (ciIndex ixx')
---         return ixx' { ciIndex = newIndex
---                     , ciDocs  = newDocTable
---                     }
+       (dId', newDt) <- Dt.insert newDoc' Dt.empty
+       newIx         <- batchAddWordsM [(dId', wrds)] (newContextMap (ciSchema ixx))
 
-  --  where
+       let newSeg = Segment { segId          = newSegId
+                            , segIndex       = newIx
+                            , segDocs        = newDt
+                            , segState       = SegUncommited
+                            , segDeletedDocs = mempty
+                            , segDeletedCxs  = mempty
+                            }
+
+       return $! ixx { ciSegments = newSeg : ciSegments ixx }
+
+  where
+    newSegId
+      = case ciSegments ixx of
+         []    -> SegmentId 0
+         (x:_) -> succ (segId x)
+
       -- M.union is left-biased
       -- flip to use new values for existing keys
       -- no flip to keep old values
       --
       -- Null values in new descr will remove associated attributes
-{-      mergeDescr
-          = return . Doc.update (updateWeight . updateDescr)
-          where
-            updateWeight d
-                | weight == noScore = d
-                | otherwise         = d {wght = weight}
+    mergeDescr
+      = return . Doc.update (updateWeight . updateDescr)
+      where
+        updateWeight d
+          | weight == noScore = d
+          | otherwise         = d {wght = weight}
 
-            updateDescr d           = -- trc "updateDescr res=" $
-                                      d {desc = DocDesc.deleteNull $
-                                                flip DocDesc.union d' descr'
-                                        }
-                                      where
-                                        d'     = -- trc "updateDescr old=" $
-                                                 desc d
-                                        descr' = -- trc "updateDescr new=" $
-                                                 descr
--}
+        updateDescr d           = -- trc "updateDescr res=" $
+          d {desc = DocDesc.deleteNull $
+                    flip DocDesc.union d' descr'
+            }
+          where
+            d'     = -- trc "updateDescr old=" $
+              desc d
+            descr' = -- trc "updateDescr new=" $
+              descr
