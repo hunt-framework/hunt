@@ -26,7 +26,6 @@ import qualified Control.Monad.Parallel as Par
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Monoid
-import qualified Data.Set as Set
 
 {-
 -- | Insert a Document and Words.
@@ -51,22 +50,10 @@ insertList docAndWords ixx
          (newDt, docIdsAndWords) <- unionDocTables tablesAndWords Dt.empty
 
          -- insert words to index
-         newIx <- batchAddWordsM docIdsAndWords (newContextMap (ciSchema ixx))
-
-         let newSeg = Segment { segId          = newSegId
-                              , segIndex       = newIx
-                              , segDocs        = newDt
-                              , segState       = SegUncommited
-                              , segDeletedDocs = mempty
-                              , segDeletedCxs  = mempty
-                              }
+         newIx  <- batchAddWordsM docIdsAndWords (newContextMap (ciSchema ixx))
+         newSeg <- newSegment (nextSegmentId ixx) newIx newDt
 
          return $! ixx { ciSegments = newSeg : ciSegments ixx }
-  where
-    newSegId
-      = case ciSegments ixx of
-         []    -> SegmentId 0
-         (x:_) -> succ (segId x)
 
 -- takes list of documents with wordlist. creates new 'DocTable' and
 -- inserts each document of the list into it.
@@ -139,42 +126,44 @@ mapWithKeyMP f m =
             ) $ Map.toAscList m) >>=
     return . Map.fromAscList
 
+nextSegmentId :: ContextIndex dt -> SegmentId
+nextSegmentId ixx
+  = case ciSegments ixx of
+     []    -> SegmentId 1
+     (x:_) -> succ (segId x)
+
+newSegment :: Monad m => SegmentId -> ContextMap -> dt -> m (Segment dt)
+newSegment sid ix docs
+  = return $! Segment { segId          = sid
+                      , segIndex       = ix
+                      , segDocs        = docs
+                      , segState       = SegUncommited
+                      , segDeletedCxs  = mempty
+                      , segDeletedDocs = mempty
+                      }
+
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
 modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
                          Score -> Description -> Words -> DocId -> ContextIndex dt ->
                          m (ContextIndex dt)
 modifyWithDescription weight descr wrds dId ixx
-  = do Just doc <- lookupDocument ixx dId
-       ixx'     <- delete' (DocIdSet.singleton dId) ixx -- mark dId as deleted in snapshots
-       newDoc'  <- wrap <$> mergeDescr (unwrap doc)
+  = do Just doc      <- lookupDocument ixx dId
+       ixx'          <- delete' (DocIdSet.singleton dId) ixx
+       (dId', newDt) <- Dt.insert (mergeDescr doc) Dt.empty
 
-       (dId', newDt) <- Dt.insert newDoc' Dt.empty
        newIx         <- batchAddWordsM [(dId', wrds)] (newContextMap (ciSchema ixx))
-
-       let newSeg = Segment { segId          = newSegId
-                            , segIndex       = newIx
-                            , segDocs        = newDt
-                            , segState       = SegUncommited
-                            , segDeletedDocs = mempty
-                            , segDeletedCxs  = mempty
-                            }
-
+       newSeg        <- newSegment (nextSegmentId ixx') newIx newDt
        return $! ixx { ciSegments = newSeg : ciSegments ixx }
 
   where
-    newSegId
-      = case ciSegments ixx of
-         []    -> SegmentId 0
-         (x:_) -> succ (segId x)
-
       -- M.union is left-biased
       -- flip to use new values for existing keys
       -- no flip to keep old values
       --
       -- Null values in new descr will remove associated attributes
     mergeDescr
-      = return . Doc.update (updateWeight . updateDescr)
+      = wrap . Doc.update (updateWeight . updateDescr) . unwrap
       where
         updateWeight d
           | weight == noScore = d

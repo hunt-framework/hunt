@@ -68,8 +68,8 @@ import qualified Data.Map.Strict as Map
 
 insertContext :: Context -> Ix.IndexImpl -> ContextSchema
                  -> ContextIndex dt -> ContextIndex dt
-insertContext cx ix schema ixx
-  = ixx { ciSchema = Map.insertWith (const id) cx schema (ciSchema ixx) }
+insertContext cx _ix s ixx
+  = ixx { ciSchema = Map.insertWith (const id) cx s (ciSchema ixx) }
 
 deleteContext :: Context -> ContextIndex dt -> ContextIndex dt
 deleteContext cx ixx
