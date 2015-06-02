@@ -16,21 +16,4 @@ import           Hunt.ContextIndex.Types
 --
 commit :: (Binary dt, DocTable dt, MonadIO m) => FilePath -> ContextIndex dt -> m (ContextIndex dt)
 commit dir ixx
-  = do segments' <- mapM commitSeg (ciSegments ixx)
-       return ixx { ciSegments   = segments'
-                  }
-  where
-    commitSeg s
-      = do when (isUnstaged s) $
-             commitSegment dir s
-           when (isDirty s) $
-             commitDirtySegment dir s
-           return s { segState = SegClean }
-      where
-            isUnstaged s = st == SegUncommited || st == SegDirtyAndUncommited
-              where
-                st = segState s
-
-            isDirty s = st == SegDirty || st == SegDirtyAndUncommited
-              where
-                st = segState s
+  = return ixx

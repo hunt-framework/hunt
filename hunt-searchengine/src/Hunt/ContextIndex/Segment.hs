@@ -10,10 +10,8 @@ import qualified Hunt.DocTable as DocTable
 import qualified Hunt.Index as Ix
 import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Index.Schema
-import           Hunt.Scoring.SearchResult (SearchResult)
 import qualified Hunt.Scoring.SearchResult as SearchResult
 
-import           Control.Applicative
 import           Control.Arrow
 import           Control.Monad
 import           Control.Monad.IO.Class
@@ -25,7 +23,6 @@ import qualified Data.Map.Strict as Map
 import           Data.Maybe
 import           Data.Monoid
 import qualified Data.Set as Set
-import           Data.Text (Text)
 import qualified Data.Text as Text
 import           System.FilePath
 import           System.IO
@@ -136,67 +133,3 @@ mergeSegments schema seg1 seg2
     prepIx :: DocIdSet -> Ix.IndexImpl -> Ix.IndexImpl
     prepIx delDocs (Ix.IndexImpl ix)
       = Ix.mkIndex (Ix.deleteDocs delDocs ix `asTypeOf` ix)
-
-
--- | Flushes deleted documents and deleted contexts to index directory
---
-commitDirtySegment :: (MonadIO m) => FilePath -> Segment dt -> m ()
-commitDirtySegment dir seg
-  = liftIO $ do withFile (dir </> delDocsName) WriteMode $ \h ->
-                  do LByteString.hPut h (Put.runPut (put (segDeletedDocs seg)))
-                     hFlush h
-                withFile (dir </> delCxName) WriteMode $ \h ->
-                  do LByteString.hPut h (Put.runPut (put (segDeletedCxs seg)))
-                     hFlush h
-  where
-    delDocsName
-      = Printf.printf "%.10o.docs.del" (unSegmentId (segId seg))
-    delCxName
-      = Printf.printf "%.10o.cx.del" (unSegmentId (segId seg))
-
--- | Writes the immutable DocumentTable and ContextMap to index directory
---
-commitSegment :: (MonadIO m, Binary dt, DocTable dt)
-                 => FilePath
-                 -> Segment dt
-                 -> m ()
-commitSegment dir seg
-  = liftIO $ do withFile (dir </> ixName) WriteMode $ \h ->
-                  do mapM_ (uncurry (commitIx h)) contexts
-                     hFlush h
-
-                withFile (dir </> docsName) WriteMode $ \h ->
-                  do dt <- DocTable.difference (segDeletedDocs seg) (segDocs seg)
-                     LByteString.hPut h (Put.runPut (put dt))
-                     hFlush h
-  where
-    ixName
-      = Printf.printf "%.10o.terms" (unSegmentId (segId seg))
-    docsName
-      = Printf.printf "%.10o.docs" (unSegmentId (segId seg))
-
-    contexts
-      = List.filter (\cx -> Set.notMember (fst cx) (segDeletedCxs seg))
-        . Map.toAscList
-        . cxMap
-        . segIndex
-        $ seg
-
-    commitIx :: MonadIO m => Handle -> Context -> Ix.IndexImpl -> m ()
-    commitIx h cx (Ix.IndexImpl ix)
-      = do rx <- Ix.toListM ix
-           liftIO $ LByteString.hPut h (mkBytes rx)
-        where
-          mkBytes
-            = Put.runPut . void . foldM writeTermDelta mempty
-
-          writeTermDelta lastTerm (term, sr)
-            = do put (Text.length prefix)
-                 put suffix
-                 put (SearchResult.searchResultToOccurrences sr)
-                 return term
-            where
-              (prefix, suffix)
-                = case Text.commonPrefixes lastTerm term of
-                   Just (p, _, s) -> (p, s)
-                   _              -> (mempty, term)
