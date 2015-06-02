@@ -112,12 +112,6 @@ mergeSegments :: (MonadIO m, DocTable dt) => Schema -> Segment dt -> Segment dt 
 mergeSegments schema seg1 seg2
   = do dt1 <- segmentDocs seg1
        dt2 <- segmentDocs seg2
-
-       liftIO $ putStrLn "------------"
-       liftIO $ putStrLn (show (segId seg1))
-       liftIO $ putStrLn (show (segId seg2))
-       liftIO $ putStrLn "------------"
-
        newDt <- DocTable.union dt1 dt2
 
        ContextMap m1 <- segmentCxMap seg1

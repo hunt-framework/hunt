@@ -1,20 +1,26 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Hunt.ContextIndex.Merge where
 
-import Control.Monad.IO.Class
-import Data.Monoid
-import Data.Set (Set)
-import qualified Data.Set as Set
+import           Control.Monad.IO.Class
+import           Control.Monad.Reader
 import qualified Data.List as List
+import           Data.Monoid
+import           Data.Set (Set)
+import qualified Data.Set as Set
 
-import Hunt.ContextIndex.Segment
-import Hunt.DocTable (DocTable)
-import Hunt.ContextIndex.Types
-import Hunt.Utility
+import           Hunt.ContextIndex.Segment
+import           Hunt.ContextIndex.Types
+import           Hunt.DocTable (DocTable)
+import           Hunt.Index.Schema
+import           Hunt.Utility
 
 newtype MergeLock
   = MergeLock (Set SegmentId)
   deriving (Eq, Monoid)
+
+data MergePolicy
+  = MergeAll
+  deriving (Eq, Show)
 
 newtype Merge m dt
   = Merge { runMerge :: m (MergeResult dt) }
@@ -27,6 +33,14 @@ data MergeResult dt
 data TryMerge m dt
   = TryMerge !MergeLock !(Merge m dt)
 
+data MergeEnv dt
+  = MergeEnv { mePolicy   :: !MergePolicy
+             , meSchema   :: !Schema
+             , meSegments :: ![Segment dt]
+             }
+
+type MergeM dt m a = ReaderT (MergeEnv dt) m a
+
 -- TODO: does this make sense? CLEANUP!
 -- | Returns a `TryMerge` action. Since merging itself can be costly `tryMerge`
 --   returns a monadic action which can be executed asynchronously. It returns
@@ -37,38 +51,33 @@ data TryMerge m dt
 --   pass an empty `MergeLock` if you don't own one yet.
 tryMerge :: (Monad m, MonadIO n, DocTable dt)
             => MergeLock -> ContextIndex dt -> m (TryMerge n dt)
-tryMerge (MergeLock lockedSegs) ixx
-  = do return (TryMerge lock (Merge mergeAction))
-  where
-    mergeAction
-      = do case mergeables of
-            [] -> return (MergeResult id id)
-            xs -> segmentMerge xs
+tryMerge (MergeLock lock) ixx
+  = do segs <- selectSegments MergeAll (filterSet lock (ciSegments ixx))
+       case segs of
+        [] -> return (TryMerge (MergeLock lock) (Merge (return (MergeResult id id))))
+        sx -> do
+          let env   = MergeEnv MergeAll (ciSchema ixx) sx
+              sids  = Set.fromList [sid | s <- sx, let sid = segId s  ]
+              lock' = MergeLock (sids `mappend` lock)
+          return (TryMerge lock' (Merge (runReaderT doMerge env)))
 
-    segmentMerge segs
-      = do seg <- foldM1' (mergeSegments schema') segs
+doMerge :: (MonadIO m, DocTable dt) => MergeM dt m (MergeResult dt)
+doMerge
+  = do sx     <- asks meSegments
+       schema <- asks meSchema
+       newSeg <- foldM1' (mergeSegments schema) sx
+       let sids
+             = Set.fromList [sid | s <- sx, let sid = segId s ]
+       return MergeResult { mrModIxx = \ixx ->
+                             ixx { ciSegments = filterSet sids (ciSegments ixx) }
+                          , mrReleaseLock = \(MergeLock lock) ->
+                             MergeLock (lock `Set.difference` sids)
+                          }
 
-           -- | TODO: ModIxx needs to diff against deletedDocs/deletedContexts in
-           --         ixx', since they could have changed since the time of `tryMerge`
-           --         This isn't a problem since segment values increase monotonically
-           --         (always add, never remove any items from the sets of deleted docs and contexts)
-           let modIxx ixx'
-                 = let sx = List.filter (\s -> Set.notMember (segId s) mergedIds) (ciSegments ixx')
-                   in ixx' { ciSegments   = seg : sx }
-               modLock (MergeLock m)
-                 = MergeLock mempty
+selectSegments :: (Monad m, DocTable dt) => MergePolicy -> [Segment dt] -> m [Segment dt]
+selectSegments MergeAll
+  = return
 
-           return MergeResult { mrModIxx      = modIxx
-                              , mrReleaseLock = modLock
-                              }
-    schema'
-      = ciSchema ixx
-
-    mergedIds
-      = Set.fromList (fmap segId mergeables)
-
-    lock
-      = MergeLock (lockedSegs `mappend` mergedIds)
-
-    mergeables
-      = List.filter (\s -> Set.notMember (segId s) lockedSegs) (ciSegments ixx)
+filterSet :: Set SegmentId -> [Segment dt] -> [Segment dt]
+filterSet sx
+  = List.filter (\s -> Set.notMember (segId s) sx)
