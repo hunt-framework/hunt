@@ -26,15 +26,15 @@ lookupDocumentByURI uri ixx
       docs seg
         = do di  <- DocTable.lookupByURI uri (segDocs seg)
              case di of
-              Just dId | not (docsMember dId seg) -> return (Just dId)
-              _                                   -> return Nothing
+              Just dId | not (isDeleted dId seg) -> return (Just dId)
+              _                                  -> return Nothing
 
 lookupDocument :: (DocTable dt, Par.MonadParallel m) => ContextIndex dt -> DocId -> m (Maybe Document)
 lookupDocument ixx dId
   = do docs <- mapIxsP doc ixx
        return (fmap Document.unwrap (reduceMaybes' docs))
   where
-    doc seg = if docsMember dId seg
+    doc seg = if isDeleted dId seg
               then return Nothing
               else DocTable.lookup dId (segDocs seg)
 
@@ -47,4 +47,5 @@ selectDocuments ixx dIds
       = do dt <- DocTable.restrict dIds (segDocs seg)
            DocTable.difference (segDeletedDocs seg) dt
 
-docsMember dId seg = DocIdSet.member dId (segDeletedDocs seg)
+isDeleted :: DocId -> Segment dt -> Bool
+isDeleted dId seg = DocIdSet.member dId (segDeletedDocs seg)

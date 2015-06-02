@@ -130,7 +130,7 @@ modifyWithDescription weight descr wrds dId ixx
 
        newIx         <- batchAddWordsM [(dId', wrds)] (newContextMap ixx)
        newSeg        <- newSegment (nextSegmentId ixx') newIx newDt
-       return $! ixx { ciSegments = newSeg : ciSegments ixx }
+       return $! ixx { ciSegments = newSeg : ciSegments ixx' }
 
   where
       -- M.union is left-biased

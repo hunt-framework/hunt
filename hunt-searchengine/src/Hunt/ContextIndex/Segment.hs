@@ -55,6 +55,19 @@ segmentDocs :: (Monad m, DocTable dt) => Segment dt -> m dt
 segmentDocs seg
   = DocTable.difference (segDeletedDocs seg) (segDocs seg)
 
+-- | Returns the number of documents in this segment
+--
+segmentSize :: (Monad m, DocTable dt) => Segment dt -> m Int
+segmentSize
+  = DocTable.size . segDocs
+
+-- | Returns the ratio between deleted docs and contained docs
+--
+segmentDeletedDocsRatio :: (Monad m, DocTable dt) => Segment dt -> m Float
+segmentDeletedDocsRatio seg
+  = do size <- segmentSize seg
+       return (fromIntegral (DocIdSet.size (segDeletedDocs seg)) / fromIntegral size)
+
 -- | Returns the `ContextMap` of a `Segment`. Respects deleted contexts.
 --
 segmentCxMap :: Monad m => Segment dt -> m ContextMap
@@ -91,13 +104,20 @@ searchSegment cx search seg
     testNotEmpty :: (Ix.HasSearchResult r) => r -> Bool
     testNotEmpty
       = not . Ix.testSR SearchResult.srNull
+{-# INLINE searchSegment #-}
 
 -- | Merges two `Segment`s.
 --
-mergeSegments :: (Monad m, DocTable dt) => Schema -> Segment dt -> Segment dt -> m (Segment dt)
+mergeSegments :: (MonadIO m, DocTable dt) => Schema -> Segment dt -> Segment dt -> m (Segment dt)
 mergeSegments schema seg1 seg2
   = do dt1 <- segmentDocs seg1
        dt2 <- segmentDocs seg2
+
+       liftIO $ putStrLn "------------"
+       liftIO $ putStrLn (show (segId seg1))
+       liftIO $ putStrLn (show (segId seg2))
+       liftIO $ putStrLn "------------"
+
        newDt <- DocTable.union dt1 dt2
 
        ContextMap m1 <- segmentCxMap seg1

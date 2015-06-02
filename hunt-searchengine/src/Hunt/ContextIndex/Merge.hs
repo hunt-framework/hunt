@@ -56,7 +56,7 @@ tryMerge (MergeLock lockedSegs) ixx
                  = let sx = List.filter (\s -> Set.notMember (segId s) mergedIds) (ciSegments ixx')
                    in ixx' { ciSegments   = seg : sx }
                modLock (MergeLock m)
-                 = MergeLock (Set.difference m mergedIds)
+                 = MergeLock mempty
 
            return MergeResult { mrModIxx      = modIxx
                               , mrReleaseLock = modLock
