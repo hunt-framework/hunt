@@ -17,6 +17,7 @@ import qualified Hunt.Index as Ix
 import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Index.Schema
 
+
 newtype ContextMap
   = ContextMap { cxMap :: Map Context Ix.IndexImpl }
   deriving (Show)
@@ -59,11 +60,15 @@ empty
 mkContextMap :: Map Context Ix.IndexImpl -> ContextMap
 mkContextMap m = ContextMap $! m
 
-newContextMap :: Schema -> ContextMap
-newContextMap = ContextMap . Map.map (newIx . ctIxImpl . cxType)
+newContextMap' :: Schema -> ContextMap
+newContextMap' = ContextMap . Map.map (newIx . ctIxImpl . cxType)
   where
     newIx :: Ix.IndexImpl -> Ix.IndexImpl
     newIx (Ix.IndexImpl i) = Ix.mkIndex (Ix.empty `asTypeOf` i)
+
+newContextMap :: ContextIndex dt -> ContextMap
+newContextMap
+  = newContextMap' . ciSchema
 
 mapIxs :: Monad m => (Segment dt -> m a) -> ContextIndex dt -> m [a]
 mapIxs f

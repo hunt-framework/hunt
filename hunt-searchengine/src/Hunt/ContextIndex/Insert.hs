@@ -50,7 +50,7 @@ insertList docAndWords ixx
          (newDt, docIdsAndWords) <- unionDocTables tablesAndWords Dt.empty
 
          -- insert words to index
-         newIx  <- batchAddWordsM docIdsAndWords (newContextMap (ciSchema ixx))
+         newIx  <- batchAddWordsM docIdsAndWords (newContextMap ixx)
          newSeg <- newSegment (nextSegmentId ixx) newIx newDt
 
          return $! ixx { ciSegments = newSeg : ciSegments ixx }
@@ -118,30 +118,6 @@ contentForCx cx vs
             getWlForCx cx' ws'
               = Map.findWithDefault Map.empty cx' ws'
 
-mapWithKeyMP :: (Par.MonadParallel m, Ord k) => (k -> a -> m b) -> Map k a -> m (Map k b)
-mapWithKeyMP f m =
-  (Par.mapM (\(k, a) ->
-              do b <- f k a
-                 return (k, b)
-            ) $ Map.toAscList m) >>=
-    return . Map.fromAscList
-
-nextSegmentId :: ContextIndex dt -> SegmentId
-nextSegmentId ixx
-  = case ciSegments ixx of
-     []    -> SegmentId 1
-     (x:_) -> succ (segId x)
-
-newSegment :: Monad m => SegmentId -> ContextMap -> dt -> m (Segment dt)
-newSegment sid ix docs
-  = return $! Segment { segId          = sid
-                      , segIndex       = ix
-                      , segDocs        = docs
-                      , segState       = SegUncommited
-                      , segDeletedCxs  = mempty
-                      , segDeletedDocs = mempty
-                      }
-
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
 modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
@@ -152,7 +128,7 @@ modifyWithDescription weight descr wrds dId ixx
        ixx'          <- delete' (DocIdSet.singleton dId) ixx
        (dId', newDt) <- Dt.insert (mergeDescr doc) Dt.empty
 
-       newIx         <- batchAddWordsM [(dId', wrds)] (newContextMap (ciSchema ixx))
+       newIx         <- batchAddWordsM [(dId', wrds)] (newContextMap ixx)
        newSeg        <- newSegment (nextSegmentId ixx') newIx newDt
        return $! ixx { ciSegments = newSeg : ciSegments ixx }
 
@@ -178,3 +154,27 @@ modifyWithDescription weight descr wrds dId ixx
               desc d
             descr' = -- trc "updateDescr new=" $
               descr
+
+mapWithKeyMP :: (Par.MonadParallel m, Ord k) => (k -> a -> m b) -> Map k a -> m (Map k b)
+mapWithKeyMP f m =
+  (Par.mapM (\(k, a) ->
+              do b <- f k a
+                 return (k, b)
+            ) $ Map.toAscList m) >>=
+    return . Map.fromAscList
+
+nextSegmentId :: ContextIndex dt -> SegmentId
+nextSegmentId ixx
+  = case ciSegments ixx of
+     []    -> SegmentId 1
+     (x:_) -> succ (segId x)
+
+newSegment :: Monad m => SegmentId -> ContextMap -> dt -> m (Segment dt)
+newSegment sid ix docs
+  = return $! Segment { segId          = sid
+                      , segIndex       = ix
+                      , segDocs        = docs
+                      , segState       = SegUncommited
+                      , segDeletedCxs  = mempty
+                      , segDeletedDocs = mempty
+                      }
