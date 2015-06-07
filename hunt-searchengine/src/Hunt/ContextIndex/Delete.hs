@@ -31,12 +31,17 @@ deleteDocsByURI us ixx
 
 -- | Delete a set of documents by 'DocId'.
 delete :: (Par.MonadParallel m, Applicative m, DocTable dt)
-       => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
+       => DocIdSet
+       -> ContextIndex dt
+       -> m (ContextIndex dt)
 delete dIds ixx
     | DocIdSet.null dIds = return ixx
     | otherwise          = delete' dIds ixx
 
-delete' :: Par.MonadParallel m => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
+delete' :: Par.MonadParallel m
+        => DocIdSet
+        -> ContextIndex dt
+        -> m (ContextIndex dt)
 delete' dIds ixx
   = do sx <- mapIxsP (return . segmentDeleteDocs dIds) ixx
        return ixx { ciSegments = sx }

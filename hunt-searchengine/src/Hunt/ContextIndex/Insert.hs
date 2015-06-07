@@ -139,7 +139,6 @@ modifyWithDescription weight descr wrds dId ixx
   = do Just doc      <- lookupDocument ixx dId -- TODO: dangerous
        ixx'          <- delete' (DocIdSet.singleton dId) ixx
        (dId', newDt) <- Dt.insert (mergeDescr doc) Dt.empty
-
        newIx         <- batchAddWordsM [(dId', wrds)] (newContextMap ixx)
        newSeg        <- newSegment (nextSegmentId ixx') newIx newDt
        return $! ixx { ciSegments = newSeg : ciSegments ixx' }

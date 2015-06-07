@@ -17,7 +17,6 @@ import qualified Hunt.Index as Ix
 import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Index.Schema
 
-
 newtype ContextMap
   = ContextMap { cxMap :: Map Context Ix.IndexImpl }
   deriving (Show)

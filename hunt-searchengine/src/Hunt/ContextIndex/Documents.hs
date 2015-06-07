@@ -18,27 +18,35 @@ import           Data.Maybe
 reduceMaybes' :: [Maybe a] -> Maybe a
 reduceMaybes' = listToMaybe . catMaybes
 
-lookupDocumentByURI :: (DocTable dt, Par.MonadParallel m) => URI -> ContextIndex dt -> m (Maybe DocId)
+lookupDocumentByURI :: (DocTable dt, Par.MonadParallel m)
+                    => URI
+                    -> ContextIndex dt
+                    -> m (Maybe DocId)
 lookupDocumentByURI uri ixx
-  = do dIds <- mapIxsP docs ixx
+  = do dIds <- mapIxsP (\seg -> do di <- DocTable.lookupByURI uri (segDocs seg)
+                                   return (do dId <- di
+                                              guard (not (isDeleted dId seg))
+                                              return dId)
+                       ) ixx
        return (reduceMaybes' dIds)
-    where
-      docs seg
-        = do di  <- DocTable.lookupByURI uri (segDocs seg)
-             case di of
-              Just dId | not (isDeleted dId seg) -> return (Just dId)
-              _                                  -> return Nothing
 
-lookupDocument :: (DocTable dt, Par.MonadParallel m) => ContextIndex dt -> DocId -> m (Maybe Document)
+lookupDocument :: (DocTable dt, Par.MonadParallel m)
+               => ContextIndex dt
+               -> DocId
+               -> m (Maybe Document)
 lookupDocument ixx dId
   = do docs <- mapIxsP doc ixx
        return (fmap Document.unwrap (reduceMaybes' docs))
   where
-    doc seg = if isDeleted dId seg
-              then return Nothing
-              else DocTable.lookup dId (segDocs seg)
+    doc seg
+      = if isDeleted dId seg
+        then return Nothing
+        else DocTable.lookup dId (segDocs seg)
 
-selectDocuments :: (Applicative m, Par.MonadParallel m, DocTable dt) => ContextIndex dt -> DocIdSet -> m dt
+selectDocuments :: (Applicative m, Par.MonadParallel m, DocTable dt)
+                => ContextIndex dt
+                -> DocIdSet
+                -> m dt
 selectDocuments ixx dIds
   = do dtx <- mapIxsP docs ixx
        foldM DocTable.union DocTable.empty dtx
@@ -48,4 +56,5 @@ selectDocuments ixx dIds
            DocTable.difference (segDeletedDocs seg) dt
 
 isDeleted :: DocId -> Segment dt -> Bool
-isDeleted dId seg = DocIdSet.member dId (segDeletedDocs seg)
+isDeleted dId
+  = DocIdSet.member dId . segDeletedDocs

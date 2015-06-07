@@ -81,9 +81,11 @@ segmentCxMap seg
 -- | Searches a segment given a search function. Respects deleted contexts
 --   and documents.
 --
-searchSegment :: (Monad m, Ix.HasSearchResult r) => Context
-                 -> (forall i. (Ix.IndexImplCon i) => i -> m [r])
-                 -> Segment dt -> m [r]
+searchSegment :: (Monad m, Ix.HasSearchResult r)
+              => Context
+              -> (forall i. (Ix.IndexImplCon i) => i -> m [r])
+              -> Segment dt
+              -> m [r]
 searchSegment cx search seg
   = if Set.notMember cx (segDeletedCxs seg)
        then case Map.lookup cx (cxMap (segIndex seg)) of
@@ -108,7 +110,11 @@ searchSegment cx search seg
 
 -- | Merges two `Segment`s.
 --
-mergeSegments :: (MonadIO m, DocTable dt) => Schema -> Segment dt -> Segment dt -> m (Segment dt)
+mergeSegments :: (MonadIO m, DocTable dt)
+              => Schema
+              -> Segment dt
+              -> Segment dt
+              -> m (Segment dt)
 mergeSegments schema seg1 seg2
   = do dt1 <- segmentDocs seg1
        dt2 <- segmentDocs seg2
