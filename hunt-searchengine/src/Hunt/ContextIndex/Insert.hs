@@ -38,9 +38,10 @@ insert doc wrds ix = insertList [(doc,wrds)] ix
 
 --   This is more efficient than using fold and with 'insert'.
 -- | Insert multiple documents and words.
-insertList :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
-              [(Dt.DValue dt, Words)] ->
-              ContextIndex dt -> m (ContextIndex dt)
+insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
+           => [(Dt.DValue dt, Words)]
+           -> ContextIndex dt
+           -> m (ContextIndex dt)
 insertList docAndWords ixx
     = do -- insert to doctable and generate docId
          tablesAndWords <- Par.mapM createDocTableFromPartition
@@ -57,10 +58,11 @@ insertList docAndWords ixx
 
 -- takes list of documents with wordlist. creates new 'DocTable' and
 -- inserts each document of the list into it.
-createDocTableFromPartition :: (Par.MonadParallel m, DocTable dt) =>
-                               [(Dt.DValue dt, Words)] -> m (dt, [(DocId, Words)])
-createDocTableFromPartition ds
-    = foldM toDocTable (Dt.empty, []) ds
+createDocTableFromPartition :: (Par.MonadParallel m, DocTable dt)
+                            => [(Dt.DValue dt, Words)]
+                            -> m (dt, [(DocId, Words)])
+createDocTableFromPartition
+    = foldM toDocTable (Dt.empty, [])
     where
       toDocTable (dt, resIdsAndWords) (doc, ws)
         = do (dId, dt') <- Dt.insert doc dt
@@ -69,8 +71,10 @@ createDocTableFromPartition ds
 -- takes list of doctables with lists of docid-words pairs attached
 -- unions the doctables to one big doctable and concats the docid-words
 -- pairs to one list
-unionDocTables :: (DocTable dt, Par.MonadParallel m) =>
-                  [(dt, [(DocId, Words)])] -> dt -> m (dt, [(DocId, Words)])
+unionDocTables :: (DocTable dt, Par.MonadParallel m)
+               => [(dt, [(DocId, Words)])]
+               -> dt
+               -> m (dt, [(DocId, Words)])
 unionDocTables tablesAndWords oldDt
     = do step <- Par.mapM unionDtsAndWords $ mkPairs tablesAndWords
          case step of
@@ -93,8 +97,10 @@ unionDocTables tablesAndWords oldDt
 -- | Add words for a document to the 'Index'.
 --
 --   /Note/: Adds words to /existing/ 'Context's.
-batchAddWordsM :: (Functor m, Par.MonadParallel m) =>
-                  [(DocId, Words)] -> ContextMap -> m ContextMap
+batchAddWordsM :: (Functor m, Par.MonadParallel m)
+               => [(DocId, Words)]
+               -> ContextMap
+               -> m ContextMap
 batchAddWordsM [] ix
     = return ix
 
@@ -122,11 +128,15 @@ contentForCx cx
 
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
-modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
-                         Score -> Description -> Words -> DocId -> ContextIndex dt ->
-                         m (ContextIndex dt)
+modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt)
+                      => Score
+                      -> Description
+                      -> Words
+                      -> DocId
+                      -> ContextIndex dt
+                      -> m (ContextIndex dt)
 modifyWithDescription weight descr wrds dId ixx
-  = do Just doc      <- lookupDocument ixx dId
+  = do Just doc      <- lookupDocument ixx dId -- TODO: dangerous
        ixx'          <- delete' (DocIdSet.singleton dId) ixx
        (dId', newDt) <- Dt.insert (mergeDescr doc) Dt.empty
 
@@ -157,7 +167,10 @@ modifyWithDescription weight descr wrds dId ixx
             descr' = -- trc "updateDescr new=" $
               descr
 
-mapWithKeyMP :: (Par.MonadParallel m, Ord k) => (k -> a -> m b) -> Map k a -> m (Map k b)
+mapWithKeyMP :: (Par.MonadParallel m, Ord k)
+             => (k -> a -> m b)
+             -> Map k a
+             -> m (Map k b)
 mapWithKeyMP f m =
   (Par.mapM (\(k, a) ->
               do b <- f k a
