@@ -101,22 +101,24 @@ batchAddWordsM [] ix
 batchAddWordsM vs (ContextMap m)
     = ContextMap <$> mapWithKeyMP foldinsertList m
     where
-      foldinsertList :: (Functor m, Monad m) =>
-                        Context -> Ix.IndexImpl -> m Ix.IndexImpl
+      foldinsertList :: (Functor m, Monad m)
+                     => Context
+                     -> Ix.IndexImpl
+                     -> m Ix.IndexImpl
       foldinsertList cx (Ix.IndexImpl impl)
-          = Ix.mkIndex <$>
-            Ix.insertListM (contentForCx cx vs) impl
+          = Ix.mkIndex <$> (Ix.fromListM (contentForCx cx vs) `asTypeOf` return impl)
 
 -- | Computes the words and occurrences out of a list for one context
 
 contentForCx :: Context -> [(DocId, Words)] -> [(Word, Occurrences)]
-contentForCx cx vs
-    = concatMap (invert . second (getWlForCx cx)) $ vs
-          where
-            invert (did, wl)
-                = map (second (Occ.singleton' did)) $ Map.toList wl
-            getWlForCx cx' ws'
-              = Map.findWithDefault Map.empty cx' ws'
+contentForCx cx
+  = Map.toAscList . Map.unionsWith mappend . fmap (invert . second (wordlist cx))
+  where
+    wordlist
+      = Map.findWithDefault Map.empty
+
+    invert (dId, wl)
+      = Map.map (Occ.singleton' dId) wl
 
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
