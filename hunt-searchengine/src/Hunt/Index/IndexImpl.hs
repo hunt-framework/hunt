@@ -25,6 +25,7 @@ import           Control.Monad
 import           Data.Binary
 import qualified Data.List                   as L
 import           Data.Text                   (Text)
+import           Data.Text.Binary            ()
 import           Data.Typeable
 import           Data.Typeable.Binary        ()
 

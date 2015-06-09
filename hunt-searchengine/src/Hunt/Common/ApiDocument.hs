@@ -21,6 +21,7 @@ import           Data.Map.Strict        (Map ())
 import qualified Data.Map.Strict        as M
 import           Data.Text              (Text)
 import qualified Data.Text              as T
+import           Data.Text.Binary       ()
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Scoring.Score     (Score, noScore, mkScore, getScore)
