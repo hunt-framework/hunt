@@ -1,5 +1,8 @@
 /hunt-demos/geoFrontend/data/map.xml
 dist
+.stack-work
+dist-stack
+.DS_Store
 cabal-dev
 *.o
 *.hi

@@ -35,7 +35,7 @@ library
                 , conduit-combinators
                 , conduit-extra
                 , data-default
-                , exceptions             >= 0.5 && < 0.7
+                , exceptions             >= 0.5 && < 0.9
                 , http-client            >= 0.2
                 , http-conduit           >= 2.0.0
                 , http-types             >= 0.8
