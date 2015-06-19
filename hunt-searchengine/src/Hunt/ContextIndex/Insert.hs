@@ -88,7 +88,7 @@ unionDocTables tablesAndWords oldDt
              return (dt, ws1 ++ ws2)
 
       mkPairs []       = []
-      mkPairs (a:[])   = [(a,(Dt.empty,[]))]
+      mkPairs [a]      = [(a,(Dt.empty,[]))]
       mkPairs (a:b:xs) = (a,b):mkPairs xs
 
 -- | Adds words associated to a document to the index.
