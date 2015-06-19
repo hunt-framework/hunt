@@ -282,7 +282,7 @@ cnZeroFill = CNormalizer "ZeroFill" Int.normalizeToText
 
 data CMerge
   = CMerge { cmName :: Text
-           , merge  :: [IndexImpl] -> IndexImpl
+           , merge  :: IndexImpl -> IndexImpl -> IndexImpl
            }
 
 instance Show CMerge where

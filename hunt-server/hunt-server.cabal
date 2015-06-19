@@ -60,15 +60,17 @@ executable hunt-server
 
   hs-source-dirs: src
 
-  ghc-options:   -threaded
-                 -Wall
-                 -funbox-strict-fields
+  ghc-options: -O2
+               -threaded
+               -Wall
+               -funbox-strict-fields
+               -eventlog
 
   ghc-prof-options: -fprof-auto
-
+                               
   if flag(statsD)
-    build-depends:   ekg-statsd
-    ghc-options: "-with-rtsopts=-N -c -s -I3 -H -T"
+    build-depends: ekg-statsd
+    ghc-options: "-with-rtsopts=-s -T"
     cpp-options:  -DSUPPORT_STATSD
 
   if impl( ghc >= 7 )

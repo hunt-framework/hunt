@@ -22,7 +22,6 @@ data Status
 
 data SegmentStatus
   = SegmentStatus { ssId               :: !SegmentId
-                  , ssState            :: !SegmentState
                   , ssDeletedContexts  :: !(Set Context)
                   , ssDeletedDocs      :: !DocIdSet
                   , ssContainedDocs    :: !DocIdSet
@@ -44,7 +43,6 @@ segmentStatus seg
        docs' <- segmentDocs seg >>= DocTable.toMap
        let docs = DocIdMap.keys docs'
        return SegmentStatus { ssId               = segId seg
-                            , ssState            = segState seg
                             , ssDeletedContexts  = segDeletedCxs seg
                             , ssDeletedDocs      = segDeletedDocs seg
                             , ssSegmentSize      = size
@@ -55,7 +53,6 @@ segmentStatus seg
 instance ToJSON SegmentStatus where
   toJSON ss
     = object [ "id"               .= ssId ss
-             , "state"            .= ssState ss
              , "docs"             .= ssContainedDocs ss
              , "deletedDocs"      .= ssDeletedDocs ss
              , "deletedContexts"  .= ssDeletedContexts ss
@@ -71,6 +68,3 @@ instance ToJSON Status where
 
 instance ToJSON SegmentId where
   toJSON (SegmentId x) = toJSON x
-
-instance ToJSON SegmentState where
-  toJSON = toJSON . show

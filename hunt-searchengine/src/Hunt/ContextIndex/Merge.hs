@@ -1,9 +1,11 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Hunt.ContextIndex.Merge where
 
+import           Control.Applicative
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import qualified Data.List as List
+import qualified Data.Map.Strict as Map
 import           Data.Monoid
 import           Data.Set (Set)
 import qualified Data.Set as Set
@@ -52,7 +54,13 @@ type MergeM dt m a = ReaderT (MergeEnv dt) m a
 tryMerge :: (Monad m, MonadIO n, DocTable dt)
             => MergeLock -> ContextIndex dt -> m (TryMerge n dt)
 tryMerge (MergeLock lock) ixx
-  = do segs <- selectSegments MergeAll (filterSet lock (ciSegments ixx))
+  = do segments <- selectSegments 1 10 (filterSet lock (ciSegments ixx))
+       return undefined
+
+
+
+{-
+    segs <- selectSegments MergeAll (filterSet lock (ciSegments ixx))
        case segs of
         [] -> return (TryMerge (MergeLock lock) (Merge (return (MergeResult id id))))
         sx -> do
@@ -60,23 +68,54 @@ tryMerge (MergeLock lock) ixx
               sids  = Set.fromList [sid | s <- sx, let sid = segId s  ]
               lock' = MergeLock (sids `mappend` lock)
           return (TryMerge lock' (Merge (runReaderT doMerge env)))
+-}
 
 doMerge :: (MonadIO m, DocTable dt) => MergeM dt m (MergeResult dt)
 doMerge
-  = do sx     <- asks meSegments
-       schema <- asks meSchema
-       newSeg <- foldM1' (mergeSegments schema) sx
-       let sids
-             = Set.fromList [sid | s <- sx, let sid = segId s ]
-       return MergeResult { mrModIxx = \ixx ->
-                             ixx { ciSegments = filterSet sids (ciSegments ixx) }
-                          , mrReleaseLock = \(MergeLock lock) ->
-                             MergeLock (lock `Set.difference` sids)
+  = do sx        <- asks meSegments
+       schema    <- asks meSchema
+       segments' <- doMerge' schema 10 sx
+
+       return MergeResult { mrModIxx = \ixx -> ixx
+                          , mrReleaseLock = \lock -> lock
                           }
 
-selectSegments :: (Monad m, DocTable dt) => MergePolicy -> [Segment dt] -> m [Segment dt]
-selectSegments MergeAll
-  = return
+doMerge' :: (MonadIO m, DocTable dt)
+         => Schema
+         -> Int
+         -> [Segment dt]
+         -> m [Segment dt]
+doMerge'
+  = go 1
+  where
+    go sz s mf segs
+      = do (eqSzed, rest) <- selectSegments sz mf segs
+           case eqSzed of
+             [] -> return segs
+             _  -> do
+               ns <- foldM1' (mergeSegments s) eqSzed
+               go (sz * mf) s mf (ns:rest)
+
+selectSegments :: (Monad m, DocTable dt)
+               => Int
+               -> Int
+               -> [Segment dt]
+               -> m [Segment dt]
+selectSegments sz mf segs
+  = do levels <- segLevels segs
+       let (maxLvl, _) = Map.findMax levels
+           bottomLvl   = maxLvl - 0.75
+           (l, r)      = Map.partitionWithKey(\lvl _ -> lvl <= bottomLvl) levels
+       return (Map.elems l, Map.elems r)
+  where
+    logBase' b a
+      = logBase (fromIntegral b) (fromIntegral a)
+
+    segLevels segs
+      = do xs <- mapM (\s -> do ss <- segmentSize s
+                                return (logBase' mf ss , s)
+                      ) segs
+           return (Map.fromList xs)
 
 filterSet :: Set SegmentId -> [Segment dt] -> [Segment dt]
 filterSet sx

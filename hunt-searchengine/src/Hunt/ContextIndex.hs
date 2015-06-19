@@ -66,8 +66,11 @@ import           Hunt.Index.Schema
 
 import qualified Data.Map.Strict as Map
 
-insertContext :: Context -> Ix.IndexImpl -> ContextSchema
-                 -> ContextIndex dt -> ContextIndex dt
+insertContext :: Context
+              -> Ix.IndexImpl
+              -> ContextSchema
+              -> ContextIndex dt
+              -> ContextIndex dt
 insertContext cx _ix s ixx
   = ixx { ciSchema = Map.insertWith (const id) cx s (ciSchema ixx) }
 

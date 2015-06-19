@@ -28,25 +28,16 @@ import           System.FilePath
 import           System.IO
 import qualified Text.Printf as Printf
 
-modSegState :: SegmentState -> SegmentState -> SegmentState
-modSegState SegUncommited SegDirty = SegDirtyAndUncommited
-modSegState SegDirty SegUncommited = SegDirtyAndUncommited
-modSegState _        s             = s
-
--- | Marks given documents as deleted. Segment is marked as dirty.
---
 segmentDeleteDocs :: DocIdSet -> Segment dt -> Segment dt
 segmentDeleteDocs dIds seg
-  = seg { segState       = segState seg `modSegState` SegDirty
-        , segDeletedDocs = dIds `mappend` segDeletedDocs seg
+  = seg { segDeletedDocs = dIds `mappend` segDeletedDocs seg
         }
 
 -- | Marks given Context as deleted. Segment is marked dirty.
 --
 segmentDeleteContext :: Context -> Segment dt -> Segment dt
 segmentDeleteContext cx seg
-  = seg { segState      = segState seg `modSegState` SegDirty
-        , segDeletedCxs = Set.insert cx (segDeletedCxs seg)
+  = seg { segDeletedCxs = Set.insert cx (segDeletedCxs seg)
         }
 
 -- | Returns the segments `DocTable`. Respects deleted documents.
@@ -132,8 +123,8 @@ mergeSegments schema seg1 seg2
                   (Just ix1, Just ix2) ->
                     let ix1' = prepIx (segDeletedDocs seg1) ix1
                         ix2' = prepIx (segDeletedDocs seg2) ix2
-                    in Just $ merge (ctMerge (cxType st)) [ix1', ix2']
-                  (Nothing, Nothing)   -> Nothing
+                    in Just $ merge (ctMerge (cxType st)) ix1' ix2'
+                  _                    -> Nothing
             return (cx, newIx')
 
        let ctxMap
@@ -144,7 +135,6 @@ mergeSegments schema seg1 seg2
        return Segment { segId          = max (segId seg1) (segId seg2)
                       , segIndex       = ctxMap
                       , segDocs        = newDt
-                      , segState       = SegUncommited
                       , segDeletedDocs = mempty
                       , segDeletedCxs  = mempty
                       }

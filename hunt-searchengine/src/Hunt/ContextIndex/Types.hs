@@ -30,18 +30,10 @@ newtype SegmentId
   = SegmentId { unSegmentId :: Int }
     deriving (Enum, Eq, Ord, Show)
 
-data SegmentState
-  = SegUncommited
-  | SegDirty
-  | SegDirtyAndUncommited
-  | SegClean
-  deriving (Eq, Show)
-
 data Segment dt
   = Segment { segId          :: !SegmentId
             , segIndex       :: !ContextMap
             , segDocs        :: !dt
-            , segState       :: !SegmentState
             , segDeletedDocs :: !DocIdSet
             , segDeletedCxs  :: !(Set Context)
             }

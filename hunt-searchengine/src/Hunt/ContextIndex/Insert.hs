@@ -188,7 +188,6 @@ newSegment sid ix docs
   = return $! Segment { segId          = sid
                       , segIndex       = ix
                       , segDocs        = docs
-                      , segState       = SegUncommited
                       , segDeletedCxs  = mempty
                       , segDeletedDocs = mempty
                       }
