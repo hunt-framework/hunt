@@ -7,6 +7,7 @@ import qualified Hunt.Common.DocIdSet as DocIdSet
 import           Hunt.Common.Document (Document)
 import qualified Hunt.Common.Document as Document
 import           Hunt.ContextIndex.Types
+import           Hunt.ContextIndex.Segment
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as DocTable
 

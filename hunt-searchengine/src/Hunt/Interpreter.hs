@@ -51,7 +51,7 @@ import qualified Hunt.Common.DocDesc           as DocDesc
 import qualified Hunt.Common.DocIdSet          as DocIdSet
 import           Hunt.Common.Document          (Document (..))
 import           Hunt.ContextIndex             (ContextIndex, MergeLock,
-                                                MergeResult(..))
+                                                ApplyMerge(..))
 import qualified Hunt.ContextIndex             as CIx
 import           Hunt.DocTable                 (DocTable)
 import qualified Hunt.DocTable                 as DocTable
@@ -680,15 +680,16 @@ execMerge :: DocTable dt => Hunt dt CmdResult
 execMerge
   = do doMerge <- withMergeLock $ \l -> do
          modIx $ \ixx -> do
-           CIx.TryMerge l' merge <- CIx.tryMerge l ixx
-           return (ixx, (l', merge))
+           (merges, lock) <- CIx.tryMerge l ixx
+           return (ixx, (lock, merges))
 
-       -- TODO: This call is considered expensive
-       MergeResult modIx' modLock <- CIx.runMerge doMerge
+       merged <- mapM CIx.runMerge doMerge
 
-       withMergeLock $ \l -> do
+       withMergeLock $ \lock -> do
          modIx $ \ixx -> do
-           return (modIx' ixx, (modLock l, ResOK))
+           return (foldr applyMerge ixx merged, (
+                       foldr releaseLock lock merged,
+                       ResOK))
 
 -- | Get status information about the server\/index, e.g. garbage collection statistics.
 execStatus :: DocTable dt => StatusCmd -> Hunt dt CmdResult

@@ -24,36 +24,31 @@ data SegmentStatus
   = SegmentStatus { ssId               :: !SegmentId
                   , ssDeletedContexts  :: !(Set Context)
                   , ssDeletedDocs      :: !DocIdSet
-                  , ssContainedDocs    :: !DocIdSet
                   , ssSegmentSize      :: !Int
                   , ssDeletedDocsRatio :: !Float
                   }
 
 status :: (Monad m, DocTable dt) => ContextIndex dt -> m Status
 status ixx
-  = do ssx <- mapM segmentStatus (ciSegments ixx)
-       return Status { csNumberOfSegments   = List.length (ciSegments ixx)
+  = do ssx <- mapM (uncurry segmentStatus) (toList (ciSegments ixx))
+       return Status { csNumberOfSegments   = size (ciSegments ixx)
                      , csSegmentStatus      = ssx
                      }
 
-segmentStatus :: (Monad m, DocTable dt) => Segment dt -> m SegmentStatus
-segmentStatus seg
+segmentStatus :: (Monad m, DocTable dt) => SegmentId -> Segment dt -> m SegmentStatus
+segmentStatus sid seg
   = do size  <- segmentSize seg
        ratio <- segmentDeletedDocsRatio seg
-       docs' <- segmentDocs seg >>= DocTable.toMap
-       let docs = DocIdMap.keys docs'
-       return SegmentStatus { ssId               = segId seg
+       return SegmentStatus { ssId               = sid
                             , ssDeletedContexts  = segDeletedCxs seg
                             , ssDeletedDocs      = segDeletedDocs seg
                             , ssSegmentSize      = size
                             , ssDeletedDocsRatio = ratio
-                            , ssContainedDocs    = DocIdSet.fromList docs
                             }
 
 instance ToJSON SegmentStatus where
   toJSON ss
     = object [ "id"               .= ssId ss
-             , "docs"             .= ssContainedDocs ss
              , "deletedDocs"      .= ssDeletedDocs ss
              , "deletedContexts"  .= ssDeletedContexts ss
              , "size"             .= ssSegmentSize ss

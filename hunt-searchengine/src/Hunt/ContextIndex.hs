@@ -40,10 +40,10 @@ module Hunt.ContextIndex (
   , ContextIndex
 
     -- * Merge specific
-  , Merge(..)
-  , MergeResult(..)
-  , TryMerge(..)
+  , MergeDescr
   , MergeLock
+  , ApplyMerge(..)
+  , runMerge
   , tryMerge
 
   , commit
@@ -58,7 +58,7 @@ import           Hunt.ContextIndex.Documents
 import           Hunt.ContextIndex.Insert
 import           Hunt.ContextIndex.Merge
 import           Hunt.ContextIndex.Search
-import           Hunt.ContextIndex.Segment
+import           Hunt.ContextIndex.Segment hiding (delete)
 import           Hunt.ContextIndex.Status
 import           Hunt.ContextIndex.Types
 import qualified Hunt.Index.IndexImpl as Ix
@@ -76,7 +76,7 @@ insertContext cx _ix s ixx
 
 deleteContext :: Context -> ContextIndex dt -> ContextIndex dt
 deleteContext cx ixx
-  = ixx { ciSegments = mapIxs' (segmentDeleteContext cx) ixx
+  = ixx { ciSegments = mapSegments (segmentDeleteContext cx) (ciSegments ixx)
         , ciSchema   = Map.delete cx (ciSchema ixx)
         }
 

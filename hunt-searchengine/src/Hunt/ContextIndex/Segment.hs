@@ -1,10 +1,12 @@
-{-# LANGUAGE Rank2Types      #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Hunt.ContextIndex.Segment where
+
+import           Prelude hiding (mapM)
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet (DocIdSet)
 import qualified Hunt.Common.DocIdSet as DocIdSet
-import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as DocTable
 import qualified Hunt.Index as Ix
@@ -12,35 +14,164 @@ import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Index.Schema
 import qualified Hunt.Scoring.SearchResult as SearchResult
 
+import           Control.Applicative
 import           Control.Arrow
-import           Control.Monad
 import           Control.Monad.IO.Class
+import qualified Control.Monad.Parallel as Par
 import           Data.Binary
 import qualified Data.Binary.Put as Put
 import qualified Data.ByteString.Lazy as LByteString
+import           Data.IntMap.Strict (IntMap)
+import qualified Data.IntMap.Strict as IntMap
 import qualified Data.List as List
+import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import           Data.Maybe
 import           Data.Monoid
+import           Data.Set (Set)
 import qualified Data.Set as Set
 import qualified Data.Text as Text
+import           Data.Traversable
 import           System.FilePath
 import           System.IO
 import qualified Text.Printf as Printf
 
+newtype SegmentId
+  = SegmentId { unSegmentId :: Int }
+    deriving (Enum, Eq, Ord, Show)
+
+newtype ContextMap
+  = ContextMap { cxMap :: Map Context Ix.IndexImpl }
+  deriving (Show)
+
+data Segment dt
+  = Segment { segIndex       :: !ContextMap
+            , segDocs        :: !dt
+            , segDeletedDocs :: !DocIdSet
+            , segDeletedCxs  :: !(Set Context)
+            }
+
+newtype SegmentMap a
+  = SegmentMap { unSegmentMap :: IntMap a }
+  deriving (Functor)
+
+data SegmentDiff
+  = SegmentDiff !DocIdSet !(Set Context)
+
+instance Monoid SegmentDiff where
+  mempty
+    = SegmentDiff mempty mempty
+  mappend (SegmentDiff dids1 ctx1) (SegmentDiff dids2 ctx2)
+    = SegmentDiff (dids1 <> dids2) (ctx1 <> ctx2)
+
+mkContextMap :: Map Context Ix.IndexImpl -> ContextMap
+mkContextMap m = ContextMap $! m
+
+newContextMap' :: Schema -> ContextMap
+newContextMap' = ContextMap . Map.map (newIx . ctIxImpl . cxType)
+  where
+    newIx :: Ix.IndexImpl -> Ix.IndexImpl
+    newIx (Ix.IndexImpl i) = Ix.mkIndex (Ix.empty `asTypeOf` i)
+
+-- | Create a new `SegmentMap`.
+--
+newSegmentMap :: SegmentMap dt
+newSegmentMap
+  = SegmentMap IntMap.empty
+
+-- | Size of `SegmentMap`
+size :: SegmentMap a -> Int
+size
+  = IntMap.size . unSegmentMap
+
+elems :: SegmentMap a -> [a]
+elems
+  =  IntMap.elems . unSegmentMap
+
+-- | Insert a `Segment` into a `SegmentMap`.
+--
+insert :: SegmentId -> Segment dt -> SegmentMap (Segment dt) -> SegmentMap (Segment dt)
+insert (SegmentId sid) segment
+  = SegmentMap . IntMap.insert sid segment . unSegmentMap
+
+-- | Remove a `Segment` from `SegmentMap`
+--
+delete :: SegmentId -> SegmentMap dt -> SegmentMap dt
+delete (SegmentId sid)
+  = SegmentMap . IntMap.delete sid . unSegmentMap
+
+unionWith :: (a -> a -> a) ->  SegmentMap a -> SegmentMap a -> SegmentMap a
+unionWith f (SegmentMap m1) (SegmentMap m2)
+  = SegmentMap (IntMap.unionWith f m1 m2)
+
+intersectionWith :: (a -> b -> c) -> SegmentMap a -> SegmentMap b -> SegmentMap c
+intersectionWith f (SegmentMap m1) (SegmentMap m2)
+  = SegmentMap (IntMap.intersectionWith f m1 m2)
+
+-- | Difference between two `SegmentMap`s.
+--
+difference :: SegmentMap a -> SegmentMap b -> SegmentMap a
+difference (SegmentMap m1) (SegmentMap m2)
+  = SegmentMap (IntMap.difference m1 m2)
+
+differenceWith :: (a -> b -> Maybe a) -> SegmentMap a -> SegmentMap b -> SegmentMap a
+differenceWith f (SegmentMap m1) (SegmentMap m2)
+  = SegmentMap (IntMap.differenceWith f m1 m2)
+
+-- | Creates a `SegmentMap` from a list of `Segment`s.
+--
+fromList :: [(SegmentId, a)] -> SegmentMap a
+fromList
+  = SegmentMap . IntMap.fromList . fmap (first unSegmentId)
+
+-- | Returns a `SegmentMap` as list.
+--
+toList :: SegmentMap a -> [(SegmentId, a)]
+toList
+  = fmap (first SegmentId) .  IntMap.toList . unSegmentMap
+
+-- | Pure mapping of Segments.
+--
+mapSegments :: (a -> b) -> SegmentMap a -> SegmentMap b
+mapSegments f
+  = SegmentMap . fmap f . unSegmentMap
+
+-- | Maps Segments with a given function in monadic context.
+--
+mapSegmentsM :: (Functor m, Monad m)
+             => (a -> m b)
+             -> SegmentMap a
+             -> m (SegmentMap b)
+mapSegmentsM f (SegmentMap m)
+  = SegmentMap <$> mapM f m
+
+-- | Maps Segments with a given function in parallel.
+--
+mapSegmentsPar :: Par.MonadParallel m
+               => (a -> m b)
+               -> SegmentMap a
+               -> m (SegmentMap b)
+mapSegmentsPar f (SegmentMap m)
+  = do r <- Par.mapM (\(sid, s) -> do r <- f s
+                                      return (sid, r)
+                     ) (IntMap.toList m)
+       return (SegmentMap (IntMap.fromList r))
+
+-- | Marks given documents as deleted.
+--
 segmentDeleteDocs :: DocIdSet -> Segment dt -> Segment dt
 segmentDeleteDocs dIds seg
   = seg { segDeletedDocs = dIds `mappend` segDeletedDocs seg
         }
 
--- | Marks given Context as deleted. Segment is marked dirty.
+-- | Marks given Context as deleted.
 --
 segmentDeleteContext :: Context -> Segment dt -> Segment dt
 segmentDeleteContext cx seg
   = seg { segDeletedCxs = Set.insert cx (segDeletedCxs seg)
         }
 
--- | Returns the segments `DocTable`. Respects deleted documents.
+-- | Returns the segments `DocTable`.
 --
 segmentDocs :: (Monad m, DocTable dt) => Segment dt -> m dt
 segmentDocs seg
@@ -68,6 +199,20 @@ segmentCxMap seg
     . Map.filterWithKey (\k _ -> Set.notMember k (segDeletedCxs seg))
     . cxMap
     $ segIndex seg
+
+-- | Since `Segment`s grow monotonically, e.g. only elements are
+--   added never removed from their respective deleted docs/contexts sets
+--   we can efficiently diff two `Segment`s.
+--
+segmentDiff :: Segment dt -> Segment dt -> SegmentDiff
+segmentDiff s1 s2
+  = if (DocIdSet.size (segDeletedDocs s1) < DocIdSet.size (segDeletedDocs s2))
+       || (Set.size (segDeletedCxs s1) < Set.size (segDeletedCxs s2))
+    then segmentDiff s2 s1
+    else
+      SegmentDiff
+      (DocIdSet.difference (segDeletedDocs s1) (segDeletedDocs s2))
+      (Set.difference (segDeletedCxs s1) (segDeletedCxs s2))
 
 -- | Searches a segment given a search function. Respects deleted contexts
 --   and documents.
@@ -132,8 +277,7 @@ mergeSegments schema seg1 seg2
                              (List.map (second fromJust)
                               (List.filter (isJust . snd) newCxMap)))
 
-       return Segment { segId          = max (segId seg1) (segId seg2)
-                      , segIndex       = ctxMap
+       return Segment { segIndex       = ctxMap
                       , segDocs        = newDt
                       , segDeletedDocs = mempty
                       , segDeletedCxs  = mempty

@@ -6,7 +6,7 @@ module Hunt.ContextIndex.Delete(
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet as DocIdSet
-import           Hunt.ContextIndex.Segment
+import           Hunt.ContextIndex.Segment hiding (delete)
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as DocTable
@@ -43,5 +43,6 @@ delete' :: Par.MonadParallel m
         -> ContextIndex dt
         -> m (ContextIndex dt)
 delete' dIds ixx
-  = do sx <- mapIxsP (return . segmentDeleteDocs dIds) ixx
-       return ixx { ciSegments = sx }
+  = do sm <- mapSegmentsPar (return . segmentDeleteDocs dIds) (ciSegments ixx)
+       return ixx { ciSegments = sm
+                  }

@@ -8,54 +8,29 @@ import           Data.Binary
 import           Data.Map.Strict (Map)
 import           Data.Monoid
 import           Data.Set (Set)
+import qualified Data.IntMap as IntMap
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet (DocIdSet)
+import           Hunt.ContextIndex.Segment
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as DocTable
 import qualified Hunt.Index as Ix
 import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Index.Schema
 
-newtype ContextMap
-  = ContextMap { cxMap :: Map Context Ix.IndexImpl }
-  deriving (Show)
-
 data ContextIndex dt
-  = ContextIndex { ciSegments   :: ![Segment dt]
-                 , ciSchema     :: !Schema
+  = ContextIndex { ciSegments      :: !(SegmentMap (Segment dt))
+                 , ciSchema        :: !Schema
+                 , ciNextSegmentId :: !SegmentId
                  }
-
-newtype SegmentId
-  = SegmentId { unSegmentId :: Int }
-    deriving (Enum, Eq, Ord, Show)
-
-data Segment dt
-  = Segment { segId          :: !SegmentId
-            , segIndex       :: !ContextMap
-            , segDocs        :: !dt
-            , segDeletedDocs :: !DocIdSet
-            , segDeletedCxs  :: !(Set Context)
-            }
-
-instance Binary dt => Binary (ContextIndex dt) where
-  get = undefined
-  put = undefined
 
 empty :: DocTable dt => ContextIndex dt
 empty
-  = ContextIndex { ciSegments   = mempty
-                 , ciSchema     = mempty
+  = ContextIndex { ciSegments      = newSegmentMap
+                 , ciSchema        = mempty
+                 , ciNextSegmentId = SegmentId 1
                  }
-
-mkContextMap :: Map Context Ix.IndexImpl -> ContextMap
-mkContextMap m = ContextMap $! m
-
-newContextMap' :: Schema -> ContextMap
-newContextMap' = ContextMap . Map.map (newIx . ctIxImpl . cxType)
-  where
-    newIx :: Ix.IndexImpl -> Ix.IndexImpl
-    newIx (Ix.IndexImpl i) = Ix.mkIndex (Ix.empty `asTypeOf` i)
 
 newContextMap :: ContextIndex dt -> ContextMap
 newContextMap
@@ -63,15 +38,19 @@ newContextMap
 
 mapIxs :: Monad m => (Segment dt -> m a) -> ContextIndex dt -> m [a]
 mapIxs f
-  = mapM f . ciSegments
+  = mapM f . fmap snd  .  toList . ciSegments
 {-# INLINE mapIxs #-}
 
 mapIxs' :: (Segment dt -> a) -> ContextIndex dt -> [a]
 mapIxs' f
-  = fmap f . ciSegments
+  = fmap f . fmap snd  . toList . ciSegments
 {-# INLINE mapIxs' #-}
 
 mapIxsP :: Par.MonadParallel m => (Segment dt -> m a) -> ContextIndex dt -> m [a]
 mapIxsP f
-  = Par.mapM f . ciSegments
+  = Par.mapM f . fmap snd . toList  . ciSegments
 {-# INLINE mapIxsP #-}
+
+instance Binary dt => Binary (ContextIndex dt) where
+  get = undefined
+  put = undefined

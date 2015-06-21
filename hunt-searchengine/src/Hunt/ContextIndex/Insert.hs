@@ -3,7 +3,7 @@
 module Hunt.ContextIndex.Insert where
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocDesc as DocDesc
+import qualified Hunt.Common.DocDesc as DocDesc
 import           Hunt.Common.DocId
 import qualified Hunt.Common.DocIdSet as DocIdSet
 import           Hunt.Common.Document as Doc
@@ -11,6 +11,7 @@ import           Hunt.Common.Occurrences (Occurrences)
 import qualified Hunt.Common.Occurrences as Occ
 import           Hunt.ContextIndex.Delete (delete')
 import           Hunt.ContextIndex.Documents
+import           Hunt.ContextIndex.Segment
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as Dt
@@ -52,9 +53,11 @@ insertList docAndWords ixx
 
          -- insert words to index
          newIx  <- batchAddWordsM docIdsAndWords (newContextMap ixx)
-         newSeg <- newSegment (nextSegmentId ixx) newIx newDt
+         newSeg <- newSegment newIx newDt
 
-         return $! ixx { ciSegments = newSeg : ciSegments ixx }
+         return $! ixx { ciSegments = insert (ciNextSegmentId ixx) newSeg (ciSegments ixx)
+                       , ciNextSegmentId = succ (ciNextSegmentId ixx)
+                       }
 
 -- takes list of documents with wordlist. creates new 'DocTable' and
 -- inserts each document of the list into it.
@@ -140,9 +143,10 @@ modifyWithDescription weight descr wrds dId ixx
        ixx'          <- delete' (DocIdSet.singleton dId) ixx
        (dId', newDt) <- Dt.insert (mergeDescr doc) Dt.empty
        newIx         <- batchAddWordsM [(dId', wrds)] (newContextMap ixx)
-       newSeg        <- newSegment (nextSegmentId ixx') newIx newDt
-       return $! ixx { ciSegments = newSeg : ciSegments ixx' }
-
+       newSeg        <- newSegment newIx newDt
+       return $! ixx { ciSegments = insert (ciNextSegmentId ixx') newSeg (ciSegments ixx')
+                     , ciNextSegmentId = succ (ciNextSegmentId ixx')
+                     }
   where
       -- M.union is left-biased
       -- flip to use new values for existing keys
@@ -177,16 +181,9 @@ mapWithKeyMP f m =
             ) $ Map.toAscList m) >>=
     return . Map.fromAscList
 
-nextSegmentId :: ContextIndex dt -> SegmentId
-nextSegmentId ixx
-  = case ciSegments ixx of
-     []    -> SegmentId 1
-     (x:_) -> succ (segId x)
-
-newSegment :: Monad m => SegmentId -> ContextMap -> dt -> m (Segment dt)
-newSegment sid ix docs
-  = return $! Segment { segId          = sid
-                      , segIndex       = ix
+newSegment :: Monad m => ContextMap -> dt -> m (Segment dt)
+newSegment ix docs
+  = return $! Segment { segIndex       = ix
                       , segDocs        = docs
                       , segDeletedCxs  = mempty
                       , segDeletedDocs = mempty
