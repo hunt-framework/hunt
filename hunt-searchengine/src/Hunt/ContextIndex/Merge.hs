@@ -33,10 +33,8 @@ instance Monoid (ApplyMerge dt) where
 data MergeDescr dt
   = MergeDescr !SegmentId !Schema !(SegmentMap (Segment dt))
 
-type Size = Int
-
 data SegmentAndSize
-  = SegmentAndSize !Size !SegmentId
+  = SegmentAndSize !Int !SegmentId
   deriving (Eq)
 
 instance Ord SegmentAndSize where
@@ -56,15 +54,16 @@ selectMerges policy (MergeLock lock) schema nextSegmentId segments
   = do sas <- sortByKey <$> mapM (\(sid, s) -> do sz <- segmentSize s
                                                   return (SegmentAndSize sz sid, s)
                                  ) (toList (difference segments lock))
-       let partitions
-             = filter (\p -> size p >= mpMergeFactor policy)
-               . fmap (fromList . fmap (
-                          \(SegmentAndSize _ sid, s) -> (sid, s)))
-               $ collect levels sas []
-           (nextSegmentId', descr)
-             = List.mapAccumL (\sid p -> (succ sid, MergeDescr sid schema p)) nextSegmentId partitions
-           lock'
-             = MergeLock lock <> mconcat (fmap (MergeLock . void) partitions)
+
+       let partitions = filter (\p -> size p >= mpMergeFactor policy)
+                        . fmap (fromList . fmap (\(SegmentAndSize _ sid, s) -> (sid, s)))
+                        $ collect levels sas []
+
+           (nextSegmentId', descr) = List.mapAccumL (\sid p ->
+                                                      (succ sid, MergeDescr sid schema p)
+                                                    ) nextSegmentId partitions
+
+           lock' = MergeLock lock <> mconcat (fmap (MergeLock . void) partitions)
 
        return (descr, lock', nextSegmentId')
   where
@@ -121,7 +120,7 @@ tryMerge :: (Functor m, Monad m, DocTable dt)
 tryMerge ixx
   = do (merges, lock, nextSegmentId) <-
          selectMerges (MergePolicy 3) (ciMergeLock ixx)  (ciSchema ixx) (ciNextSegmentId ixx) (ciSegments ixx)
-       let ixx' = ixx { ciMergeLock     = lock `mappend` ciMergeLock ixx
+       let ixx' = ixx { ciMergeLock     = lock
                       , ciNextSegmentId = nextSegmentId
                       }
        return (merges, ixx')
