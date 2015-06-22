@@ -280,6 +280,20 @@ throwResError n msg
     = do errorM $ unwords [show n, T.unpack msg]
          throwError $ ResError n msg
 
+tryMergeWith :: DocTable dt => Hunt dt (ContextIndex dt) -> Hunt dt (ContextIndex dt)
+tryMergeWith action
+  = do ixx    <- action
+       mp     <- asks huntMergePolicy
+       ixref  <- asks huntIndex
+       (merges, ixx') <- CIx.tryMerge mp ixx
+       liftIO $ forkIO $ do
+         --debugM $ "Merging: " ++ show mergeLock
+         merged <- mconcat <$> mapM CIx.runMerge merges
+         modifyXMVar_ ixref $ \ixx ->
+           return (applyMerge merged ixx)
+         --debugM "Merging done"
+       return ixx'
+
 -- ------------------------------------------------------------
 
 -- | Execute the command in the Hunt monad.
@@ -394,20 +408,6 @@ execDeleteContext :: DocTable dt
                   -> Hunt dt (ContextIndex dt, CmdResult)
 execDeleteContext cx ixx
   = return (CIx.deleteContext cx ixx, ResOK)
-
-tryMergeWith :: DocTable dt => Hunt dt (ContextIndex dt) -> Hunt dt (ContextIndex dt)
-tryMergeWith action
-  = do ixx    <- action
-       mp     <- asks huntMergePolicy
-       ixref  <- asks huntIndex
-       (merges, ixx') <- CIx.tryMerge mp ixx
-       liftIO $ forkIO $ do
-         --debugM $ "Merging: " ++ show mergeLock
-         merged <- mconcat <$> mapM CIx.runMerge merges
-         modifyXMVar_ ixref $ \ixx ->
-           return (applyMerge merged ixx)
-         --debugM "Merging done"
-       return ixx'
 
 -- | Inserts an 'ApiDocument' into the index.
 --
@@ -689,15 +689,8 @@ liftHunt cmd
 
 execMerge :: DocTable dt => Hunt dt CmdResult
 execMerge
-  = do doMerge <- modIx $ \ixx -> do
-         mergePol       <- asks huntMergePolicy
-         (merges, ixx') <- CIx.tryMerge mergePol ixx
-         return (ixx', merges)
-
-       merged <- mapM CIx.runMerge doMerge
-
-       modIx $ \ixx -> do
-         let ixx' = applyMerge (mconcat merged) ixx
+  = do modIx $ \ixx -> do
+         ixx' <- tryMergeWith (return ixx)
          return (ixx', ResOK)
 
 -- | Get status information about the server\/index, e.g. garbage collection statistics.
