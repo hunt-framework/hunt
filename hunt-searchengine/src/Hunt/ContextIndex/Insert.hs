@@ -57,11 +57,12 @@ insertList docAndWords ixx
          newSeg <- newSegment newIx newDt
 
          let ixx' = ixx { ciSegments = insert (ciNextSegmentId ixx) newSeg (ciSegments ixx)
-                       , ciNextSegmentId = succ (ciNextSegmentId ixx)
-                       }
+                        , ciNextSegmentId = succ (ciNextSegmentId ixx)
+                        }
 
-         (mergeDescr, lock) <- tryMerge mempty ixx'
-         return $! (ixx', mergeDescr, lock)
+         (mergeDescr, lock) <- tryMerge (ciMergeLock ixx') ixx'
+
+         return $! (ixx' { ciMergeLock = lock `mappend` ciMergeLock ixx' }, mergeDescr, lock)
 
 -- takes list of documents with wordlist. creates new 'DocTable' and
 -- inserts each document of the list into it.
@@ -150,11 +151,11 @@ modifyWithDescription weight descr wrds dId ixx
        newSeg        <- newSegment newIx newDt
 
        let ixx'' = ixx' { ciSegments = insert (ciNextSegmentId ixx') newSeg (ciSegments ixx')
-                     , ciNextSegmentId = succ (ciNextSegmentId ixx')
-                     }
+                        , ciNextSegmentId = succ (ciNextSegmentId ixx')
+                        }
 
-       (mergeDescr, lock) <- tryMerge mempty ixx''
-       return $! (ixx'', mergeDescr, lock)
+       (mergeDescr, lock) <- tryMerge (ciMergeLock ixx'') ixx''
+       return $! (ixx'' { ciMergeLock = lock `mappend` ciMergeLock ixx'' }, mergeDescr, lock)
   where
       -- M.union is left-biased
       -- flip to use new values for existing keys

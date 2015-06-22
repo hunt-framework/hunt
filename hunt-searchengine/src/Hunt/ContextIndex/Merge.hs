@@ -16,18 +16,6 @@ import           Hunt.DocTable (DocTable)
 import           Hunt.Index.Schema
 import           Hunt.Utility
 
-newtype MergeLock
-  = MergeLock (SegmentMap ())
-
-instance Show MergeLock where
-  show (MergeLock m) = show (keys m)
-
-instance Monoid MergeLock where
-  mempty
-    = MergeLock newSegmentMap
-  mappend (MergeLock m1) (MergeLock m2)
-    = MergeLock (unionWith (\_ _ -> ()) m1 m2)
-
 data MergePolicy
   = MergePolicy { mpMergeFactor :: !Int
                 }
@@ -109,12 +97,18 @@ applyMergedSegment oldSegments newSegment ixx
               insert (ciNextSegmentId ixx) newSegment' (
                 difference (ciSegments ixx) oldSegments)
         , ciNextSegmentId = succ (ciNextSegmentId ixx)
+        , ciMergeLock = lock'
         }
   where
     newSegment'
       = newSegment { segDeletedCxs  = deltaDelCx
                    , segDeletedDocs = deltaDelDocs
                    }
+
+    MergeLock currLock = ciMergeLock ixx
+
+    lock'
+      = MergeLock (currLock `difference` oldSegments)
 
     SegmentDiff deltaDelDocs deltaDelCx =
       mconcat (

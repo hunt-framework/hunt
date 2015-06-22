@@ -23,6 +23,7 @@ data ContextIndex dt
   = ContextIndex { ciSegments      :: !(SegmentMap (Segment dt))
                  , ciSchema        :: !Schema
                  , ciNextSegmentId :: !SegmentId
+                 , ciMergeLock     :: !MergeLock
                  }
 
 empty :: DocTable dt => ContextIndex dt
@@ -30,6 +31,7 @@ empty
   = ContextIndex { ciSegments      = newSegmentMap
                  , ciSchema        = mempty
                  , ciNextSegmentId = SegmentId 1
+                 , ciMergeLock     = mempty
                  }
 
 newContextMap :: ContextIndex dt -> ContextMap

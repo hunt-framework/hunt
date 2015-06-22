@@ -67,6 +67,18 @@ instance Monoid SegmentDiff where
   mappend (SegmentDiff dids1 ctx1) (SegmentDiff dids2 ctx2)
     = SegmentDiff (dids1 <> dids2) (ctx1 <> ctx2)
 
+newtype MergeLock
+  = MergeLock (SegmentMap ())
+
+instance Show MergeLock where
+  show (MergeLock m) = show (keys m)
+
+instance Monoid MergeLock where
+  mempty
+    = MergeLock newSegmentMap
+  mappend (MergeLock m1) (MergeLock m2)
+    = MergeLock (unionWith (\_ _ -> ()) m1 m2)
+
 mkContextMap :: Map Context Ix.IndexImpl -> ContextMap
 mkContextMap m = ContextMap $! m
 
