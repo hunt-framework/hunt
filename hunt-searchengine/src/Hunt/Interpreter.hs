@@ -479,8 +479,17 @@ execUpdate doc ixx
          docIdM <- liftIO $ CIx.lookupDocumentByURI (uri docs) ixx
          case docIdM of
           Just docId
-            -> do ixx' <- lift
+            -> do (ixx', merges, mergeLock) <- lift
                           $ CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
+
+                  ixref <- asks huntIndex
+                  liftIO $ forkIO $ do
+                    debugM $ "Merging: " ++ show mergeLock
+                    merged <- mconcat <$> mapM CIx.runMerge merges
+                    modifyXMVar_ ixref $ \ixx ->
+                      return (applyMerge merged ixx)
+                    debugM "Merging done"
+
                   return (ixx', ResOK)
           Nothing
             -> throwResError 409 $ "document for update not found: " `T.append` uri docs

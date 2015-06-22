@@ -141,16 +141,20 @@ modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt)
                       -> Words
                       -> DocId
                       -> ContextIndex dt
-                      -> m (ContextIndex dt)
+                      -> m (ContextIndex dt, [MergeDescr dt], MergeLock)
 modifyWithDescription weight descr wrds dId ixx
   = do Just doc      <- lookupDocument ixx dId -- TODO: dangerous
        ixx'          <- delete' (DocIdSet.singleton dId) ixx
        (dId', newDt) <- Dt.insert (mergeDescr doc) Dt.empty
        newIx         <- batchAddWordsM [(dId', wrds)] (newContextMap ixx)
        newSeg        <- newSegment newIx newDt
-       return $! ixx { ciSegments = insert (ciNextSegmentId ixx') newSeg (ciSegments ixx')
+
+       let ixx'' = ixx' { ciSegments = insert (ciNextSegmentId ixx') newSeg (ciSegments ixx')
                      , ciNextSegmentId = succ (ciNextSegmentId ixx')
                      }
+
+       (mergeDescr, lock) <- tryMerge mempty ixx''
+       return $! (ixx'', mergeDescr, lock)
   where
       -- M.union is left-biased
       -- flip to use new values for existing keys
