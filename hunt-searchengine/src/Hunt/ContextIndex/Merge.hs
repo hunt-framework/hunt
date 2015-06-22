@@ -21,16 +21,14 @@ data MergePolicy
                 }
   deriving (Eq, Show)
 
-data ApplyMerge dt
-  = ApplyMerge { applyMerge  :: ContextIndex dt -> ContextIndex dt
-               , releaseLock :: MergeLock -> MergeLock
-               }
+newtype ApplyMerge dt
+  = ApplyMerge { applyMerge  :: ContextIndex dt -> ContextIndex dt }
 
 instance Monoid (ApplyMerge dt) where
   mempty
-    = ApplyMerge id id
-  mappend (ApplyMerge f1 g1) (ApplyMerge f2 g2)
-    = ApplyMerge (f1 . f2) (g1 . g2)
+    = ApplyMerge id
+  mappend (ApplyMerge f) (ApplyMerge g)
+    = ApplyMerge (f . g)
 
 data MergeDescr dt
   = MergeDescr !SegmentId !Schema !(SegmentMap (Segment dt))
@@ -86,9 +84,9 @@ selectMerges policy (MergeLock lock) schema nextSegmentId segments
 runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ApplyMerge dt)
 runMerge (MergeDescr segmentId schema segments)
   = do newSeg <- foldM1' (mergeSegments schema) (elems segments)
-       return (newSeg `seq` ApplyMerge { applyMerge  = applyMergedSegment segmentId segments newSeg
-                                       , releaseLock = const mempty
-                                       })
+       return (newSeg `seq`
+               ApplyMerge { applyMerge = applyMergedSegment segmentId segments newSeg })
+
 
 applyMergedSegment :: SegmentId
                    -> SegmentMap (Segment dt)
