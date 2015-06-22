@@ -38,7 +38,10 @@ import qualified Text.Printf as Printf
 
 newtype SegmentId
   = SegmentId { unSegmentId :: Int }
-    deriving (Enum, Eq, Ord, Show)
+    deriving (Enum, Eq, Ord)
+
+instance Show SegmentId where
+  show (SegmentId i) = show i
 
 newtype ContextMap
   = ContextMap { cxMap :: Map Context Ix.IndexImpl }
@@ -87,6 +90,10 @@ size
 elems :: SegmentMap a -> [a]
 elems
   =  IntMap.elems . unSegmentMap
+
+keys :: SegmentMap a -> [SegmentId]
+keys
+  = fmap SegmentId .  IntMap.keys . unSegmentMap
 
 -- | Insert a `Segment` into a `SegmentMap`.
 --

@@ -19,6 +19,9 @@ import           Hunt.Utility
 newtype MergeLock
   = MergeLock (SegmentMap ())
 
+instance Show MergeLock where
+  show (MergeLock m) = show (keys m)
+
 instance Monoid MergeLock where
   mempty
     = MergeLock newSegmentMap
@@ -34,6 +37,12 @@ data ApplyMerge dt
   = ApplyMerge { applyMerge  :: ContextIndex dt -> ContextIndex dt
                , releaseLock :: MergeLock -> MergeLock
                }
+
+instance Monoid (ApplyMerge dt) where
+  mempty
+    = ApplyMerge id id
+  mappend (ApplyMerge f1 g1) (ApplyMerge f2 g2)
+    = ApplyMerge (f1 . f2) (g1 . g2)
 
 data MergeDescr dt
   = MergeDescr !Schema !(SegmentMap (Segment dt))

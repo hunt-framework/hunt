@@ -11,6 +11,7 @@ import           Hunt.Common.Occurrences (Occurrences)
 import qualified Hunt.Common.Occurrences as Occ
 import           Hunt.ContextIndex.Delete (delete')
 import           Hunt.ContextIndex.Documents
+import           Hunt.ContextIndex.Merge
 import           Hunt.ContextIndex.Segment
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable)
@@ -42,7 +43,7 @@ insert doc wrds ix = insertList [(doc,wrds)] ix
 insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
            => [(Dt.DValue dt, Words)]
            -> ContextIndex dt
-           -> m (ContextIndex dt)
+           -> m (ContextIndex dt, [MergeDescr dt], MergeLock)
 insertList docAndWords ixx
     = do -- insert to doctable and generate docId
          tablesAndWords <- Par.mapM createDocTableFromPartition
@@ -55,9 +56,12 @@ insertList docAndWords ixx
          newIx  <- batchAddWordsM docIdsAndWords (newContextMap ixx)
          newSeg <- newSegment newIx newDt
 
-         return $! ixx { ciSegments = insert (ciNextSegmentId ixx) newSeg (ciSegments ixx)
+         let ixx' = ixx { ciSegments = insert (ciNextSegmentId ixx) newSeg (ciSegments ixx)
                        , ciNextSegmentId = succ (ciNextSegmentId ixx)
                        }
+
+         (mergeDescr, lock) <- tryMerge mempty ixx'
+         return $! (ixx', mergeDescr, lock)
 
 -- takes list of documents with wordlist. creates new 'DocTable' and
 -- inserts each document of the list into it.

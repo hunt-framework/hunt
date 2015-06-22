@@ -33,6 +33,7 @@ import           Control.Arrow                 (second)
 import           Control.Concurrent.XMVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
+import Control.Concurrent
 
 import           Data.Aeson                    (ToJSON (..), object, (.=))
 import           Data.Binary                   (Binary, encodeFile)
@@ -418,7 +419,17 @@ execInsertList docs ixx
          mapM_ (flip (checkApiDocExistence False) ixx) docs
 
          -- all checks done, do the real work
-         ixx' <- lift $ CIx.insertList docsAndWords ixx
+         (ixx', merges, mergeLock) <- lift $ CIx.insertList docsAndWords ixx
+
+         ixref <- asks huntIndex
+         liftIO $ forkIO $ do
+           debugM $ "Merging: " ++ show mergeLock
+           merged <- mconcat <$> mapM CIx.runMerge merges
+           modifyXMVar_ ixref $ \ixx ->
+             return (applyMerge merged ixx)
+           debugM "Merging done"
+
+
          return (ixx', ResOK)
     where
       -- compute all contexts in all docs
@@ -678,18 +689,19 @@ liftHunt cmd
 
 execMerge :: DocTable dt => Hunt dt CmdResult
 execMerge
-  = do doMerge <- withMergeLock $ \l -> do
+  = do doMerge <- withMergeLock $ \lock -> do
          modIx $ \ixx -> do
-           (merges, lock) <- CIx.tryMerge l ixx
-           return (ixx, (lock, merges))
+           (merges, lock') <- CIx.tryMerge lock ixx
+           return (ixx, (lock', merges))
 
        merged <- mapM CIx.runMerge doMerge
 
        withMergeLock $ \lock -> do
          modIx $ \ixx -> do
-           return (foldr applyMerge ixx merged, (
-                       foldr releaseLock lock merged,
-                       ResOK))
+           let merge = mconcat merged
+               ixx'  = applyMerge merge ixx
+               lock' = releaseLock merge lock
+           return (ixx', (lock', ResOK))
 
 -- | Get status information about the server\/index, e.g. garbage collection statistics.
 execStatus :: DocTable dt => StatusCmd -> Hunt dt CmdResult
