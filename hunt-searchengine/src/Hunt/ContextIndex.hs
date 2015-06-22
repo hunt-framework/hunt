@@ -42,6 +42,7 @@ module Hunt.ContextIndex (
     -- * Merge specific
   , MergeDescr
   , MergeLock
+  , MergePolicy(..)
   , ApplyMerge(..)
   , runMerge
   , tryMerge

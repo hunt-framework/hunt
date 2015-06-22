@@ -52,7 +52,7 @@ import qualified Hunt.Common.DocDesc           as DocDesc
 import qualified Hunt.Common.DocIdSet          as DocIdSet
 import           Hunt.Common.Document          (Document (..))
 import           Hunt.ContextIndex             (ContextIndex, MergeLock,
-                                                ApplyMerge(..))
+                                                ApplyMerge(..), MergePolicy(..))
 import qualified Hunt.ContextIndex             as CIx
 import           Hunt.DocTable                 (DocTable)
 import qualified Hunt.DocTable                 as DocTable
@@ -138,8 +138,9 @@ data HuntEnv dt = HuntEnv
   { -- | The context index (indexes, document table and schema).
     --   Stored in an 'XMVar' so that read access is always possible.
     huntIndex       :: DocTable dt => XMVar (ContextIndex dt)
-    -- | Mergelock for concurrent merges
-  , huntMergeLock   :: XMVar MergeLock
+
+    -- | Merge policy for index construction
+  , huntMergePolicy :: MergePolicy
     -- | Available context types.
   , huntTypes       :: ContextTypes
     -- | Available normalizers.
@@ -153,7 +154,7 @@ type DefHuntEnv = HuntEnv (Documents Document)
 
 -- | Initialize the Hunt environment with default values.
 initHunt :: DocTable dt => IO (HuntEnv dt)
-initHunt = initHuntEnv CIx.empty contextTypes normalizers def
+initHunt = initHuntEnv CIx.empty mergePolicy contextTypes normalizers def
 
 -- | Default context types.
 contextTypes :: ContextTypes
@@ -163,17 +164,22 @@ contextTypes = [ctText, ctInt, ctDate, ctPosition, ctTextSimple, ctPositionRTree
 normalizers :: [CNormalizer]
 normalizers = [cnUpperCase, cnLowerCase, cnZeroFill]
 
+-- | Default merge policy
+mergePolicy :: MergePolicy
+mergePolicy
+  = MergePolicy { mpMergeFactor = 10 }
+
 -- | Initialize the Hunt environment.
 initHuntEnv :: DocTable dt
            => ContextIndex dt
+           -> MergePolicy
            -> ContextTypes
            -> [CNormalizer]
            -> ProcessConfig
            -> IO (HuntEnv dt)
-initHuntEnv ixx opt ns qc = do
+initHuntEnv ixx mp opt ns qc = do
   ixref <- newXMVar ixx
-  ml    <- newXMVar mempty
-  return $ HuntEnv ixref ml opt ns qc
+  return $ HuntEnv ixref mp opt ns qc
 
 -- ------------------------------------------------------------
 -- Command evaluation monad
@@ -242,18 +248,6 @@ modIxLocked f = do
   putBack ref i e = do
     liftIO $ putXMVarLock ref i
     throwError e
-
-withMergeLock :: DocTable dt => (MergeLock -> Hunt dt (MergeLock, a)) -> Hunt dt a
-withMergeLock f
-  = do ref <- asks huntMergeLock
-       ml  <- liftIO $ takeXMVarLock ref
-       (ml', a) <- f ml `catchError` putBack ref ml
-       liftIO $ putXMVarLock ref ml'
-       return a
-  where
-    putBack ref i e = do
-      liftIO $ putXMVarLock ref i
-      throwError e
 
 -- | Do something with the context index.
 withIx :: DocTable dt => (ContextIndex dt -> Hunt dt a) -> Hunt dt a
@@ -401,6 +395,20 @@ execDeleteContext :: DocTable dt
 execDeleteContext cx ixx
   = return (CIx.deleteContext cx ixx, ResOK)
 
+tryMergeWith :: DocTable dt => Hunt dt (ContextIndex dt) -> Hunt dt (ContextIndex dt)
+tryMergeWith action
+  = do ixx    <- action
+       mp     <- asks huntMergePolicy
+       ixref  <- asks huntIndex
+       (merges, ixx') <- CIx.tryMerge mp ixx
+       liftIO $ forkIO $ do
+         --debugM $ "Merging: " ++ show mergeLock
+         merged <- mconcat <$> mapM CIx.runMerge merges
+         modifyXMVar_ ixref $ \ixx ->
+           return (applyMerge merged ixx)
+         --debugM "Merging done"
+       return ixx'
+
 -- | Inserts an 'ApiDocument' into the index.
 --
 -- /Note/: All contexts mentioned in the 'ApiDocument' need to exist.
@@ -419,18 +427,10 @@ execInsertList docs ixx
          mapM_ (flip (checkApiDocExistence False) ixx) docs
 
          -- all checks done, do the real work
-         (ixx', merges) <- lift $ CIx.insertList docsAndWords ixx
-
-         ixref <- asks huntIndex
-         liftIO $ forkIO $ do
-           --debugM $ "Merging: " ++ show mergeLock
-           merged <- mconcat <$> mapM CIx.runMerge merges
-           modifyXMVar_ ixref $ \ixx ->
-             return (applyMerge merged ixx)
-           --debugM "Merging done"
-
+         ixx'  <- tryMergeWith $ lift (CIx.insertList docsAndWords ixx)
 
          return (ixx', ResOK)
+
     where
       -- compute all contexts in all docs
       contexts
@@ -479,17 +479,8 @@ execUpdate doc ixx
          docIdM <- liftIO $ CIx.lookupDocumentByURI (uri docs) ixx
          case docIdM of
           Just docId
-            -> do (ixx', merges) <- lift
-                          $ CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
-
-                  ixref <- asks huntIndex
-                  liftIO $ forkIO $ do
-                    -- debugM $ "Merging: " ++ show mergeLock
-                    merged <- mconcat <$> mapM CIx.runMerge merges
-                    modifyXMVar_ ixref $ \ixx ->
-                      return (applyMerge merged ixx)
-                    -- debugM "Merging done"
-
+            -> do ixx'<- tryMergeWith $ lift $
+                          CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
                   return (ixx', ResOK)
           Nothing
             -> throwResError 409 $ "document for update not found: " `T.append` uri docs
@@ -699,7 +690,8 @@ liftHunt cmd
 execMerge :: DocTable dt => Hunt dt CmdResult
 execMerge
   = do doMerge <- modIx $ \ixx -> do
-         (merges, ixx') <- CIx.tryMerge ixx
+         mergePol       <- asks huntMergePolicy
+         (merges, ixx') <- CIx.tryMerge mergePol ixx
          return (ixx', merges)
 
        merged <- mapM CIx.runMerge doMerge

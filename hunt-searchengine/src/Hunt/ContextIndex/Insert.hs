@@ -43,7 +43,7 @@ insert doc wrds ix = insertList [(doc,wrds)] ix
 insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
            => [(Dt.DValue dt, Words)]
            -> ContextIndex dt
-           -> m (ContextIndex dt, [MergeDescr dt])
+           -> m (ContextIndex dt)
 insertList docAndWords ixx
     = do -- insert to doctable and generate docId
          tablesAndWords <- Par.mapM createDocTableFromPartition
@@ -56,12 +56,9 @@ insertList docAndWords ixx
          newIx  <- batchAddWordsM docIdsAndWords (newContextMap ixx)
          newSeg <- newSegment newIx newDt
 
-         let ixx' = ixx { ciSegments = insert (ciNextSegmentId ixx) newSeg (ciSegments ixx)
-                        , ciNextSegmentId = succ (ciNextSegmentId ixx)
-                        }
-         (mergeDescr, ixx'') <- tryMerge ixx'
-
-         return $! (ixx'', mergeDescr)
+         return $! ixx { ciSegments = insert (ciNextSegmentId ixx) newSeg (ciSegments ixx)
+                       , ciNextSegmentId = succ (ciNextSegmentId ixx)
+                       }
 
 -- takes list of documents with wordlist. creates new 'DocTable' and
 -- inserts each document of the list into it.
@@ -141,7 +138,7 @@ modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt)
                       -> Words
                       -> DocId
                       -> ContextIndex dt
-                      -> m (ContextIndex dt, [MergeDescr dt])
+                      -> m (ContextIndex dt)
 modifyWithDescription weight descr wrds dId ixx
   = do Just doc      <- lookupDocument ixx dId -- TODO: dangerous
        ixx'          <- delete' (DocIdSet.singleton dId) ixx
@@ -149,12 +146,9 @@ modifyWithDescription weight descr wrds dId ixx
        newIx         <- batchAddWordsM [(dId', wrds)] (newContextMap ixx)
        newSeg        <- newSegment newIx newDt
 
-       let ixx'' = ixx' { ciSegments = insert (ciNextSegmentId ixx') newSeg (ciSegments ixx')
-                        , ciNextSegmentId = succ (ciNextSegmentId ixx')
-                        }
-
-       (mergeDescr, ixx''') <- tryMerge ixx''
-       return $! (ixx''', mergeDescr)
+       return $! ixx' { ciSegments = insert (ciNextSegmentId ixx') newSeg (ciSegments ixx')
+                      , ciNextSegmentId = succ (ciNextSegmentId ixx')
+                      }
   where
       -- M.union is left-biased
       -- flip to use new values for existing keys

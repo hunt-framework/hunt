@@ -18,6 +18,7 @@ import qualified Hunt.DocTable as DocTable
 data Status
   = Status { csNumberOfSegments   :: !Int
            , csSegmentStatus      :: ![SegmentStatus]
+           , csMerging            :: !MergeLock
            }
 
 data SegmentStatus
@@ -33,6 +34,7 @@ status ixx
   = do ssx <- mapM (uncurry segmentStatus) (toList (ciSegments ixx))
        return Status { csNumberOfSegments   = size (ciSegments ixx)
                      , csSegmentStatus      = ssx
+                     , csMerging            = ciMergeLock ixx
                      }
 
 segmentStatus :: (Monad m, DocTable dt) => SegmentId -> Segment dt -> m SegmentStatus
@@ -59,6 +61,7 @@ instance ToJSON Status where
   toJSON s
     = object [ "segmentCount"       .= csNumberOfSegments s
              , "segments"           .= csSegmentStatus s
+             , "merging"            .= show (csMerging s)
              ]
 
 instance ToJSON SegmentId where

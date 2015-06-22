@@ -115,11 +115,12 @@ applyMergedSegment segmentId oldSegments newSegment ixx
         elems (intersectionWith segmentDiff oldSegments (ciSegments ixx)))
 
 tryMerge :: (Functor m, Monad m, DocTable dt)
-         => ContextIndex dt
+         => MergePolicy
+         -> ContextIndex dt
          -> m ([MergeDescr dt], ContextIndex dt)
-tryMerge ixx
+tryMerge policy ixx
   = do (merges, lock, nextSegmentId) <-
-         selectMerges (MergePolicy 3) (ciMergeLock ixx)  (ciSchema ixx) (ciNextSegmentId ixx) (ciSegments ixx)
+         selectMerges policy (ciMergeLock ixx)  (ciSchema ixx) (ciNextSegmentId ixx) (ciSegments ixx)
        let ixx' = ixx { ciMergeLock     = lock
                       , ciNextSegmentId = nextSegmentId
                       }
