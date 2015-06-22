@@ -33,7 +33,7 @@ instance Monoid (ApplyMerge dt) where
     = ApplyMerge (f1 . f2) (g1 . g2)
 
 data MergeDescr dt
-  = MergeDescr !Schema !(SegmentMap (Segment dt))
+  = MergeDescr !SegmentId !Schema !(SegmentMap (Segment dt))
 
 type Size = Int
 
@@ -51,22 +51,24 @@ selectMerges :: (Functor m, Monad m, DocTable dt)
              => MergePolicy
              -> MergeLock
              -> Schema
+             -> SegmentId
              -> SegmentMap (Segment dt)
-             -> m ([MergeDescr dt], MergeLock)
-selectMerges policy (MergeLock lock) schema segments
+             -> m ([MergeDescr dt], MergeLock, SegmentId)
+selectMerges policy (MergeLock lock) schema nextSegmentId segments
   = do sas <- sortByKey <$> mapM (\(sid, s) -> do sz <- segmentSize s
                                                   return (SegmentAndSize sz sid, s)
                                  ) (toList (difference segments lock))
+       let partitions
+             = filter (\p -> size p >= mpMergeFactor policy)
+               . fmap (fromList . fmap (
+                          \(SegmentAndSize _ sid, s) -> (sid, s)))
+               $ collect levels sas []
+           (nextSegmentId', descr)
+             = List.mapAccumL (\sid p -> (succ sid, MergeDescr sid schema p)) nextSegmentId partitions
+           lock'
+             = MergeLock lock <> mconcat (fmap (MergeLock . void) partitions)
 
-       let partitions = filter (\p -> size p >= mpMergeFactor policy)
-                        . fmap (fromList . fmap (
-                                    \(SegmentAndSize _ sid, s) -> (sid, s)))
-                        $ collect levels sas []
-
-           descr      = fmap (MergeDescr schema) partitions
-           lock'      = MergeLock lock <> mconcat (fmap (MergeLock . void) partitions)
-
-       return (descr, lock')
+       return (descr, lock', nextSegmentId')
   where
     sortByKey = Map.toAscList . Map.fromList
 
@@ -82,19 +84,20 @@ selectMerges policy (MergeLock lock) schema segments
           \(SegmentAndSize sz _, _) -> sz <= lvl) sas
 
 runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ApplyMerge dt)
-runMerge (MergeDescr schema segments)
+runMerge (MergeDescr segmentId schema segments)
   = do newSeg <- foldM1' (mergeSegments schema) (elems segments)
-       return (newSeg `seq` ApplyMerge { applyMerge  = applyMergedSegment segments newSeg
+       return (newSeg `seq` ApplyMerge { applyMerge  = applyMergedSegment segmentId segments newSeg
                                        , releaseLock = const mempty
                                        })
 
-applyMergedSegment :: SegmentMap (Segment dt)
+applyMergedSegment :: SegmentId
+                   -> SegmentMap (Segment dt)
                    -> Segment dt
                    -> ContextIndex dt
                    -> ContextIndex dt
-applyMergedSegment oldSegments newSegment ixx
+applyMergedSegment segmentId oldSegments newSegment ixx
   = ixx { ciSegments      =
-              insert (ciNextSegmentId ixx) newSegment' (
+              insert segmentId newSegment' (
                 difference (ciSegments ixx) oldSegments)
         , ciNextSegmentId = succ (ciNextSegmentId ixx)
         , ciMergeLock = lock'
@@ -115,8 +118,12 @@ applyMergedSegment oldSegments newSegment ixx
         elems (intersectionWith segmentDiff oldSegments (ciSegments ixx)))
 
 tryMerge :: (Functor m, Monad m, DocTable dt)
-         => MergeLock
-         -> ContextIndex dt
-         -> m ([MergeDescr dt], MergeLock)
-tryMerge lock ixx
-  = selectMerges (MergePolicy 3) lock (ciSchema ixx) (ciSegments ixx)
+         => ContextIndex dt
+         -> m ([MergeDescr dt], ContextIndex dt)
+tryMerge ixx
+  = do (merges, lock, nextSegmentId) <-
+         selectMerges (MergePolicy 3) (ciMergeLock ixx)  (ciSchema ixx) (ciNextSegmentId ixx) (ciSegments ixx)
+       let ixx' = ixx { ciMergeLock     = lock `mappend` ciMergeLock ixx
+                      , ciNextSegmentId = nextSegmentId
+                      }
+       return (merges, ixx')

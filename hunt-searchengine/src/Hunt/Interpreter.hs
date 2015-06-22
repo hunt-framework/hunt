@@ -419,15 +419,15 @@ execInsertList docs ixx
          mapM_ (flip (checkApiDocExistence False) ixx) docs
 
          -- all checks done, do the real work
-         (ixx', merges, mergeLock) <- lift $ CIx.insertList docsAndWords ixx
+         (ixx', merges) <- lift $ CIx.insertList docsAndWords ixx
 
          ixref <- asks huntIndex
          liftIO $ forkIO $ do
-           debugM $ "Merging: " ++ show mergeLock
+           --debugM $ "Merging: " ++ show mergeLock
            merged <- mconcat <$> mapM CIx.runMerge merges
            modifyXMVar_ ixref $ \ixx ->
              return (applyMerge merged ixx)
-           debugM "Merging done"
+           --debugM "Merging done"
 
 
          return (ixx', ResOK)
@@ -479,16 +479,16 @@ execUpdate doc ixx
          docIdM <- liftIO $ CIx.lookupDocumentByURI (uri docs) ixx
          case docIdM of
           Just docId
-            -> do (ixx', merges, mergeLock) <- lift
+            -> do (ixx', merges) <- lift
                           $ CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
 
                   ixref <- asks huntIndex
                   liftIO $ forkIO $ do
-                    debugM $ "Merging: " ++ show mergeLock
+                    -- debugM $ "Merging: " ++ show mergeLock
                     merged <- mconcat <$> mapM CIx.runMerge merges
                     modifyXMVar_ ixref $ \ixx ->
                       return (applyMerge merged ixx)
-                    debugM "Merging done"
+                    -- debugM "Merging done"
 
                   return (ixx', ResOK)
           Nothing
@@ -698,19 +698,15 @@ liftHunt cmd
 
 execMerge :: DocTable dt => Hunt dt CmdResult
 execMerge
-  = do doMerge <- withMergeLock $ \lock -> do
-         modIx $ \ixx -> do
-           (merges, lock') <- CIx.tryMerge lock ixx
-           return (ixx, (lock', merges))
+  = do doMerge <- modIx $ \ixx -> do
+         (merges, ixx') <- CIx.tryMerge ixx
+         return (ixx', merges)
 
        merged <- mapM CIx.runMerge doMerge
 
-       withMergeLock $ \lock -> do
-         modIx $ \ixx -> do
-           let merge = mconcat merged
-               ixx'  = applyMerge merge ixx
-               lock' = releaseLock merge lock
-           return (ixx', (lock', ResOK))
+       modIx $ \ixx -> do
+         let ixx' = applyMerge (mconcat merged) ixx
+         return (ixx', ResOK)
 
 -- | Get status information about the server\/index, e.g. garbage collection statistics.
 execStatus :: DocTable dt => StatusCmd -> Hunt dt CmdResult
