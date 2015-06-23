@@ -65,8 +65,6 @@ executable hunt-server
                  -funbox-strict-fields
                  -eventlog
 
-
-
   if flag(statsD)
     build-depends:   ekg-statsd
     ghc-options: "-with-rtsopts=-N -c -s -I3 -H -T"
@@ -75,7 +73,8 @@ executable hunt-server
   if impl( ghc >= 7 )
     ghc-options: -rtsopts
                  -fwarn-tabs
-
+                 "-with-rtsopts=-N -c -I3 -H"
+                 
   extensions: MultiParamTypeClasses
               FlexibleContexts
               FlexibleInstances
