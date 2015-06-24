@@ -63,7 +63,8 @@ executable hunt-server
   ghc-options:   -threaded
                  -Wall
                  -funbox-strict-fields
-                 -eventlog
+
+  ghc-prof-options: -fprof-auto
 
   if flag(statsD)
     build-depends:   ekg-statsd
