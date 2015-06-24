@@ -22,8 +22,6 @@ import           Data.Maybe                  (fromJust, fromMaybe)
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
-import           Text.Regex.XMLSchema.String
-
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Document        (Document (..),
@@ -92,9 +90,6 @@ toWordList scan norm
 --
 --   Grammar: <http://www.w3.org/TR/xmlschema11-2/#regexs>
 scanTextRE :: RegEx -> Text -> [Word]
-scanTextRE wRex
-    = map T.pack
-      . tokenize (T.unpack wRex)
-      . T.unpack
+scanTextRE = regExTokenize
 
 -- ------------------------------------------------------------

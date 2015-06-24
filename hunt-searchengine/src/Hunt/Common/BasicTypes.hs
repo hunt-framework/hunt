@@ -12,14 +12,17 @@
 module Hunt.Common.BasicTypes
 where
 
-import           Control.Monad       (mzero)
+import           Control.Monad
 
 import           Data.Aeson
 import           Data.Binary         hiding (Word)
 import           Data.Map
+import           Data.String
 import           Data.Text
 
 import           Hunt.Common.DocDesc (DocDesc)
+
+import qualified Text.Regex.XMLSchema.Generic as HXT
 
 import           Prelude             as P
 
@@ -57,9 +60,53 @@ data TextSearchOp = Case | NoCase | PrefixCase | PrefixNoCase
   deriving (Eq, Show)
 
 -- | Regular expression.
-type RegEx        = Text
+data RegEx = RegEx { reCompiled  :: !HXT.RegexText
+                   , rePrintable :: !Text
+                   }
+              deriving (Eq, Ord)
+
+regExTokenize :: RegEx -> Text -> [Text]
+regExTokenize (RegEx re _)
+  = HXT.tokenizeRE re
 
 -- ------------------------------------------------------------
+
+instance Show RegEx where
+  show (RegEx _ s) = unpack s
+
+instance IsString RegEx where
+  fromString s
+    = RegEx { reCompiled  = re'
+            , rePrintable = t
+            }
+    where
+      t   = pack s
+      re  = HXT.parseRegex t
+      re' = if HXT.isZero re
+            then error ("You should only use IsString instance for static regexes, error in regex: " ++ show s)
+            else re
+
+instance FromJSON RegEx where
+  parseJSON (String s)
+    = do when (HXT.isZero re) mzero
+         return (RegEx re s)
+    where
+      re = HXT.parseRegex s
+  parseJSON _
+    = mzero
+
+instance ToJSON RegEx where
+  toJSON
+    = String . rePrintable
+
+instance Binary RegEx where
+  put
+    = put . rePrintable
+  get
+    = do s <- get
+         let re = HXT.parseRegex s
+         when (HXT.isZero re) mzero
+         return (RegEx re s)
 
 instance FromJSON TextSearchOp where
     parseJSON (String s)
