@@ -8,7 +8,6 @@
   Copyright  : Copyright (C) 2014 Uwe Schmidt
   License    : MIT
   Maintainer : Uwe Schmidt
-
   Efficient Set implementation for 'DocId's.
 -}
 
@@ -29,17 +28,18 @@ module Hunt.Common.DocIdSet
   )
 where
 
-import           Prelude           hiding (null)
+import           Prelude hiding (null)
 
 import           Control.DeepSeq
-import           Control.Monad     (mzero)
+import           Control.Monad
 
 import           Data.Aeson
-import qualified Data.IntSet       as S
-import qualified Data.List         as L
-import           Data.Monoid       (Monoid (..))
+import           Data.Binary (Binary (..))
+import qualified Data.IntSet as IS
+import qualified Data.IntSet.Packed as S
+import qualified Data.List as L
+import           Data.Monoid (Monoid (..))
 import           Data.Typeable
-import           Data.Binary       (Binary (..))
 import           Hunt.Common.DocId
 
 -- ------------------------------------------------------------
@@ -63,18 +63,13 @@ instance ToJSON DocIdSet where
     toJSON = toJSON . L.map DocId . S.toList . unDIS
 
 instance FromJSON DocIdSet where
-    parseJSON x = do l <- parseJSON x
-                     case fromL l of
-                       Nothing -> mzero
-                       Just s  -> return $ DIS s
+    parseJSON x = do l <- parseJSON x >>= fromL
+                     return (DIS (S.fromList l))
         where
-          fromL :: [String] -> Maybe S.IntSet
-          fromL = L.foldr ins (Just S.empty)
-              where
-                ins _ Nothing   = Nothing
-                ins xs (Just s) = case fromHex xs of
-                                    Nothing -> Nothing
-                                    Just i  -> Just $ S.insert i s
+          fromL xs = forM xs $ \s ->
+            case fromHex s of
+              Nothing -> mzero
+              Just i  -> return i
 
 difference :: DocIdSet -> DocIdSet -> DocIdSet
 difference (DIS s1) (DIS s2) = DIS $ S.difference s1 s2
@@ -91,8 +86,8 @@ fromList = DIS . S.fromList . L.map unDocId
 toList :: DocIdSet -> [DocId]
 toList = L.map DocId . S.toList . unDIS
 
-toIntSet :: DocIdSet -> S.IntSet
-toIntSet = unDIS
+toIntSet :: DocIdSet -> IS.IntSet
+toIntSet =  S.toIntSet . unDIS
 
 singleton :: DocId -> DocIdSet
 singleton = DIS . S.singleton . unDocId
@@ -105,5 +100,3 @@ size (DIS s) = S.size s
 
 member :: DocId -> DocIdSet -> Bool
 member x s = unDocId x `S.member` unDIS s
-
--- ------------------------------------------------------------

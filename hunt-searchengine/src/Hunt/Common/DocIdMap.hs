@@ -185,7 +185,7 @@ difference              = liftDIM2 $ IM.difference
 
 -- | Difference between the map and a set of 'DocId's.
 diffWithSet             :: DocIdMap v -> DocIdSet -> DocIdMap v
-diffWithSet m s         = m `difference` (DIM $ IM.fromSet (const ()) (unDIS s))
+diffWithSet m s         = m `difference` (DIM $ IM.fromSet (const ()) (toIntSet s))
 
 -- | The union with a combining function.
 unionWith               :: (v -> v -> v) -> DocIdMap v -> DocIdMap v -> DocIdMap v
