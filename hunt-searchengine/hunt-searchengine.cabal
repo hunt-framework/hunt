@@ -31,9 +31,9 @@ source-repository head
 
 library
 
-  build-depends: aeson                  >= 0.6
+  build-depends: base                   >= 4.5     && < 5
+               , aeson                  >= 0.6
                , aeson-pretty           >= 0.7
-               , base                   >= 4.5     && < 5
                , binary                 >= 0.5     && < 1
                , bytestring                           < 1
                , containers             >= 0.5
@@ -54,7 +54,6 @@ library
                , transformers           >= 0.3
                , unordered-containers   >= 0.2
                , vector                 >= 0.10
-               , vector-algorithms
 
   exposed-modules:
     Control.Concurrent.XMVar
@@ -63,7 +62,6 @@ library
     Data.Bijection.Instances
     Data.IntMap.BinTree.Strict
     Data.IntSet.Cache
-    Data.IntSet.Packed                    
     Data.LimitedPriorityQueue
     Data.Text.Binary
     Data.Typeable.Binary

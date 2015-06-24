@@ -16,7 +16,7 @@ import           Control.DeepSeq
 
 import           Data.Aeson
 import           Data.Binary            as B
-import qualified Data.IntSet.Packed     as IS
+import qualified Data.IntSet            as IS
 import           Data.IntSet.Cache      as IS
 import           Data.Maybe             (fromMaybe)
 import           Data.Monoid            (Monoid(..))
@@ -49,7 +49,7 @@ empty                = PS IS.empty
 
 -- | Positions with one element.
 singleton            :: Position -> Positions
-singleton            = PS . IS.singleton
+singleton            = PS . IS.cacheAt
 --singleton            = PS . IS.singleton
 
 -- | Test whether it is the empty positions.
@@ -66,8 +66,8 @@ toAscList            = IS.toAscList . unPS
 
 -- | Constructs Positions from a list of 'Position's.
 fromList             :: [Position] -> Positions
--- fromList             = PS . IS.unions . map IS.cacheAt
-fromList             = PS . IS.fromList
+fromList             = PS . IS.unions . map IS.cacheAt
+--fromList             = PS . IS.fromList
 
 -- | Number of 'Position's.
 size                 :: Positions -> Int
@@ -115,6 +115,6 @@ intersectionWithIntervall lb ub (PS s1) (PS s2)
       member' i = minElem <= i + ub
           where
             (_ls, gt) = IS.split  (i + lb - 1) s2
-            minElem   = fromMaybe (i + ub + 1) (IS.minimum gt)
+            minElem   = fromMaybe (i + ub + 1) $ fst <$> IS.minView gt
 
 -- ------------------------------------------------------------
