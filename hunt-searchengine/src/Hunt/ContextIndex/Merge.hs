@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE BangPatterns #-}
 module Hunt.ContextIndex.Merge where
 
 import           Control.Applicative
@@ -35,7 +36,7 @@ data MergeDescr dt
 
 data SegmentAndSize
   = SegmentAndSize !Int !SegmentId
-  deriving (Eq)
+  deriving (Eq, Show)
 
 instance Ord SegmentAndSize where
   compare (SegmentAndSize sz1 sid1) (SegmentAndSize sz2 sid2) =
@@ -55,9 +56,10 @@ selectMerges policy (MergeLock lock) schema nextSegmentId segments
                                                   return (SegmentAndSize sz sid, s)
                                  ) (toList (difference segments lock))
 
+
        let partitions = filter (\p -> size p >= mpMergeFactor policy)
                         . fmap (fromList . fmap (\(SegmentAndSize _ sid, s) -> (sid, s)))
-                        $ collect levels sas []
+                        $ collect (mpMergeFactor policy) (mpMergeFactor policy - 1) sas []
 
            (nextSegmentId', descr) = List.mapAccumL (\sid p ->
                                                       (succ sid, MergeDescr sid schema p)
@@ -69,16 +71,10 @@ selectMerges policy (MergeLock lock) schema nextSegmentId segments
   where
     sortByKey = Map.toAscList . Map.fromList
 
-    -- Geometric series
-    levels :: [Int]
-    levels = [ round ((r - 1)*r**(k - 1)) | k <- [1..],
-               let r = fromIntegral (mpMergeFactor policy) ]
-
-    collect _        []  acc = acc
-    collect (lvl:lx) sas acc = collect lx rest (p:acc)
+    collect !_mf  !l [] !acc = acc
+    collect !mf   !l sx !acc = collect mf (l * mf) rest (p:acc)
       where
-        (p, rest) = List.break (
-          \(SegmentAndSize sz _, _) -> sz <= lvl) sas
+        (p, rest) = List.span (\(SegmentAndSize sz _, _) -> sz <= l) sx
 
 runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ApplyMerge dt)
 runMerge (MergeDescr segmentId schema segments)
@@ -97,7 +93,7 @@ applyMergedSegment segmentId oldSegments newSegment ixx
               insert segmentId newSegment' (
                 difference (ciSegments ixx) oldSegments)
         , ciNextSegmentId = succ (ciNextSegmentId ixx)
-        , ciMergeLock = lock'
+        , ciMergeLock     = lock'
         }
   where
     newSegment'
@@ -105,12 +101,10 @@ applyMergedSegment segmentId oldSegments newSegment ixx
                    , segDeletedDocs = deltaDelDocs
                    }
 
-    MergeLock currLock = ciMergeLock ixx
-
     lock'
-      = MergeLock (currLock `difference` oldSegments)
+      = MergeLock (unMergeLock (ciMergeLock ixx) `difference` oldSegments)
 
-    SegmentDiff deltaDelDocs deltaDelCx =
+    SegmentDiff !deltaDelDocs !deltaDelCx =
       mconcat (
         elems (intersectionWith segmentDiff oldSegments (ciSegments ixx)))
 

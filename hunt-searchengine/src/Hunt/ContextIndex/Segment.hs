@@ -49,6 +49,7 @@ newtype ContextMap
 
 data Segment dt
   = Segment { segIndex       :: !ContextMap
+            , segNumDocs     :: !Int
             , segDocs        :: !dt
             , segDeletedDocs :: !DocIdSet
             , segDeletedCxs  :: !(Set Context)
@@ -68,7 +69,7 @@ instance Monoid SegmentDiff where
     = SegmentDiff (dids1 <> dids2) (ctx1 <> ctx2)
 
 newtype MergeLock
-  = MergeLock (SegmentMap ())
+  = MergeLock { unMergeLock :: SegmentMap () }
 
 instance Show MergeLock where
   show (MergeLock m) = show (keys m)
@@ -200,7 +201,7 @@ segmentDocs seg
 --
 segmentSize :: (Monad m, DocTable dt) => Segment dt -> m Int
 segmentSize
-  = DocTable.size . segDocs
+  = return . segNumDocs
 
 -- | Returns the ratio between deleted docs and contained docs
 --
@@ -297,6 +298,7 @@ mergeSegments schema seg1 seg2
                               (List.filter (isJust . snd) newCxMap)))
 
        return Segment { segIndex       = ctxMap
+                      , segNumDocs     = segNumDocs seg1 + segNumDocs seg2
                       , segDocs        = newDt
                       , segDeletedDocs = mempty
                       , segDeletedCxs  = mempty

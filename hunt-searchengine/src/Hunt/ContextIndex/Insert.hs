@@ -50,11 +50,11 @@ insertList docAndWords ixx
                            $ partitionListByLength 20 docAndWords
 
          -- union doctables and docid-words pairs
-         (newDt, docIdsAndWords) <- unionDocTables tablesAndWords Dt.empty
+         (numDocs, newDt, docIdsAndWords) <- unionDocTables tablesAndWords 0 Dt.empty
 
          -- insert words to index
          newIx  <- batchAddWordsM docIdsAndWords (newContextMap ixx)
-         newSeg <- newSegment newIx newDt
+         newSeg <- newSegment newIx numDocs newDt
 
          return $! ixx { ciSegments = insert (ciNextSegmentId ixx) newSeg (ciSegments ixx)
                        , ciNextSegmentId = succ (ciNextSegmentId ixx)
@@ -64,35 +64,36 @@ insertList docAndWords ixx
 -- inserts each document of the list into it.
 createDocTableFromPartition :: (Par.MonadParallel m, DocTable dt)
                             => [(Dt.DValue dt, Words)]
-                            -> m (dt, [(DocId, Words)])
+                            -> m (Int, dt, [(DocId, Words)])
 createDocTableFromPartition
-    = foldM toDocTable (Dt.empty, [])
+    = foldM toDocTable (0, Dt.empty, [])
     where
-      toDocTable (dt, resIdsAndWords) (doc, ws)
+      toDocTable (numDocs, dt, resIdsAndWords) (doc, ws)
         = do (dId, dt') <- Dt.insert doc dt
-             return (dt', (dId, ws):resIdsAndWords)
+             return (numDocs + 1, dt', (dId, ws):resIdsAndWords)
 
 -- takes list of doctables with lists of docid-words pairs attached
 -- unions the doctables to one big doctable and concats the docid-words
 -- pairs to one list
 unionDocTables :: (DocTable dt, Par.MonadParallel m)
-               => [(dt, [(DocId, Words)])]
+               => [(Int, dt, [(DocId, Words)])]
+               -> Int
                -> dt
-               -> m (dt, [(DocId, Words)])
-unionDocTables tablesAndWords oldDt
+               -> m (Int, dt, [(DocId, Words)])
+unionDocTables tablesAndWords oldNumDocs oldDt
     = do step <- Par.mapM unionDtsAndWords $ mkPairs tablesAndWords
          case step of
-          []      -> return (Dt.empty, [])
-          [(d,w)] -> do n <- Dt.union oldDt d
-                        return (n, w)
-          xs      -> unionDocTables xs oldDt
+          []      -> return (0, Dt.empty, [])
+          [(k, d,w)] -> do n <- Dt.union oldDt d
+                           return (k + oldNumDocs, n, w)
+          xs      -> unionDocTables xs oldNumDocs oldDt
     where
-      unionDtsAndWords ((dt1, ws1), (dt2, ws2))
+      unionDtsAndWords ((n1, dt1, ws1), (n2, dt2, ws2))
         = do dt <- Dt.union dt1 dt2
-             return (dt, ws1 ++ ws2)
+             return (n1 + n2, dt, ws1 ++ ws2)
 
       mkPairs []       = []
-      mkPairs [a]      = [(a,(Dt.empty,[]))]
+      mkPairs [a]      = [(a,(0,Dt.empty,[]))]
       mkPairs (a:b:xs) = (a,b):mkPairs xs
 
 -- | Adds words associated to a document to the index.
@@ -144,7 +145,7 @@ modifyWithDescription weight descr wrds dId ixx
        ixx'          <- delete' (DocIdSet.singleton dId) ixx
        (dId', newDt) <- Dt.insert (mergeDescr doc) Dt.empty
        newIx         <- batchAddWordsM [(dId', wrds)] (newContextMap ixx)
-       newSeg        <- newSegment newIx newDt
+       newSeg        <- newSegment newIx 1 newDt
 
        return $! ixx' { ciSegments = insert (ciNextSegmentId ixx') newSeg (ciSegments ixx')
                       , ciNextSegmentId = succ (ciNextSegmentId ixx')
@@ -183,9 +184,10 @@ mapWithKeyMP f m =
             ) $ Map.toAscList m) >>=
     return . Map.fromAscList
 
-newSegment :: Monad m => ContextMap -> dt -> m (Segment dt)
-newSegment ix docs
+newSegment :: Monad m => ContextMap -> Int -> dt -> m (Segment dt)
+newSegment ix numDocs docs
   = return $! Segment { segIndex       = ix
+                      , segNumDocs     = numDocs
                       , segDocs        = docs
                       , segDeletedCxs  = mempty
                       , segDeletedDocs = mempty
