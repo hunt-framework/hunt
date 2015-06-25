@@ -167,7 +167,9 @@ normalizers = [cnUpperCase, cnLowerCase, cnZeroFill]
 -- | Default merge policy
 mergePolicy :: MergePolicy
 mergePolicy
-  = MergePolicy { mpMergeFactor = 10 }
+  = MergePolicy { mpMergeFactor = 10
+                , mpMinMerge    = 500
+                }
 
 -- | Initialize the Hunt environment.
 initHuntEnv :: DocTable dt

@@ -19,6 +19,7 @@ import           Hunt.Utility
 
 data MergePolicy
   = MergePolicy { mpMergeFactor :: !Int
+                , mpMinMerge    :: !Int
                 }
   deriving (Eq, Show)
 
@@ -35,7 +36,7 @@ data MergeDescr dt
   = MergeDescr !SegmentId !Schema !(SegmentMap (Segment dt))
 
 data SegmentAndSize
-  = SegmentAndSize !Int !SegmentId
+  = SegmentAndSize !Float !SegmentId
   deriving (Eq, Show)
 
 instance Ord SegmentAndSize where
@@ -53,30 +54,41 @@ selectMerges :: (Functor m, Monad m, DocTable dt)
              -> m ([MergeDescr dt], MergeLock, SegmentId)
 selectMerges policy (MergeLock lock) schema nextSegmentId segments
   = do sas <- sortByKey <$> mapM (\(sid, s) -> do sz <- segmentSize' s
-                                                  return (SegmentAndSize (roundUp sz) sid, s)
+                                                  return (SegmentAndSize (norm (roundUp sz)) sid, s)
                                  ) (toList (difference segments lock))
 
-       let partitions = filter (\p -> size p >= mpMergeFactor policy)
+       let partitions = filter (\p -> size p >= 2)
                         . fmap (fromList . fmap (\(SegmentAndSize _ sid, s) -> (sid, s)))
-                        $ collect (mpMergeFactor policy) (mpMergeFactor policy - 1) sas []
+                        $ collect (mpMergeFactor policy) sas []
 
            (nextSegmentId', descr) = List.mapAccumL (\sid p ->
-                                                      (succ sid, MergeDescr sid schema p)
+                                                       (succ sid, MergeDescr sid schema p)
                                                     ) nextSegmentId partitions
 
            lock' = MergeLock lock <> mconcat (fmap (MergeLock . void) partitions)
 
        return (descr, lock', nextSegmentId')
   where
-    roundUp :: Int -> Int
-    roundUp x = max x 100
+    norm x    = logBase (fromIntegral (mpMergeFactor policy)) (fromIntegral x)
+    roundUp   = max (mpMinMerge policy)
+    sortByKey = Map.toDescList . Map.fromList
 
-    sortByKey = Map.toAscList . Map.fromList
-
-    collect !_mf  !l [] !acc = acc
-    collect !mf   !l sx !acc = collect mf (l * mf) rest (p:acc)
+    collect !_mf []  !acc = acc
+    collect !mf  sas !acc = collect mf restOfAll (p:acc)
       where
-        (p, rest) = List.span (\(SegmentAndSize sz _, _) -> sz <= l) sx
+        (SegmentAndSize l  _, _) = head sas
+
+        (level, restOfAll) = List.span (\(SegmentAndSize sz _, _) ->
+                                          if l <= norm (mpMinMerge policy)
+                                          then sz >= -1
+                                          else sz >= l - 1.0
+                                       ) sas
+
+        (p, restOfLevel) = List.span (\(SegmentAndSize sz _, _) ->
+                                        if l <= norm (mpMinMerge policy)
+                                        then sz >= -1       -- | If there are only very small segments left, eat them all up
+                                        else sz >= l - 0.75 -- | otherwise only eat 75% of that level
+                                     ) level
 
 runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ApplyMerge dt)
 runMerge (MergeDescr segmentId schema segments)
