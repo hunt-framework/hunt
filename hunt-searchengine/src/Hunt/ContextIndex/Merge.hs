@@ -52,10 +52,9 @@ selectMerges :: (Functor m, Monad m, DocTable dt)
              -> SegmentMap (Segment dt)
              -> m ([MergeDescr dt], MergeLock, SegmentId)
 selectMerges policy (MergeLock lock) schema nextSegmentId segments
-  = do sas <- sortByKey <$> mapM (\(sid, s) -> do sz <- segmentSize s
-                                                  return (SegmentAndSize sz sid, s)
+  = do sas <- sortByKey <$> mapM (\(sid, s) -> do sz <- segmentSize' s
+                                                  return (SegmentAndSize (roundUp sz) sid, s)
                                  ) (toList (difference segments lock))
-
 
        let partitions = filter (\p -> size p >= mpMergeFactor policy)
                         . fmap (fromList . fmap (\(SegmentAndSize _ sid, s) -> (sid, s)))
@@ -69,6 +68,9 @@ selectMerges policy (MergeLock lock) schema nextSegmentId segments
 
        return (descr, lock', nextSegmentId')
   where
+    roundUp :: Int -> Int
+    roundUp x = max x 100
+
     sortByKey = Map.toAscList . Map.fromList
 
     collect !_mf  !l [] !acc = acc

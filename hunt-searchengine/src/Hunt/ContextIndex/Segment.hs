@@ -203,6 +203,10 @@ segmentSize :: (Monad m, DocTable dt) => Segment dt -> m Int
 segmentSize
   = return . segNumDocs
 
+segmentSize' :: (Monad m, DocTable dt) => Segment dt -> m Int
+segmentSize' seg
+  = return (segNumDocs seg - DocIdSet.size (segDeletedDocs seg))
+
 -- | Returns the ratio between deleted docs and contained docs
 --
 segmentDeletedDocsRatio :: (Monad m, DocTable dt) => Segment dt -> m Float

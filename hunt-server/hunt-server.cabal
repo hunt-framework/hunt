@@ -64,7 +64,6 @@ executable hunt-server
                -threaded
                -Wall
                -funbox-strict-fields
-               -eventlog
 
   ghc-prof-options: -fprof-auto
                                

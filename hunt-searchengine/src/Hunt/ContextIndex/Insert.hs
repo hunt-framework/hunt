@@ -123,13 +123,12 @@ batchAddWordsM vs (ContextMap m)
 
 contentForCx :: Context -> [(DocId, Words)] -> [(Word, Occurrences)]
 contentForCx cx
-  = Map.toAscList . Map.unionsWith mappend . fmap (invert . second (wordlist cx))
-  where
-    wordlist
-      = Map.findWithDefault Map.empty
-
-    invert (dId, wl)
-      = Map.map (Occ.singleton' dId) wl
+  = concatMap (invert . second (getWlForCx cx))
+          where
+            invert (did, wl)
+                = map (second (Occ.singleton' did)) $ Map.toList wl
+            getWlForCx
+                = Map.findWithDefault Map.empty
 
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
