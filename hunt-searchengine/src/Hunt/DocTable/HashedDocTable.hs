@@ -131,6 +131,8 @@ instance (DocumentWrapper e) =>
   -- Filters all documents that satisfy the predicate.
   filter      = return .:: filter'
 
+  restrict    = return .:: restrict'
+
   -- Convert document table to a single map.
   toMap       = return . toMap'
 
@@ -208,6 +210,10 @@ map' f d
 filter'     :: (DocumentWrapper e) => (e -> Bool) -> Documents e -> Documents e
 filter' p d
   = mkDocuments $ DM.filter p (idToDoc d)
+
+restrict'   :: (DocumentWrapper e) => DocIdSet -> Documents e -> Documents e
+restrict' dIds d
+  = mkDocuments $ DM.intersectionWithSet (idToDoc d) dIds
 
 fromMap'    :: (DocumentWrapper e) => (Document -> e) -> DocIdMap Document -> Documents e
 fromMap' f itd

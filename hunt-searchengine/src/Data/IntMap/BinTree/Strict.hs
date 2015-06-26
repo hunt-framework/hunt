@@ -412,6 +412,26 @@ intersectionWithKey' f x1 x2
                              (m', l', r') = split' k t2
                              kv'          = (\ y -> (k, f k v y)) <$> m'
 
+intersectionWithSplit :: (Key -> a -> b)
+                      -> (Key -> s -> (Maybe c, s, s))
+                      -> Tree a
+                      -> s
+                      -> Tree b
+intersectionWithSplit _ _ Empty _
+  = Empty
+intersectionWithSplit f splitter t1 s1
+  = intersect t1 s1
+  where
+    intersect Empty _ = Empty
+    intersect t1   s1 = join' kv' (intersect l l') (intersect r r')
+      where
+        (k, v, l, r) = unNode t1
+        (m', l', r') = splitter k s1
+        kv'          =
+          case m' of
+            Just _  -> Just (k , f k v)
+            Nothing -> Nothing
+
 {-# INLINE intersection         #-}
 {-# INLINE intersectionWith     #-}
 {-# INLINE intersectionWithKey' #-}
@@ -534,9 +554,6 @@ fromList = L.foldl' (\ acc (k, v) -> insert k v acc) Empty
 
 fromSet :: (Key -> v) -> S.IntSet -> Tree v
 fromSet f = fromAscList . L.map (\ k -> (k, f k)) . S.elems
-
--- fromIntSet :: (Key -> v) -> IntSet -> Tree v
--- fromIntSet f = fromAscList . fmap (\k -> (k, f k)) . IntSet.toAscList
 
 fromAscList :: [(Key, v)] -> Tree v
 fromAscList = toTr 0 Empty

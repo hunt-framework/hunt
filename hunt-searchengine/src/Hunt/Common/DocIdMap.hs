@@ -34,6 +34,7 @@ module Hunt.Common.DocIdMap
   , diffWithSet
   , unionWith
   , intersectionWith
+  , intersectionWithSet
   , differenceWith
   , unionsWith
   , map
@@ -181,6 +182,10 @@ union                   = liftDIM2 $ IM.union
 -- | The (left-biased) intersection of two maps (based on 'DocId's).
 intersection            :: DocIdMap v -> DocIdMap v -> DocIdMap v
 intersection            = liftDIM2 $ IM.intersection
+
+intersectionWithSet     :: DocIdMap v -> DocIdSet -> DocIdMap v
+intersectionWithSet (DIM m) (DIS s)
+  = DIM (IM.intersectionWithSplit (const id) IntSet.split' m s)
 
 -- | Difference between two maps (based on 'DocId's).
 difference              :: DocIdMap v -> DocIdMap w -> DocIdMap v

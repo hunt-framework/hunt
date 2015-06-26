@@ -102,6 +102,8 @@ class (DocumentWrapper (DValue i)) => DocTable i where
     -- | Filters all documents that satisfy the predicate.
     filter          :: (Monad m) => (DValue i -> Bool) -> i -> m i
 
+    restrict        :: (Monad m) => DocIdSet -> i -> m i
+
     -- | Convert document table to a 'DocIdMap'.
     toMap           :: (Monad m) => i -> m (DocIdMap (DValue i))
 
@@ -109,12 +111,12 @@ class (DocumentWrapper (DValue i)) => DocTable i where
     empty           :: i
 
 
-restrict :: (Functor m, Monad m, Applicative m, DocTable i) => DocIdSet -> i -> m i
-restrict is dt
-    = foldM ins empty $ DS.toList is
-      where
-        ins m i = do v <- fromJust <$> lookup i dt
-                     update i v m
+-- restrict :: (Functor m, Monad m, Applicative m, DocTable i) => DocIdSet -> i -> m i
+-- restrict is dt
+--    = foldM ins empty $ DS.toList is
+--      where
+--        ins m i = do v <- fromJust <$> lookup i dt
+--                     update i v m
 
 -- ------------------------------------------------------------
 
