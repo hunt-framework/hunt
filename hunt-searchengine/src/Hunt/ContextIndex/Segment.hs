@@ -35,6 +35,7 @@ import           Data.Traversable
 import           System.FilePath
 import           System.IO
 import qualified Text.Printf as Printf
+import           Unsafe.Coerce
 
 newtype SegmentId
   = SegmentId { unSegmentId :: Int }
@@ -290,9 +291,8 @@ mergeSegments schema seg1 seg2
                   (Just ix1, Nothing)  -> Just ix1
                   (Nothing, Just ix2)  -> Just ix2
                   (Just ix1, Just ix2) ->
-                    let ix1' = prepIx (segDeletedDocs seg1) ix1
-                        ix2' = prepIx (segDeletedDocs seg2) ix2
-                    in Just $ merge (ctMerge (cxType st)) ix1' ix2'
+                    Just (mergeIx
+                          (segDeletedDocs seg1, ix1) (segDeletedDocs seg2, ix2))
                   _                    -> Nothing
             return (cx, newIx')
 
@@ -309,6 +309,16 @@ mergeSegments schema seg1 seg2
                       }
   where
     -- | This should be removed, modification of indicies is NOT ALLOWED..
-    prepIx :: DocIdSet -> Ix.IndexImpl -> Ix.IndexImpl
-    prepIx delDocs (Ix.IndexImpl ix)
-      = Ix.mkIndex (Ix.deleteDocs delDocs ix `asTypeOf` ix)
+    -- prepIx :: DocIdSet -> Ix.IndexImpl -> Ix.IndexImpl
+    -- prepIx delDocs (Ix.IndexImpl ix)
+    -- = Ix.mkIndex (Ix.deleteDocs delDocs ix `asTypeOf` ix)
+
+    mergeIx :: (DocIdSet, Ix.IndexImpl) -> (DocIdSet, Ix.IndexImpl) -> Ix.IndexImpl
+    mergeIx (dd1, Ix.IndexImpl ix1) (dd2, Ix.IndexImpl ix2)
+      = Ix.mkIndex $ Ix.unionWith concat ix1 (unsafeCoerce ix2)
+      where
+        concat v1 v2
+          = fromMaybe mempty (v1' <> v2')
+          where
+            v1' = Ix.diffValues dd1 v1
+            v2' = Ix.diffValues dd2 v2

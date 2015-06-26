@@ -195,6 +195,7 @@ difference              = liftDIM2 $ IM.difference
 diffWithSet             :: DocIdMap v -> DocIdSet -> DocIdMap v
 diffWithSet (DIM m) (DIS s)
   = DIM (IM.differenceWithSplit (const (const Nothing)) IntSet.split' m s)
+{-# INLINE diffWithSet #-}
 
 -- | The union with a combining function.
 unionWith               :: (v -> v -> v) -> DocIdMap v -> DocIdMap v -> DocIdMap v

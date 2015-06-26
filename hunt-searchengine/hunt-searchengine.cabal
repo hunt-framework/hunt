@@ -91,7 +91,6 @@ library
 
     Hunt.Index
     Hunt.Index.IndexImpl
-    Hunt.Index.Merge
     Hunt.Index.PrefixTreeIndex
     Hunt.Index.PrefixTreeIndex2Dim
     Hunt.Index.RTreeIndex

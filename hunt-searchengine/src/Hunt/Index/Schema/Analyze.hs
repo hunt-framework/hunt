@@ -61,7 +61,7 @@ toDocAndWords' schema apiDoc
            ( \ context content ->
                  let (ContextSchema rex normalizers _ _ cType)
                          = fromJust $ M.lookup context schema
-                     (CType _ defRex validator _  _)
+                     (CType _ defRex validator _)
                          = cType
                      scan
                          = filter (validate validator) . scanTextRE (fromMaybe defRex rex)

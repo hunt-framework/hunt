@@ -8,6 +8,7 @@ import           Control.Monad.Reader
 import qualified Data.List as List
 import qualified Data.Map.Strict as Map
 import           Data.Monoid
+import           Data.Ord
 import           Data.Set (Set)
 import qualified Data.Set as Set
 
@@ -100,9 +101,6 @@ lockFromMerges :: [MergeDescr dt] -> MergeLock
 lockFromMerges
   = mconcat . fmap (\(MergeDescr _ _ s) -> MergeLock (void s))
 
-mkLock :: SegmentMap a -> MergeLock
-mkLock = MergeLock . void
-
 -- | Selects `Segment`s for merging, respecting an existing `MergeLock`.
 selectMergeables :: Monad m => MergeLock -> SegmentMap a -> m (SegmentMap a)
 selectMergeables (MergeLock lock) sx
@@ -142,7 +140,7 @@ selectMerges policy lock schema nextSid segments
       = level <= norm (mpMinMerge policy)
 
     sortByLevel
-      = List.sort
+      = List.sortBy (comparing Down)
 
 
 -- | Runs a merge. Returns an idempotent function which,
