@@ -17,6 +17,7 @@ import           Hunt.DocTable (DocTable)
 import           Hunt.Index.Schema
 import           Hunt.Utility
 
+
 data MergePolicy
   = MergePolicy { mpMergeFactor :: !Int
                 , mpMinMerge    :: !Int
@@ -35,61 +36,118 @@ instance Monoid (ApplyMerge dt) where
 data MergeDescr dt
   = MergeDescr !SegmentId !Schema !(SegmentMap (Segment dt))
 
-data SegmentAndSize
-  = SegmentAndSize !Float !SegmentId
-  deriving (Eq, Show)
+data SegmentAndLevel dt
+  = SegmentAndLevel { sasLevel :: !Float
+                    , sasSegId :: !SegmentId
+                    , sasSeg   :: !(Segment dt)
+                   }
 
-instance Ord SegmentAndSize where
-  compare (SegmentAndSize sz1 sid1) (SegmentAndSize sz2 sid2) =
-    case compare sz1 sz2 of
-      EQ -> compare sid1 sid2
-      x  -> x
+instance Eq (SegmentAndLevel dt) where
+  (SegmentAndLevel l1 sid1 _) == (SegmentAndLevel l2 sid2 _)
+    = (l1 == l2) && (sid1 == sid2)
 
-selectMerges :: (Functor m, Monad m, DocTable dt)
+instance Ord (SegmentAndLevel dt) where
+  compare (SegmentAndLevel l1 sid1 _) (SegmentAndLevel l2 sid2 _)
+    = case compare l1 l2 of
+        EQ -> compare sid1 sid2
+        x  -> x
+
+-- | Quantifies segments into levels.
+--
+quantifySegments :: Monad m
+                 => (SegmentId -> Segment dt -> m Float)
+                 -> SegmentMap (Segment dt)
+                 -> m [SegmentAndLevel dt]
+quantifySegments findLevel sx
+  = forM (toList sx) $ \(sid, s) -> do
+      q <- findLevel sid s
+      return (SegmentAndLevel q sid s)
+
+-- | Collects all merges in a ordered (desc. by level) list of segments.
+--   Where the level is `log(sz)/log(mergeFactor)`.
+collectMerges :: Monad m
+              => (Float -> Bool)
+              -> (Float -> Bool)
+              -> [SegmentAndLevel dt]
+              -> m [[SegmentAndLevel dt]]
+collectMerges isMin isMax sx
+  = return (collect sx [])
+  where
+    collect [] !acc = acc
+    collect sx !acc = collect rest (viable:acc)
+      where
+        level = sasLevel (List.head sx)
+        (inLevel, rest) = List.span (\sas -> if isMin (sasLevel sas)
+                                              then sasLevel sas >= -1
+                                              else sasLevel sas >= level - 1.0) sx
+        viable = List.takeWhile (\sas -> if isMin (sasLevel sas)
+                                          then sasLevel sas >= -1
+                                          else sasLevel sas >= level - 0.75) inLevel
+
+mkMergeDescr :: Schema
+             -> SegmentId
+             -> [SegmentMap (SegmentAndLevel dt)]
+             -> (SegmentId, [MergeDescr dt])
+mkMergeDescr schema
+  = List.mapAccumL accum
+  where
+    accum sid sx
+      = (succ sid, descr)
+      where
+        descr = MergeDescr sid schema (fmap sasSeg sx)
+
+lockFromMerges :: [MergeDescr dt] -> MergeLock
+lockFromMerges
+  = mconcat . fmap (\(MergeDescr _ _ s) -> MergeLock (void s))
+
+mkLock :: SegmentMap a -> MergeLock
+mkLock = MergeLock . void
+
+-- | Selects `Segment`s for merging, respecting an existing `MergeLock`.
+selectMergeables :: Monad m => MergeLock -> SegmentMap a -> m (SegmentMap a)
+selectMergeables (MergeLock lock) sx
+  = return (difference sx lock)
+
+-- | Given a policy and a set of `Segment`s this function decides,
+--   which merges can be performed.
+--
+selectMerges :: (Monad m, DocTable dt)
              => MergePolicy
              -> MergeLock
              -> Schema
              -> SegmentId
              -> SegmentMap (Segment dt)
              -> m ([MergeDescr dt], MergeLock, SegmentId)
-selectMerges policy (MergeLock lock) schema nextSegmentId segments
-  = do sas <- sortByKey <$> mapM (\(sid, s) -> do sz <- segmentSize' s
-                                                  return (SegmentAndSize (norm (roundUp sz)) sid, s)
-                                 ) (toList (difference segments lock))
-
-       let partitions = filter (\p -> size p >= 2)
-                        . fmap (fromList . fmap (\(SegmentAndSize _ sid, s) -> (sid, s)))
-                        $ collect (mpMergeFactor policy) sas []
-
-           (nextSegmentId', descr) = List.mapAccumL (\sid p ->
-                                                       (succ sid, MergeDescr sid schema p)
-                                                    ) nextSegmentId partitions
-
-           lock' = MergeLock lock <> mconcat (fmap (MergeLock . void) partitions)
-
-       return (descr, lock', nextSegmentId')
+selectMerges policy lock schema nextSid segments
+  = do mergeables <- selectMergeables lock segments
+       quantified <- quantifySegments logNormQuantify mergeables
+       allMerges  <- collectMerges isMinViableLevel (const False) (sortByLevel quantified)
+       let partitions = List.filter (\p -> size p >= 2)
+                        . fmap (fromList . fmap (\sas -> (sasSegId sas, sas)))
+                        $ allMerges
+           (nextSid', merges) = mkMergeDescr schema nextSid partitions
+       return (merges, lockFromMerges merges `mappend` lock, nextSid')
   where
-    norm x    = logBase (fromIntegral (mpMergeFactor policy)) (fromIntegral x)
-    roundUp   = max (mpMinMerge policy)
-    sortByKey = Map.toDescList . Map.fromList
+    norm
+      = logBase (fromIntegral (mpMergeFactor policy)) . fromIntegral
 
-    collect !_mf []  !acc = acc
-    collect !mf  sas !acc = collect mf restOfAll (p:acc)
-      where
-        (SegmentAndSize l  _, _) = head sas
+    roundUp
+      = max (mpMinMerge policy)
 
-        (level, restOfAll) = List.span (\(SegmentAndSize sz _, _) ->
-                                          if l <= norm (mpMinMerge policy)
-                                          then sz >= -1
-                                          else sz >= l - 1.0
-                                       ) sas
+    logNormQuantify _ s
+      = do sz <- segmentSize' s
+           return (norm (roundUp sz))
 
-        (p, restOfLevel) = List.span (\(SegmentAndSize sz _, _) ->
-                                        if l <= norm (mpMinMerge policy)
-                                        then sz >= -1       -- | If there are only very small segments left, eat them all up
-                                        else sz >= l - 0.75 -- | otherwise only eat 75% of that level
-                                     ) level
+    isMinViableLevel level
+      = level <= norm (mpMinMerge policy)
 
+    sortByLevel
+      = List.sort
+
+
+-- | Runs a merge. Returns an idempotent function which,
+--   when applied to a `ContextIndex` makes the merged segment visible
+--
 runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ApplyMerge dt)
 runMerge (MergeDescr segmentId schema segments)
   = do newSeg <- foldM1' (mergeSegments schema) (elems segments)
