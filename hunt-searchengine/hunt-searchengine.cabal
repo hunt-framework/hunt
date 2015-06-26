@@ -88,7 +88,8 @@ library
     Hunt.Index.Schema.Normalize.Date
     Hunt.Index.Schema.Normalize.Position
     Hunt.Index.Schema.Normalize.Int
-
+    Hunt.Index.Schema.Tokenize
+    
     Hunt.Index
     Hunt.Index.IndexImpl
     Hunt.Index.PrefixTreeIndex

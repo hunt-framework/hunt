@@ -116,6 +116,9 @@ module Hunt.ClientInterface
     , setCxNoDefault
     , setCxWeight
     , setCxRegEx
+    , setCxTokenizeAlpha
+    , setCxTokenizeNumber
+    , setCxTokenizeWhitespace
     , setCxUpperCase
     , setCxLowerCase
     , setCxZeroFill
@@ -453,8 +456,24 @@ setCxWeight w sc
 -- | set the regex for splitting a text into words
 
 setCxRegEx :: RegEx -> ContextSchema -> ContextSchema
-setCxRegEx re sc
-    = sc { cxRegEx = Just re }
+setCxRegEx re
+  = setCxTokenizer (TokenizeRegEx re)
+
+setCxTokenizeAlpha :: ContextSchema -> ContextSchema
+setCxTokenizeAlpha
+  = setCxTokenizer TokenizeAlpha
+
+setCxTokenizeNumber :: ContextSchema -> ContextSchema
+setCxTokenizeNumber
+  = setCxTokenizer TokenizeDigit
+
+setCxTokenizeWhitespace :: ContextSchema -> ContextSchema
+setCxTokenizeWhitespace
+  = setCxTokenizer TokenizeSpace
+
+setCxTokenizer :: TokenizerType -> ContextSchema -> ContextSchema
+setCxTokenizer tt sc
+  = sc { cxTokenizer = Just (def { ctkType = tt }) }
 
 -- | add a text normalizer for transformation into uppercase
 

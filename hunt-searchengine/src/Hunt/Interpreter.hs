@@ -29,41 +29,42 @@ module Hunt.Interpreter
 where
 
 import           Control.Applicative
-import           Control.Arrow                 (second)
+import           Control.Arrow (second)
 import           Control.Concurrent.XMVar
 import           Control.Monad.Error
 import           Control.Monad.Reader
-import Control.Concurrent
+import           Control.Concurrent
 
-import           Data.Aeson                    (ToJSON (..), object, (.=))
-import           Data.Binary                   (Binary, encodeFile)
+import           Data.Aeson (ToJSON (..), object, (.=))
+import           Data.Binary (Binary, encodeFile)
 import           Data.Default
-import qualified Data.List                     as L
-import qualified Data.Map                      as M
+import qualified Data.List as L
+import qualified Data.Map as M
 import           Data.Monoid
-import           Data.Set                      (Set)
-import qualified Data.Set                      as S
-import           Data.Text                     (Text)
-import qualified Data.Text                     as T
+import           Data.Set (Set)
+import qualified Data.Set as S
+import           Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Traversable as Trav
 
-import           Hunt.Common.ApiDocument       as ApiDoc
-import           Hunt.Common.BasicTypes        (Context, URI)
-import qualified Hunt.Common.DocDesc           as DocDesc
-import qualified Hunt.Common.DocIdSet          as DocIdSet
-import           Hunt.Common.Document          (Document (..))
+import           Hunt.Common.ApiDocument as ApiDoc
+import           Hunt.Common.BasicTypes (Context, URI)
+import qualified Hunt.Common.DocDesc as DocDesc
+import qualified Hunt.Common.DocIdSet as DocIdSet
+import           Hunt.Common.Document (Document (..))
 import           Hunt.ContextIndex             (ContextIndex, MergeLock,
                                                 ApplyMerge(..), MergePolicy(..))
-import qualified Hunt.ContextIndex             as CIx
-import           Hunt.DocTable                 (DocTable)
-import qualified Hunt.DocTable                 as DocTable
+import qualified Hunt.ContextIndex as CIx
+import           Hunt.DocTable (DocTable)
+import qualified Hunt.DocTable as DocTable
 import           Hunt.DocTable.HashedDocTable
-import qualified Hunt.Index                    as Ix
-import           Hunt.Index.IndexImpl          (IndexImpl (..), mkIndex)
+import qualified Hunt.Index as Ix
+import           Hunt.Index.IndexImpl (IndexImpl (..), mkIndex)
 import           Hunt.Index.Schema
 import           Hunt.Index.Schema.Analyze
 import           Hunt.Interpreter.BasicCommand
-import           Hunt.Interpreter.Command      (Command)
-import           Hunt.Interpreter.Command      hiding (Command (..))
+import           Hunt.Interpreter.Command (Command)
+import           Hunt.Interpreter.Command hiding (Command (..))
 import           Hunt.Query.Intermediate       (ScoredWords,
                                                 toDocsResult, RankedDoc(..),
                                                 toDocumentResultPage,
@@ -78,17 +79,17 @@ import           Hunt.Query.Processor          (ProcessConfig (..),
 import           Hunt.Scoring.SearchResult     (ScoredDocs, UnScoredDocs,
                                                 searchResultToOccurrences,
                                                 unScoredDocsToDocIdSet)
-import           Hunt.Utility                  (showText)
+import           Hunt.Utility (showText)
 import           Hunt.Utility.Log
 
 import           System.IO.Error               (isAlreadyInUseError,
                                                 isDoesNotExistError,
                                                 isFullError, isPermissionError,
                                                 tryIOError)
-import qualified System.Log.Logger             as Log
+import qualified System.Log.Logger as Log
 
-import           GHC.Stats                     (getGCStats, getGCStatsEnabled)
-import           GHC.Stats.Json                ()
+import           GHC.Stats (getGCStats, getGCStatsEnabled)
+import           GHC.Stats.Json ()
 
 -- ------------------------------------------------------------
 --
@@ -143,6 +144,8 @@ data HuntEnv dt = HuntEnv
   , huntMergePolicy :: MergePolicy
     -- | Available context types.
   , huntTypes       :: ContextTypes
+    -- | Available custom tokenizers
+  , huntTokenizers  :: [CTokenizer]
     -- | Available normalizers.
   , huntNormalizers :: [CNormalizer]
     -- | Query processor configuration.
@@ -154,7 +157,7 @@ type DefHuntEnv = HuntEnv (Documents Document)
 
 -- | Initialize the Hunt environment with default values.
 initHunt :: DocTable dt => IO (HuntEnv dt)
-initHunt = initHuntEnv CIx.empty mergePolicy contextTypes normalizers def
+initHunt = initHuntEnv CIx.empty mergePolicy contextTypes [] normalizers def
 
 -- | Default context types.
 contextTypes :: ContextTypes
@@ -168,7 +171,7 @@ normalizers = [cnUpperCase, cnLowerCase, cnZeroFill]
 mergePolicy :: MergePolicy
 mergePolicy
   = MergePolicy { mpMergeFactor = 10
-                , mpMinMerge    = 500
+                , mpMinMerge    = 400
                 }
 
 -- | Initialize the Hunt environment.
@@ -176,12 +179,13 @@ initHuntEnv :: DocTable dt
            => ContextIndex dt
            -> MergePolicy
            -> ContextTypes
+           -> [CTokenizer]
            -> [CNormalizer]
            -> ProcessConfig
            -> IO (HuntEnv dt)
-initHuntEnv ixx mp opt ns qc = do
+initHuntEnv ixx mp opt tk ns qc = do
   ixref <- newXMVar ixx
-  return $ HuntEnv ixref mp opt ns qc
+  return $ HuntEnv ixref mp opt tk ns qc
 
 -- ------------------------------------------------------------
 -- Command evaluation monad
@@ -271,6 +275,15 @@ askNormalizer cn = do
   case L.find (\t -> cn == cnName t) ts of
     Just t -> return t
     _      -> throwResError 410 ("used unavailable normalizer: " `T.append` cn)
+
+askTokenizer :: DocTable dt => CTokenizer -> Hunt dt CTokenizer
+askTokenizer (CTokenizer tt@(TokenizeCustom name) _ )
+  = do tks <- asks huntTokenizers
+       case L.find (\t -> tt == ctkType t) tks of
+         Just t -> return t
+         _      -> throwResError 410 ("used unavailable tokenizer" `T.append` name)
+askTokenizer (CTokenizer tt _ )
+  = return (mkDefaultTokenizer tt)
 
 -- | Get the index.
 askIndex :: DocTable dt => Text -> Hunt dt IndexImpl
@@ -393,15 +406,16 @@ execInsertContext cx ct ixx
     cType                <- askType . ctName . cxType  $ ct
     impl                 <- askIndex . ctName . cxType $ ct
     norms                <- mapM (askNormalizer . cnName) $ cxNormalizer ct
+    tokenizer            <- Trav.mapM askTokenizer $ cxTokenizer ct
 
     -- create new index instance and insert it with context
-    return $ ( CIx.insertContext cx (newIx impl) (newSchema cType norms) ixx
+    return $ ( CIx.insertContext cx (newIx impl) (newSchema cType tokenizer norms) ixx
              , ResOK
              )
   where
   newIx :: IndexImpl -> IndexImpl
   newIx (IndexImpl i) = mkIndex $ Ix.empty `asTypeOf` i
-  newSchema cType norms= (ct { cxType = cType, cxNormalizer = norms })
+  newSchema cType tok norms= (ct { cxType = cType, cxTokenizer = tok, cxNormalizer = norms })
 
 -- | Deletes the context and the schema associated with it.
 execDeleteContext :: DocTable dt

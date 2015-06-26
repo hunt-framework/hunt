@@ -66,7 +66,9 @@ import qualified Hunt.Common.ApiDocument      as H (ApiDocuments)
 -- import qualified Hunt.Interpreter.Command     as H (CmdRes)
 -- import qualified Hunt.Common.BasicTypes       as H (RegEx, Score, Weight)
 import qualified Hunt.Index.Schema            as H (CNormalizer,
-                                                   ContextSchema (..),
+                                                    CTokenizer,
+                                                    TokenizerType(..),
+                                                    ContextSchema (..),
                                                   ContextType (..))
 import qualified Hunt.Interpreter.Command     as H (Command (..))
 import           Hunt.Query.Language.Grammar  (Query)
@@ -260,7 +262,7 @@ data ContextType = TextContext | DateContext | PositionContext | IntContext
 data ContextDescription
     = ContextDescription
     { -- optional regex to overwrite default given by context type
-      cxRegEx      :: Maybe H.RegEx
+      cxTokenizer  :: Maybe H.CTokenizer
       -- normalizers to apply
     , cxNormalizer :: [H.CNormalizer]
       -- context weight
@@ -283,7 +285,7 @@ descriptionToCmd d
     where
       schema
           = H.ContextSchema
-            { H.cxRegEx      = cxRegEx      d
+            { H.cxTokenizer  = cxTokenizer  d
             , H.cxNormalizer = cxNormalizer d
             , H.cxWeight     = cxWeight     d
             , H.cxDefault    = cxDefault    d

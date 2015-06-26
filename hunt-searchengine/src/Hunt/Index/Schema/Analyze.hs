@@ -59,12 +59,12 @@ toDocAndWords' schema apiDoc
             }
       ws = M.mapWithKey
            ( \ context content ->
-                 let (ContextSchema rex normalizers _ _ cType)
+                 let (ContextSchema tokenizer normalizers _ _ cType)
                          = fromJust $ M.lookup context schema
-                     (CType _ defRex validator _)
+                     (CType _ defTkn validator _)
                          = cType
                      scan
-                         = filter (validate validator) . scanTextRE (fromMaybe defRex rex)
+                         = filter (validate validator) . ctkTokenize (fromMaybe defTkn tokenizer)
                  in
                    toWordList scan (normalize' normalizers) content
            )

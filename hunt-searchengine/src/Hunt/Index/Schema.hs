@@ -20,6 +20,10 @@ module Hunt.Index.Schema
   , ContextTypes
   , CValidator (..)
   , CNormalizer (..)
+  , TokenizerType(..)
+  , CTokenizer(..)
+  , mkDefaultTokenizer
+
   , normalize'
 
     -- * Default Context Types
@@ -65,6 +69,7 @@ import qualified Hunt.Index.Schema.Normalize.Int as Int
 import qualified Hunt.Index.Schema.Normalize.Position as Pos
 import           Hunt.Scoring.Score (Score)
 import           Hunt.Utility
+import qualified Hunt.Index.Schema.Tokenize as Tokenize
 
 -- ------------------------------------------------------------
 
@@ -80,8 +85,8 @@ type Schema
 
 data ContextSchema = ContextSchema
   {
-    -- | Optional regex to override the default given by context type.
-    cxRegEx      :: Maybe RegEx
+    -- | Optional tokenizer to override the default given by context type.
+    cxTokenizer  :: Maybe CTokenizer
     -- | Normalizers to apply on keys.
   , cxNormalizer :: [CNormalizer]
     -- | Context weight to boost results.
@@ -108,8 +113,8 @@ data ContextType = CType
   {
     -- | Name used in the (JSON) API.
     ctName     :: Text
-    -- | Default regex to split words.
-  , ctRegEx    :: RegEx
+    -- | Default tokenizer for words
+  , ctTokenizer :: CTokenizer
     -- | Validation function for keys.
   , ctValidate :: CValidator
     -- | The index implementation used for this type.
@@ -128,7 +133,7 @@ instance Default ContextType where
 ctText :: ContextType
 ctText = CType
   { ctName     = "text"
-  , ctRegEx    = "\\w*"
+  , ctTokenizer = mkDefaultTokenizer TokenizeAlpha
   , ctValidate = def
   , ctIxImpl   = def
   }
@@ -139,7 +144,7 @@ ctText = CType
 ctTextSimple :: ContextType
 ctTextSimple = CType
   { ctName     = "text-small"
-  , ctRegEx    = "\\w*"
+  , ctTokenizer = mkDefaultTokenizer TokenizeAlpha
   , ctValidate = def
   , ctIxImpl   = simplePT
   }
@@ -148,7 +153,7 @@ ctTextSimple = CType
 ctInt :: ContextType
 ctInt = CType
   { ctName     = "int"
-  , ctRegEx    = "([-]?[0-9]*)"
+  , ctTokenizer = mkDefaultTokenizer TokenizeDigit
   , ctValidate = CValidator $ Int.isInt
   , ctIxImpl   = intInv
   }
@@ -157,7 +162,7 @@ ctInt = CType
 ctDate :: ContextType
 ctDate = CType
   { ctName     = "date"
-  , ctRegEx    = "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))"
+  , ctTokenizer = mkDefaultTokenizer (TokenizeRegEx "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))")
   , ctValidate = CValidator $ Date.isAnyDate . unpack
   , ctIxImpl   = dateInv
   }
@@ -166,7 +171,7 @@ ctDate = CType
 ctPosition :: ContextType
 ctPosition = CType
   { ctName     = "position"
-  , ctRegEx    = "-?(90(\\.0*)?|[1-8]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?"
+  , ctTokenizer = mkDefaultTokenizer (TokenizeRegEx "-?(90(\\.0*)?|[1-8]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?")
   , ctValidate = CValidator $ Pos.isPosition
   , ctIxImpl   = positionInv
   }
@@ -174,7 +179,7 @@ ctPosition = CType
 ctPositionRTree :: ContextType
 ctPositionRTree = CType
   { ctName     = "position-rtree"
-  , ctRegEx    = "-?(90(\\.0*)?|[1-8]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?"
+  , ctTokenizer = mkDefaultTokenizer (TokenizeRegEx "-?(90(\\.0*)?|[1-8]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?")
   , ctValidate = CValidator $ Pos.isPosition
   , ctIxImpl   = positionRTree
   }
@@ -267,6 +272,94 @@ cnZeroFill :: CNormalizer
 cnZeroFill = CNormalizer "ZeroFill" Int.normalizeToText
 
 -- ------------------------------------------------------------
+-- Tokenizer
+-- ------------------------------------------------------------
+
+data TokenizerType
+  = TokenizeRegEx RegEx
+  | TokenizeSeparator Text
+  | TokenizeAlpha
+  | TokenizeDigit
+  | TokenizeSpace
+  | TokenizeCustom Text
+  deriving (Eq)
+
+data CTokenizer
+  = CTokenizer { ctkType     :: TokenizerType
+               , ctkTokenize :: Text -> [Text]
+               }
+
+mkDefaultTokenizer :: TokenizerType -> CTokenizer
+mkDefaultTokenizer tt
+  = case tt of
+      TokenizeRegEx re      -> CTokenizer tt (Tokenize.regexTokenizer re)
+      TokenizeSeparator sep -> CTokenizer tt (Tokenize.separatorTokenizer sep)
+      TokenizeAlpha         -> CTokenizer tt Tokenize.alphaTokenizer
+      TokenizeDigit         -> CTokenizer tt Tokenize.digitTokenizer
+      TokenizeSpace         -> CTokenizer tt Tokenize.spaceTokenizer
+      _                     -> error "custom tokenizer is no default"
+
+instance Show CTokenizer where
+  show (CTokenizer t _) = show t
+
+instance Default CTokenizer where
+  def = mkDefaultTokenizer TokenizeAlpha
+
+instance FromJSON CTokenizer where
+  parseJSON o
+    = do tkType <- parseJSON o
+         return def { ctkType = tkType
+                    }
+
+instance ToJSON CTokenizer where
+  toJSON (CTokenizer ctkType _)
+    = toJSON ctkType
+
+instance Binary CTokenizer where
+  get = undefined
+  put = undefined
+
+instance Show TokenizerType where
+  show (TokenizeRegEx _)     = "Regex"
+  show (TokenizeSeparator _) = "Separator"
+  show TokenizeAlpha         = "Alpha"
+  show TokenizeDigit         = "Digit"
+  show TokenizeSpace         = "Whitespace"
+  show (TokenizeCustom n)    = T.unpack n
+
+instance FromJSON TokenizerType where
+  parseJSON (Object o)
+    = do tkName <- o .: "type"
+         case tkName of
+           "Regex"     -> TokenizeRegEx <$> o .: "regex"
+           "Separator" -> TokenizeSeparator <$> o .: "separator"
+           "Alpha"     -> pure TokenizeAlpha
+           "Digit"     -> pure TokenizeDigit
+           "Whitespace"-> pure TokenizeSpace
+           x           -> pure (TokenizeCustom x)
+           _           -> mzero
+  parseJSON s
+    = TokenizeRegEx <$> parseJSON s
+
+instance ToJSON TokenizerType where
+  toJSON (TokenizeRegEx re)
+    = object [ "type" .= ("Regex" :: Text), "regex" .= re ]
+  toJSON (TokenizeSeparator sep)
+    = object [ "type" .= ("Separator" :: Text), "separator" .= sep ]
+  toJSON TokenizeAlpha
+    = object [ "type" .= ("Alpha" :: Text) ]
+  toJSON TokenizeDigit
+    = object [ "type" .= ("Digit" :: Text) ]
+  toJSON TokenizeSpace
+    = object [ "type" .= ("Whitespace" :: Text) ]
+  toJSON (TokenizeCustom name)
+    = object [ "type" .= name ]
+
+instance Binary TokenizerType where
+  put = undefined
+  get = undefined
+
+-- ------------------------------------------------------------
 -- JSON instances
 -- ------------------------------------------------------------
 
@@ -291,20 +384,21 @@ instance ToJSON CNormalizer where
 
 instance FromJSON ContextSchema where
   parseJSON (Object o) = do
-    r  <- o .:? "regexp"
+    t  <- o .:? "tokenizer"
+    r  <- o .:? "regex"
     n  <- o .:? "normalizers" .!= []
     w  <- o .:? "weight"      .!= 1.0
     d  <- o .:? "default"     .!= True
     ct <- o .:  "type"
-    return $ ContextSchema r n w d ct
+    return $ ContextSchema (t <|> r) n w d ct
 
   parseJSON _ = mzero
 
 instance ToJSON ContextSchema where
-  toJSON (ContextSchema r n w d ct) = object' $
+  toJSON (ContextSchema t n w d ct) = object' $
     [ "type"        .== ct
     , "weight"      .=? w .\. (== 1.0)
-    , "regexp"      .=? r .\. isNothing
+    , "tokenizer"   .=? t .\. isNothing
     , "normalizers" .=? n .\. null
     , "default"     .=? d .\. id
     ]
@@ -318,7 +412,7 @@ instance Binary ContextSchema where
   put (ContextSchema a b c d e) = put a >> put b >> put c >> put d >> put e
 
 instance Binary ContextType where
-  put (CType n  _ _ _) = put n
+  put (CType n _ _ _) = put n
   get = get >>= \n -> return $ def { ctName = n }
 
 instance Binary CNormalizer where
