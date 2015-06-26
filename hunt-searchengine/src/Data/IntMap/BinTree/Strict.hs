@@ -365,9 +365,30 @@ differenceWithKey' f x1 x2
                                                        Nothing -> Nothing
                                                        Just y  -> Just (k, y)
 
+differenceWithSplit :: (Key -> a -> Maybe a)
+                    -> (Key -> s -> (Maybe b, s, s))
+                    -> Tree a
+                    -> s
+                    -> Tree a
+differenceWithSplit f splitter
+  = diff
+  where
+    diff Empty _ = Empty
+    diff t1 s1   = join' v' (diff l l') (diff r r')
+      where
+        (k, v, l, r) = unNode t1
+        (m', l', r') = splitter k s1
+        v'           =
+          case m' of
+            Nothing -> Just (k, v)
+            Just _  -> case f k v of
+              Nothing -> Nothing
+              Just y  -> Just (k, y)
+
 {-# INLINE difference         #-}
 {-# INLINE differenceWith     #-}
 {-# INLINE differenceWithKey' #-}
+{-# INLINE differenceWithSplit #-}
 
 -- ------------------------------------------------------------
 
@@ -513,6 +534,9 @@ fromList = L.foldl' (\ acc (k, v) -> insert k v acc) Empty
 
 fromSet :: (Key -> v) -> S.IntSet -> Tree v
 fromSet f = fromAscList . L.map (\ k -> (k, f k)) . S.elems
+
+-- fromIntSet :: (Key -> v) -> IntSet -> Tree v
+-- fromIntSet f = fromAscList . fmap (\k -> (k, f k)) . IntSet.toAscList
 
 fromAscList :: [(Key, v)] -> Tree v
 fromAscList = toTr 0 Empty

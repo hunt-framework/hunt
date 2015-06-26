@@ -16,7 +16,7 @@
 -- ----------------------------------------------------------------------------
 
 module Data.IntSet.Packed
-  ( IntSet
+  ( IntSet(..)
   , empty
   , filter
   , singleton
@@ -26,6 +26,7 @@ module Data.IntSet.Packed
   , foldr
   , minimum
   , split
+  , split'
   , fromList
   , toIntSet
   , toList
@@ -132,6 +133,24 @@ minimum :: IntSet -> Maybe Int
 minimum (DIS1 v)
   = v Vector.!? 0
 {-# INLINE minimum #-}
+
+split' :: Int -> IntSet -> (Maybe Int, IntSet, IntSet)
+split' n (DIS1 v) = (x, DIS1 l, DIS1 r)
+  where
+    splitVec i = Vector.splitAt i v
+    (x, l, r) = loop 0 (Vector.length v)
+    loop !l !u
+      | u <= l    = let (l', r) = splitVec l  in (Nothing, l', r)
+      | otherwise =
+          case (compare (v `Vector.unsafeIndex` k) n) of
+            LT -> loop (k + 1) u
+            EQ -> let
+              (l, r) = splitVec k
+              in (Just (Vector.head r), l, Vector.tail r)
+            GT -> loop l k
+      where
+        k = (u + l) `unsafeShiftR` 1
+{-# INLINE split' #-}
 
 split :: Int -> IntSet -> (IntSet, IntSet)
 split n (DIS1 v) = (DIS1 l, DIS1 r)

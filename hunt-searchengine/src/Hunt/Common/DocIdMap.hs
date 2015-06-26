@@ -67,6 +67,7 @@ import           Data.Binary                (Binary (..))
 import           Data.Foldable              hiding (fold, foldl, foldr, toList)
 import qualified Data.HashMap.Strict        as HM
 import qualified Data.IntMap.BinTree.Strict as IM
+import qualified Data.IntSet.Packed as IntSet
 import qualified Data.List                  as L
 import           Data.Monoid                (Monoid (..), (<>))
 import qualified Data.Text                  as T
@@ -74,6 +75,8 @@ import           Data.Typeable
 
 import           Hunt.Common.DocId
 import           Hunt.Common.DocIdSet       (DocIdSet (..), toIntSet)
+import qualified Hunt.Common.DocIdSet as DocIdSet
+
 
 -- ------------------------------------------------------------
 
@@ -185,7 +188,8 @@ difference              = liftDIM2 $ IM.difference
 
 -- | Difference between the map and a set of 'DocId's.
 diffWithSet             :: DocIdMap v -> DocIdSet -> DocIdMap v
-diffWithSet m s         = m `difference` (DIM $ IM.fromSet (const ()) (toIntSet s))
+diffWithSet (DIM m) (DIS s)
+  = DIM (IM.differenceWithSplit (const (const Nothing)) IntSet.split' m s)
 
 -- | The union with a combining function.
 unionWith               :: (v -> v -> v) -> DocIdMap v -> DocIdMap v -> DocIdMap v
@@ -262,7 +266,7 @@ fromList                = DIM . IM.fromList . L.map (first unDocId)
 
 -- | Create a map from a set of 'DocId' values
 fromDocIdSet            :: (Int -> v) -> DocIdSet -> DocIdMap v
-fromDocIdSet f s        = DIM $ IM.fromSet f (toIntSet s)
+fromDocIdSet f          = DIM . IM.fromAscList . fmap (\k -> (k, f k)) . IntSet.toList . unDIS
 
 -- | Build a map from a list of 'DocId'\/value pairs where the 'DocId's are in ascending order.
 fromAscList             :: [(DocId, v)] -> DocIdMap v
