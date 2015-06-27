@@ -69,9 +69,6 @@ instance Monoid SegmentDiff where
   mappend (SegmentDiff dids1 ctx1) (SegmentDiff dids2 ctx2)
     = SegmentDiff (dids1 <> dids2) (ctx1 <> ctx2)
 
--- mkContextMap :: Map Context Ix.IndexImpl -> ContextMap
--- mkContextMap m = ContextMap $! m
-
 newContextMap' :: Schema -> ContextMap
 newContextMap' = ContextMap . Map.map (newIx . ctIxImpl . cxType)
   where
@@ -97,7 +94,7 @@ deleteContexts cxs seg
   = seg { segDeletedCxs = cxs `mappend` segDeletedCxs seg
         }
 
--- | Returns the segments `DocTable`.
+-- | Returns the segments `DocTable`. Respects deleted docs.
 --
 segmentDocs :: (Monad m, DocTable dt) => Segment dt -> m dt
 segmentDocs seg
@@ -144,6 +141,7 @@ diff s1 s2
       (DocIdSet.difference (segDeletedDocs s1) (segDeletedDocs s2))
       (Set.difference (segDeletedCxs s1) (segDeletedCxs s2))
 
+-- | Checks common `Segment`s for differences.
 diff' :: SegmentMap (Segment dt) -> SegmentMap (Segment dt) -> SegmentDiff
 diff' sm1 sm2
   = mconcat
@@ -201,14 +199,16 @@ lookupDocumentByURI uri s
                      then return (Just dId)
                      else return Nothing
 
+-- | Returns wanted docs as `DocIdMap` to not expose DocTable.
 selectDocuments :: (Par.MonadParallel m, Applicative m, DocTable dt)
                 => DocIdSet
                 -> Segment dt
                 -> m (DocIdMap (DocTable.DValue dt))
 selectDocuments dIds s
-  = do newDt  <- DocTable.difference (segDeletedDocs s) (segDocs s)
-       newDt' <- DocTable.restrict dIds newDt
-       DocTable.toMap newDt'
+  = do newDt <- DocTable.restrict dIds' (segDocs s)
+       DocTable.toMap newDt
+  where
+    dIds' = DocIdSet.difference dIds (segDeletedDocs s)
 
 isDeletedDoc :: DocId -> Segment dt -> Bool
 isDeletedDoc dId
@@ -226,21 +226,6 @@ deleteDocsByURI uris s
          case mconcat dx of
            Just dIds -> deleteDocs dIds s
            Nothing   -> s
-
-fromDocAndWords :: (Functor m, Par.MonadParallel m, DocTable dt)
-                => Schema
-                -> DocTable.DValue dt
-                -> Words
-                -> m (Segment dt)
-fromDocAndWords schema doc wrds
-  = do (dId, newDt) <- DocTable.insert doc DocTable.empty
-       newIx        <- mkContextMap schema [(dId, wrds)]
-       return Segment { segIndex       = newIx
-                      , segNumDocs     = 1
-                      , segDocs        = newDt
-                      , segDeletedDocs = mempty
-                      , segDeletedCxs  = mempty
-                      }
 
 fromDocsAndWords :: (Par.MonadParallel m, Applicative m, DocTable dt)
                  => Schema

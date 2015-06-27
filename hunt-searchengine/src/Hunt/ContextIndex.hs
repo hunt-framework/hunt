@@ -378,16 +378,6 @@ applyMergedSegment segmentId oldSegments newSegment ixx
     SegmentDiff deltaDelDocs deltaDelCx
       = Segment.diff' oldSegments (ciSegments ixx)
 
-mapIxs :: Monad m => (Segment dt -> m a) -> ContextIndex dt -> m [a]
-mapIxs f
-  = mapM f . fmap snd  .  SegmentMap.toList . ciSegments
-{-# INLINE mapIxs #-}
-
-mapIxs' :: (Segment dt -> a) -> ContextIndex dt -> [a]
-mapIxs' f
-  = fmap f . fmap snd  . SegmentMap.toList . ciSegments
-{-# INLINE mapIxs' #-}
-
 mapIxsP :: Par.MonadParallel m => (Segment dt -> m a) -> ContextIndex dt -> m [a]
 mapIxsP f
   = Par.mapM f . fmap snd . SegmentMap.toList  . ciSegments
