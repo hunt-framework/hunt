@@ -37,6 +37,10 @@ instance Monoid (ApplyMerge dt) where
 data MergeDescr dt
   = MergeDescr !SegmentId !Schema !(SegmentMap (Segment dt))
 
+instance Show (MergeDescr dt) where
+  show (MergeDescr sid _ m)
+    = "MergeDescr { merging = " ++ show (keys m) ++ ", to = " ++ show sid ++ " }"
+
 data SegmentAndLevel dt
   = SegmentAndLevel { sasLevel :: !Float
                     , sasSegId :: !SegmentId

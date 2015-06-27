@@ -308,11 +308,6 @@ mergeSegments schema seg1 seg2
                       , segDeletedCxs  = mempty
                       }
   where
-    -- | This should be removed, modification of indicies is NOT ALLOWED..
-    -- prepIx :: DocIdSet -> Ix.IndexImpl -> Ix.IndexImpl
-    -- prepIx delDocs (Ix.IndexImpl ix)
-    -- = Ix.mkIndex (Ix.deleteDocs delDocs ix `asTypeOf` ix)
-
     mergeIx :: (DocIdSet, Ix.IndexImpl) -> (DocIdSet, Ix.IndexImpl) -> Ix.IndexImpl
     mergeIx (dd1, Ix.IndexImpl ix1) (dd2, Ix.IndexImpl ix2)
       = Ix.mkIndex $ Ix.unionWith concat ix1 (unsafeCoerce ix2)
