@@ -16,11 +16,11 @@ separatorTokenizer
 
 alphaTokenizer :: Text -> [Text]
 alphaTokenizer
-  = List.filter (not . Text.null) . Text.split Char.isAlpha
+  = List.filter (not . Text.null) . Text.split (not . Char.isAlpha)
 
 digitTokenizer :: Text -> [Text]
 digitTokenizer
-  = List.filter (not . Text.null) . Text.split Char.isDigit
+  = List.filter (not . Text.null) . Text.split (not . Char.isDigit)
 
 spaceTokenizer :: Text -> [Text]
 spaceTokenizer
