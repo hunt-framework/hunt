@@ -51,7 +51,7 @@ import           Hunt.Common.ApiDocument as ApiDoc
 import           Hunt.Common.BasicTypes (Context, URI)
 import qualified Hunt.Common.DocDesc as DocDesc
 import qualified Hunt.Common.DocIdSet as DocIdSet
-import           Hunt.Common.Document (Document (..))
+import           Hunt.Common.Document (Document (..), unwrap)
 import           Hunt.ContextIndex             (ContextIndex, MergeLock,
                                                 ApplyMerge(..), MergePolicy(..))
 import qualified Hunt.ContextIndex as CIx
@@ -547,7 +547,7 @@ execSearch q offset mx wg fields ixx
          cfg    <- asks huntQueryCfg
          scDocs <- liftHunt $
                    runQueryScoredDocsM ixx cfg q
-         formatPage <$> toDocsResult (liftIO . CIx.lookupDocument ixx) scDocs
+         formatPage <$> toDocsResult (liftIO . fmap (fmap unwrap)  . flip CIx.lookupDocument ixx) scDocs
     where
       formatPage ds
           = ResSearch $
@@ -577,9 +577,8 @@ execSelect :: DocTable dt => Query -> ContextIndex dt -> Hunt dt CmdResult
 execSelect q ixx
     = do debugM ("execSelect: " ++ show q)
          res <- liftHunt $ runQueryUnScoredDocsM ixx queryConfigDocIds q
-         dt' <- liftIO $ CIx.selectDocuments ixx (unScoredDocsToDocIdSet res)
-         djs <- DocTable.toJSON'DocTable dt'
-         return $ ResGeneric djs
+         dt' <- liftIO $ CIx.selectDocuments (unScoredDocsToDocIdSet res) ixx
+         return $ ResGeneric (toJSON (fmap unwrap dt'))
 
 -- | Build a selection function for choosing,
 -- which parts of a document are contained in the result.
@@ -650,8 +649,7 @@ execLoad filename = undefined
 
 execSnapshot :: (Binary dt, DocTable dt) => ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 execSnapshot ixx
-  = do ixx' <- CIx.commit "." ixx
-       return (ixx', ResOK)
+  = do return (ixx, ResOK)
 
 -- ------------------------------------------------------------
 
@@ -734,11 +732,7 @@ execStatus (StatusContext cx)
               liftIO (CIx.lookupAllWithCx cx ixx)
 
 execStatus (StatusIndex {- context -})
-  = withIx dumpIxx
-    where
-      dumpIxx ixx
-        = do st <- CIx.status ixx
-             return (ResGeneric (toJSON st))
+  = withIx (const (return ResOK))
 
 -- ------------------------------------------------------------
 

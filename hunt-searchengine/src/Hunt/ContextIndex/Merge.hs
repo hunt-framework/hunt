@@ -12,8 +12,10 @@ import           Data.Ord
 import           Data.Set (Set)
 import qualified Data.Set as Set
 
-import           Hunt.ContextIndex.Segment
-import           Hunt.ContextIndex.Types
+
+import           Hunt.Common.SegmentMap (SegmentMap, SegmentId(..))
+import qualified Hunt.Common.SegmentMap as SegmentMap
+import           Hunt.Segment
 import           Hunt.DocTable (DocTable)
 import           Hunt.Index.Schema
 import           Hunt.Utility
@@ -25,21 +27,27 @@ data MergePolicy
                 }
   deriving (Eq, Show)
 
-newtype ApplyMerge dt
-  = ApplyMerge { applyMerge  :: ContextIndex dt -> ContextIndex dt }
+newtype MergeLock
+  = MergeLock { unMergeLock :: SegmentMap () }
 
-instance Monoid (ApplyMerge dt) where
+instance Show MergeLock where
+  show (MergeLock m) = show (SegmentMap.keys m)
+
+instance Monoid MergeLock where
   mempty
-    = ApplyMerge id
-  mappend (ApplyMerge f) (ApplyMerge g)
-    = ApplyMerge (f . g)
+    = MergeLock SegmentMap.empty
+  mappend (MergeLock m1) (MergeLock m2)
+    = MergeLock (SegmentMap.unionWith (\_ _ -> ()) m1 m2)
 
 data MergeDescr dt
-  = MergeDescr !SegmentId !Schema !(SegmentMap (Segment dt))
+  = MergeDescr { mdSegId  :: !SegmentId
+               , mdSchema :: !Schema
+               , mdSegs   :: !(SegmentMap (Segment dt))
+               }
 
 instance Show (MergeDescr dt) where
   show (MergeDescr sid _ m)
-    = "MergeDescr { merging = " ++ show (keys m) ++ ", to = " ++ show sid ++ " }"
+    = "MergeDescr { merging = " ++ show (SegmentMap.keys m) ++ ", to = " ++ show sid ++ " }"
 
 data SegmentAndLevel dt
   = SegmentAndLevel { sasLevel :: !Float
@@ -64,7 +72,7 @@ quantifySegments :: Monad m
                  -> SegmentMap (Segment dt)
                  -> m [SegmentAndLevel dt]
 quantifySegments findLevel sx
-  = forM (toList sx) $ \(sid, s) -> do
+  = forM (SegmentMap.toList sx) $ \(sid, s) -> do
       q <- findLevel sid s
       return (SegmentAndLevel q sid s)
 
@@ -108,7 +116,7 @@ lockFromMerges
 -- | Selects `Segment`s for merging, respecting an existing `MergeLock`.
 selectMergeables :: Monad m => MergeLock -> SegmentMap a -> m (SegmentMap a)
 selectMergeables (MergeLock lock) sx
-  = return (difference sx lock)
+  = return (SegmentMap.difference sx lock)
 
 -- | Given a policy and a set of `Segment`s this function decides,
 --   which merges can be performed.
@@ -124,8 +132,8 @@ selectMerges policy lock schema nextSid segments
   = do mergeables <- selectMergeables lock segments
        quantified <- quantifySegments logNormQuantify mergeables
        allMerges  <- collectMerges isMinViableLevel (const False) (sortByLevel quantified)
-       let partitions = List.filter (\p -> size p >= 2)
-                        . fmap (fromList . fmap (\sas -> (sasSegId sas, sas)))
+       let partitions = List.filter (\p -> SegmentMap.size p >= 2)
+                        . fmap (SegmentMap.fromList . fmap (\sas -> (sasSegId sas, sas)))
                         $ allMerges
            (nextSid', merges) = mkMergeDescr schema nextSid partitions
        return (merges, lockFromMerges merges `mappend` lock, nextSid')
@@ -150,46 +158,10 @@ selectMerges policy lock schema nextSid segments
 -- | Runs a merge. Returns an idempotent function which,
 --   when applied to a `ContextIndex` makes the merged segment visible
 --
-runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ApplyMerge dt)
+runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (Segment dt)
 runMerge (MergeDescr segmentId schema segments)
-  = do newSeg <- foldM1' (mergeSegments schema) (elems segments)
-       return (newSeg `seq`
-               ApplyMerge { applyMerge = applyMergedSegment segmentId segments newSeg })
+  = do foldM1' (mergeSegments schema) (SegmentMap.elems segments)
 
-
-applyMergedSegment :: SegmentId
-                   -> SegmentMap (Segment dt)
-                   -> Segment dt
-                   -> ContextIndex dt
-                   -> ContextIndex dt
-applyMergedSegment segmentId oldSegments newSegment ixx
-  = ixx { ciSegments      =
-              insert segmentId newSegment' (
-                difference (ciSegments ixx) oldSegments)
-        , ciNextSegmentId = succ (ciNextSegmentId ixx)
-        , ciMergeLock     = lock'
-        }
-  where
-    newSegment'
-      = newSegment { segDeletedCxs  = deltaDelCx
-                   , segDeletedDocs = deltaDelDocs
-                   }
-
-    lock'
-      = MergeLock (unMergeLock (ciMergeLock ixx) `difference` oldSegments)
-
-    SegmentDiff !deltaDelDocs !deltaDelCx =
-      mconcat (
-        elems (intersectionWith segmentDiff oldSegments (ciSegments ixx)))
-
-tryMerge :: (Functor m, Monad m, DocTable dt)
-         => MergePolicy
-         -> ContextIndex dt
-         -> m ([MergeDescr dt], ContextIndex dt)
-tryMerge policy ixx
-  = do (merges, lock, nextSegmentId) <-
-         selectMerges policy (ciMergeLock ixx)  (ciSchema ixx) (ciNextSegmentId ixx) (ciSegments ixx)
-       let ixx' = ixx { ciMergeLock     = lock
-                      , ciNextSegmentId = nextSegmentId
-                      }
-       return (merges, ixx')
+releaseLock :: MergeLock -> SegmentMap a -> MergeLock
+releaseLock (MergeLock lock) x
+  = MergeLock (SegmentMap.difference lock x)

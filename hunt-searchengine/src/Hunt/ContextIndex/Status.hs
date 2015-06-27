@@ -10,12 +10,16 @@ import           Hunt.Common.BasicTypes
 import qualified Hunt.Common.DocIdMap as DocIdMap
 import           Hunt.Common.DocIdSet (DocIdSet)
 import qualified Hunt.Common.DocIdSet as DocIdSet
-import           Hunt.ContextIndex.Segment
-import           Hunt.ContextIndex.Types
+import           Hunt.Segment
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as DocTable
+import           Hunt.Common.SegmentMap (SegmentMap, SegmentId(..))
+import qualified Hunt.Common.SegmentMap as SegmentMap
 
-data Status
+status = undefined
+
+
+{- data Status
   = Status { csNumberOfSegments   :: !Int
            , csSegmentStatus      :: ![SegmentStatus]
            , csMerging            :: !MergeLock
@@ -29,10 +33,12 @@ data SegmentStatus
                   , ssDeletedDocsRatio :: !Float
                   }
 
+status = undefined
+
 status :: (Monad m, DocTable dt) => ContextIndex dt -> m Status
 status ixx
-  = do ssx <- mapM (uncurry segmentStatus) (toList (ciSegments ixx))
-       return Status { csNumberOfSegments   = size (ciSegments ixx)
+  = do ssx <- mapM (uncurry segmentStatus) (SegmentMap.toList (ciSegments ixx))
+       return Status { csNumberOfSegments   = SegmentMap.size (ciSegments ixx)
                      , csSegmentStatus      = ssx
                      , csMerging            = ciMergeLock ixx
                      }
@@ -66,3 +72,4 @@ instance ToJSON Status where
 
 instance ToJSON SegmentId where
   toJSON (SegmentId x) = toJSON x
+-}

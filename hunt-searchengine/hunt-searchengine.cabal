@@ -63,7 +63,7 @@ library
     Data.Bijection.Instances
     Data.IntMap.BinTree.Strict
     Data.IntSet.Cache
-    Data.IntSet.Packed                    
+    Data.IntSet.Packed
     Data.LimitedPriorityQueue
     Data.Text.Binary
     Data.Typeable.Binary
@@ -82,6 +82,7 @@ library
     Hunt.Common.Document
     Hunt.Common.Occurrences
     Hunt.Common.Positions
+    Hunt.Common.SegmentMap
 
     Hunt.Index.Schema
     Hunt.Index.Schema.Analyze
@@ -89,7 +90,7 @@ library
     Hunt.Index.Schema.Normalize.Position
     Hunt.Index.Schema.Normalize.Int
     Hunt.Index.Schema.Tokenize
-    
+
     Hunt.Index
     Hunt.Index.IndexImpl
     Hunt.Index.PrefixTreeIndex
@@ -101,16 +102,10 @@ library
     Hunt.DocTable
     Hunt.DocTable.HashedDocTable
 
+    Hunt.Segment
     Hunt.ContextIndex
-    Hunt.ContextIndex.Commit
-    Hunt.ContextIndex.Delete
-    Hunt.ContextIndex.Documents              
-    Hunt.ContextIndex.Insert
     Hunt.ContextIndex.Merge
-    Hunt.ContextIndex.Search                                          
-    Hunt.ContextIndex.Segment
     Hunt.ContextIndex.Status
-    Hunt.ContextIndex.Types
 
     Hunt.Interpreter
     Hunt.Interpreter.BasicCommand
@@ -156,7 +151,7 @@ test-suite Hunt-Tests
   other-modules:        Hunt.AnalyzerTests
                         Hunt.IndexTests
                         Hunt.InterpreterTests
-                        Hunt.QueryParserTests                     
+                        Hunt.QueryParserTests
                         Hunt.TestHelper
                         Hunt.Index.ContextIndexTests
                         Hunt.Index.Default
