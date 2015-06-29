@@ -6,6 +6,7 @@ module Hunt.FST.Compile where
 
 import           Prelude hiding (head)
 
+import           Hunt.FST.Trie
 import           Hunt.FST.Arcs (Arc)
 import qualified Hunt.FST.Arcs as Arcs
 import           Hunt.FST.Register
@@ -21,14 +22,6 @@ import qualified Data.Vector.Internal.Check as Ck
 
 #define ERROR (Ck.error __FILE__ __LINE__)
 #define EMPTY_STREAM (\sx123 -> ERROR sx123 "emptyStream")
-
-data Register s a = Register
-
-replaceOrRegister :: PrimMonad m
-                  => UncompiledState a
-                  -> Register (PrimState m) a
-                  -> m Arc
-replaceOrRegister = undefined
 
 mkUncompiledState ::  PrimMonad m => Text -> a -> Stream m (UncompiledState a)
 mkUncompiledState (Text.Text arr off len) o

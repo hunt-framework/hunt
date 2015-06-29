@@ -2,6 +2,7 @@ packages:
   - ./html-hunter
   - ./hunt-client
   - ./hunt-crawler
+  - ./hunt-fst
   - ./hunt-searchengine
   - ./hunt-server
   - ./hunt-server-cli
