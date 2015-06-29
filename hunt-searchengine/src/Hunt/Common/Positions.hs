@@ -49,7 +49,7 @@ empty                = PS IS.empty
 
 -- | Positions with one element.
 singleton            :: Position -> Positions
-singleton            = PS . IS.singleton
+singleton            = PS . IS.cacheAt
 --singleton            = PS . IS.singleton
 
 -- | Test whether it is the empty positions.

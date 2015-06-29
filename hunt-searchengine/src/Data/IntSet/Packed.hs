@@ -105,18 +105,23 @@ size :: IntSet -> Int
 size = Vector.length . unDIS1
 
 union :: IntSet -> IntSet -> IntSet
-union (DIS1 s1) (DIS1 s2) =
-  DIS1 (GVector.unstream (unionStream (GVector.stream s1) (GVector.stream s2)))
+union i1@(DIS1 s1) i2@(DIS1 s2)
+  | null i1 = i2
+  | null i2 = i1
+  | otherwise = DIS1 (GVector.unstream (unionStream (GVector.stream s1) (GVector.stream s2)))
 {-# INLINE union #-}
 
 intersection :: IntSet -> IntSet -> IntSet
-intersection (DIS1 s1) (DIS1 s2) =
-  DIS1 (GVector.unstream (intersectStream (GVector.stream s1) (GVector.stream s2)))
+intersection i1@(DIS1 s1) i2@(DIS1 s2)
+  | null i1 = empty
+  | null i2 = empty
+  | otherwise = DIS1 (GVector.unstream (intersectStream (GVector.stream s1) (GVector.stream s2)))
 {-# INLINE intersection #-}
 
 difference :: IntSet -> IntSet -> IntSet
-difference (DIS1 s1) (DIS1 s2) =
-  DIS1 (GVector.unstream (differenceStream (GVector.stream s1) (GVector.stream s2)))
+difference i1@(DIS1 s1) i2@(DIS1 s2)
+  | null i2   = i1
+  | otherwise = DIS1 (GVector.unstream (differenceStream (GVector.stream s1) (GVector.stream s2)))
 {-# INLINE difference #-}
 
 foldr :: (Int -> b -> b) -> b -> IntSet -> b
