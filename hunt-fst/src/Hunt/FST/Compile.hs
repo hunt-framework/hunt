@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE CPP #-}
-
+{-# OPTIONS_GHC -fsimpl-tick-factor=500 #-}
 module Hunt.FST.Compile where
 
 import           Prelude hiding (head)
@@ -13,12 +13,17 @@ import           Hunt.FST.Register
 import           Hunt.FST.Types
 
 import           Control.Monad.Primitive
+import           Control.Monad.ST
 import           Data.Text (Text)
 import qualified Data.Text.Array as Array
 import qualified Data.Text.Internal as Text
 import           Data.Vector.Fusion.Stream.Monadic as Stream
 import           Data.Vector.Fusion.Stream.Size as Stream
 import qualified Data.Vector.Internal.Check as Ck
+
+import Data.Word (Word8)
+import           Data.Primitive.MutVar
+import qualified Data.Vector.Unboxed as UVector
 
 #define ERROR (Ck.error __FILE__ __LINE__)
 #define EMPTY_STREAM (\sx123 -> ERROR sx123 "emptyStream")
@@ -123,3 +128,12 @@ compileList register
     rootState
       = singleton (UncompiledState maxBound Arcs.empty Nothing)
 {-# INLINE compileList #-}
+
+compileList' :: [(Text, a)] -> UVector.Vector Word8
+compileList' wx
+  = runST $ do r <- Hunt.FST.Trie.empty
+               s <- compileList r wx
+               nx <- readMutVar (nodes r)
+               ix <- UVector.unsafeFreeze nx
+               return ix
+{-# INLINE compileList' #-}

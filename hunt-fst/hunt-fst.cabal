@@ -7,18 +7,21 @@ license:             BSD3
 license-file:        LICENSE
 author:              Your name here
 maintainer:          your.address@example.com
--- copyright:           
+-- copyright:
 category:            Web
 build-type:          Simple
--- extra-source-files:  
+-- extra-source-files:
 cabal-version:       >=1.10
 
+extra-source-files:  benchmarks/small.txt
+                     benchmarks/big.txt                       
+                    
 library
   hs-source-dirs:      src
   exposed-modules:     Hunt.FST.Arcs
                        Hunt.FST.Compile
                        Hunt.FST.Register
-                       Hunt.FST.Trie                       
+                       Hunt.FST.Trie
                        Hunt.FST.Types
   build-depends:       base >= 4.7 && < 5
                      , hashable
@@ -29,7 +32,20 @@ library
                        -O2
                        -funbox-strict-fields
   default-language:    Haskell2010
-  
+
+benchmark trie-insert
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      benchmarks
+  build-depends:       base
+                     , criterion
+                     , hunt-fst
+                     , text
+                     , vector
+  ghc-options:         -Wall
+                       -O2
+                       -funbox-strict-fields
+  main-is:             Trie.hs
+
 test-suite test-fst
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
