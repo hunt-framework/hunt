@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 module Hunt.Index.Schema.Tokenize where
 
 import           Hunt.Common.BasicTypes
@@ -6,6 +7,8 @@ import qualified Data.Char as Char
 import qualified Data.List as List
 import           Data.Text (Text)
 import qualified Data.Text as Text
+import           Data.Text.Internal
+import           Data.Text.Unsafe
 
 regexTokenizer :: RegEx -> Text -> [Text]
 regexTokenizer = regExTokenize
@@ -16,12 +19,27 @@ separatorTokenizer
 
 alphaTokenizer :: Text -> [Text]
 alphaTokenizer
-  = List.filter (not . Text.null) . Text.split (not . Char.isAlpha)
+  = split (not . Char.isAlpha)
 
 digitTokenizer :: Text -> [Text]
 digitTokenizer
-  = List.filter (not . Text.null) . Text.split (not . Char.isDigit)
+  = split (not . Char.isDigit)
 
 spaceTokenizer :: Text -> [Text]
 spaceTokenizer
-  = Text.words
+  = split Char.isSpace
+
+split :: (Char -> Bool) -> Text -> [Text]
+split isDelim t@(Text arr off len) = loop 0 0
+  where
+    loop !start !n
+        | n >= len = if start == n
+                     then []
+                     else [Text arr (start+off) (n-start)]
+        | isDelim c =
+            if start == n
+            then loop (start+1) (start+1)
+            else Text arr (start+off) (n-start) : loop (n+d) (n+d)
+        | otherwise = loop start (n+d)
+        where Iter c d = iter t n
+{-# INLINE split #-}
