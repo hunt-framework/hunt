@@ -4,7 +4,7 @@
 {-# OPTIONS_GHC -fsimpl-tick-factor=500 #-}
 module Hunt.FST.Compile where
 
-import           Prelude hiding (head)
+import           Prelude hiding (head, tail)
 
 import           Hunt.FST.Trie
 import           Hunt.FST.Arcs (Arc)
@@ -21,7 +21,7 @@ import           Data.Vector.Fusion.Stream.Monadic as Stream
 import           Data.Vector.Fusion.Stream.Size as Stream
 import qualified Data.Vector.Internal.Check as Ck
 
-import Data.Word (Word8)
+import           Data.Word (Word8)
 import           Data.Primitive.MutVar
 import qualified Data.Vector.Unboxed as UVector
 
@@ -57,7 +57,7 @@ compileSuffix register (Stream next1 x1 _)
       = do r <- next1 s
            case r of
             Yield (UncompiledState l a o) s' -> do
-              !arc <- loop1 SPEC (CS1 (UncompiledState l a o) s')
+              arc <- loop1 SPEC (CS1 (UncompiledState l a o) s')
               replaceOrRegister (UncompiledState l (arc `Arcs.cons` a) o) register
             Skip s' -> loop0 SPEC (CS0 s')
             Done    -> EMPTY_STREAM "compileStream"
@@ -65,27 +65,33 @@ compileSuffix register (Stream next1 x1 _)
       = do r <- next1 s
            case r of
             Yield uc'@(UncompiledState l a o) s' -> do
-              !arc <- loop1 SPEC (CS1 uc' s')
+              arc <- loop1 SPEC (CS1 uc' s')
               replaceOrRegister (UncompiledState l (arc `Arcs.cons` a) o) register
             Skip s' -> loop1 SPEC (CS1 uc s')
             Done    -> replaceOrRegister uc register
 {-# INLINE compileSuffix #-}
 
 data C a b c
-  = C1 !(UncompiledState a) !b !c
+  = C0 !b !c
+  | C1 !(UncompiledState a) !b !c
   | C2 !(UncompiledState a) !c
   | C3 !c
 
 compile :: PrimMonad m
         => Register (PrimState m) a
-        -> UncompiledState a
         -> Stream m (UncompiledState a)
         -> Stream m (UncompiledState a)
         -> Stream m (UncompiledState a)
-compile register root _old@(Stream next1 x1 n1) _new@(Stream next2 x2 n2)
-  = Stream next (C1 root x1 x2)  (n1 + n2)
+compile register _old@(Stream next1 x1 n1) _new@(Stream next2 x2 n2)
+  = Stream next (C0 x1 x2)  (n1 + n2)
   where
     {-# INLINE next #-}
+    next (C0 s1 s2)
+      = do r1 <- next1 s1
+           case r1 of
+            Yield x s1' -> return $ Skip (C1 x s1' s2)
+            Skip s1'    -> return $ Skip (C0 s1' s2)
+            Done        -> EMPTY_STREAM "compile: empty stream"
     next (C1 prev s1 s2)
       = do r1 <- next1 s1
            case r1 of
@@ -95,7 +101,7 @@ compile register root _old@(Stream next1 x1 n1) _new@(Stream next2 x2 n2)
                Yield y s2'
                  | ucLabel x == ucLabel y -> return $ Yield prev (C1 x s1' s2')
                  | otherwise              -> do
-                     arc <- compileSuffix register (Stream next1 s1' n1)
+                     arc <- compileSuffix register (Stream next1 s1 n1)
                      return $ Yield (prev {ucArcs = arc `Arcs.cons` ucArcs prev }) (C3 s2')
                Done        -> EMPTY_STREAM "compile: not in lexicographic order"
                Skip s2'    -> return $ Skip (C1 prev s1 s2')
@@ -118,13 +124,11 @@ compileList :: PrimMonad m
 compileList register
   = loop rootState
   where
-    {-# INLINE loop #-}
     loop path []
       = do rootArc <- compileSuffix register path
            return (Arcs.arcTarget rootArc)
     loop path ((w, a):ex)
-      = do root  <- head path
-           loop (compile register root path (mkUncompiledState w a)) ex
+      = loop (compile register path (mkUncompiledState w a)) ex
     rootState
       = singleton (UncompiledState maxBound Arcs.empty Nothing)
 {-# INLINE compileList #-}

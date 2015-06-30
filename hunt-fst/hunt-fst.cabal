@@ -38,6 +38,7 @@ benchmark trie-insert
   hs-source-dirs:      benchmarks
   build-depends:       base
                      , criterion
+                     , deepseq
                      , hunt-fst
                      , text
                      , vector
