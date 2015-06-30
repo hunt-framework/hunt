@@ -105,7 +105,6 @@ writeMultipleArcs off arcs reg
     go !off' (a:ax) v
       = do putWord16be off'       (arcLabel a) v
            putWord32be (off' + 2) (fromIntegral off - fromIntegral (arcTarget a)) v
-
            go (off' + 6) ax v
 {-# INLINE writeMultipleArcs #-}
 
