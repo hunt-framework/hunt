@@ -254,7 +254,7 @@ intersectStream :: Ord a
                 -> Stream.Stream Stream.Id a
                 -> Stream.Stream Stream.Id a
 intersectStream (Stream.Stream next1 s1 n1) (Stream.Stream next2 s2 n2)
-  = Stream.Stream next (I1 s1 s2) (Stream.larger n1 n2)
+  = Stream.Stream next (I1 s1 s2) (Stream.smaller n1 n2)
   where
     {-# INLINE next #-}
     next (I1 s1 s2)
