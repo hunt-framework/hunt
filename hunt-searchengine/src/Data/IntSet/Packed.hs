@@ -221,7 +221,7 @@ differenceStream :: Ord a
                 -> Stream.Stream Stream.Id a
                 -> Stream.Stream Stream.Id a
 differenceStream (Stream.Stream next1 s1 n1) (Stream.Stream next2 s2 n2)
-  = Stream.Stream next (D1 s1 s2) n1
+  = Stream.Stream next (D1 s1 s2) (Stream.toMax n1)
   where
     {-# INLINE next #-}
     next (D1 s1 s2)
@@ -283,7 +283,7 @@ unionStream :: Ord a
             -> Stream.Stream Stream.Id a
             -> Stream.Stream Stream.Id a
 unionStream (Stream.Stream next1 s1 n1) (Stream.Stream next2 s2 n2)
-  = Stream.Stream next (U1 s1 s2) (n1 + n2)
+  = Stream.Stream next (U1 s1 s2) (Stream.toMax(n1 + n2))
   where
     {-# INLINE next #-}
     next (U1 s1 s2)
