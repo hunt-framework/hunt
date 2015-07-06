@@ -8,21 +8,18 @@ import qualified Hunt.FST.Arcs as Arcs
 import           Hunt.FST.Register
 import           Hunt.FST.Types
 
-import           Control.Applicative hiding (empty)
-import           Control.Monad
 import           Control.Monad.Primitive
 import           Data.Bits
 import qualified Data.List as List
-import           Data.Maybe
 import           Data.Primitive.MutVar
-import qualified Data.Traversable as Trav
 import qualified Data.Vector.Mutable as MVector
 import qualified Data.Vector.Unboxed.Mutable as MUVector
+import qualified Data.Vector.Generic.Mutable as GMVector
 import           Data.Word (Word8, Word16, Word32)
 import           Foreign.Storable
 
 #if defined(__GLASGOW_HASKELL__) && !defined(__HADDOCK__)
-import           GHC.Base (ord,Int(..),uncheckedShiftRL#)
+import           GHC.Base (Int(..),uncheckedShiftRL#)
 import           GHC.Word (Word32(..),Word16(..),Word64(..))
 # if WORD_SIZE_IN_BITS < 64
 import           GHC.Word (uncheckedShiftRL64#)
@@ -38,8 +35,8 @@ data Register s a
 
 empty :: PrimMonad m => m (Register (PrimState m) a)
 empty
-  = do ox <- MVector.new 16
-       nx <- MUVector.new 128
+  = do ox <- MVector.new 15
+       nx <- MUVector.new 127
        ov <- newMutVar ox
        nv <- newMutVar nx
        ofv <- newMutVar 0
@@ -72,12 +69,9 @@ writeArcs :: PrimMonad m
           -> Register (PrimState m) a
           -> m StateRef
 writeArcs arcs reg
-  = do nx <- readMutVar (nodes reg)
-       let c = MUVector.length nx
-       off <- readMutVar (offset reg)
-       nx' <- if off + sz >= c
-              then MUVector.unsafeGrow nx (c * 2)
-              else return nx
+  = do off <- readMutVar (offset reg)
+       nx  <- readMutVar (nodes reg)
+       nx' <- resizeIfNecessary (off + sz) nx
        writeMutVar (nodes reg) nx'
        n   <- case Arcs.length arcs of
                 1 -> writeSimpleArc off (List.head (Arcs.arcs arcs)) reg
@@ -97,7 +91,7 @@ writeMultipleArcs :: PrimMonad m
                   -> m Int
 writeMultipleArcs off arcs reg
   = do v <- readMutVar (nodes reg)
-       n <- go off (Arcs.arcsSorted arcs) v
+       n <- go off (Arcs.arcs arcs) v
        return (n - off)
   where
     go !off' []     _
@@ -167,13 +161,9 @@ insertOutput :: PrimMonad m
              -> Register (PrimState m) a
              -> m ()
 insertOutput a r
-  = do i <- readMutVar (nextOut r)
-       o <- readMutVar (outputs r)
-       let c = MVector.length o
-       o' <- if i >= c
-             then MVector.unsafeGrow o c
-             else return o
-       MVector.unsafeWrite o' i a
+  = do i  <- readMutVar (nextOut r)
+       o  <- readMutVar (outputs r)
+       o' <- resizeIfNecessary i o
        writeMutVar (outputs r) o'
        writeMutVar (nextOut r) (succ i)
 {-# INLINE insertOutput #-}
@@ -199,6 +189,24 @@ putWord32be off w v
        MUVector.unsafeWrite v (off + 2) (fromIntegral (shiftr_w32 w  8) :: Word8)
        MUVector.unsafeWrite v (off + 3) (fromIntegral (w)               :: Word8)
 {-# INLINE putWord32be #-}
+
+oversize :: Int
+         -> Int
+oversize minSz
+  = minSz + min 3 (minSz `unsafeShiftR` 3)
+
+resizeIfNecessary :: (PrimMonad m, GMVector.MVector v a)
+                  => Int
+                  -> v (PrimState m) a
+                  -> m (v (PrimState m) a)
+resizeIfNecessary i v
+  | sz <= i   = GMVector.unsafeGrow v (sz' - sz)
+  | otherwise = return v
+  where
+    sz  = GMVector.length v
+    sz' = oversize (i + 1)
+{-# INLINE resizeIfNecessary #-}
+
 ------------------------------------------------------------------------
 -- Unchecked shifts
 

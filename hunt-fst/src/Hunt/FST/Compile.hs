@@ -17,22 +17,16 @@ import           Control.Monad.ST
 import           Data.Text (Text)
 import qualified Data.Text.Array as Array
 import qualified Data.Text.Internal as Text
-import Data.Vector.Fusion.Stream (liftStream)
+import qualified Data.Vector as Vector
+import           Data.Vector.Fusion.Stream (liftStream)
 import           Data.Vector.Fusion.Stream.Monadic as Stream
 import           Data.Vector.Fusion.Stream.Size as Stream
+import           Data.Vector.Generic (stream)
+import           Data.Vector.Generic.Mutable (munstream)
 import qualified Data.Vector.Internal.Check as Ck
-import Data.Vector.Generic (stream, unstream)
-import Data.Vector.Generic.Mutable (mstream, munstream)
-import Unsafe.Coerce
-import qualified Data.Vector.Mutable as MVector
-import qualified Data.Vector as Vector
-
 import           Data.Word (Word8)
 import           Data.Primitive.MutVar
 import qualified Data.Vector.Unboxed as UVector
-
-import Debug.Trace
-
 
 #define ERROR (Ck.error __FILE__ __LINE__)
 #define EMPTY_STREAM (\sx123 -> ERROR sx123 "emptyStream")
