@@ -72,7 +72,7 @@ newtype IntSet = DIS1 { unDIS1 :: Vector.Vector Int }
 
 instance Binary IntSet where
   put (DIS1 v) = do put (Vector.length v)
-                    Vector.foldM'_ (const put) () v
+                    Vector.forM_ v put
   {-# INLINE put#-}
 
   get = do l <- get
