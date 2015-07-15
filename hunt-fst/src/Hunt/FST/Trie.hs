@@ -1,234 +1,116 @@
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
 module Hunt.FST.Trie where
 
-import           Hunt.FST.Arcs
+import           Blaze.ByteString.Builder (Builder)
+import qualified Blaze.ByteString.Builder as Blaze
+import qualified Blaze.ByteString.Builder.Internal.Write as Blaze
+import           Control.DeepSeq
+import           Data.Bits
+import           Data.ByteString (ByteString)
+import           Hunt.FST.Arcs (Arc(..), Arcs)
 import qualified Hunt.FST.Arcs as Arcs
 import           Hunt.FST.Register
 import           Hunt.FST.Types
-
-import           Control.Monad.Primitive
-import           Data.Bits
 import qualified Data.List as List
-import           Data.Primitive.MutVar
-import qualified Data.Vector.Mutable as MVector
-import qualified Data.Vector.Unboxed.Mutable as MUVector
-import qualified Data.Vector.Generic.Mutable as GMVector
-import           Data.Word (Word8, Word16, Word32)
-import           Foreign.Storable
+import           Data.Monoid
+import           Data.Word
 
-#if defined(__GLASGOW_HASKELL__) && !defined(__HADDOCK__)
-import           GHC.Base (Int(..),uncheckedShiftRL#)
-import           GHC.Word (Word32(..),Word16(..),Word64(..))
-# if WORD_SIZE_IN_BITS < 64
-import           GHC.Word (uncheckedShiftRL64#)
-# endif
-#endif
+newtype Trie = Trie { unTrie :: ByteString }
+               deriving (Eq, Show, NFData)
 
-data Register s a
-  = Register { outputs :: !(MutVar s (MVector.MVector s a))
-             , nodes   :: !(MutVar s (MUVector.MVector s Word8))
-             , offset  :: !(MutVar s Int)
-             , nextOut :: !(MutVar s Int)
-             }
+data Register = Register {
+    regOffset :: !Offset
+  , regWeight :: !Weight
+  , regBuffer :: !Builder
+  }
 
-empty :: PrimMonad m => m (Register (PrimState m) a)
-empty
-  = do ox <- MVector.new 15
-       nx <- MUVector.new 127
-       ov <- newMutVar ox
-       nv <- newMutVar nx
-       ofv <- newMutVar 0
-       no  <- newMutVar 0
-       return Register { outputs = ov
-                       , nodes   = nv
-                       , offset  = ofv
-                       , nextOut = no
-                       }
-{-# INLINE empty #-}
+instance Register1 Register where
+  type Output Register = Trie
+  empty             = Hunt.FST.Trie.empty
+  output            = Hunt.FST.Trie.output
+  replaceOrRegister = Hunt.FST.Trie.replaceOrRegister
 
-replaceOrRegister :: PrimMonad m
-                  => UncompiledState a
-                  -> Register (PrimState m) a
-                  -> m Arc
-replaceOrRegister (UncompiledState l arcs (Just o)) reg
-  = do i   <- readMutVar (nextOut reg)
-       insertOutput o reg
-       fin <- writeFinalArc i reg
-       let arcs' = Arc 0 0 fin `cons` arcs
-       st  <- writeArcs arcs' reg
-       return (Arc l 0 st)
-replaceOrRegister (UncompiledState l arcs Nothing) reg
-  = do st <- writeArcs arcs reg
-       return (Arc l 0 st)
+type Offset = Word64
+
+empty :: Register
+empty = Register 0 1 mempty
+
+output :: Register -> Trie
+output = Trie . Blaze.toByteString . regBuffer
+{-# INLINE output #-}
+
+isFinalArc :: Arc -> Bool
+isFinalArc = (Arcs.final ==)
+{-# INLINE isFinalArc #-}
+
+replaceOrRegister :: UncompiledState -> Register -> (Arc -> Register -> a) -> a
+replaceOrRegister (UncompiledState label arcs) register k =
+  k (Arc label 0 (regOffset register')) register'
+  where
+    register' = register {
+        regOffset = offset'
+      , regWeight = regWeight register + if label == 0 then 1 else 0
+      , regBuffer = buffer'
+      }
+
+    -- accidentally quadric
+    buffer''   = Blaze.toByteString (regBuffer register)
+
+    offset'    = (regOffset register) + fromIntegral n
+    buffer'    = bytes `mappend` Blaze.fromByteString buffer''
+    (n, bytes) = case label of
+      0 -> compileFinalArc (regWeight register)
+      _ -> compileArcs (regOffset register) arcs
 {-# INLINE replaceOrRegister #-}
 
-writeArcs :: PrimMonad m
-          => Arcs
-          -> Register (PrimState m) a
-          -> m StateRef
-writeArcs arcs reg
-  = do off <- readMutVar (offset reg)
-       nx  <- readMutVar (nodes reg)
-       nx' <- resizeIfNecessary (off + sz) nx
-       writeMutVar (nodes reg) nx'
-       n   <- case Arcs.length arcs of
-                1 -> writeSimpleArc off (List.head (Arcs.arcs arcs)) reg
-                _ -> writeMultipleArcs off arcs reg
-       writeMutVar (offset reg) (off + n)
-       return (fromIntegral off)
+compileFinalArc :: Weight -> (Int, Builder)
+compileFinalArc weight = (Blaze.getBound bytes, Blaze.fromWrite bytes)
+ where
+   bytes =  Blaze.writeWord8 0xE0
+           `mappend` Blaze.writeWord32le weight
+{-# INLINE compileFinalArc #-}
+
+compileArcs :: Offset -> Arcs -> (Int, Builder)
+compileArcs offset arcs = (Blaze.getBound bytes, Blaze.fromWrite bytes)
   where
-    sz = Arcs.length arcs * 8 + 4
-{-# INLINE writeArcs #-}
+    bytes = case Arcs.length arcs of
+      1 -> compileSimpleArc offset (List.head (Arcs.arcs arcs))
+      _ -> compileMultipleArcs offset arcs
+{-# INLINE compileArcs #-}
 
-type Offset = Int
-
-writeMultipleArcs :: PrimMonad m
-                  => Offset
-                  -> Arcs
-                  -> Register (PrimState m) a
-                  -> m Int
-writeMultipleArcs off arcs reg
-  = do v <- readMutVar (nodes reg)
-       n <- go off (Arcs.arcs arcs) v
-       return (n - off)
+compileMultipleArcs :: Offset -> Arcs -> Blaze.Write
+compileMultipleArcs offset arcs =
+  Blaze.writeWord8 0
+  `mappend` Blaze.writeWord32le (fromIntegral $ Arcs.length arcs)
+  `mappend` go (Arcs.arcs arcs)
   where
-    go !off' []     _
-      = return off'
-    go !off' (a:ax) v
-      = do putWord16be off'       (arcLabel a) v
-           putWord32be (off' + 2) (fromIntegral off - fromIntegral (arcTarget a)) v
-           go (off' + 6) ax v
-{-# INLINE writeMultipleArcs #-}
+    go :: [Arc] -> Blaze.Write
+    go []     = mempty
+    go (Arc label _ target : ax) =
+      go ax
+      `mappend` Blaze.writeWord16le label
+      `mappend` Blaze.writeWord64le (offset - target)
+{-# INLINE compileMultipleArcs #-}
 
-writeSimpleArc :: PrimMonad m
-               => Offset
-               -> Arc
-               -> Register (PrimState m) a
-               -> m Int
-writeSimpleArc off arc reg
-  | isPrevious = do writeSingleNextArc off arc reg
-                    return (sizeOf (undefined :: Word32))
-  | otherwise  = do writeSingleArc off arc reg
-                    return (sizeOf (undefined :: Word32) + sizeOf (undefined :: Word32))
+compileSimpleArc :: Offset -> Arc -> Blaze.Write
+compileSimpleArc offset arc | isPrevious = compileSingleNextArc arc
+                            | otherwise  = compileSingleArc offset arc
   where
-    isPrevious = off - fromIntegral (arcTarget arc) == 0
-{-# INLINE writeSimpleArc #-}
+    isPrevious = offset - arcTarget arc == 0
+{-# INLINE compileSimpleArc #-}
 
-writeSingleArc :: PrimMonad m
-               => Offset
-               -> Arc
-               -> Register (PrimState m) a
-               -> m ()
-writeSingleArc off arc reg
-  = do v <- readMutVar (nodes reg)
-       putWord32be off       word v
-       putWord32be (off + 4) (fromIntegral off - fromIntegral (arcTarget arc)) v
-       return ()
+compileSingleArc :: Offset -> Arc -> Blaze.Write
+compileSingleArc offset (Arc label _ target) =
+  Blaze.writeWord16le word `mappend` Blaze.writeWord64le (offset - target)
   where
-    word :: Word32
-    word = 0xC0000000 .|. (fromIntegral (arcLabel arc) .&. 0x0000FFFF )
-{-# INLINE writeSingleArc #-}
+    word :: Word16
+    word = 0x8000 .|. (fromIntegral label .&. 0x00FF)
+{-# INLINE compileSingleArc #-}
 
-writeSingleNextArc :: PrimMonad m
-                   => Offset
-                   -> Arc
-                   -> Register (PrimState m) a
-                   -> m ()
-writeSingleNextArc off arc reg
-  = do v <- readMutVar (nodes reg)
-       putWord32be off word v
+compileSingleNextArc :: Arc -> Blaze.Write
+compileSingleNextArc (Arc label _ _) = Blaze.writeWord16le word
   where
-    word :: Word32
-    word = 0xC0000000 .|. (fromIntegral (arcLabel arc) .&. 0x0000FFFF )
-{-# INLINE writeSingleNextArc #-}
-
-writeFinalArc :: PrimMonad m
-              => Int
-              -> Register (PrimState m) a
-              -> m StateRef
-writeFinalArc a reg
-  = do v   <- readMutVar (nodes reg)
-       off <- readMutVar (offset reg)
-       putWord16be off 0xF000 v
-       putWord32be (off + 2) (fromIntegral a) v
-       return 6
-{-# INLINE writeFinalArc #-}
-
-insertOutput :: PrimMonad m
-             => a
-             -> Register (PrimState m) a
-             -> m ()
-insertOutput a r
-  = do i  <- readMutVar (nextOut r)
-       o  <- readMutVar (outputs r)
-       o' <- resizeIfNecessary i o
-       writeMutVar (outputs r) o'
-       writeMutVar (nextOut r) (succ i)
-{-# INLINE insertOutput #-}
-
-putWord16be :: PrimMonad m
-            => Offset
-            -> Word16
-            -> MUVector.MVector (PrimState m) Word8
-            -> m ()
-putWord16be off w v
-  = do MUVector.unsafeWrite v off       (fromIntegral (shiftr_w16 w 8) :: Word8)
-       MUVector.unsafeWrite v (off + 1) (fromIntegral w                :: Word8)
-{-# INLINE putWord16be #-}
-
-putWord32be :: PrimMonad m
-            => Offset
-            -> Word32
-            -> MUVector.MVector (PrimState m) Word8
-            -> m ()
-putWord32be off w v
-  = do MUVector.unsafeWrite v off       (fromIntegral (shiftr_w32 w 24) :: Word8)
-       MUVector.unsafeWrite v (off + 1) (fromIntegral (shiftr_w32 w 16) :: Word8)
-       MUVector.unsafeWrite v (off + 2) (fromIntegral (shiftr_w32 w  8) :: Word8)
-       MUVector.unsafeWrite v (off + 3) (fromIntegral (w)               :: Word8)
-{-# INLINE putWord32be #-}
-
-oversize :: Int
-         -> Int
-oversize minSz
-  = minSz + min 3 (minSz `unsafeShiftR` 3)
-
-resizeIfNecessary :: (PrimMonad m, GMVector.MVector v a)
-                  => Int
-                  -> v (PrimState m) a
-                  -> m (v (PrimState m) a)
-resizeIfNecessary i v
-  | sz <= i   = GMVector.unsafeGrow v (sz' - sz)
-  | otherwise = return v
-  where
-    sz  = GMVector.length v
-    sz' = oversize (i + 1)
-{-# INLINE resizeIfNecessary #-}
-
-------------------------------------------------------------------------
--- Unchecked shifts
-
-{-# INLINE shiftr_w16 #-}
-shiftr_w16 :: Word16 -> Int -> Word16
-{-# INLINE shiftr_w32 #-}
-shiftr_w32 :: Word32 -> Int -> Word32
-{-# INLINE shiftr_w64 #-}
-shiftr_w64 :: Word64 -> Int -> Word64
-
-#if defined(__GLASGOW_HASKELL__) && !defined(__HADDOCK__)
-shiftr_w16 (W16# w) (I# i) = W16# (w `uncheckedShiftRL#`   i)
-shiftr_w32 (W32# w) (I# i) = W32# (w `uncheckedShiftRL#`   i)
-
-# if WORD_SIZE_IN_BITS < 64
-shiftr_w64 (W64# w) (I# i) = W64# (w `uncheckedShiftRL64#` i)
-# else
-shiftr_w64 (W64# w) (I# i) = W64# (w `uncheckedShiftRL#` i)
-# endif
-
-#else
-shiftr_w16 = shiftR
-shiftr_w32 = shiftR
-shiftr_w64 = shiftR
-#endif
+    word :: Word16
+    word = 0xC000 .|. (fromIntegral label .&. 0x00FF)
+{-# INLINE compileSingleNextArc #-}

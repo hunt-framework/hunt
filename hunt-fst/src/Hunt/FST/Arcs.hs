@@ -1,17 +1,19 @@
 module Hunt.FST.Arcs where
 
-import           Hunt.FST.Types
+import Hunt.FST.Types
 
-import           Data.Hashable
-import qualified Data.List as List
-import           Data.Ord
-import           Data.Word
+import Control.DeepSeq
+import Data.Hashable
 
 data Arc = Arc {
     arcLabel  :: !Label
   , arcWeight :: !Weight
   , arcTarget :: !StateRef
   } deriving (Eq, Show)
+
+type Hash = Int
+
+type Length = Int
 
 data Arcs = Arcs !Length !Hash ![Arc]
             deriving (Eq, Show)
@@ -24,6 +26,14 @@ instance Hashable Arc where
 instance Hashable Arcs where
   hashWithSalt s (Arcs sz h _) = s `hashWithSalt` sz `hashWithSalt` h
   {-# INLINE hashWithSalt #-}
+
+instance NFData Arc where
+  rnf (Arc l w t) = l `deepseq` w `deepseq` t `deepseq` ()
+  {-# INLINE rnf #-}
+
+instance NFData Arcs where
+  rnf (Arcs sz h ax) = sz `deepseq` h `deepseq` ax `deepseq` ()
+  {-# INLINE rnf #-}
 
 empty :: Arcs
 empty = Arcs 0 0 []
@@ -40,11 +50,6 @@ cons a (Arcs sz h ax) = Arcs (sz + 1) (hashWithSalt h a) (a:ax)
 arcs :: Arcs -> [Arc]
 arcs (Arcs _ _ ax) = ax
 {-# INLINE arcs #-}
-
-arcsSorted :: Arcs -> [Arc]
-arcsSorted (Arcs _ _ ax)
-  = List.sortBy (comparing arcLabel) ax
-{-# INLINE arcsSorted #-}
 
 length :: Arcs -> Length
 length (Arcs sz _ _) = sz

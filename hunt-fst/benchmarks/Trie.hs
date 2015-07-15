@@ -1,18 +1,20 @@
 module Main where
 
-import           Hunt.FST.Trie
-import           Hunt.FST.Compile
+import qualified Hunt.FST as FST
 
 import           Control.Applicative
 import           Control.Arrow
 import           Control.DeepSeq
 import           Criterion
 import           Criterion.Main
+import qualified Data.ByteString as ByteString
+import qualified Data.ByteString.Char8 as ByteString8
 import qualified Data.List as List
 import qualified Data.StringMap as SM
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.IO as Text
+import           Data.Word
 
 loadWords :: IO ([(Text, Text)], [(Text, Text)])
 loadWords
@@ -38,7 +40,7 @@ main
                                       , bench "fromList (big)"   $ nf SM.fromList bgWords
                                       ]
                 , env loadWords $ \ ~(smWords, bgWords) ->
-                   bgroup "trie" [ bench "compileList (small)" $ nf compileList' smWords
-                                 , bench "compileList (big)"   $ nf compileList' bgWords
-                                 ]
+                   bgroup "hs-fst/trie" [ bench "compileTrie (small)" $ nf (fst . FST.compileListTrie) smWords
+                                        , bench "compileTrie (big)"   $ nf (fst . FST.compileListTrie) bgWords
+                                        ]
                 ]
