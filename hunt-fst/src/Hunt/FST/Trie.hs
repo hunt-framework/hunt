@@ -2,16 +2,17 @@
 {-# LANGUAGE TypeFamilies #-}
 module Hunt.FST.Trie where
 
+import           Hunt.FST.Arcs (Arc(..), Arcs)
+import qualified Hunt.FST.Arcs as Arcs
+import           Hunt.FST.Register
+import           Hunt.FST.Types
+
 import           Blaze.ByteString.Builder (Builder)
 import qualified Blaze.ByteString.Builder as Blaze
 import qualified Blaze.ByteString.Builder.Internal.Write as Blaze
 import           Control.DeepSeq
 import           Data.Bits
 import           Data.ByteString (ByteString)
-import           Hunt.FST.Arcs (Arc(..), Arcs)
-import qualified Hunt.FST.Arcs as Arcs
-import           Hunt.FST.Register
-import           Hunt.FST.Types
 import qualified Data.List as List
 import           Data.Monoid
 import           Data.Word
