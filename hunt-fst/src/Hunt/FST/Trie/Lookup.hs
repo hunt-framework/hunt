@@ -12,6 +12,17 @@ import           Hunt.FST.Trie
 import           Hunt.FST.Types
 import           System.IO.Unsafe
 
+--data Iter m
+--  = forall s. Iter (s -> m (Transition s)) s
+
+-- data Transition s
+--  = Transition Label
+
+
+
+
+
+
 lookup' :: StateRef -> Trie -> Ptr Word8 -> Ptr Word8 -> IO Word32
 lookup' state (Trie trie) needle needleEnd =
   withForeignPtr ptr $ \t -> do

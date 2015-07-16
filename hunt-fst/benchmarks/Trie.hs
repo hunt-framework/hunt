@@ -1,6 +1,7 @@
 module Main where
 
 import qualified Hunt.FST as FST
+import qualified Hunt.FST.Trie as Trie
 
 import           Control.Applicative
 import           Control.Arrow
@@ -40,7 +41,7 @@ main
                                       , bench "fromList (big)"   $ nf SM.fromList bgWords
                                       ]
                 , env loadWords $ \ ~(smWords, bgWords) ->
-                   bgroup "hs-fst/trie" [ bench "compileTrie (small)" $ nf (fst . FST.compileListTrie) smWords
-                                        , bench "compileTrie (big)"   $ nf (fst . FST.compileListTrie) bgWords
+                   bgroup "hs-fst/trie" [ bench "compileTrie (small)" $ nf (Trie.output . snd . FST.compileListTrie) smWords
+                                        , bench "compileTrie (big)"   $ nf (Trie.output . snd . FST.compileListTrie) bgWords
                                         ]
                 ]

@@ -15,14 +15,20 @@ import           Hunt.FST.Types
 import qualified Data.List as List
 import           Data.Monoid
 import           Data.Word
+import qualified Data.ByteString.Base16 as Base16
 
 newtype Trie = Trie { unTrie :: ByteString }
-               deriving (Eq, Show, NFData)
+               deriving (Eq, NFData)
+
+instance Show Trie where
+  show (Trie t) = show (Base16.encode t)
+
+type Offset = Word64
 
 data Register = Register {
-    regOffset :: !Offset
-  , regWeight :: !Weight
-  , regBuffer :: !Builder
+    regBuffer   :: !Builder -- ^ Buffer for compiled trie
+  , regSize     :: !Int     -- ^ Current size of the compiled trie
+  , regNextOut  :: !Int     -- ^ Index where to stick next output
   }
 
 instance Register1 Register where
@@ -31,10 +37,10 @@ instance Register1 Register where
   output            = Hunt.FST.Trie.output
   replaceOrRegister = Hunt.FST.Trie.replaceOrRegister
 
-type Offset = Word64
 
 empty :: Register
-empty = Register 0 1 mempty
+empty
+  = Register mempty 0 0
 
 output :: Register -> Trie
 output = Trie . Blaze.toByteString . regBuffer
@@ -44,73 +50,90 @@ isFinalArc :: Arc -> Bool
 isFinalArc = (Arcs.final ==)
 {-# INLINE isFinalArc #-}
 
-replaceOrRegister :: UncompiledState -> Register -> (Arc -> Register -> a) -> a
-replaceOrRegister (UncompiledState label arcs) register k =
-  k (Arc label 0 (regOffset register')) register'
+-- | Compiles an `UncompiledState` into an `Arc` which
+--   points to the transitions in that that (compiled) state.
+replaceOrRegister :: UncompiledState
+                  -> Register
+                  -> (Arc -> Register -> a)
+                  -> a
+replaceOrRegister (UncompiledState label arcs) reg k
+  = k (Arc label 0 (fromIntegral target)) reg'
   where
-    register' = register {
-        regOffset = offset'
-      , regWeight = regWeight register + if label == 0 then 1 else 0
-      , regBuffer = buffer'
-      }
-
-    -- accidentally quadric
-    buffer''   = Blaze.toByteString (regBuffer register)
-
-    offset'    = (regOffset register) + fromIntegral n
-    buffer'    = bytes `mappend` Blaze.fromByteString buffer''
-    (n, bytes) = case label of
-      0 -> compileFinalArc (regWeight register)
-      _ -> compileArcs (regOffset register) arcs
+    reg'
+      = reg { regBuffer   = buffer'
+            , regSize     = size'
+            , regNextOut  = nextOut'
+            }
+    target
+      = regSize reg
+    nextOut'
+      = regNextOut reg
+    size'
+      = regSize reg + nBytes
+    buffer'
+      = bytes `mappend` regBuffer reg
+    (nBytes, bytes)
+      = compileArcs (regSize reg) arcs
 {-# INLINE replaceOrRegister #-}
 
-compileFinalArc :: Weight -> (Int, Builder)
-compileFinalArc weight = (Blaze.getBound bytes, Blaze.fromWrite bytes)
- where
-   bytes =  Blaze.writeWord8 0xE0
-           `mappend` Blaze.writeWord32le weight
-{-# INLINE compileFinalArc #-}
-
-compileArcs :: Offset -> Arcs -> (Int, Builder)
-compileArcs offset arcs = (Blaze.getBound bytes, Blaze.fromWrite bytes)
+-- | Compiles a set of `Arc`s to efficient byte representation.
+--   `compileArcs` tries to find the most optimized representation
+--   for given `Arcs`, where base is the offset these bytes are being placed.
+compileArcs :: Int -> Arcs -> (Int, Builder)
+compileArcs base arcs
+  = (Blaze.getBound bytes, Blaze.fromWrite bytes)
   where
-    bytes = case Arcs.length arcs of
-      1 -> compileSimpleArc offset (List.head (Arcs.arcs arcs))
-      _ -> compileMultipleArcs offset arcs
+    bytes
+      = case Arcs.length arcs of
+         1 -> compileSingleArc base (Arcs.head arcs)
+         _ -> compileMultipleArcs base arcs
 {-# INLINE compileArcs #-}
 
-compileMultipleArcs :: Offset -> Arcs -> Blaze.Write
-compileMultipleArcs offset arcs =
-  Blaze.writeWord8 0
-  `mappend` Blaze.writeWord32le (fromIntegral $ Arcs.length arcs)
-  `mappend` go (Arcs.arcs arcs)
+-- | Compiled multiple `Arc`s to byte code.
+compileMultipleArcs :: Int -> Arcs -> Blaze.Write
+compileMultipleArcs base arcs
+  = Blaze.writeWord8 1
+    `mappend` Blaze.writeWord16be (fromIntegral (Arcs.length arcs))
+    `mappend` go (Arcs.arcs arcs)
   where
     go :: [Arc] -> Blaze.Write
-    go []     = mempty
-    go (Arc label _ target : ax) =
-      go ax
-      `mappend` Blaze.writeWord16le label
-      `mappend` Blaze.writeWord64le (offset - target)
+    go []
+      = mempty
+    go (Arc label _ target : ax)
+      = go ax
+        `mappend` Blaze.writeWord16be label
+        `mappend` Blaze.writeWord64be (fromIntegral base - target)
 {-# INLINE compileMultipleArcs #-}
 
-compileSimpleArc :: Offset -> Arc -> Blaze.Write
-compileSimpleArc offset arc | isPrevious = compileSingleNextArc arc
-                            | otherwise  = compileSingleArc offset arc
+-- | Compiles a single `Arc` to byte code.
+compileSingleArc :: Int -> Arc -> Blaze.Write
+compileSingleArc base arc
+  | isPrevious = compileSingleNextArc arc
+  | otherwise  = compileSingleArc' base arc
   where
-    isPrevious = offset - arcTarget arc == 0
-{-# INLINE compileSimpleArc #-}
-
-compileSingleArc :: Offset -> Arc -> Blaze.Write
-compileSingleArc offset (Arc label _ target) =
-  Blaze.writeWord16le word `mappend` Blaze.writeWord64le (offset - target)
-  where
-    word :: Word16
-    word = 0x8000 .|. (fromIntegral label .&. 0x00FF)
+    isPrevious
+      = fromIntegral base == arcTarget arc
 {-# INLINE compileSingleArc #-}
 
+-- | Compiles a single `Arc` to byte code.
+--   We know that the previous written `Arc`
+--   is the only successor of the `Arc` being
+--   compiled.
 compileSingleNextArc :: Arc -> Blaze.Write
-compileSingleNextArc (Arc label _ _) = Blaze.writeWord16le word
+compileSingleNextArc arc
+  = Blaze.writeWord8 flags
+    `mappend` Blaze.writeWord16be (arcLabel arc)
   where
-    word :: Word16
-    word = 0xC000 .|. (fromIntegral label .&. 0x00FF)
+    flags = 0x02
 {-# INLINE compileSingleNextArc #-}
+
+-- | Compile an where we know that it only points
+--   to one target.
+compileSingleArc' :: Int -> Arc -> Blaze.Write
+compileSingleArc' base arc
+  = Blaze.writeWord8 flags
+    `mappend` Blaze.writeWord16be (arcLabel arc)
+    `mappend` Blaze.writeWord64be (fromIntegral base - arcTarget arc)
+  where
+    flags = 0x04
+{-# INLINE compileSingleArc'#-}

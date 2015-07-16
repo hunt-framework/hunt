@@ -1,9 +1,11 @@
 module Hunt.FST.Arcs where
 
-import Hunt.FST.Types
+import           Hunt.FST.Types
 
-import Control.DeepSeq
-import Data.Hashable
+import           Control.DeepSeq
+import           Data.Hashable
+import qualified Data.List as List
+import           Prelude hiding (head)
 
 data Arc = Arc {
     arcLabel  :: !Label
@@ -54,6 +56,11 @@ arcs (Arcs _ _ ax) = ax
 length :: Arcs -> Length
 length (Arcs sz _ _) = sz
 {-# INLINE length #-}
+
+head :: Arcs -> Arc
+head (Arcs _ _ ax)
+  = List.head ax
+{-# INLINE head #-}
 
 final :: Arc
 final = Arc 0 1 0

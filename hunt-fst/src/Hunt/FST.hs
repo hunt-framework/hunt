@@ -17,12 +17,14 @@ import qualified Data.Text.Array as TextArray
 import qualified Data.Text.Internal as Text
 import           Data.Word
 
-uncompile :: Text -> a -> [UncompiledState]
+uncompile :: Text
+          -> a
+          -> [UncompiledState]
 uncompile (Text.Text arr off len) a
   = loop 0
   where
     loop i | i < len   = toUc (TextArray.unsafeIndex arr (off+i)) : loop (i + 1)
-           | otherwise = []
+           | otherwise = [ ]
     toUc w
       = UncompiledState w Arcs.empty
 {-# INLINE uncompile #-}
@@ -51,8 +53,10 @@ compile :: ReplaceOrRegister r a
         -> r
         -> ([UncompiledState] -> r -> a)
         -> a
-compile _ _ [] (_:_) _ _  = error "compile: no lexicographic order"
-compile _ prev new [] r k = k (prev:new) r
+compile _ _ [] (_:_) _ _
+  = error "compile: no lexicographic order"
+compile _ prev new [] r k
+  = k (prev:new) r
 compile ror prev new@(n:nx) old@(o:ox) r k
   | ucLabel n == ucLabel o =
     compile ror o nx ox r (k . (:) prev)
@@ -62,8 +66,12 @@ compile ror prev new@(n:nx) old@(o:ox) r k
                             )
 {-# INLINE compile #-}
 
-compileList :: ReplaceOrRegister r (StateRef, r) -> r -> [(Text, a)] -> (StateRef, r)
-compileList ror reg ws = go ws [UncompiledState 255 Arcs.empty] reg
+compileList :: ReplaceOrRegister r (StateRef, r)
+            -> r
+            -> [(Text, a)]
+            -> (StateRef, r)
+compileList ror reg ws
+  = go ws [UncompiledState 255 Arcs.empty] reg
   where
     result rootArc r'          = (Arcs.arcTarget rootArc, r')
 
