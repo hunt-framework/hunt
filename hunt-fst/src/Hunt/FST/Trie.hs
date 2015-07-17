@@ -2,18 +2,19 @@
 {-# LANGUAGE TypeFamilies #-}
 module Hunt.FST.Trie where
 
+-- | This modules defines a replaceOrRegister function which creates a
+--   packed trie. The trie can be constructed without any intermediate
+--   data structures.
+
 import           Hunt.FST.Arcs (Arc(..), Arcs)
 import qualified Hunt.FST.Arcs as Arcs
 import           Hunt.FST.Register
-import           Hunt.FST.Types
 
 import           Blaze.ByteString.Builder (Builder)
 import qualified Blaze.ByteString.Builder as Blaze
 import qualified Blaze.ByteString.Builder.Internal.Write as Blaze
 import           Control.DeepSeq
-import           Data.Bits
 import           Data.ByteString (ByteString)
-import qualified Data.List as List
 import           Data.Monoid
 import           Data.Word
 import qualified Data.ByteString.Base16 as Base16
@@ -47,10 +48,6 @@ output :: Register -> Trie
 output = Trie . Blaze.toByteString . regBuffer
 {-# INLINE output #-}
 
-isFinalArc :: Arc -> Bool
-isFinalArc = (Arcs.final ==)
-{-# INLINE isFinalArc #-}
-
 -- | Compiles an `UncompiledState` into an `Arc` which
 --   points to the transitions in that that (compiled) state.
 replaceOrRegister :: UncompiledState
@@ -58,15 +55,13 @@ replaceOrRegister :: UncompiledState
                   -> (Arc -> Register -> a)
                   -> a
 replaceOrRegister (UncompiledState label arcs) reg k
-  = k (Arc label 0 (fromIntegral target)) reg'
+  = k (Arc label 0 (fromIntegral (regSize reg'))) reg' -- directly using regSize reg' is 15% faster than using target variable
   where
     reg'
       = reg { regBuffer   = buffer'
             , regSize     = size'
             , regNextOut  = nextOut'
             }
-    target
-      = regSize reg
     nextOut'
       = regNextOut reg
     size'
@@ -92,7 +87,7 @@ compileArcs base arcs
 
 -- | Compiled multiple `Arc`s to byte code.
 compileMultipleArcs :: Int -> Arcs -> Blaze.Write
-compileMultipleArcs base arcs
+compileMultipleArcs _base arcs
   = Blaze.writeWord8 1
     `mappend` Blaze.writeWord16be (fromIntegral (Arcs.length arcs))
     `mappend` go (Arcs.arcs arcs)
@@ -103,7 +98,7 @@ compileMultipleArcs base arcs
     go (Arc label _ target : ax)
       = go ax
         `mappend` Blaze.writeWord16be label
-        `mappend` Blaze.writeWord64be (fromIntegral base - target)
+        `mappend` Blaze.writeWord64be target
 {-# INLINE compileMultipleArcs #-}
 
 -- | Compiles a single `Arc` to byte code.
@@ -131,10 +126,10 @@ compileSingleNextArc arc
 -- | Compile an where we know that it only points
 --   to one target.
 compileSingleArc' :: Int -> Arc -> Blaze.Write
-compileSingleArc' base arc
+compileSingleArc' _base arc
   = Blaze.writeWord8 flags
     `mappend` Blaze.writeWord16be (arcLabel arc)
-    `mappend` Blaze.writeWord64be (fromIntegral base - arcTarget arc)
+    `mappend` Blaze.writeWord64be (arcTarget arc)
   where
-    flags = 0x04
+    flags = 0x04 :: Word8
 {-# INLINE compileSingleArc'#-}

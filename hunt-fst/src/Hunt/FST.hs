@@ -23,10 +23,8 @@ uncompile :: Text
 uncompile (Text.Text arr off len) a
   = loop 0
   where
-    loop i | i < len   = toUc (TextArray.unsafeIndex arr (off+i)) : loop (i + 1)
-           | otherwise = [ ]
-    toUc w
-      = UncompiledState w Arcs.empty
+    loop i | i + 1 < len = UncompiledState (TextArray.unsafeIndex arr (off + i)) Arcs.empty : loop (i + 1)
+           | otherwise   = [ UncompiledState (TextArray.unsafeIndex arr (off + i)) Arcs.empty ]
 {-# INLINE uncompile #-}
 
 compileSuffix :: ReplaceOrRegister r a

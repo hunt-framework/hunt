@@ -62,6 +62,29 @@ benchmark trie-insert
                        "-with-rtsopts=-p -hy"
   main-is:             Trie.hs
 
+benchmark trie-size
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      benchmarks
+  build-depends:       base
+                     , bytestring
+                     , criterion
+                     , data-stringmap
+                     , deepseq
+                     , hunt-fst
+                     , text
+                     , vector
+                     , data-size
+  ghc-options:         -Wall
+                       -O2
+                       -funbox-strict-fields
+  ghc-prof-options:    -fprof-auto
+                       -rtsopts
+                       "-with-rtsopts=-p -hy"
+  main-is:             Sizes.hs
+
+
+
+
 test-suite test-fst
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
