@@ -19,8 +19,13 @@ import           Data.Monoid
 import           Data.Word
 import qualified Data.ByteString.Base16 as Base16
 
-newtype Trie = Trie { unTrie :: ByteString }
-               deriving (Eq, NFData)
+data Trie
+  = Trie { trBytes :: !ByteString
+         } deriving (Eq)
+
+instance NFData Trie where
+  rnf tr
+    = trBytes tr `seq` ()
 
 instance Show Trie where
   show (Trie t) = show (Base16.encode t)
@@ -55,7 +60,7 @@ replaceOrRegister :: UncompiledState
                   -> (Arc -> Register -> a)
                   -> a
 replaceOrRegister (UncompiledState label arcs) reg k
-  = k (Arc label 0 (fromIntegral (regSize reg'))) reg' -- directly using regSize reg' is 15% faster than using target variable
+  = k (Arc label 0 (fromIntegral (regSize reg'))) reg' -- directly using regSize reg' is 15% faster than using size' variable
   where
     reg'
       = reg { regBuffer   = buffer'
