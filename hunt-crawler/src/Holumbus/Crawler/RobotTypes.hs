@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 -- ------------------------------------------------------------
 
 module Holumbus.Crawler.RobotTypes
@@ -14,6 +15,8 @@ import           Holumbus.Crawler.URIs
 
 import           Text.XML.HXT.Core
 
+import           GHC.Generics
+
 {-
 import           Text.XML.HXT.RelaxNG.XmlSchema.RegexMatch
 
@@ -27,7 +30,7 @@ type RobotRestriction   = [RobotSpec]
 type RobotSpec          = (URI, RobotAction)
 
 data RobotAction        = Disallow | Allow
-                          deriving (Eq, Show, Read, Enum)
+                          deriving (Eq, Show, Read, Enum, Generic)
 
 type AddRobotsAction    = URI -> Robots -> IO Robots
 

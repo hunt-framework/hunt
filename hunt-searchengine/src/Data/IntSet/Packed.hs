@@ -210,8 +210,14 @@ member x (DIS1 v)
         k = (u + l) `unsafeShiftR` 1
 {-# INLINE member #-}
 
+notMember :: Int -> IntSet -> Bool
+notMember x
+  = not . member x
+{-# INLINE notMember #-}
+
 toIntSet :: IntSet -> S.IntSet
 toIntSet = S.fromAscList . Vector.toList .  unDIS1
+{-# INLINE toIntSet #-}
 
 data D a b = D1 !a !b
            | D2 !a

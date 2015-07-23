@@ -50,6 +50,9 @@ keys = fmap SegmentId . IntMap.keys . unSegmentMap
 insert :: SegmentId -> a -> SegmentMap a -> SegmentMap a
 insert (SegmentId k) v = liftSM (IntMap.insert k v)
 
+insertWith :: (a -> a -> a) -> SegmentId -> a -> SegmentMap a -> SegmentMap a
+insertWith f (SegmentId k) v = liftSM (IntMap.insertWith f k v)
+
 delete :: SegmentId -> SegmentMap a -> SegmentMap a
 delete (SegmentId k) = liftSM (IntMap.delete k)
 

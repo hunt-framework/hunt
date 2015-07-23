@@ -14,6 +14,8 @@ module Hunt.Index.Schema.Analyze
   )
 where
 
+import           Prelude   hiding (Word)
+
 import           Data.DList                  (DList)
 import qualified Data.DList                  as DL
 import           Data.Map                    (Map)

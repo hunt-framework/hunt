@@ -4,7 +4,7 @@
 {-# LANGUAGE DeriveTraversable #-}
 module Hunt.Segment where
 
-import           Prelude hiding (mapM)
+import           Prelude hiding (mapM, Word)
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
@@ -304,7 +304,7 @@ mkContextMap schema vs
                    -> Ix.IndexImpl
                    -> m Ix.IndexImpl
     foldInsertList cx (Ix.IndexImpl impl)
-      = Ix.mkIndex <$> (Ix.fromListM (contentForCx cx vs) `asTypeOf` return impl)
+      = Ix.mkIndex <$> Ix.insertListM (contentForCx cx vs) impl
 
     -- | Computes the words and occurrences out of a list for one context
     contentForCx :: Context -> [(DocId, Words)] -> [(Word, Occurrences)]
@@ -322,8 +322,6 @@ mkContextMap schema vs
                       return (k, b)
                 ) $ Map.toAscList m) >>=
       return . Map.fromAscList
-
-
 
 -- | Merges two `Segment`s.
 --

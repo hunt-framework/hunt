@@ -24,7 +24,7 @@ import           Hunt.Common.DocDesc (DocDesc)
 
 import qualified Text.Regex.XMLSchema.Generic as HXT
 
-import           Prelude             as P
+import           Prelude             as P hiding (Word)
 
 -- ------------------------------------------------------------
 

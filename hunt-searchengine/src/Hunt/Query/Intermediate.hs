@@ -47,7 +47,7 @@ module Hunt.Query.Intermediate
     )
 where
 
-import           Prelude hiding (null)
+import           Prelude hiding (null, Word)
 
 import           Control.Applicative hiding (empty)
 import           Control.Arrow (second, (***))

@@ -167,7 +167,7 @@ c2b o = case o of
 
 -- | Is the character a binary number.
 isbc :: Char -> Bool
-isbc = (`elem` "01")
+isbc = (`elem` ("01" :: [Char]))
 
 -- ------------------------------------------------------------
 -- parser helper

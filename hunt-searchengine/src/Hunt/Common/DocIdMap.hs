@@ -65,7 +65,7 @@ import           Control.Monad              (foldM, mzero)
 
 import           Data.Aeson
 import           Data.Binary                (Binary (..))
-import           Data.Foldable              hiding (fold, foldl, foldr, toList)
+import           Data.Foldable              hiding (fold, foldl, foldr, toList, null)
 import qualified Data.HashMap.Strict        as HM
 import qualified Data.IntMap.BinTree.Strict as IM
 import qualified Data.IntSet.Packed as IntSet

@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- ----------------------------------------------------------------------------
@@ -23,6 +24,8 @@ import           Data.Text              (Text)
 import qualified Data.Text              as T
 import           Data.Text.Binary       ()
 
+import           GHC.Generics
+
 import           Hunt.Common.BasicTypes
 import           Hunt.Scoring.Score     (Score, noScore, mkScore, getScore)
 import qualified Hunt.Common.DocDesc    as DD
@@ -39,7 +42,7 @@ data ApiDocument  = ApiDocument
     , adDescr :: Description      -- ^ The document description (a simple key-value map).
     , adWght  :: Score            -- ^ An optional document boost, (internal default is @1.0@).
     }
-    deriving (Show)
+    deriving (Show, Generic)
 
 -- | Context map
 type IndexMap = Map Context Content

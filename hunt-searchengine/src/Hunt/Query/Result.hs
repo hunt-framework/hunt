@@ -52,7 +52,7 @@ module Hunt.Query.Result
   )
 where
 
-import           Prelude                 hiding (null)
+import           Prelude                 hiding (null, Word)
 
 import qualified Data.List               as L
 import           Data.Map                (Map)

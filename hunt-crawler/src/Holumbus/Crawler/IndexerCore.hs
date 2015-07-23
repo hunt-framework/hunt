@@ -27,6 +27,8 @@ where
 
 -- ------------------------------------------------------------
 
+import           Prelude hiding (Word)
+
 import           Control.DeepSeq
 
 import           Data.Binary            (Binary)

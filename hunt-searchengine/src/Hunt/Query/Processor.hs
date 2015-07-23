@@ -38,6 +38,8 @@ module Hunt.Query.Processor
 
 where
 
+import           Prelude hiding (Word)
+
 import           Control.Applicative
 import           Control.Monad.Error
 import           Control.Monad.Reader

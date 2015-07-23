@@ -41,6 +41,8 @@ module Hunt.Index.Schema
   )
 where
 
+import           Prelude hiding (Word)
+
 import           Control.Applicative
 import           Control.Monad (mzero)
 
@@ -337,7 +339,6 @@ instance FromJSON TokenizerType where
            "Digit"     -> pure TokenizeDigit
            "Whitespace"-> pure TokenizeSpace
            x           -> pure (TokenizeCustom x)
-           _           -> mzero
   parseJSON s
     = TokenizeRegEx <$> parseJSON s
 

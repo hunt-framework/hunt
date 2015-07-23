@@ -16,6 +16,8 @@ module Hunt.Index.Schema.Normalize.Int
   )
 where
 
+import           Prelude hiding (Word)
+
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Read as T

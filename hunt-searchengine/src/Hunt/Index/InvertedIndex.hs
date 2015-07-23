@@ -31,7 +31,7 @@ module Hunt.Index.InvertedIndex
 -- -}
 where
 
-import           Prelude                              as P
+import           Prelude                              as P hiding (Word)
 
 import           Control.DeepSeq
 
@@ -192,5 +192,3 @@ instance Index InvertedIndex2Dim where
     = keys i
 
 -- ------------------------------------------------------------
-
-

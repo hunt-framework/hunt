@@ -69,7 +69,7 @@ normalize t = fromMaybe t
     = if head' s == Just '-'
       then ('-':) . fil . tail $ s
       else fil s
-    where fil = filter (not . (`elem` "-T:"))
+    where fil = filter (not . (`elem` ("-T:" :: [Char])))
 
 -- | Function takes normalized Date and transforms it back a readable form.
 --   We don't transform it back to the original representation, since that
@@ -317,7 +317,7 @@ readDateTime s
     = mkDateTime day (readHourMinSec time) (readTimeZone zone)
     where
       (day,  (_ : rest)) = readYearMonthDayS s
-      (time,       zone) = span (\ x -> isDigit x || x `elem` ":.") rest
+      (time,       zone) = span (\ x -> isDigit x || x `elem` (":." :: [Char])) rest
 
 
 readDate' :: (String -> (Day, String)) -> String -> Date

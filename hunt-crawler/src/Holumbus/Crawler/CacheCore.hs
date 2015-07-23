@@ -1,4 +1,4 @@
-{-# OPTIONS #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 -- ------------------------------------------------------------
 
@@ -19,12 +19,15 @@ import           Holumbus.Crawler
 import           Text.XML.HXT.Core
 import           Text.XML.HXT.Curl
 
+import           GHC.Generics
+
 -- ------------------------------------------------------------
 
 type CacheCrawlerConfig         = CrawlerConfig () CacheState
 type CacheCrawlerState          = CrawlerState CacheState
 
 newtype CacheState              = CS ()
+                                  deriving (Generic)
 
 -- ------------------------------------------------------------
 

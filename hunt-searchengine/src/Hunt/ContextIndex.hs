@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE Rank2Types                 #-}
 module Hunt.ContextIndex (
@@ -96,8 +97,8 @@ data ContextIndex dt
                  }
 
 instance Binary (ContextIndex dt) where
-  put = undefined
   get = undefined
+  put = undefined
 
 newtype ApplyMerge dt
   = ApplyMerge { applyMerge  :: ContextIndex dt -> ContextIndex dt }
@@ -275,7 +276,6 @@ merge
   = Map.toList . Map.unionsWith mappend . fmap Map.fromList
 {-# INLINE merge #-}
 
-
 lookupDocumentByURI :: (Par.MonadParallel m, DocTable dt)
                     => URI
                     -> ContextIndex dt
@@ -339,6 +339,9 @@ deleteDocsByURI us ixx
   = do sx <- Trav.for (ciSegments ixx) (Segment.deleteDocsByURI us)
        return ixx { ciSegments = sx }
 
+-- | Selects segments viable to merge but don't actually do the merge
+--   because it can be a quite costly operation. Marks segments as
+--   merging.
 tryMerge :: (Functor m, Monad m, DocTable dt)
          => MergePolicy
          -> ContextIndex dt
@@ -351,12 +354,17 @@ tryMerge policy ixx
                       }
        return (merges, ixx')
 
+-- | Takes a list of merge descriptions and performs the merge of the
+--   segments. Returns an idempotent function which can be applied to the
+--   `ContextIndex`. This way, the costly merge can be done asynchronously.
 runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ApplyMerge dt)
 runMerge descr
-  = do newSeg <- Merge.runMerge descr
+  = do !newSeg <- Merge.runMerge descr
        return $
          ApplyMerge (applyMergedSegment (mdSegId descr) (mdSegs descr) newSeg)
 
+-- | Since merging can happen asynchronously, we have to account for documents
+--   and contexts deleted while we were merging the segments.
 applyMergedSegment :: SegmentId
                    -> SegmentMap (Segment dt)
                    -> Segment dt
@@ -364,7 +372,7 @@ applyMergedSegment :: SegmentId
                    -> ContextIndex dt
 applyMergedSegment segmentId oldSegments newSegment ixx
   = ixx { ciSegments      =
-              SegmentMap.insert segmentId newSegment' (
+              SegmentMap.insertWith (const id) segmentId newSegment' (
                 SegmentMap.difference (ciSegments ixx) oldSegments)
         , ciNextSegmentId = succ (ciNextSegmentId ixx)
         , ciMergeLock     = Merge.releaseLock (ciMergeLock ixx) oldSegments

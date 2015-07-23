@@ -16,6 +16,8 @@ module Hunt.Index.PrefixTreeIndex
     )
 where
 
+import           Prelude hiding (Word)
+
 import           Control.DeepSeq
 
 import           Data.Bijection
@@ -172,7 +174,7 @@ instance Index SimplePrefixTreeIndex where
 
   lookupRange k1 k2 (SimplePTIx i)
     = lookupRange k1 k2 i
-      
+
   {- it's a word index, similar should be the same as in InvertedIndex, not as in an int index
   lookupRangeSc k1 k2 m
     = L.map scoreWord $ lookupRange k1 k2 m
@@ -180,7 +182,7 @@ instance Index SimplePrefixTreeIndex where
         scoreWord (w, r)
             = (w, (similarRangeInt k1 k2 w, r))
   -- -}
-  
+
   unionWith op (SimplePTIx i1) (SimplePTIx i2)
     = mkSimplePTIx $ unionWith op i1 i2
 

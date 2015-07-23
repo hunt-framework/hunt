@@ -87,10 +87,13 @@ fromHex :: String -> Maybe Int
 fromHex i@('0' : 'x' : xs)
     | length xs == 16
       &&
-      all (`elem` "0123456789abcdef") xs
+      all (`elem` alphabet) xs
         = Just . read $ i
     | otherwise
         = Nothing
+  where
+    alphabet = "0123456789abcdef" :: [Char]
+
 
 fromHex _
     = Nothing

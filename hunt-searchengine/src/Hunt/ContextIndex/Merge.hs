@@ -93,6 +93,7 @@ collectMerges isMin isMax sx
         (inLevel, rest) = List.span (\sas -> if isMin (sasLevel sas)
                                               then sasLevel sas >= -1
                                               else sasLevel sas >= level - 1.0) sx
+
         viable = List.takeWhile (\sas -> if isMin (sasLevel sas)
                                           then sasLevel sas >= -1
                                           else sasLevel sas >= level - 0.75) inLevel
