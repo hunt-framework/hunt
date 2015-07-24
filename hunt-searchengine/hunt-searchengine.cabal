@@ -106,7 +106,8 @@ library
     Hunt.ContextIndex
     Hunt.ContextIndex.Merge
     Hunt.ContextIndex.Status
-
+    Hunt.ContextIndex.Types
+    
     Hunt.Interpreter
     Hunt.Interpreter.BasicCommand
     Hunt.Interpreter.Command

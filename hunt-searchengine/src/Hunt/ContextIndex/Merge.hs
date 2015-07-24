@@ -2,6 +2,14 @@
 {-# LANGUAGE BangPatterns #-}
 module Hunt.ContextIndex.Merge where
 
+import           Hunt.Common.SegmentMap (SegmentMap, SegmentId(..))
+import qualified Hunt.Common.SegmentMap as SegmentMap
+import           Hunt.ContextIndex.Types
+import           Hunt.DocTable (DocTable)
+import           Hunt.Index.Schema
+import           Hunt.Segment
+import           Hunt.Utility
+
 import           Control.Applicative
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
@@ -11,43 +19,6 @@ import           Data.Monoid
 import           Data.Ord
 import           Data.Set (Set)
 import qualified Data.Set as Set
-
-
-import           Hunt.Common.SegmentMap (SegmentMap, SegmentId(..))
-import qualified Hunt.Common.SegmentMap as SegmentMap
-import           Hunt.Segment
-import           Hunt.DocTable (DocTable)
-import           Hunt.Index.Schema
-import           Hunt.Utility
-
-
-data MergePolicy
-  = MergePolicy { mpMergeFactor :: !Int
-                , mpMinMerge    :: !Int
-                }
-  deriving (Eq, Show)
-
-newtype MergeLock
-  = MergeLock { unMergeLock :: SegmentMap () }
-
-instance Show MergeLock where
-  show (MergeLock m) = show (SegmentMap.keys m)
-
-instance Monoid MergeLock where
-  mempty
-    = MergeLock SegmentMap.empty
-  mappend (MergeLock m1) (MergeLock m2)
-    = MergeLock (SegmentMap.unionWith (\_ _ -> ()) m1 m2)
-
-data MergeDescr dt
-  = MergeDescr { mdSegId  :: !SegmentId
-               , mdSchema :: !Schema
-               , mdSegs   :: !(SegmentMap (Segment dt))
-               }
-
-instance Show (MergeDescr dt) where
-  show (MergeDescr sid _ m)
-    = "MergeDescr { merging = " ++ show (SegmentMap.keys m) ++ ", to = " ++ show sid ++ " }"
 
 data SegmentAndLevel dt
   = SegmentAndLevel { sasLevel :: !Float

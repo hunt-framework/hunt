@@ -62,9 +62,9 @@ import qualified Hunt.Common.DocIdSet as DocIdSet
 import           Hunt.Common.Document as Doc
 import           Hunt.Common.SegmentMap (SegmentMap, SegmentId(..))
 import qualified Hunt.Common.SegmentMap as SegmentMap
-import           Hunt.ContextIndex.Merge (MergeDescr(..), MergeLock, MergePolicy(..))
 import qualified Hunt.ContextIndex.Merge as Merge
 import           Hunt.ContextIndex.Status
+import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as DocTable
 import qualified Hunt.Index as Ix
@@ -88,26 +88,6 @@ import qualified Data.Set as Set
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Traversable as Trav
-
-data ContextIndex dt
-  = ContextIndex { ciSegments      :: !(SegmentMap (Segment dt))
-                 , ciSchema        :: !Schema
-                 , ciNextSegmentId :: !SegmentId
-                 , ciMergeLock     :: !MergeLock
-                 }
-
-instance Binary (ContextIndex dt) where
-  get = undefined
-  put = undefined
-
-newtype ApplyMerge dt
-  = ApplyMerge { applyMerge  :: ContextIndex dt -> ContextIndex dt }
-
-instance Monoid (ApplyMerge dt) where
-  mempty
-    = ApplyMerge id
-  mappend (ApplyMerge f) (ApplyMerge g)
-    = ApplyMerge (f . g)
 
 empty :: DocTable dt => ContextIndex dt
 empty
@@ -170,7 +150,7 @@ insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
            -> m (ContextIndex dt)
 insertList docAndWords ixx
   = do newSeg <- Segment.fromDocsAndWords (ciSchema ixx) docAndWords
-       return $! ixx { ciSegments      =
+       return $! ixx { ciSegments     =
                            SegmentMap.insert (ciNextSegmentId ixx) newSeg (ciSegments ixx)
                      , ciNextSegmentId = succ (ciNextSegmentId ixx)
                      }

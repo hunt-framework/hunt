@@ -222,10 +222,7 @@ deleteDocsByURI uris s
   = do dx <- mapM (\uri ->
                      fmap (fmap DocIdSet.singleton) (lookupDocumentByURI uri s)
                   ) (Set.toList uris)
-       return $
-         case mconcat dx of
-           Just dIds -> deleteDocs dIds s
-           Nothing   -> s
+       return $ maybe s (`deleteDocs` s) (mconcat dx)
 
 fromDocsAndWords :: (Par.MonadParallel m, Applicative m, DocTable dt)
                  => Schema

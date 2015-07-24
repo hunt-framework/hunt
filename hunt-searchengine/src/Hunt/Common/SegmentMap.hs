@@ -3,6 +3,7 @@
 module Hunt.Common.SegmentMap where
 
 import           Control.Arrow
+import           Data.Binary
 import           Data.Foldable (Foldable)
 import           Data.IntMap.BinTree.Strict (IntMap)
 import qualified Data.IntMap.BinTree.Strict as IntMap
@@ -11,14 +12,14 @@ import           Data.Traversable (Traversable)
 
 newtype SegmentId
   = SegmentId { unSegmentId :: Int }
-    deriving (Enum, Eq, Ord)
+    deriving (Binary, Enum, Eq, Ord)
 
 instance Show SegmentId where
   show = show . unSegmentId
 
 newtype SegmentMap a
   = SegmentMap { unSegmentMap :: IntMap a }
-    deriving (Functor, Foldable, Traversable)
+    deriving (Binary, Functor, Foldable, Traversable)
 
 instance Monoid a => Monoid (SegmentMap a) where
   mempty = SegmentMap IntMap.empty
