@@ -51,6 +51,7 @@ import           Hunt.Common.ApiDocument as ApiDoc
 import           Hunt.Common.BasicTypes (Context, URI)
 import qualified Hunt.Common.DocDesc as DocDesc
 import qualified Hunt.Common.DocIdSet as DocIdSet
+import qualified Hunt.Common.DocIdMap as DocIdMap
 import           Hunt.Common.Document (Document (..), unwrap)
 import           Hunt.ContextIndex             (ContextIndex, MergeLock,
                                                 ApplyMerge(..), MergePolicy(..))
@@ -78,7 +79,8 @@ import           Hunt.Query.Processor          (ProcessConfig (..),
                                                 processQueryUnScoredDocs)
 import           Hunt.Scoring.SearchResult     (ScoredDocs, UnScoredDocs,
                                                 searchResultToOccurrences,
-                                                unScoredDocsToDocIdSet)
+                                                unScoredDocsToDocIdSet,
+                                                scoredDocsToDocIdSet)
 import           Hunt.Utility (showText)
 import           Hunt.Utility.Log
 
@@ -535,19 +537,23 @@ checkApiDocExistence switch apidoc ixx
                    else "document does not exist: "
                )
 
-execSearch :: DocTable dt =>
-              Query ->
-              Int -> Int ->
-              Bool -> Maybe [Text] ->
-              ContextIndex dt ->
-              Hunt dt CmdResult
-
+execSearch :: DocTable dt
+           => Query
+           -> Int
+           -> Int
+           -> Bool
+           -> Maybe [Text]
+           -> ContextIndex dt
+           -> Hunt dt CmdResult
 execSearch q offset mx wg fields ixx
     = do debugM ("execSearch: " ++ show q)
          cfg    <- asks huntQueryCfg
          scDocs <- liftHunt $
                    runQueryScoredDocsM ixx cfg q
-         formatPage <$> toDocsResult (liftIO . fmap (fmap unwrap)  . flip CIx.lookupDocument ixx) scDocs
+         docs   <- liftIO $
+                   CIx.selectDocuments (scoredDocsToDocIdSet scDocs) ixx
+         formatPage <$> toDocsResult (
+           return . fmap unwrap . flip DocIdMap.lookup docs) scDocs
     where
       formatPage ds
           = ResSearch $

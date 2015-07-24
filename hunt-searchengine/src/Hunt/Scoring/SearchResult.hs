@@ -143,6 +143,10 @@ docIdsToScoredDocs :: DocIdSet -> ScoredDocs
 docIdsToScoredDocs
   = SDS . DM.fromDocIdSet (\_ -> defScore)
 
+scoredDocsToDocIdSet :: ScoredDocs -> DocIdSet
+scoredDocsToDocIdSet (SDS dim)
+  = DS.fromList (DM.keys dim)
+
 -- ------------------------------------------------------------
 
 -- | The result type for unscored search of documents

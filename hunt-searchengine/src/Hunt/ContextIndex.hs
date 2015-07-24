@@ -327,7 +327,7 @@ delete' :: (Par.MonadParallel m, DocTable dt)
         -> ContextIndex dt
         -> m (ContextIndex dt)
 delete' dIds ixx
-  = do sm <- Trav.mapM (return . Segment.deleteDocs dIds) (ciSegments ixx)
+  = do sm <- Trav.for (ciSegments ixx) (return . Segment.deleteDocs dIds)
        return ixx { ciSegments = sm }
 
 -- | Delete a set of documents by 'URI'.
