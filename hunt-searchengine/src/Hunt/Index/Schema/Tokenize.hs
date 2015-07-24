@@ -1,5 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
-module Hunt.Index.Schema.Tokenize where
+module Hunt.Index.Schema.Tokenize(
+    alphaTokenizer
+  , digitTokenizer
+  , regexTokenizer
+  , separatorTokenizer
+  , spaceTokenizer
+  ) where
 
 import           Hunt.Common.BasicTypes
 

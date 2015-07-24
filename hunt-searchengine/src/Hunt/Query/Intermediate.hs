@@ -347,17 +347,19 @@ limitRawResult maxDocs rs
 -- This list may be further sorted by score, partitioned into pages or ...
 
 toDocsResult :: (Applicative m, Monad m) =>
-                (DocId -> m (Maybe Document)) -> ScoredDocs -> m [RankedDoc]
+                (DocId -> Maybe Document) -> ScoredDocs -> m [RankedDoc]
 toDocsResult dt (SDS m)
-    = mapM toDoc (DM.toList m)
+    = return $ fmap toDoc (DM.toList m)
       where
         toDoc (did, sc)
-            = (toD . fromJust') <$> dt did
+            = (toD . fromJust' . dt) did
             where
               toD d
                   = RD (wght d * sc, d)
         fromJust' (Just x) = x
         fromJust' Nothing  = error "Intermediate.toDocsResult: undefined"
+{-# INLINE toDocsResult #-}
+
 -- ----------------------------------------
 -- ranking of documents
 

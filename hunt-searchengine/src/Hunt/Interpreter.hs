@@ -552,8 +552,8 @@ execSearch q offset mx wg fields ixx
                    runQueryScoredDocsM ixx cfg q
          docs   <- liftIO $
                    CIx.selectDocuments (scoredDocsToDocIdSet scDocs) ixx
-         formatPage <$> toDocsResult (
-           return . fmap unwrap . flip DocIdMap.lookup docs) scDocs
+         formatPage <$>
+           toDocsResult (fmap unwrap . flip DocIdMap.lookup docs) scDocs
     where
       formatPage ds
           = ResSearch $
