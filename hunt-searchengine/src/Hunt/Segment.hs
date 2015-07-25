@@ -69,12 +69,6 @@ instance Monoid SegmentDiff where
   mappend (SegmentDiff dids1 ctx1) (SegmentDiff dids2 ctx2)
     = SegmentDiff (dids1 <> dids2) (ctx1 <> ctx2)
 
-newContextMap' :: Schema -> ContextMap
-newContextMap' = ContextMap . Map.map (newIx . ctIxImpl . cxType)
-  where
-    newIx :: Ix.IndexImpl -> Ix.IndexImpl
-    newIx (Ix.IndexImpl i) = Ix.mkIndex (Ix.empty `asTypeOf` i)
-
 -- | Marks given documents as deleted.
 --
 deleteDocs :: DocIdSet -> Segment dt -> Segment dt
@@ -291,11 +285,18 @@ mkContextMap :: (Functor m, Par.MonadParallel m)
              => Schema
              -> [(DocId, Words)]
              -> m ContextMap
-mkContextMap schema []
-  = return (newContextMap' schema)
 mkContextMap schema vs
-  = ContextMap <$> mapWithKeyMP foldInsertList (cxMap (newContextMap' schema))
+  = case vs of
+      [] -> return (newContextMap' schema)
+      _  -> ContextMap <$> mapWithKeyMP foldInsertList (cxMap
+                                                        (newContextMap' schema))
   where
+    newContextMap' :: Schema -> ContextMap
+    newContextMap' = ContextMap . Map.map (newIx . ctIxImpl . cxType)
+      where
+        newIx :: Ix.IndexImpl -> Ix.IndexImpl
+        newIx (Ix.IndexImpl i) = Ix.mkIndex (Ix.empty `asTypeOf` i)
+
     foldInsertList :: (Functor m, Monad m)
                    => Context
                    -> Ix.IndexImpl
