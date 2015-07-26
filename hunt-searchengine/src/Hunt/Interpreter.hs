@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE ConstraintKinds            #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -231,7 +232,7 @@ modIx :: DocTable dt
 modIx f = do
   ref <- asks huntIndex
   ix <- liftIO $ takeXMVarWrite ref
-  (i',a) <- f ix `catchError` putBack ref ix
+  (!i',a) <- f ix `catchError` putBack ref ix
   liftIO $ putXMVarWrite ref i'
   return a
   where
