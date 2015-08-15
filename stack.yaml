@@ -13,4 +13,4 @@ extra-deps:
   - hxt-xpath-9.1.2.2
   - hxt-cache-9.1.0.1
   - docopt-0.7.0.2
-resolver: lts-2.17
+resolver: lts-3.0

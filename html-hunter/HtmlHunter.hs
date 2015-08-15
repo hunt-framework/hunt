@@ -1,5 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE FlexibleContexts   #-}
+
 
 -- ------------------------------------------------------------
 
@@ -342,7 +344,6 @@ getContexts
             then return $ map (first T.pack) defCx
             else mapM compSelect cx
     where
-
       compSelect cxSpec
           = do CM.when (not . match "\\p{L}(\\p{L}|\\p{N}|_)*" $ cx) $
                  throwError (unwords ["context name must be an identifier, found"

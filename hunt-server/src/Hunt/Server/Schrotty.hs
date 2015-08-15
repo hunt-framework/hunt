@@ -28,19 +28,21 @@ module Hunt.Server.Schrotty
 )
 where
 
+import           Control.Monad.IO.Class
+
 import           Network.HTTP.Types
-import           Network.Wai.Handler.Warp   (Port)
+import           Network.Wai.Handler.Warp (Port)
 
-import           Web.Scotty.Trans           hiding (jsonData, param)
-import qualified Web.Scotty.Trans           as Scotty
+import           Web.Scotty.Trans hiding (jsonData, param)
+import qualified Web.Scotty.Trans as Scotty
 
-import           Data.Text.Lazy             (Text)
-import qualified Data.Text.Lazy             as TL
+import           Data.Text.Lazy (Text)
+import qualified Data.Text.Lazy as TL
 
-import           Data.Aeson                 as A
-import           Data.Aeson.Encode.Pretty   as AP
+import           Data.Aeson as A
+import           Data.Aeson.Encode.Pretty as AP
 
-import           Hunt.Interpreter.Command   (CmdError (..))
+import           Hunt.Interpreter.Command (CmdError (..))
 import           Hunt.Server.Common
 
 -- ------------------------------------------------------------
@@ -101,7 +103,7 @@ jsonPretty v = do
   raw $ AP.encodePretty v
 
 -- | Replacement for 'Web.Scotty.jsonData' with custom error.
-jsonData :: (FromJSON a, Monad m) => ActionSchrottyT m a
+jsonData :: (FromJSON a, MonadIO m) => ActionSchrottyT m a
 jsonData = do
   b <- body
   case A.eitherDecode b of
@@ -117,10 +119,10 @@ param p = Scotty.param p
 
 -- | Start schrotty.
 schrotty :: Port -> ScottyT WebError IO () -> IO ()
-schrotty p a = Scotty.scottyT p id id $ defaultHandler handleCustomError >> a
+schrotty p a = Scotty.scottyT p id $ defaultHandler handleCustomError >> a
 
 -- | Start schrotty with options.
 schrottyOpts :: Options -> ScottyT WebError IO () -> IO ()
-schrottyOpts o a = Scotty.scottyOptsT o id id $ defaultHandler handleCustomError >> a
+schrottyOpts o a = Scotty.scottyOptsT o id $ defaultHandler handleCustomError >> a
 
 -- ------------------------------------------------------------
