@@ -12,8 +12,6 @@ where
 
 import           Numeric
 
-import           Control.Applicative           hiding ((<|>))
-
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
 

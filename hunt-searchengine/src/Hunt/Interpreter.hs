@@ -29,10 +29,9 @@ module Hunt.Interpreter
   )
 where
 
-import           Control.Applicative
 import           Control.Arrow (second)
 import           Control.Concurrent.XMVar
-import           Control.Monad.Error
+import           Control.Monad.Except
 import           Control.Monad.Reader
 import           Control.Concurrent
 
@@ -54,11 +53,10 @@ import qualified Hunt.Common.DocDesc as DocDesc
 import qualified Hunt.Common.DocIdSet as DocIdSet
 import qualified Hunt.Common.DocIdMap as DocIdMap
 import           Hunt.Common.Document (Document (..), unwrap)
-import           Hunt.ContextIndex             (ContextIndex, MergeLock,
+import           Hunt.ContextIndex             (ContextIndex,
                                                 ApplyMerge(..), MergePolicy(..))
 import qualified Hunt.ContextIndex as CIx
 import           Hunt.DocTable (DocTable)
-import qualified Hunt.DocTable as DocTable
 import           Hunt.DocTable.HashedDocTable
 import qualified Hunt.Index as Ix
 import           Hunt.Index.IndexImpl (IndexImpl (..), mkIndex)
@@ -86,7 +84,7 @@ import           Hunt.Utility (showText)
 import           Hunt.Utility.Log
 
 import           System.IO.Error               (isAlreadyInUseError,
-                                                isDoesNotExistError,
+--                                                isDoesNotExistError,
                                                 isFullError, isPermissionError,
                                                 tryIOError)
 import qualified System.Log.Logger as Log
@@ -197,7 +195,7 @@ initHuntEnv ixx mp opt tk ns qc = do
 -- | The Hunt transformer monad. Allows a custom monad to be embedded to combine with other DSLs.
 
 newtype HuntT dt m a
-    = HuntT { runHuntT :: ReaderT (HuntEnv dt) (ErrorT CmdError m) a }
+    = HuntT { runHuntT :: ReaderT (HuntEnv dt) (ExceptT CmdError m) a }
       deriving
       (Applicative, Monad, MonadIO, Functor, MonadReader (HuntEnv dt), MonadError CmdError)
 
@@ -212,12 +210,12 @@ type Hunt dt = HuntT dt IO
 -- | Run the Hunt monad with the supplied environment/state.
 
 runHunt :: DocTable dt => HuntT dt m a -> HuntEnv dt -> m (Either CmdError a)
-runHunt env = runErrorT . runReaderT (runHuntT env)
+runHunt env = runExceptT . runReaderT (runHuntT env)
 
 -- | Run the command the supplied environment/state.
 runCmd :: (DocTable dt, Binary dt) => HuntEnv dt -> Command -> IO (Either CmdError CmdResult)
 runCmd env cmd
-  = runErrorT . runReaderT (runHuntT . execCmd $ cmd) $ env
+  = runExceptT . runReaderT (runHuntT . execCmd $ cmd) $ env
 
 -- | Get the context index.
 askIx :: DocTable dt => Hunt dt (ContextIndex dt)
@@ -245,9 +243,9 @@ modIx f = do
 --
 --   /Note/: This does not fix the memory issues on load entirely because the old index might
 --   still be referenced by a concurrent read operation.
-modIxLocked :: DocTable dt
+_modIxLocked :: DocTable dt
             => (ContextIndex dt -> Hunt dt (ContextIndex dt, a)) -> Hunt dt a
-modIxLocked f = do
+_modIxLocked f = do
   ref <- asks huntIndex
   ix <- liftIO $ takeXMVarLock ref
   (i',a) <- f ix `catchError` putBack ref ix
@@ -304,11 +302,10 @@ tryMergeWith action
        mp     <- asks huntMergePolicy
        ixref  <- asks huntIndex
        (merges, ixx') <- CIx.tryMerge mp ixx
-       liftIO $ forkIO $ do
+       _ <- liftIO $ forkIO $ do
          --debugM $ "Merging: " ++ show mergeLock
          merged <- mconcat <$> mapM CIx.runMerge merges
-         modifyXMVar_ ixref $ \ixx ->
-           return (applyMerge merged ixx)
+         modifyXMVar_ ixref (return . applyMerge merged)
          --debugM "Merging done"
        return ixx'
 
@@ -652,10 +649,10 @@ execStore filename x = do
 --   time. This is still possible if a read operation lasts as long as loading the index.
 
 execLoad :: (Binary dt, DocTable dt) => FilePath -> Hunt dt CmdResult
-execLoad filename = undefined
+execLoad _filename = undefined
 
-execSnapshot :: (Binary dt, DocTable dt) => ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
-execSnapshot ixx
+_execSnapshot :: (Binary dt, DocTable dt) => ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
+_execSnapshot ixx
   = do return (ixx, ResOK)
 
 -- ------------------------------------------------------------
@@ -727,7 +724,7 @@ execStatus StatusGC
 execStatus StatusDocTable
     = withIx dumpDocTable
       where
-        dumpDocTable ixx
+        dumpDocTable _ixx
             = ResGeneric <$> undefined
               -- DocTable.toJSON'DocTable (CIx.docTable ixx)
 

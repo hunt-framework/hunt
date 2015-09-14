@@ -24,7 +24,6 @@ import           Data.Bijection
 import           Data.Bijection.Instances ()
 import           Data.Binary              (Binary (..))
 import qualified Data.List                as L
-import           Data.Monoid              (Monoid(..))
 import qualified Data.StringMap.Strict    as SM
 import           Data.Text                (Text)
 import           Data.Typeable

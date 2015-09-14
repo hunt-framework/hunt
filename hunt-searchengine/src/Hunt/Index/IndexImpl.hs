@@ -18,7 +18,6 @@
 
 module Hunt.Index.IndexImpl where
 
-import           Control.Applicative         ((<$>))
 import           Control.DeepSeq
 import           Control.Monad
 

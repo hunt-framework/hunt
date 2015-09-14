@@ -11,7 +11,6 @@
 
 module Hunt.Common.Positions where
 
-import           Control.Applicative    ((<$>))
 import           Control.DeepSeq
 
 import           Data.Aeson
@@ -19,7 +18,6 @@ import           Data.Binary            as B
 import qualified Data.IntSet.Packed     as IS
 import           Data.IntSet.Cache      as IS
 import           Data.Maybe             (fromMaybe)
-import           Data.Monoid            (Monoid(..))
 import           Data.Typeable
 
 import           Hunt.Common.BasicTypes

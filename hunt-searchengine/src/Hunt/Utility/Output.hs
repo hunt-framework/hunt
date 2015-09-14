@@ -11,7 +11,6 @@ import           Control.Monad.IO.Class
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
 import qualified Data.ByteString.Lazy       as LB
-import           Data.Monoid
 import           Data.Text                  ()
 
 import           System.FilePath            ()

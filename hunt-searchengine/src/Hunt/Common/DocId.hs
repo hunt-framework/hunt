@@ -18,8 +18,6 @@
 module Hunt.Common.DocId
 where
 
-import           Control.Applicative
-
 import           Data.Aeson
 import           Data.Binary          (Binary (..))
 import qualified Data.Binary          as B

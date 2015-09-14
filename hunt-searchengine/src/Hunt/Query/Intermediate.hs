@@ -49,7 +49,6 @@ where
 
 import           Prelude hiding (null, Word)
 
-import           Control.Applicative hiding (empty)
 import           Control.Arrow (second, (***))
 
 import           Data.Aeson
@@ -59,7 +58,7 @@ import qualified Data.List as L
 import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Maybe
-import           Data.Monoid (Monoid(..),(<>))
+import           Data.Monoid
 import           Data.Ord
 
 import           Hunt.Common.BasicTypes

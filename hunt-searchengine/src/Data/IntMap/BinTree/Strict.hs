@@ -4,7 +4,6 @@
 
 module Data.IntMap.BinTree.Strict where
 
-import           Control.Applicative (Applicative (..), (<$>))
 import           Control.DeepSeq
 import           Control.Monad
 
@@ -12,7 +11,6 @@ import           Data.Binary         (Binary (..), getWord8)
 import qualified Data.Foldable       as F
 import qualified Data.IntSet         as S
 import qualified Data.List           as L
-import           Data.Traversable    (Traversable (..))
 import           Data.Typeable
 import           Data.Word           (Word8)
 
@@ -419,8 +417,8 @@ intersectionWithSplit :: (Key -> a -> b)
                       -> Tree b
 intersectionWithSplit _ _ Empty _
   = Empty
-intersectionWithSplit f splitter t1 s1
-  = intersect t1 s1
+intersectionWithSplit f splitter t t'
+  = intersect t t'
   where
     intersect Empty _ = Empty
     intersect t1   s1 = join' kv' (intersect l l') (intersect r r')

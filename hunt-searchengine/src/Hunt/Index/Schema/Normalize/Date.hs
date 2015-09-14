@@ -38,7 +38,6 @@ module Hunt.Index.Schema.Normalize.Date
   )
 where
 
-import           Control.Applicative
 import           Control.Monad
 
 import           Data.List
@@ -52,7 +51,7 @@ import           Data.Ratio                  ((%))
 import           Data.Time                   (Day, DiffTime, UTCTime (..),
                                               addUTCTime, fromGregorian)
 
-import           Text.Regex.XMLSchema.String
+import           Text.Regex.XMLSchema.Generic
 
 import           Hunt.Utility
 

@@ -45,7 +45,7 @@ module Hunt.Server
   )
 where
 
-import           Control.Monad.Error
+import           Control.Monad.Except
 import           Data.String                          (fromString)
 
 import           Data.Text                            (Text)
@@ -150,14 +150,14 @@ start config = do
         Left err -> fail $ show err
     Nothing -> return ()
 
-  let options = Schrotty.Options
+  let opts = Schrotty.Options
         { verbose  = 1
         , settings = W.setHost (fromString $ huntServerHost config)
                    $ W.setPort (huntServerPort config)
                    $ W.defaultSettings
         }
   -- start schrotty
-  schrottyOpts options $ do
+  schrottyOpts opts $ do
 
     -- request / response logging
     middleware logStdoutDev

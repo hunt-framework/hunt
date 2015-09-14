@@ -10,8 +10,6 @@ module Hunt.Index.Schema.Tokenize(
 import           Hunt.Common.BasicTypes
 
 import qualified Data.Char as Char
-import qualified Data.List as List
-import           Data.Text (Text)
 import qualified Data.Text as Text
 import           Data.Text.Internal
 import           Data.Text.Unsafe

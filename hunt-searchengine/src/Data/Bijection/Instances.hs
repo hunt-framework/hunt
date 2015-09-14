@@ -1,7 +1,6 @@
 {-# OPTIONS -fno-warn-orphans     #-}
 {-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverlappingInstances  #-}
 
 -- ----------------------------------------------------------------------------
 {- |

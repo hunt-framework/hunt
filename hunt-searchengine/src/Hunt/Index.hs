@@ -25,7 +25,6 @@ import           Control.DeepSeq
 
 import           Data.Binary               (Binary)
 import qualified Data.List                 as L
-import           Data.Monoid               (Monoid)
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId

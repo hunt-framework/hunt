@@ -10,15 +10,10 @@ import           Hunt.Index.Schema
 import           Hunt.Segment
 import           Hunt.Utility
 
-import           Control.Applicative
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import qualified Data.List as List
-import qualified Data.Map.Strict as Map
-import           Data.Monoid
 import           Data.Ord
-import           Data.Set (Set)
-import qualified Data.Set as Set
 
 data SegmentAndLevel dt
   = SegmentAndLevel { sasLevel :: !Float
@@ -54,8 +49,8 @@ collectMerges :: Monad m
               -> (Float -> Bool)
               -> [SegmentAndLevel dt]
               -> m [[SegmentAndLevel dt]]
-collectMerges isMin isMax sx
-  = return (collect sx [])
+collectMerges isMin _isMax segments
+  = return (collect segments [])
   where
     collect [] !acc = acc
     collect sx !acc = collect rest (viable:acc)
@@ -131,7 +126,7 @@ selectMerges policy lock schema nextSid segments
 --   when applied to a `ContextIndex` makes the merged segment visible
 --
 runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (Segment dt)
-runMerge (MergeDescr segmentId schema segments)
+runMerge (MergeDescr _segmentId schema segments)
   = do foldM1' (mergeSegments schema) (SegmentMap.elems segments)
 
 releaseLock :: MergeLock -> SegmentMap a -> MergeLock

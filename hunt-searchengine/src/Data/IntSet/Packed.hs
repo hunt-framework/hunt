@@ -1,7 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE BangPatterns #-}
-{-# ghc-options: -O2 #-}
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -23,6 +22,7 @@ module Data.IntSet.Packed
   , null
   , size
   , member
+  , notMember
   , foldr
   , minimum
   , split
@@ -33,27 +33,22 @@ module Data.IntSet.Packed
   , toAscList
   , difference
   , union
+  , fromAscList
   , intersection
   )
 where
 
 import           Prelude hiding (null, foldr, minimum, filter)
 
-import           Control.Applicative hiding (empty)
 import           Control.DeepSeq
-import           Control.Monad
-import           Control.Monad (mzero)
 import           Control.Monad.ST
 
 import           Data.Aeson
 import           Data.Aeson.Types
 import qualified Data.IntSet as S
-import qualified Data.List as L
-import           Data.Monoid (Monoid (..))
 import           Data.Typeable
 import           Data.Binary (Binary (..))
 import           Data.Bits
-import qualified Data.Foldable as Foldable
 
 import qualified Data.Vector as VVector
 import qualified Data.Vector.Algorithms.Intro as Sort
@@ -140,36 +135,34 @@ minimum (DIS1 v)
 {-# INLINE minimum #-}
 
 split' :: Int -> IntSet -> (Maybe Int, IntSet, IntSet)
-split' n (DIS1 v) = (x, DIS1 l, DIS1 r)
+split' n (DIS1 v) = loop 0 (Vector.length v)
   where
     splitVec i = Vector.splitAt i v
-    (x, l, r) = loop 0 (Vector.length v)
-    loop !l !u
-      | u <= l    = let (l', r) = splitVec l  in (Nothing, l', r)
+    loop !lb !ub
+      | ub <= lb    = let (l, r) = splitVec lb  in (Nothing, DIS1 l, DIS1 r)
       | otherwise =
           case (compare (v `Vector.unsafeIndex` k) n) of
-            LT -> loop (k + 1) u
+            LT -> loop (k + 1) ub
             EQ -> let
               (l, r) = splitVec k
-              in (Just (Vector.head r), l, Vector.tail r)
-            GT -> loop l k
+              in (Just (Vector.head r), DIS1 l, DIS1 (Vector.tail r))
+            GT -> loop lb k
       where
-        k = (u + l) `unsafeShiftR` 1
+        k = (ub + lb) `unsafeShiftR` 1
 {-# INLINE split' #-}
 
 split :: Int -> IntSet -> (IntSet, IntSet)
-split n (DIS1 v) = (DIS1 l, DIS1 r)
+split n (DIS1 v) = loop 0 (Vector.length v)
   where
-    (l, r) = Vector.splitAt (loop 0 (Vector.length v)) v
-    loop !l !u
-      | u <= l    = l
+    loop !lb !ub
+      | ub <= lb  = let (l, r) = Vector.splitAt lb v in (DIS1 l, DIS1 r)
       | otherwise =
           case (compare (v `Vector.unsafeIndex` k) n) of
-            LT -> loop (k + 1) u
-            EQ -> k
-            GT -> loop l k
+            LT -> loop (k + 1) ub
+            EQ -> let (l, r) = Vector.splitAt lb v in (DIS1 l, DIS1 r)
+            GT -> loop lb k
       where
-        k = (u + l) `unsafeShiftR` 1
+        k = (ub + lb) `unsafeShiftR` 1
 {-# INLINE split #-}
 
 fromList :: [Int] -> IntSet
@@ -226,8 +219,8 @@ differenceStream :: Ord a
                 => Stream.Stream Stream.Id a
                 -> Stream.Stream Stream.Id a
                 -> Stream.Stream Stream.Id a
-differenceStream (Stream.Stream next1 s1 n1) (Stream.Stream next2 s2 n2)
-  = Stream.Stream next (D1 s1 s2) (Stream.toMax n1)
+differenceStream (Stream.Stream next1 s n1) (Stream.Stream next2 s' _n2)
+  = Stream.Stream next (D1 s s') (Stream.toMax n1)
   where
     {-# INLINE next #-}
     next (D1 s1 s2)
@@ -259,8 +252,8 @@ intersectStream :: Ord a
                 => Stream.Stream Stream.Id a
                 -> Stream.Stream Stream.Id a
                 -> Stream.Stream Stream.Id a
-intersectStream (Stream.Stream next1 s1 n1) (Stream.Stream next2 s2 n2)
-  = Stream.Stream next (I1 s1 s2) (Stream.smaller n1 n2)
+intersectStream (Stream.Stream next1 s n1) (Stream.Stream next2 s' n2)
+  = Stream.Stream next (I1 s s') (Stream.smaller n1 n2)
   where
     {-# INLINE next #-}
     next (I1 s1 s2)
@@ -288,8 +281,8 @@ unionStream :: Ord a
             => Stream.Stream Stream.Id a
             -> Stream.Stream Stream.Id a
             -> Stream.Stream Stream.Id a
-unionStream (Stream.Stream next1 s1 n1) (Stream.Stream next2 s2 n2)
-  = Stream.Stream next (U1 s1 s2) (Stream.toMax(n1 + n2))
+unionStream (Stream.Stream next1 s n1) (Stream.Stream next2 s' n2)
+  = Stream.Stream next (U1 s s') (Stream.toMax(n1 + n2))
   where
     {-# INLINE next #-}
     next (U1 s1 s2)

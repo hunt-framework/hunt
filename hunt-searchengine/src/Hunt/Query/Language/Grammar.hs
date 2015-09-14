@@ -27,7 +27,6 @@ module Hunt.Query.Language.Grammar
     )
 where
 
-import           Control.Applicative
 import           Control.Monad
 
 import           Data.Aeson

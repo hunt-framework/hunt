@@ -22,7 +22,6 @@ import           Data.Map                    (Map)
 import qualified Data.Map                    as M
 import           Data.Maybe                  (fromJust, fromMaybe)
 import           Data.Text                   (Text)
-import qualified Data.Text                   as T
 
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes

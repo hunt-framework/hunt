@@ -38,7 +38,6 @@ import           Data.Binary (Binary (..))
 import qualified Data.IntSet as IS
 import qualified Data.IntSet.Packed as S
 import qualified Data.List as L
-import           Data.Monoid (Monoid (..))
 import           Data.Typeable
 import           Hunt.Common.DocId
 

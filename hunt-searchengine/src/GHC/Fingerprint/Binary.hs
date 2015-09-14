@@ -8,8 +8,6 @@
 
 module GHC.Fingerprint.Binary where
 
-import           Control.Applicative
-
 import           Data.Binary
 
 import           GHC.Fingerprint.Type

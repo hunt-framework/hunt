@@ -13,7 +13,7 @@ import           Hunt.Common.DocIdSet (DocIdSet)
 import qualified Hunt.Common.DocIdSet as DocIdSet
 import           Hunt.Common.Occurrences (Occurrences)
 import qualified Hunt.Common.Occurrences as Occ
-import           Hunt.Common.SegmentMap (SegmentMap, SegmentId(..))
+import           Hunt.Common.SegmentMap (SegmentMap)
 import qualified Hunt.Common.SegmentMap as SegmentMap
 import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as DocTable
@@ -23,16 +23,10 @@ import           Hunt.Index.Schema
 import qualified Hunt.Scoring.SearchResult as SearchResult
 import           Hunt.Utility
 
-import           Control.Applicative
 import           Control.Arrow
 import           Control.Monad
 import           Control.Monad.IO.Class
 import qualified Control.Monad.Parallel as Par
-import qualified Data.Binary.Put as Put
-import qualified Data.ByteString.Lazy as LByteString
-import           Data.Foldable (Foldable)
-import           Data.IntMap.Strict (IntMap)
-import qualified Data.IntMap.Strict as IntMap
 import qualified Data.List as List
 import           Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
@@ -40,12 +34,6 @@ import           Data.Maybe
 import           Data.Monoid
 import           Data.Set (Set)
 import qualified Data.Set as Set
-import qualified Data.Text as Text
-import           Data.Traversable (Traversable)
-import qualified Data.Traversable as Trav
-import           System.FilePath
-import           System.IO
-import qualified Text.Printf as Printf
 import           Unsafe.Coerce
 
 newtype ContextMap
@@ -336,7 +324,7 @@ mergeSegments schema seg1 seg2
        ContextMap m1 <- segmentCxMap seg1
        ContextMap m2 <- segmentCxMap seg2
 
-       newCxMap <- forM (Map.toList schema) $ \(cx, st) ->
+       newCxMap <- forM (Map.toList schema) $ \(cx, _st) ->
          do let cx1 = Map.lookup cx m1
                 cx2 = Map.lookup cx m2
                 newIx' = case (cx1, cx2) of
@@ -362,9 +350,9 @@ mergeSegments schema seg1 seg2
   where
     mergeIx :: (DocIdSet, Ix.IndexImpl) -> (DocIdSet, Ix.IndexImpl) -> Ix.IndexImpl
     mergeIx (dd1, Ix.IndexImpl ix1) (dd2, Ix.IndexImpl ix2)
-      = Ix.mkIndex $ Ix.unionWith concat ix1 (unsafeCoerce ix2)
+      = Ix.mkIndex $ Ix.unionWith union ix1 (unsafeCoerce ix2)
       where
-        concat v1 v2
+        union v1 v2
           = fromMaybe mempty (v1' <> v2')
           where
             v1' = Ix.diffValues dd1 v1

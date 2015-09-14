@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, UndecidableInstances, OverlappingInstances #-}
+{-# LANGUAGE FlexibleInstances, UndecidableInstances #-}
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -16,5 +16,5 @@ module Hunt.Utility.Log where
 class LogShow e where
   logShow :: e -> String
 
-instance Show e => LogShow e where
-  logShow = show
+--instance {-# INCOHERENT #-} Show e => LogShow e where
+--  logShow = show

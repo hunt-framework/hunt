@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE Rank2Types                 #-}
 module Hunt.ContextIndex (
@@ -53,41 +53,36 @@ module Hunt.ContextIndex (
   ) where
 
 import           Hunt.Common.BasicTypes
-import qualified Hunt.Common.DocDesc as DocDesc
+import qualified Hunt.Common.DocDesc       as DocDesc
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap (DocIdMap)
-import qualified Hunt.Common.DocIdMap as DocIdMap
-import           Hunt.Common.DocIdSet (DocIdSet)
-import qualified Hunt.Common.DocIdSet as DocIdSet
-import           Hunt.Common.Document as Doc
-import           Hunt.Common.SegmentMap (SegmentMap, SegmentId(..))
-import qualified Hunt.Common.SegmentMap as SegmentMap
-import qualified Hunt.ContextIndex.Merge as Merge
+import           Hunt.Common.DocIdMap      (DocIdMap)
+import qualified Hunt.Common.DocIdMap      as DocIdMap
+import           Hunt.Common.DocIdSet      (DocIdSet)
+import qualified Hunt.Common.DocIdSet      as DocIdSet
+import           Hunt.Common.Document      as Doc
+import           Hunt.Common.SegmentMap    (SegmentId (..), SegmentMap)
+import qualified Hunt.Common.SegmentMap    as SegmentMap
+import qualified Hunt.ContextIndex.Merge   as Merge
 import           Hunt.ContextIndex.Status
 import           Hunt.ContextIndex.Types
-import           Hunt.DocTable (DocTable)
-import qualified Hunt.DocTable as DocTable
-import qualified Hunt.Index as Ix
-import qualified Hunt.Index.IndexImpl as Ix
+import           Hunt.DocTable             (DocTable)
+import qualified Hunt.DocTable             as DocTable
+import qualified Hunt.Index                as Ix
+import qualified Hunt.Index.IndexImpl      as Ix
 import           Hunt.Index.Schema
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
-import           Hunt.Segment (Segment, SegmentDiff(..))
-import qualified Hunt.Segment as Segment
+import           Hunt.Segment              (Segment, SegmentDiff (..))
+import qualified Hunt.Segment              as Segment
 
-import           Control.Applicative hiding (empty)
 import           Control.Monad.IO.Class
-import qualified Control.Monad.Parallel as Par
-import           Data.Binary
-import qualified Data.List as List
-import qualified Data.Map.Strict as Map
+import qualified Control.Monad.Parallel    as Par
+import qualified Data.List                 as List
+import qualified Data.Map.Strict           as Map
 import           Data.Maybe
-import           Data.Monoid
-import           Data.Set (Set)
-import qualified Data.Set as Set
-import           Data.Text (Text)
-import qualified Data.Text as Text
-import qualified Data.Traversable as Trav
+import           Data.Set                  (Set)
+import           Data.Text                 (Text)
+import           Data.Traversable
 
 empty :: DocTable dt => ContextIndex dt
 empty
@@ -260,8 +255,8 @@ lookupDocumentByURI :: (Par.MonadParallel m, DocTable dt)
                     => URI
                     -> ContextIndex dt
                     -> m (Maybe DocId)
-lookupDocumentByURI uri ixx
-  = do dx <- mapIxsP (Segment.lookupDocumentByURI uri) ixx
+lookupDocumentByURI docUri ixx
+  = do dx <- mapIxsP (Segment.lookupDocumentByURI docUri) ixx
        return
          . listToMaybe
          . catMaybes $ dx
@@ -307,7 +302,7 @@ delete' :: (Par.MonadParallel m, DocTable dt)
         -> ContextIndex dt
         -> m (ContextIndex dt)
 delete' dIds ixx
-  = do sm <- Trav.for (ciSegments ixx) (return . Segment.deleteDocs dIds)
+  = do sm <- for (ciSegments ixx) (return . Segment.deleteDocs dIds)
        return ixx { ciSegments = sm }
 
 -- | Delete a set of documents by 'URI'.
@@ -316,7 +311,7 @@ deleteDocsByURI :: (Par.MonadParallel m, Applicative m, DocTable dt)
                 -> ContextIndex dt
                 -> m (ContextIndex dt)
 deleteDocsByURI us ixx
-  = do sx <- Trav.for (ciSegments ixx) (Segment.deleteDocsByURI us)
+  = do sx <- for (ciSegments ixx) (Segment.deleteDocsByURI us)
        return ixx { ciSegments = sx }
 
 -- | Selects segments viable to merge but don't actually do the merge

@@ -60,7 +60,6 @@ import           Hunt.Common.BasicTypes
 import qualified Hunt.Index as Ix
 import           Hunt.Index.IndexImpl (IndexImpl, mkIndex)
 import           Hunt.Index.InvertedIndex
-import           Hunt.Index.Merge
 import           Hunt.Index.PrefixTreeIndex           ( PrefixTreeIndexInt
                                                       , PrefixTreeIndexDate
                                                       , SimplePrefixTreeIndex )
@@ -314,8 +313,8 @@ instance FromJSON CTokenizer where
                     }
 
 instance ToJSON CTokenizer where
-  toJSON (CTokenizer ctkType _)
-    = toJSON ctkType
+  toJSON (CTokenizer tt _)
+    = toJSON tt
 
 instance Binary CTokenizer where
   get = undefined

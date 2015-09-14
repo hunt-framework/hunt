@@ -19,7 +19,6 @@
 module Hunt.Common.Document
 where
 
-import           Control.Applicative
 import           Control.DeepSeq
 
 import           Data.Aeson

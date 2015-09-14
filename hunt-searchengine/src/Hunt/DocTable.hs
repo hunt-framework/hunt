@@ -13,11 +13,10 @@ where
 
 import           Prelude                hiding (filter, lookup, map, null)
 
-import           Control.Applicative    (Applicative, (<$>))
 import           Control.Monad
 
 import           Data.Aeson
-import           Data.Maybe             (catMaybes, fromJust)
+import           Data.Maybe             (catMaybes)
 import           Data.Set               (Set)
 import qualified Data.Set               as S
 

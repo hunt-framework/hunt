@@ -18,24 +18,21 @@ module Hunt.Interpreter.Command
   )
 where
 
-import           Control.Applicative
-import           Control.Monad                 (mzero)
-import           Control.Monad.Error           (Error (..))
 import           Control.DeepSeq
+import           Control.Monad                 (mzero)
 
 import           Data.Aeson
 import           Data.List
 import qualified Data.Set                      as S
 import           Data.Text                     (Text)
-import qualified Data.Text                     as T
 
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
 import           Hunt.Interpreter.BasicCommand (BasicCommand, StatusCmd (..))
 import qualified Hunt.Interpreter.BasicCommand as Cmd
-import           Hunt.Query.Language.Grammar   (Query (..))
 import           Hunt.Query.Intermediate       (RankedDoc)
+import           Hunt.Query.Language.Grammar   (Query (..))
 import           Hunt.Scoring.Score            (Score)
 import           Hunt.Utility.Log
 
@@ -156,7 +153,7 @@ instance (FromJSON a) => FromJSON (CmdRes a) where
 
 -- ------------------------------------------------------------
 
-instance LogShow Command where
+instance  LogShow Command where
   logShow (Insert doc) = "Insert {icDoc = " ++ logShow doc ++ "\", ..}"
   logShow (Update doc) = "Update {icDoc = " ++ logShow doc ++ "\", ..}"
   logShow (Sequence _) = "Sequence"
@@ -241,8 +238,8 @@ instance ToJSON CmdResult where
     where
     code i = (:) ("code" .= (i :: Int))
 
-instance Error CmdError where
-  strMsg s = ResError 500 . T.pack $ "internal server error: " ++ s
+--instance Error CmdError where
+--  strMsg s = ResError 500 . T.pack $ "internal server error: " ++ s
 
 instance ToJSON CmdError where
   toJSON (ResError c m) = object

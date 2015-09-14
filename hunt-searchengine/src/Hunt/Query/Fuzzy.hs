@@ -44,8 +44,6 @@ import           Data.Function
 import           Data.List
 import           Data.Maybe       (fromMaybe)
 
-import           Control.Applicative
-
 import           Data.Map         (Map)
 import qualified Data.Map         as M
 

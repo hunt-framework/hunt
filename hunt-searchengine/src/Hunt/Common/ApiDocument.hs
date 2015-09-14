@@ -12,7 +12,6 @@
 
 module Hunt.Common.ApiDocument where
 
-import           Control.Applicative
 import           Control.DeepSeq
 import           Control.Monad          (mzero)
 

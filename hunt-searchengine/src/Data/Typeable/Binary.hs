@@ -9,8 +9,6 @@
 
 module Data.Typeable.Binary where
 
-import           Control.Applicative
-
 import           Data.Binary
 import           Data.Typeable.Internal
 
@@ -19,6 +17,8 @@ import           GHC.Fingerprint.Binary ()
 -- ------------------------------------------------------------
 
 #if __GLASGOW_HASKELL__ < 710
+
+import           Control.Applicative
 
 instance Binary TypeRep where
   put (TypeRep fp tyCon ts) = put fp >> put tyCon >> put ts
@@ -31,7 +31,7 @@ instance Binary TyCon where
 #else
 
 instance Binary TypeRep where
-  put (TypeRep fp tyCon kindRep typeRep) = put fp >> put tyCon >> put kindRep >> put typeRep
+  put (TypeRep fp tyCon kindRep tr) = put fp >> put tyCon >> put kindRep >> put tr
   get = TypeRep <$> get <*> get <*> get <*> get
 
 instance Binary TyCon where

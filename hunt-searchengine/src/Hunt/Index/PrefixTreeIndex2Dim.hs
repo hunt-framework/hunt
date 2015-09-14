@@ -20,7 +20,6 @@ import           Control.DeepSeq
 
 import           Data.Binary               (Binary (..))
 import qualified Data.List                 as L
-import           Data.Monoid
 import           Data.Typeable
 
 import qualified Data.StringMap.Dim2Search as SM2

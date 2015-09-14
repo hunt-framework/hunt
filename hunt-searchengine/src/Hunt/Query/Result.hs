@@ -57,7 +57,7 @@ import           Prelude                 hiding (null, Word)
 import qualified Data.List               as L
 import           Data.Map                (Map)
 import qualified Data.Map                as M
-import           Data.Monoid             (Monoid(..), (<>))
+import           Data.Monoid
 import           Data.Text               (Text)
 
 import           Hunt.Common.BasicTypes  (Context, Word)

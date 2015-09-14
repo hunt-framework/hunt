@@ -4,11 +4,9 @@ module Hunt.Common.SegmentMap where
 
 import           Control.Arrow
 import           Data.Binary
-import           Data.Foldable (Foldable)
 import           Data.IntMap.BinTree.Strict (IntMap)
 import qualified Data.IntMap.BinTree.Strict as IntMap
 import           Data.Monoid
-import           Data.Traversable (Traversable)
 
 newtype SegmentId
   = SegmentId { unSegmentId :: Int }

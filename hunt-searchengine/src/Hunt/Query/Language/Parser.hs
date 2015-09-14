@@ -46,8 +46,6 @@ module Hunt.Query.Language.Parser
   )
 where
 
-import           Control.Applicative         hiding (many, (<|>))
-
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 

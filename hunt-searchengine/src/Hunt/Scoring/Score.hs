@@ -18,7 +18,7 @@ import           Control.DeepSeq
 
 import           Data.Aeson
 import           Data.Binary         hiding (Word)
-import           Data.Monoid         (Monoid (..), (<>))
+import           Data.Monoid
 
 import           Prelude             as P
 
@@ -97,7 +97,7 @@ instance Binary Score where
 -- | Common ops for scored results
 --
 -- union of results is implemented by the Monoid instance
-    
+
 class Monoid a => ScoredResult a where
   -- | boost a result by a factor
   boost            :: Score -> a -> a
@@ -119,18 +119,18 @@ class Monoid a => ScoredResult a where
   --
   -- default: restricting a result does not change the score
   differenceSC     :: a -> a -> a
-  
+
   -- | intersection of scored results
   intersectSC      :: a -> a -> a
 
   -- | intersection of scored results with respect to a context
   intersectDisplSC :: Int -> a -> a -> a
   intersectDisplSC _ = intersectSC
-  
+
   -- | fuzzy intersection of scored results
   intersectFuzzySC :: Int -> Int -> a -> a -> a
   intersectFuzzySC _ _ = intersectSC
-  
+
 -- ------------------------------------------------------------
 --
 -- aggregating (raw) results for various types of scored results
@@ -147,7 +147,7 @@ instance Aggregate a a where
 --
 -- | An arbitrary, maybe yet unscored result can be combined
 -- with a score to a scored result
-  
+
 data Scored a = SCD !Score a
               deriving (Show)
 
@@ -170,7 +170,7 @@ instance ScoredResult a => ScoredResult (Scored a) where
 
   sizeMaxSC mx (SCD _ s)
     = sizeMaxSC mx s
-      
+
   SCD s1 x1 `differenceSC` SCD _s2 x2
     = SCD s1 (x1 `differenceSC` x2)
 

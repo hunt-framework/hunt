@@ -40,8 +40,7 @@ where
 
 import           Prelude hiding (Word)
 
-import           Control.Applicative
-import           Control.Monad.Error
+import           Control.Monad.Except
 import           Control.Monad.Reader
 
 import           Data.Binary                 (Binary)
@@ -49,8 +48,7 @@ import qualified Data.Binary                 as Bin
 import           Data.Default
 import qualified Data.List                   as L
 import qualified Data.Map                    as M
-import           Data.Maybe
-import           Data.Monoid                 (Monoid(..), (<>))
+import           Data.Monoid
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
@@ -131,7 +129,7 @@ runQuery (QIx ixx) f = f ixx
 
 -- | the processor monad
 newtype ProcessorT m a
-    = PT { runProcessor :: ReaderT ProcessEnv (ErrorT CmdError m) a
+    = PT { runProcessor :: ReaderT ProcessEnv (ExceptT CmdError m) a
          }
       deriving (Applicative, Monad, MonadIO, Functor, MonadReader ProcessEnv, MonadError CmdError)
 
@@ -455,7 +453,7 @@ evalScoredRawDocs' q = trc <$> evalScoredRawDocs q
 
 processQueryScoredResult :: (q -> Processor r) -> ProcessEnv -> q -> IO (Either CmdError r)
 processQueryScoredResult eval st q
-    = runErrorT . runReaderT (runProcessor $ eval q) $ st
+    = runExceptT . runReaderT (runProcessor $ eval q) $ st
 
 
 -- ------------------------------------------------------------

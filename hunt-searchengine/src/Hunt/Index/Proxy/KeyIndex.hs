@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE OverlappingInstances       #-}
 {-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE UndecidableInstances       #-}
 
@@ -24,7 +23,6 @@ where
 
 import           Prelude                       as P
 
-import           Control.Applicative           ((<$>))
 import           Control.Arrow                 (first)
 import           Control.DeepSeq
 

@@ -58,26 +58,22 @@ import           Prelude                    hiding (filter, foldl, foldr,
                                              lookup, map, null)
 import qualified Prelude                    as P
 
-import           Control.Applicative        (Applicative (..), (<$>))
 import           Control.Arrow              (first)
 import           Control.DeepSeq
 import           Control.Monad              (foldM, mzero)
 
 import           Data.Aeson
 import           Data.Binary                (Binary (..))
-import           Data.Foldable              hiding (fold, foldl, foldr, toList, null)
 import qualified Data.HashMap.Strict        as HM
 import qualified Data.IntMap.BinTree.Strict as IM
 import qualified Data.IntSet.Packed as IntSet
 import qualified Data.List                  as L
-import           Data.Monoid                (Monoid (..), (<>))
+import           Data.Monoid
 import qualified Data.Text                  as T
 import           Data.Typeable
 
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdSet       (DocIdSet (..), toIntSet)
-import qualified Hunt.Common.DocIdSet as DocIdSet
-
+import           Hunt.Common.DocIdSet       (DocIdSet (..))
 
 -- ------------------------------------------------------------
 

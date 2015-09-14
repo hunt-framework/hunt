@@ -14,7 +14,6 @@ module Hunt.Interpreter.BasicCommand
   )
 where
 
-import           Control.Applicative
 import           Control.Monad               (mzero)
 
 import           Data.Aeson
@@ -114,7 +113,7 @@ instance FromJSON StatusCmd where
 
 instance LogShow BasicCommand where
   logShow (InsertList docs) = "InsertList " ++ show (map adUri docs)
-  logShow (Update doc) = "Update {icDoc = " ++ logShow doc ++ "\", ..}"
+  logShow (Update doc) = "Update {icDoc = " ++ (logShow :: ApiDocument -> String) doc ++ "\", ..}"
   logShow (Sequence _) = "Sequence"
   logShow o = show o
 

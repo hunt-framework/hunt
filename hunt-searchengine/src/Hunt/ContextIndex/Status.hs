@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Hunt.ContextIndex.Status where
-
+{-
 import           Data.Aeson
 import qualified Data.List as List
 import           Data.Set (Set)
@@ -15,7 +15,11 @@ import           Hunt.DocTable (DocTable)
 import qualified Hunt.DocTable as DocTable
 import           Hunt.Common.SegmentMap (SegmentMap, SegmentId(..))
 import qualified Hunt.Common.SegmentMap as SegmentMap
+-}
 
+data Status = Status
+
+status :: Status
 status = undefined
 
 
