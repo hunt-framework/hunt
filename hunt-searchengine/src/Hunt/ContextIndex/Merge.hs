@@ -21,6 +21,7 @@ import           Hunt.Segment
 import qualified Hunt.Segment            as Segment
 import           Hunt.Utility
 
+import           Control.DeepSeq
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import qualified Data.List               as List
@@ -36,6 +37,7 @@ data MergePolicy =
 
 -- | A set indicating which `Segment`s are locked for merging.
 newtype MergeLock = MergeLock (SegmentMap ())
+                    deriving (NFData)
 
 instance Show MergeLock where
   show (MergeLock m) = show (SegmentMap.keys m)
@@ -50,7 +52,7 @@ instance Monoid MergeLock where
 -- | Represents an idempotent function, applying a
 --   merged `Segment` to the `ContextIndex`.
 newtype ApplyMerge dt
-  = ApplyMerge { applyMerge  :: MergeLock -> ContextIndex dt -> (ContextIndex dt, MergeLock) }
+  = ApplyMerge { applyMerge :: MergeLock -> ContextIndex dt -> (ContextIndex dt, MergeLock) }
 
 -- | `ApplyMerge`s can be combined
 instance Monoid (ApplyMerge dt) where
@@ -215,9 +217,9 @@ tryMerge policy lock ixx
 --   `ContextIndex`. This way, the costly merge can be done asynchronously.
 runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ApplyMerge dt)
 runMerge descr
-  = do !newSeg <- runMerge' descr
-       return $
-         ApplyMerge (applyMergedSegment (mdSegId descr) (mdSegs descr) newSeg)
+  = do newSeg <- runMerge' descr
+       rnf newSeg `seq` return (
+         ApplyMerge (applyMergedSegment (mdSegId descr) (mdSegs descr) newSeg))
 
 -- | Since merging can happen asynchronously, we have to account for documents
 --   and contexts deleted while we were merging the segments.

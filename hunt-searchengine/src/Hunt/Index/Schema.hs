@@ -45,6 +45,7 @@ import           Prelude hiding (Word)
 
 import           Control.Applicative
 import           Control.Monad (mzero)
+import Control.DeepSeq
 
 import           Data.Aeson
 import           Data.Binary hiding (Word)
@@ -103,6 +104,11 @@ data ContextSchema = ContextSchema
 
 instance Default ContextSchema where
   def = ContextSchema Nothing [] 1.0 True def
+
+
+-- | FIXME: dummy instance
+instance NFData ContextSchema where
+  rnf x = x `seq` ()
 
 -- ------------------------------------------------------------
 

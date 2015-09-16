@@ -1,8 +1,9 @@
+{-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE DeriveTraversable #-}
 module Hunt.Common.SegmentMap where
 
 import           Control.Arrow
+import           Control.DeepSeq
 import           Data.Binary
 import           Data.IntMap.BinTree.Strict (IntMap)
 import qualified Data.IntMap.BinTree.Strict as IntMap
@@ -10,14 +11,14 @@ import           Data.Monoid
 
 newtype SegmentId
   = SegmentId { unSegmentId :: Int }
-    deriving (Binary, Enum, Eq, Ord)
+    deriving (Binary, Enum, Eq, Ord, NFData)
 
 instance Show SegmentId where
   show = show . unSegmentId
 
 newtype SegmentMap a
   = SegmentMap { unSegmentMap :: IntMap a }
-    deriving (Binary, Functor, Foldable, Traversable)
+    deriving (Binary, Functor, Foldable, Traversable, NFData)
 
 instance Monoid a => Monoid (SegmentMap a) where
   mempty = SegmentMap IntMap.empty

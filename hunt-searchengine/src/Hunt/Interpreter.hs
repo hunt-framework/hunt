@@ -32,6 +32,7 @@ where
 import           Control.Arrow                 (second)
 import           Control.Concurrent.STM
 import           Control.Concurrent.XMVar
+import           Control.DeepSeq
 import           Control.Monad.Except
 import           Control.Monad.Reader
 
@@ -55,8 +56,8 @@ import qualified Hunt.Common.DocIdSet          as DocIdSet
 import           Hunt.Common.Document          (Document (..), unwrap)
 import           Hunt.ContextIndex             (ContextIndex)
 import qualified Hunt.ContextIndex             as CIx
+import           Hunt.ContextIndex.Merge       (MergePolicy (..))
 import qualified Hunt.ContextIndex.Merge       as Merge
-import           Hunt.ContextIndex.Merge       (MergePolicy(..))
 import           Hunt.DocTable                 (DocTable)
 import           Hunt.DocTable.HashedDocTable
 import qualified Hunt.Index                    as Ix
@@ -82,6 +83,7 @@ import           Hunt.Scoring.SearchResult     (ScoredDocs, UnScoredDocs,
                                                 scoredDocsToDocIdSet,
                                                 searchResultToOccurrences,
                                                 unScoredDocsToDocIdSet)
+import qualified Hunt.Segment                  as Segment
 import           Hunt.Utility                  (showText)
 import           Hunt.Utility.Log
 
@@ -346,7 +348,7 @@ execCmd' (Status sc)
   = execStatus sc
 
 execCmd' (InsertList docs)
-  = modIx $ execInsertList docs
+  = execInsertList docs
 
 execCmd' (Update doc)
   = modIx $ execUpdate doc
@@ -422,24 +424,25 @@ execDeleteContext cx ixx
 -- /Note/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs must not exist.
 
-execInsertList :: DocTable dt
-                => [ApiDocument] -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
-execInsertList docs ixx
-    = do -- existence check for all referenced contexts in all docs
-         checkContextsExistence contexts ixx
+execInsertList :: DocTable dt => [ApiDocument] -> Hunt dt CmdResult
+execInsertList docs = do
+  newSeg <- withIx $ \ixx ->
+    lift $ Segment.fromDocsAndWords (CIx.schema ixx) (docsAndWords (CIx.schema ixx))
 
-         -- check no duplicates in docs
-         checkDuplicates duplicates
+  modIx $ \ixx' -> do
+    -- existence check for all referenced contexts in all docs
+    checkContextsExistence contexts ixx'
 
-         -- apidoc should not exist
-         mapM_ (flip (checkApiDocExistence False) ixx) docs
+    -- check no duplicates in docs
+    checkDuplicates duplicates
 
-         -- all checks done, do the real work
-         ixx'  <- withMerge $ lift (CIx.insertList docsAndWords ixx)
+    -- apidoc should not exist
+    mapM_ (flip (checkApiDocExistence False) ixx') docs
 
-         return (ixx', ResOK)
-
-    where
+    -- Inserts the segment
+    ixx'' <- CIx.insertSegment newSeg ixx'
+    return (ixx'', ResOK)
+  where
       -- compute all contexts in all docs
       contexts
           = M.keys
@@ -450,9 +453,9 @@ execInsertList docs ixx
       -- convert ApiDocuments to Documents, delete null values,
       -- and break index data into words by applying the scanner
       -- given by the schema spec for the appropriate contexts
-      docsAndWords
+      docsAndWords schema
            = L.map ( (\ (d, _dw, ws) -> (d, ws))
-                    . toDocAndWords (CIx.schema ixx)
+                    . toDocAndWords schema
                     . (\ d -> d {adDescr = DocDesc.deleteNull $ adDescr d})
                   )
             $ docs

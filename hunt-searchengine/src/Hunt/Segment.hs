@@ -1,44 +1,45 @@
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE DeriveTraversable #-}
+{-# LANGUAGE Rank2Types                 #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 module Hunt.Segment where
 
-import           Prelude hiding (mapM, Word)
+import           Prelude                   hiding (Word, mapM)
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap (DocIdMap)
-import           Hunt.Common.DocIdSet (DocIdSet)
-import qualified Hunt.Common.DocIdSet as DocIdSet
-import           Hunt.Common.Occurrences (Occurrences)
-import qualified Hunt.Common.Occurrences as Occ
-import           Hunt.Common.SegmentMap (SegmentMap)
-import qualified Hunt.Common.SegmentMap as SegmentMap
-import           Hunt.DocTable (DocTable)
-import qualified Hunt.DocTable as DocTable
-import qualified Hunt.Index as Ix
-import qualified Hunt.Index.IndexImpl as Ix
+import           Hunt.Common.DocIdMap      (DocIdMap)
+import           Hunt.Common.DocIdSet      (DocIdSet)
+import qualified Hunt.Common.DocIdSet      as DocIdSet
+import           Hunt.Common.Occurrences   (Occurrences)
+import qualified Hunt.Common.Occurrences   as Occ
+import           Hunt.Common.SegmentMap    (SegmentMap)
+import qualified Hunt.Common.SegmentMap    as SegmentMap
+import           Hunt.DocTable             (DocTable)
+import qualified Hunt.DocTable             as DocTable
+import qualified Hunt.Index                as Ix
+import qualified Hunt.Index.IndexImpl      as Ix
 import           Hunt.Index.Schema
 import qualified Hunt.Scoring.SearchResult as SearchResult
 import           Hunt.Utility
 
 import           Control.Arrow
+import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.IO.Class
-import qualified Control.Monad.Parallel as Par
-import qualified Data.List as List
-import           Data.Map.Strict (Map)
-import qualified Data.Map.Strict as Map
+import qualified Control.Monad.Parallel    as Par
+import qualified Data.List                 as List
+import           Data.Map.Strict           (Map)
+import qualified Data.Map.Strict           as Map
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Set (Set)
-import qualified Data.Set as Set
+import           Data.Set                  (Set)
+import qualified Data.Set                  as Set
 import           Unsafe.Coerce
 
 newtype ContextMap
   = ContextMap { cxMap :: Map Context Ix.IndexImpl }
-  deriving (Show)
+  deriving (Show, NFData)
 
 data Segment dt
   = Segment { segIndex       :: !ContextMap
@@ -56,6 +57,13 @@ instance Monoid SegmentDiff where
     = SegmentDiff mempty mempty
   mappend (SegmentDiff dids1 ctx1) (SegmentDiff dids2 ctx2)
     = SegmentDiff (dids1 <> dids2) (ctx1 <> ctx2)
+
+instance NFData dt => NFData (Segment dt) where
+  rnf s = rnf (segIndex s)
+          `seq` rnf (segNumDocs s)
+          `seq` rnf (segDocs s)
+          `seq` rnf (segDeletedDocs s)
+          `seq` rnf (segDeletedCxs s)
 
 -- | Marks given documents as deleted.
 --
@@ -341,12 +349,12 @@ mergeSegments schema seg1 seg2
                               (List.map (second fromJust)
                                (List.filter (isJust . snd) newCxMap))
 
-       return Segment { segIndex       = ctxMap
-                      , segNumDocs     = segNumDocs seg1 + segNumDocs seg2
-                      , segDocs        = newDt
-                      , segDeletedDocs = mempty
-                      , segDeletedCxs  = mempty
-                      }
+       return $!! Segment { segIndex       = ctxMap
+                          , segNumDocs     = segNumDocs seg1 + segNumDocs seg2
+                          , segDocs        = newDt
+                          , segDeletedDocs = mempty
+                          , segDeletedCxs  = mempty
+                          }
   where
     mergeIx :: (DocIdSet, Ix.IndexImpl) -> (DocIdSet, Ix.IndexImpl) -> Ix.IndexImpl
     mergeIx (dd1, Ix.IndexImpl ix1) (dd2, Ix.IndexImpl ix2)

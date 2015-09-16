@@ -23,6 +23,7 @@ module Hunt.ContextIndex (
   , lookupAllWithCx
 
     -- * Insert\/Delete Documents
+  , insertSegment
   , insertList
                                  -- XXX: these functions should be internal
                                  -- we export them to be able to test them
@@ -134,10 +135,15 @@ insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
            -> m (ContextIndex dt)
 insertList docAndWords ixx
   = do newSeg <- Segment.fromDocsAndWords (ciSchema ixx) docAndWords
-       return $! ixx { ciSegments     =
-                           SegmentMap.insert (ciNextSegmentId ixx) newSeg (ciSegments ixx)
-                     , ciNextSegmentId = succ (ciNextSegmentId ixx)
-                     }
+       insertSegment newSeg ixx
+
+-- | Inserts a segment into the index. Assigns a `SegmentId` to the `Segment`.
+insertSegment :: (Monad m, DocTable dt) => Segment dt -> ContextIndex dt -> m (ContextIndex dt)
+insertSegment seg ixx =
+  return $! ixx { ciSegments =
+                      SegmentMap.insert (ciNextSegmentId ixx) seg (ciSegments ixx)
+                , ciNextSegmentId = succ (ciNextSegmentId ixx)
+                }
 
 -- | Modify the descirption of a document and add words
 --   (occurrences for that document) to the index.

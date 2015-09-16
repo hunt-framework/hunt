@@ -41,6 +41,7 @@ type IndexImplCon i
     , ICon i
     , IndexValue (IVal i)
     , Binary i
+    , NFData i
     , Typeable i
     , IKey i ~ Text
     )
@@ -57,9 +58,8 @@ data IndexImpl
 instance Show IndexImpl where
   show (IndexImpl v) = show v
 
--- FIXME: not 'rnf v `seq` ()'. is it supposed to be that way?
 instance NFData IndexImpl where
-  rnf (IndexImpl v) = v `seq` ()
+  rnf (IndexImpl v) = rnf v `seq` ()
 
 -- ------------------------------------------------------------
 -- Serialization

@@ -13,6 +13,7 @@ where
 
 import           Prelude                hiding (filter, lookup, map, null)
 
+import           Control.DeepSeq
 import           Control.Monad
 
 import           Data.Aeson
@@ -35,7 +36,7 @@ import           Hunt.Common.Document   (Document,
 --   The type parameter @i@ is the implementation.
 --   The implementation must have a value type parameter.
 
-class (DocumentWrapper (DValue i)) => DocTable i where
+class (DocumentWrapper (DValue i), NFData i) => DocTable i where
     -- | The value type of the document table.
     type DValue i :: *
 
