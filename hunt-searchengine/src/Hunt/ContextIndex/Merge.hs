@@ -1,19 +1,79 @@
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE BangPatterns #-}
-module Hunt.ContextIndex.Merge where
+{-# LANGUAGE ImpredicativeTypes         #-}
+{-# LANGUAGE RankNTypes                 #-}
+module Hunt.ContextIndex.Merge (
+    MergePolicy(..)
+  , MergeLock
+  , MergeDescr
 
-import           Hunt.Common.SegmentMap (SegmentMap, SegmentId(..))
-import qualified Hunt.Common.SegmentMap as SegmentMap
+  , tryMerge
+  , runMerge
+  , applyMerge
+  ) where
+
+import           Hunt.Common.SegmentMap  (SegmentId (..), SegmentMap)
+import qualified Hunt.Common.SegmentMap  as SegmentMap
 import           Hunt.ContextIndex.Types
-import           Hunt.DocTable (DocTable)
+import           Hunt.DocTable           (DocTable)
 import           Hunt.Index.Schema
 import           Hunt.Segment
+import qualified Hunt.Segment            as Segment
 import           Hunt.Utility
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
-import qualified Data.List as List
+import qualified Data.List               as List
 import           Data.Ord
+
+-- | Settings for merging of segments.
+data MergePolicy =
+  MergePolicy { mpMaxParallelMerges :: Int
+              , mpMergeFactor       :: Int
+              , mpMinMerge          :: Int
+              }
+  deriving (Eq, Show)
+
+-- | A set indicating which `Segment`s are locked for merging.
+newtype MergeLock = MergeLock (SegmentMap ())
+
+instance Show MergeLock where
+  show (MergeLock m) = show (SegmentMap.keys m)
+
+-- | Locks can be combined.
+instance Monoid MergeLock where
+  mempty
+    = MergeLock SegmentMap.empty
+  mappend (MergeLock m1) (MergeLock m2)
+    = MergeLock (SegmentMap.unionWith (\_ _ -> ()) m1 m2)
+
+-- | Represents an idempotent function, applying a
+--   merged `Segment` to the `ContextIndex`.
+newtype ApplyMerge dt
+  = ApplyMerge { applyMerge  :: MergeLock -> ContextIndex dt -> (ContextIndex dt, MergeLock) }
+
+-- | `ApplyMerge`s can be combined
+instance Monoid (ApplyMerge dt) where
+  mempty = ApplyMerge (\lock ixx -> (ixx, lock))
+  mappend f g = ApplyMerge (\lock ixx ->
+                              let (ixx', lock') = applyMerge g lock ixx
+                                  in applyMerge f lock' ixx'
+                           )
+
+-- | A description of a merge.
+data MergeDescr dt
+  = MergeDescr { mdSegId  :: !SegmentId -- ^ Id of the new `Segment`
+               , mdSchema :: !Schema    -- ^ Schema used to merge the `Segment`s
+               , mdSegs   :: !(SegmentMap (Segment dt)) -- ^ Actual `Segment`s to merge.
+               }
+
+instance Show (MergeDescr dt) where
+  show (MergeDescr sid _ m)
+    = "MergeDescr { merging = "
+      ++ show (SegmentMap.keys m)
+      ++ ", to = "
+      ++ show sid
+      ++ " }"
 
 data SegmentAndLevel dt
   = SegmentAndLevel { sasLevel :: !Float
@@ -74,7 +134,10 @@ mkMergeDescr schema
     accum sid sx
       = (succ sid, descr)
       where
-        descr = MergeDescr sid schema (fmap sasSeg sx)
+        descr = MergeDescr { mdSegId  = sid
+                           , mdSchema = schema
+                           , mdSegs   = fmap sasSeg sx
+                           }
 
 lockFromMerges :: [MergeDescr dt] -> MergeLock
 lockFromMerges
@@ -125,10 +188,56 @@ selectMerges policy lock schema nextSid segments
 -- | Runs a merge. Returns an idempotent function which,
 --   when applied to a `ContextIndex` makes the merged segment visible
 --
-runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (Segment dt)
-runMerge (MergeDescr _segmentId schema segments)
+runMerge' :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (Segment dt)
+runMerge' (MergeDescr _segmentId schema segments)
   = do foldM1' (mergeSegments schema) (SegmentMap.elems segments)
 
 releaseLock :: MergeLock -> SegmentMap a -> MergeLock
 releaseLock (MergeLock lock) x
   = MergeLock (SegmentMap.difference lock x)
+
+-- | Selects segments viable to merge but don't actually do the merge
+--   because it can be a quite costly operation. Marks segments as
+--   merging.
+tryMerge :: (Functor m, Monad m, DocTable dt)
+         => MergePolicy
+         -> MergeLock
+         -> ContextIndex dt
+         -> m ([MergeDescr dt], MergeLock, ContextIndex dt)
+tryMerge policy lock ixx
+  = do (merges, lock', nextSegmentId) <-
+         selectMerges policy lock (ciSchema ixx) (ciNextSegmentId ixx) (ciSegments ixx)
+       let ixx' = ixx { ciNextSegmentId = nextSegmentId }
+       return (merges, lock', ixx')
+
+-- | Takes a list of merge descriptions and performs the merge of the
+--   segments. Returns an idempotent function which can be applied to the
+--   `ContextIndex`. This way, the costly merge can be done asynchronously.
+runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ApplyMerge dt)
+runMerge descr
+  = do !newSeg <- runMerge' descr
+       return $
+         ApplyMerge (applyMergedSegment (mdSegId descr) (mdSegs descr) newSeg)
+
+-- | Since merging can happen asynchronously, we have to account for documents
+--   and contexts deleted while we were merging the segments.
+applyMergedSegment :: SegmentId
+                   -> SegmentMap (Segment dt)
+                   -> Segment dt
+                   -> MergeLock
+                   -> ContextIndex dt
+                   -> (ContextIndex dt, MergeLock)
+applyMergedSegment segmentId oldSegments newSegment lock ixx
+  = (ixx { ciSegments      =
+              SegmentMap.insertWith (const id) segmentId newSegment' (
+                SegmentMap.difference (ciSegments ixx) oldSegments)
+        , ciNextSegmentId = succ (ciNextSegmentId ixx)
+        }, releaseLock lock oldSegments)
+  where
+    newSegment'
+      = Segment.deleteDocs deltaDelDocs
+        . Segment.deleteContexts deltaDelCx
+        $ newSegment
+
+    SegmentDiff deltaDelDocs deltaDelCx
+      = Segment.diff' oldSegments (ciSegments ixx)

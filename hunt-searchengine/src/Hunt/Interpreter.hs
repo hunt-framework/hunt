@@ -5,8 +5,8 @@
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE RankNTypes                 #-}
-{-# LANGUAGE TypeFamilies               #-}
 {-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -29,68 +29,69 @@ module Hunt.Interpreter
   )
 where
 
-import           Control.Arrow (second)
+import           Control.Arrow                 (second)
+import           Control.Concurrent.STM
 import           Control.Concurrent.XMVar
 import           Control.Monad.Except
 import           Control.Monad.Reader
-import           Control.Concurrent
 
-import           Data.Aeson (ToJSON (..), object, (.=))
-import           Data.Binary (Binary, encodeFile)
+import           Data.Aeson                    (ToJSON (..), object, (.=))
+import           Data.Binary                   (Binary, encodeFile)
 import           Data.Default
-import qualified Data.List as L
-import qualified Data.Map as M
+import qualified Data.List                     as L
+import qualified Data.Map                      as M
 import           Data.Monoid
-import           Data.Set (Set)
-import qualified Data.Set as S
-import           Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Traversable as Trav
+import           Data.Set                      (Set)
+import qualified Data.Set                      as S
+import           Data.Text                     (Text)
+import qualified Data.Text                     as T
+import qualified Data.Traversable              as Trav
 
-import           Hunt.Common.ApiDocument as ApiDoc
-import           Hunt.Common.BasicTypes (Context, URI)
-import qualified Hunt.Common.DocDesc as DocDesc
-import qualified Hunt.Common.DocIdSet as DocIdSet
-import qualified Hunt.Common.DocIdMap as DocIdMap
-import           Hunt.Common.Document (Document (..), unwrap)
-import           Hunt.ContextIndex             (ContextIndex,
-                                                ApplyMerge(..), MergePolicy(..))
-import qualified Hunt.ContextIndex as CIx
-import           Hunt.DocTable (DocTable)
+import           Hunt.Common.ApiDocument       as ApiDoc
+import           Hunt.Common.BasicTypes        (Context, URI)
+import qualified Hunt.Common.DocDesc           as DocDesc
+import qualified Hunt.Common.DocIdMap          as DocIdMap
+import qualified Hunt.Common.DocIdSet          as DocIdSet
+import           Hunt.Common.Document          (Document (..), unwrap)
+import           Hunt.ContextIndex             (ContextIndex)
+import qualified Hunt.ContextIndex             as CIx
+import qualified Hunt.ContextIndex.Merge       as Merge
+import           Hunt.ContextIndex.Merge       (MergePolicy(..))
+import           Hunt.DocTable                 (DocTable)
 import           Hunt.DocTable.HashedDocTable
-import qualified Hunt.Index as Ix
-import           Hunt.Index.IndexImpl (IndexImpl (..), mkIndex)
+import qualified Hunt.Index                    as Ix
+import           Hunt.Index.IndexImpl          (IndexImpl (..), mkIndex)
 import           Hunt.Index.Schema
 import           Hunt.Index.Schema.Analyze
 import           Hunt.Interpreter.BasicCommand
-import           Hunt.Interpreter.Command (Command)
-import           Hunt.Interpreter.Command hiding (Command (..))
-import           Hunt.Query.Intermediate       (ScoredWords,
-                                                toDocsResult, RankedDoc(..),
+import           Hunt.Interpreter.Command      (Command)
+import           Hunt.Interpreter.Command      hiding (Command (..))
+import           Hunt.Interpreter.Worker       (Worker)
+import qualified Hunt.Interpreter.Worker       as Worker
+import           Hunt.Query.Intermediate       (RankedDoc (..), ScoredWords,
+                                                toDocsResult,
                                                 toDocumentResultPage,
                                                 toWordsResult)
 import           Hunt.Query.Language.Grammar
 import           Hunt.Query.Processor          (ProcessConfig (..),
-                                                initProcessor,
-                                                mkQueryIndex,
+                                                initProcessor, mkQueryIndex,
                                                 processQueryScoredDocs,
                                                 processQueryScoredWords,
                                                 processQueryUnScoredDocs)
 import           Hunt.Scoring.SearchResult     (ScoredDocs, UnScoredDocs,
+                                                scoredDocsToDocIdSet,
                                                 searchResultToOccurrences,
-                                                unScoredDocsToDocIdSet,
-                                                scoredDocsToDocIdSet)
-import           Hunt.Utility (showText)
+                                                unScoredDocsToDocIdSet)
+import           Hunt.Utility                  (showText)
 import           Hunt.Utility.Log
 
 import           System.IO.Error               (isAlreadyInUseError,
---                                                isDoesNotExistError,
                                                 isFullError, isPermissionError,
                                                 tryIOError)
-import qualified System.Log.Logger as Log
+import qualified System.Log.Logger             as Log
 
-import           GHC.Stats (getGCStats, getGCStatsEnabled)
-import           GHC.Stats.Json ()
+import           GHC.Stats                     (getGCStats, getGCStatsEnabled)
+import           GHC.Stats.Json                ()
 
 -- ------------------------------------------------------------
 --
@@ -151,6 +152,8 @@ data HuntEnv dt = HuntEnv
   , huntNormalizers :: [CNormalizer]
     -- | Query processor configuration.
   , huntQueryCfg    :: ProcessConfig
+    -- | A worker which merges the context index when tickled.
+  , huntIndexMerger :: IndexMerger
   }
 
 -- | Default Hunt environment type.
@@ -171,8 +174,9 @@ normalizers = [cnUpperCase, cnLowerCase, cnZeroFill]
 -- | Default merge policy
 mergePolicy :: MergePolicy
 mergePolicy
-  = MergePolicy { mpMergeFactor = 10
-                , mpMinMerge    = 400
+  = MergePolicy { mpMergeFactor       = 10
+                , mpMinMerge          = 400
+                , mpMaxParallelMerges = 2
                 }
 
 -- | Initialize the Hunt environment.
@@ -185,8 +189,9 @@ initHuntEnv :: DocTable dt
            -> ProcessConfig
            -> IO (HuntEnv dt)
 initHuntEnv ixx mp opt tk ns qc = do
-  ixref <- newXMVar ixx
-  return $ HuntEnv ixref mp opt tk ns qc
+  ixref  <- newXMVar ixx
+  mrgr <- newIndexMerger ixref mp
+  return $ HuntEnv ixref mp opt tk ns qc mrgr
 
 -- ------------------------------------------------------------
 -- Command evaluation monad
@@ -295,19 +300,6 @@ throwResError :: DocTable dt => Int -> Text -> Hunt dt a
 throwResError n msg
     = do errorM $ unwords [show n, T.unpack msg]
          throwError $ ResError n msg
-
-tryMergeWith :: DocTable dt => Hunt dt (ContextIndex dt) -> Hunt dt (ContextIndex dt)
-tryMergeWith action
-  = do ixx    <- action
-       mp     <- asks huntMergePolicy
-       ixref  <- asks huntIndex
-       (merges, ixx') <- CIx.tryMerge mp ixx
-       _ <- liftIO $ forkIO $ do
-         --debugM $ "Merging: " ++ show mergeLock
-         merged <- mconcat <$> mapM CIx.runMerge merges
-         modifyXMVar_ ixref (return . applyMerge merged)
-         --debugM "Merging done"
-       return ixx'
 
 -- ------------------------------------------------------------
 
@@ -443,7 +435,7 @@ execInsertList docs ixx
          mapM_ (flip (checkApiDocExistence False) ixx) docs
 
          -- all checks done, do the real work
-         ixx'  <- tryMergeWith $ lift (CIx.insertList docsAndWords ixx)
+         ixx'  <- withMerge $ lift (CIx.insertList docsAndWords ixx)
 
          return (ixx', ResOK)
 
@@ -495,8 +487,8 @@ execUpdate doc ixx
          docIdM <- liftIO $ CIx.lookupDocumentByURI (uri docs) ixx
          case docIdM of
           Just docId
-            -> do ixx'<- tryMergeWith $ lift $
-                          CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
+            -> do ixx'<- withMerge $ lift $
+                         CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
                   return (ixx', ResOK)
           Nothing
             -> throwResError 409 $ "document for update not found: " `T.append` uri docs
@@ -708,7 +700,7 @@ liftHunt cmd
 execMerge :: DocTable dt => Hunt dt CmdResult
 execMerge
   = do modIx $ \ixx -> do
-         ixx' <- tryMergeWith (return ixx)
+         ixx' <- withMerge (return ixx)
          return (ixx', ResOK)
 
 -- | Get status information about the server\/index, e.g. garbage collection statistics.
@@ -746,3 +738,35 @@ unless' :: DocTable dt
 unless' b code text = unless b $ throwResError code text
 
 -- ------------------------------------------------------------
+
+
+type IndexMerger = Worker
+
+withMerge :: DocTable dt => Hunt dt a -> Hunt dt a
+withMerge action = do
+  x <- action
+  merger <- asks huntIndexMerger
+  Worker.tickle merger
+  return x
+
+-- | Create an asynchronous worker for index merging
+newIndexMerger :: (MonadIO m, DocTable dt)
+               => XMVar (ContextIndex dt)
+               -> MergePolicy
+               -> m IndexMerger
+newIndexMerger xmvar policy = liftIO $ do
+  mlock <- newTMVarIO mempty
+  Worker.new (mpMaxParallelMerges policy) xmvar $ \_read modify -> do
+    lock <- atomically (takeTMVar mlock)
+    (mdesc, lock') <- modify (\ixx -> do
+                               (mdesc, lock', ixx') <- Merge.tryMerge policy lock ixx
+                               return (ixx', (mdesc, lock'))
+                          )
+    atomically (putTMVar mlock lock')
+
+    merge <- mconcat <$> mapM Merge.runMerge mdesc
+
+    lock''  <- atomically (takeTMVar mlock)
+    lock''' <- modify (return . Merge.applyMerge merge lock'')
+    atomically (putTMVar mlock lock''')
+    return ()

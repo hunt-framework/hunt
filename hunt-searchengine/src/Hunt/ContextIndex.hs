@@ -41,14 +41,6 @@ module Hunt.ContextIndex (
 
   , ContextIndex
 
-    -- * Merge specific
-  , MergeDescr
-  , MergeLock
-  , MergePolicy(..)
-  , ApplyMerge(..)
-  , runMerge
-  , tryMerge
-
   , status
   ) where
 
@@ -60,9 +52,8 @@ import qualified Hunt.Common.DocIdMap      as DocIdMap
 import           Hunt.Common.DocIdSet      (DocIdSet)
 import qualified Hunt.Common.DocIdSet      as DocIdSet
 import           Hunt.Common.Document      as Doc
-import           Hunt.Common.SegmentMap    (SegmentId (..), SegmentMap)
+import           Hunt.Common.SegmentMap    (SegmentId (..))
 import qualified Hunt.Common.SegmentMap    as SegmentMap
-import qualified Hunt.ContextIndex.Merge   as Merge
 import           Hunt.ContextIndex.Status
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable             (DocTable)
@@ -72,10 +63,9 @@ import qualified Hunt.Index.IndexImpl      as Ix
 import           Hunt.Index.Schema
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
-import           Hunt.Segment              (Segment, SegmentDiff (..))
+import           Hunt.Segment              (Segment)
 import qualified Hunt.Segment              as Segment
 
-import           Control.Monad.IO.Class
 import qualified Control.Monad.Parallel    as Par
 import qualified Data.List                 as List
 import qualified Data.Map.Strict           as Map
@@ -89,7 +79,6 @@ empty
   = ContextIndex { ciSegments      = SegmentMap.empty
                  , ciSchema        = mempty
                  , ciNextSegmentId = SegmentId 1
-                 , ciMergeLock     = mempty
                  }
 
 -- | Inserts a new `Context` with `ContextSchema` into the `ContextIndex`.
@@ -313,53 +302,6 @@ deleteDocsByURI :: (Par.MonadParallel m, Applicative m, DocTable dt)
 deleteDocsByURI us ixx
   = do sx <- for (ciSegments ixx) (Segment.deleteDocsByURI us)
        return ixx { ciSegments = sx }
-
--- | Selects segments viable to merge but don't actually do the merge
---   because it can be a quite costly operation. Marks segments as
---   merging.
-tryMerge :: (Functor m, Monad m, DocTable dt)
-         => MergePolicy
-         -> ContextIndex dt
-         -> m ([MergeDescr dt], ContextIndex dt)
-tryMerge policy ixx
-  = do (merges, lock, nextSegmentId) <-
-         Merge.selectMerges policy (ciMergeLock ixx) (ciSchema ixx) (ciNextSegmentId ixx) (ciSegments ixx)
-       let ixx' = ixx { ciMergeLock     = lock
-                      , ciNextSegmentId = nextSegmentId
-                      }
-       return (merges, ixx')
-
--- | Takes a list of merge descriptions and performs the merge of the
---   segments. Returns an idempotent function which can be applied to the
---   `ContextIndex`. This way, the costly merge can be done asynchronously.
-runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ApplyMerge dt)
-runMerge descr
-  = do !newSeg <- Merge.runMerge descr
-       return $
-         ApplyMerge (applyMergedSegment (mdSegId descr) (mdSegs descr) newSeg)
-
--- | Since merging can happen asynchronously, we have to account for documents
---   and contexts deleted while we were merging the segments.
-applyMergedSegment :: SegmentId
-                   -> SegmentMap (Segment dt)
-                   -> Segment dt
-                   -> ContextIndex dt
-                   -> ContextIndex dt
-applyMergedSegment segmentId oldSegments newSegment ixx
-  = ixx { ciSegments      =
-              SegmentMap.insertWith (const id) segmentId newSegment' (
-                SegmentMap.difference (ciSegments ixx) oldSegments)
-        , ciNextSegmentId = succ (ciNextSegmentId ixx)
-        , ciMergeLock     = Merge.releaseLock (ciMergeLock ixx) oldSegments
-        }
-  where
-    newSegment'
-      = Segment.deleteDocs deltaDelDocs
-        . Segment.deleteContexts deltaDelCx
-        $ newSegment
-
-    SegmentDiff deltaDelDocs deltaDelCx
-      = Segment.diff' oldSegments (ciSegments ixx)
 
 mapIxsP :: Par.MonadParallel m => (Segment dt -> m a) -> ContextIndex dt -> m [a]
 mapIxsP f
