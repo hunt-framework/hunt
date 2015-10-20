@@ -21,8 +21,8 @@ import           Hunt.Segment
 import qualified Hunt.Segment as Segment
 import           Hunt.Utility
 
-import           Control.Monad
 import           Control.DeepSeq
+import           Control.Monad
 import           Control.Monad.IO.Class
 import qualified Data.List as List
 import           Data.Monoid
