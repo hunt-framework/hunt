@@ -7,7 +7,7 @@ import           Control.Concurrent.XMVar
 import           Control.Monad
 import           Control.Monad.IO.Class
 
-newtype Worker = Worker (TMVar ())
+type Worker = IO ()
 
 new :: (MonadIO m)
     => Int
@@ -22,9 +22,10 @@ new nworkers xmvar action  = liftIO $ do
       action
         (readXMVar xmvar)
         (modifyXMVar xmvar)
-  return (Worker ch)
+
+  return $ do
+    _ <- atomically $ tryPutTMVar ch ()
+    return ()
 
 tickle :: MonadIO m => Worker -> m ()
-tickle (Worker chan) = liftIO $ atomically $ do
-  _ <- tryPutTMVar chan ()
-  return ()
+tickle = liftIO
