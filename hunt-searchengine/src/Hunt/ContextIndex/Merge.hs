@@ -12,19 +12,20 @@ module Hunt.ContextIndex.Merge (
   , applyMerge
   ) where
 
-import           Hunt.Common.SegmentMap  (SegmentId (..), SegmentMap)
-import qualified Hunt.Common.SegmentMap  as SegmentMap
+import           Hunt.Common.SegmentMap (SegmentId (..), SegmentMap)
+import qualified Hunt.Common.SegmentMap as SegmentMap
 import           Hunt.ContextIndex.Types
-import           Hunt.DocTable           (DocTable)
+import           Hunt.DocTable (DocTable)
 import           Hunt.Index.Schema
 import           Hunt.Segment
-import qualified Hunt.Segment            as Segment
+import qualified Hunt.Segment as Segment
 import           Hunt.Utility
 
+import           Control.Monad
 import           Control.DeepSeq
 import           Control.Monad.IO.Class
-import           Control.Monad.Reader
-import qualified Data.List               as List
+import qualified Data.List as List
+import           Data.Monoid
 import           Data.Ord
 
 -- | Settings for merging of segments.
@@ -44,15 +45,17 @@ instance Show MergeLock where
 
 -- | Locks can be combined.
 instance Monoid MergeLock where
-  mempty
-    = MergeLock SegmentMap.empty
-  mappend (MergeLock m1) (MergeLock m2)
-    = MergeLock (SegmentMap.unionWith (\_ _ -> ()) m1 m2)
+  mempty = MergeLock mempty
+  mappend (MergeLock m1) (MergeLock m2) = MergeLock (
+    SegmentMap.unionWith (\_ _ -> ()) m1 m2)
 
 -- | Represents an idempotent function, applying a
 --   merged `Segment` to the `ContextIndex`.
 newtype ApplyMerge dt
-  = ApplyMerge { applyMerge :: MergeLock -> ContextIndex dt -> (ContextIndex dt, MergeLock) }
+  = ApplyMerge { applyMerge :: MergeLock
+                            -> ContextIndex dt
+                            -> (ContextIndex dt, MergeLock)
+               }
 
 -- | `ApplyMerge`s can be combined
 instance Monoid (ApplyMerge dt) where
@@ -64,9 +67,12 @@ instance Monoid (ApplyMerge dt) where
 
 -- | A description of a merge.
 data MergeDescr dt
-  = MergeDescr { mdSegId  :: !SegmentId -- ^ Id of the new `Segment`
-               , mdSchema :: !Schema    -- ^ Schema used to merge the `Segment`s
-               , mdSegs   :: !(SegmentMap (Segment dt)) -- ^ Actual `Segment`s to merge.
+  = MergeDescr { -- | Id of the new `Segment`
+                 mdSegId  :: !SegmentId
+                 -- | Schema used to merge the `Segment`s
+               , mdSchema :: !Schema
+                 -- | Actual `Segment`s to merge.
+               , mdSegs   :: !(SegmentMap (Segment dt))
                }
 
 instance Show (MergeDescr dt) where
@@ -77,24 +83,30 @@ instance Show (MergeDescr dt) where
       ++ show sid
       ++ " }"
 
-data SegmentAndLevel dt
-  = SegmentAndLevel { sasLevel :: !Float
-                    , sasSegId :: !SegmentId
-                    , sasSeg   :: !(Segment dt)
-                   }
+-- | A convenience data structure for storing numbers relevant
+--   for the merge descision.
+data SegmentAndLevel dt =
+  SegmentAndLevel { -- | Discrete level in our geometric series.
+                    sasLevel :: !Float
+                    -- | Refers to Segment being merged.
+                  , sasSegId :: !SegmentId
+                    -- | The actual `Segment` value.
+                  , sasSeg   :: !(Segment dt)
+                  }
 
+-- | Two `SegmentAndLevel` are equal if they refer to the same
+--   `Segment` and are on the same level.
 instance Eq (SegmentAndLevel dt) where
   (SegmentAndLevel l1 sid1 _) == (SegmentAndLevel l2 sid2 _)
     = (l1 == l2) && (sid1 == sid2)
 
+-- | Two `SegmentAndLevel` are ordered by their respective levels
+--   and by their `SegmentId`s.
 instance Ord (SegmentAndLevel dt) where
   compare (SegmentAndLevel l1 sid1 _) (SegmentAndLevel l2 sid2 _)
-    = case compare l1 l2 of
-        EQ -> compare sid1 sid2
-        x  -> x
+    = compare l1 l2 <> compare sid1 sid2 -- Ordering forms a Monoid
 
 -- | Quantifies segments into levels.
---
 quantifySegments :: Monad m
                  => (SegmentId -> Segment dt -> m Float)
                  -> SegmentMap (Segment dt)
@@ -122,10 +134,14 @@ collectMerges isMin _isMax segments
                                               then sasLevel sas >= -1
                                               else sasLevel sas >= level - 1.0) sx
 
+        -- We have identified every `Segment` on a level. Do not merge all at once
+        -- instead take only 75% (this quite arbitrary but prevents too big merges after all)
         viable = List.takeWhile (\sas -> if isMin (sasLevel sas)
                                           then sasLevel sas >= -1
                                           else sasLevel sas >= level - 0.75) inLevel
 
+-- | Creates the final `MergeDescr`s from the levels. `SegmentId` is
+--   threaded through.
 mkMergeDescr :: Schema
              -> SegmentId
              -> [SegmentMap (SegmentAndLevel dt)]
@@ -141,18 +157,20 @@ mkMergeDescr schema
                            , mdSegs   = fmap sasSeg sx
                            }
 
+-- | Create a `Mergelock` from a bunch of merge descriptions.
 lockFromMerges :: [MergeDescr dt] -> MergeLock
 lockFromMerges
-  = mconcat . fmap (\(MergeDescr _ _ s) -> MergeLock (void s))
+  = mconcat . fmap (MergeLock . void . mdSegs)
 
 -- | Selects `Segment`s for merging, respecting an existing `MergeLock`.
+--   This is monadic for the case we need to look at some other criterea
+--   other than the `MergeLock`.
 selectMergeables :: Monad m => MergeLock -> SegmentMap a -> m (SegmentMap a)
 selectMergeables (MergeLock lock) sx
   = return (SegmentMap.difference sx lock)
 
 -- | Given a policy and a set of `Segment`s this function decides,
 --   which merges can be performed.
---
 selectMerges :: (Monad m, DocTable dt)
              => MergePolicy
              -> MergeLock
@@ -161,35 +179,45 @@ selectMerges :: (Monad m, DocTable dt)
              -> SegmentMap (Segment dt)
              -> m ([MergeDescr dt], MergeLock, SegmentId)
 selectMerges policy lock schema nextSid segments
-  = do mergeables <- selectMergeables lock segments
+  = do -- select any segment not locked by mergelock
+       mergeables <- selectMergeables lock segments
+       -- assign the segments to levels in our geometric series
        quantified <- quantifySegments logNormQuantify mergeables
+       -- collect all `Segments` which are equal by our definition of level.
        allMerges  <- collectMerges isMinViableLevel (const False) (sortByLevel quantified)
+       -- Filter out single level merges
        let partitions = List.filter (\p -> SegmentMap.size p >= 2)
                         . fmap (SegmentMap.fromList . fmap (\sas -> (sasSegId sas, sas)))
                         $ allMerges
            (nextSid', merges) = mkMergeDescr schema nextSid partitions
        return (merges, lockFromMerges merges `mappend` lock, nextSid')
   where
+    -- Since we are using a geometric series we normalize our costs (size of segment)
+    -- logarithmacally to the base of the merge factor.
     norm
       = logBase (fromIntegral (mpMergeFactor policy)) . fromIntegral
 
+    -- Round up too small segments to a size where merging is more efficient.
     roundUp
       = max (mpMinMerge policy)
 
+    -- Normalize a the cost for merge (size of segment)
     logNormQuantify _ s
       = do sz <- segmentSize' s
            return (norm (roundUp sz))
 
+    -- Is given level below the minimal merge size
     isMinViableLevel level
       = level <= norm (mpMinMerge policy)
 
+    -- Sort a list in descending order.
+    -- Used to group ~equal~ segments next to each other.
     sortByLevel
       = List.sortBy (comparing Down)
 
 
 -- | Runs a merge. Returns an idempotent function which,
 --   when applied to a `ContextIndex` makes the merged segment visible
---
 runMerge' :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (Segment dt)
 runMerge' (MergeDescr _segmentId schema segments)
   = do foldM1' (mergeSegments schema) (SegmentMap.elems segments)
