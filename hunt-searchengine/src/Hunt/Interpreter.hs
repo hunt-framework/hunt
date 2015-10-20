@@ -731,7 +731,7 @@ execStatus (StatusContext cx)
               liftIO (CIx.lookupAllWithCx cx ixx)
 
 execStatus (StatusIndex {- context -})
-  = withIx (const (return ResOK))
+  = withIx $ \ixx -> (ResGeneric . toJSON) <$> CIx.status ixx
 
 -- ------------------------------------------------------------
 

@@ -17,11 +17,37 @@ import           Hunt.Common.SegmentMap (SegmentMap, SegmentId(..))
 import qualified Hunt.Common.SegmentMap as SegmentMap
 -}
 
-data Status = Status
+import Hunt.Common.SegmentMap (SegmentMap)
+import qualified Hunt.Common.SegmentMap as SegmentMap
+import Hunt.DocTable
+import Hunt.ContextIndex.Types
+import Hunt.Segment as Segment
 
-status :: Status
-status = undefined
+import Data.Aeson
+import Data.Foldable
+import Data.Traversable
 
+data Status =
+  Status { -- | Number of segments in index
+           statNumSegs  :: Int
+           -- | Number (docs, docs without deleted, ratio) in index
+         , statSegSizes :: SegmentMap (Int, Int, Float)
+         }
+
+status :: (Monad m, DocTable dt) => ContextIndex dt -> m Status
+status ixx = do
+  segSzs <- for (ciSegments ixx) $ \s ->
+    (,,) <$> segmentSize s <*> segmentSize' s <*> segmentDeletedDocsRatio s
+
+  return Status { statNumSegs  = SegmentMap.size (ciSegments ixx)
+                , statSegSizes = segSzs
+                }
+
+instance ToJSON Status where
+  toJSON st =
+    object [ "num_segments" .= statNumSegs st
+           , "seg_size"     .= toList (statSegSizes st)
+           ]
 
 {- data Status
   = Status { csNumberOfSegments   :: !Int
