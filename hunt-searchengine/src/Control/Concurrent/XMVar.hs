@@ -20,9 +20,11 @@ module Control.Concurrent.XMVar
   , readXMVar, modifyXMVar, modifyXMVar_
   , takeXMVarWrite, putXMVarWrite
   , takeXMVarLock, putXMVarLock
+  , forceXMVar
   )
 where
 
+import           Control.DeepSeq
 import           Control.Concurrent.MVar
 import           Control.Exception
 
@@ -90,5 +92,11 @@ takeXMVarLock (XMVar m l)
 putXMVarLock :: XMVar a -> a -> IO ()
 putXMVarLock (XMVar m l) v
   = putMVar m v >> putMVar l ()
+
+forceXMVar :: NFData a => XMVar a -> IO ()
+forceXMVar (XMVar m l) = do
+  _ <- takeMVar l
+  v <- takeMVar m
+  putMVar m (force v) `finally` putMVar l ()
 
 -- ------------------------------------------------------------
