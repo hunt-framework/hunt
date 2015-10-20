@@ -20,6 +20,7 @@ import qualified Hunt.DocTable             as DocTable
 import qualified Hunt.Index                as Ix
 import qualified Hunt.Index.IndexImpl      as Ix
 import           Hunt.Index.Schema
+import Hunt.Scoring.SearchResult (SearchResult)
 import qualified Hunt.Scoring.SearchResult as SearchResult
 import           Hunt.Utility
 
@@ -138,10 +139,29 @@ diff' sm1 sm2
     . SegmentMap.elems
     $ SegmentMap.intersectionWith diff sm1 sm2
 
+-- | An interface for convenient post-search mapping on SearchResult
+class HasSearchResult a where
+  mapSR  :: (SearchResult -> SearchResult) -> a -> a
+  testSR :: (SearchResult -> Bool) -> a -> Bool
+
+instance HasSearchResult SearchResult where
+  mapSR f = f
+  {-# INLINE mapSR #-}
+
+  testSR p = p
+  {-# INLINE testSR #-}
+
+instance HasSearchResult b => HasSearchResult (a, b) where
+  mapSR f = second (mapSR f)
+  {-# INLINE mapSR #-}
+
+  testSR p = testSR p . snd
+  {-# INLINE testSR #-}
+
 -- | Searches a segment given a search function. Respects deleted contexts
 --   and documents.
 --
-searchSegment :: (Monad m, Ix.HasSearchResult r)
+searchSegment :: (Monad m, HasSearchResult r)
               => Context
               -> (forall i. (Ix.IndexImplCon i) => i -> m [r])
               -> Segment dt
@@ -154,7 +174,7 @@ searchSegment cx search seg
                      return (if DocIdSet.null (segDeletedDocs seg)
                              then rx
                              else List.filter testNotEmpty
-                                  . fmap (Ix.mapSR delDocs)
+                                  . fmap (mapSR delDocs)
                                   $ rx
                             )
              Nothing -> return []
@@ -163,9 +183,9 @@ searchSegment cx search seg
     delDocs
       = SearchResult.srDiffDocs (segDeletedDocs seg)
 
-    testNotEmpty :: (Ix.HasSearchResult r) => r -> Bool
+    testNotEmpty :: (HasSearchResult r) => r -> Bool
     testNotEmpty
-      = not . Ix.testSR SearchResult.srNull
+      = not . testSR SearchResult.srNull
 {-# INLINE searchSegment #-}
 
 lookupDocument :: (Par.MonadParallel m, DocTable dt)

@@ -229,7 +229,7 @@ lookupAllWithCx c ix
 --   result is always a list of values.
 --
 --   This pattern is used in all search variants
-lookupIndex :: (Par.MonadParallel m, Ix.HasSearchResult r)
+lookupIndex :: (Par.MonadParallel m, Segment.HasSearchResult r)
             => Context
             -> ContextIndex dt
             -> ([[r]] -> [r])

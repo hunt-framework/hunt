@@ -40,25 +40,6 @@ import           Hunt.Scoring.SearchResult
 
 -- ------------------------------------------------------------
 
--- | An interface for post-search mapping on SearchResult
-class HasSearchResult a where
-  mapSR  :: (SearchResult -> SearchResult) -> a -> a
-  testSR :: (SearchResult -> Bool) -> a -> Bool
-
-instance HasSearchResult SearchResult where
-  mapSR f = f
-  {-# INLINE mapSR #-}
-
-  testSR p = p
-  {-# INLINE testSR #-}
-
-instance HasSearchResult b => HasSearchResult (a, b) where
-  mapSR f = second (mapSR f)
-  {-# INLINE mapSR #-}
-
-  testSR p = testSR p . snd
-  {-# INLINE testSR #-}
-
 -- | The interface, that an data type must support to be used
 -- value in an index.
 --
