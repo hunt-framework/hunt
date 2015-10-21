@@ -380,5 +380,7 @@ mergeSegments schema seg1 seg2
     mergeIx (dd1, Ix.IndexImpl ix1) (dd2, Ix.IndexImpl ix2)
       = Ix.mkIndex $ Ix.unionWith (<>) ix1' (unsafeCoerce ix2')
       where
+        -- FIXME: this is not correct. It removes the occurences from the index
+        -- but not the words itself which is bad but works for the time being
         ix1' = Ix.map (fromMaybe mempty . Ix.diffValues dd1) ix1
         ix2' = Ix.map (fromMaybe mempty . Ix.diffValues dd2) ix2
