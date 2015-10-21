@@ -153,8 +153,8 @@ data HuntEnv dt = HuntEnv
   , huntNormalizers :: [CNormalizer]
     -- | Query processor configuration.
   , huntQueryCfg    :: ProcessConfig
-    -- | A worker which merges the context index when tickled.
-  , huntIndexMerger :: IndexMerger
+    -- | Manges merges and commits.
+  , huntIndexWorker :: IndexWorker
   }
 
 -- | Default Hunt environment type.
@@ -347,16 +347,16 @@ execCmd' (Status sc)
   = execStatus sc
 
 execCmd' (InsertList docs)
-  = withMerge $ execInsertList docs
+  = flushAndMerge $ execInsertList docs
 
 execCmd' (Update doc)
-  = withMerge $ modIx $ execUpdate doc
+  = flushAndMerge $ modIx $ execUpdate doc
 
 execCmd' (DeleteDocs uris)
-  = withMerge $ modIx $ execDeleteDocs uris
+  = flushAndMerge $ modIx $ execDeleteDocs uris
 
 execCmd' (DeleteByQuery q)
-  = withMerge $ modIx $ execDeleteByQuery q
+  = flushAndMerge $ modIx $ execDeleteByQuery q
 
 execCmd' (StoreIx filename)
   = withIx $ execStore filename
@@ -371,7 +371,7 @@ execCmd' (DeleteContext cx)
   = modIx $ execDeleteContext cx
 
 execCmd' Snapshot
-  = execMerge
+  = flushAndMerge $ execMerge
 -- ------------------------------------------------------------
 
 -- | Execute a sequence of commands.
@@ -703,10 +703,7 @@ liftHunt cmd
 -- ------------------------------------------------------------
 
 execMerge :: DocTable dt => Hunt dt CmdResult
-execMerge
-  = do modIx $ \ixx -> do
-         ixx' <- withMerge (return ixx)
-         return (ixx', ResOK)
+execMerge = return ResOK
 
 -- | Get status information about the server\/index, e.g. garbage collection statistics.
 execStatus :: DocTable dt => StatusCmd -> Hunt dt CmdResult
@@ -747,12 +744,13 @@ unless' b code text = unless b $ throwResError code text
 
 type IndexMerger = Worker
 
-withMerge :: DocTable dt => Hunt dt a -> Hunt dt a
-withMerge action = do
-  x <- action
-  merger <- asks huntIndexMerger
-  Worker.tickle merger
-  return x
+type IndexWorker = Worker
+
+flushAndMerge :: DocTable dt => Hunt dt a -> Hunt dt a
+flushAndMerge f = do
+  a <- f
+  Worker.tickle =<< asks huntIndexWorker
+  return a
 
 -- | Create an asynchronous worker for index merging
 newIndexMerger :: (MonadIO m, DocTable dt)

@@ -7,7 +7,15 @@ import           Control.Concurrent.XMVar
 import           Control.Monad
 import           Control.Monad.IO.Class
 
-type Worker = IO ()
+-- | A lightweight abstraction for pool of asynchronous threads
+--   which, when tickled, do some task over a given XMVar.
+--   Note that a worker forms a monoid with the noop as neutral element
+--   which can be handy when composing multiple workers.
+newtype Worker = Worker { runWorker :: IO () }
+
+instance Monoid Worker where
+  mempty = Worker (return ())
+  mappend a b = Worker (runWorker a >> runWorker b)
 
 new :: (MonadIO m)
     => Int
@@ -23,9 +31,9 @@ new nworkers xmvar action  = liftIO $ do
         (readXMVar xmvar)
         (modifyXMVar xmvar)
 
-  return $ do
+  return $ Worker $ do
     _ <- atomically $ tryPutTMVar ch ()
     return ()
 
 tickle :: MonadIO m => Worker -> m ()
-tickle = liftIO
+tickle = liftIO . runWorker
