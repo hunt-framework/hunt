@@ -32,7 +32,6 @@ where
 import           Control.Arrow                 (second)
 import           Control.Concurrent.STM
 import           Control.Concurrent.XMVar
-import           Control.DeepSeq
 import           Control.Monad.Except
 import           Control.Monad.Reader
 
