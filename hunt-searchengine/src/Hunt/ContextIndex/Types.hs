@@ -11,10 +11,6 @@ import Data.Aeson
 import Data.Binary
 import Data.Typeable
 
--- | A number representing the version of the index
-newtype Revision = Revision Int
-  deriving (Binary, Enum, Eq, FromJSON, ToJSON, Ord, Show, Typeable)
-
 -- | The actual index type.
 data ContextIndex dt
   = ContextIndex { ciSegments      :: !(SegmentMap (Segment dt))

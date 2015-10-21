@@ -7,7 +7,7 @@ import           Control.Concurrent.XMVar
 import           Control.Monad
 import           Control.Monad.IO.Class
 
--- | A lightweight abstraction for pool of asynchronous threads
+-- | A lightweight abstraction for a pool of asynchronous threads
 --   which, when tickled, do some task over a given XMVar.
 --   Note that a worker forms a monoid with the noop as neutral element
 --   which can be handy when composing multiple workers.

@@ -58,77 +58,78 @@ library
                , vector-algorithms
 
   exposed-modules:
-    Control.Concurrent.XMVar
+                  Control.Concurrent.XMVar
 
-    Data.Bijection
-    Data.Bijection.Instances
-    Data.IntMap.BinTree.Strict
-    Data.IntSet.Cache
-    Data.IntSet.Packed
-    Data.LimitedPriorityQueue
-    Data.Text.Binary
-    Data.Typeable.Binary
+                  Data.Bijection
+                  Data.Bijection.Instances
+                  Data.IntMap.BinTree.Strict
+                  Data.IntSet.Cache
+                  Data.IntSet.Packed
+                  Data.LimitedPriorityQueue
+                  Data.Text.Binary
+                  Data.Typeable.Binary
 
-    GHC.Fingerprint.Binary
-    GHC.Stats.Json
+                  GHC.Fingerprint.Binary
+                  GHC.Stats.Json
 
-    Hunt.ClientInterface
+                  Hunt.ClientInterface
 
-    Hunt.Common.ApiDocument
-    Hunt.Common.BasicTypes
-    Hunt.Common.DocDesc
-    Hunt.Common.DocId
-    Hunt.Common.DocIdMap
-    Hunt.Common.DocIdSet
-    Hunt.Common.Document
-    Hunt.Common.Occurrences
-    Hunt.Common.Positions
-    Hunt.Common.SegmentMap
+                  Hunt.Common.ApiDocument
+                  Hunt.Common.BasicTypes
+                  Hunt.Common.DocDesc
+                  Hunt.Common.DocId
+                  Hunt.Common.DocIdMap
+                  Hunt.Common.DocIdSet
+                  Hunt.Common.Document
+                  Hunt.Common.Occurrences
+                  Hunt.Common.Positions
+                  Hunt.Common.SegmentMap
 
-    Hunt.Index.Schema
-    Hunt.Index.Schema.Analyze
-    Hunt.Index.Schema.Normalize.Date
-    Hunt.Index.Schema.Normalize.Position
-    Hunt.Index.Schema.Normalize.Int
-    Hunt.Index.Schema.Tokenize
+                  Hunt.Index.Schema
+                  Hunt.Index.Schema.Analyze
+                  Hunt.Index.Schema.Normalize.Date
+                  Hunt.Index.Schema.Normalize.Position
+                  Hunt.Index.Schema.Normalize.Int
+                  Hunt.Index.Schema.Tokenize
 
-    Hunt.Index
-    Hunt.Index.IndexImpl
-    Hunt.Index.PrefixTreeIndex
-    Hunt.Index.PrefixTreeIndex2Dim
-    Hunt.Index.RTreeIndex
-    Hunt.Index.InvertedIndex
-    Hunt.Index.Proxy.KeyIndex
+                  Hunt.Index
+                  Hunt.Index.IndexImpl
+                  Hunt.Index.PrefixTreeIndex
+                  Hunt.Index.PrefixTreeIndex2Dim
+                  Hunt.Index.RTreeIndex
+                  Hunt.Index.InvertedIndex
+                  Hunt.Index.Proxy.KeyIndex
 
-    Hunt.DocTable
-    Hunt.DocTable.HashedDocTable
+                  Hunt.DocTable
+                  Hunt.DocTable.HashedDocTable
 
-    Hunt.Segment
-    Hunt.ContextIndex
-    Hunt.ContextIndex.Merge
-    Hunt.ContextIndex.Status
-    Hunt.ContextIndex.Types
-    
-    Hunt.Interpreter
-    Hunt.Interpreter.BasicCommand
-    Hunt.Interpreter.Command
-    Hunt.Interpreter.Worker
-    
-    Hunt.Query.Fuzzy
-    Hunt.Query.Intermediate
-    Hunt.Query.Language.Grammar
-    Hunt.Query.Language.Parser
-    Hunt.Query.Language.Builder
-    Hunt.Query.Processor
-    Hunt.Query.Result
+                  Hunt.Segment
+                  Hunt.ContextIndex
+                  Hunt.ContextIndex.Flush
+                  Hunt.ContextIndex.Merge
+                  Hunt.ContextIndex.Status
+                  Hunt.ContextIndex.Types
 
-    Hunt.Scoring.Keys
-    Hunt.Scoring.Score
-    Hunt.Scoring.SearchResult
+                  Hunt.Interpreter
+                  Hunt.Interpreter.BasicCommand
+                  Hunt.Interpreter.Command
+                  Hunt.Interpreter.Worker
 
-    Hunt.Utility
-    Hunt.Utility.Log
-    Hunt.Utility.Output
+                  Hunt.Query.Fuzzy
+                  Hunt.Query.Intermediate
+                  Hunt.Query.Language.Grammar
+                  Hunt.Query.Language.Parser
+                  Hunt.Query.Language.Builder
+                  Hunt.Query.Processor
+                  Hunt.Query.Result
+
+                  Hunt.Scoring.Keys
+                  Hunt.Scoring.Score
+                  Hunt.Scoring.SearchResult
+
+                  Hunt.Utility
+                  Hunt.Utility.Log
+                  Hunt.Utility.Output
 
   hs-source-dirs: src
 

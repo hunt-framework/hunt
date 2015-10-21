@@ -55,6 +55,8 @@ import qualified Hunt.Common.DocIdSet          as DocIdSet
 import           Hunt.Common.Document          (Document (..), unwrap)
 import           Hunt.ContextIndex             (ContextIndex)
 import qualified Hunt.ContextIndex             as CIx
+import           Hunt.ContextIndex.Flush       (FlushPolicy (..))
+import qualified Hunt.ContextIndex.Flush       as Flush
 import           Hunt.ContextIndex.Merge       (MergePolicy (..))
 import qualified Hunt.ContextIndex.Merge       as Merge
 import           Hunt.DocTable                 (DocTable)
@@ -142,7 +144,8 @@ data HuntEnv dt = HuntEnv
   { -- | The context index (indexes, document table and schema).
     --   Stored in an 'XMVar' so that read access is always possible.
     huntIndex       :: DocTable dt => XMVar (ContextIndex dt)
-
+    -- | Describes how and where to flush the index.
+  , huntFlushPolicy :: FlushPolicy
     -- | Merge policy for index construction
   , huntMergePolicy :: MergePolicy
     -- | Available context types.
@@ -162,7 +165,7 @@ type DefHuntEnv = HuntEnv (Documents Document)
 
 -- | Initialize the Hunt environment with default values.
 initHunt :: DocTable dt => IO (HuntEnv dt)
-initHunt = initHuntEnv CIx.empty mergePolicy contextTypes [] normalizers def
+initHunt = initHuntEnv CIx.empty flushPolicy mergePolicy contextTypes [] normalizers def
 
 -- | Default context types.
 contextTypes :: ContextTypes
@@ -180,19 +183,27 @@ mergePolicy
                 , mpMaxParallelMerges = 2
                 }
 
+-- | Default flush policy
+flushPolicy :: FlushPolicy
+flushPolicy =
+  FlushPolicy { fpFlushDirectory = "index"
+              }
+
 -- | Initialize the Hunt environment.
 initHuntEnv :: DocTable dt
            => ContextIndex dt
+           -> FlushPolicy
            -> MergePolicy
            -> ContextTypes
            -> [CTokenizer]
            -> [CNormalizer]
            -> ProcessConfig
            -> IO (HuntEnv dt)
-initHuntEnv ixx mp opt tk ns qc = do
+initHuntEnv ixx fp mp opt tk ns qc = do
   ixref  <- newXMVar ixx
+  flsr <- newIndexFlusher ixref fp
   mrgr <- newIndexMerger ixref mp
-  return $ HuntEnv ixref mp opt tk ns qc mrgr
+  return $ HuntEnv ixref fp mp opt tk ns qc (flsr <> mrgr)
 
 -- ------------------------------------------------------------
 -- Command evaluation monad
@@ -746,6 +757,8 @@ type IndexMerger = Worker
 
 type IndexWorker = Worker
 
+-- | Tickles the flush and merge workers so that the can
+--   commit and merge the index if necessary.
 flushAndMerge :: DocTable dt => Hunt dt a -> Hunt dt a
 flushAndMerge f = do
   a <- f
@@ -778,7 +791,7 @@ newIndexMerger xmvar policy = liftIO $ do
     !merge <- mconcat <$> mapM Merge.runMerge mdesc
 
     -- Work is done, we need to modify the contextindex and
-    -- remove the merges segments from the mergelock
+    -- remove the merged segments from the mergelock
     withMergeLock mlock $ \lock -> do
       lock' <- modify (return . Merge.applyMerge merge lock)
       return ((), lock')
@@ -795,3 +808,15 @@ newIndexMerger xmvar policy = liftIO $ do
       (a, lock') <- f lock
       atomically (putTMVar mlock lock')
       return a
+
+type IndexFlusher = Worker
+
+-- | Flushes changes to the index to disk.
+newIndexFlusher :: (MonadIO m, DocTable dt)
+                => XMVar (ContextIndex dt)
+                -> FlushPolicy
+                -> m IndexFlusher
+newIndexFlusher xmvar _policy  = liftIO $ do
+  -- | Disallow concurrent flushing by having exactly one worker.
+  Worker.new 1 xmvar $ \_read _modify -> do
+    return ()
