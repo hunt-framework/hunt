@@ -762,7 +762,6 @@ newIndexMerger :: (MonadIO m, DocTable dt)
 newIndexMerger xmvar policy = liftIO $ do
   -- we need a lock for parallel merges
   mlock <- newTMVarIO mempty
-  let withMergeLock = withMLock
 
   Worker.new (mpMaxParallelMerges policy) xmvar $ \_ modify -> do
     -- Take the merge lock, no concurrent access to the section below
@@ -790,10 +789,10 @@ newIndexMerger xmvar policy = liftIO $ do
   where
     -- This seems to be a pretty rigid construct for the type checker
     -- be careful with the types here.
-    withMLock :: TMVar Merge.MergeLock
+    withMergeLock :: TMVar Merge.MergeLock
               -> (Merge.MergeLock -> IO (a, Merge.MergeLock))
               -> IO a
-    withMLock mlock f = do
+    withMergeLock mlock f = do
       lock <- atomically (takeTMVar mlock)
       (a, lock') <- f lock
       atomically (putTMVar mlock lock')
