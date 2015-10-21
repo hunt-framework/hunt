@@ -347,16 +347,16 @@ execCmd' (Status sc)
   = execStatus sc
 
 execCmd' (InsertList docs)
-  = execInsertList docs
+  = withMerge $ execInsertList docs
 
 execCmd' (Update doc)
-  = modIx $ execUpdate doc
+  = withMerge $ modIx $ execUpdate doc
 
 execCmd' (DeleteDocs uris)
-  = modIx $ execDeleteDocs uris
+  = withMerge $ modIx $ execDeleteDocs uris
 
 execCmd' (DeleteByQuery q)
-  = modIx $ execDeleteByQuery q
+  = withMerge $ modIx $ execDeleteByQuery q
 
 execCmd' (StoreIx filename)
   = withIx $ execStore filename
@@ -492,7 +492,7 @@ execUpdate doc ixx
          docIdM <- liftIO $ CIx.lookupDocumentByURI (uri docs) ixx
          case docIdM of
           Just docId
-            -> do ixx'<- withMerge $ lift $
+            -> do ixx'<- lift $
                          CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
                   return (ixx', ResOK)
           Nothing
