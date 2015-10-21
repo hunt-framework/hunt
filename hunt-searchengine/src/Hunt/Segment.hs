@@ -20,7 +20,7 @@ import qualified Hunt.DocTable             as DocTable
 import qualified Hunt.Index                as Ix
 import qualified Hunt.Index.IndexImpl      as Ix
 import           Hunt.Index.Schema
-import Hunt.Scoring.SearchResult (SearchResult)
+import           Hunt.Scoring.SearchResult (SearchResult)
 import qualified Hunt.Scoring.SearchResult as SearchResult
 import           Hunt.Utility
 
@@ -378,10 +378,7 @@ mergeSegments schema seg1 seg2
   where
     mergeIx :: (DocIdSet, Ix.IndexImpl) -> (DocIdSet, Ix.IndexImpl) -> Ix.IndexImpl
     mergeIx (dd1, Ix.IndexImpl ix1) (dd2, Ix.IndexImpl ix2)
-      = Ix.mkIndex $ Ix.unionWith union ix1 (unsafeCoerce ix2)
+      = Ix.mkIndex $ Ix.unionWith (<>) ix1' (unsafeCoerce ix2')
       where
-        union v1 v2
-          = fromMaybe mempty (v1' <> v2')
-          where
-            v1' = Ix.diffValues dd1 v1
-            v2' = Ix.diffValues dd2 v2
+        ix1' = Ix.map (fromMaybe mempty . Ix.diffValues dd1) ix1
+        ix2' = Ix.map (fromMaybe mempty . Ix.diffValues dd2) ix2
