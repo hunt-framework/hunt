@@ -425,7 +425,10 @@ execDeleteContext cx ixx
 
 execInsertList :: DocTable dt => [ApiDocument] -> Hunt dt CmdResult
 execInsertList docs = do
-  newSeg <- withIx $ \ixx ->
+  -- Do the hard work before we take the lock. This enables more parallel indexing
+  -- In cases of DocId collisions we do a lot of useless work upfront
+  -- TODO: we need to account for concurrent schema changes
+  !newSeg <- withIx $ \ixx ->
     lift $ Segment.fromDocsAndWords (CIx.schema ixx) (docsAndWords (CIx.schema ixx))
 
   modIx $ \ixx' -> do
@@ -757,18 +760,41 @@ newIndexMerger :: (MonadIO m, DocTable dt)
                -> MergePolicy
                -> m IndexMerger
 newIndexMerger xmvar policy = liftIO $ do
+  -- we need a lock for parallel merges
   mlock <- newTMVarIO mempty
-  Worker.new (mpMaxParallelMerges policy) xmvar $ \_read modify -> do
-    lock <- atomically (takeTMVar mlock)
-    (mdesc, lock') <- modify (\ixx -> do
-                               (mdesc, lock', ixx') <- Merge.tryMerge policy lock ixx
-                               return (ixx', (mdesc, lock'))
-                          )
-    atomically (putTMVar mlock lock')
+  let withMergeLock = withMLock
 
-    merge <- mconcat <$> mapM Merge.runMerge mdesc
+  Worker.new (mpMaxParallelMerges policy) xmvar $ \_ modify -> do
+    -- Take the merge lock, no concurrent access to the section below
+    mdesc <- withMergeLock mlock $ \lock -> do
+      -- Create the merge descriptions, we need to modify the contextindex here
+      -- because it we need to generate new `SegmentId`s for the merged segments.
+      modify (\ixx -> do
+                  (mdesc, lock', ixx') <- Merge.tryMerge policy lock ixx
+                  return (ixx', (mdesc, lock'))
+             )
 
-    lock''  <- atomically (takeTMVar mlock)
-    lock''' <- modify (return . Merge.applyMerge merge lock'')
-    atomically (putTMVar mlock lock''')
+    -- Do the actual merge. Since the result of a merge is a
+    -- monoid (and commutative) we could run these in parallel.
+    -- We could then have only 1 index merger which distributes
+    -- the work to other threads.
+    !merge <- mconcat <$> mapM Merge.runMerge mdesc
+
+    -- Work is done, we need to modify the contextindex and
+    -- remove the merges segments from the mergelock
+    withMergeLock mlock $ \lock -> do
+      lock' <- modify (return . Merge.applyMerge merge lock)
+      return ((), lock')
+
     return ()
+  where
+    -- This seems to be a pretty rigid construct for the type checker
+    -- be careful with the types here.
+    withMLock :: TMVar Merge.MergeLock
+              -> (Merge.MergeLock -> IO (a, Merge.MergeLock))
+              -> IO a
+    withMLock mlock f = do
+      lock <- atomically (takeTMVar mlock)
+      (a, lock') <- f lock
+      atomically (putTMVar mlock lock')
+      return a
