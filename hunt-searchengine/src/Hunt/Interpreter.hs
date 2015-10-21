@@ -38,6 +38,7 @@ import           Control.Monad.Reader
 import           Data.Aeson                    (ToJSON (..), object, (.=))
 import           Data.Binary                   (Binary, encodeFile)
 import           Data.Default
+import           Data.IORef
 import qualified Data.List                     as L
 import qualified Data.Map                      as M
 import           Data.Monoid
@@ -816,7 +817,23 @@ newIndexFlusher :: (MonadIO m, DocTable dt)
                 => XMVar (ContextIndex dt)
                 -> FlushPolicy
                 -> m IndexFlusher
-newIndexFlusher xmvar _policy  = liftIO $ do
-  -- | Disallow concurrent flushing by having exactly one worker.
-  Worker.new 1 xmvar $ \_read _modify -> do
-    return ()
+newIndexFlusher xmvar policy  = liftIO $ do
+  mLastRev <- newIORef =<< Flush.mkRevision =<< readXMVar xmvar
+  -- Disallow concurrent flushing by having exactly one worker.
+  Worker.new 1 xmvar $ \read modify -> do
+    lastRev <- readIORef mLastRev
+    ixx     <- read
+
+    -- Diff the current index to the last one
+    (doFlush, newRev) <- Flush.diff lastRev ixx
+
+    -- Run the resulting flush,
+    -- runFlush is able to produce some index modifiying
+    -- function, e.g. as it stores all documents on disk
+    -- the function can replace the expensive in-memory
+    -- DocTable with a cheaper one reading directly from disk.
+    fls <- Flush.runFlush policy doFlush
+    modify (return . Flush.applyFlush fls)
+
+    -- Store the revision for the next iteration.
+    writeIORef mLastRev newRev
