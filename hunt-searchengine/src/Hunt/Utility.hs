@@ -17,7 +17,6 @@ module Hunt.Utility
 
     -- * Strict Functions
   , foldM'
-  , foldM1'
 
     -- * Monadic Functions
   , foldlWithKeyM, foldrWithKeyM
@@ -184,19 +183,6 @@ foldM' _ acc [] = return acc
 foldM' f acc (x:xs) = do
   !acc' <- f acc x
   foldM' f acc' xs
-
--- | Strict version of 'foldM' which fails on empty lists.
-foldM1' :: (Monad m) => (a -> a -> m a) -> [a] -> m a
-foldM1' f xs
-  = do r <- foldM' mf Nothing xs
-       return (fromMaybe (error "foldM1': empty list") r)
-  where
-    mf m x
-      = do r <- case m of
-                 Nothing -> return x
-                 Just  y -> do !t <- f x y
-                               return t
-           return (Just r)
 
 -- | 'FB.foldrM' for 'Map' with key.
 foldrWithKeyM :: (Monad m) => (k -> a -> b -> m b) -> b -> Map k a -> m b

@@ -215,12 +215,17 @@ selectMerges policy lock schema nextSid segments
     sortByLevel
       = List.sortBy (comparing Down)
 
-
 -- | Runs a merge. Returns an idempotent function which,
 --   when applied to a `ContextIndex` makes the merged segment visible
 runMerge' :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (Segment dt)
-runMerge' (MergeDescr _segmentId schema segments)
-  = do foldM1' (mergeSegments schema) (SegmentMap.elems segments)
+runMerge' (MergeDescr _segmentId schema segm)
+  = go (head segments) (tail segments)
+  where
+    segments = SegmentMap.elems segm
+    go acc [] = return acc
+    go acc (s:sx) = do
+      acc' <- go acc sx
+      mergeSegments schema s acc'
 
 releaseLock :: MergeLock -> SegmentMap a -> MergeLock
 releaseLock (MergeLock lock) x
