@@ -16,26 +16,26 @@
 
 module Data.IntSet.Packed
   ( IntSet(..)
+  , difference
   , empty
   , filter
-  , singleton
-  , null
-  , size
-  , member
-  , notMember
   , foldr
-  , minimum
-  , split
-  , split'
-  , fromList
-  , toIntSet
-  , toList
-  , toAscList
-  , difference
-  , union
   , fromAscList
+  , fromList
   , intersection
   , intersectionWithDispl
+  , member
+  , minimum
+  , notMember
+  , null
+  , singleton
+  , size
+  , split
+  , split'
+  , toAscList
+  , toIntSet
+  , toList
+  , union
   )
 where
 
