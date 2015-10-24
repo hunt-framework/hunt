@@ -44,48 +44,59 @@ instance ToJSON Positions where
 -- | Empty positions.
 empty                :: Positions
 empty                = PS IS.empty
+{-# INLINE empty #-}
 
 -- | Positions with one element.
 singleton            :: Position -> Positions
 singleton            = PS . IS.cacheAt
 --singleton            = PS . IS.singleton
+{-# INLINE singleton #-}
 
 -- | Test whether it is the empty positions.
 null                 :: Positions -> Bool
 null                 = IS.null . unPS
+{-# INLINE null #-}
 
 -- | Whether the 'Position' is part of 'Positions'.
 member               :: Position -> Positions -> Bool
 member p             = IS.member p . unPS
+{-# INLINE member #-}
 
 -- | Converts 'Positions' to a list of 'Position's in ascending order.
 toAscList            :: Positions -> [Position]
 toAscList            = IS.toAscList . unPS
+{-# INLINE toAscList #-}
 
 -- | Constructs Positions from a list of 'Position's.
 fromList             :: [Position] -> Positions
 -- fromList             = PS . IS.unions . map IS.cacheAt
 fromList             = PS . IS.fromList
+{-# INLINE fromList #-}
 
 -- | Number of 'Position's.
 size                 :: Positions -> Int
 size                 = IS.size . unPS
+{-# INLINE size #-}
 
 -- | The union of two 'Positions'.
 union                :: Positions -> Positions -> Positions
 union s1 s2          = PS $ (unPS s1) `IS.union` (unPS s2)
+{-# INLINE union #-}
 
 -- | The union of two 'Positions'.
 intersection         :: Positions -> Positions -> Positions
 intersection s1 s2   = PS $ (unPS s1) `IS.intersection` (unPS s2)
+{-# INLINE intersection #-}
 
 -- | The union of two 'Positions'.
 difference           :: Positions -> Positions -> Positions
 difference s1 s2     = PS $ (unPS s1) `IS.difference` (unPS s2)
+{-# INLINE difference #-}
 
 -- | A fold over Positions
 foldr                :: (Position -> r -> r) -> r -> Positions -> r
 foldr op e           = IS.foldr op e . unPS
+{-# INLINE foldr #-}
 
 -- | intersection with a "shifted" 2. set with elements decremented by a displacement @d@
 -- before the element test
@@ -94,9 +105,8 @@ foldr op e           = IS.foldr op e . unPS
 
 intersectionWithDispl :: Int -> Positions -> Positions -> Positions
 intersectionWithDispl d (PS s1) (PS s2)
-    = PS $ IS.filter member' s1
-      where
-        member' i = (i + d) `IS.member` s2
+  = PS $ IS.intersectionWithDispl d s1 s2
+{-# INLINE intersectionWithDispl #-}
 
 -- | intersction with "fuzzy" element test. All elements @e1@ for which an element @e2@ in @s2@
 -- is found with @e2 - e1 `elem` [lb..ub]@ remain in set @s1@.

@@ -35,6 +35,7 @@ module Data.IntSet.Packed
   , union
   , fromAscList
   , intersection
+  , intersectionWithDispl
   )
 where
 
@@ -112,6 +113,13 @@ intersection i1@(DIS1 s1) i2@(DIS1 s2)
   | null i2 = empty
   | otherwise = DIS1 (GVector.unstream (intersectStream (GVector.stream s1) (GVector.stream s2)))
 {-# INLINE intersection #-}
+
+intersectionWithDispl :: Int -> IntSet -> IntSet -> IntSet
+intersectionWithDispl !d i1@(DIS1 s1) i2@(DIS1 s2)
+  | null i1 = empty
+  | null i2 = empty
+  | otherwise = DIS1 (GVector.unstream (intersectStream (Stream.map (+ d) (GVector.stream s1)) (GVector.stream s2)))
+{-# INLINE intersectionWithDispl #-}
 
 difference :: IntSet -> IntSet -> IntSet
 difference i1@(DIS1 s1) i2@(DIS1 s2)
