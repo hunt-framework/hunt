@@ -72,30 +72,40 @@ instance FromJSON DocIdSet where
 
 difference :: DocIdSet -> DocIdSet -> DocIdSet
 difference (DIS s1) (DIS s2) = DIS $ S.difference s1 s2
+{-# INLINE difference #-}
 
 union :: DocIdSet -> DocIdSet -> DocIdSet
 union (DIS s1) (DIS s2) = DIS $ S.union s1 s2
+{-# INLINE union #-}
 
 intersection :: DocIdSet -> DocIdSet -> DocIdSet
 intersection (DIS s1) (DIS s2) = DIS $ S.intersection s1 s2
+{-# INLINE intersection #-}
 
 fromList :: [DocId] -> DocIdSet
 fromList = DIS . S.fromList . L.map unDocId
+{-# INLINE fromList #-}
 
 toList :: DocIdSet -> [DocId]
 toList = L.map DocId . S.toList . unDIS
+{-# INLINE toList #-}
 
 toIntSet :: DocIdSet -> IS.IntSet
 toIntSet =  S.toIntSet . unDIS
+{-# INLINE toIntSet #-}
 
 singleton :: DocId -> DocIdSet
 singleton = DIS . S.singleton . unDocId
+{-# INLINE singleton #-}
 
 null :: DocIdSet -> Bool
 null = S.null . unDIS
+{-# INLINE null #-}
 
 size :: DocIdSet -> Int
 size (DIS s) = S.size s
+{-# INLINE size #-}
 
 member :: DocId -> DocIdSet -> Bool
 member x s = unDocId x `S.member` unDIS s
+{-# INLINE member #-}
