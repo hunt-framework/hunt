@@ -52,7 +52,7 @@ import           Data.Bits
 
 import qualified Data.Vector as VVector
 import qualified Data.Vector.Algorithms.Intro as Sort
-import qualified Data.Vector.Unboxed as Vector
+import qualified Data.Vector.Primitive as Vector
 import qualified Data.Vector.Generic as GVector
 import qualified Data.Vector.Fusion.Stream.Monadic as Stream
 import qualified Data.Vector.Fusion.Stream.Size as Stream
