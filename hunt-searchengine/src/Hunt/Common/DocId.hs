@@ -19,9 +19,14 @@ module Hunt.Common.DocId
 where
 
 import           Data.Aeson
-import           Data.Binary          (Binary (..))
-import qualified Data.Binary          as B
+import           Data.Binary                (Binary (..))
+import qualified Data.Binary                as B
 import           Data.Digest.Murmur64
+import qualified Data.Text                  as TextS
+import qualified Data.Text.Lazy             as Text
+import qualified Data.Text.Lazy.Builder     as Text
+import qualified Data.Text.Lazy.Builder.Int as Text
+import qualified Data.Text.Read             as TextS
 
 -- ------------------------------------------------------------
 {-
@@ -58,7 +63,7 @@ newtype DocId = DocId {unDocId :: Int}
     deriving (Eq, Ord)
 
 instance Show DocId where
-    show = toHex . unDocId
+    show = TextS.unpack . toHex . unDocId
 
 instance Binary DocId where
     put = put . unDocId
@@ -70,30 +75,16 @@ instance ToJSON DocId where
 mkDocId :: Binary a => a -> DocId
 mkDocId = DocId . fromIntegral . asWord64 . hash64 . B.encode
 
-toHex :: Int -> String
-toHex !y = "0x" ++ toX 16 "" y
-    where
-      toX :: Int -> String -> Int -> String
-      toX !0 !acc _ = acc
-      toX !n !acc x = toX (n - 1) (d : acc) x'
-          where
-            (!x', !r) = x `divMod` 16
-            !d | r < 10    = toEnum (fromEnum '0' + r)
-               | otherwise = toEnum (fromEnum 'a' + r - 10)
+toHex :: Int -> TextS.Text
+toHex y = Text.toStrict (Text.toLazyText b)
+  where b = "0x" `mappend` Text.hexadecimal y
+{-# INLINE toHex #-}
 
-fromHex :: String -> Maybe Int
-fromHex i@('0' : 'x' : xs)
-    | length xs == 16
-      &&
-      all (`elem` alphabet) xs
-        = Just . read $ i
-    | otherwise
-        = Nothing
-  where
-    alphabet = "0123456789abcdef" :: [Char]
-
-
-fromHex _
-    = Nothing
+fromHex :: TextS.Text -> Maybe Int
+fromHex s =
+  case TextS.hexadecimal s of
+    Right (x, s') | TextS.null s' -> Just x
+    _                             -> Nothing
+{-# INLINE fromHex #-}
 
 -- ------------------------------------------------------------
