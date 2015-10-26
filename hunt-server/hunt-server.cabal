@@ -67,7 +67,8 @@ executable hunt-server
                -funbox-strict-fields
 
   ghc-prof-options: -fprof-auto
-                               
+                    "-with-rtsopts=-p"
+                                                   
   if flag(statsD)
     build-depends: ekg-statsd
     ghc-options: "-with-rtsopts=-s -T"
