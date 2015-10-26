@@ -825,7 +825,7 @@ newIndexFlusher xmvar policy  = liftIO $ do
     ixx     <- read
 
     -- Diff the current index to the last one
-    (doFlush, newRev) <- Flush.diff lastRev ixx
+    (doFlush, newRev) <- Flush.delta lastRev ixx
 
     -- Run the resulting flush,
     -- runFlush is able to produce some index modifiying

@@ -39,8 +39,8 @@ mkRevision ixx = return (Revision ixx)
 
 -- | `diff` takes a `Revision` and a `ContextIndex` and creates a `Flush` based
 --   on the difference of the two.
-diff :: (Monad m, DocTable dt) => Revision -> ContextIndex dt -> m (Flush, Revision)
-diff (Revision old) new = return (flush, Revision new)
+delta :: (Monad m, DocTable dt) => Revision -> ContextIndex dt -> m (Flush, Revision)
+delta (Revision old) new = return (flush, Revision new)
   where
     flush = Flush { flsAddSeg = SegmentMap.difference (ciSegments new) (ciSegments old)
                   , flsDelSeg = mempty
@@ -52,7 +52,6 @@ diff (Revision old) new = return (flush, Revision new)
       where
         deltaDocs = segDeletedDocs ns `DocIdSet.difference` segDeletedDocs os
         deltaCxs  = segDeletedCxs ns `Set.difference` segDeletedCxs os
-
 
 -- | Runs a `Flush` and writes files to the index directory. This operation is atomic.
 runFlush :: MonadIO m => FlushPolicy -> Flush -> m ApplyFlush
