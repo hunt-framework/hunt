@@ -60,9 +60,15 @@ import qualified Data.Vector.Fusion.Stream.Size as Stream
 import qualified Data.Vector.Fusion.Util as Stream
 
 -- ------------------------------------------------------------
+-- A dense packed IntSet represented as a vector of sorted ints.
 --
--- the wrapped DocId set
-
+-- The implementation usese a cache efficient offset-binary-search
+-- as documented by http://www.pvk.ca/Blog/2012/07/30/binary-search-is-a-pathological-case-for-caches/
+-- and http://yowconference.com.au/slides/yowlambdajam2014/Kmett-FunctionallyOblivious.pdf
+--
+-- Benchmark show although it does ~2% more lookups it yields better results
+-- on modern processors because it touches likely more cache lines and thus
+-- uses the cache more effectively. (yeah, I know: optimization is the root of all evil)
 newtype IntSet = DIS1 { unDIS1 :: Vector.Vector Int }
                deriving (Eq, Ord, Read, Show, NFData, Typeable)
 
@@ -156,7 +162,8 @@ split' n (DIS1 v) = loop 0 (Vector.length v)
               in (Just (Vector.head r), DIS1 l, DIS1 (Vector.tail r))
             GT -> loop lb k
       where
-        k = (ub + lb) `unsafeShiftR` 1
+        i = ub - lb
+        k = lb + unsafeShiftR i 1 + unsafeShiftR i 6
 {-# INLINE split' #-}
 
 split :: Int -> IntSet -> (IntSet, IntSet)
@@ -170,7 +177,8 @@ split n (DIS1 v) = loop 0 (Vector.length v)
             EQ -> let (l, r) = Vector.splitAt lb v in (DIS1 l, DIS1 r)
             GT -> loop lb k
       where
-        k = (ub + lb) `unsafeShiftR` 1
+        i = ub - lb
+        k = lb + unsafeShiftR i 1 + unsafeShiftR i 6
 {-# INLINE split #-}
 
 fromList :: [Int] -> IntSet
@@ -208,7 +216,8 @@ member x (DIS1 v)
             EQ -> True
             GT -> loop l k
       where
-        k = (u + l) `unsafeShiftR` 1
+        i = u - l
+        k = l + unsafeShiftR i 1 + unsafeShiftR i 6
 {-# INLINE member #-}
 
 notMember :: Int -> IntSet -> Bool
