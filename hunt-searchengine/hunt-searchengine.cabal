@@ -45,6 +45,7 @@ library
                , filepath               >= 1
                , hslogger               >= 1       && < 2
                , hxt-regex-xmlschema    >= 9.1
+               , hybrid-vectors
                , monad-parallel         >= 0.7
                , mtl                    >= 1.1     && < 3
                , murmur-hash
@@ -63,6 +64,7 @@ library
                   Data.Bijection
                   Data.Bijection.Instances
                   Data.IntMap.BinTree.Strict
+                  Data.IntMap.Packed                  
                   Data.IntSet.Cache
                   Data.IntSet.Packed
                   Data.LimitedPriorityQueue
@@ -79,6 +81,7 @@ library
                   Hunt.Common.DocDesc
                   Hunt.Common.DocId
                   Hunt.Common.DocIdMap
+                  Hunt.Common.DocIdMap.Packed
                   Hunt.Common.DocIdSet
                   Hunt.Common.Document
                   Hunt.Common.Occurrences
@@ -166,25 +169,26 @@ test-suite Hunt-Tests
   ghc-options:          -Wall
   extensions:           OverloadedStrings
 
-  build-depends: base
-               , containers
-               , HUnit
+  build-depends: HUnit
                , QuickCheck
+               , aeson
+               , base
+               , binary
+               , containers
+               , data-default
+               , data-r-tree
+               , directory
+               , hunt-searchengine
+               , hybrid-vectors
+               , monad-parallel
+               , mtl
+               , old-locale
+               , random
                , test-framework
                , test-framework-hunit
                , test-framework-quickcheck2
                , text
-               , old-locale
                , time
-               , aeson
-               , binary
-               , hunt-searchengine
-               , mtl
-               , random
-               , directory
-               , data-default
-               , data-r-tree
-               , monad-parallel
 
 test-suite Hunt-Strictness
    hs-source-dirs:       test

@@ -218,8 +218,8 @@ selectMerges policy lock schema nextSid segments
 -- | Runs a merge. Returns an idempotent function which,
 --   when applied to a `ContextIndex` makes the merged segment visible
 runMerge' :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (Segment dt)
-runMerge' (MergeDescr _segmentId schema segm)
-  = go (head segments) (tail segments)
+runMerge' (MergeDescr _segmentId schema segm) =
+  go (head segments) (tail segments)
   where
     segments = SegmentMap.elems segm
     go acc [] = return acc

@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies               #-}
-{-# LANGUAGE UndecidableInstances        #-}
+{-# LANGUAGE UndecidableInstances       #-}
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -30,25 +30,28 @@ module Hunt.Index.InvertedIndex
 -- -}
 where
 
-import           Prelude                              as P hiding (Word)
+import           Prelude                        as P hiding (Word)
 
+import           Control.Arrow
 import           Control.DeepSeq
 
-import           Data.Bijection.Instances             ()
-import           Data.Binary                          (Binary (..))
-import qualified Data.List                            as L
-import           Data.Text                            (Text)
+import           Data.Bijection.Instances       ()
+import           Data.Binary                    (Binary (..))
+import qualified Data.List                      as L
+import           Data.Text                      (Text)
 import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.Occurrences              (Occurrences)
-import           Hunt.Index                           as Ix
+import           Hunt.Common.DocIdMap           (pack)
+import qualified Hunt.Common.DocIdMap.Packed    as DM
+import           Hunt.Common.Occurrences        (Occurrences, DenseOccurrences)
+import           Hunt.Common.Positions          (Positions)
+import           Hunt.Index                     as Ix
 import           Hunt.Index.PrefixTreeIndex
-import qualified Hunt.Index.PrefixTreeIndex2Dim       as PT2D
-import           Hunt.Scoring.Keys                    (similar)
+import qualified Hunt.Index.PrefixTreeIndex2Dim as PT2D
+import           Hunt.Scoring.Keys              (similar)
 
 import           Hunt.Index.Proxy.KeyIndex
-
 
 -- ------------------------------------------------------------
 -- Inverted index using text key
@@ -56,10 +59,10 @@ import           Hunt.Index.Proxy.KeyIndex
 
 -- | Text index using a 'StringMap'-implementation.
 newtype InvertedIndex
-  = InvIx { invIx :: KeyProxyIndex Text (DmPrefixTree Occurrences) }
+  = InvIx { invIx :: KeyProxyIndex Text (DmPrefixTree DenseOccurrences) }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvIx :: KeyProxyIndex Text (DmPrefixTree Occurrences)
+mkInvIx :: KeyProxyIndex Text (DmPrefixTree DenseOccurrences)
            -> InvertedIndex
 mkInvIx x = InvIx $! x
 
@@ -73,7 +76,7 @@ instance Binary InvertedIndex where
 
 instance Index InvertedIndex where
   type IKey InvertedIndex = Word
-  type IVal InvertedIndex = Occurrences
+  type IVal InvertedIndex = DenseOccurrences
 
   insertList wos (InvIx i)
     = mkInvIx $ insertList wos i

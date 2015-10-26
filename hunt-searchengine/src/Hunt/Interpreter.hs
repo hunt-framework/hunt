@@ -29,6 +29,8 @@ module Hunt.Interpreter
   )
 where
 
+import qualified Hunt.Common.DocIdMap.Packed as DMP
+
 import           Control.Arrow                 (second)
 import           Control.Concurrent.STM
 import           Control.Concurrent.XMVar
@@ -179,7 +181,7 @@ normalizers = [cnUpperCase, cnLowerCase, cnZeroFill]
 -- | Default merge policy
 mergePolicy :: MergePolicy
 mergePolicy
-  = MergePolicy { mpMergeFactor       = 10
+  = MergePolicy { mpMergeFactor       = 6
                 , mpMinMerge          = 400
                 , mpMaxParallelMerges = 2
                 }

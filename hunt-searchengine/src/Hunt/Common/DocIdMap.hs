@@ -51,28 +51,30 @@ module Hunt.Common.DocIdMap
   , toList
   , keys
   , elems
+  , pack
   )
 where
 
-import           Prelude                    hiding (filter, foldl, foldr,
-                                             lookup, map, null)
-import qualified Prelude                    as P
+import           Prelude                     hiding (filter, foldl, foldr,
+                                              lookup, map, null)
+import qualified Prelude                     as P
 
-import           Control.Arrow              (first)
+import           Control.Arrow               (first)
 import           Control.DeepSeq
-import           Control.Monad              (foldM, mzero)
+import           Control.Monad               (foldM, mzero)
 
 import           Data.Aeson
-import           Data.Binary                (Binary (..))
-import qualified Data.HashMap.Strict        as HM
-import qualified Data.IntMap.BinTree.Strict as IM
-import qualified Data.IntSet.Packed as IntSet
-import qualified Data.List                  as L
+import           Data.Binary                 (Binary (..))
+import qualified Data.HashMap.Strict         as HM
+import qualified Data.IntMap.BinTree.Strict  as IM
+import qualified Data.IntSet.Packed          as IntSet
+import qualified Data.List                   as L
 import           Data.Monoid
 import           Data.Typeable
 
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdSet       (DocIdSet (..))
+import qualified Hunt.Common.DocIdMap.Packed as DMP
+import           Hunt.Common.DocIdSet        (DocIdSet (..))
 
 -- ------------------------------------------------------------
 
@@ -288,6 +290,9 @@ keys                    = L.map DocId . IM.keys . unDIM
 elems                   :: DocIdMap v -> [v]
 elems                   = IM.elems . unDIM
 
+pack                    :: DocIdMap v -> DMP.DocIdMap v
+pack                    = DMP.fromAscList . toList
+
 -- ------------------------------------------------------------
 
 {-# INLINE liftDIM #-}
@@ -317,5 +322,6 @@ elems                   = IM.elems . unDIM
 {-# INLINE toList #-}
 {-# INLINE keys #-}
 {-# INLINE elems #-}
+{-# INLINE pack #-}
 
 -- ------------------------------------------------------------

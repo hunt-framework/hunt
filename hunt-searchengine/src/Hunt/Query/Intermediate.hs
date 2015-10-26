@@ -47,29 +47,30 @@ module Hunt.Query.Intermediate
     )
 where
 
-import           Prelude hiding (null, Word)
+import           Prelude                     hiding (Word, null)
 
-import           Control.Arrow (second, (***))
+import           Control.Arrow               (second, (***))
 
 import           Data.Aeson
-import qualified Data.HashMap.Strict as HM
-import qualified Data.LimitedPriorityQueue as Q
-import qualified Data.List as L
-import           Data.Map (Map)
-import qualified Data.Map as M
+import qualified Data.HashMap.Strict         as HM
+import qualified Data.LimitedPriorityQueue   as Q
+import qualified Data.List                   as L
+import           Data.Map                    (Map)
+import qualified Data.Map                    as M
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Ord
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import qualified Hunt.Common.DocIdMap as DM
-import           Hunt.Common.Document (Document (..))
-import           Hunt.Common.Occurrences (Occurrences)
-import qualified Hunt.Common.Occurrences as Occ
-import qualified Hunt.Common.Positions as Pos
+import qualified Hunt.Common.DocIdMap        as DM
+import qualified Hunt.Common.DocIdMap.Packed as DMP
+import           Hunt.Common.Document        (Document (..))
+import           Hunt.Common.Occurrences     (Occurrences, DenseOccurrences)
+import qualified Hunt.Common.Occurrences     as Occ
+import qualified Hunt.Common.Positions       as Pos
 import           Hunt.Index.Schema
-import           Hunt.Query.Result hiding (null)
+import           Hunt.Query.Result           hiding (null)
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
 
@@ -115,33 +116,33 @@ instance ScoredResult ScoredWords where
 -- ------------------------------------------------------------
 
 data ScoredOccs
-    = SCO Score Occurrences
+    = SCO Score DenseOccurrences
       deriving (Show)
 
 instance Monoid ScoredOccs where
     mempty
-        = SCO defScore DM.empty
+        = SCO defScore DMP.empty
     mappend (SCO s1 d1) (SCO s2 d2)
-        = SCO ((s1 + s2) / 2.0) (DM.unionWith Pos.union d1 d2)
+        = SCO ((s1 + s2) / 2.0) (DMP.unionWith Pos.union d1 d2)
 
 instance ScoredResult ScoredOccs where
     boost b (SCO s d)
         = SCO (b * s) d
 
     nullSC (SCO _s d)
-        = DM.null d
+        = DMP.null d
 
     differenceSC (SCO s1 d1) (SCO _s2 d2)
-        = SCO s1 (DM.difference d1 d2)
+        = SCO s1 (DMP.difference d1 d2)
 
     intersectSC (SCO s1 d1) (SCO s2 d2)
-        = SCO (s1 + s2) (Occ.intersectOccurrences Pos.union d1 d2)
+        = SCO (s1 + s2) (DMP.intersectionWith Pos.union d1 d2)
 
     intersectDisplSC disp (SCO s1 d1) (SCO s2 d2)
-        = SCO (s1 + s2) (Occ.intersectOccurrences (Pos.intersectionWithDispl disp) d1 d2)
+        = SCO (s1 + s2) (DMP.intersectionWith (Pos.intersectionWithDispl disp) d1 d2)
 
     intersectFuzzySC lb ub (SCO s1 d1) (SCO s2 d2)
-        = SCO (s1 + s2) (Occ.intersectOccurrences (Pos.intersectionWithIntervall lb ub) d1 d2)
+        = SCO (s1 + s2) (DMP.intersectionWith (Pos.intersectionWithIntervall lb ub) d1 d2)
 
 -- ------------------------------------------------------------
 
@@ -348,7 +349,7 @@ limitRawResult maxDocs rs
 toDocsResult :: (Applicative m, Monad m) =>
                 (DocId -> Maybe Document) -> ScoredDocs -> m [RankedDoc]
 toDocsResult dt (SDS m)
-    = return $ fmap toDoc (DM.toList m)
+    = return $ fmap toDoc (DMP.toList m)
       where
         toDoc (did, sc)
             = (toD . fromJust' . dt) did
@@ -423,7 +424,7 @@ toWordsResult len (SWS m)
 
 instance Aggregate ScoredOccs ScoredDocs where
     aggregate (SCO sc occ)
-        = SDS $ DM.map toScore occ
+        = SDS $ DMP.map toScore occ
           where
             toScore = (sc *) . mkScore . fromIntegral . Pos.size
 

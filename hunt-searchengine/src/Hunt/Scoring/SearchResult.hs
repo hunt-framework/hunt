@@ -13,9 +13,10 @@ import           Data.Monoid
 import           Hunt.Common.BasicTypes  (Position)
 import           Hunt.Common.DocIdMap    (DocIdMap)
 import qualified Hunt.Common.DocIdMap    as DM
+import qualified Hunt.Common.DocIdMap.Packed as DMP
 import           Hunt.Common.DocIdSet    (DocIdSet)
 import qualified Hunt.Common.DocIdSet    as DS
-import           Hunt.Common.Occurrences (Occurrences)
+import           Hunt.Common.Occurrences (Occurrences, DenseOccurrences)
 import qualified Hunt.Common.Occurrences as Occ
 import qualified Hunt.Common.Positions   as Pos
 import           Hunt.Scoring.Score
@@ -28,52 +29,52 @@ import           Prelude                 as P
 -- set of positions where a word has occuref
 
 newtype Occurrences'
-    = OCC Occurrences
+    = OCC DenseOccurrences
       deriving (Eq, Show)
 
 instance Monoid Occurrences' where
     mempty
-        = OCC DM.empty
+        = OCC DMP.empty
     mappend (OCC d1) (OCC d2)
-        = OCC $ DM.unionWith Pos.union d1 d2
+        = OCC $ DMP.unionWith Pos.union d1 d2
 
 instance ScoredResult Occurrences' where
     boost _b
         = id
 
     sizeSC (OCC d)
-      = DM.size d
+      = DMP.size d
 
     sizeMaxSC mx (OCC d)
-      = DM.sizeWithLimit mx d
+      = DMP.sizeWithLimit mx d
 
     nullSC (OCC d)
-        = DM.null d
+        = DMP.null d
 
     differenceSC (OCC d1) (OCC d2)
-        = OCC $ DM.difference d1 d2
+        = OCC $ DMP.difference d1 d2
 
     intersectSC (OCC d1) (OCC d2)
-        = OCC $ Occ.intersectOccurrences Pos.union d1 d2
+        = OCC $ DMP.intersectionWith Pos.union d1 d2
 
     intersectDisplSC disp (OCC d1) (OCC d2)
-        = OCC $ Occ.intersectOccurrences (Pos.intersectionWithDispl disp) d1 d2
+        = OCC $ DMP.intersectionWith (Pos.intersectionWithDispl disp) d1 d2
 
     intersectFuzzySC lb ub (OCC d1) (OCC d2)
-        = OCC $ Occ.intersectOccurrences (Pos.intersectionWithIntervall lb ub) d1 d2
+        = OCC $ DMP.intersectionWith (Pos.intersectionWithIntervall lb ub) d1 d2
 
 
 -- | "upcast": all DocId's get a score of 1.0
 docIdsToOccurrences' :: DocIdSet -> Occurrences'
 docIdsToOccurrences'
-  = OCC . Occ.fromDocIdSet
+  = OCC . DMP.fromDocIdSet (\_ -> Pos.singleton 1)
 
 -- | "upcast": all scored DocId's get the # of positions equivalent to the score
 --
 -- a bit artificial, but scoring is not destroied
-scoredDocsToOccurrences' :: DocIdMap Score -> Occurrences'
+scoredDocsToOccurrences' :: DMP.DocIdMap Score -> Occurrences'
 scoredDocsToOccurrences'
-  = OCC . DM.map scoreToOcc
+  = OCC . DMP.map scoreToOcc
     where
       scoreToOcc sc
         = Pos.fromList [(1::Position) .. (floor . maybe 1.0 id . getScore $ sc)]
@@ -83,34 +84,34 @@ scoredDocsToOccurrences'
 -- The result type for document search: every doc id is associated with a score
 
 newtype ScoredDocs
-    = SDS (DocIdMap Score)
+    = SDS (DMP.DocIdMap Score)
       deriving (Eq, Show)
 
 instance Monoid ScoredDocs where
     mempty
-        = SDS DM.empty
+        = SDS DMP.empty
     mappend (SDS m1) (SDS m2)
-        = SDS $ DM.unionWith (<>) m1 m2
+        = SDS $ DMP.unionWith (<>) m1 m2
 
 instance ScoredResult ScoredDocs where
     boost b x@(SDS m1)
       | b == defScore = x
-      | otherwise     = SDS $ DM.map (b *) m1
+      | otherwise     = SDS $ DMP.map (b *) m1
 
     nullSC (SDS m1)
-        = DM.null m1
+        = DMP.null m1
 
     sizeSC (SDS m)
-      = DM.size m
+      = DMP.size m
 
     sizeMaxSC mx (SDS m)
-      = DM.sizeWithLimit mx m
+      = DMP.sizeWithLimit mx m
 
     differenceSC (SDS m1) (SDS m2)
-        = SDS $ DM.difference m1 m2
+        = SDS $ DMP.difference m1 m2
 
     intersectSC (SDS m1) (SDS m2)
-        = SDS $ DM.intersectionWith (+) m1 m2
+        = SDS $ DMP.intersectionWith (+) m1 m2
 
     intersectDisplSC _disp
         = intersectSC
@@ -122,18 +123,18 @@ instance ScoredResult ScoredDocs where
 
 instance Aggregate ScoredDocs Score where
     aggregate (SDS m)
-        = DM.foldr (<>) defScore m
+        = DMP.foldr (<>) defScore m
 
 
 -- | "downcast": the set of positions is aggregated into a ScoredDocs
-occurrencesToScoredDocs :: Occurrences -> ScoredDocs
+occurrencesToScoredDocs :: DenseOccurrences -> ScoredDocs
 occurrencesToScoredDocs
   = SDS . occurrencesToDocIdMapScore
 
 -- | "downcast": the set of positions is aggregated into DocIdMap with frequency count
-occurrencesToDocIdMapScore :: Occurrences -> DocIdMap Score
+occurrencesToDocIdMapScore :: DenseOccurrences -> DMP.DocIdMap Score
 occurrencesToDocIdMapScore
-  = DM.map toScore
+  = DMP.map toScore
   where
     toScore = mkScore . fromIntegral . Pos.size
 
@@ -141,11 +142,11 @@ occurrencesToDocIdMapScore
 -- | "upcast": all DocId's get a score of 1.0
 docIdsToScoredDocs :: DocIdSet -> ScoredDocs
 docIdsToScoredDocs
-  = SDS . DM.fromDocIdSet (\_ -> defScore)
+  = SDS . DMP.fromDocIdSet (\_ -> defScore)
 
 scoredDocsToDocIdSet :: ScoredDocs -> DocIdSet
 scoredDocsToDocIdSet (SDS dim)
-  = DS.fromList (DM.keys dim)
+  = DMP.keys dim
 
 -- ------------------------------------------------------------
 
@@ -187,13 +188,13 @@ instance ScoredResult UnScoredDocs where
     intersectFuzzySC _lb _ub
         = intersectSC
 
-occurrencesToUnScoredDocs :: Occurrences -> UnScoredDocs
-occurrencesToUnScoredDocs os
-    = UDS . DS.fromList . DM.keys $ os
+occurrencesToUnScoredDocs :: DenseOccurrences -> UnScoredDocs
+occurrencesToUnScoredDocs
+  = UDS . DMP.keys
 
-scoredDocsToUnScoredDocs :: DocIdMap Score -> UnScoredDocs
-scoredDocsToUnScoredDocs os
-    = UDS . DS.fromList . DM.keys $ os
+scoredDocsToUnScoredDocs :: DMP.DocIdMap Score -> UnScoredDocs
+scoredDocsToUnScoredDocs
+  = UDS . DMP.keys
 
 unScoredDocsToDocIdSet :: UnScoredDocs -> DocIdSet
 unScoredDocsToDocIdSet (UDS ds) = ds
@@ -218,10 +219,10 @@ data SearchResult
   | RUD {unRUD :: UnScoredDocs}
     deriving (Eq, Show)
 
-mkSRfromOccurrences :: Occurrences -> SearchResult
+mkSRfromOccurrences :: DenseOccurrences -> SearchResult
 mkSRfromOccurrences = ROC . OCC
 
-mkSRfromScoredDocs :: DocIdMap Score -> SearchResult
+mkSRfromScoredDocs :: DMP.DocIdMap Score -> SearchResult
 mkSRfromScoredDocs = RSD . SDS
 
 mkSRfromUnScoredDocs :: DocIdSet -> SearchResult
@@ -276,7 +277,7 @@ searchResultToUnScoredDocs = unRUD . srToRUD
 searchResultToScoredDocs :: SearchResult -> ScoredDocs
 searchResultToScoredDocs = unRSD . srToRSD
 
-searchResultToOccurrences :: SearchResult -> Occurrences
+searchResultToOccurrences :: SearchResult -> DenseOccurrences
 searchResultToOccurrences = (\ (OCC x) -> x) . unROC . srToROC
 
 -- ------------------------------------------------------------
@@ -300,8 +301,8 @@ x1     `mappend0` x2           = x2 `mappend0` x1
 
 diff0 :: SearchResult -> SearchResult -> SearchResult
 RUD x1        `diff0` RUD x2        = RUD $ x1 `differenceSC` x2
-RSD (SDS dm1) `diff0` RUD (UDS ds2) = RSD (SDS $ DM.diffWithSet dm1 ds2)
-ROC (OCC os1) `diff0` RUD (UDS ds2) = ROC (OCC $ DM.diffWithSet os1 ds2)
+RSD (SDS dm1) `diff0` RUD (UDS ds2) = RSD (SDS $ DMP.diffWithSet dm1 ds2)
+ROC (OCC os1) `diff0` RUD (UDS ds2) = ROC (OCC $ DMP.diffWithSet os1 ds2)
 _x1           `diff0` _x2           = error "SearchResult.diff0: illegal variants in args"
 
 
@@ -311,10 +312,10 @@ inters0 :: SearchResult -> SearchResult -> SearchResult
 RUD x1        `inters0` RUD x2        = RUD $ x1 `intersectSC` x2
 
 RSD x1        `inters0` RSD x2        = RSD $ x1 `intersectSC` x2
-RSD (SDS dm1) `inters0` RUD (UDS ds2) = RSD (SDS $ DM.intersectionWithSet dm1 ds2)
+RSD (SDS dm1) `inters0` RUD (UDS ds2) = RSD (SDS $ DMP.intersectionWithSet dm1 ds2)
 ROC x1        `inters0` ROC x2        = ROC $ x1 `intersectSC` x2
-ROC (OCC os1) `inters0` RUD (UDS ds2) = ROC (OCC $ DM.intersectionWithSet os1 ds2)
-ROC (OCC os1) `inters0` RSD (SDS ds2) = ROC (OCC $ DM.intersectionWith (\ x _ -> x) os1 ds2)
+ROC (OCC os1) `inters0` RUD (UDS ds2) = ROC (OCC $ DMP.intersectionWithSet os1 ds2)
+ROC (OCC os1) `inters0` RSD (SDS ds2) = ROC (OCC $ DMP.intersectionWith (\ x _ -> x) os1 ds2)
 
 x1            `inters0` x2            = x2 `inters0` x1
 
@@ -433,11 +434,11 @@ srDiffDocs :: DocIdSet -> SearchResult -> SearchResult
 srDiffDocs dIds sr
   | DS.null dIds = sr
   | otherwise     = case sr of
-                     ROC (OCC occ') -> ROC (OCC (Occ.diffWithSet occ' dIds))
-                     RSD (SDS sds)  -> RSD (SDS (DM.diffWithSet sds dIds ))
+                     ROC (OCC occ') -> ROC (OCC (DMP.diffWithSet occ' dIds))
+                     RSD (SDS sds)  -> RSD (SDS (DMP.diffWithSet sds dIds ))
                      RUD (UDS uds)  -> RUD (UDS (DS.difference uds dIds))
 
 srNull :: SearchResult -> Bool
-srNull (ROC (OCC occ')) = Occ.null occ'
-srNull (RSD (SDS sds))  = DM.null sds
+srNull (ROC (OCC occ')) = DMP.null occ'
+srNull (RSD (SDS sds))  = DMP.null sds
 srNull (RUD (UDS uds))  = DS.null uds

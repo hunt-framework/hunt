@@ -55,7 +55,7 @@ delta (Revision old) new = return (flush, Revision new)
 
 -- | Runs a `Flush` and writes files to the index directory. This operation is atomic.
 runFlush :: MonadIO m => FlushPolicy -> Flush -> m ApplyFlush
-runFlush = undefined
+runFlush _ _ = return (ApplyFlush id)
 
 applyFlush :: DocTable dt => ApplyFlush -> ContextIndex dt -> (ContextIndex dt, ())
 applyFlush f ixx = (ixx, ())
