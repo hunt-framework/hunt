@@ -12,7 +12,6 @@ import           Data.IntMap.Packed   (IntMap)
 import qualified Data.IntMap.Packed   as IntMap
 import           Data.Monoid
 import           Data.Typeable
-import qualified Data.Text as T
 
 newtype DocIdMap v =
   DIM { unDIM :: IntMap v }
@@ -25,7 +24,10 @@ instance ToJSON v => ToJSON (DocIdMap v) where
 
 instance Monoid v => Monoid (DocIdMap v) where
   mempty = empty
+  {-# INLINE mempty #-}
+
   mappend = unionWith (<>)
+  {-# INLINE mappend #-}
 
 liftDIM                 :: (IntMap v -> IntMap r) ->
                            DocIdMap v -> DocIdMap r
