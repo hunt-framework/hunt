@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Data.IntMap.Packed where
@@ -81,7 +82,8 @@ lookup x (IntMap (HVector.V keys vals))
            EQ -> Just (Vector.unsafeIndex vals k)
            GT -> loop l k
       where
-        k = (u + l) `unsafeShiftR` 1
+        i = u - l
+        k = l + unsafeShiftR i 1 + unsafeShiftR i 6
 {-# INLINE lookup #-}
 
 findWithDefault :: Int -> a -> IntMap a -> a
@@ -333,7 +335,7 @@ unionStream :: Ord a
             -> Stream.Stream Stream.Id (a, b)
             -> Stream.Stream Stream.Id (a, b)
 unionStream f (Stream.Stream next1 s1 n1) (Stream.Stream next2 s2 n2)
-  = Stream.Stream next (U1 s1 s2) (n1 + n2)
+  = Stream.Stream next (U1 s1 s2) (Stream.toMax (n1 + n2))
   where
     {-# INLINE next #-}
     next (U1 s1 s2)
@@ -373,7 +375,7 @@ intersectStream :: Ord a
                 -> Stream.Stream Stream.Id (a, c)
                 -> Stream.Stream Stream.Id (a, d)
 intersectStream f (Stream.Stream next1 s1 n1) (Stream.Stream next2 s2 n2)
-  = Stream.Stream next (I1 s1 s2) (n1 + n2)
+  = Stream.Stream next (I1 s1 s2) (Stream.toMax (Stream.smaller n1 n2))
   where
     {-# INLINE next #-}
     next (I1 s1 s2)
@@ -402,7 +404,7 @@ differenceStream :: Ord a
                 -> Stream.Stream Stream.Id (a, c)
                 -> Stream.Stream Stream.Id (a, b)
 differenceStream f (Stream.Stream next1 s1 n1) (Stream.Stream next2 s2 n2)
-  = Stream.Stream next (D1 s1 s2) n1
+  = Stream.Stream next (D1 s1 s2) (Stream.toMax n1)
   where
     {-# INLINE next #-}
     next (D1 s1 s2)
