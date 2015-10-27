@@ -8,6 +8,7 @@
 module Hunt.Scoring.SearchResult
 where
 
+import           Data.Foldable
 import           Data.Monoid
 
 import           Hunt.Common.BasicTypes  (Position)
@@ -123,7 +124,7 @@ instance ScoredResult ScoredDocs where
 
 instance Aggregate ScoredDocs Score where
     aggregate (SDS m)
-        = DMP.foldl' (<>) defScore m
+        = foldl' (<>) defScore m
 
 -- | "downcast": the set of positions is aggregated into a ScoredDocs
 occurrencesToScoredDocs :: DenseOccurrences -> ScoredDocs

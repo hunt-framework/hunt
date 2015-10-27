@@ -120,11 +120,11 @@ map f                   = liftDIM $ IntMap.map f
 --
 -- > let f a len = len + (length a)
 -- > foldr f 0 (fromList [(5,"a"), (3,"bbb")]) == 4
-foldr                   :: (v -> b -> b) -> b -> DocIdMap v -> b
-foldr f u               = IntMap.foldr f u . unDIM
+--foldr                   :: (v -> b -> b) -> b -> DocIdMap v -> b
+--foldr f u               = foldr f u . unDIM
 
-foldl'                   :: (b -> v -> b) -> b -> DocIdMap v -> b
-foldl' f u               = IntMap.foldl' f u . unDIM
+--foldl'                   :: (b -> v -> b) -> b -> DocIdMap v -> b
+--foldl' f u               = foldl' f u . unDIM
 
 fromAscList :: [(DocId, v)] -> DocIdMap v
 fromAscList = DIM . IntMap.fromAscList . fmap (first unDocId)
@@ -157,7 +157,6 @@ toList = fmap (first DocId) . IntMap.toList . unDIM
 {-# INLINE differenceWith #-}
 {-# INLINE unionsWith #-}
 {-# INLINE map #-}
-{-# INLINE foldr #-}
 {-# INLINE fromAscList #-}
 {-# INLINE fromDocIdSet #-}
 {-# INLINE keys #-}

@@ -29,8 +29,6 @@ module Hunt.Interpreter
   )
 where
 
-import qualified Hunt.Common.DocIdMap.Packed as DMP
-
 import           Control.Arrow                 (second)
 import           Control.Concurrent.STM
 import           Control.Concurrent.XMVar
@@ -822,9 +820,9 @@ newIndexFlusher :: (MonadIO m, DocTable dt)
 newIndexFlusher xmvar policy  = liftIO $ do
   mLastRev <- newIORef =<< Flush.mkRevision =<< readXMVar xmvar
   -- Disallow concurrent flushing by having exactly one worker.
-  Worker.new 1 xmvar $ \read modify -> do
+  Worker.new 1 xmvar $ \readix modify -> do
     lastRev <- readIORef mLastRev
-    ixx     <- read
+    ixx     <- readix
 
     -- Diff the current index to the last one
     (doFlush, newRev) <- Flush.delta lastRev ixx

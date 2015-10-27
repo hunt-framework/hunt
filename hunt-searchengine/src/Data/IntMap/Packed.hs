@@ -11,7 +11,8 @@ import           Data.Binary
 import           Data.Bits
 import           Data.Maybe
 import qualified Data.Traversable (Traversable(traverse))
-import           Data.Foldable (Foldable(foldr, foldl, foldl'))
+import           Data.Foldable hiding (null, toList)
+import qualified Data.Foldable as F
 import           Data.Typeable
 import qualified Data.Vector as Vector
 import qualified Data.Vector.Fusion.Stream.Monadic as Stream
@@ -48,14 +49,53 @@ instance Functor IntMap where
   {-# INLINE fmap #-}
 
 instance Foldable IntMap where
-  foldr = Data.IntMap.Packed.foldr
+  fold = fold . values
+  {-# INLINE fold#-}
+
+  foldMap f = foldMap f . values
+  {-# INLINE foldMap#-}
+
+  foldr f e = foldr f e . values
   {-# INLINE foldr #-}
 
-  foldl = Data.IntMap.Packed.foldl
+  foldr' f e = foldr' f e . values
+  {-# INLINE foldr' #-}
+
+  foldl f e = foldl f e . values
   {-# INLINE foldl #-}
 
-  foldl' = Data.IntMap.Packed.foldl'
+  foldl' f e = foldl' f e . values
   {-# INLINE foldl' #-}
+
+  foldr1 f = foldr1 f . values
+  {-# INLINE foldr1 #-}
+
+  foldl1 f = foldl1 f . values
+  {-# INLINE foldl1 #-}
+
+  toList = F.toList . values
+  {-# INLINE toList #-}
+
+  null = Data.IntMap.Packed.null
+  {-# INLINE null #-}
+
+  length = Data.IntMap.Packed.size
+  {-# INLINE length #-}
+
+  elem e = elem e . values
+  {-# INLINE elem #-}
+
+  maximum = maximum . values
+  {-# INLINE maximum #-}
+
+  minimum = minimum . values
+  {-# INLINE minimum #-}
+
+  sum = sum . values
+  {-# INLINE sum #-}
+
+  product = product . values
+  {-# INLINE product #-}
 
 empty :: IntMap a
 empty
@@ -239,16 +279,6 @@ foldrWithKey f s0
     . unIntMap
 {-# INLINE foldrWithKey #-}
 
-foldr :: (a -> b -> b) -> b -> IntMap a -> b
-foldr f e (IntMap (HVector.V _ vals))
-  = Vector.foldr f e vals
-{-# INLINE foldr #-}
-
-foldl' :: (b -> a -> b) -> b -> IntMap a -> b
-foldl' f e (IntMap (HVector.V _ vals))
-  = Vector.foldl' f e vals
-{-# INLINE foldl' #-}
-
 foldlWithKey :: (b -> Int -> a -> b) -> b -> IntMap a -> b
 foldlWithKey f s0
   = Stream.unId
@@ -257,10 +287,9 @@ foldlWithKey f s0
     . unIntMap
 {-# INLINE foldlWithKey #-}
 
-foldl :: (b -> a -> b) -> b -> IntMap a -> b
-foldl f e (IntMap (HVector.V _ vals))
-  = Vector.foldl f e vals
-{-# INLINE foldl #-}
+values :: IntMap a -> Vector.Vector a
+values (IntMap (HVector.V _ vals)) = vals
+{-# INLINE values #-}
 
 minViewWithKey :: IntMap a -> Maybe ((Int, a), IntMap a)
 minViewWithKey (IntMap v)
