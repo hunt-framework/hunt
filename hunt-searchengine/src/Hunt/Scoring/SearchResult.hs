@@ -123,8 +123,7 @@ instance ScoredResult ScoredDocs where
 
 instance Aggregate ScoredDocs Score where
     aggregate (SDS m)
-        = DMP.foldr (<>) defScore m
-
+        = DMP.foldl' (<>) defScore m
 
 -- | "downcast": the set of positions is aggregated into a ScoredDocs
 occurrencesToScoredDocs :: DenseOccurrences -> ScoredDocs

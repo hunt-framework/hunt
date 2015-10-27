@@ -11,7 +11,7 @@ import           Data.Binary
 import           Data.Bits
 import           Data.Maybe
 import qualified Data.Traversable (Traversable(traverse))
-import           Data.Foldable (Foldable(foldr))
+import           Data.Foldable (Foldable(foldr, foldl, foldl'))
 import           Data.Typeable
 import qualified Data.Vector as Vector
 import qualified Data.Vector.Fusion.Stream.Monadic as Stream
@@ -50,6 +50,12 @@ instance Functor IntMap where
 instance Foldable IntMap where
   foldr = Data.IntMap.Packed.foldr
   {-# INLINE foldr #-}
+
+  foldl = Data.IntMap.Packed.foldl
+  {-# INLINE foldl #-}
+
+  foldl' = Data.IntMap.Packed.foldl'
+  {-# INLINE foldl' #-}
 
 empty :: IntMap a
 empty
@@ -234,9 +240,14 @@ foldrWithKey f s0
 {-# INLINE foldrWithKey #-}
 
 foldr :: (a -> b -> b) -> b -> IntMap a -> b
-foldr f
-  = foldrWithKey (const f)
+foldr f e (IntMap (HVector.V _ vals))
+  = Vector.foldr f e vals
 {-# INLINE foldr #-}
+
+foldl' :: (b -> a -> b) -> b -> IntMap a -> b
+foldl' f e (IntMap (HVector.V _ vals))
+  = Vector.foldl' f e vals
+{-# INLINE foldl' #-}
 
 foldlWithKey :: (b -> Int -> a -> b) -> b -> IntMap a -> b
 foldlWithKey f s0
@@ -247,8 +258,8 @@ foldlWithKey f s0
 {-# INLINE foldlWithKey #-}
 
 foldl :: (b -> a -> b) -> b -> IntMap a -> b
-foldl f
-  = foldlWithKey (\b _ v -> f b v)
+foldl f e (IntMap (HVector.V _ vals))
+  = Vector.foldl f e vals
 {-# INLINE foldl #-}
 
 minViewWithKey :: IntMap a -> Maybe ((Int, a), IntMap a)

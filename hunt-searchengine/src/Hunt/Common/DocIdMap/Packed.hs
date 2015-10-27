@@ -123,6 +123,9 @@ map f                   = liftDIM $ IntMap.map f
 foldr                   :: (v -> b -> b) -> b -> DocIdMap v -> b
 foldr f u               = IntMap.foldr f u . unDIM
 
+foldl'                   :: (b -> v -> b) -> b -> DocIdMap v -> b
+foldl' f u               = IntMap.foldl' f u . unDIM
+
 fromAscList :: [(DocId, v)] -> DocIdMap v
 fromAscList = DIM . IntMap.fromAscList . fmap (first unDocId)
 
