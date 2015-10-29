@@ -738,7 +738,7 @@ execStatus (StatusContext cx)
     = withIx dumpContext
       where
         dumpContext ixx
-            = (ResGeneric . object . map (uncurry (.=)) . map (second searchResultToOccurrences)) <$>
+            = (ResGeneric . object . map (uncurry (.=) . second searchResultToOccurrences)) <$>
               liftIO (CIx.lookupAllWithCx cx ixx)
 
 execStatus (StatusIndex {- context -})
