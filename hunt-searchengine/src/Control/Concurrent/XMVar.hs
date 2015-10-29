@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 -- ----------------------------------------------------------------------------
 {- |
   An 'MVar' variation that only blocks for modification.
@@ -55,7 +56,7 @@ modifyXMVar (XMVar m l) f
   = mask $ \restore -> do
     _ <- takeMVar l
     v <- readMVar m
-    (v',a) <- restore (f v) `onException` putMVar l ()
+    (!v',a) <- restore (f v) `onException` putMVar l ()
     _ <- swapMVar m v'
     putMVar l ()
     return a
