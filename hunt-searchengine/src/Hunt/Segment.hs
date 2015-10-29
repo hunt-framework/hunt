@@ -356,7 +356,9 @@ mergeSegments schema seg1 seg2
                                  m2 (segDeletedDocs seg2)
                                  (Map.toList schema)
 
-       return Segment { segIndex       = ContextMap (Map.fromList newCxMap)
+       return Segment { segIndex       = ContextMap (Map.fromAscList newCxMap)
+                                         -- can use fromAscList here, because the ordering
+                                         -- is determined by the ordering of schema.
                       , segNumDocs     = segNumDocs seg1 + segNumDocs seg2
                       , segDocs        = newDt
                       , segDeletedDocs = mempty
