@@ -290,7 +290,7 @@ contexts = context `sepBy1` char ','
 -- | Parse a context.
 context :: Parser Text
 context = do spaces
-             c <- many1 alphaNum
+             c <- many1 (alphaNum <|> char '_')
              spaces
              return (T.pack c)
 
