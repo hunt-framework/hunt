@@ -37,3 +37,10 @@ new nworkers xmvar action  = liftIO $ do
 
 tickle :: MonadIO m => Worker -> m ()
 tickle = liftIO . runWorker
+
+delayedTickle :: MonadIO m => Int -> Worker -> m ()
+delayedTickle timeout w = liftIO $ do
+  _ <- forkIO $ do
+    threadDelay timeout
+    tickle w
+  return ()

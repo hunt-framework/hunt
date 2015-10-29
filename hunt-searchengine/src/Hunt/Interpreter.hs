@@ -359,16 +359,16 @@ execCmd' (Status sc)
   = execStatus sc
 
 execCmd' (InsertList docs)
-  = flushAndMerge $ execInsertList docs
+  = flushAndMerge False $ execInsertList docs
 
 execCmd' (Update doc)
-  = flushAndMerge $ modIx $ execUpdate doc
+  = flushAndMerge True $ modIx $ execUpdate doc
 
 execCmd' (DeleteDocs uris)
-  = flushAndMerge $ modIx $ execDeleteDocs uris
+  = flushAndMerge True $ modIx $ execDeleteDocs uris
 
 execCmd' (DeleteByQuery q)
-  = flushAndMerge $ modIx $ execDeleteByQuery q
+  = flushAndMerge True $ modIx $ execDeleteByQuery q
 
 execCmd' (StoreIx filename)
   = withIx $ execStore filename
@@ -383,7 +383,7 @@ execCmd' (DeleteContext cx)
   = modIx $ execDeleteContext cx
 
 execCmd' Snapshot
-  = flushAndMerge $ execMerge
+  = flushAndMerge False execMerge
 -- ------------------------------------------------------------
 
 -- | Execute a sequence of commands.
@@ -760,10 +760,12 @@ type IndexWorker = Worker
 
 -- | Tickles the flush and merge workers so that the can
 --   commit and merge the index if necessary.
-flushAndMerge :: DocTable dt => Hunt dt a -> Hunt dt a
-flushAndMerge f = do
+flushAndMerge :: DocTable dt => Bool -> Hunt dt a -> Hunt dt a
+flushAndMerge delay f = do
   a <- f
-  Worker.tickle =<< asks huntIndexWorker
+  if delay
+    then Worker.delayedTickle 500 =<< asks huntIndexWorker
+    else Worker.tickle =<< asks huntIndexWorker
   return a
 
 -- | Create an asynchronous worker for index merging
