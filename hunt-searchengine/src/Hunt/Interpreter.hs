@@ -753,7 +753,6 @@ unless' b code text = unless b $ throwResError code text
 
 -- ------------------------------------------------------------
 
-
 type IndexMerger = Worker
 
 type IndexWorker = Worker

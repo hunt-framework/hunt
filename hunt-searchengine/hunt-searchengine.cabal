@@ -208,7 +208,7 @@ test-suite Hunt-Strictness
      build-depends: base
                   , containers
                   , deepseq
-                  , ghc-heap-view                >= 0.5
+--                  , ghc-heap-view                >= 0.5
                   , HUnit
                   , hunt-searchengine
                   , mtl
