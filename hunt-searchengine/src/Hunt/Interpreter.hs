@@ -789,6 +789,7 @@ newIndexMerger xmvar policy = liftIO $ do
     -- monoid (and commutative) we could run these in parallel.
     -- We could then have only 1 index merger which distributes
     -- the work to other threads.
+    -- We want the work to happen here (on this thread) hence the forcing.
     !merge <- mconcat <$> mapM Merge.runMerge mdesc
 
     -- Work is done, we need to modify the contextindex and
@@ -806,7 +807,7 @@ newIndexMerger xmvar policy = liftIO $ do
               -> IO a
     withMergeLock mlock f = do
       lock <- atomically (takeTMVar mlock)
-      (a, lock') <- f lock
+      (a, !lock') <- f lock
       atomically (putTMVar mlock lock')
       return a
 
