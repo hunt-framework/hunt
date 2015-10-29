@@ -266,7 +266,6 @@ applyMergedSegment segmentId oldSegments newSegment lock ixx
   = (ixx { ciSegments      =
               SegmentMap.insertWith (const id) segmentId newSegment' (
                 SegmentMap.difference (ciSegments ixx) oldSegments)
-        , ciNextSegmentId = succ (ciNextSegmentId ixx)
         }, releaseLock lock oldSegments)
   where
     newSegment'
