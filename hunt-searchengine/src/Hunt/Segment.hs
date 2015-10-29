@@ -337,8 +337,8 @@ mkContextMap schema vs
                 ) $ Map.toAscList m) >>=
       return . Map.fromAscList
 
--- | Merges two `Segment`s.
---
+-- | Merges two `Segment`s. Merging of two `Segment`s boils down to merging
+-- their doctables and merging their corresponding `ContextMap`s.
 mergeSegments :: (MonadIO m, DocTable dt)
               => Schema
               -> Segment dt
@@ -352,32 +352,32 @@ mergeSegments schema seg1 seg2
        ContextMap m1 <- segmentCxMap seg1
        ContextMap m2 <- segmentCxMap seg2
 
-       newCxMap <- forM (Map.toList schema) $ \(cx, _st) ->
-         do let cx1 = Map.lookup cx m1
-                cx2 = Map.lookup cx m2
-                newIx' = case (cx1, cx2) of
-                  (Just ix1, Nothing)  -> Just ix1
-                  (Nothing, Just ix2)  -> Just ix2
-                  (Just ix1, Just ix2) ->
-                    Just (mergeIx
-                          (segDeletedDocs seg1, ix1) (segDeletedDocs seg2, ix2))
-                  _                    -> Nothing
-            return (cx, newIx')
+       let newCxMap = mergeCxMap m1 (segDeletedDocs seg1)
+                                 m2 (segDeletedDocs seg2)
+                                 (Map.toList schema)
 
-       let ctxMap
-             = ContextMap $! Map.fromList
-                              (List.map (second fromJust)
-                               (List.filter (isJust . snd) newCxMap))
-
-       return $!! Segment { segIndex       = ctxMap
-                          , segNumDocs     = segNumDocs seg1 + segNumDocs seg2
-                          , segDocs        = newDt
-                          , segDeletedDocs = mempty
-                          , segDeletedCxs  = mempty
-                          }
+       return Segment { segIndex       = ContextMap (Map.fromList newCxMap)
+                      , segNumDocs     = segNumDocs seg1 + segNumDocs seg2
+                      , segDocs        = newDt
+                      , segDeletedDocs = mempty
+                      , segDeletedCxs  = mempty
+                      }
   where
+    mergeCxMap m1 d1 m2 d2 = concatMap f
+      where
+        f (cx, _st) =
+          case (Map.lookup cx m1, Map.lookup cx m2) of
+          -- Context is missing in second ContextMap, nothing to merge here
+          (Just ix1, Nothing) -> [ (cx, ix1) ]
+          -- Context is missing in first ContextMap, nothing to merge here
+          (Nothing, Just ix2) -> [ (cx, ix2) ]
+          -- Context is present in both ContextMaps, merge indices
+          (Just ix1, Just ix2) -> [ (cx, mergeIx (d1, ix1) (d2, ix2)) ]
+          _ -> []
+
     mergeIx :: (DocIdSet, Ix.IndexImpl) -> (DocIdSet, Ix.IndexImpl) -> Ix.IndexImpl
     mergeIx (dd1, Ix.IndexImpl ix1) (dd2, Ix.IndexImpl ix2)
+      -- As the indices are existentially quantified we need to unsafeCoerce here.
       = Ix.mkIndex $ Ix.unionWith (<>) ix1' (unsafeCoerce ix2')
       where
         -- FIXME: this is not correct. It removes the occurences from the index
