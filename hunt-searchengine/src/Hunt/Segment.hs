@@ -335,7 +335,7 @@ mkContextMap schema vs
                    do b <- f k a
                       return (k, b)
                 ) $ Map.toAscList m) >>=
-      return . Map.fromAscList
+      return . Map.fromDistinctAscList
 
 -- | Merges two `Segment`s. Merging of two `Segment`s boils down to merging
 -- their doctables and merging their corresponding `ContextMap`s.

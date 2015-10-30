@@ -762,9 +762,10 @@ type IndexWorker = Worker
 flushAndMerge :: DocTable dt => Bool -> Hunt dt a -> Hunt dt a
 flushAndMerge delay f = do
   a <- f
+  w <- asks huntIndexWorker
   if delay
-    then Worker.delayedTickle 500000 =<< asks huntIndexWorker
-    else Worker.tickle =<< asks huntIndexWorker
+    then Worker.delayedTickle 500000 w
+    else Worker.tickle w
   return a
 
 -- | Create an asynchronous worker for index merging
@@ -827,7 +828,7 @@ newIndexFlusher xmvar policy  = liftIO $ do
     ixx     <- readix
 
     -- Diff the current index to the last one
-    (doFlush, newRev) <- Flush.delta lastRev ixx
+    (doFlush, !newRev) <- Flush.delta lastRev ixx
 
     -- Run the resulting flush,
     -- runFlush is able to produce some index modifiying
