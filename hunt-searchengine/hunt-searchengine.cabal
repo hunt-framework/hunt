@@ -169,6 +169,8 @@ test-suite Hunt-Tests
   ghc-options:          -Wall
   extensions:           OverloadedStrings
 
+  buildable: False
+  
   build-depends: HUnit
                , QuickCheck
                , aeson
@@ -224,3 +226,30 @@ test-suite Hunt-Strictness
                   , old-locale
                   , monad-parallel
                   , data-default
+
+test-suite Hunt-IntMap
+   hs-source-dirs:       test
+   main-is:              IntMap.hs
+   type:                 exitcode-stdio-1.0
+   ghc-options:          -Wall
+   extensions:           OverloadedStrings
+
+   build-depends: base
+                , containers
+                , hunt-searchengine
+                , QuickCheck
+                , quickcheck-instances
+                  
+test-suite Hunt-IntSet
+   hs-source-dirs:       test
+   main-is:              IntSet.hs
+   type:                 exitcode-stdio-1.0
+   ghc-options:          -Wall
+   extensions:           OverloadedStrings
+
+   build-depends: base
+                , containers
+                , hunt-searchengine
+                , QuickCheck
+                , quickcheck-instances
+                  
