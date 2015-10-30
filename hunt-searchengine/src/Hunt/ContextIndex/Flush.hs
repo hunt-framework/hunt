@@ -1,4 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE UnboxedTuples             #-}
 module Hunt.ContextIndex.Flush where
 
 import           Hunt.Common.BasicTypes
@@ -11,6 +12,7 @@ import           Hunt.ContextIndex.Types
 import           Hunt.DocTable           (DocTable)
 import           Hunt.Segment            (Segment (..))
 
+import           Control.Arrow
 import           Control.Monad.IO.Class
 import           Data.Monoid
 import           Data.Set                (Set)
@@ -21,8 +23,9 @@ data FlushPolicy =
               }
 
 -- | `Revision` holds the state of an index.
-data Revision = forall dt. DocTable dt => Revision (ContextIndex dt)
 
+data Revision =
+  Revision { revSegments :: !(SegmentMap (DocIdSet, Set Context))  }
 
 -- | A `Flush` describes the operations to persist the index.
 data Flush =
@@ -35,23 +38,27 @@ data ApplyFlush  =
   forall dt. ApplyFlush { apply :: ContextIndex dt -> ContextIndex dt  }
 
 mkRevision :: (Monad m, DocTable dt) => ContextIndex dt -> m Revision
-mkRevision ixx = return (Revision ixx)
+mkRevision ixx = return (Revision segInfo)
+  where
+    segInfo = fmap (segDeletedDocs &&& segDeletedCxs) (ciSegments ixx)
 
 -- | `diff` takes a `Revision` and a `ContextIndex` and creates a `Flush` based
 --   on the difference of the two.
 delta :: (Monad m, DocTable dt) => Revision -> ContextIndex dt -> m (Flush, Revision)
-delta (Revision old) new = return (flush, Revision new)
+delta (Revision old) new = do
+  rev' <- mkRevision new
+  return (flush, rev')
   where
-    flush = Flush { flsAddSeg = SegmentMap.difference (ciSegments new) (ciSegments old)
+    flush = Flush { flsAddSeg = SegmentMap.difference (ciSegments new) old
                   , flsDelSeg = mempty
                   , flsUpdDel = mempty --SegmentMap.intersectionWith diffDel (ciSegments new) (ciSegments old)
                   }
     diffDel ns os
-      | DocIdSet.null deltaDocs && Set.null deltaCxs = Nothing
-      | otherwise                                    = Just (segDeletedDocs ns, segDeletedCxs ns)
+      | delDocsEq && delCxsEq = Nothing
+      | otherwise             = Just (segDeletedDocs ns, segDeletedCxs ns)
       where
-        deltaDocs = segDeletedDocs ns `DocIdSet.difference` segDeletedDocs os
-        deltaCxs  = segDeletedCxs ns `Set.difference` segDeletedCxs os
+        delDocsEq = segDeletedDocs ns == segDeletedDocs os
+        delCxsEq  = segDeletedCxs ns == segDeletedCxs os
 
 -- | Runs a `Flush` and writes files to the index directory. This operation is atomic.
 runFlush :: MonadIO m => FlushPolicy -> Flush -> m ApplyFlush
