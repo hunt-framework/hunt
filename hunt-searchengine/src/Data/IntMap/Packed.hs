@@ -187,7 +187,7 @@ differenceWithSet im1@(IntMap v1) is1@(IntSet.DIS1 v2)
   | IntSet.null is1 = im1
   | null im1        = empty
   | otherwise =
-      IntMap (GVector.unstream (differenceStream (\x _ -> Just x)
+      IntMap (GVector.unstream (differenceStream (\_ _ -> Nothing)
                                 (GVector.stream v1)
                                 (Stream.map (\x -> (x, x)) (GVector.stream v2))
                                ))
