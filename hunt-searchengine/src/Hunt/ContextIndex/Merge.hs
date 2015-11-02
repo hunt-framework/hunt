@@ -251,7 +251,7 @@ tryMerge policy lock ixx
 runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ApplyMerge dt)
 runMerge descr
   = do newSeg <- runMerge' descr
-       rnf newSeg `seq` return (
+       newSeg `seq` return (
          ApplyMerge (applyMergedSegment (mdSegId descr) (mdSegs descr) newSeg))
 
 -- | Since merging can happen asynchronously, we have to account for documents

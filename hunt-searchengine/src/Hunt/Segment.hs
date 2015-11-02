@@ -359,11 +359,11 @@ mergeSegments schema seg1 seg2
        return Segment { segIndex       = ContextMap (Map.fromDistinctAscList newCxMap)
                                          -- can use fromAscList here, because the ordering
                                          -- is determined by the ordering of schema.
-                      , segNumDocs     = segNumDocs seg1 + segNumDocs seg2
-                      , segDocs        = newDt
-                      , segDeletedDocs = mempty
-                      , segDeletedCxs  = mempty
-                      }
+                          , segNumDocs     = segNumDocs seg1 + segNumDocs seg2
+                          , segDocs        = newDt
+                          , segDeletedDocs = mempty
+                          , segDeletedCxs  = mempty
+                          }
   where
     mergeCxMap m1 d1 m2 d2 = concatMap f
       where
