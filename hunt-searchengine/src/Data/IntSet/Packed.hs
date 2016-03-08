@@ -54,6 +54,7 @@ import           Data.Bits
 import qualified Data.Vector as VVector
 import qualified Data.Vector.Algorithms.Intro as Sort
 import qualified Data.Vector.Primitive as Vector
+import qualified Data.Vector.Primitive.Mutable as MVector
 import qualified Data.Vector.Generic as GVector
 import qualified Data.Vector.Fusion.Stream.Monadic as Stream
 import qualified Data.Vector.Fusion.Stream.Size as Stream
@@ -104,14 +105,18 @@ union :: IntSet -> IntSet -> IntSet
 union i1@(DIS1 s1) i2@(DIS1 s2)
   | null i1 = i2
   | null i2 = i1
-  | otherwise = DIS1 (GVector.unstream (unionStream (GVector.stream s1) (GVector.stream s2)))
+  | otherwise = DIS1 (Vector.create (MVector.new hint >>= union' s1 s2))
+  where
+    hint = Vector.length s1 + Vector.length s2
 {-# INLINE union #-}
 
 intersection :: IntSet -> IntSet -> IntSet
 intersection i1@(DIS1 s1) i2@(DIS1 s2)
   | null i1 = empty
   | null i2 = empty
-  | otherwise = DIS1 (GVector.unstream (intersectStream (GVector.stream s1) (GVector.stream s2)))
+  | otherwise = DIS1 (Vector.create (MVector.new hint >>= intersect' s1 s2))
+  where
+    hint = max (Vector.length s1) (Vector.length s2)
 {-# INLINE intersection #-}
 
 intersectionWithDispl :: Int -> IntSet -> IntSet -> IntSet
@@ -280,6 +285,49 @@ intersectStream (Stream.Stream next1 s n1) (Stream.Stream next2 s' n2)
              Stream.Skip s1'    -> return $ Stream.Skip (I1 s1' s2)
              Stream.Done        -> return $ Stream.Done
 {-# INLINE intersectStream #-}
+
+
+union' :: Vector.Vector Int
+       -> Vector.Vector Int
+       -> MVector.MVector s Int
+       -> ST s (MVector.MVector s Int)
+union' xs0 ys0 !out = do
+  i <- go xs0 ys0 0
+  return $! MVector.take i out
+  where
+    go !xs !ys !i
+      | Vector.null xs = do Vector.copy (MVector.slice i (Vector.length ys) out) ys
+                            return (i + Vector.length ys)
+      | Vector.null ys = do Vector.copy (MVector.slice i (Vector.length xs) out) xs
+                            return (i + Vector.length xs)
+      | otherwise = let x = Vector.head xs
+                        y = Vector.head ys
+                    in case compare x y of
+                         GT -> do MVector.write out i y
+                                  go xs (Vector.tail ys) (i + 1)
+                         EQ -> do MVector.write out i x
+                                  go (Vector.tail xs) (Vector.tail ys) (i + 1)
+                         LT -> do MVector.write out i x
+                                  go (Vector.tail xs) ys (i + 1)
+
+intersect' :: Vector.Vector Int
+           -> Vector.Vector Int
+           -> MVector.MVector s Int
+           -> ST s (MVector.MVector s Int)
+intersect' xs0 ys0 !out = do
+  i <- go xs0 ys0 0
+  return $! MVector.take i out
+  where
+    go !xs !ys !i
+       | Vector.null xs = return i
+       | Vector.null ys = return i
+       | otherwise = let x = Vector.head xs
+                         y = Vector.head ys
+                     in case compare x y of
+                          GT -> go xs (Vector.tail ys) i
+                          EQ -> do MVector.write out i x
+                                   go (Vector.tail xs) (Vector.tail ys) (i + 1)
+                          LT -> go (Vector.tail xs) ys i
 
 data U a b = U1 !a !b
            | U2 !a
