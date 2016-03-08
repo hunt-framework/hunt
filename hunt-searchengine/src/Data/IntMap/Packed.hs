@@ -15,6 +15,7 @@ import           Data.Foldable hiding (null, toList)
 import qualified Data.Foldable as F
 import           Data.Typeable
 import qualified Data.Vector as Vector
+import qualified Data.Vector as MVector
 import qualified Data.Vector.Fusion.Stream.Monadic as Stream
 import qualified Data.Vector.Fusion.Stream.Size as Stream
 import qualified Data.Vector.Fusion.Util as Stream
@@ -23,8 +24,13 @@ import qualified Data.Vector.Hybrid as HVector
 import qualified Data.Vector.Hybrid.Internal as HVector
 import qualified Data.Vector.Hybrid.Mutable as HMVector
 import qualified Data.Vector.Primitive as UVector
+import qualified Data.Vector.Primitive.Mutable as UMVector
 import qualified Data.IntSet.Packed as IntSet
 import           Prelude hiding (lookup, null)
+import Control.Monad.ST
+
+type IV a = HVector.Vector UVector.Vector Vector.Vector (Int, a)
+type IVM s a = HMVector.MVector UMVector.MVector MVector.MVector s (Int, a)
 
 newtype IntMap a
   = IntMap { unIntMap :: HVector.Vector UVector.Vector Vector.Vector (Int, a) }
@@ -152,7 +158,9 @@ unionWith f im1@(IntMap v1) im2@(IntMap v2)
   | null im1  = im2
   | null im2  = im1
   | otherwise =
-      IntMap (GVector.unstream (unionStream f (GVector.stream v1) (GVector.stream v2)))
+      IntMap (HVector.create (HMVector.new hint >>= union' f v1 v2))
+  where
+    hint = HVector.length v1 + HVector.length v2
 {-# INLINE unionWith #-}
 
 intersectionWith :: (a -> b -> c) -> IntMap a -> IntMap b -> IntMap c
@@ -364,6 +372,26 @@ sizeWithLimit limit im
   where
     sz = size im
 {-# INLINE sizeWithLimit #-}
+
+union' :: (a -> a -> a) -> IV a -> IV a -> IVM s a -> ST s (IVM s a)
+union' f xs0 ys0 !out = do
+  i <- go xs0 ys0 0
+  return $! HMVector.take i out
+  where
+    go !xs !ys !i
+      | HVector.null xs = do HVector.copy (HMVector.slice i (HVector.length ys) out) ys
+                             return (i + HVector.length ys)
+      | HVector.null ys = do HVector.copy (HMVector.slice i (HVector.length xs) out) xs
+                             return (i + HVector.length xs)
+      | otherwise = let (!x_k, x_v) = HVector.head xs
+                        (!y_k, y_v) = HVector.head ys
+                    in case compare x_k y_k of
+                         GT -> do HMVector.write out i (y_k, y_v)
+                                  go xs (HVector.tail ys) (i + 1)
+                         EQ -> do HMVector.write out i (x_k, f x_v y_v)
+                                  go (HVector.tail xs) (HVector.tail ys) (i + 1)
+                         LT -> do HMVector.write out i (x_k, x_v)
+                                  go (HVector.tail xs) ys (i + 1)
 
 data U a b = U1 !a !b
            | U2 !a
