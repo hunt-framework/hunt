@@ -15,7 +15,7 @@ RUNOPTS = +RTS $(RTSPROF) -RTS
 PATTERN =
 
 SERVER  = http://localhost:3000
-EXE     = $(shell [ -d ".cabal-sandbox" ] && echo ".cabal-sandbox/bin/hunt-server" || echo "hunt-server")
+EXE     = hunt-server
 PROFSH  = ./prof.sh
 # profiling on/off
 export PROF=0
@@ -66,7 +66,7 @@ action		= install
 
 all:		install
 
-first-install: delete sandbox force-install
+first-install: delete force-install
 
 clean:
 	- $(MAKE) -e -C hunt-test/data/random clean
@@ -80,7 +80,6 @@ cleanData:
 delete: clean
 	- $(MAKE) -e -C hunt-test/data/random delete
 	- $(MAKE) -e -C hunt-test/data/jokes delete
-	- rm -rf .cabal-sandbox/
 
 configure: 	; $(MAKE) -e target action=configure
 build:		; $(MAKE) -e target action=build PROFOPTS=''
@@ -90,39 +89,11 @@ force-install:	; $(MAKE) -e target action=install PROFOPTS="--force-reinstalls $
 
 target: searchengine server
 
-sandbox:
-	cabal sandbox init --sandbox .cabal-sandbox
-	cd hunt-searchengine   && cabal sandbox init --sandbox ../.cabal-sandbox
-	cd hunt-compression    && cabal sandbox init --sandbox ../.cabal-sandbox
-	cd hunt-crawler        && cabal sandbox init --sandbox ../.cabal-sandbox
-	cd hunt-server         && cabal sandbox init --sandbox ../.cabal-sandbox
-	cd hunt-client         && cabal sandbox init --sandbox ../.cabal-sandbox
-	cd hunt-server-cli     && cabal sandbox init --sandbox ../.cabal-sandbox
-	cabal sandbox add-source hunt-searchengine
-	cabal sandbox add-source hunt-compression
-	cabal sandbox add-source hunt-crawler
-	cabal sandbox add-source hunt-client
-	cabal sandbox add-source hunt-server-cli
-	cd hunt-demos/geoFrontend && cabal sandbox init --sandbox ../../.cabal-sandbox
-	cd html-hunter         && cabal sandbox init --sandbox ../.cabal-sandbox
-
-compression: sandbox
+compression:
 	cd hunt-compression && cabal $(action) $(PROFOPTS) $(pattern)
 
-searchengine: sandbox
-	cd hunt-searchengine && cabal $(action) $(PROFOPTS) $(pattern)
-
-server: stopServer sandbox
-	cd hunt-server       && cabal $(action) $(PROFOPTS) $(pattern)
-
-client: sandbox
+client:
 	cd hunt-client && cabal $(action) $(PROFOPTS) $(pattern)
-
-hunt-server-cli: sandbox
-	cd hunt-server-cli && cabal $(action) $(PROFOPTS) $(pattern)
-
-html-hunter: sandbox
-	cd html-hunter && cabal $(action) $(PROFOPTS) $(pattern)
 
 test:
 	cd hunt-searchengine && cabal install --enable-tests   --enable-library-coverage
@@ -183,7 +154,7 @@ hunt-test/data/random/RandomData.js:
 	$(MAKE) -e -C hunt-test/data/random generate
 
 hunt-test/data/jokes/FussballerSprueche.js:
-	$(MAKE) -e -C hunt-test/data/jokes generate
+	$(MAKE) -e -C hunt-test/data/jokes all
 
 haddock:
 	cd hunt-searchengine && cabal haddock --hyperlink-source
@@ -239,7 +210,7 @@ searchengine-force:
 
 .PHONY: target clean configure build install test all searchengine server insertJokes startServer \
 		first-install first-install-bs \
-		stopServer sandbox benchmark-ab benchmark-siege runtimeHeapProfile startServer \
+		stopServer  benchmark-ab benchmark-siege runtimeHeapProfile startServer \
 		bench bench-* membench membench-* \
 		profServer profServer-fb profServer-rd
 		searchengine-force

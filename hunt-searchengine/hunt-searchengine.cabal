@@ -124,7 +124,7 @@ library
 
   ghc-options: -O2 -Wall -funbox-strict-fields -fwarn-tabs -threaded
 
-  ghc-options-prof: -fprof-auto
+  ghc-prof-options: -fprof-auto
 
   extensions: MultiParamTypeClasses
               FlexibleContexts
