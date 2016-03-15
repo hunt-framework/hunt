@@ -41,7 +41,6 @@ data ContextIndex dt
                  , ciSegments      :: !(SegmentMap (Segment dt))
                  , ciSchema        :: !Schema
                  , ciNextSegmentId :: !SegmentId
-                 , ciDirtiness     :: !Dirtiness -- ^ TODO: remove
                  , ciMergePolicy   :: !MergePolicy
                  , ciMergeLock     :: !MergeLock -- ^ TODO: remove
                  }
@@ -68,16 +67,3 @@ data IndexAction dt =
 instance Monoid (IndexAction dt) where
   mempty = IndexAction (return id)
   mappend x y = IndexAction $ (.) <$> runIxAction x <*> runIxAction y
-
--- |Inserting a new segment into a ContextIndex changes its dirtiness.
--- This is used to signal Merger and Flusher to do some work.
-data Dirtiness = IsDirty !(Set SegmentId)
-               | NotDirty
-               deriving (Eq)
-
-instance Monoid Dirtiness where
-  mempty = NotDirty
-  mappend (IsDirty xs) (IsDirty ys) = IsDirty (xs <> ys)
-  mappend (IsDirty xs) NotDirty     = IsDirty xs
-  mappend NotDirty     (IsDirty xs) = IsDirty xs
-  mappend _            _            = NotDirty

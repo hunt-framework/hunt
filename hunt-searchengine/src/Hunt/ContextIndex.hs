@@ -84,7 +84,6 @@ empty mergePolicy = do
                       , ciSegments      = SegmentMap.empty
                       , ciSchema        = mempty
                       , ciNextSegmentId = SegmentId 1
-                      , ciDirtiness     = mempty
                       , ciMergePolicy   = mergePolicy
                       , ciMergeLock     = mempty
                       }
