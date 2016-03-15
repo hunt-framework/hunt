@@ -86,6 +86,7 @@ instance Show (MergeDescr dt) where
       ++ show sid
       ++ " }"
 
+-- |A measure in (0..1.0).
 type Level = Float
 
 -- | A convenience data structure for storing numbers relevant
@@ -174,6 +175,7 @@ selectMergeables :: Monad m => MergeLock -> SegmentMap a -> m (SegmentMap a)
 selectMergeables (MergeLock lock) sx
   = return (SegmentMap.difference sx lock)
 
+-- |Quantify and normalize a measure.
 quantify :: MergePolicy -> Int -> Level
 quantify policy sz = logNormQuantify sz
   where
