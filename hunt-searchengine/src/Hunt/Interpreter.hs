@@ -763,9 +763,9 @@ flushAndMerge :: DocTable dt => Bool -> Hunt dt a -> Hunt dt a
 flushAndMerge delay f = do
   a <- f
   w <- asks huntIndexWorker
-  if delay
-    then Worker.delayedTickle 500000 w
-    else Worker.tickle w
+--  if delay
+--    then Worker.delayedTickle 500000 w
+--    else Worker.tickle w
   return a
 
 -- | Create an asynchronous worker for index merging
