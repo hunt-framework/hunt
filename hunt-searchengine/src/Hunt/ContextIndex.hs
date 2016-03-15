@@ -325,7 +325,9 @@ delete' :: (Par.MonadParallel m, DocTable dt)
         -> m (ContextIndex dt)
 delete' dIds ixx
   = do sm <- for (ciSegments ixx) (return . Segment.deleteDocs dIds)
-       return ixx { ciSegments = sm }
+       return ixx { ciActiveSegment = Segment.deleteDocs dIds (ciActiveSegment ixx)
+                  , ciSegments = sm
+                  }
 
 -- | Delete a set of documents by 'URI'.
 deleteDocsByURI :: (Par.MonadParallel m, Applicative m, DocTable dt)
