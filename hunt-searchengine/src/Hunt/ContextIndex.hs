@@ -82,6 +82,7 @@ empty = do
                       , ciSegments      = SegmentMap.empty
                       , ciSchema        = mempty
                       , ciNextSegmentId = SegmentId 1
+                      , ciDirtiness     = mempty
                       }
 
 -- | Inserts a new `Context` with `ContextSchema` into the `ContextIndex`.
