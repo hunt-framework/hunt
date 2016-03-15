@@ -7,6 +7,9 @@ module Hunt.ContextIndex.Merge (
   , MergeLock
   , MergeDescr
 
+  , quantify
+  , quantify'
+
   , tryMerge
   , runMerge
   , applyMerge
@@ -83,11 +86,13 @@ instance Show (MergeDescr dt) where
       ++ show sid
       ++ " }"
 
+type Level = Float
+
 -- | A convenience data structure for storing numbers relevant
 --   for the merge descision.
 data SegmentAndLevel dt =
   SegmentAndLevel { -- | Discrete level in our geometric series.
-                    sasLevel :: !Float
+                    sasLevel :: !Level
                     -- | Refers to Segment being merged.
                   , sasSegId :: !SegmentId
                     -- | The actual `Segment` value.
@@ -108,13 +113,13 @@ instance Ord (SegmentAndLevel dt) where
 
 -- | Quantifies segments into levels.
 quantifySegments :: Monad m
-                 => (SegmentId -> Segment dt -> m Float)
+                 => (Segment dt -> m Level)
                  -> SegmentMap (Segment dt)
                  -> m [SegmentAndLevel dt]
 quantifySegments findLevel sx
   = forM (SegmentMap.toList sx) $ \(sid, s) -> do
-      q <- findLevel sid s
-      return (SegmentAndLevel q sid s)
+      lvl <- findLevel s
+      return (SegmentAndLevel lvl sid s)
 
 -- | Collects all merges in a ordered (desc. by level) list of segments.
 --   Where the level is `log(sz)/log(mergeFactor)`.
@@ -169,6 +174,26 @@ selectMergeables :: Monad m => MergeLock -> SegmentMap a -> m (SegmentMap a)
 selectMergeables (MergeLock lock) sx
   = return (SegmentMap.difference sx lock)
 
+quantify :: MergePolicy -> Int -> Level
+quantify policy sz = logNormQuantify sz
+  where
+    -- Since we are using a geometric series we normalize our costs (size of segment)
+    -- logarithmacally to the base of the merge factor.
+    norm :: Int -> Level
+    norm = logBase (fromIntegral (mpMergeFactor policy)) . fromIntegral
+
+    -- Round up too small sizes  to a size where merging is more efficient.
+    roundUp :: Int -> Int
+    roundUp = max (mpMinMerge policy)
+
+    -- Normalize a the cost for merge (size of segment)
+    logNormQuantify :: Int -> Level
+    logNormQuantify n = norm (roundUp n)
+
+-- | Quantify something convertible to int.
+quantify' :: Monad m => (a -> m Int) -> MergePolicy -> a -> m Level
+quantify' f pol x = quantify pol <$> f x
+
 -- | Given a policy and a set of `Segment`s this function decides,
 --   which merges can be performed.
 selectMerges :: (Monad m, DocTable dt)
@@ -182,7 +207,7 @@ selectMerges policy lock schema nextSid segments
   = do -- select any segment not locked by mergelock
        mergeables <- selectMergeables lock segments
        -- assign the segments to levels in our geometric series
-       quantified <- quantifySegments logNormQuantify mergeables
+       quantified <- quantifySegments (quantify' segmentSize' policy) mergeables
        -- collect all `Segments` which are equal by our definition of level.
        allMerges  <- collectMerges isMinViableLevel (const False) (sortByLevel quantified)
        -- Filter out single level merges
@@ -192,23 +217,9 @@ selectMerges policy lock schema nextSid segments
            (nextSid', merges) = mkMergeDescr schema nextSid partitions
        return (merges, lockFromMerges merges `mappend` lock, nextSid')
   where
-    -- Since we are using a geometric series we normalize our costs (size of segment)
-    -- logarithmacally to the base of the merge factor.
-    norm
-      = logBase (fromIntegral (mpMergeFactor policy)) . fromIntegral
-
-    -- Round up too small segments to a size where merging is more efficient.
-    roundUp
-      = max (mpMinMerge policy)
-
-    -- Normalize a the cost for merge (size of segment)
-    logNormQuantify _ s
-      = do sz <- segmentSize' s
-           return (norm (roundUp sz))
-
     -- Is given level below the minimal merge size
     isMinViableLevel level
-      = level <= norm (mpMinMerge policy)
+      = level <= quantify policy (mpMinMerge policy)
 
     -- Sort a list in descending order.
     -- Used to group ~equal~ segments next to each other.
