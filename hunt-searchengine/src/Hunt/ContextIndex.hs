@@ -149,7 +149,7 @@ insertList docsAndWords ixx
        --   4. Trigger a flush to write active segment to disk
        --   5. create new empty segment and set it as ciActiveSegment
        level <- Merge.quantify' Segment.segmentSize' (ciMergePolicy ixx) active'
-       let threshold = 0.65 -- FIXME: don't do constants!
+       let threshold = mpMaxActiveSegmentLevel (ciMergePolicy ixx)
        if level >= threshold
          then do newActive <- Segment.emptySegment
                  insertSegment active' (ixx { ciActiveSegment = newActive })
@@ -161,7 +161,6 @@ insertSegment :: (Monad m, DocTable dt) => Segment dt
               -> ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
 insertSegment seg ixx = do
   let sid = succ (ciNextSegmentId ixx)
-
       ixx' = ixx { ciSegments = SegmentMap.insert sid seg (ciSegments ixx)
                  , ciNextSegmentId = succ sid
                  }
