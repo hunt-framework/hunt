@@ -336,7 +336,10 @@ deleteDocsByURI :: (Par.MonadParallel m, Applicative m, DocTable dt)
                 -> m (ContextIndex dt)
 deleteDocsByURI us ixx
   = do sx <- for (ciSegments ixx) (Segment.deleteDocsByURI us)
-       return ixx { ciSegments = sx }
+       as <- Segment.deleteDocsByURI us (ciActiveSegment ixx)
+       return ixx { ciSegments = sx
+                  , ciActiveSegment = as
+                  }
 
 mapIxsP :: Par.MonadParallel m => (Segment dt -> m a) -> ContextIndex dt -> m [a]
 mapIxsP f ixx
