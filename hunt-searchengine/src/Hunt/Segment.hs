@@ -234,29 +234,27 @@ deleteDocsByURI uris s
                   ) (Set.toList uris)
        return $ maybe s (`deleteDocs` s) (mconcat dx)
 
-fromDocsAndWords :: (Par.MonadParallel m, Applicative m, DocTable dt)
-                 => Schema
-                 -> [(DocTable.DValue dt, Words)]
-                 -> m (Segment dt)
-fromDocsAndWords schema docAndWords
-  = do -- insert to doctable and generate docId
-       tablesAndWords <- Par.mapM createDocTableFromPartition
-                         $ partitionListByLength 20 docAndWords
+insertDocsAndWords :: (Par.MonadParallel m, Applicative m, DocTable dt)
+                   => Schema
+                   -> [(DocTable.DValue dt, Words)]
+                   -> Segment dt
+                   -> m (Segment dt)
+insertDocsAndWords _schema docsAndWords seg = do
+   -- insert to doctable and generate docId
+  tablesAndWords <- Par.mapM createDocTableFromPartition $
+    partitionListByLength 20 docsAndWords
 
-       -- union doctables and docid-words pairs
-       (numDocs, newDt, docIdsAndWords) <-
-         unionDocTables tablesAndWords 0 DocTable.empty
+  -- union doctables and docid-words pairs
+  (numDocs, newDt, docIdsAndWords) <-
+    unionDocTables tablesAndWords (segNumDocs seg) (segDocs seg)
 
-       -- insert words to index
-       newIx <- mkContextMap schema docIdsAndWords
+  -- insert words to index
+  newIx' <- batchAddWordsM docIdsAndWords (segIndex seg)
 
-       return Segment { segIndex       = newIx
-                      , segNumDocs     = numDocs
-                      , segDocs        = newDt
-                      , segDeletedDocs = mempty
-                      , segDeletedCxs  = mempty
-                      }
-
+  return seg { segIndex = newIx'
+             , segNumDocs = numDocs
+             , segDocs = newDt
+             }
   where
     -- takes list of documents with wordlist. creates new 'DocTable' and
     -- inserts each document of the list into it.
@@ -294,32 +292,6 @@ fromDocsAndWords schema docAndWords
         mkPairs [a]      = [(a,(0,DocTable.empty,[]))]
         mkPairs (a:b:xs) = (a,b):mkPairs xs
 
--- | Creates a new index from `Word`s
---
---   /Note/: Adds words to /existing/ 'Context's.
-mkContextMap :: (Functor m, Par.MonadParallel m)
-             => Schema
-             -> [(DocId, Words)]
-             -> m ContextMap
-mkContextMap schema vs
-  = case vs of
-      [] -> return (newContextMap' schema)
-      _  -> ContextMap <$> mapWithKeyMP foldInsertList (cxMap
-                                                        (newContextMap' schema))
-  where
-    newContextMap' :: Schema -> ContextMap
-    newContextMap' = ContextMap . Map.map (newIx . ctIxImpl . cxType)
-      where
-        newIx :: Ix.IndexImpl -> Ix.IndexImpl
-        newIx (Ix.IndexImpl i) = Ix.mkIndex (Ix.empty `asTypeOf` i)
-
-    foldInsertList :: (Functor m, Monad m)
-                   => Context
-                   -> Ix.IndexImpl
-                   -> m Ix.IndexImpl
-    foldInsertList cx (Ix.IndexImpl impl)
-      = Ix.mkIndex <$> Ix.insertListM (contentForCx cx vs) impl
-
     -- | Computes the words and occurrences out of a list for one context
     contentForCx :: Context -> [(DocId, Words)] -> [(Word, Occurrences)]
     contentForCx cx
@@ -330,12 +302,40 @@ mkContextMap schema vs
         getWlForCx
           = Map.findWithDefault Map.empty
 
+    batchAddWordsM :: (Functor m, Par.MonadParallel m) =>
+                      [(DocId, Words)] -> ContextMap -> m ContextMap
+    batchAddWordsM [] ix
+      = return ix
+    batchAddWordsM vs (ContextMap m)
+     = mkContextMap <$>
+      mapWithKeyMP ( \cx impl -> foldinsertList cx impl ) m
+     where
+       foldinsertList :: (Functor m, Monad m) =>
+                         Context -> Ix.IndexImpl -> m Ix.IndexImpl
+       foldinsertList cx (Ix.IndexImpl impl)
+           = Ix.mkIndex <$>
+             Ix.insertListM (contentForCx cx vs) impl
+
     mapWithKeyMP f m =
-      (Par.mapM (\(k, a) ->
-                   do b <- f k a
-                      return (k, b)
-                ) $ Map.toAscList m) >>=
-      return . Map.fromDistinctAscList
+     (Par.mapM (\(k, a) -> do b <- f k a
+                              return (k, b)
+               ) $ Map.toAscList m) >>= return . Map.fromDistinctAscList
+
+fromDocsAndWords :: (Par.MonadParallel m, Applicative m, DocTable dt)
+                 => Schema
+                 -> [(DocTable.DValue dt, Words)]
+                 -> m (Segment dt)
+fromDocsAndWords schema docsAndWords = do
+  let emptySegment = Segment { segIndex = mkContextMap mempty
+                             , segDocs = DocTable.empty
+                             , segNumDocs = 0
+                             , segDeletedDocs = mempty
+                             , segDeletedCxs = mempty
+                             }
+  insertDocsAndWords schema docsAndWords emptySegment
+
+mkContextMap :: Map Context Ix.IndexImpl -> ContextMap
+mkContextMap x = ContextMap $! x
 
 -- | Merges two `Segment`s. Merging of two `Segment`s boils down to merging
 -- their doctables and merging their corresponding `ContextMap`s.
