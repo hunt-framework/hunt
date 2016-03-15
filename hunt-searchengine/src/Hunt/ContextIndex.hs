@@ -337,6 +337,6 @@ deleteDocsByURI us ixx
        return ixx { ciSegments = sx }
 
 mapIxsP :: Par.MonadParallel m => (Segment dt -> m a) -> ContextIndex dt -> m [a]
-mapIxsP f
-  = Par.mapM f . fmap snd . SegmentMap.toList  . ciSegments
+mapIxsP f ixx
+  = Par.mapM f . (ciActiveSegment ixx:) . fmap snd . SegmentMap.toList . ciSegments $ ixx
 {-# INLINE mapIxsP #-}
