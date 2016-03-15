@@ -135,9 +135,16 @@ insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
            => [(DocTable.DValue dt, Words)]
            -> ContextIndex dt
            -> m (ContextIndex dt)
-insertList docAndWords ixx
-  = do newSeg <- Segment.fromDocsAndWords (ciSchema ixx) docAndWords
-       insertSegment newSeg ixx
+insertList docsAndWords ixx
+  = do active' <- Segment.insertDocsAndWords (ciSchema ixx) docsAndWords (ciActiveSegment ixx)
+       -- TODO:
+       -- 1. Check if active segment reached threshold (to be defined)
+       -- 2. If threshold reached, insert into ciSegments
+       --   3. Check if merging of ciSegments is necessary, schedule merge
+       --   4. Trigger a flush to write active segment to disk
+       --   5. create new empty segment and set it as ciActiveSegment
+       return ixx { ciActiveSegment = active'
+                  }
 
 -- | Inserts a segment into the index. Assigns a `SegmentId` to the `Segment`.
 insertSegment :: (Monad m, DocTable dt) => Segment dt -> ContextIndex dt -> m (ContextIndex dt)
