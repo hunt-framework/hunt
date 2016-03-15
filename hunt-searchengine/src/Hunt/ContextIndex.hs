@@ -23,7 +23,6 @@ module Hunt.ContextIndex (
   , lookupAllWithCx
 
     -- * Insert\/Delete Documents
-  , insertSegment
   , insertList
                                  -- XXX: these functions should be internal
                                  -- we export them to be able to test them
@@ -78,14 +77,16 @@ import qualified Data.Set                  as Set
 import           Data.Text                 (Text)
 import           Data.Traversable
 
-empty :: (Monad m, DocTable dt) => m (ContextIndex dt)
-empty = do
+empty :: (Monad m, DocTable dt) => MergePolicy -> m (ContextIndex dt)
+empty mergePolicy = do
   active <- Segment.emptySegment
   return ContextIndex { ciActiveSegment = active
                       , ciSegments      = SegmentMap.empty
                       , ciSchema        = mempty
                       , ciNextSegmentId = SegmentId 1
                       , ciDirtiness     = mempty
+                      , ciMergePolicy   = mergePolicy
+                      , ciMergeLock     = mempty
                       }
 
 -- | Inserts a new `Context` with `ContextSchema` into the `ContextIndex`.
@@ -137,10 +138,9 @@ schema = ciSchema
 -- | Insert multiple documents and words.
 insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
            => [(DocTable.DValue dt, Words)]
-           -> Merge.MergePolicy
            -> ContextIndex dt
-           -> m (ContextIndex dt)
-insertList docsAndWords mergePolicy ixx
+           -> m (ContextIndex dt, [IndexAction dt])
+insertList docsAndWords ixx
   = do active' <- Segment.insertDocsAndWords (ciSchema ixx) docsAndWords (ciActiveSegment ixx)
        -- TODO:
        -- 1. Check if active segment reached threshold (to be defined)
@@ -148,25 +148,31 @@ insertList docsAndWords mergePolicy ixx
        --   3. Check if merging of ciSegments is necessary, schedule merge
        --   4. Trigger a flush to write active segment to disk
        --   5. create new empty segment and set it as ciActiveSegment
-       level <- Merge.quantify' Segment.segmentSize' mergePolicy active'
+       level <- Merge.quantify' Segment.segmentSize' (ciMergePolicy ixx) active'
        let threshold = 0.65 -- FIXME: don't do constants!
        if level >= threshold
-         then do ixx' <- insertSegment active' ixx
-                 newActive <- Segment.emptySegment
-                 return ixx' { ciActiveSegment = newActive
-                             }
-         else do return ixx { ciActiveSegment = active'
-                            }
+         then do newActive <- Segment.emptySegment
+                 insertSegment active' (ixx { ciActiveSegment = newActive })
+         else do let ixx' = ixx { ciActiveSegment = active' }
+                 return (ixx', mempty)
 
 -- | Inserts a segment into the index. Assigns a `SegmentId` to the `Segment`.
-insertSegment :: (Monad m, DocTable dt) => Segment dt -> ContextIndex dt -> m (ContextIndex dt)
+insertSegment :: (Monad m, DocTable dt) => Segment dt
+              -> ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
 insertSegment seg ixx = do
-  let sid = ciNextSegmentId ixx
-  return $! ixx { ciSegments =
-                      SegmentMap.insert sid seg (ciSegments ixx)
-                , ciNextSegmentId = succ sid
-                , ciDirtiness = IsDirty (Set.singleton sid) <> ciDirtiness ixx
-                }
+  let sid = succ (ciNextSegmentId ixx)
+
+      ixx' = ixx { ciSegments = SegmentMap.insert sid seg (ciSegments ixx)
+                 , ciNextSegmentId = succ sid
+                 }
+
+  -- Determine if we need a merge after inserting the new segment
+  (mergeDescr, ixx'') <- Merge.tryMerge ixx'
+
+  -- An action which describes a merge
+  let mergeAct !descr = IndexAction (Merge.runMerge descr)
+
+  return (ixx'', fmap mergeAct mergeDescr)
 
 -- | Modify the descirption of a document and add words
 --   (occurrences for that document) to the index.
@@ -175,13 +181,12 @@ modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt)
                       -> Description
                       -> Words
                       -> DocId
-                      -> Merge.MergePolicy
                       -> ContextIndex dt
-                      -> m (ContextIndex dt)
-modifyWithDescription weight descr wrds dId mp ixx
+                      -> m (ContextIndex dt, [IndexAction dt])
+modifyWithDescription weight descr wrds dId ixx
     = do Just doc <- lookupDocument dId ixx -- TODO: dangerous
          ixx'     <- delete' (DocIdSet.singleton dId) ixx
-         insertList [(mergeDescr doc, wrds)] mp ixx'
+         insertList [(mergeDescr doc, wrds)] ixx'
   where
       -- M.union is left-biased
       -- flip to use new values for existing keys

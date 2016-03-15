@@ -166,7 +166,7 @@ type DefHuntEnv = HuntEnv (Documents Document)
 -- | Initialize the Hunt environment with default values.
 initHunt :: DocTable dt => IO (HuntEnv dt)
 initHunt = do
-  cix <- CIx.empty
+  cix <- CIx.empty mergePolicy
   initHuntEnv cix flushPolicy mergePolicy contextTypes [] normalizers def
 
 -- | Default context types.
@@ -183,6 +183,7 @@ mergePolicy
   = MergePolicy { mpMergeFactor       = 6
                 , mpMinMerge          = 400
                 , mpMaxParallelMerges = 2
+                , mpMaxActiveSegmentLevel = 0.6
                 }
 
 -- | Default flush policy
@@ -451,9 +452,8 @@ execInsertList docs = do
     -- apidoc should not exist
     mapM_ (flip (checkApiDocExistence False) ixx') docs
 
-    mp <- askMergePolicy
     let daw = docsAndWords (CIx.schema ixx')
-    ixx'' <- lift $ CIx.insertList daw mp ixx'
+    (ixx'', actions) <- lift $ CIx.insertList daw ixx'
 
     return (ixx'', ResOK)
   where
@@ -504,9 +504,8 @@ execUpdate doc ixx
          docIdM <- liftIO $ CIx.lookupDocumentByURI (uri docs) ixx
          case docIdM of
           Just docId
-            -> do mp <- askMergePolicy
-                  ixx'<- lift $
-                         CIx.modifyWithDescription (adWght doc) (desc docs) ws docId mp ixx
+            -> do (ixx', actions) <- lift $
+                    CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
                   return (ixx', ResOK)
           Nothing
             -> throwResError 409 $ "document for update not found: " `T.append` uri docs
@@ -775,7 +774,8 @@ newIndexMerger :: (MonadIO m, DocTable dt)
                -> MergePolicy
                -> m IndexMerger
 newIndexMerger xmvar policy = liftIO $ do
-  -- we need a lock for parallel merges
+  Worker.new 1 xmvar (\_ _ -> return ())
+  {-  -- we need a lock for parallel merges
   mlock <- newTMVarIO mempty
 
   Worker.new (mpMaxParallelMerges policy) xmvar $ \_ modify -> do
@@ -813,6 +813,7 @@ newIndexMerger xmvar policy = liftIO $ do
       (a, !lock') <- f lock
       atomically (putTMVar mlock lock')
       return a
+-}
 
 type IndexFlusher = Worker
 

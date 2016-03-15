@@ -3,14 +3,37 @@
 {-# LANGUAGE ExistentialQuantification #-}
 module Hunt.ContextIndex.Types where
 
-import Hunt.Common.SegmentMap (SegmentId, SegmentMap)
-import Hunt.Index.Schema (Schema)
-import Hunt.Segment (Segment)
+import           Hunt.Common.SegmentMap (SegmentId, SegmentMap)
+import qualified Hunt.Common.SegmentMap as SegmentMap
+import           Hunt.Index.Schema (Schema)
+import           Hunt.Segment (Segment)
 
-import Control.DeepSeq
-import Data.Binary
-import Data.Monoid
-import Data.Set (Set)
+import           Control.DeepSeq
+import           Data.Binary
+import           Data.Monoid
+import           Data.Set (Set)
+
+ -- | Settings for merging of segments.
+data MergePolicy =
+  MergePolicy { mpMaxParallelMerges     :: Int
+              , mpMergeFactor           :: Int
+              , mpMinMerge              :: Int
+              , mpMaxActiveSegmentLevel :: Float
+              }
+  deriving (Eq, Show)
+
+-- | A set indicating which `Segment`s are locked for merging.
+newtype MergeLock = MergeLock (SegmentMap ())
+                  deriving (NFData)
+
+instance Show MergeLock where
+  show (MergeLock m) = show (SegmentMap.keys m)
+
+-- | Locks can be combined.
+instance Monoid MergeLock where
+  mempty = MergeLock mempty
+  mappend (MergeLock m1) (MergeLock m2) = MergeLock (
+    SegmentMap.unionWith (\_ _ -> ()) m1 m2)
 
 -- | The actual index type.
 data ContextIndex dt
@@ -18,7 +41,9 @@ data ContextIndex dt
                  , ciSegments      :: !(SegmentMap (Segment dt))
                  , ciSchema        :: !Schema
                  , ciNextSegmentId :: !SegmentId
-                 , ciDirtiness     :: !Dirtiness
+                 , ciDirtiness     :: !Dirtiness -- ^ TODO: remove
+                 , ciMergePolicy   :: !MergePolicy
+                 , ciMergeLock     :: !MergeLock -- ^ TODO: remove
                  }
 
 instance NFData dt => NFData (ContextIndex dt) where

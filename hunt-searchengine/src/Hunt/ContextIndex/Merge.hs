@@ -31,27 +31,6 @@ import qualified Data.List as List
 import           Data.Monoid
 import           Data.Ord
 
--- | Settings for merging of segments.
-data MergePolicy =
-  MergePolicy { mpMaxParallelMerges :: Int
-              , mpMergeFactor       :: Int
-              , mpMinMerge          :: Int
-              }
-  deriving (Eq, Show)
-
--- | A set indicating which `Segment`s are locked for merging.
-newtype MergeLock = MergeLock (SegmentMap ())
-                    deriving (NFData)
-
-instance Show MergeLock where
-  show (MergeLock m) = show (SegmentMap.keys m)
-
--- | Locks can be combined.
-instance Monoid MergeLock where
-  mempty = MergeLock mempty
-  mappend (MergeLock m1) (MergeLock m2) = MergeLock (
-    SegmentMap.unionWith (\_ _ -> ()) m1 m2)
-
 -- | Represents an idempotent function, applying a
 --   merged `Segment` to the `ContextIndex`.
 newtype ApplyMerge dt
@@ -248,38 +227,40 @@ releaseLock (MergeLock lock) x
 --   because it can be a quite costly operation. Marks segments as
 --   merging.
 tryMerge :: (Functor m, Monad m, DocTable dt)
-         => MergePolicy
-         -> MergeLock
-         -> ContextIndex dt
-         -> m ([MergeDescr dt], MergeLock, ContextIndex dt)
-tryMerge policy lock ixx
+         => ContextIndex dt
+         -> m ([MergeDescr dt], ContextIndex dt)
+tryMerge ixx
   = do (merges, lock', nextSegmentId) <-
          selectMerges policy lock (ciSchema ixx) (ciNextSegmentId ixx) (ciSegments ixx)
-       let ixx' = ixx { ciNextSegmentId = nextSegmentId }
-       return (merges, lock', ixx')
+       let ixx' = ixx { ciNextSegmentId = nextSegmentId
+                      , ciMergeLock = lock'
+                      }
+       return (merges, ixx')
+         where
+           lock = ciMergeLock ixx
+           policy = ciMergePolicy ixx
 
 -- | Takes a list of merge descriptions and performs the merge of the
 --   segments. Returns an idempotent function which can be applied to the
 --   `ContextIndex`. This way, the costly merge can be done asynchronously.
-runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ApplyMerge dt)
+runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ContextIndex dt -> ContextIndex dt)
 runMerge descr
   = do newSeg <- runMerge' descr
-       newSeg `seq` return (
-         ApplyMerge (applyMergedSegment (mdSegId descr) (mdSegs descr) newSeg))
+       return (applyMergedSegment (mdSegId descr) (mdSegs descr) newSeg)
 
 -- | Since merging can happen asynchronously, we have to account for documents
 --   and contexts deleted while we were merging the segments.
 applyMergedSegment :: SegmentId
                    -> SegmentMap (Segment dt)
                    -> Segment dt
-                   -> MergeLock
                    -> ContextIndex dt
-                   -> (ContextIndex dt, MergeLock)
-applyMergedSegment segmentId oldSegments newSegment lock ixx
-  = (ixx { ciSegments      =
+                   -> ContextIndex dt
+applyMergedSegment segmentId oldSegments newSegment ixx
+  = ixx { ciSegments      =
               SegmentMap.insertWith (const id) segmentId newSegment' (
                 SegmentMap.difference (ciSegments ixx) oldSegments)
-        }, releaseLock lock oldSegments)
+        , ciMergeLock = releaseLock (ciMergeLock ixx) oldSegments
+        }
   where
     newSegment'
       = Segment.deleteDocs deltaDelDocs
