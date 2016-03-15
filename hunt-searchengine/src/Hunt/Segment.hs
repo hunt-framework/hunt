@@ -82,6 +82,26 @@ deleteDocs dIds seg
   = seg { segDeletedDocs = dIds `mappend` segDeletedDocs seg
         }
 
+-- | This is unsafe since it mutates the segment.
+-- Only permitted for the active segment!
+unsafeDeleteDocs :: (Monad m, DocTable dt) => DocIdSet -> Segment dt -> m (Segment dt)
+unsafeDeleteDocs dIds seg = do
+  newDt <- DocTable.difference dIds (segDocs seg)
+  newSize <- DocTable.size newDt
+  return seg { segDocs = newDt
+             , segNumDocs = newSize
+             }
+
+unsafeAdjustDocTable :: (Monad m, DocTable dt)
+                        => (DocTable.DValue dt -> m (DocTable.DValue dt))
+                        -> DocId
+                        -> Segment dt
+                        -> m (Segment dt)
+unsafeAdjustDocTable f did s = do
+  newDt <- DocTable.adjust f did (segDocs s)
+  return s { segDocs = newDt
+           }
+
 -- | Marks given Context as deleted.
 --
 deleteContext :: Context -> Segment dt -> Segment dt

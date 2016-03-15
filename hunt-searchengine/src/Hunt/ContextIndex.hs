@@ -186,9 +186,18 @@ modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt)
                       -> ContextIndex dt
                       -> m (ContextIndex dt, [IndexAction dt])
 modifyWithDescription weight descr wrds dId ixx
-    = do Just doc <- lookupDocument dId ixx -- TODO: dangerous
-         ixx'     <- delete' (DocIdSet.singleton dId) ixx
-         insertList [(mergeDescr doc, wrds)] ixx'
+    = do let as = ciActiveSegment ixx
+         -- The active segment is always in memory and mutable
+         -- Doc deletion is cheap then!
+         mdoc <- Segment.lookupDocument dId as
+         case mdoc of
+           Just _ -> do as' <- Segment.unsafeAdjustDocTable mergeDescr dId as
+                        -- batchAddWordsM [(dId, wrds)]
+                        return (ixx { ciActiveSegment = as' }, mempty)
+           Nothing -> do Just doc <- lookupDocument dId ixx
+                         ixx' <- delete' (DocIdSet.singleton dId) ixx
+                         newDoc <- mergeDescr doc
+                         insertList [(newDoc, wrds)] ixx'
   where
       -- M.union is left-biased
       -- flip to use new values for existing keys
@@ -196,7 +205,7 @@ modifyWithDescription weight descr wrds dId ixx
       --
       -- Null values in new descr will remove associated attributes
     mergeDescr
-      = wrap . Doc.update (updateWeight . updateDescr) . unwrap
+      = return . wrap . Doc.update (updateWeight . updateDescr) . unwrap
       where
         updateWeight d
           | weight == noScore = d
