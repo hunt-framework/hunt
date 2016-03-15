@@ -96,8 +96,10 @@ insertContext :: Context
               -> ContextSchema
               -> ContextIndex dt
               -> ContextIndex dt
-insertContext cx _ix s ixx
-  = ixx { ciSchema = Map.insertWith (const id) cx s (ciSchema ixx) }
+insertContext cx ix s ixx
+  = ixx { ciSchema = Map.insertWith (const id) cx s (ciSchema ixx)
+        , ciActiveSegment = Segment.insertContext cx ix (ciActiveSegment ixx)
+        }
 
 -- | Removes a `Context` from the index.
 deleteContext :: Context -> ContextIndex dt -> ContextIndex dt
@@ -142,20 +144,20 @@ insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
            -> ContextIndex dt
            -> m (ContextIndex dt, [IndexAction dt])
 insertList docsAndWords ixx
-  = do active' <- Segment.insertDocsAndWords (ciSchema ixx) docsAndWords (ciActiveSegment ixx)
-       -- TODO:
-       -- 1. Check if active segment reached threshold (to be defined)
-       -- 2. If threshold reached, insert into ciSegments
-       --   3. Check if merging of ciSegments is necessary, schedule merge
-       --   4. Trigger a flush to write active segment to disk
-       --   5. create new empty segment and set it as ciActiveSegment
-       level <- Merge.quantify' Segment.segmentSize' (ciMergePolicy ixx) active'
-       let threshold = mpMaxActiveSegmentLevel (ciMergePolicy ixx)
-       if level >= threshold
-         then do newActive <- Segment.emptySegment
-                 insertSegment active' (ixx { ciActiveSegment = newActive })
-         else do let ixx' = ixx { ciActiveSegment = active' }
-                 return (ixx', mempty)
+ = do active' <- Segment.insertDocsAndWords (ciSchema ixx) docsAndWords (ciActiveSegment ixx)
+      -- TODO:
+      -- 1. Check if active segment reached threshold (to be defined)
+      -- 2. If threshold reached, insert into ciSegments
+      --   3. Check if merging of ciSegments is necessary, schedule merge
+      --   4. Trigger a flush to write active segment to disk
+      --   5. create new empty segment and set it as ciActiveSegment
+      level <- Merge.quantify' Segment.segmentSize' (ciMergePolicy ixx) active'
+      let threshold = mpMaxActiveSegmentLevel (ciMergePolicy ixx)
+      if level >= threshold
+        then do newActive <- Segment.emptySegment
+                insertSegment active' (ixx { ciActiveSegment = newActive })
+        else do let ixx' = ixx { ciActiveSegment = active' }
+                return (ixx', mempty)
 
 -- | Inserts a segment into the index. Assigns a `SegmentId` to the `Segment`.
 insertSegment :: (Monad m, DocTable dt) => Segment dt

@@ -89,6 +89,14 @@ deleteContext cx seg
   = seg { segDeletedCxs = Set.insert cx (segDeletedCxs seg)
         }
 
+insertContext :: Context -> Ix.IndexImpl -> Segment dt -> Segment dt
+insertContext cx ix seg
+  = seg { segIndex = index'
+        }
+  where
+    ContextMap index = segIndex seg
+    index' = ContextMap (Map.insertWith (const id) cx ix index)
+
 deleteContexts :: Set Context -> Segment dt -> Segment dt
 deleteContexts cxs seg
   = seg { segDeletedCxs = cxs `mappend` segDeletedCxs seg
@@ -259,9 +267,9 @@ insertDocsAndWords _schema docsAndWords seg = do
     unionDocTables tablesAndWords (segNumDocs seg) (segDocs seg)
 
   -- insert words to index
-  newIx' <- batchAddWordsM docIdsAndWords (segIndex seg)
+  newIx <- batchAddWordsM docIdsAndWords (segIndex seg)
 
-  return seg { segIndex = newIx'
+  return seg { segIndex = newIx
              , segNumDocs = numDocs
              , segDocs = newDt
              }
