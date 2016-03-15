@@ -33,6 +33,7 @@ library
 
   build-depends: aeson                  >= 0.6
                , aeson-pretty           >= 0.7
+               , async
                , base                   >= 4.5     && < 5
                , binary                 >= 0.5     && < 1
                , bytestring                           < 1

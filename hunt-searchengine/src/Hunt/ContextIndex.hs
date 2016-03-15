@@ -40,6 +40,8 @@ module Hunt.ContextIndex (
   , selectDocuments
 
   , ContextIndex
+  , IndexAction
+  , runIxAction
 
   , status
   ) where

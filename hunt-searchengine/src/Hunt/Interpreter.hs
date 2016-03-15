@@ -30,6 +30,7 @@ module Hunt.Interpreter
 where
 
 import           Control.Arrow                 (second)
+import           Control.Concurrent.Async      as Async
 import           Control.Concurrent.STM
 import           Control.Concurrent.XMVar
 import           Control.Monad.Except
@@ -455,6 +456,9 @@ execInsertList docs = do
     let daw = docsAndWords (CIx.schema ixx')
     (ixx'', actions) <- lift $ CIx.insertList daw ixx'
 
+    lift $ forM_ actions $ \ixa -> do
+      Async.async (CIx.runIxAction ixa)
+
     return (ixx'', ResOK)
   where
       -- compute all contexts in all docs
@@ -506,6 +510,8 @@ execUpdate doc ixx
           Just docId
             -> do (ixx', actions) <- lift $
                     CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
+                  lift $ forM_ actions $ \ixa -> do
+                    Async.async (CIx.runIxAction ixa)
                   return (ixx', ResOK)
           Nothing
             -> throwResError 409 $ "document for update not found: " `T.append` uri docs
