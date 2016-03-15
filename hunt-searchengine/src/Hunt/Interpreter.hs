@@ -85,7 +85,6 @@ import           Hunt.Scoring.SearchResult     (ScoredDocs, UnScoredDocs,
                                                 scoredDocsToDocIdSet,
                                                 searchResultToOccurrences,
                                                 unScoredDocsToDocIdSet)
-import qualified Hunt.Segment                  as Segment
 import           Hunt.Utility                  (showText)
 import           Hunt.Utility.Log
 
@@ -439,12 +438,6 @@ execDeleteContext cx ixx
 
 execInsertList :: DocTable dt => [ApiDocument] -> Hunt dt CmdResult
 execInsertList docs = do
-  -- Do the hard work before we take the lock. This enables more parallel indexing
-  -- In cases of DocId collisions we do a lot of useless work upfront
-  -- TODO: we need to account for concurrent schema changes
-  !newSeg <- withIx $ \ixx ->
-    lift $ Segment.fromDocsAndWords (CIx.schema ixx) (docsAndWords (CIx.schema ixx))
-
   modIx $ \ixx' -> do
     -- existence check for all referenced contexts in all docs
     checkContextsExistence contexts ixx'
@@ -455,8 +448,9 @@ execInsertList docs = do
     -- apidoc should not exist
     mapM_ (flip (checkApiDocExistence False) ixx') docs
 
-    -- Inserts the segment
-    ixx'' <- CIx.insertSegment newSeg ixx'
+    let daw = docsAndWords (CIx.schema ixx')
+    ixx'' <- lift $ CIx.insertList daw ixx'
+
     return (ixx'', ResOK)
   where
       -- compute all contexts in all docs
