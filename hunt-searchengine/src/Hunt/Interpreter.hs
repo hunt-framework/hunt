@@ -242,6 +242,9 @@ askIx = do
   ref <- asks huntIndex
   liftIO $ readXMVar ref
 
+askMergePolicy :: Hunt dt MergePolicy
+askMergePolicy = asks huntMergePolicy
+
 -- FIXME: io exception-safe?
 -- | Modify the context index.
 modIx :: DocTable dt
@@ -448,8 +451,9 @@ execInsertList docs = do
     -- apidoc should not exist
     mapM_ (flip (checkApiDocExistence False) ixx') docs
 
+    mp <- askMergePolicy
     let daw = docsAndWords (CIx.schema ixx')
-    ixx'' <- lift $ CIx.insertList daw ixx'
+    ixx'' <- lift $ CIx.insertList daw mp ixx'
 
     return (ixx'', ResOK)
   where
@@ -500,8 +504,9 @@ execUpdate doc ixx
          docIdM <- liftIO $ CIx.lookupDocumentByURI (uri docs) ixx
          case docIdM of
           Just docId
-            -> do ixx'<- lift $
-                         CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
+            -> do mp <- askMergePolicy
+                  ixx'<- lift $
+                         CIx.modifyWithDescription (adWght doc) (desc docs) ws docId mp ixx
                   return (ixx', ResOK)
           Nothing
             -> throwResError 409 $ "document for update not found: " `T.append` uri docs

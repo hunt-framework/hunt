@@ -55,6 +55,7 @@ import qualified Hunt.Common.DocIdSet      as DocIdSet
 import           Hunt.Common.Document      as Doc
 import           Hunt.Common.SegmentMap    (SegmentId (..))
 import qualified Hunt.Common.SegmentMap    as SegmentMap
+import qualified Hunt.ContextIndex.Merge   as Merge
 import           Hunt.ContextIndex.Status
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable             (DocTable)
@@ -71,7 +72,9 @@ import qualified Control.Monad.Parallel    as Par
 import qualified Data.List                 as List
 import qualified Data.Map.Strict           as Map
 import           Data.Maybe
+import           Data.Monoid
 import           Data.Set                  (Set)
+import qualified Data.Set                  as Set
 import           Data.Text                 (Text)
 import           Data.Traversable
 
@@ -134,9 +137,10 @@ schema = ciSchema
 -- | Insert multiple documents and words.
 insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
            => [(DocTable.DValue dt, Words)]
+           -> Merge.MergePolicy
            -> ContextIndex dt
            -> m (ContextIndex dt)
-insertList docsAndWords ixx
+insertList docsAndWords mergePolicy ixx
   = do active' <- Segment.insertDocsAndWords (ciSchema ixx) docsAndWords (ciActiveSegment ixx)
        -- TODO:
        -- 1. Check if active segment reached threshold (to be defined)
@@ -144,15 +148,24 @@ insertList docsAndWords ixx
        --   3. Check if merging of ciSegments is necessary, schedule merge
        --   4. Trigger a flush to write active segment to disk
        --   5. create new empty segment and set it as ciActiveSegment
-       return ixx { ciActiveSegment = active'
-                  }
+       level <- Merge.quantify' Segment.segmentSize' mergePolicy active'
+       let threshold = 0.65 -- FIXME: don't do constants!
+       if level >= threshold
+         then do ixx' <- insertSegment active' ixx
+                 newActive <- Segment.emptySegment
+                 return ixx' { ciActiveSegment = newActive
+                             }
+         else do return ixx { ciActiveSegment = active'
+                            }
 
 -- | Inserts a segment into the index. Assigns a `SegmentId` to the `Segment`.
 insertSegment :: (Monad m, DocTable dt) => Segment dt -> ContextIndex dt -> m (ContextIndex dt)
-insertSegment seg ixx =
+insertSegment seg ixx = do
+  let sid = ciNextSegmentId ixx
   return $! ixx { ciSegments =
-                      SegmentMap.insert (ciNextSegmentId ixx) seg (ciSegments ixx)
-                , ciNextSegmentId = succ (ciNextSegmentId ixx)
+                      SegmentMap.insert sid seg (ciSegments ixx)
+                , ciNextSegmentId = succ sid
+                , ciDirtiness = IsDirty (Set.singleton sid) <> ciDirtiness ixx
                 }
 
 -- | Modify the descirption of a document and add words
@@ -162,12 +175,13 @@ modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt)
                       -> Description
                       -> Words
                       -> DocId
+                      -> Merge.MergePolicy
                       -> ContextIndex dt
                       -> m (ContextIndex dt)
-modifyWithDescription weight descr wrds dId ixx
+modifyWithDescription weight descr wrds dId mp ixx
     = do Just doc <- lookupDocument dId ixx -- TODO: dangerous
          ixx'     <- delete' (DocIdSet.singleton dId) ixx
-         insertList [(mergeDescr doc, wrds)] ixx'
+         insertList [(mergeDescr doc, wrds)] mp ixx'
   where
       -- M.union is left-biased
       -- flip to use new values for existing keys
