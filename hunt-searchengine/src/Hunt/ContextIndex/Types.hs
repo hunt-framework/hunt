@@ -13,15 +13,17 @@ import Data.Typeable
 
 -- | The actual index type.
 data ContextIndex dt
-  = ContextIndex { ciSegments      :: !(SegmentMap (Segment dt))
+  = ContextIndex { ciActiveSegment :: !(Segment dt)
+                 , ciSegments      :: !(SegmentMap (Segment dt))
                  , ciSchema        :: !Schema
                  , ciNextSegmentId :: !SegmentId
                  }
 
 instance NFData dt => NFData (ContextIndex dt) where
-  rnf ixx = rnf (ciSegments ixx)
-            `seq` rnf (ciSchema ixx)
-            `seq` rnf (ciNextSegmentId ixx)
+  rnf ixx = rnf (ciActiveSegment ixx)
+    `seq` rnf (ciSegments ixx)
+    `seq` rnf (ciSchema ixx)
+    `seq` rnf (ciNextSegmentId ixx)
 
 -- | TODO: remove dummy instance
 instance Binary (ContextIndex dt) where

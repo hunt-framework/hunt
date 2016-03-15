@@ -166,7 +166,9 @@ type DefHuntEnv = HuntEnv (Documents Document)
 
 -- | Initialize the Hunt environment with default values.
 initHunt :: DocTable dt => IO (HuntEnv dt)
-initHunt = initHuntEnv CIx.empty flushPolicy mergePolicy contextTypes [] normalizers def
+initHunt = do
+  cix <- CIx.empty
+  initHuntEnv cix flushPolicy mergePolicy contextTypes [] normalizers def
 
 -- | Default context types.
 contextTypes :: ContextTypes

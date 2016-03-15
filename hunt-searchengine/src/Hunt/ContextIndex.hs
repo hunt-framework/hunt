@@ -75,12 +75,14 @@ import           Data.Set                  (Set)
 import           Data.Text                 (Text)
 import           Data.Traversable
 
-empty :: DocTable dt => ContextIndex dt
-empty
-  = ContextIndex { ciSegments      = SegmentMap.empty
-                 , ciSchema        = mempty
-                 , ciNextSegmentId = SegmentId 1
-                 }
+empty :: (Monad m, DocTable dt) => m (ContextIndex dt)
+empty = do
+  active <- Segment.emptySegment
+  return ContextIndex { ciActiveSegment = active
+                      , ciSegments      = SegmentMap.empty
+                      , ciSchema        = mempty
+                      , ciNextSegmentId = SegmentId 1
+                      }
 
 -- | Inserts a new `Context` with `ContextSchema` into the `ContextIndex`.
 insertContext :: Context
