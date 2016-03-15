@@ -243,6 +243,7 @@ deleteDocsByURI uris s
                   ) (Set.toList uris)
        return $ maybe s (`deleteDocs` s) (mconcat dx)
 
+-- |Insert multiple documents and words into an already existing segment.
 insertDocsAndWords :: (Par.MonadParallel m, Applicative m, DocTable dt)
                    => Schema
                    -> [(DocTable.DValue dt, Words)]
@@ -330,6 +331,7 @@ insertDocsAndWords _schema docsAndWords seg = do
                               return (k, b)
                ) $ Map.toAscList m) >>= return . Map.fromDistinctAscList
 
+-- |Creates a new Segment from docs and words.
 fromDocsAndWords :: (Par.MonadParallel m, Applicative m, DocTable dt)
                  => Schema
                  -> [(DocTable.DValue dt, Words)]
