@@ -81,7 +81,7 @@ import           Data.Traversable
 
 empty :: (Monad m, DocTable dt) => MergePolicy -> m (ContextIndex dt)
 empty mergePolicy = do
-  active <- Segment.emptySegment
+  active <- Segment.emptySegment mempty
   return ContextIndex { ciActiveSegment = active
                       , ciSegments      = SegmentMap.empty
                       , ciSchema        = mempty
@@ -154,7 +154,7 @@ insertList docsAndWords ixx
       level <- Merge.quantify' Segment.segmentSize' (ciMergePolicy ixx) active'
       let threshold = mpMaxActiveSegmentLevel (ciMergePolicy ixx)
       if level >= threshold
-        then do newActive <- Segment.emptySegment
+        then do newActive <- Segment.emptySegment (ciSchema ixx)
                 insertSegment active' (ixx { ciActiveSegment = newActive })
         else do let ixx' = ixx { ciActiveSegment = active' }
                 return (ixx', mempty)

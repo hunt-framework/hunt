@@ -66,14 +66,20 @@ instance NFData dt => NFData (Segment dt) where
           `seq` rnf (segDeletedDocs s)
           `seq` rnf (segDeletedCxs s)
 
-emptySegment :: (Monad m, DocTable dt) => m (Segment dt)
-emptySegment =
-  return Segment { segIndex = mkContextMap mempty
+emptySegment :: (Monad m, DocTable dt) => Schema -> m (Segment dt)
+emptySegment schema =
+  return Segment { segIndex = newContextMap' schema
                  , segNumDocs = 0
                  , segDocs = DocTable.empty
                  , segDeletedDocs = mempty
                  , segDeletedCxs = mempty
                  }
+  where
+    newContextMap' :: Schema -> ContextMap
+    newContextMap' = ContextMap . Map.map (newIx . ctIxImpl . cxType)
+      where
+        newIx :: Ix.IndexImpl -> Ix.IndexImpl
+        newIx (Ix.IndexImpl i) = Ix.mkIndex (Ix.empty `asTypeOf` i)
 
 -- | Marks given documents as deleted.
 --
@@ -365,7 +371,7 @@ fromDocsAndWords :: (Par.MonadParallel m, Applicative m, DocTable dt)
                  -> [(DocTable.DValue dt, Words)]
                  -> m (Segment dt)
 fromDocsAndWords schema docsAndWords = do
-  seg <- emptySegment
+  seg <- emptySegment schema
   insertDocsAndWords schema docsAndWords seg
 
 mkContextMap :: Map Context Ix.IndexImpl -> ContextMap
