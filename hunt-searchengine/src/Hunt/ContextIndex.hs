@@ -148,16 +148,13 @@ insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
            -> m (ContextIndex dt, [IndexAction dt])
 insertList docsAndWords ixx
  = do active' <- Segment.insertDocsAndWords (ciSchema ixx) docsAndWords (ciActiveSegment ixx)
-      -- TODO:
-      -- 1. Check if active segment reached threshold (to be defined)
-      -- 2. If threshold reached, insert into ciSegments
-      --   3. Check if merging of ciSegments is necessary, schedule merge
-      --   4. Trigger a flush to write active segment to disk
-      --   5. create new empty segment and set it as ciActiveSegment
+      -- check if active Segment reached the size threshold.
+      -- We use the same quantification as for merging Segments.
       level <- Merge.quantify' Segment.segmentSize (ciMergePolicy ixx) active'
       let threshold = mpMaxActiveSegmentLevel (ciMergePolicy ixx)
       if level >= threshold
-        then do newActive <- Segment.emptySegment (ciSchema ixx)
+        then do -- Freeze the active Segment and replace it with an empty one.
+                newActive <- Segment.emptySegment (ciSchema ixx)
                 insertSegment active' (ixx { ciActiveSegment = newActive })
         else do let ixx' = ixx { ciActiveSegment = active' }
                 return (ixx', mempty)
