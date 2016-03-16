@@ -38,7 +38,7 @@ data MergeDescr dt
                  -- | Schema used to merge the `Segment`s
                , mdSchema :: !Schema
                  -- | Actual `Segment`s to merge.
-               , mdSegs   :: !(SegmentMap (Segment Frozen dt))
+               , mdSegs   :: !(SegmentMap (Segment 'Frozen dt))
                }
 
 instance Show (MergeDescr dt) where
@@ -60,7 +60,7 @@ data SegmentAndLevel dt =
                     -- | Refers to Segment being merged.
                   , sasSegId :: !SegmentId
                     -- | The actual `Segment` value.
-                  , sasSeg   :: !(Segment Frozen dt)
+                  , sasSeg   :: !(Segment 'Frozen dt)
                   }
 
 -- | Two `SegmentAndLevel` are equal if they refer to the same
@@ -77,8 +77,8 @@ instance Ord (SegmentAndLevel dt) where
 
 -- | Quantifies segments into levels.
 quantifySegments :: Monad m
-                 => (Segment Frozen dt -> m Level)
-                 -> SegmentMap (Segment Frozen dt)
+                 => (Segment 'Frozen dt -> m Level)
+                 -> SegmentMap (Segment 'Frozen dt)
                  -> m [SegmentAndLevel dt]
 quantifySegments findLevel sx
   = forM (SegmentMap.toList sx) $ \(sid, s) -> do
@@ -166,7 +166,7 @@ selectMerges :: (Monad m, DocTable dt)
              -> MergeLock
              -> Schema
              -> SegmentId
-             -> SegmentMap (Segment Frozen dt)
+             -> SegmentMap (Segment 'Frozen dt)
              -> m ([MergeDescr dt], MergeLock, SegmentId)
 selectMerges policy lock schema nextSid segments
   = do -- select any segment not locked by mergelock
@@ -193,7 +193,7 @@ selectMerges policy lock schema nextSid segments
 
 -- | Runs a merge. Returns an idempotent function which,
 --   when applied to a `ContextIndex` makes the merged segment visible
-runMerge' :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (Segment Frozen dt)
+runMerge' :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (Segment 'Frozen dt)
 runMerge' (MergeDescr _segmentId schema segm) =
   go (head segments) (tail segments)
   where
@@ -235,8 +235,8 @@ runMerge descr
 -- | Since merging can happen asynchronously, we have to account for documents
 --   and contexts deleted while we were merging the segments.
 applyMergedSegment :: SegmentId
-                   -> SegmentMap (Segment Frozen dt)
-                   -> Segment Frozen dt
+                   -> SegmentMap (Segment 'Frozen dt)
+                   -> Segment 'Frozen dt
                    -> ContextIndex dt
                    -> ContextIndex dt
 applyMergedSegment segmentId oldSegments newSegment ixx

@@ -163,7 +163,7 @@ insertList docsAndWords ixx
                 return (ixx', mempty)
 
 -- | Inserts a segment into the index. Assigns a `SegmentId` to the `Segment`.
-insertSegment :: (Monad m, DocTable dt) => Segment Active dt
+insertSegment :: (Monad m, DocTable dt) => Segment 'Active dt
               -> ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
 insertSegment seg ixx = do
   let sid = succ (ciNextSegmentId ixx)

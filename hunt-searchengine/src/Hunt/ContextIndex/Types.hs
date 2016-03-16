@@ -38,8 +38,8 @@ instance Monoid MergeLock where
 
 -- | The actual index type.
 data ContextIndex dt
-  = ContextIndex { ciActiveSegment :: !(Segment Active dt)
-                 , ciSegments      :: !(SegmentMap (Segment Frozen dt))
+  = ContextIndex { ciActiveSegment :: !(Segment 'Active dt)
+                 , ciSegments      :: !(SegmentMap (Segment 'Frozen dt))
                  , ciSchema        :: !Schema
                  , ciNextSegmentId :: !SegmentId
                  , ciMergePolicy   :: !MergePolicy

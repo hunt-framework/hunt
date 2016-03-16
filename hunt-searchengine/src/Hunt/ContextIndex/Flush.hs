@@ -30,7 +30,7 @@ data Revision =
 
 -- | A `Flush` describes the operations to persist the index.
 data Flush =
-  forall dt. DocTable dt => Flush { flsAddSeg :: SegmentMap (Segment Frozen dt) -- | ^ Write a new `Segment` (and add a SEGMENT_N file)
+  forall dt. DocTable dt => Flush { flsAddSeg :: SegmentMap (Segment 'Frozen dt) -- | ^ Write a new `Segment` (and add a SEGMENT_N file)
                                   , flsDelSeg :: SegmentMap ()           -- | ^ Delete `Segment`
                                   , flsUpdDel :: SegmentMap (DocIdSet, Set Context) -- | ^ Write delete-set
                                   }
