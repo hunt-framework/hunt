@@ -107,10 +107,10 @@ library
                   Hunt.DocTable
                   Hunt.DocTable.HashedDocTable
 
-                  Hunt.Segment
                   Hunt.ContextIndex
                   Hunt.ContextIndex.Flush
                   Hunt.ContextIndex.Merge
+                  Hunt.ContextIndex.Segment
                   Hunt.ContextIndex.Status
                   Hunt.ContextIndex.Types
 

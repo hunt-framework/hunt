@@ -5,8 +5,8 @@ module Hunt.ContextIndex.Types where
 
 import           Hunt.Common.SegmentMap (SegmentId, SegmentMap)
 import qualified Hunt.Common.SegmentMap as SegmentMap
+import           Hunt.ContextIndex.Segment (Segment)
 import           Hunt.Index.Schema (Schema)
-import           Hunt.Segment (Segment)
 
 import           Control.DeepSeq
 import           Data.Binary

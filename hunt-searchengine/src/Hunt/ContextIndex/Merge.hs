@@ -20,8 +20,8 @@ import qualified Hunt.Common.SegmentMap as SegmentMap
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable)
 import           Hunt.Index.Schema
-import           Hunt.Segment
-import qualified Hunt.Segment as Segment
+import           Hunt.ContextIndex.Segment
+import qualified Hunt.ContextIndex.Segment as Segment
 import           Hunt.Utility
 
 import           Control.DeepSeq

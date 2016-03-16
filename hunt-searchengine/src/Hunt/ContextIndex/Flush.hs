@@ -10,7 +10,7 @@ import qualified Hunt.Common.SegmentMap  as SegmentMap
 import           Hunt.ContextIndex       (ContextIndex)
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable           (DocTable)
-import           Hunt.Segment            (Segment (..))
+import           Hunt.ContextIndex.Segment (Segment (..))
 
 import           Control.Arrow
 import           Control.Monad.IO.Class

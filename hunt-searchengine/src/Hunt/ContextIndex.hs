@@ -66,8 +66,8 @@ import qualified Hunt.Index.IndexImpl      as Ix
 import           Hunt.Index.Schema
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
-import           Hunt.Segment              (Segment)
-import qualified Hunt.Segment              as Segment
+import           Hunt.ContextIndex.Segment (Segment)
+import qualified Hunt.ContextIndex.Segment as Segment
 
 import qualified Control.Monad.Parallel    as Par
 import qualified Data.List                 as List

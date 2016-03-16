@@ -2,7 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE Rank2Types                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
-module Hunt.Segment where
+module Hunt.ContextIndex.Segment where
 
 import           Prelude                   hiding (Word, mapM)
 

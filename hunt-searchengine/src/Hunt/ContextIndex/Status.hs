@@ -21,7 +21,7 @@ import Hunt.Common.SegmentMap (SegmentMap)
 import qualified Hunt.Common.SegmentMap as SegmentMap
 import Hunt.DocTable
 import Hunt.ContextIndex.Types
-import Hunt.Segment as Segment
+import Hunt.ContextIndex.Segment as Segment
 
 import Data.Aeson
 import Data.Foldable
