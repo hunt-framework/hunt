@@ -184,7 +184,7 @@ mergePolicy
   = MergePolicy { mpMergeFactor       = 6
                 , mpMinMerge          = 400
                 , mpMaxParallelMerges = 2
-                , mpMaxActiveSegmentLevel = 0.6
+                , mpMaxActiveSegmentLevel = 6
                 }
 
 -- | Default flush policy
@@ -456,8 +456,11 @@ execInsertList docs = do
     let daw = docsAndWords (CIx.schema ixx')
     (ixx'', actions) <- lift $ CIx.insertList daw ixx'
 
+    ix <- asks huntIndex
     lift $ forM_ actions $ \ixa -> do
-      Async.async (CIx.runIxAction ixa)
+      Async.async $ do
+        apply <- CIx.runIxAction ixa
+        modifyXMVar_ ix (return . apply)
 
     return (ixx'', ResOK)
   where
@@ -510,8 +513,13 @@ execUpdate doc ixx
           Just docId
             -> do (ixx', actions) <- lift $
                     CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
+
+                  ix <- asks huntIndex
                   lift $ forM_ actions $ \ixa -> do
-                    Async.async (CIx.runIxAction ixa)
+                    Async.async $ do
+                      apply <- CIx.runIxAction ixa
+                      modifyXMVar_ ix (return . apply)
+
                   return (ixx', ResOK)
           Nothing
             -> throwResError 409 $ "document for update not found: " `T.append` uri docs

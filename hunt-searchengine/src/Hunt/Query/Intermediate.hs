@@ -116,33 +116,33 @@ instance ScoredResult ScoredWords where
 -- ------------------------------------------------------------
 
 data ScoredOccs
-    = SCO Score DenseOccurrences
+    = SCO Score Occurrences
       deriving (Show)
 
 instance Monoid ScoredOccs where
     mempty
-        = SCO defScore DMP.empty
+        = SCO defScore DM.empty
     mappend (SCO s1 d1) (SCO s2 d2)
-        = SCO ((s1 + s2) / 2.0) (DMP.unionWith Pos.union d1 d2)
+        = SCO ((s1 + s2) / 2.0) (DM.unionWith Pos.union d1 d2)
 
 instance ScoredResult ScoredOccs where
     boost b (SCO s d)
         = SCO (b * s) d
 
     nullSC (SCO _s d)
-        = DMP.null d
+        = DM.null d
 
     differenceSC (SCO s1 d1) (SCO _s2 d2)
-        = SCO s1 (DMP.difference d1 d2)
+        = SCO s1 (DM.difference d1 d2)
 
     intersectSC (SCO s1 d1) (SCO s2 d2)
-        = SCO (s1 + s2) (DMP.intersectionWith Pos.union d1 d2)
+        = SCO (s1 + s2) (DM.intersectionWith Pos.union d1 d2)
 
     intersectDisplSC disp (SCO s1 d1) (SCO s2 d2)
-        = SCO (s1 + s2) (DMP.intersectionWith (Pos.intersectionWithDispl disp) d1 d2)
+        = SCO (s1 + s2) (DM.intersectionWith (Pos.intersectionWithDispl disp) d1 d2)
 
     intersectFuzzySC lb ub (SCO s1 d1) (SCO s2 d2)
-        = SCO (s1 + s2) (DMP.intersectionWith (Pos.intersectionWithIntervall lb ub) d1 d2)
+        = SCO (s1 + s2) (DM.intersectionWith (Pos.intersectionWithIntervall lb ub) d1 d2)
 
 -- ------------------------------------------------------------
 
@@ -349,7 +349,7 @@ limitRawResult maxDocs rs
 toDocsResult :: (Applicative m, Monad m) =>
                 (DocId -> Maybe Document) -> ScoredDocs -> m [RankedDoc]
 toDocsResult dt (SDS m)
-    = return $ fmap toDoc (DMP.toList m)
+    = return $ fmap toDoc (DM.toList m)
       where
         toDoc (did, sc)
             = (toD . fromJust' . dt) did
@@ -424,7 +424,7 @@ toWordsResult len (SWS m)
 
 instance Aggregate ScoredOccs ScoredDocs where
     aggregate (SCO sc occ)
-        = SDS $ DMP.map toScore occ
+        = SDS $ DM.map toScore occ
           where
             toScore = (sc *) . mkScore . fromIntegral . Pos.size
 

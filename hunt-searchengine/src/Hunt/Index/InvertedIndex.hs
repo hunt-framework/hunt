@@ -59,11 +59,11 @@ import           Hunt.Index.Proxy.KeyIndex
 
 -- | Text index using a 'StringMap'-implementation.
 newtype InvertedIndex
-  = InvIx { invIx :: KeyProxyIndex Text (DmPrefixTree DenseOccurrences) }
+  = InvIx { invIx :: KeyProxyIndex Text (DmPrefixTree Occurrences) }
   deriving (Eq, Show, NFData, Typeable)
 
-mkInvIx :: KeyProxyIndex Text (DmPrefixTree DenseOccurrences)
-           -> InvertedIndex
+mkInvIx :: KeyProxyIndex Text (DmPrefixTree Occurrences)
+        -> InvertedIndex
 mkInvIx x = InvIx $! x
 
 -- ------------------------------------------------------------
@@ -76,7 +76,7 @@ instance Binary InvertedIndex where
 
 instance Index InvertedIndex where
   type IKey InvertedIndex = Word
-  type IVal InvertedIndex = DenseOccurrences
+  type IVal InvertedIndex = Occurrences
 
   insertList wos (InvIx i)
     = mkInvIx $ insertList wos i

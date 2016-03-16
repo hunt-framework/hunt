@@ -81,7 +81,7 @@ intersection            :: DocIdMap v -> DocIdMap v -> DocIdMap v
 intersection            = liftDIM2 $ IntMap.intersection
 
 intersectionWithSet     :: DocIdMap v -> DocIdSet -> DocIdMap v
-intersectionWithSet (DIM m) (DIS s) = DIM (IntMap.intersectionWithSet m s)
+intersectionWithSet (DIM m) (DIS s) = undefined -- DIM (IntMap.intersectionWithSet m s)
 
 -- | Difference between two maps (based on 'DocId's).
 difference              :: DocIdMap v -> DocIdMap w -> DocIdMap v
@@ -89,7 +89,7 @@ difference              = liftDIM2 $ IntMap.difference
 
 -- | Difference between the map and a set of 'DocId's.
 diffWithSet             :: DocIdMap v -> DocIdSet -> DocIdMap v
-diffWithSet (DIM m) (DIS s) = DIM (IntMap.differenceWithSet m s)
+diffWithSet (DIM m) (DIS s) = undefined --DIM (IntMap.differenceWithSet m s)
 
 -- | The union with a combining function.
 unionWith               :: (v -> v -> v) -> DocIdMap v -> DocIdMap v -> DocIdMap v
@@ -130,11 +130,11 @@ fromAscList :: [(DocId, v)] -> DocIdMap v
 fromAscList = DIM . IntMap.fromAscList . fmap (first unDocId)
 
 fromDocIdSet :: (DocId -> a) -> DocIdSet -> DocIdMap a
-fromDocIdSet f (DIS is) =
-  DIM (IntMap.fromIntSet (f . DocId) is)
+fromDocIdSet f (DIS is) = undefined
+  -- DIM (IntMap.fromIntSet (f . DocId) is)
 
 keys :: DocIdMap a -> DocIdSet
-keys (DIM im) = DIS (IntMap.keySet im)
+keys (DIM im) = undefined -- DIS (IntMap.keySet im)
 
 toList :: DocIdMap a -> [(DocId, a)]
 toList = fmap (first DocId) . IntMap.toList . unDIM

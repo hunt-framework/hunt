@@ -105,7 +105,7 @@ union :: IntSet -> IntSet -> IntSet
 union i1@(DIS1 s1) i2@(DIS1 s2)
   | null i1 = i2
   | null i2 = i1
-  | otherwise = DIS1 (Vector.create (MVector.new hint >>= union' s1 s2))
+  | otherwise = DIS1 (GVector.unstream (unionStream (GVector.stream s1) (GVector.stream s2)))
   where
     hint = Vector.length s1 + Vector.length s2
 {-# INLINE union #-}

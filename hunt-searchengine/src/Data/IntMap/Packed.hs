@@ -383,12 +383,13 @@ union' f xs0 ys0 !out = do
                              return (i + HVector.length ys)
       | HVector.null ys = do HVector.copy (HMVector.slice i (HVector.length xs) out) xs
                              return (i + HVector.length xs)
-      | otherwise = let (!x_k, x_v) = HVector.head xs
-                        (!y_k, y_v) = HVector.head ys
+      | otherwise = let (!x_k, !x_v) = HVector.head xs
+                        (!y_k, !y_v) = HVector.head ys
                     in case compare x_k y_k of
                          GT -> do HMVector.write out i (y_k, y_v)
                                   go xs (HVector.tail ys) (i + 1)
-                         EQ -> do HMVector.write out i (x_k, f x_v y_v)
+                         EQ -> do let z = f x_v y_v
+                                  z `seq` HMVector.write out i (x_k, z)
                                   go (HVector.tail xs) (HVector.tail ys) (i + 1)
                          LT -> do HMVector.write out i (x_k, x_v)
                                   go (HVector.tail xs) ys (i + 1)

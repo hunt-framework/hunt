@@ -143,7 +143,7 @@ library
                -fwarn-tabs
                -threaded
 
-  ghc-prof-options: -fprof-auto
+  ghc-prof-options: -fprof-auto-exported
 
   extensions: MultiParamTypeClasses
               FlexibleContexts

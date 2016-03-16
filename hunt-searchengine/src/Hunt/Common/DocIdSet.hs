@@ -20,11 +20,13 @@ module Hunt.Common.DocIdSet
   , size
   , member
   , fromList
+  , fromDistinctAscList
   , toIntSet
   , toList
   , difference
   , union
   , intersection
+  , split
   )
 where
 
@@ -45,67 +47,82 @@ import           Hunt.Common.DocId
 --
 -- the wrapped DocId set
 
-newtype DocIdSet = DIS { unDIS :: S.IntSet }
-    deriving (Eq, Show, NFData, Typeable)
+newtype DocIdSet = DIS { unDIS :: IS.IntSet }
+    deriving (Eq, Monoid, Show, NFData, Typeable)
 
 instance Binary DocIdSet where
-  put = put . unDIS
-  get = get >>= return . DIS
-
+  put = undefined -- put . unDIS
+  get = undefined -- get >>= return . DIS
+{-
 instance Monoid DocIdSet where
     mempty
         = DIS S.empty
+    {-# INLINE mempty #-}
+
     mappend (DIS s1) (DIS s2)
         = DIS (S.union s1 s2)
+    {-# INLINE mappend #-}
+-}
 
 instance ToJSON DocIdSet where
-    toJSON = toJSON . L.map DocId . S.toList . unDIS
+    toJSON = undefined -- toJSON . L.map DocId . S.toList . unDIS
 
 instance FromJSON DocIdSet where
-    parseJSON x = do l <- parseJSON x >>= fromL
+    parseJSON x = undefined {- do l <- parseJSON x >>= fromL
                      return (DIS (S.fromList l))
         where
           fromL xs = forM xs $ \s ->
             case fromHex s of
               Nothing -> mzero
               Just i  -> return i
+-}
 
 difference :: DocIdSet -> DocIdSet -> DocIdSet
-difference (DIS s1) (DIS s2) = DIS $ S.difference s1 s2
+difference (DIS s1) (DIS s2) = DIS $ IS.difference s1 s2
 {-# INLINE difference #-}
 
 union :: DocIdSet -> DocIdSet -> DocIdSet
-union (DIS s1) (DIS s2) = DIS $ S.union s1 s2
+union (DIS s1) (DIS s2) = DIS $ IS.union s1 s2
 {-# INLINE union #-}
 
 intersection :: DocIdSet -> DocIdSet -> DocIdSet
-intersection (DIS s1) (DIS s2) = DIS $ S.intersection s1 s2
+intersection (DIS s1) (DIS s2) = DIS $ IS.intersection s1 s2
 {-# INLINE intersection #-}
 
 fromList :: [DocId] -> DocIdSet
-fromList = DIS . S.fromList . L.map unDocId
+fromList = DIS . IS.fromList . L.map unDocId
 {-# INLINE fromList #-}
 
+fromDistinctAscList :: [DocId] -> DocIdSet
+fromDistinctAscList = DIS . IS.fromDistinctAscList . fmap unDocId
+{-# INLINE fromDistinctAscList #-}
+
 toList :: DocIdSet -> [DocId]
-toList = L.map DocId . S.toList . unDIS
+toList = fmap DocId . IS.toList . unDIS
 {-# INLINE toList #-}
 
 toIntSet :: DocIdSet -> IS.IntSet
-toIntSet =  S.toIntSet . unDIS
+toIntSet = unDIS
 {-# INLINE toIntSet #-}
 
 singleton :: DocId -> DocIdSet
-singleton = DIS . S.singleton . unDocId
+singleton = DIS . IS.singleton . unDocId
 {-# INLINE singleton #-}
 
 null :: DocIdSet -> Bool
-null = S.null . unDIS
+null = IS.null . unDIS
 {-# INLINE null #-}
 
 size :: DocIdSet -> Int
-size (DIS s) = S.size s
+size (DIS s) = IS.size s
 {-# INLINE size #-}
 
 member :: DocId -> DocIdSet -> Bool
-member x s = unDocId x `S.member` unDIS s
+member x s = unDocId x `IS.member` unDIS s
 {-# INLINE member #-}
+
+split :: DocId -> DocIdSet -> (Maybe DocId, DocIdSet, DocIdSet)
+split docId@(DocId did) (DIS s) =
+  let
+    (l, x, r) = IS.splitMember did s
+  in (if x then Just docId else Nothing, DIS l, DIS r)

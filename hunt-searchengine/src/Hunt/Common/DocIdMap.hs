@@ -71,10 +71,12 @@ import qualified Data.IntSet.Packed          as IntSet
 import qualified Data.List                   as L
 import           Data.Monoid
 import           Data.Typeable
+import qualified Data.IntSet as IS
 
 import           Hunt.Common.DocId
 import qualified Hunt.Common.DocIdMap.Packed as DMP
 import           Hunt.Common.DocIdSet        (DocIdSet (..))
+import qualified Hunt.Common.DocIdSet        as DocIdSet
 
 -- ------------------------------------------------------------
 
@@ -180,9 +182,15 @@ union                   = liftDIM2 $ IM.union
 intersection            :: DocIdMap v -> DocIdMap v -> DocIdMap v
 intersection            = liftDIM2 $ IM.intersection
 
+intSplit :: Int -> DocIdSet -> (Maybe Int, DocIdSet, DocIdSet)
+intSplit k dis =
+  let
+    (x, l, r) = DocIdSet.split (DocId k) dis
+  in (fmap (\(DocId a) -> a) x, l, r)
+
 intersectionWithSet     :: DocIdMap v -> DocIdSet -> DocIdMap v
-intersectionWithSet (DIM m) (DIS s)
-  = DIM (IM.intersectionWithSplit (const id) IntSet.split' m s)
+intersectionWithSet (DIM m) s
+  = DIM (IM.intersectionWithSplit (const id) intSplit m s)
 
 -- | Difference between two maps (based on 'DocId's).
 difference              :: DocIdMap v -> DocIdMap w -> DocIdMap v
@@ -190,8 +198,8 @@ difference              = liftDIM2 $ IM.difference
 
 -- | Difference between the map and a set of 'DocId's.
 diffWithSet             :: DocIdMap v -> DocIdSet -> DocIdMap v
-diffWithSet (DIM m) (DIS s)
-  = DIM (IM.differenceWithSplit (const (const Nothing)) IntSet.split' m s)
+diffWithSet (DIM m) s
+  = DIM (IM.differenceWithSplit (const (const Nothing)) intSplit m s)
 {-# INLINE diffWithSet #-}
 
 -- | The union with a combining function.
@@ -269,7 +277,7 @@ fromList                = DIM . IM.fromList . L.map (first unDocId)
 
 -- | Create a map from a set of 'DocId' values
 fromDocIdSet            :: (Int -> v) -> DocIdSet -> DocIdMap v
-fromDocIdSet f          = DIM . IM.fromAscList . fmap (\k -> (k, f k)) . IntSet.toList . unDIS
+fromDocIdSet f          = DIM . IM.fromAscList . fmap (\k -> (k, f k)) . IS.toList . unDIS
 
 -- | Build a map from a list of 'DocId'\/value pairs where the 'DocId's are in ascending order.
 fromAscList             :: [(DocId, v)] -> DocIdMap v

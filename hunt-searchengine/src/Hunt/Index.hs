@@ -29,7 +29,7 @@ import qualified Data.List                 as L
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
 import           Hunt.Common.DocIdMap      (DocIdMap)
-import Hunt.Common.Positions (Positions)
+import           Hunt.Common.Positions     (Positions)
 import qualified Hunt.Common.DocIdMap      as DM
 import           Hunt.Common.DocIdSet      (DocIdSet)
 import qualified Hunt.Common.DocIdSet      as DS
@@ -74,21 +74,22 @@ fromOccurrenceList = L.map (second fromOccurrences)
 
 instance IndexValue Occurrences where
   fromOccurrences    = id
-  toSearchResult     = mkSRfromOccurrences . DM.pack
+  toSearchResult     = mkSRfromOccurrences
   diffValues s m     = let z = Occ.diffWithSet m s in
                        if Occ.null z then Nothing else Just z
 
-instance IndexValue DenseOccurrences where
+{-instance IndexValue DenseOccurrences where
   fromOccurrences    = DM.pack
   toSearchResult     = mkSRfromOccurrences
   diffValues s m     = let z = DMP.diffWithSet m s in
                        if DMP.null z then Nothing else Just z
+-}
 
-instance IndexValue (DMP.DocIdMap Score) where
-  fromOccurrences    = occurrencesToDocIdMapScore . DM.pack
+instance IndexValue (DM.DocIdMap Score) where
+  fromOccurrences    = occurrencesToDocIdMapScore
   toSearchResult     = mkSRfromScoredDocs
-  diffValues s m     = let r = DMP.diffWithSet m s in
-                       if DMP.null r then Nothing else Just r
+  diffValues s m     = let r = DM.diffWithSet m s in
+                       if DM.null r then Nothing else Just r
 
 instance IndexValue DocIdSet where
   fromOccurrences    = DS.fromList . DM.keys
