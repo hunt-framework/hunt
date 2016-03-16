@@ -130,10 +130,12 @@ insertContext cx ix seg
     ContextMap index = segIndex seg
     index' = ContextMap (Map.insertWith (const id) cx ix index)
 
-activeDeleteContexts :: (Monad m, DocTable dt)
-                        => Set Context -> Segment Active dt -> m (Segment Active dt)
-activeDeleteContexts cxs seg =
-  undefined
+activeDeleteContext :: Context -> Segment Active dt -> Segment Active dt
+activeDeleteContext cx seg = seg { segIndex = cxm' }
+  where
+    ContextMap cxm = segIndex seg
+    cxm' = mkContextMap $ Map.delete cx cxm
+
 
 -- | Marks given Context as deleted. Only Frozen Segments support marking.
 deleteContext :: Context -> Segment Frozen dt -> Segment Frozen dt

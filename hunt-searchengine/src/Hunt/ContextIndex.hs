@@ -108,6 +108,7 @@ deleteContext :: Context -> ContextIndex dt -> ContextIndex dt
 deleteContext cx ixx
   = ixx { ciSegments = fmap (Segment.deleteContext cx) (ciSegments ixx)
         , ciSchema   = Map.delete cx (ciSchema ixx)
+        , ciActiveSegment = Segment.activeDeleteContext cx (ciActiveSegment ixx)
         }
 
 -- | Returns any `Context` which is searched by default.
