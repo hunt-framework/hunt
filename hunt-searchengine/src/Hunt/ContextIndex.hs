@@ -193,8 +193,8 @@ modifyWithDescription weight descr wrds dId ixx
          mdoc <- Segment.activeLookupDocument dId as
          case mdoc of
            Just _ -> do as' <- Segment.modifyDoc mergeDescr dId as
-                        -- batchAddWordsM [(dId, wrds)]
-                        return (ixx { ciActiveSegment = as' }, mempty)
+                        as'' <- Segment.batchAddWordsM [(dId, wrds)] as'
+                        return (ixx { ciActiveSegment = as'' }, mempty)
            Nothing -> do Just doc <- lookupDocument dId ixx
                          ixx' <- delete' (DocIdSet.singleton dId) ixx
                          newDoc <- mergeDescr doc

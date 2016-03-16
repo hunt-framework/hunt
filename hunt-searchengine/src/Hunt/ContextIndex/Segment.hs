@@ -338,12 +338,9 @@ insertDocsAndWords _schema docsAndWords seg = do
     unionDocTables tablesAndWords (segNumDocs seg) (segDocs seg)
 
   -- insert words to index
-  newIx <- batchAddWordsM docIdsAndWords (segIndex seg)
-
-  return seg { segIndex = newIx
-             , segNumDocs = numDocs
-             , segDocs = newDt
-             }
+  batchAddWordsM docIdsAndWords seg { segNumDocs = numDocs
+                                    , segDocs = newDt
+                                    }
   where
     -- takes list of documents with wordlist. creates new 'DocTable' and
     -- inserts each document of the list into it.
@@ -381,6 +378,21 @@ insertDocsAndWords _schema docsAndWords seg = do
         mkPairs [a]      = [(a,(0,DocTable.empty,[]))]
         mkPairs (a:b:xs) = (a,b):mkPairs xs
 
+batchAddWordsM :: (Functor m, Par.MonadParallel m) =>
+                  [(DocId, Words)] -> Segment 'Active dt -> m (Segment 'Active dt)
+batchAddWordsM [] ix
+  = return ix
+batchAddWordsM vs seg
+  = do m' <- mkContextMap <$> mapWithKeyMP ( \cx impl -> foldinsertList cx impl ) m
+       return seg { segIndex = m' }
+  where
+    ContextMap m = segIndex seg
+
+    foldinsertList :: (Functor m, Monad m) =>
+                      Context -> Ix.IndexImpl -> m Ix.IndexImpl
+    foldinsertList cx (Ix.IndexImpl impl)
+      = Ix.mkIndex <$> Ix.insertListM (contentForCx cx vs) impl
+
     -- | Computes the words and occurrences out of a list for one context
     contentForCx :: Context -> [(DocId, Words)] -> [(Word, Occurrences)]
     contentForCx cx
@@ -391,24 +403,10 @@ insertDocsAndWords _schema docsAndWords seg = do
         getWlForCx
           = Map.findWithDefault Map.empty
 
-    batchAddWordsM :: (Functor m, Par.MonadParallel m) =>
-                      [(DocId, Words)] -> ContextMap -> m ContextMap
-    batchAddWordsM [] ix
-      = return ix
-    batchAddWordsM vs (ContextMap m)
-     = mkContextMap <$>
-      mapWithKeyMP ( \cx impl -> foldinsertList cx impl ) m
-     where
-       foldinsertList :: (Functor m, Monad m) =>
-                         Context -> Ix.IndexImpl -> m Ix.IndexImpl
-       foldinsertList cx (Ix.IndexImpl impl)
-           = Ix.mkIndex <$>
-             Ix.insertListM (contentForCx cx vs) impl
-
     mapWithKeyMP f m =
-     (Par.mapM (\(k, a) -> do b <- f k a
-                              return (k, b)
-               ) $ Map.toAscList m) >>= return . Map.fromDistinctAscList
+      (Par.mapM (\(k, a) -> do b <- f k a
+                               return (k, b)
+                ) $ Map.toAscList m) >>= return . Map.fromDistinctAscList
 
 -- |Creates a new Segment from docs and words.
 fromDocsAndWords :: (Par.MonadParallel m, Applicative m, DocTable dt)
