@@ -2,6 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE Rank2Types                 #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE DataKinds                  #-}
 module Hunt.ContextIndex.Segment where
 
 import           Prelude                   hiding (Word, mapM)
@@ -29,6 +30,7 @@ import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.IO.Class
 import qualified Control.Monad.Parallel    as Par
+import           Data.Coerce
 import qualified Data.List                 as List
 import           Data.Map.Strict           (Map)
 import qualified Data.Map.Strict           as Map
@@ -42,7 +44,12 @@ newtype ContextMap
   = ContextMap { cxMap :: Map Context Ix.IndexImpl }
   deriving (Show, NFData)
 
-data Segment dt
+-- |At any given time the ContextIndex has exactly one Active
+-- Segment and zero or more Frozen Segments.
+data Kind = Active
+          | Frozen
+
+data Segment (k :: Kind) dt
   = Segment { segIndex       :: !ContextMap
             , segNumDocs     :: !Int
             , segDocs        :: !dt
@@ -59,14 +66,18 @@ instance Monoid SegmentDiff where
   mappend (SegmentDiff dids1 ctx1) (SegmentDiff dids2 ctx2)
     = SegmentDiff (dids1 <> dids2) (ctx1 <> ctx2)
 
-instance NFData dt => NFData (Segment dt) where
+instance NFData dt => NFData (Segment k dt) where
   rnf s = rnf (segIndex s)
           `seq` rnf (segNumDocs s)
           `seq` rnf (segDocs s)
           `seq` rnf (segDeletedDocs s)
           `seq` rnf (segDeletedCxs s)
 
-emptySegment :: (Monad m, DocTable dt) => Schema -> m (Segment dt)
+freeze :: Segment k dt -> Segment Frozen dt
+freeze = coerce
+
+-- |Derives an empty Segment from a Schema. New Segments are always Active.
+emptySegment :: (Monad m, DocTable dt) => Schema -> m (Segment Active dt)
 emptySegment schema =
   return Segment { segIndex = newContextMap' schema
                  , segNumDocs = 0
@@ -81,41 +92,37 @@ emptySegment schema =
         newIx :: Ix.IndexImpl -> Ix.IndexImpl
         newIx (Ix.IndexImpl i) = Ix.mkIndex (Ix.empty `asTypeOf` i)
 
--- | Marks given documents as deleted.
---
-deleteDocs :: DocIdSet -> Segment dt -> Segment dt
+-- | Marks given documents as deleted. Only Frozen Segments support marking.
+deleteDocs :: DocIdSet -> Segment Frozen dt -> Segment Frozen dt
 deleteDocs dIds seg
   = seg { segDeletedDocs = dIds `mappend` segDeletedDocs seg
         }
 
 -- | This is unsafe since it mutates the segment.
 -- Only permitted for the active segment!
-unsafeDeleteDocs :: (Monad m, DocTable dt) => DocIdSet -> Segment dt -> m (Segment dt)
-unsafeDeleteDocs dIds seg = do
+activeDeleteDocs :: (Monad m, DocTable dt)
+                    => DocIdSet -> Segment Active dt -> m (Segment Active dt)
+activeDeleteDocs dIds seg = do
   newDt <- DocTable.difference dIds (segDocs seg)
   newSize <- DocTable.size newDt
   return seg { segDocs = newDt
              , segNumDocs = newSize
              }
 
-unsafeAdjustDocTable :: (Monad m, DocTable dt)
-                        => (DocTable.DValue dt -> m (DocTable.DValue dt))
-                        -> DocId
-                        -> Segment dt
-                        -> m (Segment dt)
-unsafeAdjustDocTable f did s = do
+-- |Modifies a Document with a given function. Only Active Segments
+-- may modify their DocTable.
+modifyDoc :: (Monad m, DocTable dt)
+          => (DocTable.DValue dt -> m (DocTable.DValue dt))
+          -> DocId
+          -> Segment Active dt
+          -> m (Segment Active dt)
+modifyDoc f did s = do
   newDt <- DocTable.adjust f did (segDocs s)
   return s { segDocs = newDt
            }
 
--- | Marks given Context as deleted.
---
-deleteContext :: Context -> Segment dt -> Segment dt
-deleteContext cx seg
-  = seg { segDeletedCxs = Set.insert cx (segDeletedCxs seg)
-        }
-
-insertContext :: Context -> Ix.IndexImpl -> Segment dt -> Segment dt
+-- |Inserts a Context into an active Segment.
+insertContext :: Context -> Ix.IndexImpl -> Segment Active dt -> Segment Active dt
 insertContext cx ix seg
   = seg { segIndex = index'
         }
@@ -123,37 +130,49 @@ insertContext cx ix seg
     ContextMap index = segIndex seg
     index' = ContextMap (Map.insertWith (const id) cx ix index)
 
-deleteContexts :: Set Context -> Segment dt -> Segment dt
+activeDeleteContexts :: (Monad m, DocTable dt)
+                        => Set Context -> Segment Active dt -> m (Segment Active dt)
+activeDeleteContexts cxs seg =
+  undefined
+
+-- | Marks given Context as deleted. Only Frozen Segments support marking.
+deleteContext :: Context -> Segment Frozen dt -> Segment Frozen dt
+deleteContext cx seg = deleteContexts (Set.singleton cx) seg
+
+deleteContexts :: Set Context -> Segment Frozen dt -> Segment Frozen dt
 deleteContexts cxs seg
   = seg { segDeletedCxs = cxs `mappend` segDeletedCxs seg
         }
 
 -- | Returns the segments `DocTable`. Respects deleted docs.
 --
-segmentDocs :: (Monad m, DocTable dt) => Segment dt -> m dt
+segmentDocs :: (Monad m, DocTable dt) => Segment Frozen dt -> m dt
 segmentDocs seg
   = DocTable.difference (segDeletedDocs seg) (segDocs seg)
 
+activeSegmentDocs :: (Monad m, DocTable dt) => Segment Active dt -> m dt
+activeSegmentDocs = return . segDocs
+
 -- | Returns the number of documents in this segment
 --
-segmentSize :: (Monad m, DocTable dt) => Segment dt -> m Int
+segmentSize :: (Monad m, DocTable dt) => Segment k dt -> m Int
 segmentSize
   = return . segNumDocs
 
-segmentSize' :: (Monad m, DocTable dt) => Segment dt -> m Int
+segmentSize' :: (Monad m, DocTable dt) => Segment Frozen dt -> m Int
 segmentSize' seg
   = return (segNumDocs seg - DocIdSet.size (segDeletedDocs seg))
 
 -- | Returns the ratio between deleted docs and contained docs
 --
-segmentDeletedDocsRatio :: (Monad m, DocTable dt) => Segment dt -> m Float
+segmentDeletedDocsRatio :: (Monad m, DocTable dt) => Segment Frozen dt -> m Float
 segmentDeletedDocsRatio seg
   = do size <- segmentSize seg
        return (fromIntegral (DocIdSet.size (segDeletedDocs seg)) / fromIntegral size)
 
 -- | Returns the `ContextMap` of a `Segment`. Respects deleted contexts.
 --
-segmentCxMap :: Monad m => Segment dt -> m ContextMap
+segmentCxMap :: Monad m => Segment Frozen dt -> m ContextMap
 segmentCxMap seg
   = return
     . ContextMap
@@ -161,11 +180,14 @@ segmentCxMap seg
     . cxMap
     $ segIndex seg
 
+activeSegmentCxMap :: Monad m => Segment Active dt -> m ContextMap
+activeSegmentCxMap seg = return (segIndex seg)
+
 -- | Since `Segment`s grow monotonically, e.g. only elements are
 --   added never removed from their respective deleted docs/contexts sets
 --   we can efficiently diff two `Segment`s.
 --
-diff :: Segment dt -> Segment dt -> SegmentDiff
+diff :: Segment Frozen dt -> Segment Frozen dt -> SegmentDiff
 diff s1 s2
   = if (DocIdSet.size (segDeletedDocs s1) < DocIdSet.size (segDeletedDocs s2))
        || (Set.size (segDeletedCxs s1) < Set.size (segDeletedCxs s2))
@@ -176,7 +198,7 @@ diff s1 s2
       (Set.difference (segDeletedCxs s1) (segDeletedCxs s2))
 
 -- | Checks common `Segment`s for differences.
-diff' :: SegmentMap (Segment dt) -> SegmentMap (Segment dt) -> SegmentDiff
+diff' :: SegmentMap (Segment Frozen dt) -> SegmentMap (Segment Frozen dt) -> SegmentDiff
 diff' sm1 sm2
   = mconcat
     . SegmentMap.elems
@@ -207,7 +229,7 @@ instance HasSearchResult b => HasSearchResult (a, b) where
 searchSegment :: (Monad m, HasSearchResult r)
               => Context
               -> (forall i. (Ix.IndexImplCon i) => i -> m [r])
-              -> Segment dt
+              -> Segment k dt
               -> m [r]
 searchSegment cx search seg
   = if Set.notMember cx (segDeletedCxs seg)
@@ -233,16 +255,20 @@ searchSegment cx search seg
 
 lookupDocument :: (Par.MonadParallel m, DocTable dt)
                => DocId
-               -> Segment dt
+               -> Segment k dt
                -> m (Maybe (DocTable.DValue dt))
 lookupDocument dId s
   = if not (isDeletedDoc dId s)
     then DocTable.lookup dId (segDocs s)
     else return Nothing
 
+activeLookupDocument :: (Monad m, DocTable dt) =>
+                        DocId -> Segment Active dt -> m (Maybe (DocTable.DValue dt))
+activeLookupDocument dId seg = DocTable.lookup dId (segDocs seg)
+
 lookupDocumentByURI :: (Monad m, DocTable dt)
                     => URI
-                    -> Segment dt
+                    -> Segment k dt
                     -> m (Maybe DocId)
 lookupDocumentByURI uri s
   = do r <- DocTable.lookupByURI uri (segDocs s)
@@ -252,10 +278,16 @@ lookupDocumentByURI uri s
                      then return (Just dId)
                      else return Nothing
 
+activeLookupDocumentByURI :: (Monad m, DocTable dt)
+                          => URI -> Segment Active dt
+                          -> m (Maybe DocId)
+activeLookupDocumentByURI uri s =
+  DocTable.lookupByURI uri (segDocs s)
+
 -- | Returns wanted docs as `DocIdMap` to not expose DocTable.
 selectDocuments :: (Par.MonadParallel m, Applicative m, DocTable dt)
                 => DocIdSet
-                -> Segment dt
+                -> Segment k dt
                 -> m (DocIdMap (DocTable.DValue dt))
 selectDocuments dIds s
   = do newDt <- DocTable.restrict dIds' (segDocs s)
@@ -263,26 +295,37 @@ selectDocuments dIds s
   where
     dIds' = DocIdSet.difference dIds (segDeletedDocs s)
 
-isDeletedDoc :: DocId -> Segment dt -> Bool
+isDeletedDoc :: DocId -> Segment k dt -> Bool
 isDeletedDoc dId
   = DocIdSet.member dId . segDeletedDocs
 
 deleteDocsByURI :: (Functor m, Monad m, DocTable dt)
                 => Set URI
-                -> Segment dt
-                -> m (Segment dt)
+                -> Segment Frozen  dt
+                -> m (Segment Frozen dt)
 deleteDocsByURI uris s
   = do dx <- mapM (\uri ->
                      fmap (fmap DocIdSet.singleton) (lookupDocumentByURI uri s)
                   ) (Set.toList uris)
        return $ maybe s (`deleteDocs` s) (mconcat dx)
 
+activeDeleteDocsByURI :: (Monad m, DocTable dt)
+                         => Set URI
+                         -> Segment Active dt
+                         -> m (Segment Active dt)
+activeDeleteDocsByURI uris s = do
+  newDt <- DocTable.differenceByURI uris (segDocs s)
+  newNumDocs <- DocTable.size newDt
+  return s { segDocs = newDt
+           , segNumDocs = newNumDocs
+           }
+
 -- |Insert multiple documents and words into an already existing segment.
 insertDocsAndWords :: (Par.MonadParallel m, Applicative m, DocTable dt)
                    => Schema
                    -> [(DocTable.DValue dt, Words)]
-                   -> Segment dt
-                   -> m (Segment dt)
+                   -> Segment Active dt
+                   -> m (Segment Active dt)
 insertDocsAndWords _schema docsAndWords seg = do
    -- insert to doctable and generate docId
   tablesAndWords <- Par.mapM createDocTableFromPartition $
@@ -369,7 +412,7 @@ insertDocsAndWords _schema docsAndWords seg = do
 fromDocsAndWords :: (Par.MonadParallel m, Applicative m, DocTable dt)
                  => Schema
                  -> [(DocTable.DValue dt, Words)]
-                 -> m (Segment dt)
+                 -> m (Segment Active dt)
 fromDocsAndWords schema docsAndWords = do
   seg <- emptySegment schema
   insertDocsAndWords schema docsAndWords seg
@@ -381,9 +424,9 @@ mkContextMap x = ContextMap $! x
 -- their doctables and merging their corresponding `ContextMap`s.
 mergeSegments :: (MonadIO m, DocTable dt)
               => Schema
-              -> Segment dt
-              -> Segment dt
-              -> m (Segment dt)
+              -> Segment Frozen dt
+              -> Segment Frozen dt
+              -> m (Segment Frozen dt)
 mergeSegments schema seg1 seg2
   = do dt1 <- segmentDocs seg1
        dt2 <- segmentDocs seg2

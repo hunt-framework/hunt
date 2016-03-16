@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds                 #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE UnboxedTuples             #-}
 module Hunt.ContextIndex.Flush where
@@ -10,7 +11,7 @@ import qualified Hunt.Common.SegmentMap  as SegmentMap
 import           Hunt.ContextIndex       (ContextIndex)
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable           (DocTable)
-import           Hunt.ContextIndex.Segment (Segment (..))
+import           Hunt.ContextIndex.Segment (Segment (..), Kind(..))
 
 import           Control.Arrow
 import           Control.Monad.IO.Class
@@ -29,7 +30,7 @@ data Revision =
 
 -- | A `Flush` describes the operations to persist the index.
 data Flush =
-  forall dt. DocTable dt => Flush { flsAddSeg :: SegmentMap (Segment dt) -- | ^ Write a new `Segment` (and add a SEGMENT_N file)
+  forall dt. DocTable dt => Flush { flsAddSeg :: SegmentMap (Segment Frozen dt) -- | ^ Write a new `Segment` (and add a SEGMENT_N file)
                                   , flsDelSeg :: SegmentMap ()           -- | ^ Delete `Segment`
                                   , flsUpdDel :: SegmentMap (DocIdSet, Set Context) -- | ^ Write delete-set
                                   }

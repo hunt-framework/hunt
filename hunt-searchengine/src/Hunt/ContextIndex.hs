@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE Rank2Types                 #-}
 module Hunt.ContextIndex (
@@ -66,10 +67,11 @@ import qualified Hunt.Index.IndexImpl      as Ix
 import           Hunt.Index.Schema
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
-import           Hunt.ContextIndex.Segment (Segment)
+import           Hunt.ContextIndex.Segment (Segment, Kind(..))
 import qualified Hunt.ContextIndex.Segment as Segment
 
 import qualified Control.Monad.Parallel    as Par
+import           Data.Coerce
 import qualified Data.List                 as List
 import qualified Data.Map.Strict           as Map
 import           Data.Maybe
@@ -151,7 +153,7 @@ insertList docsAndWords ixx
       --   3. Check if merging of ciSegments is necessary, schedule merge
       --   4. Trigger a flush to write active segment to disk
       --   5. create new empty segment and set it as ciActiveSegment
-      level <- Merge.quantify' Segment.segmentSize' (ciMergePolicy ixx) active'
+      level <- Merge.quantify' Segment.segmentSize (ciMergePolicy ixx) active'
       let threshold = mpMaxActiveSegmentLevel (ciMergePolicy ixx)
       if level >= threshold
         then do newActive <- Segment.emptySegment (ciSchema ixx)
@@ -160,11 +162,12 @@ insertList docsAndWords ixx
                 return (ixx', mempty)
 
 -- | Inserts a segment into the index. Assigns a `SegmentId` to the `Segment`.
-insertSegment :: (Monad m, DocTable dt) => Segment dt
+insertSegment :: (Monad m, DocTable dt) => Segment Active dt
               -> ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
 insertSegment seg ixx = do
   let sid = succ (ciNextSegmentId ixx)
-      ixx' = ixx { ciSegments = SegmentMap.insert sid seg (ciSegments ixx)
+      ixx' = ixx { ciSegments =
+                     SegmentMap.insert sid (Segment.freeze seg) (ciSegments ixx)
                  , ciNextSegmentId = succ sid
                  }
 
@@ -189,9 +192,9 @@ modifyWithDescription weight descr wrds dId ixx
     = do let as = ciActiveSegment ixx
          -- The active segment is always in memory and mutable
          -- Doc deletion is cheap then!
-         mdoc <- Segment.lookupDocument dId as
+         mdoc <- Segment.activeLookupDocument dId as
          case mdoc of
-           Just _ -> do as' <- Segment.unsafeAdjustDocTable mergeDescr dId as
+           Just _ -> do as' <- Segment.modifyDoc mergeDescr dId as
                         -- batchAddWordsM [(dId, wrds)]
                         return (ixx { ciActiveSegment = as' }, mempty)
            Nothing -> do Just doc <- lookupDocument dId ixx
@@ -338,7 +341,8 @@ delete' :: (Par.MonadParallel m, DocTable dt)
         -> m (ContextIndex dt)
 delete' dIds ixx
   = do sm <- for (ciSegments ixx) (return . Segment.deleteDocs dIds)
-       return ixx { ciActiveSegment = Segment.deleteDocs dIds (ciActiveSegment ixx)
+       as <- Segment.activeDeleteDocs dIds (ciActiveSegment ixx)
+       return ixx { ciActiveSegment = as
                   , ciSegments = sm
                   }
 
@@ -349,12 +353,12 @@ deleteDocsByURI :: (Par.MonadParallel m, Applicative m, DocTable dt)
                 -> m (ContextIndex dt)
 deleteDocsByURI us ixx
   = do sx <- for (ciSegments ixx) (Segment.deleteDocsByURI us)
-       as <- Segment.deleteDocsByURI us (ciActiveSegment ixx)
+       as <- Segment.activeDeleteDocsByURI us (ciActiveSegment ixx)
        return ixx { ciSegments = sx
                   , ciActiveSegment = as
                   }
 
-mapIxsP :: Par.MonadParallel m => (Segment dt -> m a) -> ContextIndex dt -> m [a]
+mapIxsP :: Par.MonadParallel m => (forall k. Segment k dt -> m a) -> ContextIndex dt -> m [a]
 mapIxsP f ixx
-  = Par.mapM f . (ciActiveSegment ixx:) . fmap snd . SegmentMap.toList . ciSegments $ ixx
+  = Par.mapM f . (coerce (ciActiveSegment ixx):) . fmap snd . SegmentMap.toList . ciSegments $ ixx
 {-# INLINE mapIxsP #-}

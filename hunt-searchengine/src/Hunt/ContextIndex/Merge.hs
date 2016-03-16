@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE DataKinds                  #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ImpredicativeTypes         #-}
 {-# LANGUAGE RankNTypes                 #-}
@@ -12,7 +13,6 @@ module Hunt.ContextIndex.Merge (
 
   , tryMerge
   , runMerge
-  , applyMerge
   ) where
 
 import           Hunt.Common.SegmentMap (SegmentId (..), SegmentMap)
@@ -31,22 +31,6 @@ import qualified Data.List as List
 import           Data.Monoid
 import           Data.Ord
 
--- | Represents an idempotent function, applying a
---   merged `Segment` to the `ContextIndex`.
-newtype ApplyMerge dt
-  = ApplyMerge { applyMerge :: MergeLock
-                            -> ContextIndex dt
-                            -> (ContextIndex dt, MergeLock)
-               }
-
--- | `ApplyMerge`s can be combined
-instance Monoid (ApplyMerge dt) where
-  mempty = ApplyMerge (\lock ixx -> (ixx, lock))
-  mappend f g = ApplyMerge (\lock ixx ->
-                              let (ixx', lock') = applyMerge g lock ixx
-                                  in applyMerge f lock' ixx'
-                           )
-
 -- | A description of a merge.
 data MergeDescr dt
   = MergeDescr { -- | Id of the new `Segment`
@@ -54,7 +38,7 @@ data MergeDescr dt
                  -- | Schema used to merge the `Segment`s
                , mdSchema :: !Schema
                  -- | Actual `Segment`s to merge.
-               , mdSegs   :: !(SegmentMap (Segment dt))
+               , mdSegs   :: !(SegmentMap (Segment Frozen dt))
                }
 
 instance Show (MergeDescr dt) where
@@ -76,7 +60,7 @@ data SegmentAndLevel dt =
                     -- | Refers to Segment being merged.
                   , sasSegId :: !SegmentId
                     -- | The actual `Segment` value.
-                  , sasSeg   :: !(Segment dt)
+                  , sasSeg   :: !(Segment Frozen dt)
                   }
 
 -- | Two `SegmentAndLevel` are equal if they refer to the same
@@ -93,8 +77,8 @@ instance Ord (SegmentAndLevel dt) where
 
 -- | Quantifies segments into levels.
 quantifySegments :: Monad m
-                 => (Segment dt -> m Level)
-                 -> SegmentMap (Segment dt)
+                 => (Segment Frozen dt -> m Level)
+                 -> SegmentMap (Segment Frozen dt)
                  -> m [SegmentAndLevel dt]
 quantifySegments findLevel sx
   = forM (SegmentMap.toList sx) $ \(sid, s) -> do
@@ -182,7 +166,7 @@ selectMerges :: (Monad m, DocTable dt)
              -> MergeLock
              -> Schema
              -> SegmentId
-             -> SegmentMap (Segment dt)
+             -> SegmentMap (Segment Frozen dt)
              -> m ([MergeDescr dt], MergeLock, SegmentId)
 selectMerges policy lock schema nextSid segments
   = do -- select any segment not locked by mergelock
@@ -209,7 +193,7 @@ selectMerges policy lock schema nextSid segments
 
 -- | Runs a merge. Returns an idempotent function which,
 --   when applied to a `ContextIndex` makes the merged segment visible
-runMerge' :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (Segment dt)
+runMerge' :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (Segment Frozen dt)
 runMerge' (MergeDescr _segmentId schema segm) =
   go (head segments) (tail segments)
   where
@@ -251,8 +235,8 @@ runMerge descr
 -- | Since merging can happen asynchronously, we have to account for documents
 --   and contexts deleted while we were merging the segments.
 applyMergedSegment :: SegmentId
-                   -> SegmentMap (Segment dt)
-                   -> Segment dt
+                   -> SegmentMap (Segment Frozen dt)
+                   -> Segment Frozen dt
                    -> ContextIndex dt
                    -> ContextIndex dt
 applyMergedSegment segmentId oldSegments newSegment ixx

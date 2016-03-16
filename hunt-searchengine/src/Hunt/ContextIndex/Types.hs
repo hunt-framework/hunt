@@ -1,11 +1,12 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE DataKinds #-}
 module Hunt.ContextIndex.Types where
 
 import           Hunt.Common.SegmentMap (SegmentId, SegmentMap)
 import qualified Hunt.Common.SegmentMap as SegmentMap
-import           Hunt.ContextIndex.Segment (Segment)
+import           Hunt.ContextIndex.Segment (Segment, Kind(..))
 import           Hunt.Index.Schema (Schema)
 
 import           Control.DeepSeq
@@ -37,8 +38,8 @@ instance Monoid MergeLock where
 
 -- | The actual index type.
 data ContextIndex dt
-  = ContextIndex { ciActiveSegment :: !(Segment dt)
-                 , ciSegments      :: !(SegmentMap (Segment dt))
+  = ContextIndex { ciActiveSegment :: !(Segment Active dt)
+                 , ciSegments      :: !(SegmentMap (Segment Frozen dt))
                  , ciSchema        :: !Schema
                  , ciNextSegmentId :: !SegmentId
                  , ciMergePolicy   :: !MergePolicy
