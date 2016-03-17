@@ -110,7 +110,6 @@ writeDocTable policy sid seg = liftIO $ do
 
       foldM_ (\(offset, i) did -> do
                  let putDix = LByteString.hPut ix . Binary.runPut
-                     putDt  = LByteString.hPut docs . Binary.runPut
                  Just doc <- Segment.lookupDocument did seg
 
                  let docEntry = Binary.runPut (Binary.put doc)
@@ -119,6 +118,7 @@ writeDocTable policy sid seg = liftIO $ do
                  putDix $ do
                    Binary.putWord64be offset
                    Binary.putWord64be size
+                 LByteString.hPut docs docEntry
 
                  UMVector.unsafeWrite mDtIx i did
                  UMVector.unsafeWrite mDtInfo i (offset, size)
