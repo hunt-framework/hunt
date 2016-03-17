@@ -61,7 +61,7 @@ import           Hunt.ContextIndex.Flush       (FlushPolicy (..))
 import qualified Hunt.ContextIndex.Flush       as Flush
 import           Hunt.ContextIndex.Merge       (MergePolicy (..))
 import qualified Hunt.ContextIndex.Merge       as Merge
-import           Hunt.DocTable                 (DocTable)
+import           Hunt.DocTable                 (DocTable, DValue)
 import           Hunt.DocTable.HashedDocTable
 import qualified Hunt.Index                    as Ix
 import           Hunt.Index.IndexImpl          (IndexImpl (..), mkIndex)
@@ -205,9 +205,9 @@ initHuntEnv :: DocTable dt
            -> IO (HuntEnv dt)
 initHuntEnv ixx fp mp opt tk ns qc = do
   ixref  <- newXMVar ixx
-  flsr <- newIndexFlusher ixref fp
+--  flsr <- newIndexFlusher ixref fp
   mrgr <- newIndexMerger ixref mp
-  return $ HuntEnv ixref fp mp opt tk ns qc (flsr <> mrgr)
+  return $ HuntEnv ixref fp mp opt tk ns qc mrgr
 
 -- ------------------------------------------------------------
 -- Command evaluation monad
@@ -234,7 +234,7 @@ runHunt :: DocTable dt => HuntT dt m a -> HuntEnv dt -> m (Either CmdError a)
 runHunt env = runExceptT . runReaderT (runHuntT env)
 
 -- | Run the command the supplied environment/state.
-runCmd :: (DocTable dt, Binary dt) => HuntEnv dt -> Command -> IO (Either CmdError CmdResult)
+runCmd :: (DocTable dt, Binary dt, Binary (DValue dt)) => HuntEnv dt -> Command -> IO (Either CmdError CmdResult)
 runCmd env cmd
   = runExceptT . runReaderT (runHuntT . execCmd $ cmd) $ env
 
@@ -323,14 +323,14 @@ throwResError n msg
 -- ------------------------------------------------------------
 
 -- | Execute the command in the Hunt monad.
-execCmd :: (Binary dt, DocTable dt) => Command -> Hunt dt CmdResult
+execCmd :: (Binary dt, Binary (DValue dt), DocTable dt) => Command -> Hunt dt CmdResult
 execCmd
   = execBasicCmd . toBasicCommand
 
 -- XXX: kind of obsolete now
 -- | Execute the \"low-level\" command in the Hunt monad.
 
-execBasicCmd :: (Binary dt, DocTable dt) => BasicCommand -> Hunt dt CmdResult
+execBasicCmd :: (Binary dt, Binary (DValue dt), DocTable dt) => BasicCommand -> Hunt dt CmdResult
 execBasicCmd cmd@(InsertList _) = do
   debugM $ "Exec: InsertList [..]"
   execCmd' cmd
@@ -344,7 +344,7 @@ execBasicCmd cmd = do
 --
 --   Dispatches basic commands to corresponding functions.
 
-execCmd' :: (Binary dt, DocTable dt) => BasicCommand -> Hunt dt CmdResult
+execCmd' :: (Binary dt, Binary (DValue dt), DocTable dt) => BasicCommand -> Hunt dt CmdResult
 execCmd' (Search q offset mx wg fields)
   = withIx $ execSearch q offset mx wg fields
 
@@ -395,7 +395,7 @@ execCmd' Snapshot
 -- | Execute a sequence of commands.
 --   The sequence will be aborted if a command fails, but the previous commands will be permanent.
 
-execSequence :: (DocTable dt, Binary dt)=> [BasicCommand] -> Hunt dt CmdResult
+execSequence :: (DocTable dt, Binary dt, Binary (DValue dt)) => [BasicCommand] -> Hunt dt CmdResult
 execSequence []       = execBasicCmd NOOP
 execSequence [c]      = execBasicCmd c
 execSequence (c : cs) = execBasicCmd c >> execSequence cs
@@ -441,7 +441,7 @@ execDeleteContext cx ixx
 -- /Note/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs must not exist.
 
-execInsertList :: DocTable dt => [ApiDocument] -> Hunt dt CmdResult
+execInsertList :: (DocTable dt, Binary (DValue dt)) => [ApiDocument] -> Hunt dt CmdResult
 execInsertList docs = do
   modIx $ \ixx' -> do
     -- existence check for all referenced contexts in all docs
@@ -503,7 +503,7 @@ execInsertList docs = do
 -- /Note/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs need to exist.
 
-execUpdate :: DocTable dt
+execUpdate :: (DocTable dt, Binary (DValue dt))
            => ApiDocument -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
 
 execUpdate doc ixx
@@ -828,7 +828,7 @@ newIndexMerger xmvar policy = liftIO $ do
       atomically (putTMVar mlock lock')
       return a
 -}
-
+{-
 type IndexFlusher = Worker
 
 -- | Flushes changes to the index to disk.
@@ -856,3 +856,4 @@ newIndexFlusher xmvar policy  = liftIO $ do
 
     -- Store the revision for the next iteration.
     writeIORef mLastRev newRev
+-}

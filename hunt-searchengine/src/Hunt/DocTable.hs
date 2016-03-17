@@ -107,6 +107,8 @@ class (DocumentWrapper (DValue i), NFData i) => DocTable i where
     -- | Convert document table to a 'DocIdMap'.
     toMap           :: (Monad m) => i -> m (DocIdMap (DValue i))
 
+    docIds          :: (Monad m) => i -> m DocIdSet
+
     -- | Empty 'DocTable'.
     empty           :: i
 

@@ -49,6 +49,7 @@ module Hunt.Common.DocIdMap
   , fromDocIdSet
   , fromAscList
   , toList
+  , toDocIdSet
   , keys
   , elems
   , pack
@@ -292,6 +293,9 @@ toList                  = L.map (first DocId) . IM.toList . unDIM
 --   Subject to list fusion.
 keys                    :: DocIdMap v -> [DocId]
 keys                    = L.map DocId . IM.keys . unDIM
+
+toDocIdSet              :: DocIdMap v -> DocIdSet
+toDocIdSet              = DocIdSet.fromDistinctAscList . fmap DocId . IM.keys . unDIM
 
 -- | Return all elements of the map in the ascending order of their 'DocId's.
 --   Subject to list fusion.

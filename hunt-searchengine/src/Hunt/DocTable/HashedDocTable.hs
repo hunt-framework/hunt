@@ -136,6 +136,8 @@ instance (DocumentWrapper e) =>
   -- Convert document table to a single map.
   toMap       = return . toMap'
 
+  docIds      = return . DM.toDocIdSet . toMap'
+
   -- | Empty 'DocTable'.
   empty       = empty'
 

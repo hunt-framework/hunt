@@ -57,10 +57,11 @@ import qualified Hunt.Common.DocIdSet      as DocIdSet
 import           Hunt.Common.Document      as Doc
 import           Hunt.Common.SegmentMap    (SegmentId (..))
 import qualified Hunt.Common.SegmentMap    as SegmentMap
+import qualified Hunt.ContextIndex.Flush   as Flush
 import qualified Hunt.ContextIndex.Merge   as Merge
 import           Hunt.ContextIndex.Status
 import           Hunt.ContextIndex.Types
-import           Hunt.DocTable             (DocTable)
+import           Hunt.DocTable             (DocTable, DValue)
 import qualified Hunt.DocTable             as DocTable
 import qualified Hunt.Index                as Ix
 import qualified Hunt.Index.IndexImpl      as Ix
@@ -71,6 +72,7 @@ import           Hunt.ContextIndex.Segment (Segment, Kind(..))
 import qualified Hunt.ContextIndex.Segment as Segment
 
 import qualified Control.Monad.Parallel    as Par
+import           Data.Binary               (Binary)
 import           Data.Coerce
 import qualified Data.List                 as List
 import qualified Data.Map.Strict           as Map
@@ -142,7 +144,7 @@ schema = ciSchema
 
 --   This is more efficient than using fold and with 'insert'.
 -- | Insert multiple documents and words.
-insertList :: (Par.MonadParallel m, Applicative m, DocTable dt)
+insertList :: (Par.MonadParallel m, Applicative m, DocTable dt, Binary (DValue dt))
            => [(DocTable.DValue dt, Words)]
            -> ContextIndex dt
            -> m (ContextIndex dt, [IndexAction dt])
@@ -160,12 +162,13 @@ insertList docsAndWords ixx
                 return (ixx', mempty)
 
 -- | Inserts a segment into the index. Assigns a `SegmentId` to the `Segment`.
-insertSegment :: (Monad m, DocTable dt) => Segment 'Active dt
+insertSegment :: (Monad m, DocTable dt, Binary (DValue dt)) => Segment 'Active dt
               -> ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
 insertSegment seg ixx = do
   let sid = succ (ciNextSegmentId ixx)
+      frozen = Segment.freeze seg
       ixx' = ixx { ciSegments =
-                     SegmentMap.insert sid (Segment.freeze seg) (ciSegments ixx)
+                     SegmentMap.insert sid frozen (ciSegments ixx)
                  , ciNextSegmentId = succ sid
                  }
 
@@ -174,12 +177,13 @@ insertSegment seg ixx = do
 
   -- An action which describes a merge
   let mergeAct !descr = IndexAction (Merge.runMerge descr)
+      flushAct = IndexAction (Flush.runFlush (FlushPolicy "index") sid frozen)
 
-  return (ixx'', fmap mergeAct mergeDescr)
+  return (ixx'', flushAct:fmap mergeAct mergeDescr)
 
 -- | Modify the descirption of a document and add words
 --   (occurrences for that document) to the index.
-modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt)
+modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt, Binary (DValue dt))
                       => Score
                       -> Description
                       -> Words

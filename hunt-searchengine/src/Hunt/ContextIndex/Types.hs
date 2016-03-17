@@ -36,6 +36,10 @@ instance Monoid MergeLock where
   mappend (MergeLock m1) (MergeLock m2) = MergeLock (
     SegmentMap.unionWith (\_ _ -> ()) m1 m2)
 
+data FlushPolicy =
+  FlushPolicy { fpFlushDirectory :: FilePath
+              }
+
 -- | The actual index type.
 data ContextIndex dt
   = ContextIndex { ciActiveSegment :: !(Segment 'Active dt)

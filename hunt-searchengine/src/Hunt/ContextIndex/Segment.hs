@@ -152,6 +152,11 @@ segmentDocs :: (Monad m, DocTable dt) => Segment 'Frozen dt -> m dt
 segmentDocs seg
   = DocTable.difference (segDeletedDocs seg) (segDocs seg)
 
+segmentDocIds :: (Monad m, DocTable dt) => Segment 'Frozen dt -> m DocIdSet
+segmentDocIds seg = do
+  dids <- DocTable.docIds (segDocs seg)
+  return $ DocIdSet.difference dids (segDeletedDocs seg)
+
 activeSegmentDocs :: (Monad m, DocTable dt) => Segment 'Active dt -> m dt
 activeSegmentDocs = return . segDocs
 
