@@ -176,13 +176,19 @@ insertSegment seg ixx = do
     -- Check if we can merge Segments with the new Segment inserted into the ContextIndex.
     -- A merge can trigger a cascade of merges until the index is stable and no merges
     -- are required anymore.
-    mkMergeAct :: (Monad m, DocTable dt) => ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
+    mkMergeAct :: (Monad m, DocTable dt, Binary (DValue dt)) =>
+                  ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
     mkMergeAct cix = do
       (mergeDescrs, cix') <- Merge.tryMerge cix
       let action !descr = IndexAction $ do
             !modIx <- Merge.runMerge descr
             return $ \ix -> do
-              mkMergeAct (modIx ix)
+              let (newSid, newSeg, ix') = modIx ix
+                  -- Make sure to flush newly merged segments
+                  -- before cascading the merge
+                  -- TODO: maybe we can interleave merging and flushing
+                  newActions = mkFlushAct newSid newSeg
+              return (ix', newActions)
       return (cix', fmap action mergeDescrs)
 
     -- Flush the segment and make sure to trigger merges when done.

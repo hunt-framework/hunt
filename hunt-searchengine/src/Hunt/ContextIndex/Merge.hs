@@ -227,11 +227,14 @@ tryMerge ixx
 -- | Takes a list of merge descriptions and performs the merge of the
 --   segments. Returns an idempotent function which can be applied to the
 --   `ContextIndex`. This way, the costly merge can be done asynchronously.
-runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (ContextIndex dt -> ContextIndex dt)
+runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt
+            -> m (ContextIndex dt -> (SegmentId, Segment 'Frozen dt, ContextIndex dt))
 runMerge descr
-  = do newSeg <- runMerge' descr
-       return (applyMergedSegment (mdSegId descr) (mdSegs descr) newSeg)
-
+  = do !newSeg <- runMerge' descr
+       return $ \ixx ->
+         let
+           ixx' = applyMergedSegment (mdSegId descr) (mdSegs descr) newSeg ixx
+         in (mdSegId descr, newSeg, ixx')
 -- | Since merging can happen asynchronously, we have to account for documents
 --   and contexts deleted while we were merging the segments.
 applyMergedSegment :: SegmentId
