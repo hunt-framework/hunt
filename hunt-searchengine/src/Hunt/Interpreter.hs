@@ -159,6 +159,8 @@ data HuntEnv dt = HuntEnv
   , huntQueryCfg    :: ProcessConfig
     -- | Manges merges and commits.
   , huntIndexWorker :: IndexWorker
+
+  , huntQueue :: TQueue (CIx.IndexAction dt)
   }
 
 -- | Default Hunt environment type.
@@ -168,7 +170,8 @@ type DefHuntEnv = HuntEnv (Documents Document)
 initHunt :: DocTable dt => IO (HuntEnv dt)
 initHunt = do
   cix <- CIx.empty mergePolicy
-  initHuntEnv cix flushPolicy mergePolicy contextTypes [] normalizers def
+  iaQ <- newTQueueIO
+  initHuntEnv cix flushPolicy mergePolicy contextTypes [] normalizers def iaQ
 
 -- | Default context types.
 contextTypes :: ContextTypes
@@ -202,12 +205,21 @@ initHuntEnv :: DocTable dt
            -> [CTokenizer]
            -> [CNormalizer]
            -> ProcessConfig
+           -> TQueue (CIx.IndexAction dt)
            -> IO (HuntEnv dt)
-initHuntEnv ixx fp mp opt tk ns qc = do
+initHuntEnv ixx fp mp opt tk ns qc iaq = do
   ixref  <- newXMVar ixx
 --  flsr <- newIndexFlusher ixref fp
   mrgr <- newIndexMerger ixref mp
-  return $ HuntEnv ixref fp mp opt tk ns qc mrgr
+
+  _ <- replicateM 2 $ async $ do
+    forever $ do
+      ixa <- atomically $ readTQueue iaq
+      apply <- CIx.runIxAction ixa
+      newActions <- modifyXMVar ixref apply
+      atomically $ forM_ newActions (writeTQueue iaq)
+
+  return $ HuntEnv ixref fp mp opt tk ns qc mrgr iaq
 
 -- ------------------------------------------------------------
 -- Command evaluation monad
@@ -457,13 +469,10 @@ execInsertList docs = do
     (ixx'', actions) <- lift $ CIx.insertList daw ixx'
 
     ix <- asks huntIndex
-    lift $ forM_ actions $ \ixa -> do
-      Async.async $ do
-        apply <- CIx.runIxAction ixa
-        modifyXMVar_ ix (\ixx'' -> do
-                            (ixx''', actions) <- apply ixx''
-                            return ixx'''
-                        )
+    q <- asks huntQueue
+
+    lift $ atomically $
+      forM_ actions (writeTQueue q)
 
     return (ixx'', ResOK)
   where
@@ -518,13 +527,9 @@ execUpdate doc ixx
                     CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
 
                   ix <- asks huntIndex
-                  lift $ forM_ actions $ \ixa -> do
-                    Async.async $ do
-                      apply <- CIx.runIxAction ixa
-                      modifyXMVar_ ix (\ixx'' -> do
-                                          (ixx''', actions) <- apply ixx''
-                                          return ixx'''
-                                      )
+                  q <- asks huntQueue
+                  lift $ atomically $
+                    forM_ actions (writeTQueue q)
 
                   return (ixx', ResOK)
           Nothing

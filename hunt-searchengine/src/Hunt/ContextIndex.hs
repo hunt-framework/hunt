@@ -165,14 +165,14 @@ insertList docsAndWords ixx
 insertSegment :: (Monad m, DocTable dt, Binary (DValue dt)) => Segment 'Active dt
               -> ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
 insertSegment seg ixx = do
-  let sid = succ (ciNextSegmentId ixx)
-      frozen = Segment.freeze seg
-      ixx' = ixx { ciSegments =
-                     SegmentMap.insert sid frozen (ciSegments ixx)
-                 , ciNextSegmentId = succ sid
-                 }
-
   let
+    sid = ciNextSegmentId ixx
+    frozen = Segment.freeze seg
+    ixx' = ixx { ciSegments =
+                   SegmentMap.insert sid frozen (ciSegments ixx)
+               , ciNextSegmentId = succ sid
+               }
+
     -- Check if we can merge Segments with the new Segment inserted into the ContextIndex.
     -- A merge can trigger a cascade of merges until the index is stable and no merges
     -- are required anymore.
