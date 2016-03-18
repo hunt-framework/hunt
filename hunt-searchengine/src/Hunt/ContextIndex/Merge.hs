@@ -7,6 +7,8 @@ module Hunt.ContextIndex.Merge (
     MergePolicy(..)
   , MergeDescr
 
+  , lockFromDescrs
+
   , quantify
   , quantify'
 
@@ -128,8 +130,8 @@ mkMergeDescr schema
                            }
 
 -- | Create a `Mergelock` from a bunch of merge descriptions.
-lockFromMerges :: [MergeDescr dt] -> SegmentLock
-lockFromMerges
+lockFromDescrs :: [MergeDescr dt] -> SegmentLock
+lockFromDescrs
   = mconcat . fmap (Lock.fromSegmentMap . mdSegs)
 
 -- | Selects `Segment`s for merging, respecting an existing `MergeLock`.
@@ -181,7 +183,7 @@ selectMerges policy lock schema nextSid segments
                         . fmap (SegmentMap.fromList . fmap (\sas -> (sasSegId sas, sas)))
                         $ allMerges
            (nextSid', merges) = mkMergeDescr schema nextSid partitions
-       return (merges, lockFromMerges merges `mappend` lock, nextSid')
+       return (merges, lockFromDescrs merges `mappend` lock, nextSid')
   where
     -- Is given level below the minimal merge size
     isMinViableLevel level

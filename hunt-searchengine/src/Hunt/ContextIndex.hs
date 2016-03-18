@@ -181,7 +181,15 @@ insertSegment seg ixx = do
                   ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
     mkMergeAct cix = do
       (mergeDescrs, cix') <- Merge.tryMerge cix
-      let action !descr = IndexAction $ do
+
+      let
+        -- TODO: Make merging symmetric with flushing:
+        -- Locking and unlocking of Segments currently happens in Merge module
+        -- make it happen here like with flushing.
+        lock :: Lock.SegmentLock
+        lock = Merge.lockFromDescrs mergeDescrs
+
+        action !descr = IndexAction $ do
             !modIx <- Merge.runMerge descr
             return $ \ix -> do
               let (newSid, newSeg, ix') = modIx ix
@@ -189,6 +197,7 @@ insertSegment seg ixx = do
               -- before cascading the merge
               -- TODO: maybe we can interleave merging and flushing
               mkFlushAct newSid newSeg ix'
+
       return (cix', fmap action mergeDescrs)
 
     -- A flush action flushes the just frozen segment to disk. It makes sure
