@@ -20,7 +20,8 @@ regexTokenizer = regExTokenize
 
 -- | Doesn't tokenize at all! Mostly used for optimsation of some regexp.
 idTokenizer :: Text -> [Text]
-idTokenizer = pure
+idTokenizer s | Text.null s = []
+              | otherwise   = [s]
 
 separatorTokenizer :: Text -> Text -> [Text]
 separatorTokenizer
