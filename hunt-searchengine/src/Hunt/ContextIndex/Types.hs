@@ -7,6 +7,7 @@ module Hunt.ContextIndex.Types where
 import           Hunt.Common.SegmentMap (SegmentId, SegmentMap)
 import qualified Hunt.Common.SegmentMap as SegmentMap
 import           Hunt.ContextIndex.Segment (Segment, Kind(..))
+import           Hunt.ContextIndex.Lock (SegmentLock)
 import           Hunt.Index.Schema (Schema)
 
 import           Control.DeepSeq
@@ -23,19 +24,6 @@ data MergePolicy =
               }
   deriving (Eq, Show)
 
--- | A set indicating which `Segment`s are locked for merging.
-newtype MergeLock = MergeLock (SegmentMap ())
-                  deriving (NFData)
-
-instance Show MergeLock where
-  show (MergeLock m) = show (SegmentMap.keys m)
-
--- | Locks can be combined.
-instance Monoid MergeLock where
-  mempty = MergeLock mempty
-  mappend (MergeLock m1) (MergeLock m2) = MergeLock (
-    SegmentMap.unionWith (\_ _ -> ()) m1 m2)
-
 data FlushPolicy =
   FlushPolicy { fpFlushDirectory :: FilePath
               }
@@ -47,7 +35,7 @@ data ContextIndex dt
                  , ciSchema        :: !Schema
                  , ciNextSegmentId :: !SegmentId
                  , ciMergePolicy   :: !MergePolicy
-                 , ciMergeLock     :: !MergeLock -- ^ TODO: remove
+                 , ciSegmentLock   :: !SegmentLock
                  }
 
 instance NFData dt => NFData (ContextIndex dt) where

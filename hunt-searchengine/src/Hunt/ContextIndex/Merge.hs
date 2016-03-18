@@ -5,7 +5,6 @@
 {-# LANGUAGE RankNTypes                 #-}
 module Hunt.ContextIndex.Merge (
     MergePolicy(..)
-  , MergeLock
   , MergeDescr
 
   , quantify
@@ -18,6 +17,8 @@ module Hunt.ContextIndex.Merge (
 import           Hunt.Common.SegmentMap (SegmentId (..), SegmentMap)
 import qualified Hunt.Common.SegmentMap as SegmentMap
 import           Hunt.ContextIndex.Types
+import           Hunt.ContextIndex.Lock (SegmentLock)
+import qualified Hunt.ContextIndex.Lock as Lock
 import           Hunt.DocTable (DocTable)
 import           Hunt.Index.Schema
 import           Hunt.ContextIndex.Segment
@@ -127,16 +128,16 @@ mkMergeDescr schema
                            }
 
 -- | Create a `Mergelock` from a bunch of merge descriptions.
-lockFromMerges :: [MergeDescr dt] -> MergeLock
+lockFromMerges :: [MergeDescr dt] -> SegmentLock
 lockFromMerges
-  = mconcat . fmap (MergeLock . void . mdSegs)
+  = mconcat . fmap (Lock.fromSegmentMap . mdSegs)
 
 -- | Selects `Segment`s for merging, respecting an existing `MergeLock`.
 --   This is monadic for the case we need to look at some other criterea
 --   other than the `MergeLock`.
-selectMergeables :: Monad m => MergeLock -> SegmentMap a -> m (SegmentMap a)
-selectMergeables (MergeLock lock) sx
-  = return (SegmentMap.difference sx lock)
+selectMergeables :: Monad m => SegmentLock -> SegmentMap a -> m (SegmentMap a)
+selectMergeables lock sx
+  = return $ Lock.filterUnlocked sx lock
 
 -- |Quantify and normalize a measure.
 quantify :: MergePolicy -> Int -> Level
@@ -163,11 +164,11 @@ quantify' f pol x = quantify pol <$> f x
 --   which merges can be performed.
 selectMerges :: (Monad m, DocTable dt)
              => MergePolicy
-             -> MergeLock
+             -> SegmentLock
              -> Schema
              -> SegmentId
              -> SegmentMap (Segment 'Frozen dt)
-             -> m ([MergeDescr dt], MergeLock, SegmentId)
+             -> m ([MergeDescr dt], SegmentLock, SegmentId)
 selectMerges policy lock schema nextSid segments
   = do -- select any segment not locked by mergelock
        mergeables <- selectMergeables lock segments
@@ -203,10 +204,6 @@ runMerge' (MergeDescr _segmentId schema segm) =
       acc' <- go acc sx
       mergeSegments schema s acc'
 
-releaseLock :: MergeLock -> SegmentMap a -> MergeLock
-releaseLock (MergeLock lock) x
-  = MergeLock (SegmentMap.difference lock x)
-
 -- | Selects segments viable to merge but don't actually do the merge
 --   because it can be a quite costly operation. Marks segments as
 --   merging.
@@ -217,11 +214,11 @@ tryMerge ixx
   = do (merges, lock', nextSegmentId) <-
          selectMerges policy lock (ciSchema ixx) (ciNextSegmentId ixx) (ciSegments ixx)
        let ixx' = ixx { ciNextSegmentId = nextSegmentId
-                      , ciMergeLock = lock'
+                      , ciSegmentLock = lock'
                       }
        return (merges, ixx')
          where
-           lock = ciMergeLock ixx
+           lock = ciSegmentLock ixx
            policy = ciMergePolicy ixx
 
 -- | Takes a list of merge descriptions and performs the merge of the
@@ -246,7 +243,7 @@ applyMergedSegment segmentId oldSegments newSegment ixx
   = ixx { ciSegments      =
               SegmentMap.insertWith (const id) segmentId newSegment' (
                 SegmentMap.difference (ciSegments ixx) oldSegments)
-        , ciMergeLock = releaseLock (ciMergeLock ixx) oldSegments
+        , ciSegmentLock = Lock.release' oldSegments (ciSegmentLock ixx)
         }
   where
     newSegment'

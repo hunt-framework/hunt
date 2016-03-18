@@ -109,6 +109,7 @@ library
 
                   Hunt.ContextIndex
                   Hunt.ContextIndex.Flush
+                  Hunt.ContextIndex.Lock
                   Hunt.ContextIndex.Merge
                   Hunt.ContextIndex.Segment
                   Hunt.ContextIndex.Status

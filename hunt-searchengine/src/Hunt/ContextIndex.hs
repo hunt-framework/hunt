@@ -70,6 +70,7 @@ import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
 import           Hunt.ContextIndex.Segment (Segment, Kind(..))
 import qualified Hunt.ContextIndex.Segment as Segment
+import qualified Hunt.ContextIndex.Lock    as Lock
 
 import qualified Control.Monad.Parallel    as Par
 import           Data.Binary               (Binary)
@@ -91,7 +92,7 @@ empty mergePolicy = do
                       , ciSchema        = mempty
                       , ciNextSegmentId = SegmentId 1
                       , ciMergePolicy   = mergePolicy
-                      , ciMergeLock     = mempty
+                      , ciSegmentLock   = mempty
                       }
 
 -- | Inserts a new `Context` with `ContextSchema` into the `ContextIndex`.
@@ -184,22 +185,29 @@ insertSegment seg ixx = do
             !modIx <- Merge.runMerge descr
             return $ \ix -> do
               let (newSid, newSeg, ix') = modIx ix
-                  -- Make sure to flush newly merged segments
-                  -- before cascading the merge
-                  -- TODO: maybe we can interleave merging and flushing
-                  newActions = mkFlushAct newSid newSeg
-              return (ix', newActions)
+              -- Make sure to flush newly merged segments
+              -- before cascading the merge
+              -- TODO: maybe we can interleave merging and flushing
+              mkFlushAct newSid newSeg ix'
       return (cix', fmap action mergeDescrs)
 
-    -- Flush the segment and make sure to trigger merges when done.
-    mkFlushAct :: (DocTable dt, Binary (DValue dt)) => SegmentId -> Segment 'Frozen dt -> [IndexAction dt]
-    mkFlushAct segId segment =
-      return $ IndexAction $ do
-        !modIx <- Flush.runFlush (FlushPolicy "index") segId segment
-        return $ \ix -> do
-          mkMergeAct (modIx ix)
+    -- A flush action flushes the just frozen segment to disk. It makes sure
+    -- to lock the segment to prevent premature merges until its fully flushed.
+    -- After flushing it triggers possible merges.
+    mkFlushAct :: (Monad m, DocTable dt, Binary (DValue dt)) => SegmentId
+               -> Segment 'Frozen dt -> ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
+    mkFlushAct segId segment cix = do
+      let cix' = cix { ciSegmentLock = Lock.lock segId (ciSegmentLock cix)
+                     }
+          act = IndexAction $ do
+            !modIx <- Flush.runFlush (FlushPolicy "index") segId segment
+            return $ \ix -> do
+              mkMergeAct $ modIx ix { ciSegmentLock =
+                                        Lock.release segId (ciSegmentLock ix)
+                                    }
+      return (cix', [act])
 
-  return (ixx', mkFlushAct sid frozen)
+  mkFlushAct sid frozen ixx'
 
 -- | Modify the descirption of a document and add words
 --   (occurrences for that document) to the index.
