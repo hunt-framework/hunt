@@ -460,7 +460,10 @@ execInsertList docs = do
     lift $ forM_ actions $ \ixa -> do
       Async.async $ do
         apply <- CIx.runIxAction ixa
-        modifyXMVar_ ix (return . apply)
+        modifyXMVar_ ix (\ixx'' -> do
+                            (ixx''', actions) <- apply ixx''
+                            return ixx'''
+                        )
 
     return (ixx'', ResOK)
   where
@@ -518,7 +521,10 @@ execUpdate doc ixx
                   lift $ forM_ actions $ \ixa -> do
                     Async.async $ do
                       apply <- CIx.runIxAction ixa
-                      modifyXMVar_ ix (return . apply)
+                      modifyXMVar_ ix (\ixx'' -> do
+                                          (ixx''', actions) <- apply ixx''
+                                          return ixx'''
+                                      )
 
                   return (ixx', ResOK)
           Nothing

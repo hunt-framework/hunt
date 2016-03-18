@@ -20,6 +20,9 @@ import           Hunt.ContextIndex.Segment (Segment (..), Kind(..))
 import qualified Hunt.ContextIndex.Segment as Segment
 
 import qualified Data.ByteString.Lazy as LByteString
+import           Data.ByteString.Builder (hPutBuilder)
+import           Data.ByteString.Builder.Prim ((>*<))
+import qualified Data.ByteString.Builder.Prim as Builder
 import           Control.Arrow
 import           Control.Monad
 import           Control.Monad.IO.Class
@@ -97,6 +100,12 @@ writeDocTable policy sid seg = liftIO $ do
   withFile dtIxFile WriteMode $ \ix -> do
     withFile dtDocFile WriteMode $ \docs -> do
 
+      hSetBinaryMode ix True
+      hSetBuffering ix (BlockBuffering Nothing)
+
+      hSetBinaryMode docs True
+      hSetBuffering docs (BlockBuffering Nothing)
+
       -- Don't access DocTable directly, as it could be an already
       -- flushed Segment so we don't clutter memory
       docIds <- Segment.segmentDocIds seg
@@ -109,15 +118,13 @@ writeDocTable policy sid seg = liftIO $ do
       mDtInfo <- UMVector.unsafeNew numDocs
 
       foldM_ (\(offset, i) did -> do
-                 let putDix = LByteString.hPut ix . Binary.runPut
                  Just doc <- Segment.lookupDocument did seg
 
                  let docEntry = Binary.runPut (Binary.put doc)
                      size = fromIntegral $ LByteString.length docEntry
+                     dixEntry = Builder.word64BE >*< Builder.word64BE
 
-                 putDix $ do
-                   Binary.putWord64be offset
-                   Binary.putWord64be size
+                 hPutBuilder ix $ Builder.primFixed dixEntry (offset, size)
                  LByteString.hPut docs docEntry
 
                  UMVector.unsafeWrite mDtIx i did
@@ -125,6 +132,9 @@ writeDocTable policy sid seg = liftIO $ do
 
                  return (offset + size, i + 1)
                  ) (0, 0) (DocIdSet.toList docIds)
+
+      hFlush ix
+      hFlush docs
 
       dtIx <- UVector.unsafeFreeze mDtIx
       dtInfo <- UVector.unsafeFreeze mDtInfo

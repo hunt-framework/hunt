@@ -172,14 +172,28 @@ insertSegment seg ixx = do
                  , ciNextSegmentId = succ sid
                  }
 
-  -- Determine if we need a merge after inserting the new segment
-  (mergeDescr, ixx'') <- Merge.tryMerge ixx'
+  let
+    -- Check if we can merge Segments with the new Segment inserted into the ContextIndex.
+    -- A merge can trigger a cascade of merges until the index is stable and no merges
+    -- are required anymore.
+    mkMergeAct :: (Monad m, DocTable dt) => ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
+    mkMergeAct cix = do
+      (mergeDescrs, cix') <- Merge.tryMerge cix
+      let action !descr = IndexAction $ do
+            !modIx <- Merge.runMerge descr
+            return $ \ix -> do
+              mkMergeAct (modIx ix)
+      return (cix', fmap action mergeDescrs)
 
-  -- An action which describes a merge
-  let mergeAct !descr = IndexAction (Merge.runMerge descr)
-      flushAct = IndexAction (Flush.runFlush (FlushPolicy "index") sid frozen)
+    -- Flush the segment and make sure to trigger merges when done.
+    mkFlushAct :: (DocTable dt, Binary (DValue dt)) => SegmentId -> Segment 'Frozen dt -> [IndexAction dt]
+    mkFlushAct segId segment =
+      return $ IndexAction $ do
+        !modIx <- Flush.runFlush (FlushPolicy "index") segId segment
+        return $ \ix -> do
+          mkMergeAct (modIx ix)
 
-  return (ixx'', flushAct:fmap mergeAct mergeDescr)
+  return (ixx', mkFlushAct sid frozen)
 
 -- | Modify the descirption of a document and add words
 --   (occurrences for that document) to the index.

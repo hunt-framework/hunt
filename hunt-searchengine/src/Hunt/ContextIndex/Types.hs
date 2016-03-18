@@ -67,8 +67,15 @@ instance Binary (ContextIndex dt) where
 -- of an index action. Invariantly, the resulting function needs
 -- to be idempotent. This hopefully obsoletes the dirtiness check.
 data IndexAction dt =
-  IndexAction { runIxAction :: IO (ContextIndex dt -> ContextIndex dt) }
+  IndexAction { runIxAction :: IO (ContextIndex dt -> IO (ContextIndex dt, [IndexAction dt])) }
 
 instance Monoid (IndexAction dt) where
-  mempty = IndexAction (return id)
-  mappend x y = IndexAction $ (.) <$> runIxAction x <*> runIxAction y
+  mempty = IndexAction $
+    return $ \ixx -> return (ixx, [])
+  mappend x y = IndexAction $ do
+    x' <- runIxAction x
+    y' <- runIxAction y
+    return $ \ixx -> do
+      (ixx', ax) <- x' ixx
+      (ixx'', ay) <- y' ixx'
+      return (ixx'', ax <> ay)
