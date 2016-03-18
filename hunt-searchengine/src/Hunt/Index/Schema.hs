@@ -304,12 +304,14 @@ data CTokenizer
 mkDefaultTokenizer :: TokenizerType -> CTokenizer
 mkDefaultTokenizer tt
   = case tt of
-      TokenizeRegEx re      -> CTokenizer tt (mkRegexpTokenizer re)
-      TokenizeSeparator sep -> CTokenizer tt (Tokenize.separatorTokenizer sep)
-      TokenizeAlpha         -> CTokenizer tt Tokenize.alphaTokenizer
-      TokenizeDigit         -> CTokenizer tt Tokenize.digitTokenizer
-      TokenizeSpace         -> CTokenizer tt Tokenize.spaceTokenizer
-      _                     -> error "custom tokenizer is no default"
+      TokenizeRegEx re      -> mkTok (mkRegexpTokenizer re)
+      TokenizeSeparator sep -> mkTok (Tokenize.separatorTokenizer sep)
+      TokenizeAlpha         -> mkTok Tokenize.alphaTokenizer
+      TokenizeDigit         -> mkTok Tokenize.digitTokenizer
+      TokenizeSpace         -> mkTok Tokenize.spaceTokenizer
+      _                     -> error "custom type has no default tokenizer"
+  where mkTok = CTokenizer tt
+
 
 -- A private smart constructor for common simple regexes.
 mkRegexpTokenizer :: RegEx -> Text -> [Text]
