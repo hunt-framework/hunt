@@ -5,6 +5,7 @@
 {-# LANGUAGE RankNTypes                 #-}
 module Hunt.ContextIndex.Merge (
     MergePolicy(..)
+  , Merge
   , MergeDescr
 
   , lockFromDescrs
@@ -33,6 +34,10 @@ import           Control.Monad.IO.Class
 import qualified Data.List as List
 import           Data.Monoid
 import           Data.Ord
+
+-- |A function which drives the merge. The merge has to respect
+-- the given Schema definition.
+type Merge dt m = Schema -> Segment 'Frozen dt -> Segment 'Frozen dt -> m (Segment 'Frozen dt)
 
 -- | A description of a merge.
 data MergeDescr dt
@@ -194,17 +199,18 @@ selectMerges policy lock schema nextSid segments
     sortByLevel
       = List.sortBy (comparing Down)
 
+
 -- | Runs a merge. Returns an idempotent function which,
 --   when applied to a `ContextIndex` makes the merged segment visible
-runMerge' :: (MonadIO m, DocTable dt) => MergeDescr dt -> m (Segment 'Frozen dt)
-runMerge' (MergeDescr _segmentId schema segm) =
+runMerge' :: (MonadIO m, DocTable dt) => Merge dt m -> MergeDescr dt -> m (Segment 'Frozen dt)
+runMerge' merge (MergeDescr _segmentId schema segm) =
   go (head segments) (tail segments)
   where
     segments = SegmentMap.elems segm
     go acc [] = return acc
     go acc (s:sx) = do
       acc' <- go acc sx
-      mergeSegments schema s acc'
+      merge schema s acc'
 
 -- | Selects segments viable to merge but don't actually do the merge
 --   because it can be a quite costly operation. Marks segments as
@@ -226,10 +232,10 @@ tryMerge ixx
 -- | Takes a list of merge descriptions and performs the merge of the
 --   segments. Returns an idempotent function which can be applied to the
 --   `ContextIndex`. This way, the costly merge can be done asynchronously.
-runMerge :: (MonadIO m, DocTable dt) => MergeDescr dt
+runMerge :: (MonadIO m, DocTable dt) => Merge dt m -> MergeDescr dt
             -> m (ContextIndex dt -> (SegmentId, Segment 'Frozen dt, ContextIndex dt))
-runMerge descr
-  = do !newSeg <- runMerge' descr
+runMerge merge descr
+  = do !newSeg <- runMerge' merge descr
        return $ \ixx ->
          let
            ixx' = applyMergedSegment (mdSegId descr) (mdSegs descr) newSeg ixx

@@ -190,7 +190,7 @@ insertSegment seg ixx = do
         lock = Merge.lockFromDescrs mergeDescrs
 
         action !descr = IndexAction $ do
-            !modIx <- Merge.runMerge descr
+            !modIx <- Merge.runMerge Segment.mergeSegments descr
             return $ \ix -> do
               let (newSid, newSeg, ix') = modIx ix
               -- Make sure to flush newly merged segments
