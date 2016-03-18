@@ -769,6 +769,10 @@ execStatus (StatusContext cx)
 execStatus (StatusIndex {- context -})
   = withIx $ \ixx -> (ResGeneric . toJSON) <$> CIx.status ixx
 
+execStatus StatusSchema
+  = withIx dumpSchema
+  where dumpSchema ixx = return $ ResGeneric (toJSON (CIx.schema ixx))
+
 -- ------------------------------------------------------------
 
 -- | Throw an error unless the first argument is @True@, and otherwise do nothing.

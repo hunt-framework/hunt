@@ -91,6 +91,7 @@ data StatusCmd
   | StatusDocTable        -- ^ Document table JSON dump.
   | StatusIndex           -- ^ Index JSON dump.
   | StatusContext Context -- ^ Index context dump
+  | StatusSchema
     deriving (Show)
 
 -- ------------------------------------------------------------

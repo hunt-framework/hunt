@@ -34,6 +34,9 @@
     [@GET  \/status\/doctable@]              JSON dump of the document table (/experimental/).
 
     [@GET  \/status\/index@]                 JSON dump of the index (/experimental/).
+
+    [@GET  \/status\/schema@]                JSON dump of the schema (/experimental/).
+
 -}
 -- ----------------------------------------------------------------------------
 
@@ -283,6 +286,9 @@ start config = do
     get "/status/context/:cx" $ do
       query <- param "cx"
       eval $ cmdStatus (StatusContext query)
+
+    get "/status/schema" $ do
+      eval $ cmdStatus StatusSchema
 
     notFound $ raise NotFound
 
