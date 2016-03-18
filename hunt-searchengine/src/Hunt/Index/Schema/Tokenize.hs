@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 module Hunt.Index.Schema.Tokenize(
-    alphaTokenizer
+    idTokenizer
+  , alphaTokenizer
   , digitTokenizer
   , regexTokenizer
   , separatorTokenizer
@@ -17,13 +18,17 @@ import           Data.Text.Unsafe
 regexTokenizer :: RegEx -> Text -> [Text]
 regexTokenizer = regExTokenize
 
+-- | Doesn't tokenize at all! Mostly used for optimsation of some regexp.
+idTokenizer :: Text -> [Text]
+idTokenizer = pure
+
 separatorTokenizer :: Text -> Text -> [Text]
 separatorTokenizer
   = Text.splitOn
 
 alphaTokenizer :: Text -> [Text]
 alphaTokenizer
-  = split (not . Char.isAlpha)
+  = split (not . Char.isAlphaNum)
 
 digitTokenizer :: Text -> [Text]
 digitTokenizer

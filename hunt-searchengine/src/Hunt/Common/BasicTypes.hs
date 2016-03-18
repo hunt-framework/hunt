@@ -59,7 +59,8 @@ type WordList     = Map Word [Position]
 data TextSearchOp = Case | NoCase | PrefixCase | PrefixNoCase
   deriving (Eq, Show)
 
--- | Regular expression.
+-- | Regular expression. We remember the original expression
+-- as HXT may blow up the representation.
 data RegEx = RegEx { reCompiled  :: !HXT.RegexText
                    , rePrintable :: !Text
                    }

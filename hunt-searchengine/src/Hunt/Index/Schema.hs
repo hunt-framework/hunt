@@ -282,6 +282,8 @@ cnZeroFill = CNormalizer "ZeroFill" Int.normalizeToText
 -- Tokenizer
 -- ------------------------------------------------------------
 
+-- | A TokenizerType describes how text should be tokenized.
+-- Mainly this exists for easier serialization/deserialization.
 data TokenizerType
   = TokenizeRegEx RegEx
   | TokenizeSeparator Text
@@ -291,20 +293,32 @@ data TokenizerType
   | TokenizeCustom Text
   deriving (Eq)
 
+-- | A CTokenizer tokenizes text into chunks. It acts accordingly
+-- to its TokenizerType.
 data CTokenizer
   = CTokenizer { ctkType     :: TokenizerType
                , ctkTokenize :: Text -> [Text]
                }
 
+-- | Smart constructor for construction of tokenizer from its types.
 mkDefaultTokenizer :: TokenizerType -> CTokenizer
 mkDefaultTokenizer tt
   = case tt of
-      TokenizeRegEx re      -> CTokenizer tt (Tokenize.regexTokenizer re)
+      TokenizeRegEx re      -> CTokenizer tt (mkRegexpTokenizer re)
       TokenizeSeparator sep -> CTokenizer tt (Tokenize.separatorTokenizer sep)
       TokenizeAlpha         -> CTokenizer tt Tokenize.alphaTokenizer
       TokenizeDigit         -> CTokenizer tt Tokenize.digitTokenizer
       TokenizeSpace         -> CTokenizer tt Tokenize.spaceTokenizer
       _                     -> error "custom tokenizer is no default"
+
+-- A private smart constructor for common simple regexes.
+mkRegexpTokenizer :: RegEx -> Text -> [Text]
+mkRegexpTokenizer re =
+  case rePrintable re of
+    ".*" -> Tokenize.idTokenizer
+    "\\w*" -> Tokenize.alphaTokenizer
+    "[^ ]*" -> Tokenize.spaceTokenizer
+    _ -> Tokenize.regexTokenizer re
 
 instance Show CTokenizer where
   show (CTokenizer t _) = show t
@@ -338,7 +352,7 @@ instance FromJSON TokenizerType where
   parseJSON (Object o)
     = do tkName <- o .: "type"
          case tkName of
-           "Regex"     -> TokenizeRegEx <$> o .: "regex"
+           "Regex"     -> TokenizeRegEx <$> o .: "regexp"
            "Separator" -> TokenizeSeparator <$> o .: "separator"
            "Alpha"     -> pure TokenizeAlpha
            "Digit"     -> pure TokenizeDigit
@@ -349,7 +363,7 @@ instance FromJSON TokenizerType where
 
 instance ToJSON TokenizerType where
   toJSON (TokenizeRegEx re)
-    = object [ "type" .= ("Regex" :: Text), "regex" .= re ]
+    = object [ "type" .= ("Regex" :: Text), "regexp" .= re ]
   toJSON (TokenizeSeparator sep)
     = object [ "type" .= ("Separator" :: Text), "separator" .= sep ]
   toJSON TokenizeAlpha
@@ -391,7 +405,7 @@ instance ToJSON CNormalizer where
 instance FromJSON ContextSchema where
   parseJSON (Object o) = do
     t  <- o .:? "tokenizer"
-    r  <- o .:? "regex"
+    r  <- o .:? "regexp"
     n  <- o .:? "normalizers" .!= []
     w  <- o .:? "weight"      .!= 1.0
     d  <- o .:? "default"     .!= True
