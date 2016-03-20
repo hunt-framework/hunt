@@ -169,7 +169,7 @@ ctInt = CType
 ctDate :: ContextType
 ctDate = CType
   { ctName     = "date"
-  , ctTokenizer = mkDefaultTokenizer (TokenizeRegEx "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))")
+  , ctTokenizer = mkDefaultTokenizer (TokenizeRegExp "[0-9]{4}-((0[1-9])|(1[0-2]))-((0[1-9])|([12][0-9])|(3[01]))")
   , ctValidate = CValidator $ Date.isAnyDate . unpack
   , ctIxImpl   = dateInv
   }
@@ -178,7 +178,7 @@ ctDate = CType
 ctPosition :: ContextType
 ctPosition = CType
   { ctName     = "position"
-  , ctTokenizer = mkDefaultTokenizer (TokenizeRegEx "-?(90(\\.0*)?|[1-8]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?")
+  , ctTokenizer = mkDefaultTokenizer (TokenizeRegExp "-?(90(\\.0*)?|[1-8]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?")
   , ctValidate = CValidator $ Pos.isPosition
   , ctIxImpl   = positionInv
   }
@@ -186,7 +186,7 @@ ctPosition = CType
 ctPositionRTree :: ContextType
 ctPositionRTree = CType
   { ctName     = "position-rtree"
-  , ctTokenizer = mkDefaultTokenizer (TokenizeRegEx "-?(90(\\.0*)?|[1-8]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?")
+  , ctTokenizer = mkDefaultTokenizer (TokenizeRegExp "-?(90(\\.0*)?|[1-8]?[0-9](\\.[0-9]*)?)--?((180(\\.0*)?)|(1[0-7][0-9])|([1-9]?[0-9]))(\\.[0-9]*)?")
   , ctValidate = CValidator $ Pos.isPosition
   , ctIxImpl   = positionRTree
   }
@@ -285,7 +285,7 @@ cnZeroFill = CNormalizer "ZeroFill" Int.normalizeToText
 -- | A TokenizerType describes how text should be tokenized.
 -- Mainly this exists for easier serialization/deserialization.
 data TokenizerType
-  = TokenizeRegEx RegEx
+  = TokenizeRegExp RegExp
   | TokenizeSeparator Text
   | TokenizeAlpha
   | TokenizeDigit
@@ -304,7 +304,7 @@ data CTokenizer
 mkDefaultTokenizer :: TokenizerType -> CTokenizer
 mkDefaultTokenizer tt
   = case tt of
-      TokenizeRegEx re      -> mkTok (mkRegexpTokenizer re)
+      TokenizeRegExp re     -> mkTok (mkRegexpTokenizer re)
       TokenizeSeparator sep -> mkTok (Tokenize.separatorTokenizer sep)
       TokenizeAlpha         -> mkTok Tokenize.alphaTokenizer
       TokenizeDigit         -> mkTok Tokenize.digitTokenizer
@@ -314,7 +314,7 @@ mkDefaultTokenizer tt
 
 
 -- A private smart constructor for common simple regexes.
-mkRegexpTokenizer :: RegEx -> Text -> [Text]
+mkRegexpTokenizer :: RegExp -> Text -> [Text]
 mkRegexpTokenizer re =
   case rePrintable re of
     ".*" -> Tokenize.idTokenizer
@@ -343,7 +343,7 @@ instance Binary CTokenizer where
   put = undefined
 
 instance Show TokenizerType where
-  show (TokenizeRegEx _)     = "Regex"
+  show (TokenizeRegExp _)    = "Regexp"
   show (TokenizeSeparator _) = "Separator"
   show TokenizeAlpha         = "Alpha"
   show TokenizeDigit         = "Digit"
@@ -354,17 +354,17 @@ instance FromJSON TokenizerType where
   parseJSON (Object o)
     = do tkName <- o .: "type"
          case tkName of
-           "Regex"     -> TokenizeRegEx <$> o .: "regexp"
+           "Regex"     -> TokenizeRegExp <$> o .: "regexp"
            "Separator" -> TokenizeSeparator <$> o .: "separator"
            "Alpha"     -> pure TokenizeAlpha
            "Digit"     -> pure TokenizeDigit
            "Whitespace"-> pure TokenizeSpace
            x           -> pure (TokenizeCustom x)
   parseJSON s
-    = TokenizeRegEx <$> parseJSON s
+    = TokenizeRegExp <$> parseJSON s
 
 instance ToJSON TokenizerType where
-  toJSON (TokenizeRegEx re)
+  toJSON (TokenizeRegExp re)
     = object [ "type" .= ("Regex" :: Text), "regexp" .= re ]
   toJSON (TokenizeSeparator sep)
     = object [ "type" .= ("Separator" :: Text), "separator" .= sep ]

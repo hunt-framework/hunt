@@ -15,8 +15,8 @@ import qualified Data.Text as Text
 import           Data.Text.Internal
 import           Data.Text.Unsafe
 
-regexTokenizer :: RegEx -> Text -> [Text]
-regexTokenizer = regExTokenize
+regexTokenizer :: RegExp -> Text -> [Text]
+regexTokenizer = reTokenize
 
 -- | Doesn't tokenize at all! Mostly used for optimsation of some regexp.
 idTokenizer :: Text -> [Text]

@@ -32,7 +32,7 @@ module Hunt.ClientInterface
     , ContextSchema
     , Description
     , IndexMap
-    , RegEx
+    , RegExp
     , StatusCmd
     , URI
     , Weight
@@ -115,7 +115,7 @@ module Hunt.ClientInterface
     , mkSchema
     , setCxNoDefault
     , setCxWeight
-    , setCxRegEx
+    , setCxRegExp
     , setCxTokenizeAlpha
     , setCxTokenizeNumber
     , setCxTokenizeWhitespace
@@ -153,7 +153,7 @@ import           Hunt.Common.ApiDocument     (ApiDocument (..), IndexMap,
                                               emptyApiDocDescr,
                                               emptyApiDocIndexMap)
 import           Hunt.Common.BasicTypes      (Content, Context, Description,
-                                              RegEx, URI)
+                                              RegExp, URI)
 import qualified Hunt.Common.DocDesc         as DD
 import           Hunt.Index.Schema
 import           Hunt.Interpreter.Command
@@ -454,9 +454,9 @@ setCxWeight w sc
 
 -- | set the regex for splitting a text into words
 
-setCxRegEx :: RegEx -> ContextSchema -> ContextSchema
-setCxRegEx re
-  = setCxTokenizer (TokenizeRegEx re)
+setCxRegExp :: RegExp -> ContextSchema -> ContextSchema
+setCxRegExp re
+  = setCxTokenizer (TokenizeRegExp re)
 
 setCxTokenizeAlpha :: ContextSchema -> ContextSchema
 setCxTokenizeAlpha

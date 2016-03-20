@@ -61,53 +61,52 @@ data TextSearchOp = Case | NoCase | PrefixCase | PrefixNoCase
 
 -- | Regular expression. We remember the original expression
 -- as HXT may blow up the representation.
-data RegEx = RegEx { reCompiled  :: !HXT.RegexText
-                   , rePrintable :: !Text
-                   }
-              deriving (Eq, Ord)
+data RegExp = RegExp { reTokenize  :: !(Text -> [Text])
+                     , rePrintable :: !Text
+                     }
 
-regExTokenize :: RegEx -> Text -> [Text]
-regExTokenize (RegEx re _)
-  = HXT.tokenizeRE re
+mkRegexp :: Text -> Maybe RegExp
+mkRegexp t | HXT.isZero re = Nothing
+           | otherwise = Just RegExp { reTokenize = HXT.tokenizeRE re
+                                     , rePrintable = t
+                                     }
+  where
+    re = HXT.parseRegex t
 
 -- ------------------------------------------------------------
 
-instance Show RegEx where
-  show (RegEx _ s) = unpack s
+instance Eq RegExp where
+  re1 == re2 =
+    rePrintable re1 == rePrintable re2
 
-instance IsString RegEx where
-  fromString s
-    = RegEx { reCompiled  = re'
-            , rePrintable = t
-            }
-    where
-      t   = pack s
-      re  = HXT.parseRegex t
-      re' = if HXT.isZero re
-            then error ("You should only use IsString instance for static regexes, error in regex: " ++ show s)
-            else re
+instance Show RegExp where
+  show (RegExp _ s) = unpack s
 
-instance FromJSON RegEx where
-  parseJSON (String s)
-    = do when (HXT.isZero re) mzero
-         return (RegEx re s)
-    where
-      re = HXT.parseRegex s
+instance IsString RegExp where
+  fromString s =
+    case mkRegexp (pack s) of
+      Just re -> re
+      Nothing -> error "You shouldonly use IsString instances for static regexes"
+
+instance FromJSON RegExp where
+  parseJSON (String s) =
+    case mkRegexp s of
+      Just re -> return re
+      Nothing -> mzero
   parseJSON _
     = mzero
 
-instance ToJSON RegEx where
-  toJSON
-    = String . rePrintable
+instance ToJSON RegExp where
+  toJSON = String . rePrintable
 
-instance Binary RegEx where
+instance Binary RegExp where
   put
     = put . rePrintable
   get
     = do s <- get
-         let re = HXT.parseRegex s
-         when (HXT.isZero re) mzero
-         return (RegEx re s)
+         case mkRegexp s of
+           Just re -> return re
+           _ -> mzero
 
 instance FromJSON TextSearchOp where
     parseJSON (String s)

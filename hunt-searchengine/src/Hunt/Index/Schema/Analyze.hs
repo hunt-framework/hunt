@@ -10,7 +10,6 @@ module Hunt.Index.Schema.Analyze
   ( toDocAndWords
   , toDocAndWords'
   , normalize
-  , scanTextRE
   )
 where
 
@@ -84,13 +83,3 @@ toWordList scan norm
       insert :: (Position, Word) -> Map Word (DList Position) -> Map Word (DList Position)
       insert (p, w)
           = M.alter (return . maybe (DL.singleton p) (`DL.snoc` p)) w
-
--- | Tokenize a text with a regular expression for words.
---
---  > scanTextRE "[^ \t\n\r]*" == Data.Text.words
---
---   Grammar: <http://www.w3.org/TR/xmlschema11-2/#regexs>
-scanTextRE :: RegEx -> Text -> [Word]
-scanTextRE = regExTokenize
-
--- ------------------------------------------------------------
