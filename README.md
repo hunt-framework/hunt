@@ -1,4 +1,5 @@
-Hunt [![Build Status](https://travis-ci.org/hunt-framework/hunt.svg)](https://travis-ci.org/hunt-framework/hunt)
+Hunt [![Build Status](https://travis-ci.org/hunt-framework/hunt.svg)](https://travis-ci.org/hunt-framework/hunt) [![Hunt on Hayoo!](http://hayoo.fh-wedel.de/packages/hunt-searchengine/badge)](http://hayoo.fh-wedel.de?query=package%3Ahunt-searchengine)
+
 ====================
 
 Hunt is a flexible, lightweight search platform written in Haskell.
