@@ -46,7 +46,6 @@ library
                , filepath               >= 1
                , hslogger               >= 1       && < 2
                , hxt-regex-xmlschema    >= 9.1
-               , hybrid-vectors
                , monad-parallel         >= 0.7
                , mtl                    >= 1.1     && < 3
                , murmur-hash
@@ -181,7 +180,6 @@ test-suite Hunt-Tests
                , data-r-tree
                , directory
                , hunt-searchengine
-               , hybrid-vectors
                , monad-parallel
                , mtl
                , old-locale

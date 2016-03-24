@@ -13,5 +13,4 @@ extra-deps:
   - hxt-xpath-9.1.2.2
   - hxt-cache-9.1.0.1
   - docopt-0.7.0.2
-  - hybrid-vectors-0.2.1
-resolver: lts-3.0
+resolver: lts-5.9

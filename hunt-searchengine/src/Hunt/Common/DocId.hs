@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -103,6 +104,7 @@ newtype instance UV.Vector DocId = V_DocId (UV.Vector Int)
 
 instance UV.Unbox DocId
 
+
 instance GM.MVector UV.MVector DocId where
   {-# INLINE basicLength #-}
   {-# INLINE basicUnsafeSlice #-}
@@ -115,6 +117,11 @@ instance GM.MVector UV.MVector DocId where
   {-# INLINE basicSet #-}
   {-# INLINE basicUnsafeCopy #-}
   {-# INLINE basicUnsafeGrow #-}
+
+#if MIN_VERSION_vector(0,11,0)
+  basicInitialize (MV_DocId v) = GM.basicInitialize v
+#endif
+
   basicLength (MV_DocId v) = GM.basicLength v
   basicUnsafeSlice i n (MV_DocId v) = MV_DocId $ GM.basicUnsafeSlice i n v
   basicOverlaps (MV_DocId v1) (MV_DocId v2) = GM.basicOverlaps v1 v2

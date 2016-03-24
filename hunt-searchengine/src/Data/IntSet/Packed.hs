@@ -1,6 +1,7 @@
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns               #-}
 -- ----------------------------------------------------------------------------
 
 {- |
@@ -56,9 +57,6 @@ import qualified Data.Vector.Algorithms.Intro as Sort
 import qualified Data.Vector.Primitive as Vector
 import qualified Data.Vector.Primitive.Mutable as MVector
 import qualified Data.Vector.Generic as GVector
-import qualified Data.Vector.Fusion.Stream.Monadic as Stream
-import qualified Data.Vector.Fusion.Stream.Size as Stream
-import qualified Data.Vector.Fusion.Util as Stream
 
 -- ------------------------------------------------------------
 --
@@ -105,7 +103,7 @@ union :: IntSet -> IntSet -> IntSet
 union i1@(DIS1 s1) i2@(DIS1 s2)
   | null i1 = i2
   | null i2 = i1
-  | otherwise = DIS1 (GVector.unstream (unionStream (GVector.stream s1) (GVector.stream s2)))
+  | otherwise = DIS1 (Vector.create (MVector.new hint >>= union' s1 s2))
   where
     hint = Vector.length s1 + Vector.length s2
 {-# INLINE union #-}
@@ -114,7 +112,7 @@ intersection :: IntSet -> IntSet -> IntSet
 intersection i1@(DIS1 s1) i2@(DIS1 s2)
   | null i1 = empty
   | null i2 = empty
-  | otherwise = DIS1 (Vector.create (MVector.new hint >>= intersect' s1 s2))
+  | otherwise = DIS1 (Vector.create (MVector.new hint >>= intersect' id s1 s2))
   where
     hint = max (Vector.length s1) (Vector.length s2)
 {-# INLINE intersection #-}
@@ -123,13 +121,15 @@ intersectionWithDispl :: Int -> IntSet -> IntSet -> IntSet
 intersectionWithDispl !d i1@(DIS1 s1) i2@(DIS1 s2)
   | null i1 = empty
   | null i2 = empty
-  | otherwise = DIS1 (GVector.unstream (intersectStream (Stream.map (+ d) (GVector.stream s1)) (GVector.stream s2)))
+  | otherwise = DIS1 (Vector.create (MVector.new hint >>= intersect' (+d) s1 s2))
+  where hint = max (Vector.length s1) (Vector.length s2)
 {-# INLINE intersectionWithDispl #-}
 
 difference :: IntSet -> IntSet -> IntSet
 difference i1@(DIS1 s1) i2@(DIS1 s2)
   | null i2   = i1
-  | otherwise = DIS1 (GVector.unstream (differenceStream (GVector.stream s1) (GVector.stream s2)))
+  | otherwise = DIS1 (Vector.create (MVector.new hint >>= difference' s1 s2))
+  where hint = Vector.length s1
 {-# INLINE difference #-}
 
 foldr :: (Int -> b -> b) -> b -> IntSet -> b
@@ -225,68 +225,6 @@ toIntSet :: IntSet -> S.IntSet
 toIntSet = S.fromAscList . Vector.toList .  unDIS1
 {-# INLINE toIntSet #-}
 
-data D a b = D1 !a !b
-           | D2 !a
-
-differenceStream :: Ord a
-                => Stream.Stream Stream.Id a
-                -> Stream.Stream Stream.Id a
-                -> Stream.Stream Stream.Id a
-differenceStream (Stream.Stream next1 s n1) (Stream.Stream next2 s' _n2)
-  = Stream.Stream next (D1 s s') (Stream.toMax n1)
-  where
-    {-# INLINE next #-}
-    next (D1 s1 s2)
-      = do r1 <- next1 s1
-           case r1 of
-             Stream.Yield x s1' -> do
-               r2 <- next2 s2
-               case r2 of
-                 Stream.Yield y s2' -> do
-                   case compare x y of
-                     EQ -> return $ Stream.Skip (D1 s1' s2')
-                     GT -> return $ Stream.Skip (D1 s1 s2')
-                     LT -> return $ Stream.Yield x (D1 s1' s2)
-                 Stream.Skip s2' -> return $ Stream.Skip (D1 s1 s2')
-                 Stream.Done     -> return $ Stream.Yield x (D2 s1')
-             Stream.Skip s1' -> return $ Stream.Skip (D2 s1')
-             Stream.Done     -> return $ Stream.Done
-    next (D2 s1)
-      = do r <- next1 s1
-           case r of
-             Stream.Yield x s1' -> return $ Stream.Yield x (D2 s1')
-             Stream.Skip s1'    -> return $ Stream.Skip (D2 s1')
-             Stream.Done        -> return $ Stream.Done
-{-# INLINE differenceStream #-}
-
-data I a b = I1 !a !b
-
-intersectStream :: Ord a
-                => Stream.Stream Stream.Id a
-                -> Stream.Stream Stream.Id a
-                -> Stream.Stream Stream.Id a
-intersectStream (Stream.Stream next1 s n1) (Stream.Stream next2 s' n2)
-  = Stream.Stream next (I1 s s') (Stream.smaller n1 n2)
-  where
-    {-# INLINE next #-}
-    next (I1 s1 s2)
-      = do r1 <- next1 s1
-           case r1 of
-             Stream.Yield x s1' -> do
-               r2 <- next2 s2
-               case r2 of
-                 Stream.Yield y s2' -> do
-                   case compare x y of
-                     EQ -> return $ Stream.Yield x (I1 s1' s2')
-                     LT -> return $ Stream.Skip (I1 s1' s2)
-                     GT -> return $ Stream.Skip (I1 s1 s2')
-                 Stream.Skip s2'    -> return $ Stream.Skip (I1 s1 s2')
-                 Stream.Done        -> return Stream.Done
-             Stream.Skip s1'    -> return $ Stream.Skip (I1 s1' s2)
-             Stream.Done        -> return $ Stream.Done
-{-# INLINE intersectStream #-}
-
-
 union' :: Vector.Vector Int
        -> Vector.Vector Int
        -> MVector.MVector s Int
@@ -310,64 +248,42 @@ union' xs0 ys0 !out = do
                          LT -> do MVector.write out i x
                                   go (Vector.tail xs) ys (i + 1)
 
-intersect' :: Vector.Vector Int
+difference' :: Vector.Vector Int
+            -> Vector.Vector Int
+            -> MVector.MVector s Int
+            -> ST s (MVector.MVector s Int)
+difference' xs0 ys0 !out = do
+  i <- go xs0 ys0 0
+  return $! MVector.take i out
+  where
+    go !xs !ys !i
+      | Vector.null xs = return i
+      | Vector.null ys = do Vector.copy (MVector.slice i (Vector.length xs) out) xs
+                            return (i + Vector.length xs)
+      | otherwise = let x = Vector.head xs
+                        y = Vector.head ys
+                     in case compare x y of
+                          GT -> go xs (Vector.tail ys) i
+                          EQ -> go (Vector.tail xs) (Vector.tail ys) i
+                          LT -> do MVector.write out i x
+                                   go (Vector.tail xs) ys (i + 1)
+
+intersect' :: (Int -> Int)
+           -> Vector.Vector Int
            -> Vector.Vector Int
            -> MVector.MVector s Int
            -> ST s (MVector.MVector s Int)
-intersect' xs0 ys0 !out = do
+intersect' displ xs0 ys0 !out = do
   i <- go xs0 ys0 0
   return $! MVector.take i out
   where
     go !xs !ys !i
        | Vector.null xs = return i
        | Vector.null ys = return i
-       | otherwise = let x = Vector.head xs
+       | otherwise = let x = displ (Vector.head xs)
                          y = Vector.head ys
                      in case compare x y of
                           GT -> go xs (Vector.tail ys) i
                           EQ -> do MVector.write out i x
                                    go (Vector.tail xs) (Vector.tail ys) (i + 1)
                           LT -> go (Vector.tail xs) ys i
-
-data U a b = U1 !a !b
-           | U2 !a
-           | U3 !b
-
-unionStream :: Ord a
-            => Stream.Stream Stream.Id a
-            -> Stream.Stream Stream.Id a
-            -> Stream.Stream Stream.Id a
-unionStream (Stream.Stream next1 s n1) (Stream.Stream next2 s' n2)
-  = Stream.Stream next (U1 s s') (Stream.toMax(n1 + n2))
-  where
-    {-# INLINE next #-}
-    next (U1 s1 s2)
-      = do r1 <- next1 s1
-           case r1 of
-             Stream.Yield x s1' -> do
-               r2 <- next2 s2
-               case r2 of
-                 Stream.Yield y s2' -> do
-                   case compare x y of
-                     LT -> return $ Stream.Yield x (U1 s1' s2)
-                     EQ -> return $ Stream.Yield x (U1 s1' s2')
-                     GT -> return $ Stream.Yield y (U1 s1  s2')
-                 Stream.Skip s2'    -> return $ Stream.Skip (U1 s1 s2')
-                 Stream.Done        -> return $ Stream.Yield x (U2 s1')
-             Stream.Skip s1'    -> return $ Stream.Skip (U1 s1'  s2)
-             Stream.Done        -> return $ Stream.Skip (U3 s2)
-    next (U2 s1)
-      = do r <- next1 s1
-           case r of
-             Stream.Yield x s1' -> return $ Stream.Yield x (U2 s1')
-             Stream.Skip s1'    -> return $ Stream.Skip (U2 s1')
-             Stream.Done        -> return $ Stream.Done
-    next (U3 s2)
-      = do r <- next2 s2
-           case r of
-             Stream.Yield x s2' -> return $ Stream.Yield x (U3 s2')
-             Stream.Skip s2'    -> return $ Stream.Skip (U3 s2')
-             Stream.Done        -> return $ Stream.Done
-{-# INLINE unionStream #-}
-
--- ------------------------------------------------------------
