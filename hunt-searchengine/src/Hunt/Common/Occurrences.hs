@@ -27,7 +27,6 @@ import           Hunt.Common.DocIdSet   (DocIdSet)
 import qualified Hunt.Common.DocIdMap   as DM
 import           Hunt.Common.Positions  (Positions)
 import qualified Hunt.Common.Positions  as Pos
-import qualified Hunt.Common.DocIdMap.Packed as DMP
 
 -- ------------------------------------------------------------
 
@@ -35,8 +34,6 @@ import qualified Hunt.Common.DocIdMap.Packed as DMP
 --   A mapping from document ids to the positions in the document.
 
 type Occurrences        = DocIdMap Positions
-
-type DenseOccurrences   = DMP.DocIdMap Positions
 
 -- ------------------------------------------------------------
 

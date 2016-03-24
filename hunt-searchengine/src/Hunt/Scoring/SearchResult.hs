@@ -14,10 +14,9 @@ import           Data.Monoid
 import           Hunt.Common.BasicTypes  (Position)
 import           Hunt.Common.DocIdMap    (DocIdMap)
 import qualified Hunt.Common.DocIdMap    as DM
-import qualified Hunt.Common.DocIdMap.Packed as DMP
 import           Hunt.Common.DocIdSet    (DocIdSet)
 import qualified Hunt.Common.DocIdSet    as DS
-import           Hunt.Common.Occurrences (Occurrences, DenseOccurrences)
+import           Hunt.Common.Occurrences (Occurrences)
 import qualified Hunt.Common.Occurrences as Occ
 import qualified Hunt.Common.Positions   as Pos
 import           Hunt.Scoring.Score

@@ -33,9 +33,8 @@ import           Hunt.Common.Positions     (Positions)
 import qualified Hunt.Common.DocIdMap      as DM
 import           Hunt.Common.DocIdSet      (DocIdSet)
 import qualified Hunt.Common.DocIdSet      as DS
-import           Hunt.Common.Occurrences   (Occurrences, DenseOccurrences)
+import           Hunt.Common.Occurrences   (Occurrences)
 import qualified Hunt.Common.Occurrences   as Occ
-import qualified Hunt.Common.DocIdMap.Packed as DMP
 import           Hunt.Scoring.Keys         (addDefScore)
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult

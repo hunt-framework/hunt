@@ -65,7 +65,6 @@ library
                   Data.Bijection
                   Data.Bijection.Instances
                   Data.IntMap.BinTree.Strict
-                  Data.IntMap.Packed                  
                   Data.IntSet.Cache
                   Data.IntSet.Packed
                   Data.LimitedPriorityQueue
@@ -82,7 +81,6 @@ library
                   Hunt.Common.DocDesc
                   Hunt.Common.DocId
                   Hunt.Common.DocIdMap
-                  Hunt.Common.DocIdMap.Packed
                   Hunt.Common.DocIdSet
                   Hunt.Common.Document
                   Hunt.Common.Occurrences

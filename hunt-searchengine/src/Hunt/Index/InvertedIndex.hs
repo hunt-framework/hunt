@@ -42,9 +42,7 @@ import           Data.Text                      (Text)
 import           Data.Typeable
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocIdMap           (pack)
-import qualified Hunt.Common.DocIdMap.Packed    as DM
-import           Hunt.Common.Occurrences        (Occurrences, DenseOccurrences)
+import           Hunt.Common.Occurrences        (Occurrences)
 import           Hunt.Common.Positions          (Positions)
 import           Hunt.Index                     as Ix
 import           Hunt.Index.PrefixTreeIndex

@@ -52,7 +52,6 @@ module Hunt.Common.DocIdMap
   , toDocIdSet
   , keys
   , elems
-  , pack
   )
 where
 
@@ -75,7 +74,6 @@ import           Data.Typeable
 import qualified Data.IntSet as IS
 
 import           Hunt.Common.DocId
-import qualified Hunt.Common.DocIdMap.Packed as DMP
 import           Hunt.Common.DocIdSet        (DocIdSet (..))
 import qualified Hunt.Common.DocIdSet        as DocIdSet
 
@@ -302,9 +300,6 @@ toDocIdSet              = DocIdSet.fromDistinctAscList . fmap DocId . IM.keys . 
 elems                   :: DocIdMap v -> [v]
 elems                   = IM.elems . unDIM
 
-pack                    :: DocIdMap v -> DMP.DocIdMap v
-pack                    = DMP.fromAscList . toList
-
 -- ------------------------------------------------------------
 
 {-# INLINE liftDIM #-}
@@ -334,6 +329,5 @@ pack                    = DMP.fromAscList . toList
 {-# INLINE toList #-}
 {-# INLINE keys #-}
 {-# INLINE elems #-}
-{-# INLINE pack #-}
 
 -- ------------------------------------------------------------

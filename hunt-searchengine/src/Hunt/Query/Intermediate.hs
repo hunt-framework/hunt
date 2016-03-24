@@ -64,9 +64,8 @@ import           Data.Ord
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
 import qualified Hunt.Common.DocIdMap        as DM
-import qualified Hunt.Common.DocIdMap.Packed as DMP
 import           Hunt.Common.Document        (Document (..))
-import           Hunt.Common.Occurrences     (Occurrences, DenseOccurrences)
+import           Hunt.Common.Occurrences     (Occurrences)
 import qualified Hunt.Common.Occurrences     as Occ
 import qualified Hunt.Common.Positions       as Pos
 import           Hunt.Index.Schema
