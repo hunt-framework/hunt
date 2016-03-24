@@ -52,19 +52,17 @@ module Hunt.Query.Result
   )
 where
 
-import           Prelude                 hiding (null)
-
-import qualified Data.List               as L
-import           Data.Map                (Map)
-import qualified Data.Map                as M
-import           Data.Monoid             (Monoid(..), (<>))
-import           Data.Text               (Text)
-
-import           Hunt.Common.BasicTypes  (Context, Word)
-import           Hunt.Common.DocIdMap    (DocIdMap)
-import qualified Hunt.Common.DocIdMap    as DM
-import           Hunt.Common.Positions   (Positions)
-import           Hunt.Scoring.Score      (Score, noScore)
+import qualified Data.List as L
+import           Data.Map (Map)
+import qualified Data.Map as M
+import           Data.Monoid ((<>))
+import           Data.Text (Text)
+import           Hunt.Common.BasicTypes (Context, Word)
+import           Hunt.Common.DocIdMap (DocIdMap)
+import qualified Hunt.Common.DocIdMap as DM
+import           Hunt.Common.Positions (Positions)
+import           Hunt.Scoring.Score (Score, noScore)
+import           Prelude hiding (Word, null)
 
 -- ------------------------------------------------------------
 

@@ -12,86 +12,82 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.ContextIndex
-  (
-    -- * Construction
-    empty
+       (
+         -- * Construction
+         empty
 
-    -- * Contexts and Schema
-  , insertContext
-  , deleteContext
-  , foreachContext
-  , contexts
-  , contextsM
-  , hasContext
-  , hasContextM
+         -- * Contexts and Schema
+       , insertContext
+       , deleteContext
+       , foreachContext
+       , contexts
+       , contextsM
+       , hasContext
+       , hasContextM
 
-    -- * Queries
-  , lookupRangeCx
-  , lookupAllWithCx
-  , searchWithCx
-  , searchWithCxsNormalized
-  , searchWithCxSc
-  , lookupRangeCxSc
+         -- * Queries
+       , lookupRangeCx
+       , lookupAllWithCx
+       , searchWithCx
+       , searchWithCxsNormalized
+       , searchWithCxSc
+       , lookupRangeCxSc
 
-    -- * Insert\/Delete Documents
-  , insertList
+         -- * Insert\/Delete Documents
+       , insertList
                                  -- XXX: these functions should be internal
                                  -- we export them to be able to test them
-                                 -- is there a bedder approach to achieve this?
-  , createDocTableFromPartition  -- only used in tests
-  , unionDocTables               -- only used in tests
-  , modifyWithDescription
-  , delete
-  , deleteDocsByURI
-  , decodeCxIx
-  , member
+                                 -- is there a better approach to achieve this?
+       , createDocTableFromPartition  -- only used in tests
+       , unionDocTables               -- only used in tests
+       , modifyWithDescription
+       , delete
+       , deleteDocsByURI
+       , decodeCxIx
+       , member
 
-    -- * Types
-  , ContextIndex (..)
-  , ContextMap (..)
-  , IndexRep
-  , mkContextMap
-  , mapToSchema
-  )
+         -- * Types
+       , ContextIndex (..)
+       , ContextMap (..)
+       , IndexRep
+       , mkContextMap
+       , mapToSchema
+       )
 where
 {-
-import           Debug.Trace                   (traceShow)
+import           Debug.Trace (traceShow)
 -- -}
-import           Prelude
-import qualified Prelude                       as P
-
-import           Control.Applicative           (Applicative, (<$>), (<*>))
+import           Prelude hiding (Word)
+import qualified Prelude as P
 import           Control.Arrow
 import           Control.Monad
-import qualified Control.Monad.Parallel        as Par
-
-import           Data.Binary                   (Binary (..))
+import qualified Control.Monad.Parallel as Par
+import           Data.Binary (Binary (..))
 import           Data.Binary.Get
-import           Data.ByteString.Lazy          (ByteString)
-import           Data.Map                      (Map)
-import qualified Data.Map                      as M
+import           Data.ByteString.Lazy (ByteString)
+import           Data.Map (Map)
+import qualified Data.Map as M
 import           Data.Maybe
-import           Data.Set                      (Set)
-import qualified Data.Set                      as S
-import           Data.Text                     (Text)
-
-import           Hunt.Common.BasicTypes        (Context, Description, URI, Word, Words, TextSearchOp)
-import qualified Hunt.Common.DocDesc           as DocDesc
-import           Hunt.Common.DocId             (DocId)
-import           Hunt.Common.DocIdSet          (DocIdSet)
-import qualified Hunt.Common.DocIdSet          as DS
-import           Hunt.Common.Document          (Document (..))
-import qualified Hunt.Common.Document          as Doc
-import           Hunt.Common.Occurrences       (Occurrences)
-import qualified Hunt.Common.Occurrences       as Occ
-import           Hunt.DocTable                 (DocTable)
-import qualified Hunt.DocTable                 as Dt
-import qualified Hunt.Index                    as Ix
-import           Hunt.Index.IndexImpl          (IndexImpl)
-import qualified Hunt.Index.IndexImpl          as Impl
+import           Data.Set (Set)
+import qualified Data.Set as S
+import           Data.Text (Text)
+import           Hunt.Common.BasicTypes (Context, Description, URI, Word, Words, TextSearchOp)
+import qualified Hunt.Common.DocDesc as DocDesc
+import           Hunt.Common.DocId (DocId)
+import           Hunt.Common.DocIdSet (DocIdSet)
+import qualified Hunt.Common.DocIdSet as DS
+import           Hunt.Common.Document (Document (..))
+import qualified Hunt.Common.Document as Doc
+import           Hunt.Common.Occurrences (Occurrences)
+import qualified Hunt.Common.Occurrences as Occ
+import           Hunt.DocTable (DocTable)
+import qualified Hunt.DocTable as Dt
+import qualified Hunt.Index as Ix
+import           Hunt.Index.IndexImpl (IndexImpl)
+import qualified Hunt.Index.IndexImpl as Impl
 import           Hunt.Index.Schema
-import           Hunt.Scoring.Score            (Score, noScore)
-import           Hunt.Scoring.SearchResult     (SearchResult)
+import           Hunt.Scoring.Score (Score, noScore)
+import           Hunt.Scoring.SearchResult (SearchResult)
 import           Hunt.Utility
 
 -- ------------------------------------------------------------
@@ -481,5 +477,3 @@ hasContext c (ContextMap m) = M.member c m
 hasContextM :: (Monad m, DocTable dt)
            => Context -> ContextIndex dt -> m Bool
 hasContextM c (ContextIndex ix _) = return $ hasContext c ix
-
-

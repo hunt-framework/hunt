@@ -5,23 +5,19 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Index.Schema.Normalize.Position
-  ( normalize, denormalize
-  , isPosition, position
-  )
+       ( normalize
+       , denormalize
+       , isPosition
+       , position
+       )
 where
 
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           Hunt.Utility
 import           Numeric
-
-import           Control.Applicative           hiding ((<|>))
-
-import           Data.Text                     (Text)
-import qualified Data.Text                     as T
-
-
 import           Text.Parsec
 import           Text.ParserCombinators.Parsec
-
-import           Hunt.Utility
 
 -- ------------------------------------------------------------
 -- validator
@@ -167,7 +163,7 @@ c2b o = case o of
 
 -- | Is the character a binary number.
 isbc :: Char -> Bool
-isbc = (`elem` "01")
+isbc = (`elem` ("01" :: String))
 
 -- ------------------------------------------------------------
 -- parser helper

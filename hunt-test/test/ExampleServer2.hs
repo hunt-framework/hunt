@@ -1,11 +1,10 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module ExampleServer2 where
 
-import           Control.Concurrent.MVar
-import           Control.Monad.Error
-import           Control.Monad.Reader
-
-import           Data.Aeson
+import Control.Concurrent.MVar
+import Control.Monad.Except
+import Control.Monad.Reader
+import Data.Aeson
 
 -- ----------------------------------------------------------------------------
 
@@ -66,9 +65,6 @@ data CmdError
                 }
     deriving (Show)
 
-instance Error CmdError where
-    strMsg s = ResError 500 $ "internal server error: " ++ s
-
 instance FromJSON Command     where parseJSON = undefined
 instance FromJSON InsOpts     where parseJSON = undefined
 instance FromJSON Query       where parseJSON = undefined
@@ -118,8 +114,8 @@ initEnv ix opt os
 --
 -- the command evaluation monad
 
-newtype CMT m a = CMT { runCMT :: ReaderT Env (ErrorT CmdError m) a }
-  deriving (Monad, MonadIO, Functor, MonadReader Env, MonadError CmdError)
+newtype CMT m a = CMT { runCMT :: ReaderT Env (ExceptT CmdError m) a }
+  deriving (Monad, MonadIO, Functor, Applicative, MonadReader Env, MonadError CmdError)
 
 instance MonadTrans CMT where
   lift = CMT . lift . lift
@@ -128,7 +124,7 @@ type CM = CMT IO
 
 runCmd :: Env -> Command -> IO (Either CmdError CmdRes)
 runCmd env cmd
-    = runErrorT . runReaderT (runCMT . execCmd $ cmd) $ env
+    = runExceptT . runReaderT (runCMT . execCmd $ cmd) $ env
 
 askIx :: CM Index
 askIx
@@ -156,7 +152,7 @@ execCmd (Sequence cs)
     = execSequence cs
 
 execCmd NOOP
-    = return ResOK		-- keep alive test
+    = return ResOK              -- keep alive test
 
 execCmd c
     = throwResError 501 $ "command not yet implemented: " ++ show c

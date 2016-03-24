@@ -1,5 +1,5 @@
 name:          hunt-crawler
-version:       0.0.0.1
+version:       0.0.1.0
 license:       MIT
 license-file:  LICENSE
 author:        Uwe Schmidt
@@ -48,7 +48,7 @@ library
     Holumbus.Crawler.XmlArrows
 
   build-depends:
-                base                   >= 4
+                base                   >= 4.8
               , binary                 >= 0.5
               , bytestring             >= 0.10.4
               , bzlib                  >= 0.4

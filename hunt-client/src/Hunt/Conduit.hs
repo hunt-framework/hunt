@@ -3,24 +3,18 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE UndecidableInstances  #-}
 {-# OPTIONS_GHC -fno-warn-orphans  #-}
+
 module Hunt.Conduit where
 
 import           Prelude hiding ( mapM_, map, putStrLn)
-
-import           Control.Applicative ((<$>))
 import           Control.Monad.Primitive (PrimMonad)
-
 import           Data.Aeson.Encode.Pretty (encodePretty)
 import           Data.Aeson (Value, ToJSON)
-
 import           Data.ByteString.Lazy (ByteString)
 import           Data.ByteString.Lazy.Char8  (putStrLn)
-
 import           Data.Conduit.List  (mapM_, map, mapAccum, consume)
 import           Conduit
-
 import qualified Data.Vector as Vector
-
 import           Hunt.Server.Client
 import qualified Hunt.ClientInterface as H
 

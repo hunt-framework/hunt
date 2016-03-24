@@ -7,27 +7,26 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Index.Schema.Analyze
-  ( toDocAndWords
-  , toDocAndWords'
-  , normalize
-  , scanTextRE
-  )
+       ( toDocAndWords
+       , toDocAndWords'
+       , normalize
+       , scanTextRE
+       )
 where
 
-import           Data.DList                  (DList)
-import qualified Data.DList                  as DL
-import           Data.Map                    (Map)
-import qualified Data.Map                    as M
-import           Data.Maybe                  (fromJust, fromMaybe)
-import           Data.Text                   (Text)
-import qualified Data.Text                   as T
-
+import           Data.DList (DList)
+import qualified Data.DList as DL
+import           Data.Map (Map)
+import qualified Data.Map as M
+import           Data.Maybe (fromJust, fromMaybe)
+import           Data.Text (Text)
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.Document        (Document (..),
-                                              DocumentWrapper (..))
+import           Hunt.Common.Document (Document (..),
+                                       DocumentWrapper (..))
 import           Hunt.Index.Schema
-import           Hunt.Scoring.Score          (Score, toDefScore)
+import           Hunt.Scoring.Score (Score, toDefScore)
+import           Prelude hiding (Word)
 
 -- ------------------------------------------------------------
 

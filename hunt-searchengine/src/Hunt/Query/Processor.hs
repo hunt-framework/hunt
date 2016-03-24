@@ -24,43 +24,38 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Query.Processor
-    ( processQueryScoredDocs
-    , processQueryUnScoredDocs
-    , processQueryScoredWords
-    , initProcessor
-
-    , ProcessConfig (..)
-    , ProcessEnv
-    )
-
+       ( processQueryScoredDocs
+       , processQueryUnScoredDocs
+       , processQueryScoredWords
+       , initProcessor
+       , ProcessConfig (..)
+       , ProcessEnv
+       )
 where
 
-import           Control.Applicative
-import           Control.Monad.Error
+import           Control.Monad.Except
 import           Control.Monad.Reader
-
-import           Data.Binary                 (Binary)
-import qualified Data.Binary                 as Bin
+import           Data.Binary (Binary)
+import qualified Data.Binary as Bin
 import           Data.Default
-import qualified Data.List                   as L
-import qualified Data.Map                    as M
+import qualified Data.List as L
+import qualified Data.Map as M
 import           Data.Maybe
-import           Data.Monoid                 (Monoid(..), (<>))
-import           Data.Text                   (Text)
-import qualified Data.Text                   as T
-
-import           Hunt.Common.BasicTypes      (Context, Word, TextSearchOp(..))
-import           Hunt.ContextIndex           (ContextMap)
-import qualified Hunt.ContextIndex           as CIx
+import           Data.Monoid ((<>))
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           Hunt.Common.BasicTypes (Context, Word, TextSearchOp(..))
+import           Hunt.ContextIndex (ContextMap)
+import qualified Hunt.ContextIndex as CIx
 import           Hunt.Index.Schema
-import           Hunt.Interpreter.Command    (CmdError (..))
-import           Hunt.Query.Fuzzy            (FuzzyConfig)
+import           Hunt.Interpreter.Command (CmdError (..))
+import           Hunt.Query.Fuzzy (FuzzyConfig)
 import           Hunt.Query.Intermediate
 import           Hunt.Query.Language.Grammar
-import           Hunt.Scoring.SearchResult   (ScoredDocs, UnScoredDocs)
-import           Hunt.Utility                (showText)
-
-import qualified System.Log.Logger           as Log
+import           Hunt.Scoring.SearchResult (ScoredDocs, UnScoredDocs)
+import           Hunt.Utility (showText)
+import           Prelude hiding (Word)
+import qualified System.Log.Logger as Log
 
 -- import           Debug.Trace
 
@@ -121,7 +116,7 @@ type QueryIndex
 
 -- | the processor monad
 newtype ProcessorT m a
-    = PT { runProcessor :: ReaderT ProcessEnv (ErrorT CmdError m) a
+    = PT { runProcessor :: ReaderT ProcessEnv (ExceptT CmdError m) a
          }
       deriving (Applicative, Monad, MonadIO, Functor, MonadReader ProcessEnv, MonadError CmdError)
 
@@ -448,7 +443,7 @@ evalScoredRawDocs' q = trc <$> evalScoredRawDocs q
 
 processQueryScoredResult :: (q -> Processor r) -> ProcessEnv -> q -> IO (Either CmdError r)
 processQueryScoredResult eval st q
-    = runErrorT . runReaderT (runProcessor $ eval q) $ st
+    = runExceptT . runReaderT (runProcessor $ eval q) $ st
 
 
 -- ------------------------------------------------------------

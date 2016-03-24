@@ -15,27 +15,23 @@ module Hunt.Index.PrefixTreeIndex2Dim
 where
 
 import           Control.DeepSeq
-
-import           Data.Binary               (Binary (..))
-import qualified Data.List                 as L
-import           Data.Monoid
-import           Data.Typeable
-
-import qualified Data.StringMap.Dim2Search as SM2
-import qualified Data.StringMap.Strict     as SM
 import           Data.Bijection
-import           Data.Bijection.Instances  ()
-import           Data.Text                 (Text)
-
+import           Data.Bijection.Instances ()
+import           Data.Binary (Binary (..))
+import qualified Data.List as L
+import           Data.Monoid
+import qualified Data.StringMap.Dim2Search as SM2
+import qualified Data.StringMap.Strict as SM
+import           Data.Text (Text)
+import           Data.Typeable
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet
 import           Hunt.Index
-import qualified Hunt.Index                as Ix
+import qualified Hunt.Index as Ix
 import           Hunt.Index.Proxy.KeyIndex
-
 import qualified Hunt.Index.Schema.Normalize.Position as Pos
-
 import           Hunt.Utility
+import           Prelude hiding (Word)
 
 -- ------------------------------------------------------------
 

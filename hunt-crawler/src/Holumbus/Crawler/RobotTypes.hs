@@ -38,6 +38,8 @@ instance Binary RobotAction where
     get                 = B.get >>= return . toEnum
 
 instance NFData RobotAction where
+  rnf Disallow = ()
+  rnf _        = ()
 
 instance XmlPickler RobotAction where
     xpickle             = xpPrim

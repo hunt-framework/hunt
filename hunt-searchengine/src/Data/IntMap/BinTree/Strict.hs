@@ -4,19 +4,15 @@
 
 module Data.IntMap.BinTree.Strict where
 
-import           Control.Applicative (Applicative (..), (<$>))
 import           Control.DeepSeq
 import           Control.Monad
-
-import           Data.Binary         (Binary (..), getWord8)
-import qualified Data.Foldable       as F
-import qualified Data.IntSet         as S
-import qualified Data.List           as L
-import           Data.Traversable    (Traversable (..))
+import           Data.Binary (Binary (..), getWord8)
+import qualified Data.Foldable as F
+import qualified Data.IntSet as S
+import qualified Data.List as L
 import           Data.Typeable
-import           Data.Word           (Word8)
-
-import           Prelude             hiding (foldl, foldr, lookup, map, null)
+import           Data.Word (Word8)
+import           Prelude hiding (foldl, foldr, lookup, map, null)
 
 moduleName :: String
 moduleName = "Data.IntMap.BinTree.Strict"

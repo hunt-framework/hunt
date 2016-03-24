@@ -19,18 +19,15 @@
 module Hunt.Common.Document
 where
 
-import           Control.Applicative
 import           Control.DeepSeq
-
 import           Data.Aeson
-import           Data.Binary             (Binary (..))
-import           Data.Text               as T
-import           Data.Text.Binary        ()
-
+import           Data.Binary (Binary (..))
+import           Data.Text as T
+import           Data.Text.Binary ()
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
-import qualified Hunt.Common.DocDesc     as DD
-import           Hunt.Scoring.Score      (Score, defScore, fromDefScore, toDefScore)
+import qualified Hunt.Common.DocDesc as DD
+import           Hunt.Scoring.Score (Score, defScore, fromDefScore, toDefScore)
 import           Hunt.Utility.Log
 
 -- ------------------------------------------------------------

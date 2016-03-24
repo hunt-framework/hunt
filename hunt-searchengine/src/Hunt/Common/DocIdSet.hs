@@ -29,18 +29,15 @@ module Hunt.Common.DocIdSet
   )
 where
 
-import           Prelude           hiding (null)
-
 import           Control.DeepSeq
-import           Control.Monad     (mzero)
-
+import           Control.Monad (mzero)
 import           Data.Aeson
-import qualified Data.IntSet       as S
-import qualified Data.List         as L
-import           Data.Monoid       (Monoid (..))
+import           Data.Binary (Binary (..))
+import qualified Data.IntSet as S
+import qualified Data.List as L
 import           Data.Typeable
-import           Data.Binary       (Binary (..))
 import           Hunt.Common.DocId
+import           Prelude hiding (null)
 
 -- ------------------------------------------------------------
 --

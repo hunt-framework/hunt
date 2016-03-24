@@ -3,7 +3,6 @@
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE OverlappingInstances       #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
 module Hunt.Server.Client
@@ -35,41 +34,33 @@ module Hunt.Server.Client
     )
 where
 
-import           Control.Applicative          (Applicative, (<$>))
-import           Control.Exception            (Exception, throwIO)
-import           Control.Monad                (mzero, liftM)
-import           Control.Monad.Catch          (MonadThrow, throwM)
-import           Control.Monad.IO.Class       (MonadIO, liftIO)
-import           Control.Monad.Reader         (MonadReader, ReaderT, ask,
-                                               runReaderT)
-import           Control.Monad.Trans.Class    (MonadTrans, lift)
+import           Control.Exception (Exception, throwIO)
+import           Control.Monad (mzero, liftM)
+import           Control.Monad.Catch (MonadThrow, throwM)
+import           Control.Monad.IO.Class (MonadIO, liftIO)
+import           Control.Monad.Reader (MonadReader, ReaderT, ask, runReaderT)
+import           Control.Monad.Trans.Class (MonadTrans, lift)
 import           Control.Monad.Trans.Resource (MonadBaseControl, ResourceT,
                                                runResourceT)
-
-import           Data.Aeson                   (FromJSON, ToJSON, (.:), (.=))
-import qualified Data.Aeson                   as JSON
-import qualified Data.Aeson.Types             as JSON
-import           Data.ByteString.Lazy         (ByteString)
-import           Data.Char                    (toLower)
-import           Data.Default                 (Default, def)
-import           Data.String.Conversions      (cs, (<>))
-import           Data.Text                    (Text)
-import qualified Data.Text                    as T
-import           Data.Typeable                (Typeable)
-
-import qualified Network.HTTP.Client          as HTTP (defaultManagerSettings)
-import qualified Network.HTTP.Conduit         as HTTP
-import           Network.HTTP.Types.URI       (urlEncode)
-
-import qualified Hunt.ClientInterface         as H
-import qualified Hunt.Common.ApiDocument      as H (ApiDocuments)
--- import qualified Hunt.Interpreter.Command     as H (CmdRes)
--- import qualified Hunt.Common.BasicTypes       as H (RegEx, Score, Weight)
-import qualified Hunt.Index.Schema            as H (CNormalizer,
-                                                   ContextSchema (..),
-                                                  ContextType (..))
-import qualified Hunt.Interpreter.Command     as H (Command (..))
-import           Hunt.Query.Language.Grammar  (Query)
+import           Data.Aeson (FromJSON, ToJSON, (.:), (.=))
+import qualified Data.Aeson as JSON
+import qualified Data.Aeson.Types as JSON
+import           Data.ByteString.Lazy (ByteString)
+import           Data.Char (toLower)
+import           Data.Default (Default, def)
+import           Data.String.Conversions (cs, (<>))
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           Data.Typeable (Typeable)
+import qualified Hunt.ClientInterface as H
+import qualified Hunt.Common.ApiDocument as H (ApiDocuments)
+import qualified Hunt.Index.Schema as H (CNormalizer, ContextSchema (..),
+                                         ContextType (..))
+import qualified Hunt.Interpreter.Command as H (Command (..))
+import           Hunt.Query.Language.Grammar (Query)
+import qualified Network.HTTP.Client as HTTP (defaultManagerSettings)
+import qualified Network.HTTP.Conduit as HTTP
+import           Network.HTTP.Types.URI (urlEncode)
 
 
 data JsonResponse r
@@ -211,8 +202,9 @@ postCommand cmd = do
                   }
     httpLbs request
 
-postCommand_ :: (MonadIO m, MonadThrow m) => H.Command -> HuntConnectionT m JSON.Value
-postCommand_ = postCommand
+-- not used
+-- postCommand_ :: (MonadIO m, MonadThrow m) => H.Command -> HuntConnectionT m JSON.Value
+-- postCommand_ = postCommand
 
 handleJsonResponse :: (FromJSON a, Monad m, MonadThrow m) => ByteString -> m a
 handleJsonResponse r

@@ -1,9 +1,8 @@
 module ExampleServer where
 
 import           Control.Concurrent.MVar
-import           Control.Monad.Error
+import           Control.Monad.Except
 import           Control.Monad.Reader
-
 import           Data.Aeson
 
 -- ----------------------------------------------------------------------------
@@ -61,9 +60,6 @@ data CmdRes
     | MoreResults
       deriving (Show)
 
-instance Error CmdRes where
-    strMsg s = ResError 500 $ "internal server error: " ++ s
-
 instance FromJSON Command     where parseJSON = undefined
 instance FromJSON InsOpts     where parseJSON = undefined
 instance FromJSON Query       where parseJSON = undefined
@@ -112,11 +108,11 @@ initEnv ix opt os
 --
 -- the command evaluation monad
 
-type CM = ReaderT Env (ErrorT CmdRes IO)
+type CM = ReaderT Env (ExceptT CmdRes IO)
 
 runCmd :: Env -> Command -> IO CmdRes
 runCmd env cmd
-    = do res <- runErrorT $ runReaderT (execCmd cmd) env
+    = do res <- runExceptT $ runReaderT (execCmd cmd) env
          return $ either id id res
 
 askIx :: CM Index
@@ -145,7 +141,7 @@ execCmd (Sequence cs)
     = execSequence cs
 
 execCmd NOOP
-    = return ResOK		-- keep alive test
+    = return ResOK              -- keep alive test
 
 execCmd c
     = throwResError 500 $ "command not yet implemented: " ++ show c

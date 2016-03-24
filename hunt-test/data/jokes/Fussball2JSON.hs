@@ -2,20 +2,19 @@
 
 module Main where
 
-import           Control.Monad               (mzero)
-
+import           Control.Monad (mzero)
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
-import qualified Data.ByteString.Lazy     as B
+import qualified Data.ByteString.Lazy as B
 import           Data.Char
-import           Data.Map                 (Map ())
-import qualified Data.Map                 as M
+import           Data.Map (Map ())
+import qualified Data.Map as M
 import           Data.Monoid
-import           Data.Text                (Text)
-import qualified Data.Text                as T
-import           Data.Word                (Word32)
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           Data.Word (Word32)
 import           FussballerSprueche
-
+import           Prelude hiding (Word)
 import           System.IO
 
 -- ----------------------------------------------------------------------------

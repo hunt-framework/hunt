@@ -28,16 +28,12 @@ where
 -- ------------------------------------------------------------
 
 import           Control.DeepSeq
-
-import           Data.Binary            (Binary)
-import qualified Data.Binary            as B
+import           Data.Binary (Binary)
+import qualified Data.Binary as B
 import           Data.Function.Selector
 import           Data.Maybe
-
 import           Holumbus.Crawler
-
--- import           Holumbus.Index.Common  hiding (URI)
-
+import           Prelude hiding (Word)
 import           Text.XML.HXT.Core
 
 -- ------------------------------------------------------------

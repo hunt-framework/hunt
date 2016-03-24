@@ -14,6 +14,7 @@ RTSPROF =
 RUNOPTS = +RTS $(RTSPROF) -RTS
 PATTERN =
 
+# put $HOME/.local/bin into PATH
 SERVER  = http://localhost:3000
 EXE     = hunt-server
 PROFSH  = ./prof.sh

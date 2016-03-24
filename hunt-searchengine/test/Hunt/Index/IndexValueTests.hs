@@ -3,19 +3,15 @@ module Hunt.Index.IndexValueTests where
 
 import           Data.Maybe
 import           Data.Monoid
-
-import           Test.Framework
-import           Test.Framework.Providers.HUnit
-import           Test.HUnit                           hiding (Test)
-
-import qualified Hunt.Common.Occurrences              as Occ
-import           Hunt.Common.Occurrences              (Occurrences)
-import qualified Hunt.Common.DocIdSet                 as Set
-
+import qualified Hunt.Common.DocIdSet as Set
+import           Hunt.Common.Occurrences (Occurrences)
+import qualified Hunt.Common.Occurrences as Occ
 import           Hunt.Index (IndexValue(..))
 import           Hunt.Index.Helper
-
 import           Hunt.Scoring.SearchResult (SearchResult, searchResultToOccurrences, searchResultToOccurrences)
+import           Test.Framework
+import           Test.Framework.Providers.HUnit
+import           Test.HUnit hiding (Test)
 
 -- ----------------------------------------------------------------------------
 -- Testsuite for `IntermediateValue` index value instances

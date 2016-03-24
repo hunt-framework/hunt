@@ -13,18 +13,14 @@ module Hunt.Common.BasicTypes
 where
 
 import           Control.Monad
-
 import           Data.Aeson
-import           Data.Binary         hiding (Word)
+import           Data.Binary hiding (Word)
 import           Data.Map
 import           Data.String
 import           Data.Text
-
 import           Hunt.Common.DocDesc (DocDesc)
-
+import           Prelude hiding (Word)
 import qualified Text.Regex.XMLSchema.Generic as HXT
-
-import           Prelude             as P
 
 -- ------------------------------------------------------------
 

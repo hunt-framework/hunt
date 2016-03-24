@@ -16,28 +16,23 @@
 module Hunt.Index
 where
 
-import           Prelude                   hiding (map)
-
-import           GHC.Exts                  (Constraint)
-
-import           Control.Arrow             (second)
+import           Control.Arrow (second)
 import           Control.DeepSeq
-
-import           Data.Binary               (Binary)
-import qualified Data.List                 as L
-import           Data.Monoid               (Monoid)
-
+import           Data.Binary (Binary)
+import qualified Data.List as L
+import           GHC.Exts (Constraint)
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap      (DocIdMap)
-import qualified Hunt.Common.DocIdMap      as DM
-import           Hunt.Common.DocIdSet      (DocIdSet)
-import qualified Hunt.Common.DocIdSet      as DS
-import           Hunt.Common.Occurrences   (Occurrences)
-import qualified Hunt.Common.Occurrences   as Occ
-import           Hunt.Scoring.Keys         (addDefScore)
+import           Hunt.Common.DocIdMap (DocIdMap)
+import qualified Hunt.Common.DocIdMap as DM
+import           Hunt.Common.DocIdSet (DocIdSet)
+import qualified Hunt.Common.DocIdSet as DS
+import           Hunt.Common.Occurrences (Occurrences)
+import qualified Hunt.Common.Occurrences as Occ
+import           Hunt.Scoring.Keys (addDefScore)
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
+import           Prelude hiding (map)
 
 -- ------------------------------------------------------------
 
@@ -53,7 +48,7 @@ class (Monoid v, Binary v, NFData v) => IndexValue v where
 
 
 -- | Helper for converting lists of index values to search results
-  
+
 toSearchResults :: IndexValue u => [(x, u)] -> [(x, SearchResult)]
 toSearchResults = L.map (second toSearchResult)
 

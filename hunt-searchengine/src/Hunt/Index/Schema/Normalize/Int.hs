@@ -19,8 +19,8 @@ where
 import           Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Read as T
-
 import           Hunt.Common.BasicTypes (Word)
+import           Prelude hiding (Word)
 
 -- ------------------------------------------------------------
 -- Normalize Int to actual Int

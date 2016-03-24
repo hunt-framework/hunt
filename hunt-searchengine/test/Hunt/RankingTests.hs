@@ -2,19 +2,15 @@ module Hunt.RankingTests
 (rankingTests)
 where
 
-import           Control.Applicative
-import           Control.Monad.Error
+import           Control.Monad.Except
 import qualified Data.Map                       as M
 import           Data.Text                      (Text)
-
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit                     hiding (Test)
-
 import           Hunt.Common
 import qualified Hunt.Common.DocDesc            as DD
 import           Hunt.Common.Document
-
 import           Hunt.ClientInterface
 import           Hunt.DocTable.HashedDocTable   (Documents)
 import           Hunt.Interpreter

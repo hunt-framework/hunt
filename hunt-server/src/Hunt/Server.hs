@@ -38,45 +38,38 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Server
-  ( -- * Starting the Server
-    start
-    -- * Configuration
-  , HuntServerConfiguration (..)
-  )
+       ( -- * Starting the Server
+         start
+         -- * Configuration
+       , HuntServerConfiguration (..)
+       )
 where
 
-import           Control.Monad.Error
-import           Data.String                          (fromString)
-
-import           Data.Text                            (Text)
-
-import qualified Network.Wai.Handler.Warp             as W
-import           Network.Wai.Middleware.RequestLogger
-
-import           Hunt.Interpreter
-import           Hunt.Interpreter.Command             (StatusCmd (..))
-
+import           Control.Monad.Except
+import           Data.String (fromString)
+import           Data.Text (Text)
 import           Hunt.ClientInterface
-
+import           Hunt.Interpreter
+import           Hunt.Interpreter.Command (StatusCmd (..))
 import           Hunt.Server.Common
-import           Hunt.Server.Schrotty                 hiding (Options)
-import qualified Hunt.Server.Schrotty                 as Schrotty
-import qualified Hunt.Server.Template                 as Tmpl
-
-import           System.IO                            (stdout)
-
+import qualified Hunt.Server.Schrotty as Schrotty
+import           Hunt.Server.Schrotty hiding (Options)
+import qualified Hunt.Server.Template as Tmpl
+import qualified Network.Wai.Handler.Warp as W
+import           Network.Wai.Middleware.RequestLogger
+import           System.IO (stdout)
 import           System.Log.Formatter
 import           System.Log.Handler
 import           System.Log.Handler.Simple
-import           System.Log.Logger                    hiding (debugM, errorM,
-                                                       warningM)
-import qualified System.Log.Logger                    as Log
+import qualified System.Log.Logger as Log
+import           System.Log.Logger hiding (debugM, errorM, warningM)
 
 #ifdef SUPPORT_STATSD
 import qualified Data.Text as T
-import           System.Remote.Monitoring.Statsd      (defaultStatsdOptions, forkStatsd, StatsdOptions(..))
-import           System.Metrics                       (registerGcMetrics, newStore)
+import           System.Remote.Monitoring.Statsd (defaultStatsdOptions, forkStatsd, StatsdOptions(..))
+import           System.Metrics (registerGcMetrics, newStore)
 #endif
+
 -- ------------------------------------------------------------
 -- Logging
 
@@ -150,14 +143,14 @@ start config = do
         Left err -> fail $ show err
     Nothing -> return ()
 
-  let options = Schrotty.Options
+  let options1 = Schrotty.Options
         { verbose  = 1
         , settings = W.setHost (fromString $ huntServerHost config)
                    $ W.setPort (huntServerPort config)
                    $ W.defaultSettings
         }
   -- start schrotty
-  schrottyOpts options $ do
+  schrottyOpts options1 $ do
 
     -- request / response logging
     middleware logStdoutDev

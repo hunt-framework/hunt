@@ -1,5 +1,5 @@
 name:                html-hunter
-version:             0.1.0.0
+version:             0.1.1.0
 synopsis:            Hunting for HTML content
 description:         Extracting text out of HTML pages and prepare
                      it for feeding into the Hunt search engine
@@ -21,7 +21,7 @@ executable html-hunter
   main-is:             HtmlHunter.hs
   -- other-modules:
   -- other-extensions:
-  build-depends:   base >=4.7 && <5
+  build-depends:   base                   >=4.8 && <5
                  , bytestring             >= 0.10
                  , aeson                  >= 0.6
                  , aeson-pretty           >= 0.7
@@ -35,10 +35,8 @@ executable html-hunter
                  , hxt-regex-xmlschema    >= 9     && < 10
                  , hxt-xpath              >= 9
                  , mtl                    >= 2.1
---                 , parsec                 >= 2.1   && < 4
                  , text                   >= 0.11
                  , transformers           >= 0.3
---                 , time                   >= 1.4
 
   if flag(network-uri)
      build-depends: network-uri >= 2.6, network >= 2.6

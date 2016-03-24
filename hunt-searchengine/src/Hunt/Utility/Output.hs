@@ -6,15 +6,13 @@
 
 module Hunt.Utility.Output
 where
-import           Control.Monad.IO.Class
 
+import           Control.Monad.IO.Class
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
-import qualified Data.ByteString.Lazy       as LB
-import           Data.Monoid
-import           Data.Text                  ()
-
-import           System.FilePath            ()
+import qualified Data.ByteString.Lazy as LB
+import           Data.Text ()
+import           System.FilePath ()
 
 -- ------------------------------------------------------------
 
@@ -70,3 +68,5 @@ jsonOutput pretty io x
                            `mappend`
                            compare
                      }
+
+-- ------------------------------------------------------------

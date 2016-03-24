@@ -1,4 +1,7 @@
-{-# LANGUAGE FlexibleInstances, UndecidableInstances, OverlappingInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DefaultSignatures #-}
+
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -16,5 +19,7 @@ module Hunt.Utility.Log where
 class LogShow e where
   logShow :: e -> String
 
-instance Show e => LogShow e where
+  default logShow :: (Show e) => e -> String
   logShow = show
+
+-- ----------------------------------------------------------------------------

@@ -18,11 +18,9 @@
 module Hunt.Common.DocId
 where
 
-import           Control.Applicative
-
 import           Data.Aeson
-import           Data.Binary          (Binary (..))
-import qualified Data.Binary          as B
+import           Data.Binary (Binary (..))
+import qualified Data.Binary as B
 import           Data.Digest.Murmur64
 
 -- ------------------------------------------------------------
@@ -87,7 +85,7 @@ fromHex :: String -> Maybe Int
 fromHex i@('0' : 'x' : xs)
     | length xs == 16
       &&
-      all (`elem` "0123456789abcdef") xs
+      all (`elem` ("0123456789abcdef"::String)) xs
         = Just . read $ i
     | otherwise
         = Nothing

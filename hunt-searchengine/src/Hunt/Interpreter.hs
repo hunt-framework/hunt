@@ -14,80 +14,75 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Interpreter
-  ( -- * Initialization
-    initHunt
-    -- * Running Commands
-  , runCmd
-  , execCmd
-  , runHunt
-    -- * Types
-  , Hunt
-  , HuntT (..)
-  , HuntEnv (..)
-  , DefHuntEnv
-  )
+       ( -- * Initialization
+         initHunt
+         -- * Running Commands
+       , runCmd
+       , execCmd
+       , runHunt
+         -- * Types
+       , Hunt
+       , HuntT (..)
+       , HuntEnv (..)
+       , DefHuntEnv
+       )
 where
 
-import           Control.Applicative
-import           Control.Arrow                 (second)
+import           Control.Arrow (second)
 import           Control.Concurrent.XMVar
-import           Control.Monad.Error
+import           Control.Monad.Except
 import           Control.Monad.Reader
-
-import           Data.Aeson                    (ToJSON (..), object, (.=))
-import           Data.Binary                   (Binary, encodeFile)
-import qualified Data.ByteString.Lazy          as BL
+import           Data.Aeson (ToJSON (..), object, (.=))
+import           Data.Binary (Binary, encodeFile)
+import qualified Data.ByteString.Lazy as BL
 import           Data.Default
-import qualified Data.List                     as L
-import qualified Data.Map                      as M
-import           Data.Monoid                   ((<>))
-import           Data.Set                      (Set)
-import qualified Data.Set                      as S
-import           Data.Text                     (Text)
-import qualified Data.Text                     as T
-import qualified Data.Traversable              as TV
-
-import           Hunt.Common.ApiDocument       as ApiDoc
-import           Hunt.Common.BasicTypes        (Context, URI)
-import qualified Hunt.Common.DocDesc           as DocDesc
-import qualified Hunt.Common.DocIdSet          as DocIdSet
-import           Hunt.Common.Document          (Document (..))
-import           Hunt.ContextIndex             (ContextIndex (..), ContextMap)
-import qualified Hunt.ContextIndex             as CIx
-import           Hunt.DocTable                 (DocTable)
-import qualified Hunt.DocTable                 as DocTable
+import qualified Data.List as L
+import qualified Data.Map as M
+import           Data.Monoid ((<>))
+import           Data.Set (Set)
+import qualified Data.Set as S
+import           Data.Text (Text)
+import qualified Data.Text as T
+import qualified Data.Traversable as TV
+import           Hunt.Common.ApiDocument as ApiDoc
+import           Hunt.Common.BasicTypes (Context, URI)
+import qualified Hunt.Common.DocDesc as DocDesc
+import qualified Hunt.Common.DocIdSet as DocIdSet
+import           Hunt.Common.Document (Document (..))
+import           Hunt.ContextIndex (ContextIndex (..), ContextMap)
+import qualified Hunt.ContextIndex as CIx
+import           Hunt.DocTable (DocTable)
+import qualified Hunt.DocTable as DocTable
 import           Hunt.DocTable.HashedDocTable
-import qualified Hunt.Index                    as Ix
-import           Hunt.Index.IndexImpl          (IndexImpl (..), mkIndex)
+import qualified Hunt.Index as Ix
+import           Hunt.Index.IndexImpl (IndexImpl (..), mkIndex)
 import           Hunt.Index.Schema
 import           Hunt.Index.Schema.Analyze
 import           Hunt.Interpreter.BasicCommand
-import           Hunt.Interpreter.Command      (Command)
-import           Hunt.Interpreter.Command      hiding (Command (..))
-import           Hunt.Query.Intermediate       (ScoredWords,
-                                                toDocsResult, RankedDoc(..),
-                                                toDocumentResultPage,
-                                                toWordsResult)
+import           Hunt.Interpreter.Command (Command)
+import           Hunt.Interpreter.Command hiding (Command (..))
+import           Hunt.Query.Intermediate (ScoredWords,
+                                          toDocsResult, RankedDoc(..),
+                                          toDocumentResultPage,
+                                          toWordsResult)
 import           Hunt.Query.Language.Grammar
-import           Hunt.Query.Processor          (ProcessConfig (..),
-                                                initProcessor,
-                                                processQueryScoredDocs,
-                                                processQueryScoredWords,
-                                                processQueryUnScoredDocs)
-import           Hunt.Scoring.SearchResult     (ScoredDocs, UnScoredDocs,
-                                                searchResultToOccurrences,
-                                                unScoredDocsToDocIdSet)
-import           Hunt.Utility                  (showText)
+import           Hunt.Query.Processor (ProcessConfig (..),
+                                       initProcessor,
+                                       processQueryScoredDocs,
+                                       processQueryScoredWords,
+                                       processQueryUnScoredDocs)
+import           Hunt.Scoring.SearchResult (ScoredDocs, UnScoredDocs,
+                                            searchResultToOccurrences,
+                                            unScoredDocsToDocIdSet)
+import           Hunt.Utility (showText)
 import           Hunt.Utility.Log
-
-import           System.IO.Error               (isAlreadyInUseError,
-                                                isDoesNotExistError,
-                                                isFullError, isPermissionError,
-                                                tryIOError)
-import qualified System.Log.Logger             as Log
-
-import           GHC.Stats                     (getGCStats, getGCStatsEnabled)
-import           GHC.Stats.Json                ()
+import           System.IO.Error (isAlreadyInUseError,
+                                  isDoesNotExistError,
+                                  isFullError, isPermissionError,
+                                  tryIOError)
+import qualified System.Log.Logger as Log
+import           GHC.Stats (getGCStats, getGCStatsEnabled)
+import           GHC.Stats.Json ()
 
 -- ------------------------------------------------------------
 --
@@ -178,7 +173,7 @@ initHuntEnv ixx opt ns qc = do
 -- | The Hunt transformer monad. Allows a custom monad to be embedded to combine with other DSLs.
 
 newtype HuntT dt m a
-    = HuntT { runHuntT :: ReaderT (HuntEnv dt) (ErrorT CmdError m) a }
+    = HuntT { runHuntT :: ReaderT (HuntEnv dt) (ExceptT CmdError m) a }
       deriving
       (Applicative, Monad, MonadIO, Functor, MonadReader (HuntEnv dt), MonadError CmdError)
 
@@ -193,12 +188,12 @@ type Hunt dt = HuntT dt IO
 -- | Run the Hunt monad with the supplied environment/state.
 
 runHunt :: DocTable dt => HuntT dt m a -> HuntEnv dt -> m (Either CmdError a)
-runHunt env = runErrorT . runReaderT (runHuntT env)
+runHunt env = runExceptT . runReaderT (runHuntT env)
 
 -- | Run the command the supplied environment/state.
 runCmd :: (DocTable dt, Binary dt) => HuntEnv dt -> Command -> IO (Either CmdError CmdResult)
 runCmd env cmd
-  = runErrorT . runReaderT (runHuntT . execCmd $ cmd) $ env
+  = runExceptT . runReaderT (runHuntT . execCmd $ cmd) $ env
 
 -- | Get the context index.
 askIx :: DocTable dt => Hunt dt (ContextIndex dt)

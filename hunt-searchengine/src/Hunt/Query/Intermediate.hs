@@ -47,33 +47,30 @@ module Hunt.Query.Intermediate
     )
 where
 
-import           Prelude                   hiding (null)
-
-import           Control.Applicative       hiding (empty)
-import           Control.Arrow             (second, (***))
-
+import           Control.Applicative hiding (empty)
+import           Control.Arrow (second, (***))
 import           Data.Aeson
-import qualified Data.HashMap.Strict       as HM
+import qualified Data.HashMap.Strict as HM
 import qualified Data.LimitedPriorityQueue as Q
-import qualified Data.List                 as L
-import           Data.Map                  (Map)
-import qualified Data.Map                  as M
+import qualified Data.List as L
+import           Data.Map (Map)
+import qualified Data.Map as M
 import           Data.Maybe
-import           Data.Monoid               (Monoid(..),(<>))
+import           Data.Monoid ((<>))
 import           Data.Ord
-
 import           Hunt.Common.BasicTypes
-import qualified Hunt.Common.DocIdMap      as DM
-import           Hunt.Common.Document      (DocumentWrapper (..), Document (..))
-import           Hunt.Common.Occurrences   (Occurrences)
-import qualified Hunt.Common.Occurrences   as Occ
-import qualified Hunt.Common.Positions     as Pos
-import           Hunt.DocTable             (DocTable)
-import qualified Hunt.DocTable             as Dt
+import qualified Hunt.Common.DocIdMap as DM
+import           Hunt.Common.Document (DocumentWrapper (..), Document (..))
+import           Hunt.Common.Occurrences (Occurrences)
+import qualified Hunt.Common.Occurrences as Occ
+import qualified Hunt.Common.Positions as Pos
+import           Hunt.DocTable (DocTable)
+import qualified Hunt.DocTable as Dt
 import           Hunt.Index.Schema
-import           Hunt.Query.Result         hiding (null)
+import           Hunt.Query.Result hiding (null)
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
+import           Prelude hiding (Word, null)
 
 -- import           Debug.Trace
 

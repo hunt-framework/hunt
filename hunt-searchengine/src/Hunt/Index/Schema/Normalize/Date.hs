@@ -38,23 +38,17 @@ module Hunt.Index.Schema.Normalize.Date
   )
 where
 
-import           Control.Applicative
 import           Control.Monad
-
+import           Data.Char (isDigit)
+import           Data.Function (on)
 import           Data.List
 import           Data.Maybe
-import           Data.Text                   (Text)
-import qualified Data.Text                   as T
-
-import           Data.Char                   (isDigit)
-import           Data.Function               (on)
-import           Data.Ratio                  ((%))
-import           Data.Time                   (Day, DiffTime, UTCTime (..),
-                                              addUTCTime, fromGregorian)
-
-import           Text.Regex.XMLSchema.String
-
+import           Data.Ratio ((%))
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           Data.Time (Day, DiffTime, UTCTime (..), addUTCTime, fromGregorian)
 import           Hunt.Utility
+import           Text.Regex.XMLSchema.Generic
 
 -- ------------------------------------------------------------
 
@@ -69,7 +63,7 @@ normalize t = fromMaybe t
     = if head' s == Just '-'
       then ('-':) . fil . tail $ s
       else fil s
-    where fil = filter (not . (`elem` "-T:"))
+    where fil = filter (not . (`elem` ("-T:" :: String)))
 
 -- | Function takes normalized Date and transforms it back a readable form.
 --   We don't transform it back to the original representation, since that
@@ -317,7 +311,7 @@ readDateTime s
     = mkDateTime day (readHourMinSec time) (readTimeZone zone)
     where
       (day,  (_ : rest)) = readYearMonthDayS s
-      (time,       zone) = span (\ x -> isDigit x || x `elem` ":.") rest
+      (time,       zone) = span (\ x -> isDigit x || x `elem` (":." :: String)) rest
 
 
 readDate' :: (String -> (Day, String)) -> String -> Date

@@ -17,17 +17,13 @@ module Hunt.Index.PrefixTreeIndex
 where
 
 import           Control.DeepSeq
-
 import           Data.Bijection
 import           Data.Bijection.Instances ()
 import           Data.Binary              (Binary (..))
 import qualified Data.List                as L
-import           Data.Monoid              (Monoid(..))
 import qualified Data.StringMap.Strict    as SM
 import           Data.Text                (Text)
 import           Data.Typeable
-
-
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet     (DocIdSet)
 import           Hunt.Index
@@ -35,9 +31,9 @@ import qualified Hunt.Index               as Ix
 import           Hunt.Index.Proxy.KeyIndex
 import           Hunt.Scoring.Keys        (similar, similarInt, similarRangeInt)
 import           Hunt.Utility
-
 import qualified Hunt.Index.Schema.Normalize.Date     as Date
 import qualified Hunt.Index.Schema.Normalize.Int      as Int
+import Prelude hiding (Word)
 
 -- import           Debug.Trace
 
@@ -172,7 +168,7 @@ instance Index SimplePrefixTreeIndex where
 
   lookupRange k1 k2 (SimplePTIx i)
     = lookupRange k1 k2 i
-      
+
   {- it's a word index, similar should be the same as in InvertedIndex, not as in an int index
   lookupRangeSc k1 k2 m
     = L.map scoreWord $ lookupRange k1 k2 m
@@ -180,7 +176,7 @@ instance Index SimplePrefixTreeIndex where
         scoreWord (w, r)
             = (w, (similarRangeInt k1 k2 w, r))
   -- -}
-  
+
   unionWith op (SimplePTIx i1) (SimplePTIx i2)
     = mkSimplePTIx $ unionWith op i1 i2
 
