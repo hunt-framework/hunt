@@ -54,7 +54,7 @@ import qualified Data.Text as T
 import           Data.Typeable (Typeable)
 import qualified Hunt.ClientInterface as H
 import qualified Hunt.Common.ApiDocument as H (ApiDocuments)
-import qualified Hunt.Index.Schema as H (CNormalizer, ContextSchema (..),
+import qualified Hunt.Index.Schema as H (CNormalizer, CTokenizer, ContextSchema (..),
                                          ContextType (..))
 import qualified Hunt.Interpreter.Command as H (Command (..))
 import           Hunt.Query.Language.Grammar (Query)
