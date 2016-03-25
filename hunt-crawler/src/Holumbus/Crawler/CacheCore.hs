@@ -5,19 +5,12 @@
 module Holumbus.Crawler.CacheCore
 where
 
-import           Control.DeepSeq
-
-import           Data.Binary            (Binary (..))
-{-
-import qualified Data.Binary                    as B
--- -}
-
-import           Data.Function.Selector
-
-import           Holumbus.Crawler
-
-import           Text.XML.HXT.Core
-import           Text.XML.HXT.Curl
+import Control.DeepSeq
+import Data.Binary (Binary (..))
+import Data.Function.Selector
+import Holumbus.Crawler
+import Text.XML.HXT.Core
+import Text.XML.HXT.Curl
 
 import           GHC.Generics
 
@@ -35,6 +28,7 @@ newtype CacheState              = CS ()
 -- but this can be taken as a pattern for other crawlers
 
 instance NFData CacheState where
+  rnf (CS ()) = ()
 
 instance Binary CacheState where
     put                 = const $ return ()

@@ -19,7 +19,6 @@ where
 import           Prelude hiding (Word)
 
 import           Control.DeepSeq
-
 import           Data.Bijection
 import           Data.Bijection.Instances ()
 import           Data.Binary              (Binary (..))
@@ -27,8 +26,6 @@ import qualified Data.List                as L
 import qualified Data.StringMap.Strict    as SM
 import           Data.Text                (Text)
 import           Data.Typeable
-
-
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet     (DocIdSet)
 import           Hunt.Index
@@ -36,9 +33,9 @@ import qualified Hunt.Index               as Ix
 import           Hunt.Index.Proxy.KeyIndex
 import           Hunt.Scoring.Keys        (similar, similarInt, similarRangeInt)
 import           Hunt.Utility
-
 import qualified Hunt.Index.Schema.Normalize.Date     as Date
 import qualified Hunt.Index.Schema.Normalize.Int      as Int
+import Prelude hiding (Word)
 
 -- import           Debug.Trace
 

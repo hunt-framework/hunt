@@ -48,13 +48,11 @@ where
 
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
-
+import           Hunt.Query.Language.Builder
+import           Hunt.Query.Language.Grammar
+import           Hunt.Scoring.Score          (mkScore)
 import           Text.Parsec
 import           Text.Parsec.String
-
-import           Hunt.Query.Language.Builder
-import           Hunt.Scoring.Score          (mkScore)
-import           Hunt.Query.Language.Grammar
 
 -- ------------------------------------------------------------
 

@@ -26,8 +26,7 @@ module Hunt.Interpreter
   , HuntT (..)
   , HuntEnv (..)
   , DefHuntEnv
-  )
-where
+  ) where
 
 import           Control.Arrow                 (second)
 import           Control.Concurrent.Async      as Async

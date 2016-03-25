@@ -30,26 +30,20 @@ module Hunt.Index.InvertedIndex
 -- -}
 where
 
-import           Prelude                        as P hiding (Word)
-
-import           Control.Arrow
 import           Control.DeepSeq
-
-import           Data.Bijection.Instances       ()
-import           Data.Binary                    (Binary (..))
-import qualified Data.List                      as L
-import           Data.Text                      (Text)
+import           Data.Bijection.Instances ()
+import           Data.Binary (Binary (..))
+import qualified Data.List as L
+import           Data.Text (Text)
 import           Data.Typeable
-
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.Occurrences        (Occurrences)
-import           Hunt.Common.Positions          (Positions)
 import           Hunt.Index                     as Ix
 import           Hunt.Index.PrefixTreeIndex
 import qualified Hunt.Index.PrefixTreeIndex2Dim as PT2D
-import           Hunt.Scoring.Keys              (similar)
-
 import           Hunt.Index.Proxy.KeyIndex
+import           Hunt.Scoring.Keys (similar)
+import           Prelude hiding (Word)
 
 -- ------------------------------------------------------------
 -- Inverted index using text key

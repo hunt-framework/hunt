@@ -9,7 +9,6 @@
 module GHC.Fingerprint.Binary where
 
 import           Data.Binary
-
 import           GHC.Fingerprint.Type
 
 -- ------------------------------------------------------------

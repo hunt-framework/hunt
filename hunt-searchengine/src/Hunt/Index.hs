@@ -16,16 +16,11 @@
 module Hunt.Index
 where
 
-import           Prelude                   hiding (map)
-
-import           GHC.Exts                  (Constraint)
-
-import           Control.Arrow             (second)
+import           Control.Arrow (second)
 import           Control.DeepSeq
-
-import           Data.Binary               (Binary)
-import qualified Data.List                 as L
-
+import           Data.Binary (Binary)
+import qualified Data.List as L
+import           GHC.Exts (Constraint)
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
 import           Hunt.Common.DocIdMap      (DocIdMap)
@@ -38,6 +33,7 @@ import qualified Hunt.Common.Occurrences   as Occ
 import           Hunt.Scoring.Keys         (addDefScore)
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
+import           Prelude hiding (map)
 
 -- ------------------------------------------------------------
 

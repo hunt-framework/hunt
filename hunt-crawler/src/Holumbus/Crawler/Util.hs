@@ -5,11 +5,9 @@
 module Holumbus.Crawler.Util
 where
 
-import           Control.Applicative                            ( liftA2 )
-
+import           Control.Applicative ( liftA2 )
 import           Data.List
-
-import qualified Text.Regex.XMLSchema.String                  as RE
+import qualified Text.Regex.XMLSchema.Generic as RE
 
 -- ------------------------------------------------------------
 

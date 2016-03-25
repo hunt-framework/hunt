@@ -10,9 +10,8 @@
 
 module Data.Bijection.Instances where
 
-import           Data.Text
-
-import           Data.Bijection
+import Data.Bijection
+import Data.Text
 
 -- ------------------------------------------------------------
 

@@ -30,11 +30,8 @@ module Hunt.Common.DocIdSet
   )
 where
 
-import           Prelude hiding (null)
-
 import           Control.DeepSeq
-import           Control.Monad
-
+import           Control.Monad (mzero)
 import           Data.Aeson
 import           Data.Binary (Binary (..))
 import qualified Data.IntSet as IS
@@ -42,6 +39,7 @@ import qualified Data.IntSet.Packed as S
 import qualified Data.List as L
 import           Data.Typeable
 import           Hunt.Common.DocId
+import           Prelude hiding (null)
 
 -- ------------------------------------------------------------
 --

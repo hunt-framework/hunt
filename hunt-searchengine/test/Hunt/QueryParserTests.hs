@@ -9,20 +9,17 @@ module Hunt.QueryParserTests
 (queryParserTests)
 where
 
-import           Control.Applicative
-
-import           Test.Framework                       hiding (Test)
-import qualified Test.Framework                       as TF
+import           Control.Monad
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           Hunt.ClientInterface
+import qualified Hunt.Query.Language.Parser as P
+import qualified Test.Framework as TF
+import           Test.Framework hiding (Test)
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
 import           Test.HUnit
 import           Test.QuickCheck
-
-import           Control.Monad
-import           Data.Text                            (Text)
-import qualified Data.Text                            as T
-import           Hunt.ClientInterface
-import qualified Hunt.Query.Language.Parser           as P
 
 -- ----------------------------------------------------------------------------
 -- query parser tests
@@ -402,4 +399,3 @@ phrase = do
          return (T.intercalate " " ws)
 
 prop_ParseAnd q = (printQuery <$> (P.parseQuery $ T.unpack $ printQuery q)) == Right (printQuery q)
-

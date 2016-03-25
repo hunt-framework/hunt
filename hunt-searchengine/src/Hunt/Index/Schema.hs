@@ -43,10 +43,9 @@ where
 
 import           Prelude hiding (Word)
 
-import           Control.Applicative
+import           Control.DeepSeq
+import           Control.Applicative ((<|>))
 import           Control.Monad (mzero)
-import Control.DeepSeq
-
 import           Data.Aeson
 import           Data.Binary hiding (Word)
 import           Data.Default
@@ -56,14 +55,13 @@ import           Data.Maybe (isNothing)
 import           Data.Text hiding (null)
 import qualified Data.Text as T
 import           Data.Text.Binary ()
-
 import           Hunt.Common.BasicTypes
 import qualified Hunt.Index as Ix
 import           Hunt.Index.IndexImpl (IndexImpl, mkIndex)
 import           Hunt.Index.InvertedIndex
-import           Hunt.Index.PrefixTreeIndex           ( PrefixTreeIndexInt
-                                                      , PrefixTreeIndexDate
-                                                      , SimplePrefixTreeIndex )
+import           Hunt.Index.PrefixTreeIndex ( PrefixTreeIndexInt
+                                            , PrefixTreeIndexDate
+                                            , SimplePrefixTreeIndex )
 import           Hunt.Index.PrefixTreeIndex2Dim ( PrefixTreeIndexPosition )
 import           Hunt.Index.RTreeIndex
 import qualified Hunt.Index.Schema.Normalize.Date as Date

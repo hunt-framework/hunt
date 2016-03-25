@@ -140,28 +140,27 @@ module Hunt.ClientInterface
     )
 where
 
-import           Data.Aeson                  (FromJSON (..), ToJSON (..), Value(..))
+import           Data.Aeson (FromJSON (..), ToJSON (..), Value(..))
 import           Data.Default
-import           Data.List                   (nub)
-import qualified Data.Map.Strict             as SM
-import qualified Data.Map.Lazy               as LM
-import           Data.Text                   (Text)
-import qualified Data.Text                   as T
-
-import           Hunt.Common.ApiDocument     (ApiDocument (..), IndexMap,
-                                              LimitedResult (..),
-                                              emptyApiDocDescr,
-                                              emptyApiDocIndexMap)
-import           Hunt.Common.BasicTypes      (Content, Context, Description,
-                                              RegExp, URI)
-import qualified Hunt.Common.DocDesc         as DD
+import           Data.List (nub)
+import qualified Data.Map.Lazy as LM
+import qualified Data.Map.Strict as SM
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           Hunt.Common.ApiDocument (ApiDocument (..), IndexMap,
+                                          LimitedResult (..),
+                                          emptyApiDocDescr,
+                                          emptyApiDocIndexMap)
+import           Hunt.Common.BasicTypes (Content, Context, Description,
+                                         RegExp, URI)
+import qualified Hunt.Common.DocDesc as DD
 import           Hunt.Index.Schema
 import           Hunt.Interpreter.Command
 import           Hunt.Query.Language.Builder
 import           Hunt.Query.Language.Grammar
-import           Hunt.Query.Language.Parser  (parseQuery)
-import           Hunt.Scoring.Score          (Score, defScore, getScore, mkScore, noScore)
-import           Hunt.Utility.Output         (outputValue)
+import           Hunt.Query.Language.Parser (parseQuery)
+import           Hunt.Scoring.Score (Score, defScore, getScore, mkScore, noScore)
+import           Hunt.Utility.Output (outputValue)
 
 
 -- ------------------------------------------------------------

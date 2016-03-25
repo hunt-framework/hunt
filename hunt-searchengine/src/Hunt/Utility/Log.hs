@@ -1,4 +1,7 @@
-{-# LANGUAGE FlexibleInstances, UndecidableInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DefaultSignatures #-}
+
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -16,5 +19,7 @@ module Hunt.Utility.Log where
 class LogShow e where
   logShow :: e -> String
 
---instance {-# INCOHERENT #-} Show e => LogShow e where
---  logShow = show
+  default logShow :: (Show e) => e -> String
+  logShow = show
+
+-- ----------------------------------------------------------------------------

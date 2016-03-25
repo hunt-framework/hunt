@@ -1,5 +1,5 @@
 name:          hunt-data-jokes
-version:       0.0.0.1
+version:       0.0.1.0
 license:       MIT
 -- license-file:  LICENSE
 author:
@@ -20,12 +20,12 @@ source-repository head
 executable fb2js
   main-is:        Fussball2JSON.hs
   hs-source-dirs: .
-  other-modules:
-  build-depends:   base                   >= 4.5  && < 5
+  other-modules:  FussballerSprueche
+  build-depends:   base                   >= 4.8  && < 5
                  , containers             >= 0.5
                  , aeson
                  , aeson-pretty
-                 , bytestring                        < 1
+                 , bytestring
                  , text
   ghc-options:   -Wall
                  -fwarn-tabs

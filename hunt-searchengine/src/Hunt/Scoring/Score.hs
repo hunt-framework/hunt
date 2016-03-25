@@ -13,13 +13,10 @@
 module Hunt.Scoring.Score
 where
 
-import           Control.Applicative
 import           Control.DeepSeq
-
 import           Data.Aeson
 import           Data.Binary         hiding (Word)
-import           Data.Monoid
-
+import           Data.Monoid         ((<>))
 import           Prelude             as P
 
 -- ------------------------------------------------------------

@@ -21,10 +21,10 @@
 module Hunt.Common.DocId
 where
 
-import           Control.Monad
+import           Control.Monad (liftM)
 import           Data.Aeson
-import           Data.Binary                (Binary (..))
-import qualified Data.Binary                as B
+import           Data.Binary (Binary (..))
+import qualified Data.Binary as B
 import           Data.Digest.Murmur64
 import qualified Data.Text                  as TextS
 import qualified Data.Text.Lazy             as Text
@@ -35,8 +35,6 @@ import qualified Data.Text.Read             as TextS
 import qualified Data.Vector.Generic as GV
 import qualified Data.Vector.Generic.Mutable as GM
 import qualified Data.Vector.Unboxed as UV
-import qualified Data.Vector.Unboxed.Mutable as UM
-
 
 -- ------------------------------------------------------------
 {-

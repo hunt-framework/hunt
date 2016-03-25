@@ -19,8 +19,7 @@ module Hunt.Interpreter.Command
 where
 
 import           Control.DeepSeq
-import           Control.Monad                 (mzero)
-
+import           Control.Monad (mzero)
 import           Data.Aeson
 import           Data.List
 import qualified Data.Set                      as S
@@ -31,9 +30,9 @@ import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
 import           Hunt.Interpreter.BasicCommand (BasicCommand, StatusCmd (..))
 import qualified Hunt.Interpreter.BasicCommand as Cmd
-import           Hunt.Query.Intermediate       (RankedDoc)
-import           Hunt.Query.Language.Grammar   (Query (..))
-import           Hunt.Scoring.Score            (Score)
+import           Hunt.Query.Intermediate (RankedDoc)
+import           Hunt.Query.Language.Grammar (Query (..))
+import           Hunt.Scoring.Score (Score)
 import           Hunt.Utility.Log
 
 -- ------------------------------------------------------------
@@ -237,9 +236,6 @@ instance ToJSON CmdResult where
     ResGeneric v    -> object . code 0 $ [ "res" .= v ]
     where
     code i = (:) ("code" .= (i :: Int))
-
---instance Error CmdError where
---  strMsg s = ResError 500 . T.pack $ "internal server error: " ++ s
 
 instance ToJSON CmdError where
   toJSON (ResError c m) = object

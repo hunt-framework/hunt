@@ -22,31 +22,25 @@ module Main
     (main)
 where
 
-import           Control.Applicative
-import qualified Control.Monad                        as CM (when)
-import           Control.Monad.Error                  hiding (when)
-import           Control.Monad.IO.Class               ()
-import           Control.Monad.Reader                 hiding (when)
-
-import           Data.Char                            (isAlphaNum)
-import           Data.List                            (intercalate)
-import           Data.Maybe                           (fromMaybe)
-import           Data.Text                            (Text)
-import qualified Data.Text                            as T
-
+import qualified Control.Monad as CM (when)
+import           Control.Monad.Except hiding (when)
+import           Control.Monad.IO.Class ()
+import           Control.Monad.Reader hiding (when)
+import           Data.Char (isAlphaNum)
+import           Data.List (intercalate)
+import           Data.Maybe (fromMaybe)
+import           Data.Text (Text)
+import qualified Data.Text as T
 import           Hunt.ClientInterface
-import           Hunt.Server.Client                   (evalOnServer_)
-
-import           Text.Regex.XMLSchema.String          (match)
-import           Text.XML.HXT.Arrow.XmlState.TypeDefs
-import           Text.XML.HXT.Core
-import           Text.XML.HXT.HTTP
-import           Text.XML.HXT.XPath                   (getXPathTreesInDoc,
-                                                       parseXPathExpr)
-
+import           Hunt.Server.Client (evalOnServer_)
 import           System.Console.CmdArgs
 import           System.Exit
 import           System.IO
+import           Text.Regex.XMLSchema.Generic (match)
+import           Text.XML.HXT.Arrow.XmlState.TypeDefs
+import           Text.XML.HXT.Core
+import           Text.XML.HXT.HTTP
+import           Text.XML.HXT.XPath (getXPathTreesInDoc, parseXPathExpr)
 
 -- ------------------------------------------------------------
 
@@ -68,7 +62,7 @@ data ParseMode
       deriving (Data, Typeable, Eq, Show)
 
 type HIO
-    = ReaderT AppOpts (ErrorT String IO)
+    = ReaderT AppOpts (ExceptT String IO)
 
 cmdArgsDescr :: Mode (CmdArgs AppOpts)
 cmdArgsDescr
@@ -174,7 +168,7 @@ main :: IO ()
 main
     = do argl <- cmdArgsRun cmdArgsDescr
 --         print argl
-         res  <- runErrorT $ runReaderT doTheWork argl
+         res  <- runExceptT $ runReaderT doTheWork argl
          either (failure) (const exitSuccess) res
     where
       failure s
@@ -344,6 +338,7 @@ getContexts
             then return $ map (first T.pack) defCx
             else mapM compSelect cx
     where
+
       compSelect cxSpec
           = do CM.when (not . match "\\p{L}(\\p{L}|\\p{N}|_)*" $ cx) $
                  throwError (unwords ["context name must be an identifier, found"

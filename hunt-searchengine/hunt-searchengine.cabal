@@ -1,5 +1,5 @@
 name:          hunt-searchengine
-version:       0.3.0.2
+version:       0.3.1.0
 license:       MIT
 license-file:  LICENSE
 author:        Chris Reumann, Ulf Sauer, Uwe Schmidt
@@ -31,7 +31,8 @@ source-repository head
 
 library
 
-  build-depends: aeson                  >= 0.6
+  build-depends: base                   >= 4.8     && < 5
+               , aeson                  >= 0.6
                , aeson-pretty           >= 0.7
                , async
                , base                   >= 4.5     && < 5
@@ -141,7 +142,7 @@ library
                -fwarn-tabs
                -threaded
 
-  ghc-prof-options: -fprof-auto-exported
+  ghc-prof-options: -fprof-auto
 
   extensions: MultiParamTypeClasses
               FlexibleContexts

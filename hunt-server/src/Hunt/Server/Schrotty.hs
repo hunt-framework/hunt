@@ -10,40 +10,35 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Server.Schrotty
-(
-  -- * Start the server
-  schrotty
-, schrottyOpts
+       (
+         -- * Start the server
+         schrotty
+       , schrottyOpts
 
-  -- * Adjusted/Added Scotty Functions
-, jsonData
-, param
-, jsonPretty
+         -- * Adjusted/Added Scotty Functions
+       , jsonData
+       , param
+       , jsonPretty
 
-  -- * Types
-, module Web.Scotty.Trans
-, ActionSchrotty
-, ActionSchrottyT
-, WebError(..)
-)
+         -- * Types
+       , module Web.Scotty.Trans
+       , ActionSchrotty
+       , ActionSchrottyT
+       , WebError(..)
+       )
 where
 
 import           Control.Monad.IO.Class
-
-import           Network.HTTP.Types
-import           Network.Wai.Handler.Warp (Port)
-
-import           Web.Scotty.Trans hiding (jsonData, param)
-import qualified Web.Scotty.Trans as Scotty
-
-import           Data.Text.Lazy (Text)
-import qualified Data.Text.Lazy as TL
-
 import           Data.Aeson as A
 import           Data.Aeson.Encode.Pretty as AP
-
+import           Data.Text.Lazy (Text)
+import qualified Data.Text.Lazy as TL
 import           Hunt.Interpreter.Command (CmdError (..))
 import           Hunt.Server.Common
+import           Network.HTTP.Types
+import           Network.Wai.Handler.Warp (Port)
+import qualified Web.Scotty.Trans as Scotty
+import           Web.Scotty.Trans hiding (jsonData, param)
 
 -- ------------------------------------------------------------
 
@@ -103,7 +98,7 @@ jsonPretty v = do
   raw $ AP.encodePretty v
 
 -- | Replacement for 'Web.Scotty.jsonData' with custom error.
-jsonData :: (FromJSON a, MonadIO m) => ActionSchrottyT m a
+jsonData :: (FromJSON a, Monad m, MonadIO m) => ActionSchrottyT m a
 jsonData = do
   b <- body
   case A.eitherDecode b of

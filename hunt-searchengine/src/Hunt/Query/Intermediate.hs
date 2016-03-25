@@ -47,20 +47,17 @@ module Hunt.Query.Intermediate
     )
 where
 
-import           Prelude                     hiding (Word, null)
-
-import           Control.Arrow               (second, (***))
-
+import           Control.Applicative hiding (empty)
+import           Control.Arrow (second, (***))
 import           Data.Aeson
-import qualified Data.HashMap.Strict         as HM
-import qualified Data.LimitedPriorityQueue   as Q
-import qualified Data.List                   as L
-import           Data.Map                    (Map)
-import qualified Data.Map                    as M
+import qualified Data.HashMap.Strict as HM
+import qualified Data.LimitedPriorityQueue as Q
+import qualified Data.List as L
+import           Data.Map (Map)
+import qualified Data.Map as M
 import           Data.Maybe
-import           Data.Monoid
+import           Data.Monoid ((<>))
 import           Data.Ord
-
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
 import qualified Hunt.Common.DocIdMap        as DM
@@ -69,9 +66,10 @@ import           Hunt.Common.Occurrences     (Occurrences)
 import qualified Hunt.Common.Occurrences     as Occ
 import qualified Hunt.Common.Positions       as Pos
 import           Hunt.Index.Schema
-import           Hunt.Query.Result           hiding (null)
+import           Hunt.Query.Result hiding (null)
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
+import           Prelude hiding (Word, null)
 
 -- import           Debug.Trace
 

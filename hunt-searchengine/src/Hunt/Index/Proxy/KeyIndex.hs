@@ -17,20 +17,17 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Index.Proxy.KeyIndex
-( KeyProxyIndex (..)
-)
+       ( KeyProxyIndex (..)
+       )
 where
 
-import           Prelude                       as P
-
-import           Control.Arrow                 (first)
+import           Control.Arrow (first)
 import           Control.DeepSeq
-
 import           Data.Bijection
-import           Data.Binary                   (Binary (..))
-
+import           Data.Binary (Binary (..))
 import           Hunt.Index
-import qualified Hunt.Index                    as Ix
+import qualified Hunt.Index as Ix
+import           Prelude as P
 
 -- ------------------------------------------------------------
 

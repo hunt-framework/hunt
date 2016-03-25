@@ -18,37 +18,35 @@
 -- ----------------------------------------------------------------------------
 
 module Hunt.Query.Fuzzy
-  (
-  -- * Fuzzy types
-  FuzzySet
-  , Replacements
-  , Replacement
-  , FuzzyScore
-  , FuzzyConfig (..)
+       (
+         -- * Fuzzy types
+         FuzzySet
+       , Replacements
+       , Replacement
+       , FuzzyScore
+       , FuzzyConfig (..)
 
-  -- * Predefined replacements
-  , englishReplacements
-  , germanReplacements
+         -- * Predefined replacements
+       , englishReplacements
+       , germanReplacements
 
-  -- * Generation
-  , fuzz
+         -- * Generation
+       , fuzz
 
-  -- * Conversion
-  , toList
-  )
+         -- * Conversion
+       , toList
+       )
 where
 
 import           Data.Binary
 import           Data.Default
 import           Data.Function
 import           Data.List
-import           Data.Maybe       (fromMaybe)
-
-import           Data.Map         (Map)
-import qualified Data.Map         as M
-
-import           Data.Text        (Text)
-import qualified Data.Text        as T
+import           Data.Map (Map)
+import qualified Data.Map as M
+import           Data.Maybe (fromMaybe)
+import           Data.Text (Text)
+import qualified Data.Text as T
 import           Data.Text.Binary ()
 
 -- ------------------------------------------------------------

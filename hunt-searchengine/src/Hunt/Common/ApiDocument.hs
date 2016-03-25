@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- ----------------------------------------------------------------------------
@@ -12,23 +12,20 @@
 
 module Hunt.Common.ApiDocument where
 
+
 import           Control.DeepSeq
-import           Control.Monad          (mzero)
-
+import           Control.Monad (mzero)
 import           Data.Aeson
-import           Data.Binary            (Binary (..))
-import           Data.Map.Strict        (Map ())
-import qualified Data.Map.Strict        as M
-import           Data.Text              (Text)
-import qualified Data.Text              as T
-import           Data.Text.Binary       ()
-
+import           Data.Binary (Binary (..))
+import           Data.Map.Strict (Map ())
+import qualified Data.Map.Strict as M
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           Data.Text.Binary ()
 import           GHC.Generics
-
 import           Hunt.Common.BasicTypes
-import           Hunt.Scoring.Score     (Score, noScore, mkScore, getScore)
-import qualified Hunt.Common.DocDesc    as DD
-
+import qualified Hunt.Common.DocDesc as DD
+import           Hunt.Scoring.Score (Score, getScore, mkScore, noScore)
 import           Hunt.Utility.Log
 
 -- ------------------------------------------------------------
@@ -101,7 +98,8 @@ emptyApiDoc = ApiDocument "" emptyApiDocIndexMap emptyApiDocDescr noScore
 -- ------------------------------------------------------------
 
 instance NFData ApiDocument where
-  --default
+  rnf x = seq x ()
+  -- default =< ghc-7.8
 
 -- ------------------------------------------------------------
 

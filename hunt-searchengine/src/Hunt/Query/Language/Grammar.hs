@@ -28,18 +28,15 @@ module Hunt.Query.Language.Grammar
 where
 
 import           Control.Monad
-
 import           Data.Aeson
 import           Data.Binary
-import           Data.Monoid            ((<>))
-import           Data.Text              (Text)
-import qualified Data.Text              as T
-import           Data.Text.Binary       ()
-
+import           Data.Monoid ((<>))
+import           Data.Text (Text)
+import qualified Data.Text as T
+import           Data.Text.Binary ()
 import           Hunt.Common.BasicTypes as BTy
-import           Hunt.Scoring.Score     (Score, unScore, toDefScore)
-
-import           Text.Read              (readMaybe)
+import           Hunt.Scoring.Score (Score, unScore, toDefScore)
+import           Text.Read (readMaybe)
 
 -- ------------------------------------------------------------
 

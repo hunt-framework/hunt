@@ -20,15 +20,13 @@ module Hunt.Index.IndexImpl where
 
 import           Control.DeepSeq
 import           Control.Monad
-
 import           Data.Binary
-import qualified Data.List                   as L
-import           Data.Text                   (Text)
-import           Data.Text.Binary            ()
+import qualified Data.List as L
+import           Data.Text (Text)
+import           Data.Text.Binary ()
 import           Data.Typeable
-import           Data.Typeable.Binary        ()
-
-import           Hunt.Common.BasicTypes      (Context)
+import           Data.Typeable.Binary ()
+import           Hunt.Common.BasicTypes (Context)
 import           Hunt.Index
 
 -- ------------------------------------------------------------

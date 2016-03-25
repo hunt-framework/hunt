@@ -12,14 +12,12 @@
 module Hunt.Common.Positions where
 
 import           Control.DeepSeq
-
 import           Data.Aeson
-import           Data.Binary            as B
-import qualified Data.IntSet.Packed     as IS
-import           Data.IntSet.Cache      as IS
-import           Data.Maybe             (fromMaybe)
+import           Data.Binary as B
+import qualified Data.IntSet.Packed as IS
+import           Data.IntSet.Cache as IS
+import           Data.Maybe (fromMaybe)
 import           Data.Typeable
-
 import           Hunt.Common.BasicTypes
 
 -- ------------------------------------------------------------
@@ -86,12 +84,10 @@ union s1 s2          = PS $ (unPS s1) `IS.union` (unPS s2)
 -- | The union of two 'Positions'.
 intersection         :: Positions -> Positions -> Positions
 intersection s1 s2   = PS $ (unPS s1) `IS.intersection` (unPS s2)
-{-# INLINE intersection #-}
 
 -- | The union of two 'Positions'.
 difference           :: Positions -> Positions -> Positions
 difference s1 s2     = PS $ (unPS s1) `IS.difference` (unPS s2)
-{-# INLINE difference #-}
 
 -- | A fold over Positions
 foldr                :: (Position -> r -> r) -> r -> Positions -> r
@@ -108,8 +104,8 @@ intersectionWithDispl d (PS s1) (PS s2)
   = PS $ IS.intersectionWithDispl d s1 s2
 {-# INLINE intersectionWithDispl #-}
 
--- | intersction with "fuzzy" element test. All elements @e1@ for which an element @e2@ in @s2@
--- is found with @e2 - e1 `elem` [lb..ub]@ remain in set @s1@.
+-- | intersction with "fuzzy" element test. All elements @e1@ for which an element @e2@ in @s2'@
+-- is found with @e2 - e1 `elem` [lb..ub]@ remain in set @s1'@.
 --
 -- Useful for context search with sequences of words.
 -- This generatizes 'intersectionWithDispl'
@@ -117,12 +113,12 @@ intersectionWithDispl d (PS s1) (PS s2)
 -- Law: @intersectionWithIntervall d d == intersectionWithDispl d@
 
 intersectionWithIntervall :: Int -> Int -> Positions -> Positions -> Positions
-intersectionWithIntervall lb ub (PS s1) (PS s2)
-    = PS $ IS.filter member' s1
+intersectionWithIntervall lb ub (PS s1') (PS s2')
+    = PS $ IS.filter member' s1'
     where
       member' i = minElem <= i + ub
           where
-            (_ls, gt) = IS.split  (i + lb - 1) s2
+            (_ls, gt) = IS.split  (i + lb - 1) s2'
             minElem   = fromMaybe (i + ub + 1) (IS.minimum gt)
 
 -- ------------------------------------------------------------

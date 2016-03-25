@@ -55,27 +55,24 @@ module Hunt.Common.DocIdMap
   )
 where
 
-import           Prelude                     hiding (filter, foldl, foldr,
-                                              lookup, map, null)
-import qualified Prelude                     as P
-
-import           Control.Arrow               (first)
+import           Control.Arrow (first)
 import           Control.DeepSeq
-import           Control.Monad               (foldM, mzero)
-
+import           Control.Monad (foldM, mzero)
 import           Data.Aeson
-import           Data.Binary                 (Binary (..))
-import qualified Data.HashMap.Strict         as HM
-import qualified Data.IntMap.BinTree.Strict  as IM
-import qualified Data.IntSet.Packed          as IntSet
-import qualified Data.List                   as L
-import           Data.Monoid
+import           Data.Binary (Binary (..))
+import           Data.Foldable hiding (fold, foldl, foldr, toList, null)
+import qualified Data.HashMap.Strict as HM
+import qualified Data.IntMap.BinTree.Strict as IM
+import qualified Data.List as L
+import           Data.Monoid ((<>))
 import           Data.Typeable
 import qualified Data.IntSet as IS
 
 import           Hunt.Common.DocId
 import           Hunt.Common.DocIdSet        (DocIdSet (..))
 import qualified Hunt.Common.DocIdSet        as DocIdSet
+import qualified Prelude as P
+import           Prelude hiding (filter, foldl, foldr, lookup, map, null)
 
 -- ------------------------------------------------------------
 

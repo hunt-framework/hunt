@@ -1,5 +1,5 @@
 name:          hunt-server-cli
-version:       0.2.0.0
+version:       0.2.1.0
 license:       MIT
 license-file:  LICENSE
 author:        Chris Reumann, Ulf Sauer, Sebastian Philipp
@@ -25,7 +25,7 @@ executable hunt-server-cli
 
   other-modules: Hunt.Converter.CSV
 
-  build-depends:   base                   >= 4         && < 5
+  build-depends:   base                   >= 4.8       && < 5
                  , binary
                  , bytestring             >= 0.9.1     && < 1
                  , data-default

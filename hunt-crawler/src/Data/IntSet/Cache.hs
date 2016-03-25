@@ -2,9 +2,8 @@ module Data.IntSet.Cache
 where
 
 import           Control.DeepSeq
-
-import qualified Data.IntSet     as S
-import qualified Data.Vector     as V
+import qualified Data.IntSet as S
+import qualified Data.Vector as V
 
 -- ------------------------------------------------------------
 --
@@ -32,6 +31,3 @@ s1 :: S.IntSet
 s1 = cacheAt 1
 
 -- ------------------------------------------------------------
-
-
-

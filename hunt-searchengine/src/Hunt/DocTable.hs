@@ -11,24 +11,21 @@
 module Hunt.DocTable
 where
 
-import           Prelude                hiding (filter, lookup, map, null)
-
 import           Control.DeepSeq
 import           Control.Monad
-
 import           Data.Aeson
-import           Data.Maybe             (catMaybes)
-import           Data.Set               (Set)
-import qualified Data.Set               as S
-
+import           Data.Maybe (catMaybes)
+import           Data.Set (Set)
+import qualified Data.Set as S
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap   (DocIdMap (..))
-import qualified Hunt.Common.DocIdMap   as DM
-import           Hunt.Common.DocIdSet   (DocIdSet)
-import qualified Hunt.Common.DocIdSet   as DS
-import           Hunt.Common.Document   (Document,
-                                         DocumentWrapper (wrap, unwrap))
+import           Hunt.Common.DocIdMap (DocIdMap (..))
+import qualified Hunt.Common.DocIdMap as DM
+import           Hunt.Common.DocIdSet (DocIdSet)
+import qualified Hunt.Common.DocIdSet as DS
+import           Hunt.Common.Document (Document,
+                                       DocumentWrapper (wrap, unwrap))
+import           Prelude hiding (Word, filter, lookup, map, null)
 
 -- ------------------------------------------------------------
 

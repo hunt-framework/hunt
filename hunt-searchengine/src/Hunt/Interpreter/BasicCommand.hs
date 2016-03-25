@@ -14,18 +14,15 @@ module Hunt.Interpreter.BasicCommand
   )
 where
 
-import           Control.Monad               (mzero)
-
+import           Control.Monad (mzero)
 import           Data.Aeson
-import qualified Data.Aeson                  as JS (Value (..))
-import           Data.Set                    (Set)
-import           Data.Text                   (Text)
-
+import qualified Data.Aeson as JS (Value (..))
+import           Data.Set (Set)
+import           Data.Text (Text)
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
 import           Hunt.Query.Language.Grammar (Query (..))
-
 import           Hunt.Utility.Log
 
 -- ------------------------------------------------------------
