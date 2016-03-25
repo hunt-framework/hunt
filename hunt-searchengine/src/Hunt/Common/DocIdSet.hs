@@ -31,11 +31,11 @@ module Hunt.Common.DocIdSet
 where
 
 import           Control.DeepSeq
-import           Control.Monad (mzero)
+
 import           Data.Aeson
 import           Data.Binary (Binary (..))
 import qualified Data.IntSet as IS
-import qualified Data.IntSet.Packed as S
+
 import qualified Data.List as L
 import           Data.Typeable
 import           Hunt.Common.DocId
@@ -66,7 +66,7 @@ instance ToJSON DocIdSet where
     toJSON = undefined -- toJSON . L.map DocId . S.toList . unDIS
 
 instance FromJSON DocIdSet where
-    parseJSON x = undefined {- do l <- parseJSON x >>= fromL
+    parseJSON _ = undefined {- do l <- parseJSON x >>= fromL
                      return (DIS (S.fromList l))
         where
           fromL xs = forM xs $ \s ->

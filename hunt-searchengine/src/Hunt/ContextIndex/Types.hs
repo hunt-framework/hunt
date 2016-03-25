@@ -1,11 +1,9 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE DataKinds #-}
 module Hunt.ContextIndex.Types where
 
 import           Hunt.Common.SegmentMap (SegmentId, SegmentMap)
-import qualified Hunt.Common.SegmentMap as SegmentMap
+
 import           Hunt.ContextIndex.Segment (Segment, Kind(..))
 import           Hunt.ContextIndex.Lock (SegmentLock)
 import           Hunt.Index.Schema (Schema)
@@ -13,7 +11,7 @@ import           Hunt.Index.Schema (Schema)
 import           Control.DeepSeq
 import           Data.Binary
 import           Data.Monoid
-import           Data.Set (Set)
+
 
  -- | Settings for merging of segments.
 data MergePolicy =

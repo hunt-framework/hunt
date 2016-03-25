@@ -23,8 +23,8 @@ import qualified Data.List as L
 import           GHC.Exts (Constraint)
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap      (DocIdMap)
-import           Hunt.Common.Positions     (Positions)
+
+
 import qualified Hunt.Common.DocIdMap      as DM
 import           Hunt.Common.DocIdSet      (DocIdSet)
 import qualified Hunt.Common.DocIdSet      as DS

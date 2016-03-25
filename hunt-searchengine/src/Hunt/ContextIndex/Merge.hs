@@ -26,9 +26,9 @@ import           Hunt.DocTable (DocTable)
 import           Hunt.Index.Schema
 import           Hunt.ContextIndex.Segment
 import qualified Hunt.ContextIndex.Segment as Segment
-import           Hunt.Utility
 
-import           Control.DeepSeq
+
+
 import           Control.Monad
 import           Control.Monad.IO.Class
 import qualified Data.List as List

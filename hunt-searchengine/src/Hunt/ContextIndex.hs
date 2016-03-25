@@ -89,9 +89,9 @@ import           Data.Coerce
 import qualified Data.List                 as List
 import qualified Data.Map.Strict           as Map
 import           Data.Maybe
-import           Data.Monoid
+
 import           Data.Set                  (Set)
-import qualified Data.Set                  as Set
+
 import           Data.Text                 (Text)
 import           Data.Traversable
 

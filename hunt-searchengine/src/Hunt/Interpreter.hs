@@ -38,7 +38,6 @@ import           Control.Monad.Reader
 import           Data.Aeson                    (ToJSON (..), object, (.=))
 import           Data.Binary                   (Binary, encodeFile)
 import           Data.Default
-import           Data.IORef
 import qualified Data.List                     as L
 import qualified Data.Map                      as M
 import           Data.Monoid
@@ -57,9 +56,7 @@ import           Hunt.Common.Document          (Document (..), unwrap)
 import           Hunt.ContextIndex             (ContextIndex)
 import qualified Hunt.ContextIndex             as CIx
 import           Hunt.ContextIndex.Flush       (FlushPolicy (..))
-import qualified Hunt.ContextIndex.Flush       as Flush
 import           Hunt.ContextIndex.Merge       (MergePolicy (..))
-import qualified Hunt.ContextIndex.Merge       as Merge
 import           Hunt.DocTable                 (DocTable, DValue)
 import           Hunt.DocTable.HashedDocTable
 import qualified Hunt.Index                    as Ix
@@ -254,9 +251,6 @@ askIx :: DocTable dt => Hunt dt (ContextIndex dt)
 askIx = do
   ref <- asks huntIndex
   liftIO $ readXMVar ref
-
-askMergePolicy :: Hunt dt MergePolicy
-askMergePolicy = asks huntMergePolicy
 
 -- FIXME: io exception-safe?
 -- | Modify the context index.
@@ -467,9 +461,7 @@ execInsertList docs = do
     let daw = docsAndWords (CIx.schema ixx')
     (ixx'', actions) <- lift $ CIx.insertList daw ixx'
 
-    ix <- asks huntIndex
     q <- asks huntQueue
-
     lift $ atomically $
       forM_ actions (writeTQueue q)
 
@@ -525,7 +517,6 @@ execUpdate doc ixx
             -> do (ixx', actions) <- lift $
                     CIx.modifyWithDescription (adWght doc) (desc docs) ws docId ixx
 
-                  ix <- asks huntIndex
                   q <- asks huntQueue
                   lift $ atomically $
                     forM_ actions (writeTQueue q)

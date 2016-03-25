@@ -11,12 +11,12 @@ where
 import           Data.Foldable
 import           Data.Monoid
 import           Hunt.Common.BasicTypes  (Position)
-import           Hunt.Common.DocIdMap    (DocIdMap)
+
 import qualified Hunt.Common.DocIdMap    as DM
 import           Hunt.Common.DocIdSet    (DocIdSet)
 import qualified Hunt.Common.DocIdSet    as DS
 import           Hunt.Common.Occurrences (Occurrences)
-import qualified Hunt.Common.Occurrences as Occ
+
 import qualified Hunt.Common.Positions   as Pos
 import           Hunt.Scoring.Score
 import           Prelude as P

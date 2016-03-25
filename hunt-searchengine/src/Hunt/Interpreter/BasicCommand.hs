@@ -98,6 +98,7 @@ instance ToJSON StatusCmd where
   toJSON StatusGC          = JS.String "gc"
   toJSON StatusDocTable    = JS.String "doctable"
   toJSON StatusIndex       = JS.String "index"
+  toJSON StatusSchema      = JS.String "schema"
   toJSON (StatusContext c) = object ["context" .= c] -- JS.String $ "context/" `T.append` c
 
 instance FromJSON StatusCmd where
