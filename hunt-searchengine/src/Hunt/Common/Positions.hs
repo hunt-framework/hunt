@@ -14,7 +14,7 @@ module Hunt.Common.Positions where
 import           Control.DeepSeq
 import           Data.Aeson
 import           Data.Binary as B
-import qualified Data.IntSet.Packed as IS
+import qualified Data.IntSet as IS
 import           Data.IntSet.Cache as IS
 import           Data.Maybe (fromMaybe)
 import           Data.Typeable
@@ -101,7 +101,7 @@ foldr op e           = IS.foldr op e . unPS
 
 intersectionWithDispl :: Int -> Positions -> Positions -> Positions
 intersectionWithDispl d (PS s1) (PS s2)
-  = PS $ IS.intersectionWithDispl d s1 s2
+  = undefined -- PS $ IS.intersectionWithDispl d s1 s2
 {-# INLINE intersectionWithDispl #-}
 
 -- | intersction with "fuzzy" element test. All elements @e1@ for which an element @e2@ in @s2'@
@@ -119,6 +119,6 @@ intersectionWithIntervall lb ub (PS s1') (PS s2')
       member' i = minElem <= i + ub
           where
             (_ls, gt) = IS.split  (i + lb - 1) s2'
-            minElem   = fromMaybe (i + ub + 1) (IS.minimum gt)
+            minElem   = undefined -- fromMaybe (i + ub + 1) (IS.minimum gt)
 
 -- ------------------------------------------------------------
