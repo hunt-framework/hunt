@@ -100,8 +100,10 @@ foldr op e           = IS.foldr op e . unPS
 -- useful when searching for sequences of words (phrases)
 
 intersectionWithDispl :: Int -> Positions -> Positions -> Positions
-intersectionWithDispl d (PS s1) (PS s2)
-  = undefined -- PS $ IS.intersectionWithDispl d s1 s2
+intersectionWithDispl d (PS s1') (PS s2')
+  = PS $ IS.filter member' s1'
+  where
+    member' i = (i + d) `IS.member` s2'
 {-# INLINE intersectionWithDispl #-}
 
 -- | intersction with "fuzzy" element test. All elements @e1@ for which an element @e2@ in @s2'@
@@ -119,6 +121,6 @@ intersectionWithIntervall lb ub (PS s1') (PS s2')
       member' i = minElem <= i + ub
           where
             (_ls, gt) = IS.split  (i + lb - 1) s2'
-            minElem   = undefined -- fromMaybe (i + ub + 1) (IS.minimum gt)
+            minElem   = fromMaybe (i + ub + 1) $ fst <$> IS.minView gt
 
 -- ------------------------------------------------------------
