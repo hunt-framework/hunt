@@ -117,6 +117,7 @@ instance GM.MVector UV.MVector DocId where
   {-# INLINE basicUnsafeGrow #-}
 
 #if MIN_VERSION_vector(0,11,0)
+  {-# INLINE basicInitialize #-}
   basicInitialize (MV_DocId v) = GM.basicInitialize v
 #endif
 
