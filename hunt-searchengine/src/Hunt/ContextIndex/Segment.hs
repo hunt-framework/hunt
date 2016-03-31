@@ -388,14 +388,14 @@ batchAddWordsM :: (Functor m, Par.MonadParallel m) =>
 batchAddWordsM [] ix
   = return ix
 batchAddWordsM vs seg
-  = do m' <- mkContextMap <$> mapWithKeyMP ( \cx impl -> foldinsertList cx impl ) m
+  = do m' <- mkContextMap <$> mapWithKeyMP foldInsertList m
        return seg { segIndex = m' }
   where
     ContextMap m = segIndex seg
 
-    foldinsertList :: (Functor m, Monad m) =>
+    foldInsertList :: (Functor m, Monad m) =>
                       Context -> Ix.IndexImpl -> m Ix.IndexImpl
-    foldinsertList cx (Ix.IndexImpl impl)
+    foldInsertList cx (Ix.IndexImpl impl)
       = Ix.mkIndex <$> Ix.insertListM (contentForCx cx vs) impl
 
     -- | Computes the words and occurrences out of a list for one context
@@ -408,10 +408,10 @@ batchAddWordsM vs seg
         getWlForCx
           = Map.findWithDefault Map.empty
 
-    mapWithKeyMP f m =
+    mapWithKeyMP f cx =
       (Par.mapM (\(k, a) -> do b <- f k a
                                return (k, b)
-                ) $ Map.toAscList m) >>= return . Map.fromDistinctAscList
+                ) $ Map.toAscList cx) >>= return . Map.fromDistinctAscList
 
 -- |Creates a new Segment from docs and words.
 fromDocsAndWords :: (Par.MonadParallel m, Applicative m, DocTable dt)
