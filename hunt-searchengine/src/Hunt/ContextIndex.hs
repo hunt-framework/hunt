@@ -178,12 +178,12 @@ insertSegment :: (Monad m, DocTable dt, Binary (DValue dt)) => Segment 'Active d
               -> ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
 insertSegment seg ixx = do
   let
-    sid = ciNextSegmentId ixx
+    sid    = ciNextSegmentId ixx
     frozen = Segment.freeze seg
-    ixx' = ixx { ciSegments =
-                   SegmentMap.insert sid frozen (ciSegments ixx)
-               , ciNextSegmentId = succ sid
-               }
+    ixx'   = ixx { ciSegments =
+                     SegmentMap.insert sid frozen (ciSegments ixx)
+                 , ciNextSegmentId = succ sid
+                 }
 
     -- Check if we can merge Segments with the new Segment inserted into the ContextIndex.
     -- A merge can trigger a cascade of merges until the index is stable and no merges
@@ -197,8 +197,8 @@ insertSegment seg ixx = do
         -- TODO: Make merging symmetric with flushing:
         -- Locking and unlocking of Segments currently happens in Merge module
         -- make it happen here like with flushing.
-        lock :: Lock.SegmentLock
-        lock = Merge.lockFromDescrs mergeDescrs
+        _lock :: Lock.SegmentLock
+        _lock = Merge.lockFromDescrs mergeDescrs
 
         action !descr = IndexAction $ do
             !modIx <- Merge.runMerge Segment.mergeSegments descr
