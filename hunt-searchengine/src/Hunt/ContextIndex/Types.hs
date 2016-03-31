@@ -51,7 +51,7 @@ instance Binary (ContextIndex dt) where
 -- or flushing. An index action can be performed asynchrously
 -- as long as the ContextIndex is eventually applied to the result
 -- of an index action. Invariantly, the resulting function needs
--- to be idempotent. This hopefully obsoletes the dirtiness check.
+-- to be idempotent.
 data IndexAction dt =
   IndexAction { runIxAction :: IO (ContextIndex dt -> IO (ContextIndex dt, [IndexAction dt])) }
 

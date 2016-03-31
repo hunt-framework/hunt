@@ -77,7 +77,7 @@ writeDocTable policy sid seg = liftIO $ do
                  Just doc <- Segment.lookupDocument did seg
 
                  let docEntry = Binary.runPut (Binary.put doc)
-                     size = fromIntegral $ LByteString.length docEntry
+                     size     = fromIntegral $ LByteString.length docEntry
                      dixEntry = Builder.word64BE >*< Builder.word64BE
 
                  hPutBuilder ix $ Builder.primFixed dixEntry (offset, size)
