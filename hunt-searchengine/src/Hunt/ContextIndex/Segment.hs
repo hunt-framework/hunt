@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE Rank2Types                 #-}
+{-# LANGUAGE PatternGuards              #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE DataKinds                  #-}
 module Hunt.ContextIndex.Segment where
@@ -136,7 +137,6 @@ activeDeleteContext cx seg = seg { segIndex = cxm' }
     ContextMap cxm = segIndex seg
     cxm' = mkContextMap $ Map.delete cx cxm
 
-
 -- | Marks given Context as deleted. Only Frozen Segments support marking.
 deleteContext :: Context -> Segment 'Frozen dt -> Segment 'Frozen dt
 deleteContext cx seg = deleteContexts (Set.singleton cx) seg
@@ -196,10 +196,9 @@ activeSegmentCxMap seg = return (segIndex seg)
 --
 diff :: Segment 'Frozen dt -> Segment 'Frozen dt -> SegmentDiff
 diff s1 s2
-  = if (DocIdSet.size (segDeletedDocs s1) < DocIdSet.size (segDeletedDocs s2))
-       || (Set.size (segDeletedCxs s1) < Set.size (segDeletedCxs s2))
-    then diff s2 s1
-    else
+  | DocIdSet.size (segDeletedDocs s1) < DocIdSet.size (segDeletedDocs s2)
+    || Set.size (segDeletedCxs s1) < Set.size (segDeletedCxs s2) = diff s2 s1
+  | otherwise =
       SegmentDiff
       (DocIdSet.difference (segDeletedDocs s1) (segDeletedDocs s2))
       (Set.difference (segDeletedCxs s1) (segDeletedCxs s2))
@@ -239,18 +238,15 @@ searchSegment :: (Monad m, HasSearchResult r)
               -> Segment k dt
               -> m [r]
 searchSegment cx search seg
-  = if Set.notMember cx (segDeletedCxs seg)
-       then case Map.lookup cx (cxMap (segIndex seg)) of
-             Just (Ix.IndexImpl ix)
-               -> do rx <- search ix
-                     return (if DocIdSet.null (segDeletedDocs seg)
-                             then rx
-                             else List.filter testNotEmpty
-                                  . fmap (mapSR delDocs)
-                                  $ rx
-                            )
-             Nothing -> return []
-    else return []
+  | Set.notMember cx (segDeletedCxs seg)
+  , Just (Ix.IndexImpl ix) <- Map.lookup cx (cxMap (segIndex seg)) = do
+      rx <- search ix
+      return $ if DocIdSet.null (segDeletedDocs seg)
+               then rx
+               else List.filter testNotEmpty
+                    . fmap (mapSR delDocs)
+                    $ rx
+  | otherwise = return []
   where
     delDocs
       = SearchResult.srDiffDocs (segDeletedDocs seg)
@@ -265,9 +261,8 @@ lookupDocument :: (Par.MonadParallel m, DocTable dt)
                -> Segment k dt
                -> m (Maybe (DocTable.DValue dt))
 lookupDocument dId s
-  = if not (isDeletedDoc dId s)
-    then DocTable.lookup dId (segDocs s)
-    else return Nothing
+  | not (isDeletedDoc dId s) = DocTable.lookup dId (segDocs s)
+  | otherwise = return Nothing
 
 activeLookupDocument :: (Monad m, DocTable dt) =>
                         DocId -> Segment 'Active dt -> m (Maybe (DocTable.DValue dt))
