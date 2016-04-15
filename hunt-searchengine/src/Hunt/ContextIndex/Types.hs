@@ -2,11 +2,12 @@
 {-# LANGUAGE ExistentialQuantification #-}
 module Hunt.ContextIndex.Types where
 
-import           Hunt.Common.SegmentMap    (SegmentId, SegmentMap)
+import           Hunt.Common.SegmentMap       (SegmentId, SegmentMap)
 
-import           Hunt.ContextIndex.Lock    (SegmentLock)
-import           Hunt.ContextIndex.Segment (Kind (..), Segment)
-import           Hunt.Index.Schema         (Schema)
+import           Hunt.ContextIndex.Lock       (SegmentLock)
+import           Hunt.ContextIndex.Segment    (Kind (..), Segment)
+import           Hunt.DocTable.HashedDocTable (Documents)
+import           Hunt.Index.Schema            (Schema)
 
 import           Control.DeepSeq
 import           Data.Binary
@@ -27,23 +28,23 @@ data FlushPolicy =
               }
 
 -- | The actual index type.
-data ContextIndex dt
-  = ContextIndex { ciActiveSegment :: !(Segment 'Active dt)
-                 , ciSegments      :: !(SegmentMap (Segment 'Frozen dt))
+data ContextIndex
+  = ContextIndex { ciActiveSegment :: !(Segment 'Active)
+                 , ciSegments      :: !(SegmentMap (Segment 'Frozen))
                  , ciSchema        :: !Schema
                  , ciNextSegmentId :: !SegmentId
                  , ciMergePolicy   :: !MergePolicy
                  , ciSegmentLock   :: !SegmentLock
                  }
 
-instance NFData dt => NFData (ContextIndex dt) where
+instance NFData ContextIndex where
   rnf ixx = rnf (ciActiveSegment ixx)
     `seq` rnf (ciSegments ixx)
     `seq` rnf (ciSchema ixx)
     `seq` rnf (ciNextSegmentId ixx)
 
 -- | TODO: remove dummy instance
-instance Binary (ContextIndex dt) where
+instance Binary ContextIndex where
    get = undefined
    put = undefined
 
@@ -52,10 +53,11 @@ instance Binary (ContextIndex dt) where
 -- as long as the ContextIndex is eventually applied to the result
 -- of an index action. Invariantly, the resulting function needs
 -- to be idempotent.
-data IndexAction dt =
-  IndexAction { runIxAction :: IO (ContextIndex dt -> IO (ContextIndex dt, [IndexAction dt])) }
+data IndexAction  = IndexAction {
+  runIxAction :: IO (ContextIndex -> IO (ContextIndex, [IndexAction]))
+  }
 
-instance Monoid (IndexAction dt) where
+instance Monoid IndexAction where
   mempty = IndexAction $
     return $ \ixx -> return (ixx, [])
   mappend x y = IndexAction $ do

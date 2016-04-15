@@ -69,19 +69,19 @@ import           Hunt.Common.Document      as Doc
 import           Hunt.Common.SegmentMap    (SegmentId (..))
 import qualified Hunt.Common.SegmentMap    as SegmentMap
 import qualified Hunt.ContextIndex.Flush   as Flush
+import qualified Hunt.ContextIndex.Lock    as Lock
 import qualified Hunt.ContextIndex.Merge   as Merge
+import           Hunt.ContextIndex.Segment (Docs, Kind (..), Segment)
+import qualified Hunt.ContextIndex.Segment as Segment
 import           Hunt.ContextIndex.Status
 import           Hunt.ContextIndex.Types
-import           Hunt.DocTable             (DocTable, DValue)
+import           Hunt.DocTable             (DValue, DocTable)
 import qualified Hunt.DocTable             as DocTable
 import qualified Hunt.Index                as Ix
 import qualified Hunt.Index.IndexImpl      as Ix
 import           Hunt.Index.Schema
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
-import           Hunt.ContextIndex.Segment (Segment, Kind(..))
-import qualified Hunt.ContextIndex.Segment as Segment
-import qualified Hunt.ContextIndex.Lock    as Lock
 
 import qualified Control.Monad.Parallel    as Par
 import           Data.Binary               (Binary)
@@ -95,7 +95,7 @@ import           Data.Set                  (Set)
 import           Data.Text                 (Text)
 import           Data.Traversable
 
-empty :: (Monad m, DocTable dt) => MergePolicy -> m (ContextIndex dt)
+empty :: (Monad m) => MergePolicy -> m ContextIndex
 empty mergePolicy = do
   active <- Segment.emptySegment mempty
   return ContextIndex { ciActiveSegment = active
@@ -110,15 +110,15 @@ empty mergePolicy = do
 insertContext :: Context
               -> Ix.IndexImpl
               -> ContextSchema
-              -> ContextIndex dt
-              -> ContextIndex dt
+              -> ContextIndex
+              -> ContextIndex
 insertContext cx ix s ixx
   = ixx { ciSchema = Map.insertWith (const id) cx s (ciSchema ixx)
         , ciActiveSegment = Segment.insertContext cx ix (ciActiveSegment ixx)
         }
 
 -- | Removes a `Context` from the index.
-deleteContext :: Context -> ContextIndex dt -> ContextIndex dt
+deleteContext :: Context -> ContextIndex -> ContextIndex
 deleteContext cx ixx
   = ixx { ciSegments = fmap (Segment.deleteContext cx) (ciSegments ixx)
         , ciSchema   = Map.delete cx (ciSchema ixx)
@@ -126,40 +126,40 @@ deleteContext cx ixx
         }
 
 -- | Returns any `Context` which is searched by default.
-defaultContexts :: ContextIndex dt -> [Context]
+defaultContexts :: ContextIndex -> [Context]
 defaultContexts
   = Map.keys . Map.filter cxDefault . ciSchema
 
 -- | Returns all contexts in the index.
-contexts :: ContextIndex dt -> [Context]
+contexts :: ContextIndex -> [Context]
 contexts
   = Map.keys . ciSchema
 
 -- | See `contexts`.
-contextsM :: Monad m => ContextIndex dt -> m [Context]
+contextsM :: Monad m => ContextIndex -> m [Context]
 contextsM
   = return . contexts
 
 -- | Checks for `Context` existence.
-hasContext :: Context -> ContextIndex dt -> Bool
+hasContext :: Context -> ContextIndex -> Bool
 hasContext cx
   = Map.member cx . ciSchema
 
 -- | See `hasContext`.
-hasContextM :: Monad m => Context -> ContextIndex dt -> m Bool
+hasContextM :: Monad m => Context -> ContextIndex -> m Bool
 hasContextM cx
   = return . hasContext cx
 
 -- | Returns the index `Schema`.
-schema :: ContextIndex dt -> Schema
+schema :: ContextIndex -> Schema
 schema = ciSchema
 
 --   This is more efficient than using fold and with 'insert'.
 -- | Insert multiple documents and words.
-insertList :: (Par.MonadParallel m, Applicative m, DocTable dt, Binary (DValue dt))
-           => [(DocTable.DValue dt, Words)]
-           -> ContextIndex dt
-           -> m (ContextIndex dt, [IndexAction dt])
+insertList :: (Par.MonadParallel m, Applicative m, Binary (DValue Docs))
+           => [(DocTable.DValue Docs, Words)]
+           -> ContextIndex
+           -> m (ContextIndex, [IndexAction])
 insertList docsAndWords ixx
  = do active' <- Segment.insertDocsAndWords (ciSchema ixx) docsAndWords (ciActiveSegment ixx)
       -- check if active Segment reached the size threshold.
@@ -174,8 +174,8 @@ insertList docsAndWords ixx
                 return (ixx', mempty)
 
 -- | Inserts a segment into the index. Assigns a `SegmentId` to the `Segment`.
-insertSegment :: (Monad m, DocTable dt, Binary (DValue dt)) => Segment 'Active dt
-              -> ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
+insertSegment :: (Monad m, Binary (DValue Docs)) => Segment 'Active
+              -> ContextIndex -> m (ContextIndex , [IndexAction])
 insertSegment seg ixx = do
   let
     sid    = ciNextSegmentId ixx
@@ -188,8 +188,8 @@ insertSegment seg ixx = do
     -- Check if we can merge Segments with the new Segment inserted into the ContextIndex.
     -- A merge can trigger a cascade of merges until the index is stable and no merges
     -- are required anymore.
-    mkMergeAct :: (Monad m, DocTable dt, Binary (DValue dt)) =>
-                  ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
+    mkMergeAct :: (Monad m, Binary (DValue Docs)) =>
+                  ContextIndex -> m (ContextIndex, [IndexAction])
     mkMergeAct cix = do
       (mergeDescrs, cix') <- Merge.tryMerge cix
 
@@ -214,8 +214,8 @@ insertSegment seg ixx = do
     -- A flush action flushes the just frozen segment to disk. It makes sure
     -- to lock the segment to prevent premature merges until its fully flushed.
     -- After flushing it triggers possible merges.
-    mkFlushAct :: (Monad m, DocTable dt, Binary (DValue dt)) => SegmentId
-               -> Segment 'Frozen dt -> ContextIndex dt -> m (ContextIndex dt, [IndexAction dt])
+    mkFlushAct :: (Monad m, Binary (DValue Docs)) => SegmentId
+               -> Segment 'Frozen -> ContextIndex -> m (ContextIndex, [IndexAction])
     mkFlushAct segId segment cix = do
       let cix' = cix { ciSegmentLock = Lock.lock segId (ciSegmentLock cix)
                      }
@@ -231,13 +231,13 @@ insertSegment seg ixx = do
 
 -- | Modify the descirption of a document and add words
 --   (occurrences for that document) to the index.
-modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt, Binary (DValue dt))
+modifyWithDescription :: (Par.MonadParallel m, Applicative m, Binary (DValue Docs))
                       => Score
                       -> Description
                       -> Words
                       -> DocId
-                      -> ContextIndex dt
-                      -> m (ContextIndex dt, [IndexAction dt])
+                      -> ContextIndex
+                      -> m (ContextIndex, [IndexAction])
 modifyWithDescription weight descr wrds dId ixx
     = do let as = ciActiveSegment ixx
          -- The active segment is always in memory and mutable
@@ -279,7 +279,7 @@ searchWithCx :: Par.MonadParallel m
              => TextSearchOp
              -> Context
              -> Text
-             -> ContextIndex dt
+             -> ContextIndex
              -> m [(Text, SearchResult)]
 searchWithCx op cx w ix
   = lookupIndex cx ix merge (Ix.searchM op w)
@@ -288,7 +288,7 @@ searchWithCxSc :: Par.MonadParallel m
                => TextSearchOp
                -> Context
                -> Text
-               -> ContextIndex dt
+               -> ContextIndex
                -> m [(Text, (Score, SearchResult))]
 searchWithCxSc op cx w ix
   = lookupIndex cx ix merge (Ix.searchMSc op w)
@@ -297,7 +297,7 @@ lookupRangeCx :: Par.MonadParallel m
               => Context
               -> Text
               -> Text
-              -> ContextIndex dt
+              -> ContextIndex
               -> m [(Text, SearchResult)]
 lookupRangeCx c k1 k2 ix
   = lookupIndex c ix merge (Ix.lookupRangeM k1 k2)
@@ -306,14 +306,14 @@ lookupRangeCxSc :: Par.MonadParallel m
                 => Context
                 -> Text
                 -> Text
-                -> ContextIndex dt
+                -> ContextIndex
                 -> m [(Text, (Score, SearchResult))]
 lookupRangeCxSc c k1 k2 ix
   = lookupIndex c ix merge (Ix.lookupRangeMSc k1 k2)
 
 lookupAllWithCx :: Par.MonadParallel m
                 => Context
-                -> ContextIndex dt
+                -> ContextIndex
                 -> m [(Text, SearchResult)]
 lookupAllWithCx c ix
   = lookupIndex c ix merge Ix.toListM
@@ -324,7 +324,7 @@ lookupAllWithCx c ix
 --   This pattern is used in all search variants
 lookupIndex :: (Par.MonadParallel m, Segment.HasSearchResult r)
             => Context
-            -> ContextIndex dt
+            -> ContextIndex
             -> ([[r]] -> [r])
             -> (forall i . Ix.IndexImplCon i => i -> m [r])
             -> m [r]
@@ -339,9 +339,9 @@ merge
   = Map.toList . Map.unionsWith mappend . fmap Map.fromList
 {-# INLINE merge #-}
 
-lookupDocumentByURI :: (Par.MonadParallel m, DocTable dt)
+lookupDocumentByURI :: (Par.MonadParallel m)
                     => URI
-                    -> ContextIndex dt
+                    -> ContextIndex
                     -> m (Maybe DocId)
 lookupDocumentByURI docUri ixx
   = do dx <- mapIxsP (Segment.lookupDocumentByURI docUri) ixx
@@ -349,46 +349,46 @@ lookupDocumentByURI docUri ixx
          . listToMaybe
          . catMaybes $ dx
 
-lookupDocument :: (Par.MonadParallel m, DocTable dt)
+lookupDocument :: (Par.MonadParallel m)
                => DocId
-               -> ContextIndex dt
-               -> m (Maybe (DocTable.DValue dt))
+               -> ContextIndex
+               -> m (Maybe (DocTable.DValue Docs))
 lookupDocument dId ixx
   = do dx <- mapIxsP (Segment.lookupDocument dId) ixx
        return
          . listToMaybe
          . catMaybes $ dx
 
-selectDocuments :: (Par.MonadParallel m, Applicative m, DocTable dt)
+selectDocuments :: (Par.MonadParallel m, Applicative m)
                 => DocIdSet
-                -> ContextIndex dt
-                -> m (DocIdMap (DocTable.DValue dt))
+                -> ContextIndex
+                -> m (DocIdMap (DocTable.DValue Docs))
 selectDocuments dIds ixx
   = do dx <- mapIxsP (Segment.selectDocuments dIds) ixx
        return (DocIdMap.unionsWith undefined dx)
 
 -- | Is the document part of the index?
-member :: (Par.MonadParallel m, Applicative m, DocTable dt)
+member :: (Par.MonadParallel m, Applicative m)
        => URI
-       -> ContextIndex dt
+       -> ContextIndex
        -> m Bool
 member u ixx = do
   mems <- mapIxsP (DocTable.lookupByURI u . Segment.segDocs) ixx
   return (List.any isJust mems)
 
 -- | Delete a set of documents by 'DocId'.
-delete :: (Par.MonadParallel m, DocTable dt)
+delete :: (Par.MonadParallel m)
        => DocIdSet
-       -> ContextIndex dt
-       -> m (ContextIndex dt)
+       -> ContextIndex
+       -> m ContextIndex
 delete dIds ixx
     | DocIdSet.null dIds = return ixx
     | otherwise          = delete' dIds ixx
 
-delete' :: (Par.MonadParallel m, DocTable dt)
+delete' :: (Par.MonadParallel m)
         => DocIdSet
-        -> ContextIndex dt
-        -> m (ContextIndex dt)
+        -> ContextIndex
+        -> m ContextIndex
 delete' dIds ixx
   = do sm <- for (ciSegments ixx) (return . Segment.deleteDocs dIds)
        as <- Segment.activeDeleteDocs dIds (ciActiveSegment ixx)
@@ -397,10 +397,10 @@ delete' dIds ixx
                   }
 
 -- | Delete a set of documents by 'URI'.
-deleteDocsByURI :: (Par.MonadParallel m, Applicative m, DocTable dt)
+deleteDocsByURI :: (Par.MonadParallel m, Applicative m)
                 => Set URI
-                -> ContextIndex dt
-                -> m (ContextIndex dt)
+                -> ContextIndex
+                -> m ContextIndex
 deleteDocsByURI us ixx
   = do sx <- for (ciSegments ixx) (Segment.deleteDocsByURI us)
        as <- Segment.activeDeleteDocsByURI us (ciActiveSegment ixx)
@@ -408,7 +408,7 @@ deleteDocsByURI us ixx
                   , ciActiveSegment = as
                   }
 
-mapIxsP :: Par.MonadParallel m => (forall k. Segment k dt -> m a) -> ContextIndex dt -> m [a]
+mapIxsP :: Par.MonadParallel m => (forall k. Segment k -> m a) -> ContextIndex -> m [a]
 mapIxsP f ixx
   = Par.mapM f . (coerce (ciActiveSegment ixx):) . fmap snd . SegmentMap.toList . ciSegments $ ixx
 {-# INLINE mapIxsP #-}

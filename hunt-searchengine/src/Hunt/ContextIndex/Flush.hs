@@ -13,7 +13,7 @@ import qualified Hunt.Common.SegmentMap as SegmentMap
 import           Hunt.ContextIndex.Types
 import           Hunt.DocTable (DocTable, DValue)
 import qualified Hunt.DocTable as DocTable
-import           Hunt.ContextIndex.Segment (Segment (..), Kind(..))
+import           Hunt.ContextIndex.Segment (Docs, Segment (..), Kind(..))
 import qualified Hunt.ContextIndex.Segment as Segment
 
 import qualified Data.ByteString.Lazy as LByteString
@@ -32,8 +32,8 @@ import qualified Data.Vector.Unboxed as UVector
 import qualified Data.Vector.Unboxed.Mutable as UMVector
 
 -- | Runs a `Flush` and writes files to the index directory. This operation is atomic.
-runFlush :: (MonadIO m, DocTable dt, Binary.Binary (DValue dt)) =>
-            FlushPolicy -> SegmentId -> Segment 'Frozen dt -> m (ContextIndex dt -> ContextIndex dt)
+runFlush :: (MonadIO m, Binary.Binary (DValue Docs)) =>
+            FlushPolicy -> SegmentId -> Segment 'Frozen -> m (ContextIndex -> ContextIndex)
 runFlush policy sid seg = do
   !dix <- writeDocTable policy sid seg
   return $ \ixx ->
@@ -49,8 +49,8 @@ data DocTableIndex =
       , dtiDocInfo :: !(UVector.Vector (Word64, Word64))
       }
 
-writeDocTable :: (MonadIO m, Binary.Binary (DValue dt), DocTable dt) =>
-                 FlushPolicy -> SegmentId -> Segment 'Frozen dt -> m DocTableIndex
+writeDocTable :: (MonadIO m, Binary.Binary (DValue Docs)) =>
+                 FlushPolicy -> SegmentId -> Segment 'Frozen -> m DocTableIndex
 writeDocTable policy sid seg = liftIO $ do
 
   withFile dtIxFile WriteMode $ \ix -> do

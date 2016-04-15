@@ -118,12 +118,12 @@ data ProcessEnv
 -- Processor monad
 -- ------------------------------------------------------------
 
-data QueryIndex = forall dt. QIx (ContextIndex dt)
+newtype QueryIndex = QIx ContextIndex
 
-mkQueryIndex :: forall dt. ContextIndex dt -> QueryIndex
+mkQueryIndex :: ContextIndex -> QueryIndex
 mkQueryIndex = QIx
 
-runQuery :: Monad m => QueryIndex -> (forall dt. ContextIndex dt -> m a) -> m a
+runQuery :: Monad m => QueryIndex -> (ContextIndex -> m a) -> m a
 runQuery (QIx ixx) f = f ixx
 
 -- | the processor monad

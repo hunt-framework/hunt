@@ -27,6 +27,7 @@ import           Hunt.Common.Document (Document,
                                        DocumentWrapper (wrap, unwrap))
 import           Prelude hiding (Word, filter, lookup, map, null)
 
+
 -- ------------------------------------------------------------
 
 -- | The document table type class which needs to be implemented to be used by the 'Interpreter'.

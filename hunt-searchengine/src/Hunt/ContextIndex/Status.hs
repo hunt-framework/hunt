@@ -34,7 +34,7 @@ data Status =
          , statSegSizes :: SegmentMap (Int, Int, Float)
          }
 
-status :: (Monad m, DocTable dt) => ContextIndex dt -> m Status
+status :: (Monad m) => ContextIndex -> m Status
 status ixx = do
   segSzs <- for (ciSegments ixx) $ \s ->
     (,,) <$> segmentSize s <*> segmentSize' s <*> segmentDeletedDocsRatio s
