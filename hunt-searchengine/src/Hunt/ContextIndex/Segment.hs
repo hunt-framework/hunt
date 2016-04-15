@@ -54,7 +54,6 @@ data Kind = Active
 
 type Docs = DocTable.Documents Document
 
-
 data Segment (k :: Kind)
   = Segment { segIndex       :: !ContextMap
             , segNumDocs     :: !Int
@@ -144,7 +143,7 @@ activeDeleteContext cx seg = seg { segIndex = cxm' }
 
 -- | Marks given Context as deleted. Only Frozen Segments support marking.
 deleteContext :: Context -> Segment 'Frozen -> Segment 'Frozen
-deleteContext cx seg = deleteContexts (Set.singleton cx) seg
+deleteContext cx = deleteContexts (Set.singleton cx)
 
 deleteContexts :: Set Context -> Segment 'Frozen -> Segment 'Frozen
 deleteContexts cxs seg

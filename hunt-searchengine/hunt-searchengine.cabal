@@ -106,6 +106,7 @@ library
                   Hunt.DocTable.HashedDocTable
 
                   Hunt.ContextIndex
+                  Hunt.ContextIndex.Documents
                   Hunt.ContextIndex.Flush
                   Hunt.ContextIndex.Lock
                   Hunt.ContextIndex.Merge

@@ -15,6 +15,7 @@ import           Hunt.DocTable (DocTable, DValue)
 import qualified Hunt.DocTable as DocTable
 import           Hunt.ContextIndex.Segment (Docs, Segment (..), Kind(..))
 import qualified Hunt.ContextIndex.Segment as Segment
+import qualified Hunt.ContextIndex.Documents as Docs
 
 import qualified Data.ByteString.Lazy as LByteString
 import           Data.ByteString.Builder (hPutBuilder)
@@ -37,20 +38,12 @@ runFlush :: (MonadIO m, Binary.Binary (DValue Docs)) =>
 runFlush policy sid seg = do
   !dix <- writeDocTable policy sid seg
   return $ \ixx ->
-    ixx { ciSegments =
-            SegmentMap.insertWith (\_ s -> s { segDocs = DocTable.empty }) sid seg (ciSegments ixx)
+    ixx { ciSegments = ciSegments ixx
+--            SegmentMap.insertWith (\_ s -> s { segDocs = DocTable.empty }) sid seg (ciSegments ixx)
         }
 
--- |A DocTableIndex represents an on-disk DocTable. dtiDocIds is oredered strictly
--- monotone. While dtiDocInfo contains the on-disk offset and size of the document.
--- This structure allows document access with exactly one disk-seek.
-data DocTableIndex =
-  DTI { dtiDocIds :: !(UVector.Vector DocId)
-      , dtiDocInfo :: !(UVector.Vector (Word64, Word64))
-      }
-
 writeDocTable :: (MonadIO m, Binary.Binary (DValue Docs)) =>
-                 FlushPolicy -> SegmentId -> Segment 'Frozen -> m DocTableIndex
+                 FlushPolicy -> SegmentId -> Segment 'Frozen -> m Docs.DocTableIndex
 writeDocTable policy sid seg = liftIO $ do
 
   withFile dtIxFile WriteMode $ \ix -> do
@@ -95,9 +88,9 @@ writeDocTable policy sid seg = liftIO $ do
       dtIx <- UVector.unsafeFreeze mDtIx
       dtInfo <- UVector.unsafeFreeze mDtInfo
 
-      return DTI { dtiDocIds = dtIx
-                 , dtiDocInfo = dtInfo
-                 }
+      return Docs.DTI { Docs.dtiDocIds = dtIx
+                      , Docs.dtiDocInfo = dtInfo
+                      }
   where
     dtIxFile = fpFlushDirectory policy </> show sid <.> "dix"
     dtDocFile = fpFlushDirectory policy </> show sid <.> "dt"
