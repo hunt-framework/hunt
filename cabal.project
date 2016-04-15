@@ -1,0 +1,8 @@
+packages: html-hunter/
+          hunt-client/
+          -- hunt-compression/
+          hunt-crawler/
+          hunt-searchengine/
+          hunt-server/
+          hunt-server-cli/
+          
