@@ -7,8 +7,9 @@ import           Hunt.DocTable.HashedDocTable (Documents)
 import qualified Hunt.DocTable.HashedDocTable as Documents
 import qualified Hunt.DocTable                as DocTable
 
-import Control.Monad.IO.Class
-import Control.DeepSeq
+import           Control.Arrow
+import           Control.DeepSeq
+import           Control.Monad.IO.Class
 import qualified Data.Vector.Unboxed          as UVector
 import           Data.Word
 
@@ -57,10 +58,8 @@ disjoint (DtIxed _ ix1) (DtIxed _ ix2) = undefined
 disjoint _ _ = undefined
 
 insert :: Monad m => Document -> DocTable -> m (DocId, DocTable)
-insert doc (DtDocs docs) = do
-  (did, dt) <- DocTable.insert doc docs
-  return (did, DtDocs dt)
-insert doc (DtIxed _ _) = undefined
+insert doc (DtDocs docs) = second DtDocs <$> DocTable.insert doc docs
+insert doc (DtIxed _ _)  = undefined
 
 update :: Monad m => DocId -> Document -> DocTable -> m DocTable
 update did doc (DtDocs docs) = DtDocs <$> DocTable.update did doc docs
