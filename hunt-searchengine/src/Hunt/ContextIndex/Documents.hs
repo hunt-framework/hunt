@@ -1,5 +1,7 @@
 module Hunt.ContextIndex.Documents where
 
+import Hunt.Common.DocIdSet (DocIdSet)
+import Hunt.Common.DocIdMap (DocIdMap)
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId            (DocId)
 import           Hunt.Common.Document         (Document)
@@ -25,11 +27,14 @@ instance NFData DocTableIndex where
   rnf dt = rnf (dtiDocIds dt) `seq` rnf (dtiDocInfo dt) `seq` ()
 
 data DocTable = DtDocs !(Documents Document)
-              | DtIxed !(DocId -> IO Document) !DocTableIndex
+              | DtIxed !(Word64 -> Word64 -> IO Document) !DocTableIndex
 
 instance NFData DocTable where
   rnf (DtDocs docs) = rnf docs `seq` ()
   rnf (DtIxed get ixed) = get `seq` rnf ixed `seq` ()
+
+empty :: DocTable
+empty = DtDocs DocTable.empty
 
 null :: Monad m => DocTable -> m Bool
 null (DtDocs docs) = DocTable.null docs
@@ -65,6 +70,34 @@ update :: Monad m => DocId -> Document -> DocTable -> m DocTable
 update did doc (DtDocs docs) = DtDocs <$> DocTable.update did doc docs
 update did doc (DtIxed _ _ ) = undefined
 
+delete :: Monad m => DocId -> DocTable -> m DocTable
+delete did (DtDocs docs) = DtDocs <$> DocTable.delete did docs
+delete did (DtIxed _ _)  = undefined
+
+difference :: Monad m => DocIdSet -> DocTable -> m DocTable
+difference dids (DtDocs docs) = DtDocs <$> DocTable.difference dids docs
+difference dids (DtIxed _ _ ) = undefined
+
+map :: Monad m => (Document -> Document) -> DocTable -> m DocTable
+map f (DtDocs docs) = DtDocs <$> DocTable.map f docs
+map f (DtIxed _ _ ) = undefined
+
+filter :: Monad m => (Document -> Bool) -> DocTable -> m DocTable
+filter f (DtDocs docs) = DtDocs <$> DocTable.filter f docs
+filter f (DtIxed _ _) = undefined
+
+restrict :: Monad m => DocIdSet -> DocTable -> m DocTable
+restrict dids (DtDocs docs) = DtDocs <$> DocTable.restrict dids docs
+restrict dids (DtIxed _ _)  = undefined
+
+toMap :: Monad m => DocTable -> m (DocIdMap Document)
+toMap (DtDocs docs) = DocTable.toMap docs
+toMap (DtIxed _ _) = undefined
+
+docIds :: Monad m => DocTable -> m DocIdSet
+docIds (DtDocs docs) = DocTable.docIds docs
+docIds (DtIxed _ _) = undefined
+
 instance DocTable.DocTable DocTable where
   type DValue DocTable = Document
   type Cxt m DocTable = (MonadIO m)
@@ -76,3 +109,11 @@ instance DocTable.DocTable DocTable where
   disjoint    = Hunt.ContextIndex.Documents.disjoint
   insert      = Hunt.ContextIndex.Documents.insert
   update      = Hunt.ContextIndex.Documents.update
+  delete      = Hunt.ContextIndex.Documents.delete
+  difference  = Hunt.ContextIndex.Documents.difference
+  map         = Hunt.ContextIndex.Documents.map
+  filter      = Hunt.ContextIndex.Documents.filter
+  restrict    = Hunt.ContextIndex.Documents.restrict
+  toMap       = Hunt.ContextIndex.Documents.toMap
+  docIds      = Hunt.ContextIndex.Documents.docIds
+  empty       = Hunt.ContextIndex.Documents.empty
