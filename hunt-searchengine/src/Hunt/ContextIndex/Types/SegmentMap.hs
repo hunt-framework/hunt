@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Hunt.Common.SegmentMap where
+module Hunt.ContextIndex.Types.SegmentMap where
 
 import           Control.Arrow
 import           Control.DeepSeq

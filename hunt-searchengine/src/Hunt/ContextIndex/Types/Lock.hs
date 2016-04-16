@@ -1,8 +1,8 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Hunt.ContextIndex.Lock where
+module Hunt.ContextIndex.Types.Lock where
 
-import           Hunt.Common.SegmentMap (SegmentId, SegmentMap)
-import qualified Hunt.Common.SegmentMap as SegmentMap
+import           Hunt.ContextIndex.Types.SegmentMap (SegmentId, SegmentMap)
+import qualified Hunt.ContextIndex.Types.SegmentMap as SegmentMap
 
 import           Control.DeepSeq
 

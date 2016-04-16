@@ -17,21 +17,19 @@ module Hunt.ContextIndex.Merge (
   , runMerge
   ) where
 
-import           Hunt.Common.SegmentMap (SegmentId (..), SegmentMap)
-import qualified Hunt.Common.SegmentMap as SegmentMap
-import           Hunt.ContextIndex.Types
-import           Hunt.ContextIndex.Lock (SegmentLock)
-import qualified Hunt.ContextIndex.Lock as Lock
-import           Hunt.DocTable (DocTable)
-import           Hunt.Index.Schema
 import           Hunt.ContextIndex.Segment
-import qualified Hunt.ContextIndex.Segment as Segment
-
-
+import qualified Hunt.ContextIndex.Segment          as Segment
+import           Hunt.ContextIndex.Types
+import           Hunt.ContextIndex.Types.Lock       (SegmentLock)
+import qualified Hunt.ContextIndex.Types.Lock       as Lock
+import           Hunt.ContextIndex.Types.SegmentMap (SegmentId (..), SegmentMap)
+import qualified Hunt.ContextIndex.Types.SegmentMap as SegmentMap
+import           Hunt.DocTable                      (DocTable)
+import           Hunt.Index.Schema
 
 import           Control.Monad
 import           Control.Monad.IO.Class
-import qualified Data.List as List
+import qualified Data.List                          as List
 import           Data.Monoid
 import           Data.Ord
 

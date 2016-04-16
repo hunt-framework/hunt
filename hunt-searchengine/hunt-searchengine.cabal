@@ -85,7 +85,6 @@ library
                   Hunt.Common.Document
                   Hunt.Common.Occurrences
                   Hunt.Common.Positions
-                  Hunt.Common.SegmentMap
 
                   Hunt.Index.Schema
                   Hunt.Index.Schema.Analyze
@@ -108,12 +107,13 @@ library
                   Hunt.ContextIndex
                   Hunt.ContextIndex.Documents
                   Hunt.ContextIndex.Flush
-                  Hunt.ContextIndex.Lock
                   Hunt.ContextIndex.Merge
                   Hunt.ContextIndex.Segment
                   Hunt.ContextIndex.Status
                   Hunt.ContextIndex.Types
-
+                  Hunt.ContextIndex.Types.Lock
+                  Hunt.ContextIndex.Types.SegmentMap
+                  
                   Hunt.Interpreter
                   Hunt.Interpreter.BasicCommand
                   Hunt.Interpreter.Command

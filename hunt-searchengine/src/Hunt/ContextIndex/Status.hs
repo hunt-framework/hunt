@@ -17,8 +17,8 @@ import           Hunt.Common.SegmentMap (SegmentMap, SegmentId(..))
 import qualified Hunt.Common.SegmentMap as SegmentMap
 -}
 
-import Hunt.Common.SegmentMap (SegmentMap)
-import qualified Hunt.Common.SegmentMap as SegmentMap
+import Hunt.ContextIndex.Types.SegmentMap (SegmentMap)
+import qualified Hunt.ContextIndex.Types.SegmentMap as SegmentMap
 import Hunt.DocTable
 import Hunt.ContextIndex.Types
 import Hunt.ContextIndex.Segment as Segment

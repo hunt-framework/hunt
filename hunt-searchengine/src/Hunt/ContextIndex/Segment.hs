@@ -6,24 +6,23 @@
 {-# LANGUAGE DataKinds                  #-}
 module Hunt.ContextIndex.Segment where
 
-import           Prelude                   hiding (Word, mapM)
+import           Prelude hiding (Word, mapM)
 
-import qualified Hunt.ContextIndex.Documents as Docs
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap      (DocIdMap)
-import           Hunt.Common.DocIdSet      (DocIdSet)
-import qualified Hunt.Common.DocIdSet      as DocIdSet
-import           Hunt.Common.Document      (Document)
-import           Hunt.Common.Occurrences   (Occurrences)
-import qualified Hunt.Common.Occurrences   as Occ
-import           Hunt.Common.SegmentMap    (SegmentMap)
-import qualified Hunt.Common.SegmentMap    as SegmentMap
-import           Hunt.DocTable             (DocTable)
-import qualified Hunt.DocTable             as DocTable
-import qualified Hunt.DocTable.HashedDocTable as DocTable
-import qualified Hunt.Index                as Ix
-import qualified Hunt.Index.IndexImpl      as Ix
+import           Hunt.Common.DocIdMap (DocIdMap)
+import           Hunt.Common.DocIdSet (DocIdSet)
+import qualified Hunt.Common.DocIdSet as DocIdSet
+import           Hunt.Common.Document (Document)
+import           Hunt.Common.Occurrences (Occurrences)
+import qualified Hunt.Common.Occurrences as Occ
+import qualified Hunt.ContextIndex.Documents as Docs
+import           Hunt.ContextIndex.Types.SegmentMap (SegmentMap)
+import qualified Hunt.ContextIndex.Types.SegmentMap as SegmentMap
+import           Hunt.DocTable (DocTable)
+import qualified Hunt.DocTable as DocTable
+import qualified Hunt.Index as Ix
+import qualified Hunt.Index.IndexImpl as Ix
 import           Hunt.Index.Schema
 import           Hunt.Scoring.SearchResult (SearchResult)
 import qualified Hunt.Scoring.SearchResult as SearchResult
@@ -33,15 +32,15 @@ import           Control.Arrow
 import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.IO.Class
-import qualified Control.Monad.Parallel    as Par
+import qualified Control.Monad.Parallel as Par
 import           Data.Coerce
-import qualified Data.List                 as List
-import           Data.Map.Strict           (Map)
-import qualified Data.Map.Strict           as Map
+import qualified Data.List as List
+import           Data.Map.Strict (Map)
+import qualified Data.Map.Strict as Map
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Set                  (Set)
-import qualified Data.Set                  as Set
+import           Data.Set (Set)
+import qualified Data.Set as Set
 import           Unsafe.Coerce
 
 newtype ContextMap

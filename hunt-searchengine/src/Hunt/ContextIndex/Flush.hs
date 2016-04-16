@@ -8,9 +8,9 @@ module Hunt.ContextIndex.Flush(
 
 import           Hunt.Common.DocId (DocId)
 import qualified Hunt.Common.DocIdSet as DocIdSet
-import           Hunt.Common.SegmentMap (SegmentId)
-import qualified Hunt.Common.SegmentMap as SegmentMap
 import           Hunt.ContextIndex.Types
+import           Hunt.ContextIndex.Types.SegmentMap (SegmentId)
+import qualified Hunt.ContextIndex.Types.SegmentMap as SegmentMap
 import           Hunt.DocTable (DocTable, DValue)
 import qualified Hunt.DocTable as DocTable
 import           Hunt.ContextIndex.Segment (Docs, Segment (..), Kind(..))

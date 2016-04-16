@@ -59,40 +59,40 @@ module Hunt.ContextIndex (
   ) where
 
 import           Hunt.Common.BasicTypes
-import qualified Hunt.Common.DocDesc       as DocDesc
+import qualified Hunt.Common.DocDesc                as DocDesc
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap      (DocIdMap)
-import qualified Hunt.Common.DocIdMap      as DocIdMap
-import           Hunt.Common.DocIdSet      (DocIdSet)
-import qualified Hunt.Common.DocIdSet      as DocIdSet
-import           Hunt.Common.Document      as Doc
-import           Hunt.Common.SegmentMap    (SegmentId (..))
-import qualified Hunt.Common.SegmentMap    as SegmentMap
-import qualified Hunt.ContextIndex.Flush   as Flush
-import qualified Hunt.ContextIndex.Lock    as Lock
-import qualified Hunt.ContextIndex.Merge   as Merge
-import           Hunt.ContextIndex.Segment (Docs, Kind (..), Segment)
-import qualified Hunt.ContextIndex.Segment as Segment
+import           Hunt.Common.DocIdMap               (DocIdMap)
+import qualified Hunt.Common.DocIdMap               as DocIdMap
+import           Hunt.Common.DocIdSet               (DocIdSet)
+import qualified Hunt.Common.DocIdSet               as DocIdSet
+import           Hunt.Common.Document               as Doc
+import qualified Hunt.ContextIndex.Flush            as Flush
+import qualified Hunt.ContextIndex.Merge            as Merge
+import           Hunt.ContextIndex.Segment          (Docs, Kind (..), Segment)
+import qualified Hunt.ContextIndex.Segment          as Segment
 import           Hunt.ContextIndex.Status
 import           Hunt.ContextIndex.Types
-import           Hunt.DocTable             (DValue, DocTable)
-import qualified Hunt.DocTable             as DocTable
-import qualified Hunt.Index                as Ix
-import qualified Hunt.Index.IndexImpl      as Ix
+import qualified Hunt.ContextIndex.Types.Lock       as Lock
+import           Hunt.ContextIndex.Types.SegmentMap (SegmentId (..))
+import qualified Hunt.ContextIndex.Types.SegmentMap as SegmentMap
+import           Hunt.DocTable                      (DValue)
+import qualified Hunt.DocTable                      as DocTable
+import qualified Hunt.Index                         as Ix
+import qualified Hunt.Index.IndexImpl               as Ix
 import           Hunt.Index.Schema
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
 
-import qualified Control.Monad.Parallel    as Par
-import           Data.Binary               (Binary)
+import qualified Control.Monad.Parallel             as Par
+import           Data.Binary                        (Binary)
 import           Data.Coerce
-import qualified Data.List                 as List
-import qualified Data.Map.Strict           as Map
+import qualified Data.List                          as List
+import qualified Data.Map.Strict                    as Map
 import           Data.Maybe
 
-import           Data.Set                  (Set)
+import           Data.Set                           (Set)
 
-import           Data.Text                 (Text)
+import           Data.Text                          (Text)
 import           Data.Traversable
 
 type RunCIx m = ( Segment.RunSegment m
