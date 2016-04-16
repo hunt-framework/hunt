@@ -43,31 +43,31 @@ class (DocumentWrapper (DValue i), NFData i) => DocTable i where
     type Cxt (m :: * -> *) i :: Constraint
 
     -- | Test whether the document table is empty.
-    null            :: Cxt m i => i -> m Bool
+    null            :: (Cxt m i, Monad m) => i -> m Bool
 
     -- | Returns the number of unique documents in the table.
-    size            :: Cxt m i => i -> m Int
+    size            :: (Cxt m i, Monad m) => i -> m Int
 
     -- | Lookup a document by its ID.
-    lookup          :: Cxt m i => DocId -> i -> m (Maybe (DValue i))
+    lookup          :: (Cxt m i, Monad m) => DocId -> i -> m (Maybe (DValue i))
 
     -- | Lookup the 'DocId' of a document by an 'URI'.
-    lookupByURI     :: Cxt m i => URI -> i -> m (Maybe DocId)
+    lookupByURI     :: (Cxt m i, Monad m) => URI -> i -> m (Maybe DocId)
 
     -- | Union of two disjoint document tables. It is assumed, that the
     --   DocIds and the document 'URI's of both indexes are disjoint.
-    union           :: Cxt m i => i -> i -> m i
+    union           :: (Cxt m i, Monad m) => i -> i -> m i
 
     -- | Test whether the 'DocId's of both tables are disjoint.
-    disjoint        :: Cxt m i => i -> i -> m Bool
+    disjoint        :: (Cxt m i, Monad m) => i -> i -> m Bool
 
     -- | Insert a document into the table. Returns a tuple of the 'DocId' for that document and the
     --   new table. If a document with the same 'URI' is already present, its id will be returned
     --   and the table is returned unchanged.
-    insert          :: Cxt m i => DValue i -> i -> m (DocId, i)
+    insert          :: (Cxt m i, Monad m) => DValue i -> i -> m (DocId, i)
 
     -- | Update a document with a certain 'DocId'.
-    update          :: Cxt m i => DocId -> DValue i -> i -> m i
+    update          :: (Cxt m i, Monad m) => DocId -> DValue i -> i -> m i
 
     -- | Update a document by 'DocId' with the result of the provided function.
     adjust          :: (Cxt m i, Monad m) => (DValue i -> m (DValue i)) -> DocId -> i -> m i
@@ -82,7 +82,7 @@ class (DocumentWrapper (DValue i), NFData i) => DocTable i where
         = maybe (return d) (flip (adjust f) d) =<< lookupByURI uri d
 
     -- | Removes the document with the specified 'DocId' from the table.
-    delete          :: Cxt m i => DocId -> i -> m i
+    delete          :: (Cxt m i, Monad m) => DocId -> i -> m i
 
     -- | Removes the document with the specified 'URI' from the table.
     deleteByURI     :: (Cxt m i, Monad m) => URI -> i -> m i
@@ -90,7 +90,7 @@ class (DocumentWrapper (DValue i), NFData i) => DocTable i where
         = maybe (return ds) (flip delete ds) =<< lookupByURI u ds
 
     -- | Deletes a set of documents by 'DocId' from the table.
-    difference      :: Cxt m i => DocIdSet -> i -> m i
+    difference      :: (Cxt m i, Monad m) => DocIdSet -> i -> m i
 
     -- | Deletes a set of documents by 'URI' from the table.
     differenceByURI :: (Cxt m i, Monad m) => Set URI -> i -> m i
@@ -99,17 +99,17 @@ class (DocumentWrapper (DValue i), NFData i) => DocTable i where
         difference ids d
 
     -- | Map a function over all values of the document table.
-    map             :: Cxt m i => (DValue i -> DValue i) -> i -> m i
+    map             :: (Cxt m i, Monad m) => (DValue i -> DValue i) -> i -> m i
 
     -- | Filters all documents that satisfy the predicate.
-    filter          :: Cxt m i => (DValue i -> Bool) -> i -> m i
+    filter          :: (Cxt m i, Monad m) => (DValue i -> Bool) -> i -> m i
 
-    restrict        :: Cxt m i => DocIdSet -> i -> m i
+    restrict        :: (Cxt m i, Monad m) => DocIdSet -> i -> m i
 
     -- | Convert document table to a 'DocIdMap'.
-    toMap           :: Cxt m i => i -> m (DocIdMap (DValue i))
+    toMap           :: (Cxt m i, Monad m) => i -> m (DocIdMap (DValue i))
 
-    docIds          :: Cxt m i => i -> m DocIdSet
+    docIds          :: (Cxt m i, Monad m) => i -> m DocIdSet
 
     -- | Empty 'DocTable'.
     empty           :: i
