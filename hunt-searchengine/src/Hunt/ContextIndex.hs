@@ -95,7 +95,13 @@ import           Data.Set                  (Set)
 import           Data.Text                 (Text)
 import           Data.Traversable
 
-empty :: (Monad m) => MergePolicy -> m ContextIndex
+type RunCIx m = ( Segment.RunSegment m
+                , Functor m
+                , Applicative m
+                , Monad m
+                )
+
+empty :: (RunCIx m) => MergePolicy -> m ContextIndex
 empty mergePolicy = do
   active <- Segment.emptySegment mempty
   return ContextIndex { ciActiveSegment = active
@@ -156,7 +162,7 @@ schema = ciSchema
 
 --   This is more efficient than using fold and with 'insert'.
 -- | Insert multiple documents and words.
-insertList :: (Par.MonadParallel m, Applicative m, Binary (DValue Docs))
+insertList :: (RunCIx m, Par.MonadParallel m, Binary (DValue Docs))
            => [(DocTable.DValue Docs, Words)]
            -> ContextIndex
            -> m (ContextIndex, [IndexAction])
@@ -231,7 +237,7 @@ insertSegment seg ixx = do
 
 -- | Modify the descirption of a document and add words
 --   (occurrences for that document) to the index.
-modifyWithDescription :: (Par.MonadParallel m, Applicative m, Binary (DValue Docs))
+modifyWithDescription :: (RunCIx m, Par.MonadParallel m, Binary (DValue Docs))
                       => Score
                       -> Description
                       -> Words
@@ -339,7 +345,7 @@ merge
   = Map.toList . Map.unionsWith mappend . fmap Map.fromList
 {-# INLINE merge #-}
 
-lookupDocumentByURI :: (Par.MonadParallel m)
+lookupDocumentByURI :: (RunCIx m, Par.MonadParallel m)
                     => URI
                     -> ContextIndex
                     -> m (Maybe DocId)
@@ -349,7 +355,7 @@ lookupDocumentByURI docUri ixx
          . listToMaybe
          . catMaybes $ dx
 
-lookupDocument :: (Par.MonadParallel m)
+lookupDocument :: (RunCIx m, Par.MonadParallel m)
                => DocId
                -> ContextIndex
                -> m (Maybe (DocTable.DValue Docs))
@@ -359,7 +365,7 @@ lookupDocument dId ixx
          . listToMaybe
          . catMaybes $ dx
 
-selectDocuments :: (Par.MonadParallel m, Applicative m)
+selectDocuments :: (RunCIx m, Par.MonadParallel m)
                 => DocIdSet
                 -> ContextIndex
                 -> m (DocIdMap (DocTable.DValue Docs))
@@ -368,7 +374,7 @@ selectDocuments dIds ixx
        return (DocIdMap.unionsWith undefined dx)
 
 -- | Is the document part of the index?
-member :: (Par.MonadParallel m, Applicative m)
+member :: (RunCIx m, Par.MonadParallel m)
        => URI
        -> ContextIndex
        -> m Bool
@@ -377,7 +383,7 @@ member u ixx = do
   return (List.any isJust mems)
 
 -- | Delete a set of documents by 'DocId'.
-delete :: (Par.MonadParallel m)
+delete :: (RunCIx m, Par.MonadParallel m)
        => DocIdSet
        -> ContextIndex
        -> m ContextIndex
@@ -385,7 +391,7 @@ delete dIds ixx
     | DocIdSet.null dIds = return ixx
     | otherwise          = delete' dIds ixx
 
-delete' :: (Par.MonadParallel m)
+delete' :: (RunCIx m, Par.MonadParallel m)
         => DocIdSet
         -> ContextIndex
         -> m ContextIndex
@@ -397,7 +403,7 @@ delete' dIds ixx
                   }
 
 -- | Delete a set of documents by 'URI'.
-deleteDocsByURI :: (Par.MonadParallel m, Applicative m)
+deleteDocsByURI :: (RunCIx m, Par.MonadParallel m)
                 => Set URI
                 -> ContextIndex
                 -> m ContextIndex

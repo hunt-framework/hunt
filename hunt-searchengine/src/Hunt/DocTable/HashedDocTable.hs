@@ -92,6 +92,9 @@ fromMap = fromMap'
 instance (DocumentWrapper e) =>
          DocTable (Documents e) where
   type DValue (Documents e) = e
+
+  type Cxt m (Documents e) = (Monad m)
+
   null        = return . null'
 
   -- Returns the number of unique documents in the table.

@@ -2,12 +2,10 @@
 {-# LANGUAGE ExistentialQuantification #-}
 module Hunt.ContextIndex.Types where
 
-import           Hunt.Common.SegmentMap       (SegmentId, SegmentMap)
-
-import           Hunt.ContextIndex.Lock       (SegmentLock)
-import           Hunt.ContextIndex.Segment    (Kind (..), Segment)
-import           Hunt.DocTable.HashedDocTable (Documents)
-import           Hunt.Index.Schema            (Schema)
+import           Hunt.Common.SegmentMap      (SegmentId, SegmentMap)
+import           Hunt.ContextIndex.Lock      (SegmentLock)
+import           Hunt.ContextIndex.Segment   (Kind (..), Segment)
+import           Hunt.Index.Schema           (Schema)
 
 import           Control.DeepSeq
 import           Data.Binary

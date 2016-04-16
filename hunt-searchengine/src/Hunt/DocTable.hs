@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds   #-}
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE TypeFamilies      #-}
@@ -14,18 +15,19 @@ where
 import           Control.DeepSeq
 import           Control.Monad
 import           Data.Aeson
-import           Data.Maybe (catMaybes)
-import           Data.Set (Set)
-import qualified Data.Set as S
+import           Data.Maybe             (catMaybes)
+import           Data.Set               (Set)
+import qualified Data.Set               as S
+import           GHC.Exts
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdMap (DocIdMap (..))
-import qualified Hunt.Common.DocIdMap as DM
-import           Hunt.Common.DocIdSet (DocIdSet)
-import qualified Hunt.Common.DocIdSet as DS
-import           Hunt.Common.Document (Document,
-                                       DocumentWrapper (wrap, unwrap))
-import           Prelude hiding (Word, filter, lookup, map, null)
+import           Hunt.Common.DocIdMap   (DocIdMap (..))
+import qualified Hunt.Common.DocIdMap   as DM
+import           Hunt.Common.DocIdSet   (DocIdSet)
+import qualified Hunt.Common.DocIdSet   as DS
+import           Hunt.Common.Document   (Document,
+                                         DocumentWrapper (wrap, unwrap))
+import           Prelude                hiding (Word, filter, lookup, map, null)
 
 
 -- ------------------------------------------------------------
@@ -38,74 +40,76 @@ class (DocumentWrapper (DValue i), NFData i) => DocTable i where
     -- | The value type of the document table.
     type DValue i :: *
 
+    type Cxt (m :: * -> *) i :: Constraint
+
     -- | Test whether the document table is empty.
-    null            :: (Monad m) => i -> m Bool
+    null            :: Cxt m i => i -> m Bool
 
     -- | Returns the number of unique documents in the table.
-    size            :: (Monad m) => i -> m Int
+    size            :: Cxt m i => i -> m Int
 
     -- | Lookup a document by its ID.
-    lookup          :: (Monad m) => DocId -> i -> m (Maybe (DValue i))
+    lookup          :: Cxt m i => DocId -> i -> m (Maybe (DValue i))
 
     -- | Lookup the 'DocId' of a document by an 'URI'.
-    lookupByURI     :: (Monad m) => URI -> i -> m (Maybe DocId)
+    lookupByURI     :: Cxt m i => URI -> i -> m (Maybe DocId)
 
     -- | Union of two disjoint document tables. It is assumed, that the
     --   DocIds and the document 'URI's of both indexes are disjoint.
-    union           :: (Monad m) => i -> i -> m i
+    union           :: Cxt m i => i -> i -> m i
 
     -- | Test whether the 'DocId's of both tables are disjoint.
-    disjoint        :: (Monad m) => i -> i -> m Bool
+    disjoint        :: Cxt m i => i -> i -> m Bool
 
     -- | Insert a document into the table. Returns a tuple of the 'DocId' for that document and the
     --   new table. If a document with the same 'URI' is already present, its id will be returned
     --   and the table is returned unchanged.
-    insert          :: (Monad m) => DValue i -> i -> m (DocId, i)
+    insert          :: Cxt m i => DValue i -> i -> m (DocId, i)
 
     -- | Update a document with a certain 'DocId'.
-    update          :: (Monad m) => DocId -> DValue i -> i -> m i
+    update          :: Cxt m i => DocId -> DValue i -> i -> m i
 
     -- | Update a document by 'DocId' with the result of the provided function.
-    adjust          :: (Monad m) => (DValue i -> m (DValue i)) -> DocId -> i -> m i
+    adjust          :: (Cxt m i, Monad m) => (DValue i -> m (DValue i)) -> DocId -> i -> m i
     adjust f did d =
         maybe (return d) (upd d did <=< f) =<< lookup did d
         --maybe d (update d did . f) $ lookup d did
         where upd i docid v = update docid v i
 
     -- | Update a document by 'URI' with the result of the provided function.
-    adjustByURI     :: (Monad m) => (DValue i -> m (DValue i)) -> URI -> i -> m i
+    adjustByURI     :: (Cxt m i, Monad m) => (DValue i -> m (DValue i)) -> URI -> i -> m i
     adjustByURI f uri d
         = maybe (return d) (flip (adjust f) d) =<< lookupByURI uri d
 
     -- | Removes the document with the specified 'DocId' from the table.
-    delete          :: (Monad m) => DocId -> i -> m i
+    delete          :: Cxt m i => DocId -> i -> m i
 
     -- | Removes the document with the specified 'URI' from the table.
-    deleteByURI     :: (Monad m) => URI -> i -> m i
+    deleteByURI     :: (Cxt m i, Monad m) => URI -> i -> m i
     deleteByURI u ds
         = maybe (return ds) (flip delete ds) =<< lookupByURI u ds
 
     -- | Deletes a set of documents by 'DocId' from the table.
-    difference      :: (Monad m) => DocIdSet -> i -> m i
+    difference      :: Cxt m i => DocIdSet -> i -> m i
 
     -- | Deletes a set of documents by 'URI' from the table.
-    differenceByURI :: (Monad m) => Set URI -> i -> m i
+    differenceByURI :: (Cxt m i, Monad m) => Set URI -> i -> m i
     differenceByURI uris d = do -- XXX: eliminate S.toList?
         ids <- liftM (DS.fromList . catMaybes) . mapM (flip lookupByURI d) . S.toList $ uris
         difference ids d
 
     -- | Map a function over all values of the document table.
-    map             :: (Monad m) => (DValue i -> DValue i) -> i -> m i
+    map             :: Cxt m i => (DValue i -> DValue i) -> i -> m i
 
     -- | Filters all documents that satisfy the predicate.
-    filter          :: (Monad m) => (DValue i -> Bool) -> i -> m i
+    filter          :: Cxt m i => (DValue i -> Bool) -> i -> m i
 
-    restrict        :: (Monad m) => DocIdSet -> i -> m i
+    restrict        :: Cxt m i => DocIdSet -> i -> m i
 
     -- | Convert document table to a 'DocIdMap'.
-    toMap           :: (Monad m) => i -> m (DocIdMap (DValue i))
+    toMap           :: Cxt m i => i -> m (DocIdMap (DValue i))
 
-    docIds          :: (Monad m) => i -> m DocIdSet
+    docIds          :: Cxt m i => i -> m DocIdSet
 
     -- | Empty 'DocTable'.
     empty           :: i
@@ -121,13 +125,13 @@ class (DocumentWrapper (DValue i), NFData i) => DocTable i where
 -- ------------------------------------------------------------
 
 -- | JSON dump of the document table.
-toJSON'DocTable :: (Functor m, Monad m, Applicative m, DocTable i) => i -> m Value
+toJSON'DocTable :: (Functor m, Monad m, Applicative m, DocTable i, Cxt m i) => i -> m Value
 toJSON'DocTable dt
     = do didm <- DM.map unwrap <$> toMap dt
          return $ toJSON didm
 
 -- | JSON import of the document table.
-fromJSON'DocTable :: (Functor m, Monad m, Applicative m, DocTable i) => Value -> m i
+fromJSON'DocTable :: (Functor m, Monad m, Applicative m, DocTable i, Cxt m i) => Value -> m i
 fromJSON'DocTable v
     = foldM ins empty $ dm'
       where
