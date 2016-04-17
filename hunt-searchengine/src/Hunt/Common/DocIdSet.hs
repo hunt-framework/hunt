@@ -96,7 +96,7 @@ fromDistinctAscList = DIS . IS.fromDistinctAscList . fmap unDocId
 {-# INLINE fromDistinctAscList #-}
 
 toList :: DocIdSet -> [DocId]
-toList = fmap DocId . IS.toList . unDIS
+toList = fmap DocId . IS.toAscList . unDIS
 {-# INLINE toList #-}
 
 toIntSet :: DocIdSet -> IS.IntSet

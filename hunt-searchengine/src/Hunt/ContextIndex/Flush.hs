@@ -6,6 +6,7 @@ module Hunt.ContextIndex.Flush(
   , FlushPolicy(..)
   ) where
 
+import           Hunt.Common.Document (Document)
 import           Hunt.Common.DocId (DocId)
 import qualified Hunt.Common.DocIdSet as DocIdSet
 import           Hunt.ContextIndex.Types
@@ -17,6 +18,7 @@ import           Hunt.ContextIndex.Segment (Docs, Segment (..), Kind(..))
 import qualified Hunt.ContextIndex.Segment as Segment
 import qualified Hunt.ContextIndex.Documents as Docs
 
+import qualified Data.ByteString as ByteString
 import qualified Data.ByteString.Lazy as LByteString
 import           Data.ByteString.Builder (hPutBuilder)
 import           Data.ByteString.Builder.Prim ((>*<))
@@ -24,6 +26,7 @@ import qualified Data.ByteString.Builder.Prim as Builder
 import           Control.Monad
 import           Control.Monad.IO.Class
 import qualified Data.Binary as Binary
+import qualified Data.Binary.Get as Binary
 import qualified Data.Binary.Put as Binary
 
 import           Data.Word
@@ -38,9 +41,21 @@ runFlush :: (MonadIO m, Binary.Binary (DValue Docs)) =>
 runFlush policy sid seg = do
   !dix <- writeDocTable policy sid seg
   return $ \ixx ->
-    ixx { ciSegments = ciSegments ixx
---            SegmentMap.insertWith (\_ s -> s { segDocs = DocTable.empty }) sid seg (ciSegments ixx)
+    ixx { ciSegments = SegmentMap.insertWith (\_ s ->
+                                                s { segDocs = Docs.DtIxed (readDocument policy sid) dix
+                                                  }) sid seg (ciSegments ixx)
         }
+
+readDocument :: FlushPolicy -> SegmentId -> Word64 -> Word64 -> IO Document
+readDocument policy sid offset size = do
+  h <- openFile (fpFlushDirectory policy </> show sid <.> "dt") ReadMode
+  hSeek h AbsoluteSeek (fromIntegral offset)
+  lbs <- LByteString.hGet h (fromIntegral size)
+  let !doc = Binary.runGetOrFail Binary.get lbs
+  case doc of
+    Left err -> print err >> return undefined
+    Right (_, _, doc') -> do doc' `seq` hClose h
+                             return doc'
 
 writeDocTable :: (MonadIO m, Binary.Binary (DValue Docs)) =>
                  FlushPolicy -> SegmentId -> Segment 'Frozen -> m Docs.DocTableIndex
@@ -64,9 +79,8 @@ writeDocTable policy sid seg = liftIO $ do
       -- and one for the (offset, size) info for the disk seek.
       let numDocs = DocIdSet.size docIds
       mDtIx <- UMVector.unsafeNew numDocs
-      mDtInfo <- UMVector.unsafeNew numDocs
 
-      foldM_ (\(offset, i) did -> do
+      foldM_ (\(!offset, !i) did -> do
                  Just doc <- Segment.lookupDocument did seg
 
                  let docEntry = Binary.runPut (Binary.put doc)
@@ -76,8 +90,7 @@ writeDocTable policy sid seg = liftIO $ do
                  hPutBuilder ix $ Builder.primFixed dixEntry (offset, size)
                  LByteString.hPut docs docEntry
 
-                 UMVector.unsafeWrite mDtIx i did
-                 UMVector.unsafeWrite mDtInfo i (offset, size)
+                 UMVector.unsafeWrite mDtIx i (did, offset, size)
 
                  return (offset + size, i + 1)
                  ) (0, 0) (DocIdSet.toList docIds)
@@ -86,11 +99,7 @@ writeDocTable policy sid seg = liftIO $ do
       hFlush docs
 
       dtIx <- UVector.unsafeFreeze mDtIx
-      dtInfo <- UVector.unsafeFreeze mDtInfo
-
-      return Docs.DTI { Docs.dtiDocIds = dtIx
-                      , Docs.dtiDocInfo = dtInfo
-                      }
+      return (Docs.DTI dtIx)
   where
     dtIxFile = fpFlushDirectory policy </> show sid <.> "dix"
     dtDocFile = fpFlushDirectory policy </> show sid <.> "dt"
