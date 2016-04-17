@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
-module Hunt.ContextIndex.Documents where
+{-# LANGUAGE TypeFamilies #-}
+module Hunt.ContextIndex.Documents (DocTableIndex(..), DocTable(..)) where
 
 import Hunt.Common.DocIdSet (DocIdSet)
 import qualified Hunt.Common.DocIdSet as DocIdSet
@@ -21,6 +22,7 @@ import qualified Data.Vector.Generic as GV
 import qualified Data.Vector.Unboxed          as UVector
 import qualified Data.Vector.Fusion.Bundle as Bundle
 import qualified Data.Vector.Fusion.Bundle.Monadic as MBundle
+import qualified Data.Vector.Fusion.Bundle.Size as Size
 import qualified Data.Vector.Fusion.Stream.Monadic as Stream
 import qualified Data.Vector.Fusion.Util as Fusion
 
@@ -154,9 +156,10 @@ restrictIxed :: DocIdSet
 restrictIxed dids dti =
   DTI (GV.unstream dti'')
   where
-    dti'  = MBundle.fromVector (dtiDocInfo dti)
+    !hint = Size.toMax (fromIntegral (UVector.length (dtiDocInfo dti)))
+    dti'  = MBundle.elements $ MBundle.fromVector (dtiDocInfo dti)
     dids' = MBundle.elements $ MBundle.fromList (DocIdSet.toList dids)
-    dti'' = MBundle.fromStream (intersect cmp (MBundle.elements dti') dids') (MBundle.size dti')
+    dti'' = MBundle.fromStream (intersect cmp dti' dids') hint
     cmp = \(did1, _, _) did2 -> compare did1 did2
 
     {-# INLINE intersect #-}
