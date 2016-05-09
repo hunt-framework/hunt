@@ -218,7 +218,7 @@ filterByDocSet (UDS ds) (SRD xs)
             | otherwise
                 = [(ws, SCD sc occ')]
             where
-              occ' = occ `differenceSC` (mkSRfromUnScoredDocs ds)
+              occ' = occ `intersectSC` (mkSRfromUnScoredDocs ds)
 
 -- ------------------------------------------------------------
 
