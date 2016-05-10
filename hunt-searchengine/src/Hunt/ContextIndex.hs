@@ -27,6 +27,8 @@ module Hunt.ContextIndex (
   , hasContextM
   , schema
 
+  , commit
+
     -- * Queries
   , lookupRangeCx
   , searchWithCx
@@ -159,6 +161,13 @@ hasContextM cx
 -- | Returns the index `Schema`.
 schema :: ContextIndex -> Schema
 schema = ciSchema
+
+-- | Freeze the active segment and flush it to disk regardless of
+--   its size. This may trigger a cascade of merges.
+commit :: RunCIx m => ContextIndex -> m (ContextIndex, [IndexAction])
+commit ixx = do
+  newActive <- Segment.emptySegment (ciSchema ixx)
+  insertSegment (ciActiveSegment ixx) (ixx { ciActiveSegment = newActive })
 
 --   This is more efficient than using fold and with 'insert'.
 -- | Insert multiple documents and words.

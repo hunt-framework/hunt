@@ -28,6 +28,8 @@ module Hunt.Interpreter
   , DefHuntEnv
   ) where
 
+import Hunt.IO.File
+
 import           Control.Arrow                 (second)
 import           Control.Concurrent.Async      as Async
 import           Control.Concurrent.STM
@@ -377,7 +379,7 @@ execCmd' (DeleteByQuery q)
   = flushAndMerge True $ modIx $ execDeleteByQuery q
 
 execCmd' (StoreIx filename)
-  = withIx $ execStore filename
+  = modIx $ execStore filename
 
 execCmd' (LoadIx filename)
   = execLoad filename
@@ -640,8 +642,17 @@ execDeleteByQuery q ixx
 --       http://hackage.haskell.org/package/base/docs/System-IO.html#v:openFile
 
 -- | Serialize a value to a file.
-execStore :: Binary a => FilePath -> a -> Hunt CmdResult
-execStore filename x = do
+execStore :: FilePath -> ContextIndex -> Hunt (ContextIndex, CmdResult)
+execStore filename ixx = do
+  (ixx', actions) <- CIx.commit ixx
+
+  q <- asks huntQueue
+  lift $ atomically $
+    forM_ actions (writeTQueue q)
+
+  return (ixx', ResOK)
+
+{-
   res <- liftIO . tryIOError $ encodeFile filename x
   case res of
       Left  e
@@ -650,7 +661,7 @@ execStore filename x = do
           | isFullError         e -> throwResError 500 $ "Cannot store index: device is full"
           | otherwise             -> throwResError 500 $ showText $ e
       Right _ -> return ResOK
-
+-}
 -- TODO: XMVar functions probably not suited for this, locking for load reasonable
 
 -- | Load a context index.
