@@ -111,9 +111,7 @@ bufferedWriter (W h k z) bufSz = W start step stop
 
 -- | A simple adapter for writing lazy bytestrings.
 lazyByteStringWriter :: Writer IO ByteString a -> Writer IO Lazy.ByteString a
-lazyByteStringWriter (W h k z) = W start step stop
+lazyByteStringWriter (W h k z) = W h step z
   where
-    start = h
     step ws lbs = foldlM k ws (Lazy.toChunks lbs)
-    stop ws = z ws
 {-# INLINE lazyByteStringWriter #-}
