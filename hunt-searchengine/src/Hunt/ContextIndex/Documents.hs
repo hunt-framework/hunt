@@ -2,29 +2,29 @@
 {-# LANGUAGE TypeFamilies #-}
 module Hunt.ContextIndex.Documents (DocTableIndex(..), DocTable(..)) where
 
-import Hunt.Common.DocIdSet (DocIdSet)
-import qualified Hunt.Common.DocIdSet as DocIdSet
-import Hunt.Common.DocIdMap (DocIdMap)
-import qualified Hunt.Common.DocIdMap as DocIdMap
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocId            (DocId)
-import           Hunt.Common.Document         (Document)
-import           Hunt.DocTable.HashedDocTable (Documents)
-import qualified Hunt.DocTable.HashedDocTable as Documents
-import qualified Hunt.DocTable                as DocTable
+import           Hunt.Common.DocId                 (DocId)
+import           Hunt.Common.DocIdMap              (DocIdMap)
+import qualified Hunt.Common.DocIdMap              as DocIdMap
+import           Hunt.Common.DocIdSet              (DocIdSet)
+import qualified Hunt.Common.DocIdSet              as DocIdSet
+import           Hunt.Common.Document              (Document)
+import qualified Hunt.DocTable                     as DocTable
+import           Hunt.DocTable.HashedDocTable      (Documents)
+import qualified Hunt.DocTable.HashedDocTable      as Documents
 
-import Data.Bits
 import           Control.Arrow
 import           Control.DeepSeq
 import           Control.Monad.IO.Class
+import           Data.Bits
 
-import qualified Data.Vector.Generic as GV
-import qualified Data.Vector.Unboxed          as UVector
-import qualified Data.Vector.Fusion.Bundle as Bundle
+import qualified Data.Vector.Fusion.Bundle         as Bundle
 import qualified Data.Vector.Fusion.Bundle.Monadic as MBundle
-import qualified Data.Vector.Fusion.Bundle.Size as Size
+import qualified Data.Vector.Fusion.Bundle.Size    as Size
 import qualified Data.Vector.Fusion.Stream.Monadic as Stream
-import qualified Data.Vector.Fusion.Util as Fusion
+import qualified Data.Vector.Fusion.Util           as Fusion
+import qualified Data.Vector.Generic               as GV
+import qualified Data.Vector.Unboxed               as UVector
 
 import           Data.Word
 

@@ -16,13 +16,11 @@ import           Hunt.DocTable (DocTable, DValue)
 import qualified Hunt.DocTable as DocTable
 import           Hunt.ContextIndex.Segment (Docs, Segment (..), Kind(..))
 import qualified Hunt.ContextIndex.Segment as Segment
-import qualified Hunt.IO.File as IO
 import qualified Hunt.ContextIndex.Documents as Docs
+import qualified Hunt.IO.File as IO
+import           Hunt.IO.Writer
 
-import Hunt.IO.Writer
-
-
-import Control.Exception (bracket)
+import           Control.Exception (bracket)
 import qualified Data.ByteString.Lazy as LByteString
 import           Data.ByteString.Builder (hPutBuilder)
 import           Data.ByteString.Builder.Prim ((>*<))

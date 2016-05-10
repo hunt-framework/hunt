@@ -12,11 +12,11 @@ module Hunt.IO.File (
 import           Hunt.IO.Writer
 
 import           Control.Monad
+import qualified Data.ByteString          as ByteString
 import           Data.ByteString.Internal (ByteString (PS))
 import qualified Data.ByteString.Internal as ByteString
-import qualified Data.ByteString as ByteString
-import qualified Data.ByteString.Unsafe as ByteString
 import qualified Data.ByteString.Lazy     as Lazy
+import qualified Data.ByteString.Unsafe   as ByteString
 import           Data.Word                (Word64, Word8)
 import           Foreign.ForeignPtr
 import           Foreign.Ptr
