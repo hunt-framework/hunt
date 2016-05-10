@@ -11,12 +11,12 @@ module Hunt.IO.File (
 
 import           Hunt.IO.Writer
 
-import           Control.Monad
 import qualified Data.ByteString          as ByteString
 import           Data.ByteString.Internal (ByteString (PS))
 import qualified Data.ByteString.Internal as ByteString
 import qualified Data.ByteString.Lazy     as Lazy
 import qualified Data.ByteString.Unsafe   as ByteString
+import           Data.Foldable
 import           Data.Word                (Word64, Word8)
 import           Foreign.ForeignPtr
 import           Foreign.Ptr
@@ -114,6 +114,6 @@ lazyByteStringWriter :: Writer IO ByteString a -> Writer IO Lazy.ByteString a
 lazyByteStringWriter (W h k z) = W start step stop
   where
     start = h
-    step ws lbs = foldM k ws (Lazy.toChunks lbs)
+    step ws lbs = foldlM k ws (Lazy.toChunks lbs)
     stop ws = z ws
 {-# INLINE lazyByteStringWriter #-}
