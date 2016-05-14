@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE RankNTypes #-}
 module Hunt.IO.Writer where
 
 import           Data.Foldable
@@ -40,7 +41,15 @@ instance Applicative m => Applicative (Writer m a) where
   {-# INLINE (<*>) #-}
 
 runWriter :: (Monad m, Foldable f) => Writer m a b -> f a -> m b
-runWriter (W start step stop) xs = do
-  s <- start
-  stop =<< foldlM step s xs
+runWriter w as = runWriterWith foldlM w as
 {-# INLINE runWriter #-}
+
+runWriterWith :: Monad m
+              => (forall c. (c -> a -> m c) -> c -> t -> m c)
+              -> Writer m a b
+              -> t
+              -> m b
+runWriterWith foldlM' (W start step stop) as = do
+  s <- start
+  stop =<< foldlM' step s as
+{-# INLINE runWriterWith #-}
