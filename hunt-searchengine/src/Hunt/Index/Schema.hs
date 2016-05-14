@@ -15,8 +15,10 @@ module Hunt.Index.Schema
   (
     -- * Types
     Schema
-  , ContextSchema (..)
-  , ContextType (..)
+  , ContextSchema
+  , ContextSchema' (..)
+  , ContextType
+  , ContextType' (..)
   , ContextTypes
   , CValidator (..)
   , CNormalizer (..)
@@ -41,35 +43,35 @@ module Hunt.Index.Schema
   )
 where
 
-import           Prelude hiding (Word)
+import           Prelude                              hiding (Word)
 
+import           Control.Applicative                  ((<|>))
 import           Control.DeepSeq
-import           Control.Applicative ((<|>))
-import           Control.Monad (mzero)
+import           Control.Monad                        (mzero)
 import           Data.Aeson
-import           Data.Binary hiding (Word)
+import           Data.Binary                          hiding (Word)
 import           Data.Default
-import qualified Data.List as L
-import           Data.Map hiding (null)
-import           Data.Maybe (isNothing)
-import           Data.Text hiding (null)
-import qualified Data.Text as T
-import           Data.Text.Binary ()
+import qualified Data.List                            as L
+import           Data.Map                             hiding (null)
+import           Data.Maybe                           (isNothing)
+import           Data.Text                            hiding (null)
+import qualified Data.Text                            as T
+import           Data.Text.Binary                     ()
 import           Hunt.Common.BasicTypes
-import qualified Hunt.Index as Ix
-import           Hunt.Index.IndexImpl (IndexImpl, mkIndex)
+import qualified Hunt.Index                           as Ix
+import           Hunt.Index.IndexImpl                 (IndexImpl, mkIndex)
 import           Hunt.Index.InvertedIndex
-import           Hunt.Index.PrefixTreeIndex ( PrefixTreeIndexInt
-                                            , PrefixTreeIndexDate
-                                            , SimplePrefixTreeIndex )
-import           Hunt.Index.PrefixTreeIndex2Dim ( PrefixTreeIndexPosition )
+import           Hunt.Index.PrefixTreeIndex           (PrefixTreeIndexDate,
+                                                       PrefixTreeIndexInt,
+                                                       SimplePrefixTreeIndex)
+import           Hunt.Index.PrefixTreeIndex2Dim       (PrefixTreeIndexPosition)
 import           Hunt.Index.RTreeIndex
-import qualified Hunt.Index.Schema.Normalize.Date as Date
-import qualified Hunt.Index.Schema.Normalize.Int as Int
+import qualified Hunt.Index.Schema.Normalize.Date     as Date
+import qualified Hunt.Index.Schema.Normalize.Int      as Int
 import qualified Hunt.Index.Schema.Normalize.Position as Pos
-import           Hunt.Scoring.Score (Score)
+import qualified Hunt.Index.Schema.Tokenize           as Tokenize
+import           Hunt.Scoring.Score                   (Score)
 import           Hunt.Utility
-import qualified Hunt.Index.Schema.Tokenize as Tokenize
 
 -- ------------------------------------------------------------
 
@@ -83,7 +85,7 @@ type Schema
 --   The regular expression splits the text into words which are then transformed by the given
 --   normalizations functions (e.g. to lower case).
 
-data ContextSchema = ContextSchema
+data ContextSchema' index = ContextSchema
   {
     -- | Optional tokenizer to override the default given by context type.
     cxTokenizer  :: Maybe CTokenizer
@@ -94,9 +96,11 @@ data ContextSchema = ContextSchema
     -- | Whether the context is searched in queries without context-specifier.
   , cxDefault    :: Bool
     -- | The type of the index (e.g. text, int, date, geo-position).
-  , cxType       :: ContextType
+  , cxType       :: ContextType' index
   }
   deriving Show
+
+type ContextSchema = ContextSchema' IndexImpl
 
 -- ------------------------------------------------------------
 
@@ -114,18 +118,20 @@ instance NFData ContextSchema where
 type ContextTypes = [ContextType]
 
 -- | A general context type like text or int.
-data ContextType = CType
+data ContextType' index  = CType
   {
     -- | Name used in the (JSON) API.
-    ctName     :: Text
+    ctName      :: Text
     -- | Default tokenizer for words
   , ctTokenizer :: CTokenizer
     -- | Validation function for keys.
-  , ctValidate :: CValidator
+  , ctValidate  :: CValidator
     -- | The index implementation used for this type.
-  , ctIxImpl   :: IndexImpl
+  , ctIxImpl    :: index
   }
   deriving Show
+
+type ContextType = ContextType' IndexImpl
 
 -- ------------------------------------------------------------
 
