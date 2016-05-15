@@ -45,6 +45,7 @@ import           Data.Profunctor
 import           Data.Text (Text)
 import qualified Data.Text as Text
 import qualified Data.Text.Encoding as Text
+import           Data.Traversable
 
 import           Data.Word
 import           System.FilePath
@@ -93,7 +94,7 @@ writeIndex :: (MonadIO m)
            -> SegmentId
            -> Segment 'Frozen
            -> m ()
-writeIndex policy segId seg = do
+writeIndex policy segId seg = liftIO $ do
 
   let
     -- A writer which writes int as Word64 big endian.
@@ -105,13 +106,13 @@ writeIndex policy segId seg = do
               -> Writer IO (DocId, Int, Word64) Word64
     occWriter = lmap go
       where go :: (DocId, Int, Word64) -> Builder
-            go (did, noccs, off) = Prim.primFixed (Prim.word64BE
-                                  >*< Prim.word64BE
-                                  >*< Prim.word64BE) ( fromIntegral (unDocId did)
-                                                     , ( fromIntegral noccs
-                                                       , off
-                                                       )
-                                                     )
+            go (did, noccs, off) =
+              Prim.primFixed (Prim.word64BE >*< Prim.word64BE >*< Prim.word64BE)
+              ( fromIntegral (unDocId did)
+              , ( fromIntegral noccs
+                , off
+                )
+              )
 
     -- Term writer for delta encoded terms.
     termWriter :: Writer IO Builder Word64
@@ -123,16 +124,16 @@ writeIndex policy segId seg = do
         step (TWS n lastWord ws) (word, noccs, occOff) = do
           let
             header :: Int -> Int -> Builder
-            header a b = Prim.primFixed (Prim.word64BE
-                                          >*< Prim.word64BE) ( fromIntegral a
-                                                             , fromIntegral b
-                                                             )
+            header a b = Prim.primFixed (Prim.word64BE >*< Prim.word64BE)
+              ( fromIntegral a
+              , fromIntegral b
+              )
 
             meta :: Builder
-            meta = Prim.primFixed (Prim.word64BE
-                                   >*< Prim.word64BE) ( fromIntegral noccs
-                                                      , occOff
-                                                      )
+            meta = Prim.primFixed (Prim.word64BE >*< Prim.word64BE)
+              ( fromIntegral noccs
+              , occOff
+              )
 
           case Text.commonPrefixes lastWord word of
             Just (commonPrefix, suffix, suffix') -> do
@@ -176,32 +177,32 @@ writeIndex policy segId seg = do
     bufferedAppendWriter :: IO.AppendFile -> Int -> Writer IO Builder Word64
     bufferedAppendWriter fp = IO.bufferedWriter (IO.appendWriter fp)
 
-  liftIO $ bracket (IO.openAppendFile termFile) IO.closeAppendFile $ \terms -> do
-                bracket (IO.openAppendFile occFile) IO.closeAppendFile $ \occs -> do
-                  bracket (IO.openAppendFile posFile) IO.closeAppendFile $ \pos -> do
+  bracket (IO.openAppendFile termFile) IO.closeAppendFile $ \terms ->
+    bracket (IO.openAppendFile occFile) IO.closeAppendFile $ \occs ->
+    bracket (IO.openAppendFile posFile) IO.closeAppendFile $ \pos -> do
 
-                    let iw = indexWriter
-                             ( intWriter (bufferedAppendWriter pos 1024) )
-                             ( occWriter (bufferedAppendWriter occs 32768) )
-                             ( termWriter (bufferedAppendWriter terms 65536) )
+    let
+      ixToList :: Ix.IndexImpl -> [(Text, Occurrences)]
+      ixToList (Ix.IndexImpl ix) =
+        second searchResultToOccurrences <$> Ix.toList ix
 
+      iw :: Writer IO (Text, Occurrences) Word64
+      iw = indexWriter
+           ( intWriter (bufferedAppendWriter pos 1024) )
+           ( occWriter (bufferedAppendWriter occs 32768) )
+           ( termWriter (bufferedAppendWriter terms 65536) )
 
-                        ixToList :: Ix.IndexImpl -> [(Text, Occurrences)]
-                        ixToList (Ix.IndexImpl ix) =
-                          second searchResultToOccurrences <$> Ix.toList ix
-
-                    case iw of
-                      W istart istep istop -> do
-                        iw <- istart
-                        iw' <- foldlM (\s iximpl -> foldlM istep s (ixToList iximpl)
-                                      ) iw (Segment.cxMap (segIndex seg))
-                        istop iw'
+    case iw of
+      W istart istep istop ->
+        for (Segment.cxMap (segIndex seg)) $ \iximpl -> do
+          s <- istart
+          istop =<< foldlM istep s (ixToList iximpl)
 
   return ()
-    where
-      termFile = fpFlushDirectory policy </> show segId <.> "tis"
-      occFile = fpFlushDirectory policy </> show segId <.> "occ"
-      posFile = fpFlushDirectory policy </> show segId <.> "pos"
+  where
+    termFile = fpFlushDirectory policy </> show segId <.> "tis"
+    occFile = fpFlushDirectory policy </> show segId <.> "occ"
+    posFile = fpFlushDirectory policy </> show segId <.> "pos"
 
 writeDocTable :: (MonadIO m, Binary.Binary (DValue Docs.DocTable))
               => FlushPolicy
