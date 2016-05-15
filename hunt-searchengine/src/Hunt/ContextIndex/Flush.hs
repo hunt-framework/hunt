@@ -175,16 +175,18 @@ writeIndex policy segId seg = liftIO $ do
 
           stop = twstop
 
-    bufferedAppendWriter :: IO.AppendFile -> Int -> IO (Writer IO Builder Word64)
+    bufferedAppendWriter :: IO.AppendFile
+                         -> Int
+                         -> IO (Writer IO Builder Word64)
     bufferedAppendWriter fp nSz = do
       offRef <- newIORef 0
-      case IO.bufferedWriter (IO.appendWriter fp) nSz of
-        W wstart wstep wstop -> return $ W wstart wstep stop where
-          stop ws = do
-            n <- stop ws
-            off <- readIORef offRef
-            modifyIORef' offRef (+ n)
-            return off
+      return $ case IO.bufferedWriter (IO.appendWriter fp) nSz of
+                 W wstart wstep wstop -> W wstart wstep stop where
+                   stop ws = do
+                     n <- wstop ws
+                     off <- readIORef offRef
+                     modifyIORef' offRef (+ n)
+                     return off
 
   bracket (IO.openAppendFile termFile) IO.closeAppendFile $ \terms ->
     bracket (IO.openAppendFile occFile) IO.closeAppendFile $ \occs ->
