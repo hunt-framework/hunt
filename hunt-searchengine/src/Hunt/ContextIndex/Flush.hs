@@ -1,58 +1,60 @@
 {-# LANGUAGE BangPatterns              #-}
 {-# LANGUAGE DataKinds                 #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts          #-}
 module Hunt.ContextIndex.Flush(
     runFlush
   , FlushPolicy(..)
   ) where
 
-import qualified Hunt.Index as Ix
-import qualified Hunt.Index.IndexImpl as Ix
-import qualified Hunt.Common.Occurrences as Occurrences
-import qualified Hunt.Common.Positions as Positions
-import           Hunt.Common.Occurrences (Occurrences)
-import           Hunt.Common.Document (Document)
-import           Hunt.Common.DocId (unDocId, DocId)
-import qualified Hunt.Common.DocIdMap as DocIdMap
-import qualified Hunt.Common.DocIdSet as DocIdSet
+import           Hunt.Common.DocId                  (DocId, unDocId)
+import qualified Hunt.Common.DocIdMap               as DocIdMap
+import qualified Hunt.Common.DocIdSet               as DocIdSet
+import           Hunt.Common.Document               (Document)
+import           Hunt.Common.Occurrences            (Occurrences)
+import qualified Hunt.Common.Occurrences            as Occurrences
+import qualified Hunt.Common.Positions              as Positions
+import qualified Hunt.ContextIndex.Documents        as Docs
+import           Hunt.ContextIndex.Segment          (Docs, Kind (..),
+                                                     Segment (..))
+import qualified Hunt.ContextIndex.Segment          as Segment
 import           Hunt.ContextIndex.Types
 import           Hunt.ContextIndex.Types.SegmentMap (SegmentId)
 import qualified Hunt.ContextIndex.Types.SegmentMap as SegmentMap
-import           Hunt.DocTable (DocTable, DValue)
-import qualified Hunt.DocTable as DocTable
-import           Hunt.ContextIndex.Segment (Docs, Segment (..), Kind(..))
-import qualified Hunt.ContextIndex.Segment as Segment
-import qualified Hunt.ContextIndex.Documents as Docs
-import qualified Hunt.IO.File as IO
+import           Hunt.DocTable                      (DValue, DocTable)
+import qualified Hunt.DocTable                      as DocTable
+import qualified Hunt.Index                         as Ix
+import qualified Hunt.Index.IndexImpl               as Ix
+import qualified Hunt.IO.File                       as IO
 import           Hunt.IO.Writer
-import           Hunt.Scoring.SearchResult (searchResultToOccurrences)
+import           Hunt.Scoring.SearchResult          (searchResultToOccurrences)
 
-import           Control.Arrow (second)
-import           Control.Exception (bracket)
+import           Control.Arrow                      (second)
+import           Control.Exception                  (bracket)
 import           Control.Monad
 import           Control.Monad.IO.Class
-import qualified Data.Binary as Binary
-import qualified Data.Binary.Get as Binary
-import qualified Data.Binary.Put as Binary
-import           Data.ByteString.Builder (Builder)
-import           Data.ByteString.Builder (hPutBuilder)
-import qualified Data.ByteString.Builder as Builder
-import           Data.ByteString.Builder.Prim ((>*<))
-import qualified Data.ByteString.Builder.Prim as Prim
-import qualified Data.ByteString.Lazy as LByteString
+import qualified Data.Binary                        as Binary
+import qualified Data.Binary.Get                    as Binary
+import qualified Data.Binary.Put                    as Binary
+import           Data.ByteString.Builder            (Builder)
+import           Data.ByteString.Builder            (hPutBuilder)
+import qualified Data.ByteString.Builder            as Builder
+import           Data.ByteString.Builder.Prim       ((>*<))
+import qualified Data.ByteString.Builder.Prim       as Prim
+import qualified Data.ByteString.Lazy               as LByteString
 import           Data.Foldable
 import           Data.IORef
 import           Data.Profunctor
-import           Data.Text (Text)
-import qualified Data.Text as Text
-import qualified Data.Text.Encoding as Text
+import           Data.Text                          (Text)
+import qualified Data.Text                          as Text
+import qualified Data.Text.Encoding                 as Text
 import           Data.Traversable
 
+import qualified Data.Vector.Unboxed                as UVector
+import qualified Data.Vector.Unboxed.Mutable        as UMVector
 import           Data.Word
 import           System.FilePath
 import           System.IO
-import qualified Data.Vector.Unboxed as UVector
-import qualified Data.Vector.Unboxed.Mutable as UMVector
 
 -- | Runs a `Flush` and writes files to the index directory. This operation is atomic.
 runFlush :: (MonadIO m, Binary.Binary (DValue Docs))
