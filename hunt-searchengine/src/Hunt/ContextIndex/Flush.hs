@@ -41,6 +41,7 @@ import           Data.ByteString.Builder.Prim ((>*<))
 import qualified Data.ByteString.Builder.Prim as Prim
 import qualified Data.ByteString.Lazy as LByteString
 import           Data.Foldable
+import           Data.IORef
 import           Data.Profunctor
 import           Data.Text (Text)
 import qualified Data.Text as Text
@@ -174,8 +175,16 @@ writeIndex policy segId seg = liftIO $ do
 
           stop = twstop
 
-    bufferedAppendWriter :: IO.AppendFile -> Int -> Writer IO Builder Word64
-    bufferedAppendWriter fp = IO.bufferedWriter (IO.appendWriter fp)
+    bufferedAppendWriter :: IO.AppendFile -> Int -> IO (Writer IO Builder Word64)
+    bufferedAppendWriter fp nSz = do
+      offRef <- newIORef 0
+      case IO.bufferedWriter (IO.appendWriter fp) nSz of
+        W wstart wstep wstop -> return $ W wstart wstep stop where
+          stop ws = do
+            n <- stop ws
+            off <- readIORef offRef
+            modifyIORef' offRef (+ n)
+            return off
 
   bracket (IO.openAppendFile termFile) IO.closeAppendFile $ \terms ->
     bracket (IO.openAppendFile occFile) IO.closeAppendFile $ \occs ->
@@ -186,11 +195,10 @@ writeIndex policy segId seg = liftIO $ do
       ixToList (Ix.IndexImpl ix) =
         second searchResultToOccurrences <$> Ix.toList ix
 
-      iw :: Writer IO (Text, Occurrences) Word64
-      iw = indexWriter
-           ( intWriter (bufferedAppendWriter pos 1024) )
-           ( occWriter (bufferedAppendWriter occs 32768) )
-           ( termWriter (bufferedAppendWriter terms 65536) )
+    iw <- indexWriter
+          <$> (intWriter <$> bufferedAppendWriter pos 1024)
+          <*> (occWriter <$> bufferedAppendWriter occs 32768)
+          <*> (termWriter <$> bufferedAppendWriter terms 65536)
 
     case iw of
       W istart istep istop ->
