@@ -273,46 +273,56 @@ writeDocTable policy sid seg = liftIO $ do
         -- The work horse. Encode the documents to binary format
         -- and write them.
         doctableWriter :: Int
-                       -> Writer IO DocId Docs.DocTableIndex
-        doctableWriter ndocs =
-          case bufferedAppendWriter ix of
-            W iwstart iwstep iwstop ->
-              case bufferedAppendWriter docs of
-                W dwstart dwstep dwstop -> W start step stop where
+                       -> Writer IO Builder Word64
+                       -> Writer IO Builder Word64
+                       -> Writer IO (DocId, Document) Docs.DocTableIndex
+        doctableWriter ndocs iw dw = case iw of
+          W iwstart iwstep iwstop -> case dw of
+            W dwstart dwstep dwstop -> W start step stop where
 
-                  -- Initialize writer.
-                  start = DTS 0 0 <$> UMVector.unsafeNew ndocs
-                                  <*> iwstart
-                                  <*> dwstart
+              -- Initialize writer.
+              start = DTS 0 0 <$> UMVector.unsafeNew ndocs
+                              <*> iwstart
+                              <*> dwstart
 
-                  -- For every DocId do...
-                  step (DTS off i ix iws dws) did = do
-                    Just doc <- Segment.lookupDocument did seg
+              -- For every DocId do...
+              step (DTS off i ix iws dws) (did, doc) = do
+                let
+                  docEntry :: LByteString.ByteString
+                  docEntry = Binary.runPut (Binary.put doc)
 
-                    let
-                      docEntry :: LByteString.ByteString
-                      docEntry = Binary.runPut (Binary.put doc)
+                  docEntrySize :: Word64
+                  docEntrySize = fromIntegral $ LByteString.length docEntry
 
-                      docEntrySize :: Word64
-                      docEntrySize = fromIntegral $ LByteString.length docEntry
+                  dixEntry :: Builder
+                  dixEntry = Prim.primBounded (varint >*< varint)
+                             (off, docEntrySize)
 
-                      dixEntry :: Builder
-                      dixEntry = Prim.primBounded (varint >*< varint)
-                        (off, docEntrySize)
+                dws' <- dwstep dws (Builder.lazyByteString docEntry)
+                iws' <- iwstep iws dixEntry
+                UMVector.unsafeWrite ix i (did, off, docEntrySize)
+                return $ DTS (off + docEntrySize) (i + 1) ix iws' dws'
 
-                    dws' <- dwstep dws (Builder.lazyByteString docEntry)
-                    iws' <- iwstep iws dixEntry
-                    UMVector.unsafeWrite ix i (did, off, docEntrySize)
-                    return $ DTS (off + docEntrySize) (i + 1) ix iws' dws'
+              -- Done here
+              stop (DTS _ _ ix iws dws) = do
+                _ <- iwstop iws
+                _ <- dwstop dws
+                ix' <- UVector.unsafeFreeze ix
+                return (Docs.DTI ix')
 
-                  -- Done here
-                  stop (DTS _ _ ix iws dws) = do
-                    _ <- iwstop iws
-                    _ <- dwstop dws
-                    ix' <- UVector.unsafeFreeze ix
-                    return (Docs.DTI ix')
+      let dw = doctableWriter
+               numDocs
+               (bufferedAppendWriter ix)
+               (bufferedAppendWriter docs)
 
-      runWriter (doctableWriter numDocs) (DocIdSet.toList docIds)
+      case dw of
+        W dwstart dwstep dwstop -> do
+          dws0 <- dwstart
+          dws' <- foldlM (\dws did -> do
+                             Just doc <- Segment.lookupDocument did seg
+                             dwstep dws (did, doc)
+                         ) dws0 (DocIdSet.toList docIds)
+          dwstop dws'
   where
     dtIxFile = fpFlushDirectory policy </> show sid <.> "dx"
     dtDocFile = fpFlushDirectory policy </> show sid <.> "dt"
@@ -321,7 +331,7 @@ varint :: Prim.BoundedPrim Word64
 varint = Prim.boudedPrim 9 go
   where
     go :: Word64 -> Ptr Word8 -> IO (Ptr Word8)
-    go n op
+    go !n !op
       | n < 0x80  = do poke op (fromIntegral n)
                        return (op `plusPtr` 1)
       | otherwise = do poke op (setBit (fromIntegral n) 7)
