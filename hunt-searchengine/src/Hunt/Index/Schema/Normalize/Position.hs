@@ -3,30 +3,38 @@
   Normalization and validation for geographic positions.
 -}
 -- ----------------------------------------------------------------------------
-
+{-# LANGUAGE BangPatterns #-}
 module Hunt.Index.Schema.Normalize.Position
        ( normalize
        , denormalize
        , isPosition
+       , parsePosition
        , position
        )
 where
 
-import           Data.Text (Text)
-import qualified Data.Text as T
-import           Hunt.Utility
-import           Numeric
-import           Text.Parsec
-import           Text.ParserCombinators.Parsec
+import           Data.Attoparsec.Text
+import           Data.Bits
+import           Data.Int
+import           Data.Text                        (Text)
+import qualified Data.Text                        as T
+import qualified Data.Text.Internal.Fusion        as Stream
+import qualified Data.Text.Lazy                   as TL
+import qualified Data.Text.Lazy.Builder           as TL
+import qualified Data.Text.Lazy.Builder.RealFloat as TL
 
 -- ------------------------------------------------------------
 -- validator
 -- ------------------------------------------------------------
 
+parsePosition :: Text -> Either String (Double, Double)
+parsePosition = parseOnly position
+
 -- | Checks if value is a valid position.
 --   A valid position has a format like "double-double"/"latitude-longitude".
 isPosition :: Text -> Bool
-isPosition pos = isRight . parse position "" $ T.unpack pos
+isPosition pos | Right _ <- parsePosition pos = True
+               | otherwise                    = False
 
 -- | Parse a coordinate.
 position :: Parser (Double, Double)
@@ -60,136 +68,55 @@ longitude = do
 --   A valid position has a format like "double-double"/"latitude-longitude".
 normalize :: Text -> Text
 normalize pos
-  = case parse position "" $ T.unpack pos of
-     Right (la,lo) -> T.pack $ intersectPos (format la) (format lo)
-     Left _        -> error "normalize positon: invalid position"
-  where
-  format   :: Double -> String
-  format v = dec2bin $ round (v * 10000000)
-
+  | Right (la, lo) <- parsePosition pos =
+      intersectPos (format la) (format lo)
+  | otherwise = error "normalize position: invalid position"
+  where format :: Double -> Int32
+        format v
+          | v >= 0 = setBit (round (v * 10000000)) 31
+          | otherwise = clearBit (round (v * 10000000)) 31
 
 -- | Denormalizes internal position into valid position.
 --   A valid position has a format like "double-double"/"latitude-longitude".
 denormalize :: Text -> Text
-denormalize pos
-  = T.pack . show' d1 . ('-':) . show' d2 $ ""
+denormalize pos =
+  TL.toStrict $ TL.toLazyText $ TL.formatRealFloat TL.Generic (Just 7) d1
+  `mappend` "-"
+  `mappend` TL.formatRealFloat TL.Generic (Just 7) d2
   where
-  (d1,d2) = ( fromIntegral i1 / 10000000
-            , fromIntegral i2 / 10000000
-            ) :: (Double,Double)
-  (i1,i2) = ( bin2dec odds
-            , bin2dec evens
-            )
+    d1 :: Double
+    d1 | testBit i1 31 = fromIntegral (clearBit i1 31) / 10000000
+       | otherwise     = - fromIntegral i1 / 10000000
 
-  (odds,evens) = oddsAndEvens sPos
+    d2 :: Double
+    d2 | testBit i2 31 = fromIntegral (clearBit i2 31) / 10000000
+       | otherwise     = - fromIntegral i2 / 10000000
 
-  oddsAndEvens o = case o of
-    (x1:x2:xs) -> let (y1,y2) = oddsAndEvens xs in (x1:y1,x2:y2)
-    (x1:xs)    -> let (y1,y2) = oddsAndEvens xs in (x1:y1,y2)
-    []         -> ([],[])
+    (i1, i2) = unintersectPos pos
 
-  sPos = T.unpack pos
-
-  show' = showFFloat (Just 7)
-
--- ------------------------------------------------------------
--- normalizer helper
--- ------------------------------------------------------------
-
--- | Decimal representation of a binary encoded string.
---
---   /Note/: The input needs to be valid.
---           @length input >= 2 && all (`elem` "01") input@
-bin2dec :: String -> Int
-bin2dec (s:i)
-  = sign dec
-    where
-      dec = fst . head . readInt 2 isbc c2b $ i
-      sign = if s == '0' then negate else id
-bin2dec []
-  = error "bin2dec: empty String"
-
--- | Convert Integer to Binary and normalize result
---   with leading zeros to a length of 32 characters.
---   The first character is the sign: 0 -> negative.
---
---   /Note/: The input needs to be valid.
-dec2bin :: Integer -> String
-dec2bin i = sign . zeros . bin $ ""
-  where
-  sign, zeros, bin :: ShowS
-  (sign,n) = if i < 0 then (('0':),-i) else (('1':),i)
-  bin      = showIntAtBase 2 b2c n
-  zeros s  = foldr (\ _ xs -> '0' : xs) s [1..elems]
-    where elems = 31 - length s
+data P = P !Int !Int32 !Int32
 
 -- | Merge two lists starting with an element of the first list, then one
 --   of the second list and so on.
 --   Works like @concat . zipWith (\a b -> a:b:[])@, but pads with zeros.
-intersectPos :: String -> String -> String
-intersectPos (x:xs) (y:ys) = x   : y   : intersectPos xs ys
-intersectPos (x:xs) []     = x   : '0' : intersectPos xs []
-intersectPos []     (y:ys) = '0' : y   : intersectPos [] ys
-intersectPos _      _      = []
+intersectPos :: Int32 -> Int32 -> Text
+intersectPos x0 y0 = Stream.unstream go
+  where go = Stream.Stream step (P 0 x0 y0) 32
+          where step (P n x y)
+                  | n == 64 = Stream.Done
+                  | otherwise =
+                    let !a  = if testBit x 31 then '1' else '0'
+                        !x' = x `unsafeShiftL` 1
+                    in Stream.Yield a (P (n + 1) y x')
 
-{-
--- ShowS version with accumulator - unnecessary
-intersectPos :: String -> String -> ShowS
-intersectPos la lo = foldPos' la lo id
-    where
-    foldPos' (x:xs) (y:ys) a = foldPos' xs ys (\s -> a (x   : y   : s))
-    foldPos' (x:xs) []     a = foldPos' xs "" (\s -> a (x   : '0' : s))
-    foldPos' []     (y:ys) a = foldPos' "" ys (\s -> a ('0' : y   : s))
-    foldPos' []    []      a = a
--}
+unintersectPos :: Text -> (Int32, Int32)
+unintersectPos s0 = (x', y')
+  where
+    P _ x' y' = T.foldl' f (P 0 0 0) s0
 
--- ------------------------------------------------------------
--- Int to binary and vice versa
--- ------------------------------------------------------------
+    f (P n x y) c | even n = P (n + 1) (cbit c x) y
+                  | otherwise = P (n + 1) x (cbit c y)
 
--- | Binary integer to character.
-b2c :: Int -> Char
-b2c i = case i of
-  0 -> '0'
-  1 -> '1'
-  _ -> error "b2c i with i `notElem` [0,1]"
-
--- | Character to binary integer.
-c2b :: Char -> Int
-c2b o = case o of
-  '0' -> 0
-  '1' -> 1
-  _ -> error "c2b c with c `notElem` \"01\""
-
--- | Is the character a binary number.
-isbc :: Char -> Bool
-isbc = (`elem` ("01" :: String))
-
--- ------------------------------------------------------------
--- parser helper
--- ------------------------------------------------------------
-
-number :: Parser String
-number = many1 digit
-
-plus :: Parser String
-plus = char '+' *> number
-
-minus :: Parser String
-minus = char '-' <:> number
-
-integer :: Parser String
-integer = plus <|> minus <|> number
-
-double :: Parser Double
-double = fmap rd $ integer <++> decimal
-    where rd      = read :: String -> Double
-          decimal = option "" $ char '.' <:> number
-
-(<++>) :: Applicative f => f [a] -> f [a] -> f [a]
-(<++>) a b = (++) <$> a <*> b
-
-(<:>) :: Applicative f => f a -> f [a] -> f [a]
-(<:>) a b = (:) <$> a <*> b
-
--- ------------------------------------------------------------
+    cbit '0' n = clearBit (n `unsafeShiftL` 1) 0
+    cbit '1' n = setBit (n `unsafeShiftL` 1) 0
+    cbit _ _ = error "unintersectPosPos.cbit"

@@ -26,7 +26,7 @@ import           Data.Monoid
 import qualified Data.RTree.Strict                    as RT
 import           Data.RTree.MBB
 import           Data.Text                            (Text)
-import qualified Data.Text                            as T (pack, unpack)
+import qualified Data.Text                            as T (pack)
 import           Data.Typeable
 import           Data.Bijection
 
@@ -34,9 +34,7 @@ import           Hunt.Index
 import qualified Hunt.Index                           as Ix
 import           Hunt.Index.Proxy.KeyIndex
 import           Hunt.Common.DocIdSet                 (DocIdSet)
-import           Hunt.Index.Schema.Normalize.Position (position)
-
-import           Text.Parsec
+import           Hunt.Index.Schema.Normalize.Position (parsePosition)
 
 -- ------------------------------------------------------------
 
@@ -105,7 +103,7 @@ instance IndexValue v => Index (RTreeIndex v) where
 
 readPosition :: Text -> MBB
 readPosition t
-  = case parse position "" $ T.unpack t of
+  = case parsePosition t of
      Right (la,lo) -> mbb la lo la lo
      Left _        -> error "readPosition positon: invalid"
 
