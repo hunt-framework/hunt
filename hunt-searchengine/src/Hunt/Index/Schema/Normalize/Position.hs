@@ -3,7 +3,8 @@
   Normalization and validation for geographic positions.
 -}
 -- ----------------------------------------------------------------------------
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns  #-}
+{-# LANGUAGE PatternGuards #-}
 module Hunt.Index.Schema.Normalize.Position
        ( normalize
        , denormalize
