@@ -21,8 +21,7 @@ import qualified Hunt.ContextIndex.Segment          as Segment
 import           Hunt.ContextIndex.Types
 import           Hunt.ContextIndex.Types.SegmentMap (SegmentId)
 import qualified Hunt.ContextIndex.Types.SegmentMap as SegmentMap
-import           Hunt.DocTable                      (DValue, DocTable)
-import qualified Hunt.DocTable                      as DocTable
+import           Hunt.DocTable                      (DValue)
 import qualified Hunt.Index                         as Ix
 import qualified Hunt.Index.IndexImpl               as Ix
 import qualified Hunt.IO.File                       as IO
@@ -31,13 +30,11 @@ import           Hunt.Scoring.SearchResult          (searchResultToOccurrences)
 
 import           Control.Arrow                      (second)
 import           Control.Exception                  (bracket)
-import           Control.Monad
 import           Control.Monad.IO.Class
 import qualified Data.Binary                        as Binary
 import qualified Data.Binary.Get                    as Binary
 import qualified Data.Binary.Put                    as Binary
 import           Data.ByteString.Builder            (Builder)
-import           Data.ByteString.Builder            (hPutBuilder)
 import qualified Data.ByteString.Builder            as Builder
 import           Data.ByteString.Builder.Prim       ((>*<))
 import qualified Data.ByteString.Builder.Prim       as Prim
@@ -53,7 +50,6 @@ import qualified Data.Vector.Unboxed                as UVector
 import qualified Data.Vector.Unboxed.Mutable        as UMVector
 import           Data.Word
 import           System.FilePath
-import           System.IO
 
 -- | Runs a `Flush` and writes files to the index directory. This operation is atomic.
 runFlush :: (MonadIO m, Binary.Binary (DValue Docs))
@@ -85,11 +81,14 @@ readDocument policy sid offset size =
   where
     docTable = fpFlushDirectory policy </> show sid <.> "dt"
 
-data IndexWriterState a b =
-  IWS !Word64 !Int !(UMVector.IOVector (DocId, Word64, Word64)) a b
+data DocTableWriterState a b =
+  DTS !Word64 !Int !(UMVector.IOVector (DocId, Word64, Word64)) a b
+
+data IndexWriterState a =
+  IWS !Int !a
 
 data TermWriterState a =
-  TWS !Word64 !Text a
+  TWS !Word64 !Text !a
 
 writeIndex :: (MonadIO m)
            => FlushPolicy
@@ -103,7 +102,8 @@ writeIndex policy segId seg = liftIO $ do
     intWriter :: Writer IO Builder Word64 -> Writer IO Int Word64
     intWriter = lmap (Prim.primFixed Prim.word64BE . fromIntegral)
 
-    -- Convert an occurrence tuple to a builder.
+    -- Convert an occurrence triple (DocId, number of positions,
+    -- offset of positions) to a builder.
     occWriter :: Writer IO Builder Word64
               -> Writer IO (DocId, Int, Word64) Word64
     occWriter = lmap go
@@ -116,7 +116,10 @@ writeIndex policy segId seg = liftIO $ do
                 )
               )
 
-    -- Term writer for delta encoded terms.
+    -- the actual term writer. Writes the term and the number
+    -- of occurrences and their offset.
+    -- To save space we only store the suffix compared to the
+    -- last added word.
     termWriter :: Writer IO Builder Word64
                -> Writer IO (Text, Int, Word64) Word64
     termWriter (W wstart wstep wstop) = W start step stop
@@ -128,7 +131,7 @@ writeIndex policy segId seg = liftIO $ do
             prefix, suffix :: Text
             (prefix, suffix) = case Text.commonPrefixes lastWord word of
               Just (pfx, _, sfx) -> (pfx, sfx)
-              Nothing            -> ("", word)
+              Nothing            -> (Text.empty, word)
 
             header :: Int -> Int -> Builder
             header a b = Prim.primFixed (Prim.word64BE >*< Prim.word64BE)
@@ -149,17 +152,26 @@ writeIndex policy segId seg = liftIO $ do
 
         stop (TWS _ _ ws) = wstop ws
 
+    -- the actual index writer combining the hierarchies:
+    --
+    --      terms
+    --        |
+    --    occurrences
+    --        |
+    --     positions
+    --
+    -- Returns the number of terms written and their offset.
     indexWriter :: Writer IO Int Word64                  -- position writer
                 -> Writer IO (DocId, Int, Word64) Word64 -- occurrence writer
                 -> Writer IO (Text, Int, Word64) Word64  -- term writer
-                -> Writer IO (Text, Occurrences) Word64
+                -> Writer IO (Text, Occurrences) (Int, Word64)
     indexWriter pw ow tw = case ow of
       (W owstart owstep owstop) ->  case tw of
         (W twstart twstep twstop) -> W start step stop where
 
-          start = twstart
+          start = IWS 0 <$> twstart
 
-          step ts (term, occs) = do
+          step (IWS n ts) (term, occs) = do
             -- write occurrences
             ow <- owstart
             ow' <- foldlM (\s (did, pos) -> do
@@ -170,9 +182,9 @@ writeIndex policy segId seg = liftIO $ do
                           ) ow (DocIdMap.toList occs)
             occOff <- owstop ow'
             -- we have stored the occurrences. Write the actual term.
-            twstep ts (term, Occurrences.size occs, occOff)
+            IWS (n + 1) <$> twstep ts (term, Occurrences.size occs, occOff)
 
-          stop = twstop
+          stop (IWS n ts) = (,) <$> pure n <*> twstop ts
 
     bufferedAppendWriter :: IO.AppendFile
                          -> Int
@@ -201,11 +213,19 @@ writeIndex policy segId seg = liftIO $ do
           <*> (occWriter  <$> bufferedAppendWriter occs 32768)
           <*> (termWriter <$> bufferedAppendWriter terms 65536)
 
-    case iw of
-      W istart istep istop ->
-        for (Segment.cxMap (segIndex seg)) $ \iximpl -> do
-          s <- istart
-          istop =<< foldlM istep s (ixToList iximpl)
+    -- ok, for each context write the index.
+    for (Segment.cxMap (segIndex seg)) $ \iximpl -> do
+      (nwords, offset) <- runWriter iw (ixToList iximpl)
+      -- we have now written an index to disk. Having
+      -- the count (nwords) of terms in the dictionary
+      -- and the offset at where they are located in the
+      -- *.tis file.
+
+
+
+      return ()
+
+
 
   return ()
   where
@@ -253,12 +273,12 @@ writeDocTable policy sid seg = liftIO $ do
                 W dwstart dwstep dwstop -> W start step stop where
 
                   -- Initialize writer.
-                  start = IWS 0 0 <$> UMVector.unsafeNew ndocs
+                  start = DTS 0 0 <$> UMVector.unsafeNew ndocs
                                   <*> iwstart
                                   <*> dwstart
 
                   -- For every DocId do...
-                  step (IWS off i ix iws dws) did = do
+                  step (DTS off i ix iws dws) did = do
                     Just doc <- Segment.lookupDocument did seg
 
                     let
@@ -276,10 +296,10 @@ writeDocTable policy sid seg = liftIO $ do
                     dws' <- dwstep dws (Builder.lazyByteString docEntry)
                     iws' <- iwstep iws (Builder.lazyByteString dixEntry)
                     UMVector.unsafeWrite ix i (did, off, docEntrySize)
-                    return $ IWS (off + docEntrySize) (i + 1) ix iws' dws'
+                    return $ DTS (off + docEntrySize) (i + 1) ix iws' dws'
 
                   -- Done here
-                  stop (IWS _ _ ix iws dws) = do
+                  stop (DTS _ _ ix iws dws) = do
                     _ <- iwstop iws
                     _ <- dwstop dws
                     ix' <- UVector.unsafeFreeze ix
