@@ -49,7 +49,6 @@ import           Data.Text                          (Text)
 import qualified Data.Text                          as Text
 import qualified Data.Text.Encoding                 as Text
 import           Data.Traversable
-
 import qualified Data.Vector.Unboxed                as UVector
 import qualified Data.Vector.Unboxed.Mutable        as UMVector
 import           Data.Word
@@ -126,6 +125,11 @@ writeIndex policy segId seg = liftIO $ do
 
         step (TWS n lastWord ws) (word, noccs, occOff) = do
           let
+            prefix, suffix :: Text
+            (prefix, suffix) = case Text.commonPrefixes lastWord word of
+              Just (pfx, _, sfx) -> (pfx, sfx)
+              Nothing            -> ("", word)
+
             header :: Int -> Int -> Builder
             header a b = Prim.primFixed (Prim.word64BE >*< Prim.word64BE)
               ( fromIntegral a
@@ -138,17 +142,10 @@ writeIndex policy segId seg = liftIO $ do
               , occOff
               )
 
-          case Text.commonPrefixes lastWord word of
-            Just (commonPrefix, suffix, suffix') -> do
-              ws' <- wstep ws (header (Text.length commonPrefix) (Text.length suffix')
-                               `mappend` Builder.byteString (Text.encodeUtf8 suffix')
-                               `mappend` meta)
-              return $ TWS (n + 1) word ws'
-            Nothing -> do
-              ws' <- wstep ws (header 0 (Text.length word)
-                              `mappend` Builder.byteString (Text.encodeUtf8 word)
-                              `mappend` meta)
-              return $ TWS (n + 1) word ws'
+          ws' <- wstep ws (header (Text.length prefix) (Text.length suffix)
+                          `mappend` Builder.byteString (Text.encodeUtf8 suffix)
+                          `mappend` meta)
+          return $ TWS (n + 1) word ws'
 
         stop (TWS _ _ ws) = wstop ws
 
@@ -200,8 +197,8 @@ writeIndex policy segId seg = liftIO $ do
         second searchResultToOccurrences <$> Ix.toList ix
 
     iw <- indexWriter
-          <$> (intWriter <$> bufferedAppendWriter pos 1024)
-          <*> (occWriter <$> bufferedAppendWriter occs 32768)
+          <$> (intWriter  <$> bufferedAppendWriter pos 1024)
+          <*> (occWriter  <$> bufferedAppendWriter occs 32768)
           <*> (termWriter <$> bufferedAppendWriter terms 65536)
 
     case iw of
