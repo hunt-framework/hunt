@@ -20,8 +20,8 @@ import           Data.Text                        (Text)
 import qualified Data.Text                        as T
 import qualified Data.Text.Internal.Fusion        as Stream
 import qualified Data.Text.Lazy                   as TL
-import qualified Data.Text.Lazy.Builder           as TL
-import qualified Data.Text.Lazy.Builder.RealFloat as TL
+import qualified Data.Text.Lazy.Builder           as TB
+import qualified Data.Text.Lazy.Builder.RealFloat as TB
 
 -- ------------------------------------------------------------
 -- validator
@@ -79,10 +79,10 @@ normalize pos
 -- | Denormalizes internal position into valid position.
 --   A valid position has a format like "double-double"/"latitude-longitude".
 denormalize :: Text -> Text
-denormalize pos =
-  TL.toStrict $ TL.toLazyText $ TL.formatRealFloat TL.Generic (Just 7) d1
-  `mappend` "-"
-  `mappend` TL.formatRealFloat TL.Generic (Just 7) d2
+denormalize pos = toText $
+  TB.formatRealFloat TB.Generic (Just 7) d1
+  `mappend` TB.singleton '-'
+  `mappend` TB.formatRealFloat TB.Generic (Just 7) d2
   where
     d1 :: Double
     d1 | testBit i1 31 = fromIntegral (clearBit i1 31) / 10000000
@@ -93,6 +93,9 @@ denormalize pos =
        | otherwise     = - fromIntegral i2 / 10000000
 
     (i1, i2) = unintersectPos pos
+
+    toText = TL.toStrict . TB.toLazyText
+
 
 data P = P !Int !Int32 !Int32
 
@@ -108,6 +111,7 @@ intersectPos x0 y0 = Stream.unstream go
                     let !a  = if testBit x 31 then '1' else '0'
                         !x' = x `unsafeShiftL` 1
                     in Stream.Yield a (P (n + 1) y x')
+{-# INLINE intersectPos #-}
 
 unintersectPos :: Text -> (Int32, Int32)
 unintersectPos s0 = (x', y')
