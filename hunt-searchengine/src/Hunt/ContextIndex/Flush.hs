@@ -8,50 +8,54 @@ module Hunt.ContextIndex.Flush(
   ) where
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocId                  (DocId, unDocId)
-import qualified Hunt.Common.DocIdMap               as DocIdMap
-import qualified Hunt.Common.DocIdSet               as DocIdSet
-import           Hunt.Common.Document               (Document)
-import           Hunt.Common.Occurrences            (Occurrences)
-import qualified Hunt.Common.Occurrences            as Occurrences
-import qualified Hunt.Common.Positions              as Positions
-import qualified Hunt.ContextIndex.Documents        as Docs
-import           Hunt.ContextIndex.Segment          (Docs, Kind (..),
-                                                     Segment (..))
-import qualified Hunt.ContextIndex.Segment          as Segment
+import           Hunt.Common.DocId                     (DocId, unDocId)
+import qualified Hunt.Common.DocIdMap                  as DocIdMap
+import qualified Hunt.Common.DocIdSet                  as DocIdSet
+import           Hunt.Common.Document                  (Document)
+import           Hunt.Common.Occurrences               (Occurrences)
+import qualified Hunt.Common.Occurrences               as Occurrences
+import qualified Hunt.Common.Positions                 as Positions
+import qualified Hunt.ContextIndex.Documents           as Docs
+import           Hunt.ContextIndex.Segment             (Docs, Kind (..),
+                                                        Segment (..))
+import qualified Hunt.ContextIndex.Segment             as Segment
 import           Hunt.ContextIndex.Types
-import           Hunt.ContextIndex.Types.SegmentMap (SegmentId)
-import qualified Hunt.ContextIndex.Types.SegmentMap as SegmentMap
-import           Hunt.DocTable                      (DValue)
-import qualified Hunt.Index                         as Ix
-import qualified Hunt.Index.IndexImpl               as Ix
-import qualified Hunt.IO.File                       as IO
+import           Hunt.ContextIndex.Types.SegmentMap    (SegmentId)
+import qualified Hunt.ContextIndex.Types.SegmentMap    as SegmentMap
+import           Hunt.DocTable                         (DValue)
+import qualified Hunt.Index                            as Ix
+import qualified Hunt.Index.IndexImpl                  as Ix
+import qualified Hunt.IO.File                          as IO
 import           Hunt.IO.Writer
-import           Hunt.Scoring.SearchResult          (searchResultToOccurrences)
+import           Hunt.Scoring.SearchResult             (searchResultToOccurrences)
 
-import           Control.Arrow                      (second)
-import           Control.Exception                  (bracket)
+import           Control.Arrow                         (second)
+import           Control.Exception                     (bracket)
 import           Control.Monad.IO.Class
-import qualified Data.Binary                        as Binary
-import qualified Data.Binary.Get                    as Binary
-import qualified Data.Binary.Put                    as Binary
-import           Data.ByteString.Builder            (Builder)
-import qualified Data.ByteString.Builder            as Builder
-import           Data.ByteString.Builder.Prim       ((>*<))
-import qualified Data.ByteString.Builder.Prim       as Prim
-import qualified Data.ByteString.Lazy               as LByteString
+import qualified Data.Binary                           as Binary
+import qualified Data.Binary.Get                       as Binary
+import qualified Data.Binary.Put                       as Binary
+import           Data.Bits
+import           Data.ByteString.Builder               (Builder)
+import qualified Data.ByteString.Builder               as Builder
+import           Data.ByteString.Builder.Prim          ((>*<))
+import qualified Data.ByteString.Builder.Prim          as Prim
+import qualified Data.ByteString.Builder.Prim.Internal as Prim
+import qualified Data.ByteString.Lazy                  as LByteString
 import           Data.Foldable
 import           Data.IORef
-import           Data.Map                           (Map)
-import qualified Data.Map.Strict                    as Map
+import           Data.Map                              (Map)
+import qualified Data.Map.Strict                       as Map
 import           Data.Profunctor
-import           Data.Text                          (Text)
-import qualified Data.Text                          as Text
-import qualified Data.Text.Encoding                 as Text
+import           Data.Text                             (Text)
+import qualified Data.Text                             as Text
+import qualified Data.Text.Encoding                    as Text
 import           Data.Traversable
-import qualified Data.Vector.Unboxed                as UVector
-import qualified Data.Vector.Unboxed.Mutable        as UMVector
+import qualified Data.Vector.Unboxed                   as UVector
+import qualified Data.Vector.Unboxed.Mutable           as UMVector
 import           Data.Word
+import           Foreign.Ptr
+import           Foreign.Storable
 import           System.FilePath
 
 -- | Runs a `Flush` and writes files to the index directory. This operation is atomic.
@@ -109,7 +113,7 @@ writeIndex policy segId seg = liftIO $ do
   let
     -- A writer which writes int as Word64 big endian.
     intWriter :: Writer IO Builder Word64 -> Writer IO Int Word64
-    intWriter = lmap (Prim.primFixed Prim.word64BE . fromIntegral)
+    intWriter = lmap (Prim.primBounded varint . fromIntegral)
 
     -- Convert an occurrence triple (DocId, number of positions,
     -- offset of positions) to a builder.
@@ -118,7 +122,7 @@ writeIndex policy segId seg = liftIO $ do
     occWriter = lmap go
       where go :: (DocId, Int, Word64) -> Builder
             go (did, noccs, off) =
-              Prim.primFixed (Prim.word64BE >*< Prim.word64BE >*< Prim.word64BE)
+              Prim.primBounded (varint >*< varint >*< varint)
               ( fromIntegral (unDocId did)
               , ( fromIntegral noccs
                 , off
@@ -143,13 +147,13 @@ writeIndex policy segId seg = liftIO $ do
               Nothing            -> (Text.empty, word)
 
             header :: Int -> Int -> Builder
-            header a b = Prim.primFixed (Prim.word64BE >*< Prim.word64BE)
+            header a b = Prim.primBounded (varint >*< varint)
               ( fromIntegral a
               , fromIntegral b
               )
 
             meta :: Builder
-            meta = Prim.primFixed (Prim.word64BE >*< Prim.word64BE)
+            meta = Prim.primBounded (varint >*< varint)
               ( fromIntegral noccs
               , occOff
               )
@@ -292,13 +296,12 @@ writeDocTable policy sid seg = liftIO $ do
                       docEntrySize :: Word64
                       docEntrySize = fromIntegral $ LByteString.length docEntry
 
-                      dixEntry :: LByteString.ByteString
-                      dixEntry = Binary.runPut $ do
-                        Binary.putWord64be off
-                        Binary.putWord64be docEntrySize
+                      dixEntry :: Builder
+                      dixEntry = Prim.primBounded (varint >*< varint)
+                        (off, docEntrySize)
 
                     dws' <- dwstep dws (Builder.lazyByteString docEntry)
-                    iws' <- iwstep iws (Builder.lazyByteString dixEntry)
+                    iws' <- iwstep iws dixEntry
                     UMVector.unsafeWrite ix i (did, off, docEntrySize)
                     return $ DTS (off + docEntrySize) (i + 1) ix iws' dws'
 
@@ -313,3 +316,14 @@ writeDocTable policy sid seg = liftIO $ do
   where
     dtIxFile = fpFlushDirectory policy </> show sid <.> "dx"
     dtDocFile = fpFlushDirectory policy </> show sid <.> "dt"
+
+varint :: Prim.BoundedPrim Word64
+varint = Prim.boudedPrim 9 go
+  where
+    go :: Word64 -> Ptr Word8 -> IO (Ptr Word8)
+    go n op
+      | n < 0x80  = do poke op (fromIntegral n)
+                       return (op `plusPtr` 1)
+      | otherwise = do poke op (setBit (fromIntegral n) 7)
+                       go (n `unsafeShiftR` 7) (op `plusPtr` 1)
+{-# INLINE CONLIKE varint #-}
