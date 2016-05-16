@@ -7,6 +7,7 @@ module Hunt.ContextIndex.Flush(
   , FlushPolicy(..)
   ) where
 
+import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId                  (DocId, unDocId)
 import qualified Hunt.Common.DocIdMap               as DocIdMap
 import qualified Hunt.Common.DocIdSet               as DocIdSet
@@ -41,6 +42,8 @@ import qualified Data.ByteString.Builder.Prim       as Prim
 import qualified Data.ByteString.Lazy               as LByteString
 import           Data.Foldable
 import           Data.IORef
+import           Data.Map                           (Map)
+import qualified Data.Map.Strict                    as Map
 import           Data.Profunctor
 import           Data.Text                          (Text)
 import qualified Data.Text                          as Text
@@ -58,8 +61,12 @@ runFlush :: (MonadIO m, Binary.Binary (DValue Docs))
          -> Segment 'Frozen
          -> m (ContextIndex -> ContextIndex)
 runFlush policy sid seg = do
+  -- write the doctable to obtain a DocTableIndex
   !dix <- writeDocTable policy sid seg
-  writeIndex policy sid seg
+  -- write the terms to obtain a SegmentIndex
+  -- TODO: investigate if we can now use full on-disk indices.
+  !six <- writeIndex policy sid seg
+
   return $ \ixx ->
     let
       docs :: Docs.DocTable
@@ -90,13 +97,15 @@ data IndexWriterState a =
 data TermWriterState a =
   TWS !Word64 !Text !a
 
+newtype SegmentIndex =
+  SegmentIndex { siContexts :: Map Context (Int, Word64) }
+
 writeIndex :: (MonadIO m)
            => FlushPolicy
            -> SegmentId
            -> Segment 'Frozen
-           -> m ()
+           -> m SegmentIndex
 writeIndex policy segId seg = liftIO $ do
-
   let
     -- A writer which writes int as Word64 big endian.
     intWriter :: Writer IO Builder Word64 -> Writer IO Int Word64
@@ -214,20 +223,15 @@ writeIndex policy segId seg = liftIO $ do
           <*> (termWriter <$> bufferedAppendWriter terms 65536)
 
     -- ok, for each context write the index.
-    for (Segment.cxMap (segIndex seg)) $ \iximpl -> do
+    xs <- for (Map.toList (Segment.cxMap (segIndex seg))) $ \(cx, iximpl) -> do
       (nwords, offset) <- runWriter iw (ixToList iximpl)
       -- we have now written an index to disk. Having
       -- the count (nwords) of terms in the dictionary
       -- and the offset at where they are located in the
       -- *.tis file.
+      return (cx, (nwords, offset))
 
-
-
-      return ()
-
-
-
-  return ()
+    return $ SegmentIndex (Map.fromDistinctAscList xs)
   where
     termFile = fpFlushDirectory policy </> show segId <.> "tis"
     occFile = fpFlushDirectory policy </> show segId <.> "occ"
