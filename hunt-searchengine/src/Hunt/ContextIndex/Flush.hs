@@ -295,8 +295,12 @@ writeDocTable policy sid seg = liftIO $ do
                   docEntrySize = fromIntegral $ LByteString.length docEntry
 
                   dixEntry :: Builder
-                  dixEntry = Prim.primBounded (varint >*< varint)
-                             (off, docEntrySize)
+                  dixEntry = Prim.primBounded
+                             (Prim.liftFixedToBounded Prim.word64BE >*< varint >*< varint)
+                             (fromIntegral (unDocId did), (off, docEntrySize))
+                             -- Currently DocIds are 64bit hash values.
+                             -- Writing them as varint would result in
+                             -- 9 byte integers with high probability.
 
                 dws' <- dwstep dws (Builder.lazyByteString docEntry)
                 iws' <- iwstep iws dixEntry
