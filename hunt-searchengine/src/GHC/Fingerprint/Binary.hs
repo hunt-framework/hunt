@@ -1,4 +1,5 @@
 {-# OPTIONS -fno-warn-orphans #-}
+{-# LANGUAGE CPP #-}
 
 -- ----------------------------------------------------------------------------
 {- |
@@ -7,6 +8,8 @@
 -- ----------------------------------------------------------------------------
 
 module GHC.Fingerprint.Binary where
+
+#if !(MIN_VERSION_binary(0,7,6))
 
 import           Data.Binary
 import           GHC.Fingerprint.Type
@@ -18,3 +21,5 @@ instance Binary Fingerprint where
   get = Fingerprint <$> get <*> get
 
 -- ------------------------------------------------------------
+
+#endif
