@@ -2,60 +2,55 @@
 {-# LANGUAGE DataKinds                 #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts          #-}
+{-# LANGUAGE RankNTypes                #-}
 module Hunt.ContextIndex.Flush(
     runFlush
   , FlushPolicy(..)
   ) where
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocId                     (DocId, unDocId)
-import qualified Hunt.Common.DocIdMap                  as DocIdMap
-import qualified Hunt.Common.DocIdSet                  as DocIdSet
-import           Hunt.Common.Document                  (Document)
-import           Hunt.Common.Occurrences               (Occurrences)
-import qualified Hunt.Common.Occurrences               as Occurrences
-import qualified Hunt.Common.Positions                 as Positions
-import qualified Hunt.ContextIndex.Documents           as Docs
-import           Hunt.ContextIndex.Segment             (Docs, Kind (..),
-                                                        Segment (..))
-import qualified Hunt.ContextIndex.Segment             as Segment
+import           Hunt.Common.DocId                  (DocId, unDocId)
+import qualified Hunt.Common.DocIdMap               as DocIdMap
+import qualified Hunt.Common.DocIdSet               as DocIdSet
+import           Hunt.Common.Document               (Document)
+import           Hunt.Common.Occurrences            (Occurrences)
+import qualified Hunt.Common.Occurrences            as Occurrences
+import qualified Hunt.Common.Positions              as Positions
+import qualified Hunt.ContextIndex.Documents        as Docs
+import           Hunt.ContextIndex.Segment          (Docs, Kind (..),
+                                                     Segment (..))
+import qualified Hunt.ContextIndex.Segment          as Segment
 import           Hunt.ContextIndex.Types
-import           Hunt.ContextIndex.Types.SegmentMap    (SegmentId)
-import qualified Hunt.ContextIndex.Types.SegmentMap    as SegmentMap
-import           Hunt.DocTable                         (DValue)
-import qualified Hunt.Index                            as Ix
-import qualified Hunt.Index.IndexImpl                  as Ix
-import qualified Hunt.IO.File                          as IO
-import           Hunt.IO.Writer
-import           Hunt.Scoring.SearchResult             (searchResultToOccurrences)
+import           Hunt.ContextIndex.Types.SegmentMap (SegmentId)
+import qualified Hunt.ContextIndex.Types.SegmentMap as SegmentMap
+import           Hunt.DocTable                      (DValue)
+import qualified Hunt.Index                         as Ix
+import qualified Hunt.Index.IndexImpl               as Ix
+import           Hunt.IO.Encoder
+import qualified Hunt.IO.File                       as IO
 
-import           Control.Arrow                         (second)
-import           Control.Exception                     (bracket)
+import           Hunt.Scoring.SearchResult          (searchResultToOccurrences)
+
+import           Control.Arrow                      (second)
+import           Control.Exception                  (bracket)
 import           Control.Monad.IO.Class
-import qualified Data.Binary                           as Binary
-import qualified Data.Binary.Get                       as Binary
-import qualified Data.Binary.Put                       as Binary
-import           Data.Bits
-import           Data.ByteString.Builder               (Builder)
-import qualified Data.ByteString.Builder               as Builder
-import           Data.ByteString.Builder.Prim          ((>*<))
-import qualified Data.ByteString.Builder.Prim          as Prim
-import qualified Data.ByteString.Builder.Prim.Internal as Prim
-import qualified Data.ByteString.Lazy                  as LByteString
+import qualified Data.Binary                        as Binary
+import qualified Data.Binary.Get                    as Binary
+import qualified Data.Binary.Put                    as Binary
+import           Data.ByteString                    (ByteString)
+import qualified Data.ByteString                    as ByteString
+import qualified Data.ByteString.Lazy               as LByteString
 import           Data.Foldable
 import           Data.IORef
-import           Data.Map                              (Map)
-import qualified Data.Map.Strict                       as Map
-import           Data.Profunctor
-import           Data.Text                             (Text)
-import qualified Data.Text                             as Text
-import qualified Data.Text.Encoding                    as Text
+import           Data.Map                           (Map)
+import qualified Data.Map.Strict                    as Map
+import           Data.Text                          (Text)
+import qualified Data.Text                          as Text
+import qualified Data.Text.Encoding                 as Text
 import           Data.Traversable
-import qualified Data.Vector.Unboxed                   as UVector
-import qualified Data.Vector.Unboxed.Mutable           as UMVector
+import qualified Data.Vector.Unboxed                as UVector
+import qualified Data.Vector.Unboxed.Mutable        as UMVector
 import           Data.Word
-import           Foreign.Ptr
-import           Foreign.Storable
 import           System.FilePath
 
 -- | Runs a `Flush` and writes files to the index directory. This operation is atomic.
@@ -111,59 +106,56 @@ writeIndex :: (MonadIO m)
            -> m SegmentIndex
 writeIndex policy segId seg = liftIO $ do
   let
-    -- A writer which writes int as Word64 big endian.
-    intWriter :: Writer IO Builder Word64 -> Writer IO Int Word64
-    intWriter = lmap (Prim.primBounded varint . fromIntegral)
+    posEncoding :: Encoding Int
+    posEncoding = fromIntegral >$< varint
 
-    -- Convert an occurrence triple (DocId, number of positions,
-    -- offset of positions) to a builder.
-    occWriter :: Writer IO Builder Word64
-              -> Writer IO (DocId, Int, Word64) Word64
-    occWriter = lmap go
-      where go :: (DocId, Int, Word64) -> Builder
-            go (did, noccs, off) =
-              Prim.primBounded (varint >*< varint >*< varint)
-              ( fromIntegral (unDocId did)
-              , ( fromIntegral noccs
-                , off
-                )
-              )
+    occEncoding :: Encoding (DocId, (Int, Word64))
+    occEncoding = (fromIntegral . unDocId >$< varint)
+                  >*< (fromIntegral >$< varint)
+                  >*< varint
 
-    -- the actual term writer. Writes the term and the number
-    -- of occurrences and their offset.
-    -- To save space we only store the suffix compared to the
-    -- last added word.
-    termWriter :: Writer IO Builder Word64
-               -> Writer IO (Text, Int, Word64) Word64
-    termWriter (W wstart wstep wstop) = W start step stop
-      where
-        start = TWS 0 Text.empty <$> wstart
+    -- termWriter :: (forall a. Writer IO (Pair (Encoding a) a) Word64)
+    --            -> Writer IO (Text, (Int, Word64)) Word64
+    termWriter (W wstart wstep wstop) = W start step stop where
 
-        step (TWS n lastWord ws) (word, noccs, occOff) = do
-          let
-            prefix, suffix :: Text
-            (prefix, suffix) = case Text.commonPrefixes lastWord word of
-              Just (pfx, _, sfx) -> (pfx, sfx)
-              Nothing            -> (Text.empty, word)
+          start = TWS 0 Text.empty <$> wstart
 
-            header :: Int -> Int -> Builder
-            header a b = Prim.primBounded (varint >*< varint)
-              ( fromIntegral a
-              , fromIntegral b
-              )
+          step (TWS n lastWord ws) (word, (noccs, occOff)) = do
+            let
+              prefix, suffix :: Text
+              (prefix, suffix) = case Text.commonPrefixes lastWord word of
+                Just (pfx, _, sfx) -> (pfx, sfx)
+                Nothing            -> (Text.empty, word)
 
-            meta :: Builder
-            meta = Prim.primBounded (varint >*< varint)
-              ( fromIntegral noccs
-              , occOff
-              )
+              prefix', suffix' :: ByteString
+              prefix' = Text.encodeUtf8 prefix
+              suffix' = Text.encodeUtf8 suffix
 
-          ws' <- wstep ws (header (Text.length prefix) (Text.length suffix)
-                          `mappend` Builder.byteString (Text.encodeUtf8 suffix)
-                          `mappend` meta)
-          return $ TWS (n + 1) word ws'
+              termEncoding :: Encoding (Int
+                                       , (Int
+                                         , (ByteString
+                                           , (Int
+                                             , Word64))))
+              termEncoding = (fromIntegral >$< varint)
+                             >*< (fromIntegral >$< varint)
+                             >*< byteString (ByteString.length suffix')
+                             >*< (fromIntegral >$< varint)
+                             >*< varint
 
-        stop (TWS _ _ ws) = wstop ws
+            ws' <- wstep ws (P termEncoding
+                             ( ByteString.length prefix'
+                             , ( ByteString.length suffix'
+                               , ( suffix'
+                                 , ( noccs
+                                   , occOff
+                                   )
+                                 )
+                               )
+                             )
+                            )
+            return $ TWS (n + 1) word ws'
+
+          stop (TWS _ _ ws) = wstop ws
 
     -- the actual index writer combining the hierarchies:
     --
@@ -175,8 +167,8 @@ writeIndex policy segId seg = liftIO $ do
     --
     -- Returns the number of terms written and their offset.
     indexWriter :: Writer IO Int Word64                  -- position writer
-                -> Writer IO (DocId, Int, Word64) Word64 -- occurrence writer
-                -> Writer IO (Text, Int, Word64) Word64  -- term writer
+                -> Writer IO (DocId, (Int, Word64)) Word64 -- occurrence writer
+                -> Writer IO (Text, (Int, Word64)) Word64  -- term writer
                 -> Writer IO (Text, Occurrences) (Int, Word64)
     indexWriter pw ow tw = case ow of
       (W owstart owstep owstop) ->  case tw of
@@ -191,26 +183,40 @@ writeIndex policy segId seg = liftIO $ do
                               -- for each document in occurrences
                               -- write their positions
                               posOff <- runWriter pw (Positions.toAscList pos)
-                              owstep s (did, Positions.size pos, posOff)
+                              owstep s (did, (Positions.size pos, posOff))
                           ) ow (DocIdMap.toList occs)
             occOff <- owstop ow'
             -- we have stored the occurrences. Write the actual term.
-            IWS (n + 1) <$> twstep ts (term, Occurrences.size occs, occOff)
+            IWS (n + 1) <$> twstep ts (term, (Occurrences.size occs, occOff))
 
           stop (IWS n ts) = (,) <$> pure n <*> twstop ts
 
-    bufferedAppendWriter :: IO.AppendFile
-                         -> Int
-                         -> IO (Writer IO Builder Word64)
-    bufferedAppendWriter fp nSz = do
+    fixedEncodingWriter :: Int
+                        -> Encoding a
+                        -> IO.AppendFile
+                        -> IO (Writer IO a Word64)
+    fixedEncodingWriter bufSz enc fp = do
       offRef <- newIORef 0
-      return $ case IO.bufferedWriter (IO.appendWriter fp) nSz of
-                 W wstart wstep wstop -> W wstart wstep stop where
-                   stop ws = do
-                     n <- wstop ws
-                     off <- readIORef offRef
-                     modifyIORef' offRef (+ n)
-                     return off
+      return $ case bufferedEncWriter bufSz enc (appendWriter fp) of
+        W wstart wstep wstop -> W wstart wstep stop where
+          stop ws = do
+            n <- wstop ws
+            off <- readIORef offRef
+            modifyIORef' offRef (+ n)
+            return off
+
+    -- dynEncodingWriter :: forall a. Int
+    --                   -> IO.AppendFile
+    --                   -> IO (Writer IO (Pair (Encoding a) a) Word64)
+    dynEncodingWriter bufSz fp = do
+      offRef <- newIORef 0
+      return $ case bufferedEncWriter' bufSz (appendWriter fp) of
+        W wstart wstep wstop -> W wstart wstep stop where
+          stop ws = do
+            n <- wstop ws
+            off <- readIORef offRef
+            modifyIORef' offRef (+ n)
+            return off
 
   bracket (IO.openAppendFile termFile) IO.closeAppendFile $ \terms ->
     bracket (IO.openAppendFile occFile) IO.closeAppendFile $ \occs ->
@@ -222,9 +228,9 @@ writeIndex policy segId seg = liftIO $ do
         second searchResultToOccurrences <$> Ix.toList ix
 
     iw <- indexWriter
-          <$> (intWriter  <$> bufferedAppendWriter pos 1024)
-          <*> (occWriter  <$> bufferedAppendWriter occs 32768)
-          <*> (termWriter <$> bufferedAppendWriter terms 65536)
+          <$> fixedEncodingWriter 1024 posEncoding pos
+          <*> fixedEncodingWriter 32768 occEncoding occs
+          <*> (termWriter <$> dynEncodingWriter 65536 terms)
 
     -- ok, for each context write the index.
     xs <- for (Map.toList (Segment.cxMap (segIndex seg))) $ \(cx, iximpl) -> do
@@ -247,7 +253,6 @@ writeDocTable :: (MonadIO m, Binary.Binary (DValue Docs.DocTable))
               -> Segment 'Frozen
               -> m Docs.DocTableIndex
 writeDocTable policy sid seg = liftIO $ do
-
   -- Don't access DocTable directly, as it could be an already
   -- flushed Segment so we don't clutter memory
   docIds <- Segment.segmentDocIds seg
@@ -260,33 +265,29 @@ writeDocTable policy sid seg = liftIO $ do
       -- and one for the (offset, size) info for the disk seek.
 
       let
+        docIndexEncoding :: Encoding (DocId, (Word64, Word64))
+        docIndexEncoding = (fromIntegral . unDocId >$< varint)
+                           >*< varint
+                           >*< varint
+
         numDocs :: Int
         numDocs = DocIdSet.size docIds
 
-        -- A buffered writer which appends to a file when the buffer
-        -- is full. As we use ByteString.Builder they take lazy
-        -- bytestrings.
-        bufferedAppendWriter :: IO.AppendFile -> Writer IO Builder Word64
-        bufferedAppendWriter fp =
-          IO.bufferedWriter (IO.appendWriter fp) 65536
-
         -- The work horse. Encode the documents to binary format
         -- and write them.
-        doctableWriter :: Int
-                       -> Writer IO Builder Word64
-                       -> Writer IO Builder Word64
+        docTableWriter :: Int
+                       -> Writer IO LByteString.ByteString Word64
+                       -> Writer IO (DocId, (Word64, Word64)) Word64
                        -> Writer IO (DocId, Document) Docs.DocTableIndex
-        doctableWriter ndocs iw dw = case iw of
-          W iwstart iwstep iwstop -> case dw of
-            W dwstart dwstep dwstop -> W start step stop where
+        docTableWriter ndocs dw iw = case dw of
+          W dwstart dwstep dwstop -> case iw of
+            W iwstart iwstep iwstop -> W start step stop where
 
-              -- Initialize writer.
               start = DTS 0 0 <$> UMVector.unsafeNew ndocs
-                              <*> iwstart
                               <*> dwstart
+                              <*> iwstart
 
-              -- For every DocId do...
-              step (DTS off i ix iws dws) (did, doc) = do
+              step (DTS off i ix dws iws) (did, doc) = do
                 let
                   docEntry :: LByteString.ByteString
                   docEntry = Binary.runPut (Binary.put doc)
@@ -294,30 +295,21 @@ writeDocTable policy sid seg = liftIO $ do
                   docEntrySize :: Word64
                   docEntrySize = fromIntegral $ LByteString.length docEntry
 
-                  dixEntry :: Builder
-                  dixEntry = Prim.primBounded
-                             (Prim.liftFixedToBounded Prim.word64BE >*< varint >*< varint)
-                             (fromIntegral (unDocId did), (off, docEntrySize))
-                             -- Currently DocIds are 64bit hash values.
-                             -- Writing them as varint would result in
-                             -- 9 byte integers with high probability.
-
-                dws' <- dwstep dws (Builder.lazyByteString docEntry)
-                iws' <- iwstep iws dixEntry
+                dws' <- dwstep dws docEntry
+                iws' <- iwstep iws (did, (fromIntegral docEntrySize, off))
                 UMVector.unsafeWrite ix i (did, off, docEntrySize)
-                return $ DTS (off + docEntrySize) (i + 1) ix iws' dws'
+                return $ DTS (off + docEntrySize) (i + 1) ix dws' iws'
 
-              -- Done here
-              stop (DTS _ _ ix iws dws) = do
+              stop (DTS _ _ ix dws iws) = do
                 _ <- iwstop iws
                 _ <- dwstop dws
                 ix' <- UVector.unsafeFreeze ix
                 return (Docs.DTI ix')
 
-      let dw = doctableWriter
-               numDocs
-               (bufferedAppendWriter ix)
-               (bufferedAppendWriter docs)
+        dw = docTableWriter
+             numDocs
+             (lazyByteStringWriter (bufferedByteStringWriter 65536 (appendWriter docs)))
+             (bufferedEncWriter 65536 docIndexEncoding (appendWriter ix))
 
       case dw of
         W dwstart dwstep dwstop -> do
@@ -330,14 +322,3 @@ writeDocTable policy sid seg = liftIO $ do
   where
     dtIxFile = fpFlushDirectory policy </> show sid <.> "dx"
     dtDocFile = fpFlushDirectory policy </> show sid <.> "dt"
-
-varint :: Prim.BoundedPrim Word64
-varint = Prim.boudedPrim 9 go
-  where
-    go :: Word64 -> Ptr Word8 -> IO (Ptr Word8)
-    go !n !op
-      | n < 0x80  = do poke op (fromIntegral n)
-                       return (op `plusPtr` 1)
-      | otherwise = do poke op (setBit (fromIntegral n) 7)
-                       go (n `unsafeShiftR` 7) (op `plusPtr` 1)
-{-# INLINE CONLIKE varint #-}

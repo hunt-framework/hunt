@@ -103,8 +103,9 @@ library
                   Hunt.Index.InvertedIndex
                   Hunt.Index.Proxy.KeyIndex
 
+                  Hunt.IO.Buffer
+                  Hunt.IO.Encoder
                   Hunt.IO.File
-                  Hunt.IO.Writer
 
                   Hunt.DocTable
                   Hunt.DocTable.HashedDocTable
