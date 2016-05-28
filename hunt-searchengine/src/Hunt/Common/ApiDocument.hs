@@ -66,6 +66,9 @@ data LimitedResult x = LimitedResult
 instance NFData x => NFData (LimitedResult x) where
   rnf (LimitedResult r o m c) = r `seq` o `seq` m `seq` c `seq` ()
 
+instance Functor LimitedResult where
+  fmap f lr = lr { lrResult = fmap f (lrResult lr) }
+
 -- ------------------------------------------------------------
 
 -- | Create a paginated result with an offset and a chunk size.
