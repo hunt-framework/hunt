@@ -15,15 +15,7 @@ import           GHC.Fingerprint.Binary ()
 
 -- ------------------------------------------------------------
 
-instance Binary TypeRep where
-  put (TypeRep fp tyCon ks ts) = put fp >> put tyCon >> put ks >> put ts
-  get = TypeRep <$> get <*> get <*> get <*> get
-
-instance Binary TyCon where
-  put (TyCon hash package modul name) = put hash >> put package >> put modul >> put name
-  get = TyCon <$> get <*> get <*> get <*> get
-
-#elseif __GLASGOW_HASKELL__ < 800
+#if __GLASGOW_HASKELL__ < 800
 
 instance Binary TypeRep where
   put (TypeRep fp tyCon kindRep tr) = put fp >> put tyCon >> put kindRep >> put tr
