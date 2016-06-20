@@ -1,9 +1,29 @@
-language: haskell
+sudo: false
+language: c
 
-ghc: 
-  - 7.8
+env:
+  - ARGS=""
+  - ARGS="--resolver lts-2"
+  - ARGS="--resolver lts-3"
+  - ARGS="--resolver lts-5"
+  - ARGS="--resolver nightly"
 
-install:
-  - cd hunt-searchengine && cabal install --enable-tests --only-dependencies -ftest-strict
+addons:
+  apt:
+    packages:
+      # Needed for GHC.
+    - libgmp-dev
+
+cache:
+  directories:
+  - $HOME/.stack
+
+before_install:
+  - mkdir -p ~/.local/bin
+  - export PATH=$HOME/.local/bin:$PATH
+  - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
+
 script:
-  - cabal configure --enable-tests -ftest-strict && cabal test
+  - stack build --install-ghc --test --bench --no-run-tests --no-run-benchmarks
+  - stack test
+  - stack bench
