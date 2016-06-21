@@ -29,7 +29,8 @@ module Hunt.ClientInterface
     , Huntable(..)
     , Content
     , Context
-    , ContextSchema
+    , ContextSchema(..)
+    , ContextType(..)
     , Description
     , IndexMap
     , RegExp

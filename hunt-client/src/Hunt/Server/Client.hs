@@ -55,7 +55,7 @@ import           Data.Typeable (Typeable)
 import qualified Hunt.ClientInterface as H
 import qualified Hunt.Common.ApiDocument as H (ApiDocuments)
 import qualified Hunt.Index.Schema as H (CNormalizer, CTokenizer, ContextSchema (..),
-                                         ContextType (..))
+                                         ContextType (..), ContextType'(..), ContextSchema'(..))
 import qualified Hunt.Interpreter.Command as H (Command (..))
 import           Hunt.Query.Language.Grammar (Query)
 import qualified Network.HTTP.Client as HTTP (defaultManagerSettings)
