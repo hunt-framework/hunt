@@ -136,9 +136,6 @@ indexStatus :: HuntClient CmdResult
 -- the given name. This is experimental.
 contextStatus :: T.Text -> HuntClient CmdResult
 
--- | Request the status of the schema.
-schemaStatus :: HuntClient CmdResult
-
 
 -- HTML
 
@@ -166,7 +163,7 @@ instance MimeUnrender HTML Html where
  :<|> eval
  :<|> getWeight
  :<|> select
- :<|> (gcStatus :<|> doctableStatus :<|> indexStatus :<|> contextStatus :<|> schemaStatus)
+ :<|> (gcStatus :<|> doctableStatus :<|> indexStatus :<|> contextStatus)
  :<|> (storeIndex :<|> loadIndex)
  :<|> (quickstart :<|> home)) = client huntAPI
 
