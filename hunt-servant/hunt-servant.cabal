@@ -34,6 +34,7 @@ executable hunt-servant-server
                      , shakespeare
                      , text
                      , wai
+                     , wai-extra
                      , warp
   other-modules:       Hunt.API
                      , Hunt.Client

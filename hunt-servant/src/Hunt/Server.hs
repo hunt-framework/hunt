@@ -14,27 +14,36 @@ module Hunt.Server
   ) where
 
 
-import qualified Data.ByteString.Lazy      as LB
-import qualified Data.Text                 as T
-import qualified Data.Text.Encoding        as TE
+import qualified Data.ByteString.Lazy                 as LB
+import qualified Data.Text                            as T
+import qualified Data.Text.Encoding                   as TE
 
 import           Control.Monad.Except
 
-import qualified Hunt.ClientInterface      as HC
-import           Hunt.Common.ApiDocument   (LimitedResult)
+import qualified Hunt.ClientInterface                 as HC
+import           Hunt.Common.ApiDocument              (LimitedResult)
 import           Hunt.Interpreter
-import           Hunt.Interpreter.Command  (CmdResult (..), Command (..),
-                                            StatusCmd (..), ceMsg)
-import           Hunt.Query.Intermediate   (RankedDoc)
+import           Hunt.Interpreter.Command             (CmdResult (..),
+                                                       Command (..),
+                                                       StatusCmd (..), ceMsg)
+import           Hunt.Query.Intermediate              (RankedDoc)
 
-import           Network.Wai               (Application)
-import           Network.Wai.Handler.Warp  (run)
+import           Network.Wai                          (Application)
+import           Network.Wai.Handler.Warp             (run)
+import           Network.Wai.Middleware.RequestLogger (logStdoutDev)
 
 import           Hunt.API
 import           Hunt.Server.Configuration
-import qualified Hunt.Server.Template      as Templ
+import qualified Hunt.Server.Template                 as Templ
 import           Servant
-import           Text.Blaze.Html           (Html)
+import           System.IO                            (stdout)
+import           System.Log.Formatter
+import           System.Log.Handler
+import           System.Log.Handler.Simple
+import           System.Log.Logger                    hiding (debugM, errorM,
+                                                       warningM)
+import qualified System.Log.Logger                    as Log
+import           Text.Blaze.Html                      (Html)
 
 
 -- SERVER
@@ -44,6 +53,7 @@ import           Text.Blaze.Html           (Html)
 runWithConfig :: HuntServerConfiguration -> IO ()
 runWithConfig config = do
   env <- initHunt :: IO DefHuntEnv
+  initLoggers (logPriority config) (logFile config)
   tryLoadIndex env $ readIndexOnStartup config
   run (huntServerPort config) (serveApp env)
 
@@ -54,16 +64,17 @@ tryLoadIndex env (Just indexFile) = do
   cmdResult <- runCmd env $ HC.cmdLoadIndex indexFile
   case cmdResult of
     Right _  ->
-      putStrLn $ "Index loaded: " ++ indexFile
+      debugM $ "Index loaded: " ++ indexFile
 
-    Left err ->
-      fail $ show err
-  
+    Left err -> do
+      errorM (show err)
+      fail (show err)
+
 
 -- | Combine the HuntAPI with the server implementation
 -- to serve an application.
 serveApp :: DefHuntEnv -> Application
-serveApp = serve huntAPI . server
+serveApp = logStdoutDev . serve huntAPI . server
 
 
 server :: DefHuntEnv -> Server HuntAPI
@@ -249,3 +260,45 @@ getOkResult :: CmdResult -> HuntResult ()
 getOkResult ResOK = return ()
 getOkResult _ = throwError err500 { errBody = "Internal server error" }
 
+
+-- LOGGING HELPERS
+
+-- | Name of the module for logging purposes.
+modName :: String
+modName = "Hunt.Server"
+
+-- | Log a message at 'DEBUG' priority.
+debugM :: String -> IO ()
+debugM = Log.debugM modName
+{-
+-- | Log a message at 'WARNING' priority.
+warningM :: String -> IO ()
+warningM = Log.warningM modName
+-}
+
+-- | Log a message at 'ERROR' priority.
+errorM :: String -> IO ()
+errorM = Log.errorM modName
+
+-- | Convenience function to add a log formatter.
+withFormatter :: (Monad m, LogHandler r) => m r -> LogFormatter r -> m r
+withFormatter h f = liftM (flip setFormatter f) h
+
+-- | Initializes the loggers (stdout, file).
+--   Sets the stdout logger to the given priority
+--   and sets the path and 'DEBUG' priority for the file logger.
+initLoggers :: Priority -> FilePath -> IO ()
+initLoggers prio logFilePath = do
+  -- formatter
+  let defFormatter = simpleLogFormatter "[$time : $loggername : $prio] $msg"
+
+  -- root does not have a priority
+  updateGlobalLogger rootLoggerName clearLevel
+
+  -- stdout root logger
+  handlerBare <- streamHandler stdout prio `withFormatter` defFormatter
+  updateGlobalLogger rootLoggerName (setHandlers [handlerBare])
+
+  -- file logger always at 'DEBUG' level
+  handlerFile <- fileHandler logFilePath DEBUG `withFormatter` defFormatter
+  updateGlobalLogger rootLoggerName (addHandler handlerFile)
