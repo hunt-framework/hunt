@@ -1,20 +1,21 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main where
 
-import           Control.Monad (mzero)
+import           Control.Monad            (mzero)
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
-import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy     as B
 import           Data.Char
-import           Data.Map (Map ())
-import qualified Data.Map as M
+import           Data.Map                 (Map ())
+import qualified Data.Map                 as M
 import           Data.Monoid
-import           Data.Text (Text)
-import qualified Data.Text as T
-import           Data.Word (Word32)
+import           Data.Text                (Text)
+import qualified Data.Text                as T
+import           Data.Word                (Word32)
 import           FussballerSprueche
-import           Prelude hiding (Word)
+import           Prelude                  hiding (Word)
 import           System.IO
 
 -- ----------------------------------------------------------------------------
@@ -157,9 +158,15 @@ encodeDocs :: ApiDocuments -> B.ByteString
 encodeDocs
     = encodePretty' encConfig
       where
+#if MIN_VERSION_aeson_pretty(0, 8, 0)
+        indent = Spaces 2
+#else
+        indent = 2
+#endif
+
         encConfig :: Config
         encConfig
-            = Config { confIndent = 2
+            = Config { confIndent = indent
                      , confCompare
                          = keyOrder ["uri", "desc", "words", "wer","was","wo","gruppe"]
                            `mappend`
