@@ -22,7 +22,7 @@ import           Holumbus.Crawler.XmlArrows                  (checkDocumentStatu
 import qualified Text.XML.HXT.Arrow.XmlState.RunIOStateArrow as HXT (theSysConfigComp)
 import qualified Text.XML.HXT.Arrow.XmlState.TypeDefs        as HXT (theInputOptions)
 import           Text.XML.HXT.Core
-import           Text.XML.HXT.Curl
+import           Text.XML.HXT.HTTP
 
 import           System.Log.Logger                           (Priority (..))
 
@@ -235,7 +235,7 @@ theProcessDoc           = S cc_processDoc       (\ x s -> s {cc_processDoc = x})
 defaultCrawlerConfig    :: AccumulateDocResult a r -> MergeDocResults r -> CrawlerConfig a r
 defaultCrawlerConfig op op2
     = CrawlerConfig
-      { cc_sysConfig        = ( withCurl [ (curl_user_agent,                defaultCrawlerName)
+      { cc_sysConfig        = ( withHTTP [ (curl_user_agent,                defaultCrawlerName)
                                          , (curl_max_time,          show $ (60 * 1000::Int))        -- whole transaction for reading a document must complete within 60,000 milli seconds,
                                          , (curl_connect_timeout,   show $ (10::Int))               -- connection must be established within 10 seconds
                                          ]
@@ -419,4 +419,3 @@ modifyStateIO                   :: Selector (CrawlerState r) v -> (v -> IO v) ->
 modifyStateIO sel               = modifyIO . chgM sel
 
 -- ------------------------------------------------------------
-

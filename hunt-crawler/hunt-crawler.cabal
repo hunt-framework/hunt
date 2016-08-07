@@ -60,7 +60,7 @@ library
               , hslogger               >= 1
               , hxt                    >= 9.1
               , hxt-cache              >= 9
-              , hxt-curl               >= 9
+              , hxt-http               >= 9
               , hxt-regex-xmlschema    >= 9
               , hxt-unicode            >= 9
               , mtl                    >= 1.1

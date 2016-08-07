@@ -10,7 +10,7 @@ import Data.Binary (Binary (..))
 import Data.Function.Selector
 import Holumbus.Crawler
 import Text.XML.HXT.Core
-import Text.XML.HXT.Curl
+import Text.XML.HXT.HTTP
 
 -- ------------------------------------------------------------
 
@@ -78,7 +78,7 @@ cacheCrawlerConfig opts followRef
                                                                                 -- take the default crawler config
                                                                                 -- and set the result combining functions
     where
-    defaultOpts                 = withCurl [ (curl_max_filesize,         "1000000")      -- limit document size to 1 Mbyte
+    defaultOpts                 = withHTTP [ (curl_max_filesize,         "1000000")      -- limit document size to 1 Mbyte
                                            , (curl_location,             v_1)            -- automatically follow redirects
                                            , (curl_max_redirects,        "3")            -- but limit # of redirects to 3
                                            ]

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
@@ -10,9 +11,9 @@ where
 import           Control.Monad.IO.Class
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty
-import qualified Data.ByteString.Lazy as LB
-import           Data.Text ()
-import           System.FilePath ()
+import qualified Data.ByteString.Lazy     as LB
+import           Data.Text                ()
+import           System.FilePath          ()
 
 -- ------------------------------------------------------------
 
@@ -22,7 +23,7 @@ outputValue fn c
     = liftIO (jsonOutput True toFile c)
     where
       toFile bs
-          | fn == ""
+          | null fn
             ||
             fn == "-"
                 = LB.putStr bs
@@ -60,9 +61,15 @@ jsonOutput :: (ToJSON c) => Bool -> (LB.ByteString -> IO a) -> c -> IO a
 jsonOutput pretty io x
     = io $ (if pretty then encodePretty' encConfig else encode) x
       where
+#if MIN_VERSION_aeson_pretty(0, 8, 0)
+        indent = Spaces 2
+#else
+        indent = 2
+#endif
+
         encConfig :: Config
         encConfig
-            = Config { confIndent = 2
+            = Config { confIndent = indent
                      , confCompare
                          = keyOrder ["description", "index", "uri"]
                            `mappend`
