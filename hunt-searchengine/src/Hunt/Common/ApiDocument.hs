@@ -62,7 +62,7 @@ data LimitedResult x = LimitedResult
     deriving (Show, Eq)
 
 instance NFData x => NFData (LimitedResult x) where
-  rnf (LimitedResult r o m c) = r `seq` o `seq` m `seq` c `seq` ()
+  rnf (LimitedResult r o m c) = rnf r `seq` o `seq` m `seq` c `seq` ()
 
 -- ------------------------------------------------------------
 

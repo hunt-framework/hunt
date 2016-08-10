@@ -1,11 +1,12 @@
+{-# LANGUAGE CPP                       #-}
 {-# LANGUAGE ConstraintKinds           #-}
+{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts          #-}
 {-# LANGUAGE FlexibleInstances         #-}
 {-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE RankNTypes                #-}
 {-# LANGUAGE TypeFamilies              #-}
 {-# LANGUAGE TypeSynonymInstances      #-}
-{-# LANGUAGE RankNTypes                #-}
-{-# LANGUAGE ExistentialQuantification #-}
 {-# OPTIONS -fno-warn-orphans          #-}
 
 -- ----------------------------------------------------------------------------
@@ -16,44 +17,46 @@
 
 module Hunt.TestHelper where
 
+import           Control.Monad                (foldM)
 import           System.Random
 import           Test.QuickCheck
 import           Test.QuickCheck.Gen
-import           Test.QuickCheck.Random
 import           Test.QuickCheck.Monadic
-import           Control.Monad (foldM)
+import           Test.QuickCheck.Random
 
-import           Data.Map (Map)
-import qualified Data.Map as M
-import           Data.Text (Text)
-import qualified Data.Text as T
+import qualified Control.Monad.Parallel       as Par
 import           Data.Default
-import qualified Control.Monad.Parallel as Par
+import           Data.Map                     (Map)
+import qualified Data.Map                     as M
+import           Data.Text                    (Text)
+import qualified Data.Text                    as T
 
 -- import           Hunt.Common
-import qualified Hunt.Common.Positions as Pos
-import qualified Hunt.Common.Occurrences as Occ
-import qualified Hunt.Common.DocDesc as DD
-import qualified Hunt.Common.DocIdSet as DS
+import qualified Hunt.Common.DocDesc          as DD
+import qualified Hunt.Common.DocIdSet         as DS
+import qualified Hunt.Common.Occurrences      as Occ
+import qualified Hunt.Common.Positions        as Pos
 
+import           Hunt.ClientInterface         hiding (mkDescription)
 import           Hunt.Interpreter.Command
-import           Hunt.ClientInterface hiding (mkDescription)
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocId
-import           Hunt.Common.Document (Document(..))
-import qualified Hunt.ContextIndex as ConIx
-import qualified Hunt.DocTable as Dt
+import           Hunt.Common.Document         (Document (..))
+import qualified Hunt.ContextIndex            as ConIx
+import qualified Hunt.DocTable                as Dt
 import qualified Hunt.DocTable.HashedDocTable as HDt
-import qualified Hunt.Index as Ix
+import qualified Hunt.Index                   as Ix
 import           Hunt.Index.IndexImpl
-import qualified Hunt.Index.InvertedIndex as InvIx
+import qualified Hunt.Index.InvertedIndex     as InvIx
 import           Hunt.Index.Schema
 import           Hunt.Scoring.Score
 import           Hunt.Utility
 
 import           Data.Time
+#if !MIN_VERSION_time(1, 5, 0)
 import           System.Locale
+#endif
 
 instance Par.MonadParallel (PropertyM IO) where
 
