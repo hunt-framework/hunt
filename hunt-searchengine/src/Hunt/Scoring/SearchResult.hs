@@ -305,10 +305,10 @@ inters0 :: SearchResult -> SearchResult -> SearchResult
 RUD x1        `inters0` RUD x2        = RUD $ x1 `intersectSC` x2
 
 RSD x1        `inters0` RSD x2        = RSD $ x1 `intersectSC` x2
-RSD (SDS dm1) `inters0` RUD (UDS ds2) = RSD (SDS $ DM.filterWithKey (\ i _ -> i `DS.member` ds2) dm1)
+RSD (SDS dm1) `inters0` RUD (UDS ds2) = RSD (SDS $ DM.restrictKeys dm1 ds2)
 
 ROC x1        `inters0` ROC x2        = ROC $ x1 `intersectSC` x2
-ROC (OCC os1) `inters0` RUD (UDS ds2) = ROC (OCC $ DM.filterWithKey (\ i _ -> i `DS.member` ds2) os1)
+ROC (OCC os1) `inters0` RUD (UDS ds2) = ROC (OCC $ DM.restrictKeys os1 ds2)
 ROC (OCC os1) `inters0` RSD (SDS ds2) = ROC (OCC $ DM.intersectionWith (\ x _ -> x) os1 ds2)
 
 x1            `inters0` x2            = x2 `inters0` x1

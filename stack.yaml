@@ -7,6 +7,9 @@ packages:
   - ./hunt-server
   - ./hunt-server-cli
   - ./hunt-test/data/jokes
+  - location:
+      git: https://github.com/haskell/containers.git
+      commit: 96a2e22767850e9da80aa83299fc692136f9854b
 extra-deps:
   - data-r-tree-0.0.5.0
   - data-stringmap-1.0.1.1

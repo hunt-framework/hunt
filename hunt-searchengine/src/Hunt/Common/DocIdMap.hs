@@ -39,6 +39,7 @@ module Hunt.Common.DocIdMap
   , map
   , filter
   , filterWithKey
+  , restrictKeys
   , mapWithKey
   , traverseWithKey
   , foldr
@@ -60,7 +61,8 @@ import           Data.Aeson
 import           Data.Binary (Binary (..))
 import           Data.Foldable hiding (fold, foldl, foldr, toList, null)
 import qualified Data.HashMap.Strict as HM
-import qualified Data.IntMap.BinTree.Strict as IM
+import qualified Data.IntMap.Strict as IM
+--import qualified Data.IntMap.BinTree.Strict as IM
 import qualified Data.List as L
 import           Data.Monoid ((<>))
 import qualified Data.Text as T
@@ -162,7 +164,10 @@ size                    = IM.size . unDIM
 
 -- | The number of elements limited up to a maximum
 sizeWithLimit           :: Int -> DocIdMap v -> Maybe Int
-sizeWithLimit limit     = IM.sizeWithLimit limit . unDIM
+sizeWithLimit limit (DIM m)
+  | sz <- IM.size m
+  , sz <= limit = Just sz
+  | otherwise = Nothing
 
 -- | The (left-biased) union of two maps.
 --   It prefers the first map when duplicate 'DocId' are encountered,
@@ -180,7 +185,8 @@ difference              = liftDIM2 $ IM.difference
 
 -- | Difference between the map and a set of 'DocId's.
 diffWithSet             :: DocIdMap v -> DocIdSet -> DocIdMap v
-diffWithSet m s         = m `difference` (DIM $ IM.fromSet (const ()) (unDIS s))
+diffWithSet (DIM m) (DIS s) = -- m `difference` (DIM $ IM.fromSet (const ()) (unDIS s))
+  DIM $ IM.withoutKeys m s
 
 -- | The union with a combining function.
 unionWith               :: (v -> v -> v) -> DocIdMap v -> DocIdMap v -> DocIdMap v
@@ -213,6 +219,10 @@ filter p                = liftDIM $ IM.filter p
 -- | Filter all 'DocId's/values that satisfy some predicate.
 filterWithKey           :: (DocId -> v -> Bool) -> DocIdMap v -> DocIdMap v
 filterWithKey p         = liftDIM $ IM.filterWithKey (p . DocId)
+
+restrictKeys            :: DocIdMap a -> DocIdSet -> DocIdMap a
+restrictKeys (DIM m) (DIS s) = DIM $ IM.restrictKeys m s
+
 
 -- | @'traverseWithKey' f s == 'fromList' <$> 'traverse' (\(k, v) -> (,) k <$> f k v) ('toList' m)@
 --   That is, behaves exactly like a regular 'traverse' except that the traversing
