@@ -69,7 +69,7 @@ jsonOutput pretty io x
 
         encConfig :: Config
         encConfig
-            = Config { confIndent = indent
+            = defConfig { confIndent = indent
                      , confCompare
                          = keyOrder ["description", "index", "uri"]
                            `mappend`
