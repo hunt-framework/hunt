@@ -19,9 +19,15 @@ module Hunt.Common.DocId
 where
 
 import           Data.Aeson
-import           Data.Binary (Binary (..))
-import qualified Data.Binary as B
+import           Data.Binary                (Binary (..))
+import qualified Data.Binary                as B
 import           Data.Digest.Murmur64
+import           Data.Text                  (Text)
+import qualified Data.Text                  as Text
+import qualified Data.Text.Lazy             as LText
+import qualified Data.Text.Lazy.Builder     as Builder
+import qualified Data.Text.Lazy.Builder.Int as Builder
+import qualified Data.Text.Read             as Text
 
 -- ------------------------------------------------------------
 {-
@@ -58,7 +64,7 @@ newtype DocId = DocId {unDocId :: Int}
     deriving (Eq, Ord)
 
 instance Show DocId where
-    show = toHex . unDocId
+    show = Text.unpack . toHex . unDocId
 
 instance Binary DocId where
     put = put . unDocId
@@ -70,27 +76,16 @@ instance ToJSON DocId where
 mkDocId :: Binary a => a -> DocId
 mkDocId = DocId . fromIntegral . asWord64 . hash64 . B.encode
 
-toHex :: Int -> String
-toHex !y = "0x" ++ toX 16 "" y
-    where
-      toX :: Int -> String -> Int -> String
-      toX !0 !acc _ = acc
-      toX !n !acc x = toX (n - 1) (d : acc) x'
-          where
-            (!x', !r) = x `divMod` 16
-            !d | r < 10    = toEnum (fromEnum '0' + r)
-               | otherwise = toEnum (fromEnum 'a' + r - 10)
+toHex :: Int -> Text
+toHex =
+  LText.toStrict
+  . Builder.toLazyTextWith 18
+  . mappend "0x"
+  . Builder.hexadecimal
 
-fromHex :: String -> Maybe Int
-fromHex i@('0' : 'x' : xs)
-    | length xs == 16
-      &&
-      all (`elem` ("0123456789abcdef"::String)) xs
-        = Just . read $ i
-    | otherwise
-        = Nothing
-
-fromHex _
-    = Nothing
+fromHex :: Text -> Maybe Int
+fromHex t
+  | Right (i, "") <- Text.hexadecimal t = Just i
+  | otherwise = Nothing
 
 -- ------------------------------------------------------------

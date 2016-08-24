@@ -30,14 +30,17 @@ module Hunt.Common.DocIdSet
 where
 
 import           Control.DeepSeq
-import           Control.Monad (mzero)
+import           Control.Monad     (mzero)
 import           Data.Aeson
-import           Data.Binary (Binary (..))
-import qualified Data.IntSet as S
-import qualified Data.List as L
+import           Data.Binary       (Binary (..))
+import qualified Data.IntSet       as S
+import qualified Data.List         as L
+import           Data.Text         (Text)
 import           Data.Typeable
+import           Data.Vector       (Vector)
+import qualified Data.Vector       as Vector
 import           Hunt.Common.DocId
-import           Prelude hiding (null)
+import           Prelude           hiding (null)
 
 -- ------------------------------------------------------------
 --
@@ -60,18 +63,14 @@ instance ToJSON DocIdSet where
     toJSON = toJSON . L.map DocId . S.toList . unDIS
 
 instance FromJSON DocIdSet where
-    parseJSON x = do l <- parseJSON x
-                     case fromL l of
-                       Nothing -> mzero
-                       Just s  -> return $ DIS s
-        where
-          fromL :: [String] -> Maybe S.IntSet
-          fromL = L.foldr ins (Just S.empty)
-              where
-                ins _ Nothing   = Nothing
-                ins xs (Just s) = case fromHex xs of
-                                    Nothing -> Nothing
-                                    Just i  -> Just $ S.insert i s
+    parseJSON x = do
+      ids <- parseJSON x
+      dis <- Vector.foldM (\is did ->
+                             case fromHex did of
+                               Just i -> return (S.insert i is)
+                               Nothing -> mzero
+                          ) S.empty ids
+      return (DIS dis)
 
 difference :: DocIdSet -> DocIdSet -> DocIdSet
 difference (DIS s1) (DIS s2) = DIS $ S.difference s1 s2

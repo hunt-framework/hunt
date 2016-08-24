@@ -91,13 +91,13 @@ instance Binary v => Binary (DocIdMap v) where
 instance ToJSON v => ToJSON (DocIdMap v) where
   toJSON = object . L.map toJ . IM.toList . unDIM
     where
-    toJ (k, v) = (T.pack . toHex $ k) .= toJSON v
+    toJ (k, v) = (toHex k) .= toJSON v
 
 instance FromJSON v => FromJSON (DocIdMap v) where
   parseJSON (Object o) = DIM <$> foldM parsePair IM.empty (HM.toList o)
     where
     parsePair res (k, v)
-      = case fromHex . T.unpack $ k of
+      = case fromHex k of
           Nothing -> mzero
           Just k' -> do
             v' <- parseJSON v
