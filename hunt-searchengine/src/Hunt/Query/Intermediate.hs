@@ -47,30 +47,31 @@ module Hunt.Query.Intermediate
     )
 where
 
-import           Control.Applicative hiding (empty)
-import           Control.Arrow (second, (***))
+import           Control.Applicative       hiding (empty)
+import           Control.Arrow             (second, (***))
 import           Data.Aeson
-import qualified Data.HashMap.Strict as HM
+import qualified Data.HashMap.Strict       as HM
 import qualified Data.LimitedPriorityQueue as Q
-import qualified Data.List as L
-import           Data.Map (Map)
-import qualified Data.Map as M
+import qualified Data.List                 as L
+import           Data.Map                  (Map)
+import qualified Data.Map                  as M
 import           Data.Maybe
-import           Data.Monoid ((<>))
+import           Data.Monoid               ((<>))
 import           Data.Ord
 import           Hunt.Common.BasicTypes
-import qualified Hunt.Common.DocIdMap as DM
-import           Hunt.Common.Document (DocumentWrapper (..), Document (..))
-import           Hunt.Common.Occurrences (Occurrences)
-import qualified Hunt.Common.Occurrences as Occ
-import qualified Hunt.Common.Positions as Pos
-import           Hunt.DocTable (DocTable)
-import qualified Hunt.DocTable as Dt
+import           Hunt.Common.DocId
+import qualified Hunt.Common.DocIdMap      as DM
+import           Hunt.Common.Document      (Document (..), DocumentWrapper (..))
+import           Hunt.Common.Occurrences   (Occurrences)
+import qualified Hunt.Common.Occurrences   as Occ
+import qualified Hunt.Common.Positions     as Pos
+import           Hunt.DocTable             (DocTable)
+import qualified Hunt.DocTable             as Dt
 import           Hunt.Index.Schema
-import           Hunt.Query.Result hiding (null)
+import           Hunt.Query.Result         hiding (null)
 import           Hunt.Scoring.Score
 import           Hunt.Scoring.SearchResult
-import           Prelude hiding (Word, null)
+import           Prelude                   hiding (Word, null)
 
 -- import           Debug.Trace
 
@@ -344,13 +345,13 @@ limitRawResult maxDocs rs
 --
 -- This list may be further sorted by score, partitioned into pages or ...
 
-toDocsResult :: (Applicative m, Monad m, DocTable dt) =>
-                dt -> ScoredDocs -> m [RankedDoc]
-toDocsResult dt (SDS m)
+toDocsResult :: (Applicative m, Monad m) =>
+                (DocId -> m (Maybe Document)) -> ScoredDocs -> m [RankedDoc]
+toDocsResult lookupDoc (SDS m)
     = mapM toDoc (DM.toList m)
       where
         toDoc (did, sc)
-            = (toD . fromJust') <$> Dt.lookup did dt
+            = (toD . fromJust') <$> lookupDoc did
             where
               toD d'
                   = RD (wght d * sc, d)

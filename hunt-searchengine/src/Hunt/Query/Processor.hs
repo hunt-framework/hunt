@@ -102,17 +102,16 @@ instance Binary ProcessConfig where
 -- | The internal state of the query processor.
 data ProcessEnv
     = ProcessEnv
-      { psConfig   :: ! ProcessConfig  -- ^ The configuration for the query processor.
-      , psContexts :: ! [Context]      -- ^ The current list of contexts.
-      , psIndex    ::   ContextMap     -- ^ The index to search.
+      { psConfig   :: ! ProcessConfig   -- ^ The configuration for the query processor.
+      , psContexts :: ! [Context]       -- ^ The current list of contexts.
+      , psIndex    :: CIx.ContextIndex  -- ^ The index to search.
       }
 
 -- ------------------------------------------------------------
 -- Processor monad
 -- ------------------------------------------------------------
 
-type QueryIndex
-    = ContextMap
+type QueryIndex a = forall m. Monad m => CIx.ContextIndex -> m a
 
 -- | the processor monad
 newtype ProcessorT m a
@@ -138,13 +137,14 @@ getContexts ::   Processor [Context]
 getContexts
     = asks psContexts
 
-getIx :: Processor QueryIndex
-getIx
-    = asks psIndex
+withIx :: QueryIndex a -> Processor a
+withIx query = do
+  ixx <- asks psIndex
+  query ixx
 
 getSchema :: Processor Schema
 getSchema
-    = getIx >>= return . (M.map fst) . CIx.cxMap
+    = withIx $ return . M.map fst . CIx.cxMap . CIx.ciIndex
 
 -- | Get the schema associated with that context/index.
 --
@@ -181,11 +181,11 @@ normQueryCx c t
           = T.unpack $ T.concat [ "query normalizer: ", c, ": [", t, "=>", norm s, "]"]
 
 -- | Initialize the state of the processor.
-initProcessor :: ProcessConfig -> QueryIndex -> ProcessEnv
+initProcessor :: ProcessConfig -> CIx.ContextIndex -> ProcessEnv
 initProcessor cfg ix
     = ProcessEnv cfg cxs ix
     where
-      s = CIx.mapToSchema ix
+      s = CIx.mapToSchema (CIx.ciIndex ix)
       cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault)
             $ CIx.contexts ix
 
@@ -628,9 +628,7 @@ searchCx op w' cx
       searchCx' w
         = do
           limit <- asks (docLimit . psConfig)            -- get the max. # of docs
-          ix    <- getIx                                 -- get the context search index
-          rawr  <- limitRawResult limit
-                   <$> CIx.searchWithCxSc op cx w ix     -- do the real search and limit result
+          rawr  <- limitRawResult limit <$> withIx (CIx.searchWithCxSc op cx w)
           return $ fromCxRawResults [(cx, rawr)]
                                                          -- convert the result to a ScoredResult
                                                          -- the score comes from a similarity test
@@ -646,9 +644,8 @@ evalRange lb0 ub0 cx
       evalRange' lb ub
         = do
           limit <- asks (docLimit . psConfig)
-          ix    <- getIx
           rawr  <- limitRawResult limit
-                   <$> CIx.lookupRangeCxSc cx lb ub ix
+                   <$> withIx (CIx.lookupRangeCxSc cx lb ub)
           return $ fromCxRawResults [(cx, rawr)]
 
 -- ------------------------------------------------------------

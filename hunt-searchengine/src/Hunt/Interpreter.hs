@@ -28,61 +28,61 @@ module Hunt.Interpreter
        )
 where
 
-import           Control.Arrow (second)
+import           Control.Arrow                 (second)
 import           Control.Concurrent.XMVar
 import           Control.Monad.Except
 import           Control.Monad.Reader
-import           Data.Aeson (ToJSON (..), object, (.=))
-import           Data.Binary (Binary, encodeFile)
-import qualified Data.ByteString.Lazy as BL
+import           Data.Aeson                    (ToJSON (..), object, (.=))
+import           Data.Binary                   (Binary, encodeFile)
+import qualified Data.ByteString.Lazy          as BL
 import           Data.Default
-import qualified Data.List as L
-import qualified Data.Map as M
-import           Data.Monoid ((<>))
-import           Data.Set (Set)
-import qualified Data.Set as S
-import           Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Traversable as TV
-import           Hunt.Common.ApiDocument as ApiDoc
-import           Hunt.Common.BasicTypes (Context, URI)
-import qualified Hunt.Common.DocDesc as DocDesc
-import qualified Hunt.Common.DocIdSet as DocIdSet
-import           Hunt.Common.Document (Document (..))
-import           Hunt.ContextIndex (ContextIndex (..), ContextMap)
-import qualified Hunt.ContextIndex as CIx
-import           Hunt.DocTable (DocTable)
-import qualified Hunt.DocTable as DocTable
+import qualified Data.List                     as L
+import qualified Data.Map                      as M
+import           Data.Monoid                   ((<>))
+import           Data.Set                      (Set)
+import qualified Data.Set                      as S
+import           Data.Text                     (Text)
+import qualified Data.Text                     as T
+import qualified Data.Traversable              as TV
+import           GHC.Stats                     (getGCStats, getGCStatsEnabled)
+import           GHC.Stats.Json                ()
+import           Hunt.Common.ApiDocument       as ApiDoc
+import           Hunt.Common.BasicTypes        (Context, URI)
+import qualified Hunt.Common.DocDesc           as DocDesc
+import qualified Hunt.Common.DocIdSet          as DocIdSet
+import           Hunt.Common.Document          (Document (..))
+import           Hunt.ContextIndex             (ContextIndex (..), ContextMap)
+import qualified Hunt.ContextIndex             as CIx
+import           Hunt.DocTable                 (DocTable)
+import qualified Hunt.DocTable                 as DocTable
 import           Hunt.DocTable.HashedDocTable
-import qualified Hunt.Index as Ix
-import           Hunt.Index.IndexImpl (IndexImpl (..), mkIndex)
+import qualified Hunt.Index                    as Ix
+import           Hunt.Index.IndexImpl          (IndexImpl (..), mkIndex)
 import           Hunt.Index.Schema
 import           Hunt.Index.Schema.Analyze
 import           Hunt.Interpreter.BasicCommand
-import           Hunt.Interpreter.Command (Command)
-import           Hunt.Interpreter.Command hiding (Command (..))
-import           Hunt.Query.Intermediate (ScoredWords,
-                                          toDocsResult, RankedDoc(..),
-                                          toDocumentResultPage,
-                                          toWordsResult)
+import           Hunt.Interpreter.Command      (Command)
+import           Hunt.Interpreter.Command      hiding (Command (..))
+import           Hunt.Query.Intermediate       (RankedDoc (..), ScoredWords,
+                                                toDocsResult,
+                                                toDocumentResultPage,
+                                                toWordsResult)
 import           Hunt.Query.Language.Grammar
-import           Hunt.Query.Processor (ProcessConfig (..),
-                                       initProcessor,
-                                       processQueryScoredDocs,
-                                       processQueryScoredWords,
-                                       processQueryUnScoredDocs)
-import           Hunt.Scoring.SearchResult (ScoredDocs, UnScoredDocs,
-                                            searchResultToOccurrences,
-                                            unScoredDocsToDocIdSet)
-import           Hunt.Utility (showText)
+import           Hunt.Query.Processor          (ProcessConfig (..),
+                                                initProcessor,
+                                                processQueryScoredDocs,
+                                                processQueryScoredWords,
+                                                processQueryUnScoredDocs)
+import           Hunt.Scoring.SearchResult     (ScoredDocs, UnScoredDocs,
+                                                searchResultToOccurrences,
+                                                unScoredDocsToDocIdSet)
+import           Hunt.Utility                  (showText)
 import           Hunt.Utility.Log
-import           System.IO.Error (isAlreadyInUseError,
-                                  isDoesNotExistError,
-                                  isFullError, isPermissionError,
-                                  tryIOError)
-import qualified System.Log.Logger as Log
-import           GHC.Stats (getGCStats, getGCStatsEnabled)
-import           GHC.Stats.Json ()
+import           System.IO.Error               (isAlreadyInUseError,
+                                                isDoesNotExistError,
+                                                isFullError, isPermissionError,
+                                                tryIOError)
+import qualified System.Log.Logger             as Log
 
 -- ------------------------------------------------------------
 --
@@ -131,7 +131,7 @@ debugContext c ws = debugM $ concat ["insert in ", T.unpack c, show . M.toList $
 data HuntEnv dt = HuntEnv
   { -- | The context index (indexes, document table and schema).
     --   Stored in an 'XMVar' so that read access is always possible.
-    huntIndex       :: XMVar (ContextIndex dt)
+    huntIndex       :: XMVar (ContextIndex)
     -- | Available context types.
   , huntTypes       :: ContextTypes
     -- | Available normalizers.
@@ -156,7 +156,7 @@ normalizers :: [CNormalizer]
 normalizers = [cnUpperCase, cnLowerCase, cnZeroFill]
 
 -- | Initialize the Hunt environment.
-initHuntEnv :: ContextIndex dt
+initHuntEnv :: ContextIndex
            -> ContextTypes
            -> [CNormalizer]
            -> ProcessConfig
@@ -195,14 +195,14 @@ runCmd env cmd
   = runExceptT . runReaderT (runHuntT . execCmd $ cmd) $ env
 
 -- | Get the context index.
-askIx :: Hunt dt (ContextIndex dt)
+askIx :: Hunt dt (ContextIndex)
 askIx = do
   ref <- asks huntIndex
   liftIO $ readXMVar ref
 
 -- FIXME: io exception-safe?
 -- | Modify the context index.
-modIx :: (ContextIndex dt -> Hunt dt (ContextIndex dt, a)) -> Hunt dt a
+modIx :: (ContextIndex -> Hunt dt (ContextIndex, a)) -> Hunt dt a
 modIx f = do
   ref <- asks huntIndex
   ix <- liftIO $ takeXMVarWrite ref
@@ -219,7 +219,7 @@ modIx f = do
 --
 --   /Note/: This does not fix the memory issues on load entirely because the old index might
 --   still be referenced by a concurrent read operation.
-modIxLocked :: (ContextIndex dt -> Hunt dt (ContextIndex dt, a)) -> Hunt dt a
+modIxLocked :: (ContextIndex -> Hunt dt (ContextIndex, a)) -> Hunt dt a
 modIxLocked f = do
   ref <- asks huntIndex
   ix <- liftIO $ takeXMVarLock ref
@@ -232,7 +232,7 @@ modIxLocked f = do
     throwError e
 
 -- | Do something with the context index.
-withIx :: (ContextIndex dt -> Hunt dt a) -> Hunt dt a
+withIx :: (ContextIndex -> Hunt dt a) -> Hunt dt a
 withIx f
   = askIx >>= f
 
@@ -343,8 +343,8 @@ execSequence (c : cs) = execBasicCmd c >> execSequence cs
 -- | Insert a context with associated schema.
 execInsertContext :: Context
                   -> ContextSchema
-                  -> ContextIndex dt
-                  -> Hunt dt (ContextIndex dt, CmdResult)
+                  -> ContextIndex
+                  -> Hunt dt (ContextIndex, CmdResult)
 execInsertContext cx ct ixx
   = do
     -- check if context already exists
@@ -368,8 +368,8 @@ execInsertContext cx ct ixx
 
 -- | Deletes the context and the schema associated with it.
 execDeleteContext :: Context
-                  -> ContextIndex dt
-                  -> Hunt dt (ContextIndex dt, CmdResult)
+                  -> ContextIndex
+                  -> Hunt dt (ContextIndex, CmdResult)
 execDeleteContext cx ixx
   = return (CIx.deleteContext cx ixx, ResOK)
 
@@ -378,7 +378,7 @@ execDeleteContext cx ixx
 -- /Note/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs must not exist.
 
-execInsertList :: [ApiDocument] -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
+execInsertList :: [ApiDocument] -> ContextIndex -> Hunt dt (ContextIndex, CmdResult)
 execInsertList docs ixx@(ContextIndex ix _dt)
     = do -- existence check for all referenced contexts in all docs
          checkContextsExistence contexts ixx
@@ -432,7 +432,7 @@ execInsertList docs ixx@(ContextIndex ix _dt)
 -- /Note/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs need to exist.
 
-execUpdate :: ApiDocument -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
+execUpdate :: ApiDocument -> ContextIndex -> Hunt dt (ContextIndex, CmdResult)
 
 execUpdate doc ixx@(ContextIndex ix dt)
     = do checkContextsExistence contexts ixx
@@ -453,7 +453,7 @@ execUpdate doc ixx@(ContextIndex ix dt)
 
 -- | Test whether the contexts are present and otherwise throw an error.
 
-checkContextsExistence :: [Context] -> ContextIndex dt -> Hunt dt ()
+checkContextsExistence :: [Context] -> ContextIndex -> Hunt dt ()
 checkContextsExistence cs ixx
     = do ixxContexts        <- S.fromList <$> CIx.contextsM ixx
          let docContexts     = S.fromList cs
@@ -468,7 +468,7 @@ checkContextsExistence cs ixx
 --
 -- Throws an error if it exists and the first argument is @False@ and vice versa.
 
-checkApiDocExistence :: Bool -> ApiDocument -> ContextIndex dt -> Hunt dt ()
+checkApiDocExistence :: Bool -> ApiDocument -> ContextIndex -> Hunt dt ()
 checkApiDocExistence switch apidoc ixx
     = do let u = adUri apidoc
          mem <- CIx.member u ixx
@@ -482,15 +482,15 @@ checkApiDocExistence switch apidoc ixx
 execSearch :: Query ->
               Int -> Int ->
               Bool -> Maybe [Text] ->
-              ContextIndex dt ->
+              ContextIndex ->
               Hunt dt CmdResult
 
-execSearch q offset mx wg fields (ContextIndex ix dt)
+execSearch q offset mx wg fields ixx
     = do debugM ("execSearch: " ++ show q)
          cfg    <- asks huntQueryCfg
          scDocs <- liftHunt $
-                   runQueryScoredDocsM ix cfg q
-         formatPage <$> toDocsResult dt scDocs
+                   runQueryScoredDocsM ixx cfg q
+         formatPage <$> toDocsResult (CIx.lookupDocument ixx) scDocs
     where
       formatPage ds
           = ResSearch $
@@ -507,8 +507,8 @@ execSearch q offset mx wg fields (ContextIndex ix dt)
 
 execCompletion :: Query ->
                   Int ->
-                  ContextIndex dt -> Hunt dt CmdResult
-execCompletion q mx (ContextIndex ix _dt)
+                  ContextIndex -> Hunt dt CmdResult
+execCompletion q mx ix
     = do debugM ("execCompletion: " ++ show q)
          cfg     <- asks huntQueryCfg
          scWords <- liftHunt $
@@ -516,13 +516,12 @@ execCompletion q mx (ContextIndex ix _dt)
          return $ ResSuggestion $ toWordsResult mx scWords
 
 
-execSelect :: Query -> ContextIndex dt -> Hunt dt CmdResult
-execSelect q (ContextIndex ix dt)
+execSelect :: Query -> ContextIndex -> Hunt dt CmdResult
+execSelect q ixx
     = do debugM ("execSelect: " ++ show q)
-         res <- liftHunt $ runQueryUnScoredDocsM ix queryConfigDocIds q
-         dt' <- DocTable.restrict (unScoredDocsToDocIdSet res) dt
-         djs <- DocTable.toJSON'DocTable dt'
-         return $ ResGeneric djs
+         res <- liftHunt $ runQueryUnScoredDocsM ixx queryConfigDocIds q
+         docs <- CIx.lookupDocuments ixx (unScoredDocsToDocIdSet res)
+         return $ ResGeneric (toJSON docs)
 
 -- | Build a selection function for choosing,
 -- which parts of a document are contained in the result.
@@ -534,8 +533,8 @@ mkSelect :: Bool -> Maybe [Text] -> (RankedDoc -> RankedDoc)
 mkSelect withWeight fields
     = mkSelW withWeight . mkSelF fields
       where
-        mkSelW True      = id
-        mkSelW False     = RD . second (\d -> d { wght = 1.0 }) . unRD
+        mkSelW True  = id
+        mkSelW False = RD . second (\d -> d { wght = 1.0 }) . unRD
 
         mkSelF Nothing   = id
         mkSelF (Just fs) = RD . second (\d -> d {desc = DocDesc.restrict fs (desc d)}) . unRD
@@ -543,18 +542,18 @@ mkSelect withWeight fields
 
 -- | Delete a set of documents.
 
-execDeleteDocs :: Set URI -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
+execDeleteDocs :: Set URI -> ContextIndex -> Hunt dt (ContextIndex, CmdResult)
 execDeleteDocs d ix
     = do ix' <- lift $ CIx.deleteDocsByURI d ix
          return (ix', ResOK)
 
 -- | Delete all documents matching the query.
 
-execDeleteByQuery :: Query -> ContextIndex dt -> Hunt dt (ContextIndex dt, CmdResult)
-execDeleteByQuery q ixx@(ContextIndex ix _dt)
+execDeleteByQuery :: Query -> ContextIndex -> Hunt dt (ContextIndex, CmdResult)
+execDeleteByQuery q ixx
     = do debugM ("execDeleteByQuery: " ++ show q)
          ds <- unScoredDocsToDocIdSet <$>
-               (liftHunt $ runQueryUnScoredDocsM ix queryConfigDocIds q)
+               (liftHunt $ runQueryUnScoredDocsM ixx queryConfigDocIds q)
          if DocIdSet.null ds
            then do debugM "DeleteByQuery: Query result set empty"
                    return (ixx, ResOK)
@@ -588,11 +587,11 @@ execStore filename x = do
 --   time. This is still possible if a read operation lasts as long as loading the index.
 
 execLoad :: FilePath -> Hunt dt CmdResult
-execLoad filename = do
-  ts <- asks huntTypes
+execLoad filename = do undefined
+  {-ts <- asks huntTypes
   let ix = map ctIxImpl ts
   modIxLocked $ \_ -> do
-    ixh@(ContextIndex ixs _) <- decodeFile' ix filename
+    ixx@(ContextIndex ixs _) <- decodeFile' ix filename
     ls <- TV.mapM reloadSchema $ CIx.cxMap ixs
     return (ixh{ ciIndex = CIx.mkContextMap ls }, ResOK)
   where
@@ -613,6 +612,7 @@ execLoad filename = do
                  , cxNormalizer = ns
                  }
              , ix )
+-}
 
 -- ------------------------------------------------------------
 
@@ -620,7 +620,7 @@ execLoad filename = do
 
 -- for scored docs (DocIdMap with scores)
 
-runQueryScoredDocsM :: ContextMap
+runQueryScoredDocsM :: ContextIndex
                     -> ProcessConfig
                     -> Query
                     -> IO (Either CmdError ScoredDocs)
@@ -632,10 +632,10 @@ runQueryScoredDocsM ix cfg q
 
 -- for unscored docs (DocIdSet), usually called with 'queryConfigDocIds'
 
-runQueryUnScoredDocsM :: ContextMap
-                    -> ProcessConfig
-                    -> Query
-                    -> IO (Either CmdError UnScoredDocs)
+runQueryUnScoredDocsM :: ContextIndex
+                      -> ProcessConfig
+                      -> Query
+                      -> IO (Either CmdError UnScoredDocs)
 runQueryUnScoredDocsM ix cfg q
     = processQueryUnScoredDocs st q
       where
@@ -644,9 +644,10 @@ runQueryUnScoredDocsM ix cfg q
 
 -- for scored docs (DocIdMap with scores
 
-runQueryScoredWordsM :: ContextMap
+runQueryScoredWordsM :: ContextIndex
                      -> ProcessConfig
                      -> Query
+
                      -> IO (Either CmdError ScoredWords)
 runQueryScoredWordsM ix cfg q
     = processQueryScoredWords st q
@@ -678,23 +679,22 @@ execStatus StatusGC
 execStatus StatusDocTable
     = withIx dumpDocTable
       where
-        dumpDocTable (ContextIndex _ix dt)
-            = ResGeneric <$>
-              DocTable.toJSON'DocTable dt
+        dumpDocTable ixx
+            = ResGeneric <$> undefined
 
 execStatus (StatusContext cx)
     = withIx dumpContext
       where
-        dumpContext (ContextIndex ix _dt)
-            = (ResGeneric . object . map (uncurry (.=)) . map (second searchResultToOccurrences)) <$>
-              CIx.lookupAllWithCx cx ix
+        dumpContext ixx = undefined
+--            = (ResGeneric . object . map (uncurry (.=)) . map (second searchResultToOccurrences)) <$>
+--              CIx.lookupAllWithCx cx ix
 
 execStatus (StatusIndex {- context -})
   = withIx _dumpIndex
     where
       -- context = "type"
-      _dumpIndex (ContextIndex _ix _dt)
-          = throwResError 501 $ "status of Index not yet implemented"
+      _dumpIndex ixx
+        = throwResError 501 $ "status of Index not yet implemented"
 
 -- ------------------------------------------------------------
 

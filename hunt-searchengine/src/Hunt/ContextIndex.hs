@@ -46,6 +46,9 @@ module Hunt.ContextIndex
        , decodeCxIx
        , member
 
+       , lookupDocument
+       , lookupDocuments
+
          -- * Types
        , ContextIndex (..)
        , ContextMap (..)
@@ -73,6 +76,7 @@ import           Hunt.Common.BasicTypes       (Context, Description,
                                                TextSearchOp, URI, Word, Words)
 import qualified Hunt.Common.DocDesc          as DocDesc
 import           Hunt.Common.DocId            (DocId)
+import           Hunt.Common.DocIdMap         (DocIdMap)
 import           Hunt.Common.DocIdSet         (DocIdSet)
 import qualified Hunt.Common.DocIdSet         as DS
 import           Hunt.Common.Document         (Document (..))
@@ -96,12 +100,12 @@ import qualified Prelude                      as P
 
 -- | Context index introduces contexts and combines the major components of Hunt.
 
-data ContextIndex dt = ContextIndex
+data ContextIndex = ContextIndex
   { ciIndex :: !ContextMap           -- ^ Indexes associated to contexts.
   , ciDocs  :: !(Documents Document) -- ^ Document table.
   }
 
-empty :: ContextIndex dt
+empty :: ContextIndex
 empty = ContextIndex emptyContextMap Dt.empty
 
 -- | Contexts with associated heterogeneous index implementations.
@@ -153,13 +157,13 @@ instance Binary ContextMap where
 --           otherwise this will fail. The serialized schemas have to be in the list of
 --           available 'ContextSchema', otherwise this will fail as well.
 
-decodeCxIx :: [IndexImpl] -> ByteString -> ContextIndex dt
+decodeCxIx :: [IndexImpl] -> ByteString -> ContextIndex
 decodeCxIx ts = runGet (get' ts)
 
-get' :: [IndexImpl] -> Get (ContextIndex dt)
+get' :: [IndexImpl] -> Get (ContextIndex)
 get' ts = ContextIndex <$> (getContextMap ts) <*> get
 
-instance Binary (ContextIndex dt) where
+instance Binary (ContextIndex) where
   get = error "existential types cannot be deserialized this way. Use special get' functions"
   put (ContextIndex (ContextMap a) b)
     = put (M.map snd a) >>  -- convert to 'IndexImpl' and serialize
@@ -173,7 +177,7 @@ instance Binary (ContextIndex dt) where
 --
 --   /Note/: For multiple inserts, use the more efficient 'insertList'.
 insert :: (Par.MonadParallel m, Applicative m, DocTable dt)
-       => Dt.DValue dt -> Words -> ContextIndex dt -> m (ContextIndex dt)
+       => Dt.DValue dt -> Words -> ContextIndex -> m (ContextIndex)
 insert doc wrds ix = insertList [(doc,wrds)] ix
 -}
 
@@ -182,7 +186,7 @@ insert doc wrds ix = insertList [(doc,wrds)] ix
 
 insertList :: (Par.MonadParallel m, Applicative m) =>
               [(Document, Words)] ->
-              ContextIndex dt -> m (ContextIndex dt)
+              ContextIndex -> m (ContextIndex)
 
 insertList docAndWords (ContextIndex ix docTable)
     = do -- insert to doctable and generate docId
@@ -235,16 +239,24 @@ unionDocTables tablesAndWords oldDt
 
 modify :: (Par.MonadParallel m, Applicative m, DocTable dt)
        => (Dt.DValue dt -> m (Dt.DValue dt))
-       -> Words -> DocId -> ContextIndex dt -> m (ContextIndex dt)
+       -> Words -> DocId -> ContextIndex -> m (ContextIndex)
 modify f wrds dId (ContextIndex ii dt s) = do
   newDocTable <- Dt.adjust f dId dt
   newIndex    <- addWordsM wrds dId ii
   return $ ContextIndex newIndex newDocTable s
 -- -}
 
+lookupDocument :: Monad m => ContextIndex -> DocId -> m (Maybe Document)
+lookupDocument (ContextIndex _ dt) did = Dt.lookup did dt
+
+lookupDocuments :: Monad m => ContextIndex -> DocIdSet -> m (DocIdMap Document)
+lookupDocuments ixx dids = do
+  dt' <- Dt.restrict dids (ciDocs ixx)
+  Dt.toMap dt'
+
 -- | Delete a set of documents by 'URI'.
 deleteDocsByURI :: (Par.MonadParallel m, Applicative m)
-                => Set URI -> ContextIndex dt -> m (ContextIndex dt)
+                => Set URI -> ContextIndex -> m (ContextIndex)
 deleteDocsByURI us ixx@(ContextIndex _ix dt) = do
   docIds <- liftM (DS.fromList . catMaybes) . mapM (flip Dt.lookupByURI dt) . S.toList $ us
   delete docIds ixx
@@ -252,7 +264,7 @@ deleteDocsByURI us ixx@(ContextIndex _ix dt) = do
 
 -- | Delete a set of documents by 'DocId'.
 delete :: (Par.MonadParallel m, Applicative m)
-       => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
+       => DocIdSet -> ContextIndex -> m (ContextIndex)
 delete dIds cix@(ContextIndex ix dt)
     | DS.null dIds
         = return cix
@@ -264,7 +276,7 @@ delete dIds cix@(ContextIndex ix dt)
 
 -- | Is the document part of the index?
 member :: (Monad m, Applicative m)
-       => URI -> ContextIndex dt -> m Bool
+       => URI -> ContextIndex -> m Bool
 member u (ContextIndex _ii dt) = do
   mem <- Dt.lookupByURI u dt
   return $ isJust mem
@@ -275,8 +287,8 @@ member u (ContextIndex _ii dt) = do
 --   (occurrences for that document) to the index.
 
 modifyWithDescription :: (Par.MonadParallel m, Applicative m) =>
-                         Score -> Description -> Words -> DocId -> ContextIndex dt ->
-                         m (ContextIndex dt)
+                         Score -> Description -> Words -> DocId -> ContextIndex ->
+                         m (ContextIndex)
 modifyWithDescription weight descr wrds dId (ContextIndex ii dt)
     = do newDocTable <- Dt.adjust mergeDescr dId dt
          newIndex    <- batchAddWordsM [(dId,wrds)] ii
@@ -363,7 +375,7 @@ mapWithKeyMP f m =
 -- | Inserts a new context.
 --
 insertContext :: Context -> Impl.IndexImpl -> ContextSchema
-              -> ContextIndex dt -> ContextIndex dt
+              -> ContextIndex -> ContextIndex
 insertContext c ix schema (ContextIndex m dt)
     = ContextIndex  m' dt
     where
@@ -374,7 +386,7 @@ insertContext' :: Context -> ContextSchema -> Impl.IndexImpl -> ContextMap -> Co
 insertContext' c s ix (ContextMap m) = mkContextMap $ M.insertWith (const id) c (s, ix) m
 
 -- | Removes context (including the index and the schema).
-deleteContext :: Context -> ContextIndex dt -> ContextIndex dt
+deleteContext :: Context -> ContextIndex -> ContextIndex
 deleteContext c (ContextIndex ix dt) = ContextIndex (deleteContext' c ix) dt
 
 -- | Removes context (includes the index, but not the schema).
@@ -425,15 +437,23 @@ searchWithCxsNormalized op cxws cm
           = (\ x -> (cx, x))
             <$> (lookupIndex cx cm $ Ix.searchM op w)
 
-searchWithCxSc :: Monad m =>
-                  TextSearchOp -> Context -> Text -> ContextMap -> m [(Text, (Score, SearchResult))]
-searchWithCxSc op cx w cm
-    = lookupIndex cx cm $ Ix.searchMSc op w
+searchWithCxSc :: Monad m
+               => TextSearchOp
+               -> Context
+               -> Text
+               -> ContextIndex
+               -> m [(Text, (Score, SearchResult))]
+searchWithCxSc op cx w ixx
+    = lookupIndex cx (ciIndex ixx) $ Ix.searchMSc op w
 
-lookupRangeCxSc :: Monad m =>
-                   Context -> Text -> Text -> ContextMap -> m [(Text, (Score, SearchResult))]
-lookupRangeCxSc c k1 k2 cm
-    = lookupIndex c cm $ Ix.lookupRangeMSc k1 k2
+lookupRangeCxSc :: Monad m
+                => Context
+                -> Text
+                -> Text
+                -> ContextIndex
+                -> m [(Text, (Score, SearchResult))]
+lookupRangeCxSc c k1 k2 ixx
+    = lookupIndex c (ciIndex ixx) $ Ix.lookupRangeMSc k1 k2
 
 -- ------------------------------------------------------------
 
@@ -467,12 +487,12 @@ foreachContext cxs action
 
 -- | All contexts of the index.
 contextsM :: (Monad m)
-         => ContextIndex dt -> m [Context]
-contextsM (ContextIndex ix _) = return $ contexts ix
+         => ContextIndex -> m [Context]
+contextsM = return . contexts
 
 -- | Contexts/keys of 'ContextMap'.
-contexts :: ContextMap -> [Context]
-contexts (ContextMap m) = M.keys m
+contexts :: ContextIndex -> [Context]
+contexts = M.keys . cxMap . ciIndex
 
 -- | Check if the context exists.
 hasContext :: Context -> ContextMap -> Bool
@@ -480,5 +500,5 @@ hasContext c (ContextMap m) = M.member c m
 
 -- | Does the context exist?
 hasContextM :: (Monad m)
-           => Context -> ContextIndex dt -> m Bool
+           => Context -> ContextIndex -> m Bool
 hasContextM c (ContextIndex ix _) = return $ hasContext c ix
