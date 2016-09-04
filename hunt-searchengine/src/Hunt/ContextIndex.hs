@@ -57,49 +57,51 @@ where
 {-
 import           Debug.Trace (traceShow)
 -- -}
-import           Prelude hiding (Word)
-import qualified Prelude as P
 import           Control.Arrow
 import           Control.Monad
-import qualified Control.Monad.Parallel as Par
-import           Data.Binary (Binary (..))
+import qualified Control.Monad.Parallel       as Par
+import           Data.Binary                  (Binary (..))
 import           Data.Binary.Get
-import           Data.ByteString.Lazy (ByteString)
-import           Data.Map (Map)
-import qualified Data.Map as M
+import           Data.ByteString.Lazy         (ByteString)
+import           Data.Map                     (Map)
+import qualified Data.Map                     as M
 import           Data.Maybe
-import           Data.Set (Set)
-import qualified Data.Set as S
-import           Data.Text (Text)
-import           Hunt.Common.BasicTypes (Context, Description, URI, Word, Words, TextSearchOp)
-import qualified Hunt.Common.DocDesc as DocDesc
-import           Hunt.Common.DocId (DocId)
-import           Hunt.Common.DocIdSet (DocIdSet)
-import qualified Hunt.Common.DocIdSet as DS
-import           Hunt.Common.Document (Document (..))
-import qualified Hunt.Common.Document as Doc
-import           Hunt.Common.Occurrences (Occurrences)
-import qualified Hunt.Common.Occurrences as Occ
-import           Hunt.DocTable (DocTable)
-import qualified Hunt.DocTable as Dt
-import qualified Hunt.Index as Ix
-import           Hunt.Index.IndexImpl (IndexImpl)
-import qualified Hunt.Index.IndexImpl as Impl
+import           Data.Set                     (Set)
+import qualified Data.Set                     as S
+import           Data.Text                    (Text)
+import           Hunt.Common.BasicTypes       (Context, Description,
+                                               TextSearchOp, URI, Word, Words)
+import qualified Hunt.Common.DocDesc          as DocDesc
+import           Hunt.Common.DocId            (DocId)
+import           Hunt.Common.DocIdSet         (DocIdSet)
+import qualified Hunt.Common.DocIdSet         as DS
+import           Hunt.Common.Document         (Document (..))
+import qualified Hunt.Common.Document         as Doc
+import           Hunt.Common.Occurrences      (Occurrences)
+import qualified Hunt.Common.Occurrences      as Occ
+import           Hunt.DocTable                (DocTable)
+import qualified Hunt.DocTable                as Dt
+import           Hunt.DocTable.HashedDocTable (Documents)
+import qualified Hunt.Index                   as Ix
+import           Hunt.Index.IndexImpl         (IndexImpl)
+import qualified Hunt.Index.IndexImpl         as Impl
 import           Hunt.Index.Schema
-import           Hunt.Scoring.Score (Score, noScore)
-import           Hunt.Scoring.SearchResult (SearchResult)
+import           Hunt.Scoring.Score           (Score, noScore)
+import           Hunt.Scoring.SearchResult    (SearchResult)
 import           Hunt.Utility
+import           Prelude                      hiding (Word)
+import qualified Prelude                      as P
 
 -- ------------------------------------------------------------
 
 -- | Context index introduces contexts and combines the major components of Hunt.
 
 data ContextIndex dt = ContextIndex
-  { ciIndex :: !ContextMap -- ^ Indexes associated to contexts.
-  , ciDocs  :: !dt         -- ^ Document table.
+  { ciIndex :: !ContextMap           -- ^ Indexes associated to contexts.
+  , ciDocs  :: !(Documents Document) -- ^ Document table.
   }
 
-empty :: DocTable dt => ContextIndex dt
+empty :: ContextIndex dt
 empty = ContextIndex emptyContextMap Dt.empty
 
 -- | Contexts with associated heterogeneous index implementations.
@@ -151,13 +153,13 @@ instance Binary ContextMap where
 --           otherwise this will fail. The serialized schemas have to be in the list of
 --           available 'ContextSchema', otherwise this will fail as well.
 
-decodeCxIx :: (Binary dt, DocTable dt) => [IndexImpl] -> ByteString -> ContextIndex dt
+decodeCxIx :: [IndexImpl] -> ByteString -> ContextIndex dt
 decodeCxIx ts = runGet (get' ts)
 
-get' :: Binary dt => [IndexImpl] -> Get (ContextIndex dt)
+get' :: [IndexImpl] -> Get (ContextIndex dt)
 get' ts = ContextIndex <$> (getContextMap ts) <*> get
 
-instance Binary dt => Binary (ContextIndex dt) where
+instance Binary (ContextIndex dt) where
   get = error "existential types cannot be deserialized this way. Use special get' functions"
   put (ContextIndex (ContextMap a) b)
     = put (M.map snd a) >>  -- convert to 'IndexImpl' and serialize
@@ -178,8 +180,8 @@ insert doc wrds ix = insertList [(doc,wrds)] ix
 --   This is more efficient than using fold and with 'insert'.
 -- | Insert multiple documents and words.
 
-insertList :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
-              [(Dt.DValue dt, Words)] ->
+insertList :: (Par.MonadParallel m, Applicative m) =>
+              [(Document, Words)] ->
               ContextIndex dt -> m (ContextIndex dt)
 
 insertList docAndWords (ContextIndex ix docTable)
@@ -194,8 +196,9 @@ insertList docAndWords (ContextIndex ix docTable)
 
 -- takes list of documents with wordlist. creates new 'DocTable' and
 -- inserts each document of the list into it.
-createDocTableFromPartition :: (Par.MonadParallel m, DocTable dt) =>
-                               [(Dt.DValue dt, Words)] -> m (dt, [(DocId, Words)])
+createDocTableFromPartition :: (Par.MonadParallel m)
+                            => [(Document, Words)]
+                            -> m (Documents Document, [(DocId, Words)])
 createDocTableFromPartition ds
     = foldM toDocTable (Dt.empty, []) ds
     where
@@ -206,8 +209,10 @@ createDocTableFromPartition ds
 -- takes list of doctables with lists of docid-words pairs attached
 -- unions the doctables to one big doctable and concats the docid-words
 -- pairs to one list
-unionDocTables :: (DocTable dt, Par.MonadParallel m) =>
-                  [(dt, [(DocId, Words)])] -> dt -> m (dt, [(DocId, Words)])
+unionDocTables :: (Par.MonadParallel m)
+               => [(Documents Document, [(DocId, Words)])]
+               -> Documents Document
+               -> m (Documents Document, [(DocId, Words)])
 unionDocTables tablesAndWords oldDt
     = do step <- Par.mapM unionDtsAndWords $ mkPairs tablesAndWords
          case step of
@@ -238,7 +243,7 @@ modify f wrds dId (ContextIndex ii dt s) = do
 -- -}
 
 -- | Delete a set of documents by 'URI'.
-deleteDocsByURI :: (Par.MonadParallel m, Applicative m, DocTable dt)
+deleteDocsByURI :: (Par.MonadParallel m, Applicative m)
                 => Set URI -> ContextIndex dt -> m (ContextIndex dt)
 deleteDocsByURI us ixx@(ContextIndex _ix dt) = do
   docIds <- liftM (DS.fromList . catMaybes) . mapM (flip Dt.lookupByURI dt) . S.toList $ us
@@ -246,7 +251,7 @@ deleteDocsByURI us ixx@(ContextIndex _ix dt) = do
 
 
 -- | Delete a set of documents by 'DocId'.
-delete :: (Par.MonadParallel m, Applicative m, DocTable dt)
+delete :: (Par.MonadParallel m, Applicative m)
        => DocIdSet -> ContextIndex dt -> m (ContextIndex dt)
 delete dIds cix@(ContextIndex ix dt)
     | DS.null dIds
@@ -258,7 +263,7 @@ delete dIds cix@(ContextIndex ix dt)
 
 
 -- | Is the document part of the index?
-member :: (Monad m, Applicative m, DocTable dt)
+member :: (Monad m, Applicative m)
        => URI -> ContextIndex dt -> m Bool
 member u (ContextIndex _ii dt) = do
   mem <- Dt.lookupByURI u dt
@@ -269,7 +274,7 @@ member u (ContextIndex _ii dt) = do
 -- | Modify the description of a document and add words
 --   (occurrences for that document) to the index.
 
-modifyWithDescription :: (Par.MonadParallel m, Applicative m, DocTable dt) =>
+modifyWithDescription :: (Par.MonadParallel m, Applicative m) =>
                          Score -> Description -> Words -> DocId -> ContextIndex dt ->
                          m (ContextIndex dt)
 modifyWithDescription weight descr wrds dId (ContextIndex ii dt)
@@ -461,7 +466,7 @@ foreachContext cxs action
 -- ------------------------------------------------------------
 
 -- | All contexts of the index.
-contextsM :: (Monad m, DocTable dt)
+contextsM :: (Monad m)
          => ContextIndex dt -> m [Context]
 contextsM (ContextIndex ix _) = return $ contexts ix
 
@@ -474,6 +479,6 @@ hasContext :: Context -> ContextMap -> Bool
 hasContext c (ContextMap m) = M.member c m
 
 -- | Does the context exist?
-hasContextM :: (Monad m, DocTable dt)
+hasContextM :: (Monad m)
            => Context -> ContextIndex dt -> m Bool
 hasContextM c (ContextIndex ix _) = return $ hasContext c ix
