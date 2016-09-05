@@ -587,13 +587,13 @@ execStore filename x = do
 --   time. This is still possible if a read operation lasts as long as loading the index.
 
 execLoad :: FilePath -> Hunt dt CmdResult
-execLoad filename = do undefined
-  {-ts <- asks huntTypes
+execLoad filename = do
+  ts <- asks huntTypes
   let ix = map ctIxImpl ts
   modIxLocked $ \_ -> do
-    ixx@(ContextIndex ixs _) <- decodeFile' ix filename
-    ls <- TV.mapM reloadSchema $ CIx.cxMap ixs
-    return (ixh{ ciIndex = CIx.mkContextMap ls }, ResOK)
+    ixx <- decodeFile' ix filename
+    ixx' <- CIx.reloadSchema askType askNormalizer ixx
+    return (ixx', ResOK)
   where
   decodeFile' ts f = do
     res <- liftIO . tryIOError $ CIx.decodeCxIx ts <$> BL.readFile f
@@ -604,15 +604,6 @@ execLoad filename = do undefined
           | isPermissionError   e -> throwResError 403 $ "Cannot load index: no access permission to file"
           | otherwise             -> throwResError 500 $ showText e
       Right r -> return r
-
-  reloadSchema (s,ix) = do
-    cxt <- askType . ctName . cxType $ s
-    ns  <- mapM (askNormalizer . cnName) (cxNormalizer s)
-    return $ ( s { cxType       = cxt
-                 , cxNormalizer = ns
-                 }
-             , ix )
--}
 
 -- ------------------------------------------------------------
 

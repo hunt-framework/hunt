@@ -44,6 +44,7 @@ module Hunt.ContextIndex
        , delete
        , deleteDocsByURI
        , decodeCxIx
+       , reloadSchema
        , member
 
        , lookupDocument
@@ -159,6 +160,23 @@ instance Binary ContextMap where
 
 decodeCxIx :: [IndexImpl] -> ByteString -> ContextIndex
 decodeCxIx ts = runGet (get' ts)
+
+reloadSchema :: Monad m
+             => (Text -> m ContextType)
+             -> (Text -> m CNormalizer)
+             -> ContextIndex
+             -> m ContextIndex
+reloadSchema getCxType getNormalizers (ContextIndex cx docs) = do
+  cx' <- forM (cxMap cx) $ \(s, ix) -> do
+    cxt <- getCxType . ctName . cxType $ s
+    ns  <- mapM (getNormalizers . cnName) (cxNormalizer s)
+    return ( s { cxType       = cxt
+               , cxNormalizer = ns
+               }, ix)
+
+  return ContextIndex { ciIndex = mkContextMap cx'
+                      , ciDocs  = docs
+                      }
 
 get' :: [IndexImpl] -> Get (ContextIndex)
 get' ts = ContextIndex <$> (getContextMap ts) <*> get
