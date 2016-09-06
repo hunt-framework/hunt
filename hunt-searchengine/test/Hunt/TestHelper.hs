@@ -60,7 +60,7 @@ import           System.Locale
 
 instance Par.MonadParallel (PropertyM IO) where
 
-insertCx :: Context -> ConIx.ContextIndex (HDt.Documents Document)
+insertCx :: Context -> ConIx.ContextIndex
 insertCx cx
      = ConIx.insertContext cx (mkIndex ix) def ConIx.empty
      where
