@@ -592,18 +592,17 @@ execLoad filename = do
   let ix = map ctIxImpl ts
   modIxLocked $ \_ -> do
     ixx <- decodeFile' ix filename
-    ixx' <- CIx.reloadSchema askType askNormalizer ixx
-    return (ixx', ResOK)
+    return (ixx, ResOK)
   where
   decodeFile' ts f = do
-    res <- liftIO . tryIOError $ CIx.decodeCxIx ts <$> BL.readFile f
+    res <- liftIO . tryIOError $ BL.readFile f
     case res of
       Left  e
           | isAlreadyInUseError e -> throwResError 409 $ "Cannot load index: file already in use"
           | isDoesNotExistError e -> throwResError 404 $ "Cannot load index: file does not exist"
           | isPermissionError   e -> throwResError 403 $ "Cannot load index: no access permission to file"
           | otherwise             -> throwResError 500 $ showText e
-      Right r -> return r
+      Right r -> CIx.loadCxIx ts askType askNormalizer r
 
 -- ------------------------------------------------------------
 

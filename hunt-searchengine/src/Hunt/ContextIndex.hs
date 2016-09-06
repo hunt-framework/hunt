@@ -43,8 +43,7 @@ module Hunt.ContextIndex
        , modifyWithDescription
        , delete
        , deleteDocsByURI
-       , decodeCxIx
-       , reloadSchema
+       , loadCxIx
        , member
 
        , lookupDocument
@@ -157,6 +156,14 @@ instance Binary ContextMap where
 --   /Note/: The serialized index implementations have to  be in the list of available types,
 --           otherwise this will fail. The serialized schemas have to be in the list of
 --           available 'ContextSchema', otherwise this will fail as well.
+loadCxIx :: Monad m
+         => [IndexImpl]
+         -> (Text -> m ContextType)
+         -> (Text -> m CNormalizer)
+         -> ByteString
+         -> m ContextIndex
+loadCxIx ixImpls getCxType getNormalizers bytes =
+  reloadSchema getCxType getNormalizers (decodeCxIx ixImpls bytes)
 
 decodeCxIx :: [IndexImpl] -> ByteString -> ContextIndex
 decodeCxIx ts = runGet (get' ts)
