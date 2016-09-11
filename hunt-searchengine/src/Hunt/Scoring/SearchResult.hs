@@ -1,24 +1,25 @@
-{-# LANGUAGE TypeSynonymInstances       #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TypeSynonymInstances       #-}
 
 -- ----------------------------------------------------------------------------
 
 module Hunt.Scoring.SearchResult
 where
 
-import           Data.Monoid ((<>))
-import           Hunt.Common.BasicTypes (Position)
-import           Hunt.Common.DocIdMap (DocIdMap)
-import qualified Hunt.Common.DocIdMap as DM
-import           Hunt.Common.DocIdSet (DocIdSet)
-import qualified Hunt.Common.DocIdSet as DS
+import           Data.Aeson
+import           Data.Monoid             ((<>))
+import           Hunt.Common.BasicTypes  (Position)
+import           Hunt.Common.DocIdMap    (DocIdMap)
+import qualified Hunt.Common.DocIdMap    as DM
+import           Hunt.Common.DocIdSet    (DocIdSet)
+import qualified Hunt.Common.DocIdSet    as DS
 import           Hunt.Common.Occurrences (Occurrences)
 import qualified Hunt.Common.Occurrences as Occ
-import qualified Hunt.Common.Positions as Pos
+import qualified Hunt.Common.Positions   as Pos
 import           Hunt.Scoring.Score
-import           Prelude as P
+import           Prelude                 as P
 
 -- ------------------------------------------------------------
 --
@@ -27,7 +28,7 @@ import           Prelude as P
 
 newtype Occurrences'
     = OCC Occurrences
-      deriving (Eq, Show)
+      deriving (Eq, Show, ToJSON)
 
 instance Monoid Occurrences' where
     mempty
@@ -82,7 +83,7 @@ scoredDocsToOccurrences'
 
 newtype ScoredDocs
     = SDS (DocIdMap Score)
-      deriving (Eq, Show)
+      deriving (Eq, Show, ToJSON)
 
 instance Monoid ScoredDocs where
     mempty
@@ -152,7 +153,7 @@ docIdsToScoredDocs
 
 newtype UnScoredDocs
     = UDS DocIdSet
-      deriving (Eq, Show, Monoid)
+      deriving (Eq, Show, Monoid, ToJSON)
 
 instance ScoredResult UnScoredDocs where
     boost _b uds
@@ -211,6 +212,11 @@ data SearchResult
   | RSD {unRSD :: ScoredDocs  }
   | RUD {unRUD :: UnScoredDocs}
     deriving (Eq, Show)
+
+instance ToJSON SearchResult where
+  toJSON (ROC occ) = toJSON occ
+  toJSON (RSD sd)  = toJSON sd
+  toJSON (RUD usd) = toJSON usd
 
 mkSRfromOccurrences :: Occurrences -> SearchResult
 mkSRfromOccurrences = ROC . OCC

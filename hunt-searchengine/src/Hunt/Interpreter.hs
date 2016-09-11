@@ -684,7 +684,8 @@ execStatus (StatusIndex {- context -})
     where
       -- context = "type"
       _dumpIndex ixx
-        = throwResError 501 $ "status of Index not yet implemented"
+        = do words <- CIx.indexedWords ixx
+             return $ ResGeneric (toJSON words)
 
 -- ------------------------------------------------------------
 

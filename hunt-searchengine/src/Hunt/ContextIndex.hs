@@ -49,6 +49,8 @@ module Hunt.ContextIndex
        , lookupDocument
        , lookupDocuments
 
+       , indexedWords
+
          -- * Types
        , ContextIndex (..)
        , ContextMap (..)
@@ -69,9 +71,11 @@ import           Data.ByteString.Lazy         (ByteString)
 import           Data.Map                     (Map)
 import qualified Data.Map                     as M
 import           Data.Maybe
+import           Data.Ord
 import           Data.Set                     (Set)
 import qualified Data.Set                     as S
 import           Data.Text                    (Text)
+import           Data.Traversable
 import           Hunt.Common.BasicTypes       (Context, Description,
                                                TextSearchOp, URI, Word, Words)
 import qualified Hunt.Common.DocDesc          as DocDesc
@@ -527,3 +531,21 @@ hasContext c (ContextMap m) = M.member c m
 hasContextM :: (Monad m)
            => Context -> ContextIndex -> m Bool
 hasContextM c (ContextIndex ix _) = return $ hasContext c ix
+
+-- | Return the indexed words along with their occurrences in their contexts.
+indexedWords :: Monad m => ContextIndex -> m [(Text, Map Context SearchResult)]
+indexedWords ixx = do
+  wx <- for (M.toList (cxMap (ciIndex ixx))) $ \(context, (schema, Impl.IndexImpl ix)) -> do
+    return [ (word, M.singleton context result)
+           | (word, result) <- Ix.toList ix
+           ]
+  return $ foldr (merge (comparing fst) mappend) [] wx
+  where
+    merge :: (a -> a -> Ordering) -> (a -> a -> a) -> [a] -> [a] -> [a]
+    merge _ _ xs [] = xs
+    merge _ _ [] xs = xs
+    merge cmp f a@(h:first) b@(c:second) =
+      case cmp h c of
+        LT -> h:merge cmp f first b
+        EQ -> f h c: merge cmp f first b
+        GT -> c:merge cmp f a second
