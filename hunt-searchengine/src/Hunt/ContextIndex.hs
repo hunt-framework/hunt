@@ -541,11 +541,13 @@ indexedWords ixx = do
            ]
   return $ foldr (merge (comparing fst) mappend) [] wx
   where
+    -- N.B: 'merge' relies on the fact that words in each list 
+    -- occur exactly once. 
     merge :: (a -> a -> Ordering) -> (a -> a -> a) -> [a] -> [a] -> [a]
     merge _ _ xs [] = xs
     merge _ _ [] xs = xs
     merge cmp f a@(h:first) b@(c:second) =
-      case cmp h c of
+ 	    case cmp h c of
         LT -> h:merge cmp f first b
-        EQ -> f h c: merge cmp f first b
+        EQ -> f h c: merge cmp f first second
         GT -> c:merge cmp f a second
