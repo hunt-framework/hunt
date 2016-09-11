@@ -533,21 +533,32 @@ hasContextM :: (Monad m)
 hasContextM c (ContextIndex ix _) = return $ hasContext c ix
 
 -- | Return the indexed words along with their occurrences in their contexts.
-indexedWords :: Monad m => ContextIndex -> m [(Text, Map Context SearchResult)]
-indexedWords ixx = do
-  wx <- for (M.toList (cxMap (ciIndex ixx))) $ \(context, (schema, Impl.IndexImpl ix)) -> do
-    return [ (word, M.singleton context result)
-           | (word, result) <- Ix.toList ix
-           ]
-  return $ foldr (merge (comparing fst) mappend) [] wx
-  where
-    -- N.B: 'merge' relies on the fact that words in each list 
-    -- occur exactly once. 
+indexedWords :: ContextIndex -> [(Word, Map Context SearchResult)]
+indexedWords (ContextIndex cxm _) =
+  let
+    wordsAndFields :: [[(Word, Map Context SearchResult)]]
+    wordsAndFields =
+      [ [ (word, M.singleton context result)
+        | (word, result) <- Ix.toList ix
+        ]
+
+      | (context, (_, Impl.IndexImpl ix)) <- M.toList (cxMap cxm)
+      ]
+
+    -- N.B: 'merge' relies on the fact that words in each list
+    -- occur exactly once.
     merge :: (a -> a -> Ordering) -> (a -> a -> a) -> [a] -> [a] -> [a]
     merge _ _ xs [] = xs
     merge _ _ [] xs = xs
     merge cmp f a@(h:first) b@(c:second) =
- 	    case cmp h c of
+      case cmp h c of
         LT -> h:merge cmp f first b
         EQ -> f h c: merge cmp f first second
         GT -> c:merge cmp f a second
+
+    combine :: (Word, Map Context SearchResult)
+            -> (Word, Map Context SearchResult)
+            -> (Word, Map Context SearchResult)
+    combine (w1, srx) (_w2, sry) = (w1, srx `mappend` sry)
+
+  in foldr (merge (comparing fst) combine) [] wordsAndFields
