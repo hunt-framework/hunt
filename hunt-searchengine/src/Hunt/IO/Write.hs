@@ -29,8 +29,14 @@ import           Foreign.ForeignPtr.Unsafe
 import           Foreign.Ptr
 import           Foreign.Storable
 
+
 -- | A 'Writing' writes as to a buffer. A 'Writing' has a hint function
 -- which estimates the maximum needed buffer space.
+--
+-- The idea is that multiple 'Write's can be combined using '(>*<)' and
+-- '>*<' so that GHC is smart enough to float-out the bounds check
+-- so we it emits exactly one bound-check per 'Write' instead of
+-- one for each component.
 data Write a = W (a -> Int) (a -> Ptr Word8 -> IO (Ptr Word8))
 
 instance Contravariant Write where

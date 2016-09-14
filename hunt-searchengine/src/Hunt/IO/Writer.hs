@@ -3,6 +3,10 @@ module Hunt.IO.Writer where
 
 import Data.Foldable
 
+-- | 'Writer' is an abstraction for composable loops.
+-- For example one can have a 'Writer' which emits high-level
+-- records, one which buffers its output and one which writes
+-- the buffer to disk.
 data Writer a b = forall x. WR (IO x) (x -> a -> IO x) (x -> IO b)
 
 instance Functor (Writer a) where
