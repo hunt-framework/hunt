@@ -47,6 +47,7 @@ library
                , ghc-prim
                , hslogger               >= 1       && < 2
                , hxt-regex-xmlschema    >= 9.1
+               , keys
                , monad-parallel         >= 0.7
                , mtl                    >= 1.1     && < 3
                , murmur-hash
@@ -127,6 +128,9 @@ library
     Hunt.Scoring.SearchResult
 
     Hunt.SegmentIndex.Commit
+    Hunt.SegmentIndex.Types
+    Hunt.SegmentIndex.Types.SegmentId
+    Hunt.SegmentIndex.Types.SegmentMap
 
     Hunt.Utility
     Hunt.Utility.Log
@@ -152,7 +156,7 @@ test-suite Hunt-Tests
   other-modules:        Hunt.AnalyzerTests
                         Hunt.IndexTests
                         Hunt.InterpreterTests
-                        Hunt.QueryParserTests                     
+                        Hunt.QueryParserTests
                         Hunt.TestHelper
                         Hunt.Index.ContextIndexTests
                         Hunt.Index.Default
