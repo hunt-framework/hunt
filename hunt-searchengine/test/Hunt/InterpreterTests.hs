@@ -65,8 +65,8 @@ interpreterTests =
   , testCase "Interpreter: geo and other"              test_multiple_context
 
   -- test binary serialization
-  , testCase "Interpreter: store/load index"           test_binary
-  , testCase "Interpreter: store/load schema"          test_binary2
+  -- , testCase "Interpreter: store/load index"           test_binary
+  -- , testCase "Interpreter: store/load schema"          test_binary2
   , testProperty "Interpreter: position range query"   prop_position_range
   ]
 
