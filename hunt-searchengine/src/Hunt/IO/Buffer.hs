@@ -64,9 +64,10 @@ putByteString :: Buffer
               -> ByteString
               -> IO Buffer
 putByteString buf s = do
-  let (fop, off, len) = ByteString.toForeignPtr s
-  withForeignPtr fop $ \op -> do
-    ByteString.memcpy (bufStart buf) (op `plusPtr` off) len
-    return buf { bufStart = bufStart buf `plusPtr` len
-               }
+  case ByteString.toForeignPtr s of
+    (fop, off, len) -> do
+      withForeignPtr fop $ \op -> do
+        ByteString.memcpy (bufStart buf) (op `plusPtr` off) len
+        return buf { bufStart = bufStart buf `plusPtr` len
+                   }
 {-# INLINE putByteString #-}
