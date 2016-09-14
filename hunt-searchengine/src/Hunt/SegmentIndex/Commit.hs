@@ -60,11 +60,11 @@ encWriter buf0 flush (W size write) = WR start step stop
 {-# INLINE encWriter #-}
 
 writeIndex :: FilePath
-           -> Schema
+           -> (Context -> ContextNum)
            -> SegmentId
            -> [(Word, Map Context SearchResult)]
            -> IO ()
-writeIndex ixDir schema sid wx = do
+writeIndex ixDir contextNum sid wx = do
 
   -- writeIndex master plan:
   --
@@ -190,8 +190,6 @@ writeIndex ixDir schema sid wx = do
            ( encWriter occBuf (append occsFile) occWrite )
            ( termWriter ( encWriter termBuf (append termsFile) termWrite ) )
 
-      cxNum cx = Map.findIndex cx schema
-
     -- again we need to hand-roll the fold as we have a one-to-many relationship
     -- in context -> occurrences. This has potential for optimization as we
     -- do the common prefix check over and over again for the same words if they
@@ -201,7 +199,10 @@ writeIndex ixDir schema sid wx = do
         iws0 <- iwstart
         iws1 <- foldlM (\iws (word, cxs) -> do
                            foldlM (\iws' (cx, sr) -> do
-                                      iwstep iws' (word, cxNum cx, searchResultToOccurrences sr)
+                                      iwstep iws' ( word
+                                                  , contextNum cx
+                                                  , searchResultToOccurrences sr
+                                                  )
                                   ) iws (Map.toAscList cxs)
                        ) iws0 wx
         nterms <- iwstop iws1

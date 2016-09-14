@@ -320,9 +320,12 @@ execCmd' (DeleteByQuery q)
   = modIx $ execDeleteByQuery q
 
 execCmd' (StoreIx filename)
-  = withIx $ \ixx -> do liftIO $ Commit.writeIndex "./" (CIx.mapToSchema ixx) 0 (CIx.indexedWords ixx)
+  = withIx $ \ixx -> do liftIO $ Commit.writeIndex "./" (cxToCxNum ixx) 0 (CIx.indexedWords ixx)
                         return ResOK
                         --execStore filename ixx
+
+  where
+    cxToCxNum ixx cx = M.findIndex cx (CIx.mapToSchema ixx)
 
 execCmd' (LoadIx filename)
   = execLoad filename
