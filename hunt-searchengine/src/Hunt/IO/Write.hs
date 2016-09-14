@@ -92,7 +92,7 @@ varint n = W (\_ -> n) go
 bytestring :: Write ByteString
 bytestring = W (\(ByteString.PS _ _ len) -> len) go
   where go (ByteString.PS fbs off len) op = do
-          ByteString.memcpy (unsafeForeignPtrToPtr fbs `plusPtr` off) op len
+          ByteString.memcpy op (unsafeForeignPtrToPtr fbs `plusPtr` off) len
           return (op `plusPtr` len)
 {-# INLINE CONLIKE bytestring #-}
 

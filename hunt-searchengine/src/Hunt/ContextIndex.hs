@@ -48,6 +48,7 @@ module Hunt.ContextIndex
 
        , lookupDocument
        , lookupDocuments
+       , lookupDocumentByURI
 
        , indexedWords
 
@@ -130,9 +131,9 @@ emptyContextMap = mkContextMap $ M.empty
 mkContextMap :: Map Context IndexRep -> ContextMap
 mkContextMap x = ContextMap $! x
 
--- | Get 'Schema' from 'ContextMap'
-mapToSchema :: ContextMap -> Schema
-mapToSchema (ContextMap m) = M.map fst m
+-- | Get 'Schema' from 'ContextIndex'
+mapToSchema :: ContextIndex -> Schema
+mapToSchema = M.map fst . cxMap . ciIndex
 
 -- ------------------------------------------------------------
 -- Binary / Serialization
@@ -282,6 +283,12 @@ lookupDocuments :: Monad m => ContextIndex -> DocIdSet -> m (DocIdMap Document)
 lookupDocuments ixx dids = do
   dt' <- Dt.restrict dids (ciDocs ixx)
   Dt.toMap dt'
+
+lookupDocumentByURI :: Monad m => ContextIndex -> URI -> m (Maybe DocId)
+lookupDocumentByURI (ContextIndex _ dt) uri = do
+  Dt.lookupByURI uri dt
+
+
 
 -- | Delete a set of documents by 'URI'.
 deleteDocsByURI :: (Par.MonadParallel m, Applicative m)

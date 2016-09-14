@@ -39,8 +39,7 @@ reset buf = buf { bufStart = bufPtr buf }
 {-# INLINE reset #-}
 
 null :: Buffer -> Bool
-null Buffer{..} =
-  bufEnd `minusPtr` bufStart == 0
+null Buffer{..} = bufStart == bufPtr
 {-# INLINE null #-}
 
 hasEnoughBytes :: Buffer -> Int -> Bool
@@ -50,7 +49,7 @@ hasEnoughBytes Buffer{..} n =
 
 toByteString :: Buffer -> ByteString
 toByteString Buffer{..} =
-  ByteString.fromForeignPtr buffPtr 0 (bufEnd `minusPtr` bufPtr)
+  ByteString.fromForeignPtr buffPtr 0 (bufStart `minusPtr` bufPtr)
 {-# INLINE toByteString #-}
 
 put :: Buffer

@@ -185,7 +185,7 @@ initProcessor :: ProcessConfig -> CIx.ContextIndex -> ProcessEnv
 initProcessor cfg ix
     = ProcessEnv cfg cxs ix
     where
-      s = CIx.mapToSchema (CIx.ciIndex ix)
+      s = CIx.mapToSchema ix
       cxs = filter (\c -> fromMaybe False $ M.lookup c s >>= return . cxDefault)
             $ CIx.contexts ix
 

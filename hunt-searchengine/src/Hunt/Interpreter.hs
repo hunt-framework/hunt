@@ -76,6 +76,7 @@ import           Hunt.Query.Processor          (ProcessConfig (..),
 import           Hunt.Scoring.SearchResult     (ScoredDocs, UnScoredDocs,
                                                 searchResultToOccurrences,
                                                 unScoredDocsToDocIdSet)
+import qualified Hunt.SegmentIndex.Commit      as Commit
 import           Hunt.Utility                  (showText)
 import           Hunt.Utility.Log
 import           System.IO.Error               (isAlreadyInUseError,
@@ -319,7 +320,9 @@ execCmd' (DeleteByQuery q)
   = modIx $ execDeleteByQuery q
 
 execCmd' (StoreIx filename)
-  = withIx $ execStore filename
+  = withIx $ \ixx -> do liftIO $ Commit.writeIndex "./" (CIx.mapToSchema ixx) 0 (CIx.indexedWords ixx)
+                        return ResOK
+                        --execStore filename ixx
 
 execCmd' (LoadIx filename)
   = execLoad filename
@@ -379,7 +382,7 @@ execDeleteContext cx ixx
 -- Documents/URIs must not exist.
 
 execInsertList :: [ApiDocument] -> ContextIndex -> Hunt dt (ContextIndex, CmdResult)
-execInsertList docs ixx@(ContextIndex ix _dt)
+execInsertList docs ixx
     = do -- existence check for all referenced contexts in all docs
          checkContextsExistence contexts ixx
 
@@ -405,7 +408,7 @@ execInsertList docs ixx@(ContextIndex ix _dt)
       -- given by the schema spec for the appropriate contexts
       docsAndWords
           = L.map ( (\ (d, _dw, ws) -> (d, ws))
-                    . toDocAndWords (CIx.mapToSchema ix)
+                    . toDocAndWords (CIx.mapToSchema ixx)
                     . (\ d -> d {adDescr = DocDesc.deleteNull $ adDescr d})
                   )
             $ docs
@@ -434,9 +437,9 @@ execInsertList docs ixx@(ContextIndex ix _dt)
 
 execUpdate :: ApiDocument -> ContextIndex -> Hunt dt (ContextIndex, CmdResult)
 
-execUpdate doc ixx@(ContextIndex ix dt)
+execUpdate doc ixx
     = do checkContextsExistence contexts ixx
-         docIdM <- lift $ DocTable.lookupByURI (uri docs) dt
+         docIdM <- lift $ CIx.lookupDocumentByURI ixx (uri docs)
          case docIdM of
            Just docId
                -> do ixx' <- lift
@@ -448,7 +451,7 @@ execUpdate doc ixx@(ContextIndex ix dt)
       contexts
           = M.keys $ adIndex doc
       (docs, _dw, ws)
-          = toDocAndWords (CIx.mapToSchema ix) doc
+          = toDocAndWords (CIx.mapToSchema ixx) doc
 
 
 -- | Test whether the contexts are present and otherwise throw an error.

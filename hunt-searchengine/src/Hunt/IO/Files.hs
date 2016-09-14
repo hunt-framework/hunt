@@ -47,11 +47,11 @@ openAppendFile fp = do
   (fd, _) <- FD.openFile fp IO.AppendMode True
   return (MkAF fd)
 
-append :: AppendFile -> ByteString -> IO Int
+append :: AppendFile -> ByteString -> IO Word64
 append (MkAF fd) (PS buf off len) = do
-  _ <- withForeignPtr buf $ \ptr ->
+  withForeignPtr buf $ \ptr ->
     FD.write fd (ptr `plusPtr` off) len
-  return len
+  return (fromIntegral len)
 
 closeAppendFile :: AppendFile -> IO ()
 closeAppendFile (MkAF fd) = FD.close fd

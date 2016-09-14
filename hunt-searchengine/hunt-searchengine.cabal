@@ -124,6 +124,8 @@ library
     Hunt.Scoring.Score
     Hunt.Scoring.SearchResult
 
+    Hunt.SegmentIndex.Commit
+
     Hunt.Utility
     Hunt.Utility.Log
     Hunt.Utility.Output
