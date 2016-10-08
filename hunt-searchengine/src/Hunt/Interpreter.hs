@@ -28,62 +28,66 @@ module Hunt.Interpreter
        )
 where
 
-import           Control.Arrow                 (second)
+import           Control.Arrow                     (second)
 import           Control.Concurrent.XMVar
 import           Control.Monad.Except
 import           Control.Monad.Reader
-import           Data.Aeson                    (ToJSON (..), object, (.=))
-import           Data.Binary                   (Binary, encodeFile)
-import qualified Data.ByteString.Lazy          as BL
+import           Data.Aeson                        (ToJSON (..), object, (.=))
+import           Data.Binary                       (Binary, encodeFile)
+import qualified Data.ByteString.Lazy              as BL
 import           Data.Default
-import qualified Data.List                     as L
-import qualified Data.Map                      as M
-import           Data.Monoid                   ((<>))
-import           Data.Set                      (Set)
-import qualified Data.Set                      as S
-import           Data.Text                     (Text)
-import qualified Data.Text                     as T
-import qualified Data.Traversable              as TV
-import           GHC.Stats                     (getGCStats, getGCStatsEnabled)
-import           GHC.Stats.Json                ()
-import           Hunt.Common.ApiDocument       as ApiDoc
-import           Hunt.Common.BasicTypes        (Context, URI)
-import qualified Hunt.Common.DocDesc           as DocDesc
-import qualified Hunt.Common.DocIdSet          as DocIdSet
-import           Hunt.Common.Document          (Document (..))
-import           Hunt.ContextIndex             (ContextIndex (..), ContextMap)
-import qualified Hunt.ContextIndex             as CIx
-import           Hunt.DocTable                 (DocTable)
-import qualified Hunt.DocTable                 as DocTable
+import qualified Data.List                         as L
+import qualified Data.Map                          as M
+import           Data.Monoid                       ((<>))
+import           Data.Set                          (Set)
+import qualified Data.Set                          as S
+import           Data.Text                         (Text)
+import qualified Data.Text                         as T
+import qualified Data.Traversable                  as TV
+import           GHC.Stats                         (getGCStats,
+                                                    getGCStatsEnabled)
+import           GHC.Stats.Json                    ()
+import           Hunt.Common.ApiDocument           as ApiDoc
+import           Hunt.Common.BasicTypes            (Context, URI)
+import qualified Hunt.Common.DocDesc               as DocDesc
+import qualified Hunt.Common.DocIdSet              as DocIdSet
+import           Hunt.Common.Document              (Document (..))
+import           Hunt.ContextIndex                 (ContextIndex (..),
+                                                    ContextMap)
+import qualified Hunt.ContextIndex                 as CIx
+import           Hunt.DocTable                     (DocTable)
+import qualified Hunt.DocTable                     as DocTable
 import           Hunt.DocTable.HashedDocTable
-import qualified Hunt.Index                    as Ix
-import           Hunt.Index.IndexImpl          (IndexImpl (..), mkIndex)
+import qualified Hunt.Index                        as Ix
+import           Hunt.Index.IndexImpl              (IndexImpl (..), mkIndex)
 import           Hunt.Index.Schema
 import           Hunt.Index.Schema.Analyze
 import           Hunt.Interpreter.BasicCommand
-import           Hunt.Interpreter.Command      (Command)
-import           Hunt.Interpreter.Command      hiding (Command (..))
-import           Hunt.Query.Intermediate       (RankedDoc (..), ScoredWords,
-                                                toDocsResult,
-                                                toDocumentResultPage,
-                                                toWordsResult)
+import           Hunt.Interpreter.Command          (Command)
+import           Hunt.Interpreter.Command          hiding (Command (..))
+import           Hunt.Query.Intermediate           (RankedDoc (..), ScoredWords,
+                                                    toDocsResult,
+                                                    toDocumentResultPage,
+                                                    toWordsResult)
 import           Hunt.Query.Language.Grammar
-import           Hunt.Query.Processor          (ProcessConfig (..),
-                                                initProcessor,
-                                                processQueryScoredDocs,
-                                                processQueryScoredWords,
-                                                processQueryUnScoredDocs)
-import           Hunt.Scoring.SearchResult     (ScoredDocs, UnScoredDocs,
-                                                searchResultToOccurrences,
-                                                unScoredDocsToDocIdSet)
-import qualified Hunt.SegmentIndex.Commit      as Commit
-import           Hunt.Utility                  (showText)
+import           Hunt.Query.Processor              (ProcessConfig (..),
+                                                    initProcessor,
+                                                    processQueryScoredDocs,
+                                                    processQueryScoredWords,
+                                                    processQueryUnScoredDocs)
+import           Hunt.Scoring.SearchResult         (ScoredDocs, UnScoredDocs,
+                                                    searchResultToOccurrences,
+                                                    unScoredDocsToDocIdSet)
+import qualified Hunt.SegmentIndex.Commit          as Commit
+import           Hunt.SegmentIndex.Types.SegmentId
+import           Hunt.Utility                      (showText)
 import           Hunt.Utility.Log
-import           System.IO.Error               (isAlreadyInUseError,
-                                                isDoesNotExistError,
-                                                isFullError, isPermissionError,
-                                                tryIOError)
-import qualified System.Log.Logger             as Log
+import           System.IO.Error                   (isAlreadyInUseError,
+                                                    isDoesNotExistError,
+                                                    isFullError,
+                                                    isPermissionError,
+                                                    tryIOError)
+import qualified System.Log.Logger                 as Log
 
 -- ------------------------------------------------------------
 --
@@ -320,7 +324,8 @@ execCmd' (DeleteByQuery q)
   = modIx $ execDeleteByQuery q
 
 execCmd' (StoreIx filename)
-  = withIx $ \ixx -> do liftIO $ Commit.writeIndex "./" (cxToCxNum ixx) 0 (CIx.indexedWords ixx)
+  = withIx $ \ixx -> do sid <- liftIO $ genSegId =<< newSegIdGen
+                        liftIO $ Commit.writeIndex "./" (cxToCxNum ixx) sid (CIx.indexedWords ixx)
                         return ResOK
                         --execStore filename ixx
 

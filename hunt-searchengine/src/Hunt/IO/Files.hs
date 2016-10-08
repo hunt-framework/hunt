@@ -16,7 +16,6 @@ import           Control.Exception
 import           Data.ByteString.Internal (ByteString (PS))
 import qualified Data.ByteString.Internal as ByteString
 import           Data.Word
-import           Foreign.ForeignPtr
 import           Foreign.Ptr
 import qualified GHC.IO.Device            as FD
 import qualified GHC.IO.FD                as FD
@@ -47,11 +46,10 @@ openAppendFile fp = do
   (fd, _) <- FD.openFile fp IO.AppendMode True
   return (MkAF fd)
 
-append :: AppendFile -> ByteString -> IO Word64
-append (MkAF fd) (PS buf off len) = do
-  withForeignPtr buf $ \ptr ->
-    FD.write fd (ptr `plusPtr` off) len
-  return (fromIntegral len)
+append :: AppendFile -> Ptr Word8 -> Int -> IO Int
+append (MkAF fd) op sz = do
+  FD.write fd op sz
+  return (fromIntegral sz)
 
 closeAppendFile :: AppendFile -> IO ()
 closeAppendFile (MkAF fd) = FD.close fd

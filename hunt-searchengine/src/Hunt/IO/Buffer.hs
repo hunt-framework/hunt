@@ -12,45 +12,36 @@ data Buffer =
   Buffer { bufSize  :: !Int
          , bufStart :: !(Ptr Word8)
          , bufEnd   :: !(Ptr Word8)
-         , bufPtr   :: !(Ptr Word8)
-         , buffPtr  :: !(ForeignPtr Word8)
+         , bufPos   :: !(Ptr Word8)
          }
 
-newBuffer :: Int -> IO Buffer
-newBuffer sz = do
-  buf <- mallocForeignPtrBytes sz
-  let ptr = unsafeForeignPtrToPtr buf
-  return Buffer {
-      bufSize = sz
-    , bufStart = ptr
-    , bufEnd = ptr `plusPtr` sz
-    , bufPtr = ptr
-    , buffPtr = buf
-    }
-
 withBuffer :: Int -> (Buffer -> IO a) -> IO a
-withBuffer bufSz f = do
-  buf <- newBuffer bufSz
-  f buf
+withBuffer sz f = do
+  fop <- mallocForeignPtrBytes sz
+  withForeignPtr fop $ \op -> do
+    f Buffer { bufSize  = sz
+             , bufStart = op
+             , bufEnd   = op `plusPtr` sz
+             , bufPos   = op
+             }
 {-# INLINE withBuffer #-}
 
 reset :: Buffer -> Buffer
-reset buf = buf { bufStart = bufPtr buf }
+reset buf = buf { bufPos = bufStart buf }
 {-# INLINE reset #-}
 
 null :: Buffer -> Bool
-null Buffer{..} = bufStart == bufPtr
+null buf = bufStart buf == bufPos buf
 {-# INLINE null #-}
 
 hasEnoughBytes :: Buffer -> Int -> Bool
-hasEnoughBytes Buffer{..} n =
-  bufEnd `minusPtr` bufStart >= n
+hasEnoughBytes buf n =
+  bufEnd buf `minusPtr` bufPos buf >= n
 {-# INLINE hasEnoughBytes #-}
 
-toByteString :: Buffer -> ByteString
-toByteString Buffer{..} =
-  ByteString.fromForeignPtr buffPtr 0 (bufStart `minusPtr` bufPtr)
-{-# INLINE toByteString #-}
+flush :: (Ptr Word8 -> Int -> IO a) -> Buffer -> IO a
+flush f buf = f (bufStart buf) (bufPos buf `minusPtr` bufStart buf)
+{-# INLINE flush #-}
 
 put :: Buffer
     -> (Ptr Word8 -> IO (Ptr Word8))
@@ -59,15 +50,3 @@ put buf insert = do
   start' <- insert (bufStart buf)
   return buf { bufStart = start' }
 {-# INLINE put #-}
-
-putByteString :: Buffer
-              -> ByteString
-              -> IO Buffer
-putByteString buf s = do
-  case ByteString.toForeignPtr s of
-    (fop, off, len) -> do
-      withForeignPtr fop $ \op -> do
-        ByteString.memcpy (bufStart buf) (op `plusPtr` off) len
-        return buf { bufStart = bufStart buf `plusPtr` len
-                   }
-{-# INLINE putByteString #-}
