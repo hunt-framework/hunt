@@ -79,6 +79,82 @@ writeIndex ixDir contextNum sid wx = do
   --   * Write occurrences
   --   * Write word itself
 
+  let
+    -- Writes the terms in delta encoded form. Returns the number
+    -- of terms written.
+    termWriter :: Writer (Int, (ByteString, (ContextNum, (Int, Offset)))) a
+               -> Writer (Text, ContextNum, Int, Offset) Int
+    termWriter wr = case wr of
+      WR fstart fstep fstop -> WR start step stop
+        where
+          start = T3 0 Text.empty <$> fstart
+
+          step (T3 nterms lastWord fs) (word, cx, noccs, occoff) = do
+
+            -- We encode the terms in a prefix free fashion. We look
+            -- for a common prefix with the previous insert word
+            -- and only encode the suffix.
+            let (prefix, suffix) = case Text.commonPrefixes lastWord word of
+                  Just (p, _, s) -> (p, s)
+                  Nothing        -> (Text.empty, word)
+
+            -- delegate the term info to the underlying 'Writer' to
+            -- write the record to a buffer/disk.
+            fs' <- fstep fs
+                    ( ByteString.length (Text.encodeUtf8 prefix)
+                    , (Text.encodeUtf8 suffix
+                      , (cx
+                        , ( noccs
+                          , occoff
+                          )
+                        )
+                      )
+                    )
+            return ( T3 (nterms + 1) word fs' )
+
+          stop (T3 nterms _lastWord fs) = do
+            _ <- fstop fs
+            return nterms
+
+    -- The big glue which ties terms, occurrences and positions
+    -- together.
+    indexWriter :: Writer Position (Int, BytesWritten)
+                -> Writer (DocId, (Int, Offset)) (Int, BytesWritten)
+                -> Writer (Text, ContextNum, Int, Offset) Int
+                -> Writer (Text, ContextNum, Occurrences) Int
+    indexWriter pw ow tw = case ow of
+      WR ostart ostep ostop -> case tw of
+        WR tstart tstep tstop -> WR start step stop where
+
+          start = T3 0 0 <$> tstart
+
+          step (T3 poff0 ooff0 ts) (word, cx, occs) = do
+
+            -- for every occurrence we need to write its
+            -- positions. Thus we need to manually do the
+            -- fold over 'ow'.
+            os0 <- ostart
+            T2 os1 poff' <-
+              foldlM (\(T2 os poff) (did, pos) -> do
+                         -- write positions and remember how
+                         -- many bytes actually were written
+                         (npos, posBytesWritten) <-
+                           runWriter pw (Positions.toAscList pos)
+
+                         -- write the occurrences
+                         os' <- ostep os (did, (npos , poff))
+                         return $! T2 os' (poff + posBytesWritten)
+                     ) (T2 os0 poff0) (DocIdMap.toList occs)
+
+            -- number and bytes written for occurrences
+            (noccs, occsBytesWritten) <- ostop os1
+
+            -- write the term itself
+            ts' <- tstep ts (word, cx, noccs, ooff0)
+            return $! T3 poff' (ooff0 + occsBytesWritten) ts'
+
+          stop (T3 _ _ ts) = tstop ts
+
   withAppendFile (ixDir </> termVectorFile sid) $ \termsFile ->
     withAppendFile (ixDir </> occurrencesFile sid) $ \occsFile ->
     withAppendFile (ixDir </> positionsFile sid) $ \posFile -> do
@@ -87,85 +163,11 @@ writeIndex ixDir contextNum sid wx = do
       Buffer.withBuffer (8  * 1024) $ \occBuf ->
       Buffer.withBuffer (4  * 1024) $ \posBuf -> do
 
+      -- 'posWrite', 'occWrite', 'termWrite' describe the
+      -- schemas for the on-disk representation of terms,
+      -- positions and occurrences.
+
       let
-        -- Writes the terms in delta encoded form. Returns the number
-        -- of terms written.
-        termWriter :: Writer (Int, (ByteString, (ContextNum, (Int, Offset)))) a
-                   -> Writer (Text, ContextNum, Int, Offset) Int
-        termWriter wr = case wr of
-          WR fstart fstep fstop -> WR start step stop
-            where
-              start = T3 0 Text.empty <$> fstart
-
-              step (T3 nterms lastWord fs) (word, cx, noccs, occoff) = do
-
-                -- We encode the terms in a prefix free fashion. We look
-                -- for a common prefix with the previous insert word
-                -- and only encode the suffix.
-                let (prefix, suffix) = case Text.commonPrefixes lastWord word of
-                      Just (p, _, s) -> (p, s)
-                      Nothing        -> (Text.empty, word)
-
-                -- delegate the term info to the underlying 'Writer' to
-                -- write the record to a buffer/disk.
-                fs' <- fstep fs
-                       ( ByteString.length (Text.encodeUtf8 prefix)
-                       , (Text.encodeUtf8 suffix
-                         , (cx
-                           , ( noccs
-                             , occoff
-                             )
-                           )
-                         )
-                       )
-                return ( T3 (nterms + 1) word fs' )
-
-              stop (T3 nterms _lastWord fs) = do
-                _ <- fstop fs
-                return nterms
-
-        -- The big glue which ties terms, occurrences and positions
-        -- together.
-        indexWriter :: Writer Position (Int, BytesWritten)
-                    -> Writer (DocId, (Int, Offset)) (Int, BytesWritten)
-                    -> Writer (Text, ContextNum, Int, Offset) Int
-                    -> Writer (Text, ContextNum, Occurrences) Int
-        indexWriter pw ow tw = case ow of
-          WR ostart ostep ostop -> case tw of
-            WR tstart tstep tstop -> WR start step stop where
-
-              start = T3 0 0 <$> tstart
-
-              step (T3 poff0 ooff0 ts) (word, cx, occs) = do
-
-                -- for every occurrence we need to write its
-                -- positions. Thus we need to manually do the
-                -- fold over 'ow'.
-                os0 <- ostart
-                T2 os1 poff'  <-
-                  foldlM (\(T2 os poff) (did, pos) -> do
-                             -- write positions and remember how
-                             -- many bytes actually were written
-                             (npos, posBytesWritten) <-
-                               runWriter pw (Positions.toAscList pos)
-
-                             -- write the occurrences
-                             os' <- ostep os (did, (npos , poff))
-                             return $! T2 os' (poff + posBytesWritten)
-                         ) (T2 os0 poff0) (DocIdMap.toList occs)
-
-                -- number and bytes written for occurrences
-                (noccs, occsBytesWritten) <- ostop os1
-
-                -- write the term itself
-                ts' <- tstep ts (word, cx, noccs, ooff0)
-                return $! T3 poff' (ooff0 + occsBytesWritten) ts'
-
-              stop (T3 _ _ ts) = tstop ts
-
-        -- 'posWrite', 'occWrite', 'termWrite' describe the
-        -- schemas for the on-disk representation of terms,
-        -- positions and occurrences.
 
         vint :: Write Int
         vint = fromIntegral >$< varint64
@@ -179,7 +181,6 @@ writeIndex ixDir contextNum sid wx = do
         termWrite :: Write (Int, (ByteString, (ContextNum, (Int, Offset))))
         termWrite = vint >*< bytestring' >*< vint >*< vint >*< vint
 
-      let
         -- here we tie everything together, the flush for 'encWriter'
         -- always appends to the corresponding files on disk.
         iw = indexWriter
