@@ -44,6 +44,6 @@ put :: Buffer
     -> (Ptr Word8 -> IO (Ptr Word8))
     -> IO Buffer
 put buf insert = do
-  start' <- insert (bufStart buf)
-  return buf { bufStart = start' }
+  start' <- insert (bufPos buf)
+  return buf { bufPos = start' }
 {-# INLINE put #-}
