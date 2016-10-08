@@ -6,8 +6,7 @@ import           Foreign.ForeignPtr
 import           Foreign.Ptr
 
 data Buffer =
-  Buffer { bufSize  :: !Int
-         , bufStart :: !(Ptr Word8)
+  Buffer { bufStart :: !(Ptr Word8)
          , bufEnd   :: !(Ptr Word8)
          , bufPos   :: !(Ptr Word8)
          }
@@ -16,8 +15,7 @@ withBuffer :: Int -> (Buffer -> IO a) -> IO a
 withBuffer sz f = do
   fop <- mallocForeignPtrBytes sz
   withForeignPtr fop $ \op -> do
-    f Buffer { bufSize  = sz
-             , bufStart = op
+    f Buffer { bufStart = op
              , bufEnd   = op `plusPtr` sz
              , bufPos   = op
              }
