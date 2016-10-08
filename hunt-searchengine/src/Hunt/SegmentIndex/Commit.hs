@@ -6,7 +6,6 @@ import           Hunt.Common.DocId
 import qualified Hunt.Common.DocIdMap              as DocIdMap
 import           Hunt.Common.Occurrences           (Occurrences)
 import qualified Hunt.Common.Positions             as Positions
-import           Hunt.Index.Schema
 import           Hunt.IO.Buffer                    (Buffer)
 import qualified Hunt.IO.Buffer                    as Buffer
 import           Hunt.IO.Files
@@ -39,9 +38,9 @@ type BytesWritten = Int
 -- If the buffer is full it will be flushed. Returns the number
 -- of bytes written.
 encWriter :: Buffer
-          -> (Ptr Word8 -> Int -> IO Int)
+          -> (Ptr Word8 -> Int -> IO BytesWritten)
           -> Write a
-          -> Writer a Int
+          -> Writer a BytesWritten
 encWriter buf0 flush (W size write) = WR start step stop
   where
     start = pure ( T2 0 buf0 )
