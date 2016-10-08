@@ -1,11 +1,8 @@
 {-# LANGUAGE RecordWildCards #-}
 module Hunt.IO.Buffer where
 
-import           Data.ByteString           (ByteString)
-import qualified Data.ByteString.Internal  as ByteString
 import           Data.Word
 import           Foreign.ForeignPtr
-import           Foreign.ForeignPtr.Unsafe
 import           Foreign.Ptr
 
 data Buffer =
