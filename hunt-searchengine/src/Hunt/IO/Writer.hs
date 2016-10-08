@@ -34,3 +34,7 @@ runWriter (WR start step stop) as = do
   s <- start
   stop =<< foldlM step s as
 {-# INLINE runWriter #-}
+
+count :: Writer a Int
+count = WR (pure 0) (\x _ -> pure $! x + 1) pure
+{-# INLINE count #-}

@@ -79,8 +79,8 @@ writeIndex ixDir contextNum sid wx = do
   --   * Write word itself
 
   withAppendFile (ixDir </> termVectorFile sid) $ \termsFile ->
-    withAppendFile (ixDir </> occFile sid) $ \occsFile ->
-    withAppendFile (ixDir </> posFile sid) $ \posFile -> do
+    withAppendFile (ixDir </> occurrencesFile sid) $ \occsFile ->
+    withAppendFile (ixDir </> positionsFile sid) $ \posFile -> do
 
     termBuf <- Buffer.newBuffer (16 * 1024)
     occBuf  <- Buffer.newBuffer (8 * 1024)
@@ -125,8 +125,8 @@ writeIndex ixDir contextNum sid wx = do
 
       -- The big glue which ties terms, occurrences and positions
       -- together.
-      indexWriter :: Writer Position Word64
-                  -> Writer (DocId, (Int, Offset)) Word64
+      indexWriter :: Writer Position (Int, Word64)
+                  -> Writer (DocId, (Int, Offset)) (Int, Word64)
                   -> Writer (Text, ContextNum, Int, Offset) Int
                   -> Writer (Text, ContextNum, Occurrences) Int
       indexWriter pw ow tw = case ow of
@@ -145,19 +145,20 @@ writeIndex ixDir contextNum sid wx = do
                 foldlM (\(T2 os poff) (did, pos) -> do
                            -- write positions and remember how
                            -- many bytes actually were written
-                           posBytesWritten <-
+                           (npos, posBytesWritten) <-
                              runWriter pw (Positions.toAscList pos)
 
                            -- write the occurrences
-                           os' <- ostep os (did, (Positions.size pos, poff))
-                           return $ T2 os' (poff + posBytesWritten)
+                           os' <- ostep os (did, (npos , poff))
+                           return $! T2 os' (poff + posBytesWritten)
                        ) (T2 os0 poff0) (DocIdMap.toList occs)
 
-              occsBytesWritten <- ostop os1
+              -- number and bytes written for occurrences
+              (noccs, occsBytesWritten) <- ostop os1
 
               -- write the term itself
-              ts' <- tstep ts (word, cx, DocIdMap.size occs, ooff0)
-              return $ T3 poff' (ooff0 + occsBytesWritten) ts'
+              ts' <- tstep ts (word, cx, noccs, ooff0)
+              return $! T3 poff' (ooff0 + occsBytesWritten) ts'
 
             stop (T3 _ _ ts) = tstop ts
 
@@ -186,8 +187,8 @@ writeIndex ixDir contextNum sid wx = do
       -- here we tie everything together, the flush for 'encWriter'
       -- always appends to the corresponding files on disk.
       iw = indexWriter
-           ( encWriter posBuf (append posFile) posWrite )
-           ( encWriter occBuf (append occsFile) occWrite )
+           ( (,) <$> count <*> encWriter posBuf (append posFile) posWrite )
+           ( (,) <$> count <*> encWriter occBuf (append occsFile) occWrite )
            ( termWriter ( encWriter termBuf (append termsFile) termWrite ) )
 
     -- again we need to hand-roll the fold as we have a one-to-many relationship
@@ -214,8 +215,8 @@ writeIndex ixDir contextNum sid wx = do
 termVectorFile :: SegmentId -> FilePath
 termVectorFile sid = show sid <.> "tv"
 
-occFile :: SegmentId -> FilePath
-occFile sid = show sid <.> "occ"
+occurrencesFile :: SegmentId -> FilePath
+occurrencesFile sid = show sid <.> "occ"
 
-posFile :: SegmentId -> FilePath
-posFile sid = show sid <.> "pos"
+positionsFile :: SegmentId -> FilePath
+positionsFile sid = show sid <.> "pos"
