@@ -1,7 +1,18 @@
 {-# LANGUAGE DeriveTraversable          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies               #-}
-module Hunt.SegmentIndex.Types.SegmentMap where
+module Hunt.SegmentIndex.Types.SegmentMap (
+    module Hunt.SegmentIndex.Types.SegmentMap
+  , index
+  , lookupDefault
+  , adjust
+  , replace
+
+  , forWithKey
+  , forWithKey_
+  , forWithKeyM
+  , forWithKeyM_
+  ) where
 
 import           Hunt.SegmentIndex.Types.SegmentId
 
@@ -30,3 +41,18 @@ empty = SM IM.empty
 
 insert :: SegmentId -> a -> SegmentMap a -> SegmentMap a
 insert (SegmentId k) v (SM m) = SM (IM.insert k v m)
+
+map :: (a -> b) -> SegmentMap a -> SegmentMap b
+map f (SM m) = SM (IM.map f m)
+
+unionWith :: (a -> a -> a) -> SegmentMap a -> SegmentMap a -> SegmentMap a
+unionWith f (SM m1) (SM m2) = SM (IM.unionWith f m1 m2)
+
+intersectionWith :: (a -> b -> c)
+                 -> SegmentMap a
+                 -> SegmentMap b
+                 -> SegmentMap c
+intersectionWith f (SM m1) (SM m2) = SM (IM.intersectionWith f m1 m2)
+
+difference :: SegmentMap a -> SegmentMap b -> SegmentMap a
+difference (SM m1) (SM m2) = SM (IM.difference m1 m2)
