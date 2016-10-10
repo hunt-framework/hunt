@@ -136,27 +136,30 @@ module Hunt.ClientInterface
     )
 where
 
-import           Data.Aeson (FromJSON (..), ToJSON (..), Value(..))
+import           Control.Arrow               (second)
+import           Data.Aeson                  (FromJSON (..), ToJSON (..),
+                                              Value (..))
 import           Data.Default
-import           Data.List (nub)
-import qualified Data.Map.Lazy as LM
-import qualified Data.Map.Strict as SM
-import           Data.Text (Text)
-import qualified Data.Text as T
-import           Hunt.Common.ApiDocument (ApiDocument (..), IndexMap,
-                                          LimitedResult (..),
-                                          emptyApiDocDescr,
-                                          emptyApiDocIndexMap)
-import           Hunt.Common.BasicTypes (Content, Context, Description,
-                                         RegEx, URI)
-import qualified Hunt.Common.DocDesc as DD
+import           Data.List                   (nub)
+import qualified Data.Map.Lazy               as LM
+import qualified Data.Map.Strict             as SM
+import           Data.Text                   (Text)
+import qualified Data.Text                   as T
+import           Hunt.Common.ApiDocument     (ApiDocument (..), IndexMap,
+                                              LimitedResult (..),
+                                              emptyApiDocDescr,
+                                              emptyApiDocIndexMap)
+import           Hunt.Common.BasicTypes      (Content, Context, Description,
+                                              RegEx, URI)
+import qualified Hunt.Common.DocDesc         as DD
 import           Hunt.Index.Schema
 import           Hunt.Interpreter.Command
 import           Hunt.Query.Language.Builder
 import           Hunt.Query.Language.Grammar
-import           Hunt.Query.Language.Parser (parseQuery)
-import           Hunt.Scoring.Score (Score, defScore, getScore, mkScore, noScore)
-import           Hunt.Utility.Output (outputValue)
+import           Hunt.Query.Language.Parser  (parseQuery)
+import           Hunt.Scoring.Score          (Score, defScore, getScore,
+                                              mkScore, noScore)
+import           Hunt.Utility.Output         (outputValue)
 
 
 -- ------------------------------------------------------------
@@ -335,15 +338,15 @@ setDescription descr d
 getDescription :: ApiDocument -> Description
 getDescription = adDescr
 
-lookupDescription :: FromJSON v => Text -> ApiDocument -> Maybe v
+lookupDescription :: DD.FromFieldValue v => Text -> ApiDocument -> Maybe v
 lookupDescription k
     = DD.lookup k . adDescr
 
-lookupDescriptionText :: Text -> ApiDocument -> Text
+lookupDescriptionText :: DD.Field -> ApiDocument -> Text
 lookupDescriptionText k
     = DD.lookupText k . adDescr
 
-addDescription :: ToJSON v => Text -> v -> ApiDocument -> ApiDocument
+addDescription :: DD.ToFieldValue v => DD.Field -> v -> ApiDocument -> ApiDocument
 addDescription k v
     = changeDescription $ DD.insert k v
 
@@ -393,7 +396,7 @@ listToApiDoc uri k v = setDescription (mkDescription v) $ setIndex (LM.fromList 
 -- build a document description from a list of key-value pairs with
 -- simple text values
 
-mkDescription :: [(Text, Text)] -> Description
+mkDescription :: [(DD.Field, Text)] -> Description
 mkDescription
     = DD.fromList . filter (not . T.null . snd)
 
@@ -403,7 +406,7 @@ mapToDescr src = mkDescription $ LM.toList src
 -- insert a key-value pair with an arbitrary value into
 -- a document description
 
-insDescription :: ToJSON v => Text -> v -> Description -> Description
+insDescription :: DD.ToFieldValue v => Text -> v -> Description -> Description
 insDescription
     = DD.insert
 
@@ -411,7 +414,7 @@ emptyDescription :: Description
 emptyDescription = DD.empty
 
 fromDescription :: Description ->  [(Text, Value)]
-fromDescription = DD.toList
+fromDescription = fmap (second toJSON) . DD.toList
 
 insertCmdsToDocuments :: Command -> [ApiDocument]
 insertCmdsToDocuments (Insert d)    = [d]
@@ -502,8 +505,8 @@ completeQueries (QContext cxs q)    comps = (QContext cxs)              <$> (com
 completeQueries (QBinary op q1 q2)  comps = (QBinary op q1)             <$> (completeQueries q2 comps)
 completeQueries (QSeq    op qs)     comps = (QSeq op)                   <$> (completeLast qs)
   where
-  completeLast [] = []
-  completeLast [q] = sequence [completeQueries q comps]
+  completeLast []      = []
+  completeLast [q]     = sequence [completeQueries q comps]
   completeLast (q:qs') = (q :)  <$> completeLast qs'
 completeQueries (QBoost w q)        comps = (QBoost w)                  <$> (completeQueries q comps)
 completeQueries (QRange t1 t2)      _     = [QRange t1 t2] -- TODO
