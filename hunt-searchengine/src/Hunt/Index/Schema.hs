@@ -34,6 +34,8 @@ module Hunt.Index.Schema
   , cnUpperCase
   , cnLowerCase
   , cnZeroFill
+
+  , def
   )
 where
 

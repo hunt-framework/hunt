@@ -7,6 +7,8 @@ import           Hunt.Index.Schema
 import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
 
+import           Data.Bits
+
 type TermIndex = String -- dummy
 
 data Segment =
@@ -27,21 +29,27 @@ data Segment =
             -- ^ Indexes the terms and points to the stored occurrences
           }
 
+-- | When deleting 'Document's via an 'IndexWriter' we need
+-- to keep track of affected 'Segment's so we can write a new
+-- delete generation.
+newtype DirtyFlags = DirtyFlags { unDirtyFlags :: Word }
+
+setDirtyDelDocs :: DirtyFlags -> DirtyFlags
+setDirtyDelDocs (DirtyFlags df) = DirtyFlags (setBit df 0)
+
+isDirtyDelDocs :: DirtyFlags -> Bool
+isDirtyDelDocs (DirtyFlags df) = testBit df 0
+
 -- | 'IndexWriter' offers an interface to manipulate the index.
 -- Forking new 'IndexWriter's from the 'SegmentIndex' *is* cheap.
 data IndexWriter =
-  IndexWriter { iwIndexDir :: FilePath
+  IndexWriter { iwIndexDir    :: FilePath
                 -- ^ When creating new 'Segment's we need to
                 -- know where to place them.
-              , iwNewSegId :: IO SegmentId
+              , iwNewSegId    :: IO SegmentId
                 -- ^ The 'IndexWriter' commits 'Segment's to
                 -- disk. So we need a way to generate unique
                 -- 'SegmentId's.
-              , iwSchema :: Schema
-                -- ^ 'Schema' for indexed fields.
-              , iwWriteIndex :: ContextIndex
-                -- ^ Every insert into the 'IndexWriter' writes
-                -- into its 'ContextIndex'.
               , iwSegments    :: SegmentMap Segment
                 -- ^ An 'IndexWriter' acts transactional over
                 -- the 'SegmentIndex'. These are the 'Segment's
