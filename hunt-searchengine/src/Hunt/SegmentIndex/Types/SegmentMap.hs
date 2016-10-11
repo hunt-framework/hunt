@@ -25,6 +25,7 @@ newtype SegmentMap a = SM { unSM :: IntMap a }
                      deriving ( Functor, Keyed, Zip, ZipWithKey
                               , Lookup, Indexable, Adjustable
                               , FoldableWithKey, Foldable
+                              , Monoid
                               , Traversable )
 
 type instance Key SegmentMap = SegmentId

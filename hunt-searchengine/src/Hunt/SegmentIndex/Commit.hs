@@ -1,12 +1,16 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE PatternGuards #-}
 module Hunt.SegmentIndex.Commit where
 
 import           Hunt.Common.BasicTypes
+import           Hunt.Common.DocDesc               (FieldValue (..))
+import qualified Hunt.Common.DocDesc               as DocDesc
 import           Hunt.Common.DocId
 import qualified Hunt.Common.DocIdMap              as DocIdMap
+import           Hunt.Common.Document
 import           Hunt.Common.Occurrences           (Occurrences)
 import qualified Hunt.Common.Positions             as Positions
-import           Hunt.IO.Buffer                    (Buffer)
+import           Hunt.IO.Buffer                    (Buffer, Flush)
 import qualified Hunt.IO.Buffer                    as Buffer
 import           Hunt.IO.Files
 import           Hunt.IO.Write
@@ -22,6 +26,7 @@ import qualified Data.Map.Strict                   as Map
 import           Data.Text                         (Text)
 import qualified Data.Text                         as Text
 import qualified Data.Text.Encoding                as Text
+import qualified Data.Vector                       as V
 import           Data.Word                         hiding (Word)
 import           Foreign.Ptr
 import           System.FilePath
@@ -38,27 +43,31 @@ type BytesWritten = Int
 -- If the buffer is full it will be flushed. Returns the number
 -- of bytes written.
 encWriter :: Buffer
-          -> (Ptr Word8 -> Int -> IO BytesWritten)
+          -> Flush BytesWritten
           -> Write a
           -> Writer a BytesWritten
-encWriter buf0 flush (W size write) = WR start step stop
+encWriter buffer flush (W size write) = WR start step stop
   where
-    start = pure ( T2 0 buf0 )
+    start = pure 0
 
-    step (T2 nbytes buf) a
-      | Buffer.hasEnoughBytes buf (size a) = do
-          buf' <- Buffer.put buf (write a)
-          return (T2 nbytes buf')
-      | otherwise = do
-          n <- Buffer.flush flush buf
-          step ( T2 (nbytes + n) (Buffer.reset buf) ) a
+    step bytesWritten a = do
+      notFull <- Buffer.hasEnoughBytes buffer (size a)
+      case notFull of
+        True -> do
+          _ <- Buffer.put buffer (write a)
+          return bytesWritten
+        False -> do
+          n <- Buffer.flush buffer flush
+          step (bytesWritten + n) a
 
-    stop (T2 nbytes buf)
-      | Buffer.null buf = return nbytes
-      | otherwise = do
-          n <- Buffer.flush flush buf
-          return (n + nbytes)
-{-# INLINE encWriter #-}
+    stop bytesWritten = do
+      isNull <- Buffer.null buffer
+      case isNull of
+        True  -> return bytesWritten
+        False -> do
+          n <- Buffer.flush buffer flush
+          return (bytesWritten + n)
+
 
 writeIndex :: FilePath
            -> (Context -> ContextNum)
@@ -209,6 +218,117 @@ writeIndex ixDir contextNum sid wx = do
       return ()
     return ()
 
+type SortedFields = V.Vector Field
+
+writeDocuments :: FilePath
+               -> SegmentId
+               -> SortedFields
+               -> [Document]
+               -> IO ()
+writeDocuments ixDir sid fields docs = do
+
+  withAppendFile (ixDir </> fieldDataFile sid) $ \fdtFile ->
+    withAppendFile (ixDir </> fieldIndexFile sid) $ \fdxFile -> do
+
+    Buffer.withBuffer (2 * 1024) $ \fdxBuffer -> do
+      Buffer.withBuffer (16 * 1024) $ \fdtBuffer -> do
+
+        let
+          fdtFlush :: Flush BytesWritten
+          fdtFlush = append fdtFile
+
+          fdxFlush :: Flush BytesWritten
+          fdxFlush = append fdxFile
+
+          -- For each document write its fields to the
+          -- field data buffer
+          foldDocs bytesWritten doc = do
+            let
+              descr = desc doc
+              !size = DocDesc.size descr
+
+              -- for each field of a document write the fields one
+              -- by one, sorted in 'fields' order.
+              foldFields docBytesWritten fieldRank field = do
+                case DocDesc.lookupValue field descr of
+                  FV_Null -> return docBytesWritten
+                  value   -> do
+                    let
+                      loop = do
+                        notFull <- Buffer.hasEnoughBytes
+                                   fdtBuffer
+                                   (fvSize (fieldRank, value))
+                        case notFull of
+                          True -> do
+                            n <- Buffer.put
+                                 fdtBuffer
+                                 (fvWrite (fieldRank, value))
+                            return (docBytesWritten + n)
+                          False -> do
+                            _ <- Buffer.flush fdtBuffer fdtFlush
+                            loop
+                    loop
+
+            lenBytes <- putFlush
+                        fdtBuffer
+                        fdtFlush
+                        (vintSize size)
+                        (vintWrite size)
+
+            docBytes <- V.ifoldM' foldFields 0 fields
+
+            -- write the offset of the document field data
+            -- to the document field index.
+            _ <- putFlush
+                 fdxBuffer
+                 fdxFlush
+                 (w64Size (fromIntegral bytesWritten))
+                 (w64Write (fromIntegral bytesWritten))
+
+            return (lenBytes + docBytes + bytesWritten)
+
+        _ <- foldlM foldDocs 0 docs
+
+        Buffer.flush fdtBuffer fdtFlush
+        Buffer.flush fdxBuffer fdxFlush
+        return ()
+  return ()
+
+  where
+    W word8Size word8Write = word8
+    W w64Size w64Write     = word64
+    vint                   = fromIntegral >$< varint64
+    W vintSize vintWrite   = vint
+    W bsSize bsWrite       = bytestring'
+    W fvSize fvWrite       = vint >*< W size write
+      where
+        size (FV_Int i)    = vintSize i + tagSize
+        size (FV_Float _f) = undefined
+        size (FV_Text s)   = bsSize s + tagSize
+        size (FV_Binary b) = bsSize b + tagSize
+        size FV_Null       = 0
+
+        write (FV_Int i) op      = word8Write 0 op
+                                   >>= vintWrite i
+        write (FV_Float _f) op    = word8Write 2 op
+                                   >>= undefined
+        write (FV_Text s)op      = word8Write 3 op
+                                   >>= bsWrite s
+        write (FV_Binary b) op   = word8Write 4 op
+                                   >>= bsWrite b
+        write FV_Null op         = return op
+
+        tagSize = word8Size 0
+
+    -- Helper which flushes and retries if buffer
+    -- is full
+    putFlush buffer flush size write = do
+      notFull <- Buffer.hasEnoughBytes buffer size
+      case notFull of
+        True -> Buffer.put buffer write
+        False -> do _ <- Buffer.flush buffer flush
+                    putFlush buffer flush size write
+
 termVectorFile :: SegmentId -> FilePath
 termVectorFile sid = show sid <.> "tv"
 
@@ -217,3 +337,9 @@ occurrencesFile sid = show sid <.> "occ"
 
 positionsFile :: SegmentId -> FilePath
 positionsFile sid = show sid <.> "pos"
+
+fieldIndexFile :: SegmentId -> FilePath
+fieldIndexFile sid = show sid <.> "fdx"
+
+fieldDataFile :: SegmentId -> FilePath
+fieldDataFile sid = show sid <.> "fdt"

@@ -5,6 +5,7 @@
 module Hunt.IO.Write (
     Write (..)
   , word8
+  , word64
   , varint32
   , varint64
   , bytestring
@@ -68,6 +69,10 @@ infixr 5 >*<
 word8 :: Write Word8
 word8 = W (\_ -> 1) (\w op -> poke op w >> return (op `plusPtr` 1))
 {-# INLINE CONLIKE word8 #-}
+
+word64 :: Write Word64
+word64 = W (\_ -> 8) (\w op -> poke (castPtr op) w >> return (op `plusPtr` 8))
+{-# INLINE CONLIKE word64 #-}
 
 varint32 :: Write Word32
 varint32 = fromIntegral >$< varint 5

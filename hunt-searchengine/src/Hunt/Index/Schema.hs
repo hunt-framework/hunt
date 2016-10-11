@@ -128,7 +128,7 @@ ctText :: ContextType
 ctText = CType
   { ctName     = "text"
   , ctRegEx    = "\\w*"
-  , ctValidate = def
+  , ctValidate = cvNotEmpty
   , ctIxImpl   = def
   }
 
@@ -139,7 +139,7 @@ ctTextSimple :: ContextType
 ctTextSimple = CType
   { ctName     = "text-small"
   , ctRegEx    = "\\w*"
-  , ctValidate = def
+  , ctValidate = cvNotEmpty
   , ctIxImpl   = simplePT
   }
 
@@ -221,6 +221,9 @@ positionRTree = mkIndex (Ix.empty :: SimpleRTreeIndex)
 
 -- | Validation function for single words.
 data CValidator = CValidator { validate :: Word -> Bool }
+
+cvNotEmpty :: CValidator
+cvNotEmpty = CValidator (not . T.null)
 
 -- ------------------------------------------------------------
 

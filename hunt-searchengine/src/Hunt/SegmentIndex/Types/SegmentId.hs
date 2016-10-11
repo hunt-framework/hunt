@@ -11,12 +11,12 @@ newtype SegmentId = SegmentId { unSegmentId :: Int }
                   deriving (Eq, Ord, Enum)
 
 instance Show SegmentId where
-  show (SegmentId sid) = showIntAtBase 36 intToDigit36 sid ""
+  show (SegmentId sid) = '_' : showIntAtBase 36 intToDigit36 sid ""
     where intToDigit36 n | n < 10    = chr (n + ord '0')
                          | otherwise = chr (n + ord 'a' - 10)
 
 instance Read SegmentId where
-  readsPrec _ s =
+  readsPrec _ ('_':s) =
     case readInt 36 isAsciiAlphaNum digitToInt36 s of
       [(sid, "")] -> [(SegmentId sid, "")]
       _           -> []
@@ -31,6 +31,7 @@ instance Read SegmentId where
         | c >= 'A' && c <= 'Z' =  ord c - ord 'A' + 10
         | otherwise            =
             error ("Base36.digitToInt: not a digit " ++ show c) -- sigh
+  readsPrec _ _ = []
 
 -- | Used for generation of new 'SegmentId's in the 'IO' monad.
 newtype SegIdGen = SegIdGen (PrimRef (PrimState IO) Int)

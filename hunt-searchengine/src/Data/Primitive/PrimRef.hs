@@ -3,7 +3,10 @@
 {-# LANGUAGE RoleAnnotations #-}
 {-# LANGUAGE UnboxedTuples   #-}
 {-# LANGUAGE Unsafe          #-}
-module Data.Primitive.PrimRef where
+module Data.Primitive.PrimRef (
+    module Data.Primitive.PrimRef
+  , PrimState
+  ) where
 
 import           Control.Monad.Primitive
 import           Data.Primitive
