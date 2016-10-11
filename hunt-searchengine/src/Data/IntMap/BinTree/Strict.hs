@@ -1,18 +1,20 @@
 {-# LANGUAGE BangPatterns       #-}
 {-# LANGUAGE CPP                #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE TypeFamilies       #-}
 
 module Data.IntMap.BinTree.Strict where
 
 import           Control.DeepSeq
 import           Control.Monad
-import           Data.Binary (Binary (..), getWord8)
-import qualified Data.Foldable as F
-import qualified Data.IntSet as S
-import qualified Data.List as L
+import           Data.Binary     (Binary (..), getWord8)
+import qualified Data.Foldable   as F
+import qualified Data.IntSet     as S
+import qualified Data.Key        as K
+import qualified Data.List       as L
 import           Data.Typeable
-import           Data.Word (Word8)
-import           Prelude hiding (foldl, foldr, lookup, map, null)
+import           Data.Word       (Word8)
+import           Prelude         hiding (foldl, foldr, lookup, map, null)
 
 moduleName :: String
 moduleName = "Data.IntMap.BinTree.Strict"
@@ -33,6 +35,11 @@ data Tree v = Empty
             | Leaf !Key !v                      -- Empty occurs only as root, never as subtree
               deriving (Show, Typeable)         -- This saves 20% of space, average size of
                                                 -- objects is 4 instead of 5 words
+
+type instance K.Key Tree = Key
+
+instance K.FoldableWithKey Tree where
+  foldrWithKey = Data.IntMap.BinTree.Strict.foldrWithKey
 
 -- ------------------------------------------------------------
 --

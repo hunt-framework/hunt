@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 -- ----------------------------------------------------------------------------
 
@@ -53,22 +54,25 @@ module Hunt.Common.DocIdMap
   )
 where
 
-import           Control.Arrow (first)
+import           Control.Arrow              (first)
 import           Control.DeepSeq
-import           Control.Monad (foldM, mzero)
+import           Control.Monad              (foldM, mzero)
 import           Data.Aeson
-import           Data.Binary (Binary (..))
-import           Data.Foldable hiding (fold, foldl, foldr, toList, null)
-import qualified Data.HashMap.Strict as HM
+import           Data.Binary                (Binary (..))
+import           Data.Foldable              hiding (fold, foldl, foldr, null,
+                                             toList)
+import qualified Data.HashMap.Strict        as HM
 import qualified Data.IntMap.BinTree.Strict as IM
-import qualified Data.List as L
-import           Data.Monoid ((<>))
-import qualified Data.Text as T
+import qualified Data.Key                   as K
+import qualified Data.List                  as L
+import           Data.Monoid                ((<>))
+import qualified Data.Text                  as T
 import           Data.Typeable
 import           Hunt.Common.DocId
-import           Hunt.Common.DocIdSet (DocIdSet (..), toIntSet)
-import qualified Prelude as P
-import           Prelude hiding (filter, foldl, foldr, lookup, map, null)
+import           Hunt.Common.DocIdSet       (DocIdSet (..), toIntSet)
+import           Prelude                    hiding (filter, foldl, foldr,
+                                             lookup, map, null)
+import qualified Prelude                    as P
 
 -- ------------------------------------------------------------
 
@@ -76,7 +80,9 @@ import           Prelude hiding (filter, foldl, foldr, lookup, map, null)
 
 newtype DocIdMap v
   = DIM { unDIM :: IM.IntMap v }
-  deriving (Eq, Show, Foldable, {-Traversable,-} Functor, NFData, Typeable)
+  deriving (Eq, Show, Foldable, K.FoldableWithKey, {-Traversable,-} Functor, NFData, Typeable)
+
+type instance K.Key DocIdMap = DocId
 
 -- ------------------------------------------------------------
 

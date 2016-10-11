@@ -39,10 +39,15 @@ insertList docs iw@IndexWriter{..} = do
     sortedFields
     [doc | (_, doc, _) <- docsAndWords]
 
+  -- Write the inverted index to disk!
   case [(did, words) | (did, _, words) <- docsAndWords ] of
     idsAndWords -> case
       Map.mapWithKey (\cx _ -> contentForCx cx idsAndWords) iwSchema of
-      indexed -> print indexed
+      indexed -> Commit.writeIndex
+                   iwIndexDir
+                   segmentId
+                   iwSchema
+                   (Map.toList indexed)
 
   return iw
 

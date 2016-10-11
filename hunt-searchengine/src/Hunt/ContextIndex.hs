@@ -96,7 +96,8 @@ import           Hunt.Index.IndexImpl         (IndexImpl)
 import qualified Hunt.Index.IndexImpl         as Impl
 import           Hunt.Index.Schema
 import           Hunt.Scoring.Score           (Score, noScore)
-import           Hunt.Scoring.SearchResult    (SearchResult)
+import           Hunt.Scoring.SearchResult    (SearchResult,
+                                               searchResultToOccurrences)
 import           Hunt.Utility
 import           Prelude                      hiding (Word)
 import qualified Prelude                      as P
@@ -540,32 +541,11 @@ hasContextM :: (Monad m)
 hasContextM c (ContextIndex ix _) = return $ hasContext c ix
 
 -- | Return the indexed words along with their occurrences in their contexts.
-indexedWords :: ContextIndex -> [(Word, Map Context SearchResult)]
+
+indexedWords :: ContextIndex -> [(Context, [(Word, Occurrences)])]
 indexedWords (ContextIndex cxm _) =
-  let
-    wordsAndFields :: [[(Word, Map Context SearchResult)]]
-    wordsAndFields =
-      [ [ (word, M.singleton context result)
-        | (word, result) <- Ix.toList ix
-        ]
-
-      | (context, (_, Impl.IndexImpl ix)) <- M.toList (cxMap cxm)
-      ]
-
-    -- N.B: 'merge' relies on the fact that words in each list
-    -- occur exactly once.
-    merge :: (a -> a -> Ordering) -> (a -> a -> a) -> [a] -> [a] -> [a]
-    merge _ _ xs [] = xs
-    merge _ _ [] xs = xs
-    merge cmp f a@(h:first) b@(c:second) =
-      case cmp h c of
-        LT -> h:merge cmp f first b
-        EQ -> f h c: merge cmp f first second
-        GT -> c:merge cmp f a second
-
-    combine :: (Word, Map Context SearchResult)
-            -> (Word, Map Context SearchResult)
-            -> (Word, Map Context SearchResult)
-    combine (w1, srx) (_w2, sry) = (w1, srx `mappend` sry)
-
-  in foldr (merge (comparing fst) combine) [] wordsAndFields
+  [ (cx, [ (word, searchResultToOccurrences sr)
+         | (word, sr) <- Ix.toList ix
+         ])
+  | (cx, (_, Impl.IndexImpl ix)) <- M.toList (cxMap cxm)
+  ]

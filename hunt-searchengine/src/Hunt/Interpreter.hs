@@ -89,6 +89,11 @@ import           System.IO.Error                   (isAlreadyInUseError,
                                                     tryIOError)
 import qualified System.Log.Logger                 as Log
 
+import qualified Hunt.SegmentIndex.IndexWriter as IW
+
+import Hunt.SegmentIndex.Types
+import Hunt.SegmentIndex.Types.SegmentId
+
 -- ------------------------------------------------------------
 --
 -- the semantic domains (datatypes for interpretation)
@@ -325,7 +330,7 @@ execCmd' (DeleteByQuery q)
 
 execCmd' (StoreIx filename)
   = withIx $ \ixx -> do sid <- liftIO $ genSegId =<< newSegIdGen
-                        liftIO $ Commit.writeIndex "./" (cxToCxNum ixx) sid (CIx.indexedWords ixx)
+                        liftIO $ Commit.writeIndex "./" sid (CIx.mapToSchema ixx) (CIx.indexedWords ixx)
                         return ResOK
                         --execStore filename ixx
 
@@ -391,7 +396,15 @@ execDeleteContext cx ixx
 
 execInsertList :: [ApiDocument] -> ContextIndex -> Hunt dt (ContextIndex, CmdResult)
 execInsertList docs ixx
-    = do -- existence check for all referenced contexts in all docs
+    = do sidgen <- liftIO $ newSegIdGen
+         liftIO $ IW.insertList docs IndexWriter { iwIndexDir = "./"
+                                                 , iwNewSegId = genSegId sidgen
+                                                 , iwSchema = CIx.mapToSchema ixx
+                                                 , iwSegments = mempty
+                                                 , iwNewSegments = mempty
+                                                 }
+
+  -- existence check for all referenced contexts in all docs
          checkContextsExistence contexts ixx
 
          -- check no duplicates in docs

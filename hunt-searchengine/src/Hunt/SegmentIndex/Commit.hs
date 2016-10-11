@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns  #-}
 {-# LANGUAGE PatternGuards #-}
 module Hunt.SegmentIndex.Commit where
 
@@ -7,9 +7,11 @@ import           Hunt.Common.DocDesc               (FieldValue (..))
 import qualified Hunt.Common.DocDesc               as DocDesc
 import           Hunt.Common.DocId
 import qualified Hunt.Common.DocIdMap              as DocIdMap
+import qualified Hunt.Common.DocIdSet              as DocIdSet
 import           Hunt.Common.Document
 import           Hunt.Common.Occurrences           (Occurrences)
 import qualified Hunt.Common.Positions             as Positions
+import           Hunt.Index.Schema
 import           Hunt.IO.Buffer                    (Buffer, Flush)
 import qualified Hunt.IO.Buffer                    as Buffer
 import           Hunt.IO.Files
@@ -21,12 +23,14 @@ import           Hunt.SegmentIndex.Types.SegmentId
 import           Data.ByteString                   (ByteString)
 import qualified Data.ByteString                   as ByteString
 import           Data.Foldable
+import           Data.Key
 import           Data.Map                          (Map)
 import qualified Data.Map.Strict                   as Map
 import           Data.Text                         (Text)
 import qualified Data.Text                         as Text
 import qualified Data.Text.Encoding                as Text
 import qualified Data.Vector                       as V
+import qualified Data.Vector.Unboxed.Mutable       as UM
 import           Data.Word                         hiding (Word)
 import           Foreign.Ptr
 import           System.FilePath
@@ -39,184 +43,139 @@ type Offset = Int
 
 type BytesWritten = Int
 
--- | 'encWriter' encodes 'a's with a given 'Write' to a 'Buffer'.
--- If the buffer is full it will be flushed. Returns the number
--- of bytes written.
-encWriter :: Buffer
-          -> Flush BytesWritten
-          -> Write a
-          -> Writer a BytesWritten
-encWriter buffer flush (W size write) = WR start step stop
-  where
-    start = pure 0
-
-    step bytesWritten a = do
-      notFull <- Buffer.hasEnoughBytes buffer (size a)
-      case notFull of
-        True -> do
-          _ <- Buffer.put buffer (write a)
-          return bytesWritten
-        False -> do
-          n <- Buffer.flush buffer flush
-          step (bytesWritten + n) a
-
-    stop bytesWritten = do
-      isNull <- Buffer.null buffer
-      case isNull of
-        True  -> return bytesWritten
-        False -> do
-          n <- Buffer.flush buffer flush
-          return (bytesWritten + n)
-
-
+-- | Write the inverted index to disk.
 writeIndex :: FilePath
-           -> (Context -> ContextNum)
            -> SegmentId
-           -> [(Word, Map Context SearchResult)]
+           -> Schema
+           -> [(Context, [(Word, Occurrences)])]
            -> IO ()
-writeIndex ixDir contextNum sid wx = do
-
-  -- writeIndex master plan:
-  --
-  -- 1. Create three append-only files:
-  --   * .tv
-  --   * .occ
-  --   * .pos
-  --
-  -- 2. Loop over all words and their contexts
-  --   * Write positions
-  --   * Write occurrences
-  --   * Write word itself
-
-  let
-    -- Writes the terms in delta encoded form. Returns the number
-    -- of terms written.
-    termWriter :: Writer (Int, (ByteString, (ContextNum, (Int, Offset)))) a
-               -> Writer (Text, ContextNum, Int, Offset) Int
-    termWriter wr = case wr of
-      WR fstart fstep fstop -> WR start step stop
-        where
-          start = T3 0 Text.empty <$> fstart
-
-          step (T3 nterms lastWord fs) (word, cx, noccs, occoff) = do
-
-            -- We encode the terms in a prefix free fashion. We look
-            -- for a common prefix with the previous insert word
-            -- and only encode the suffix.
-            let (prefix, suffix) = case Text.commonPrefixes lastWord word of
-                  Just (p, _, s) -> (p, s)
-                  Nothing        -> (Text.empty, word)
-
-            -- delegate the term info to the underlying 'Writer' to
-            -- write the record to a buffer/disk.
-            fs' <- fstep fs
-                    ( ByteString.length (Text.encodeUtf8 prefix)
-                    , (Text.encodeUtf8 suffix
-                      , (cx
-                        , ( noccs
-                          , occoff
-                          )
-                        )
-                      )
-                    )
-            return ( T3 (nterms + 1) word fs' )
-
-          stop (T3 nterms _lastWord fs) = do
-            _ <- fstop fs
-            return nterms
-
-    -- The big glue which ties terms, occurrences and positions
-    -- together.
-    indexWriter :: Writer Position (Int, BytesWritten)
-                -> Writer (DocId, (Int, Offset)) (Int, BytesWritten)
-                -> Writer (Text, ContextNum, Int, Offset) Int
-                -> Writer (Text, ContextNum, Occurrences) Int
-    indexWriter pw ow tw = case ow of
-      WR ostart ostep ostop -> case tw of
-        WR tstart tstep tstop -> WR start step stop where
-
-          start = T3 0 0 <$> tstart
-
-          step (T3 poff0 ooff0 ts) (word, cx, occs) = do
-
-            -- for every occurrence we need to write its
-            -- positions. Thus we need to manually do the
-            -- fold over 'ow'.
-            os0 <- ostart
-            T2 os1 poff' <-
-              foldlM (\(T2 os poff) (did, pos) -> do
-                         -- write positions and remember how
-                         -- many bytes actually were written
-                         (npos, posBytesWritten) <-
-                           runWriter pw (Positions.toAscList pos)
-
-                         -- write the occurrences
-                         os' <- ostep os (did, (npos , poff))
-                         return $! T2 os' (poff + posBytesWritten)
-                     ) (T2 os0 poff0) (DocIdMap.toList occs)
-
-            -- number and bytes written for occurrences
-            (noccs, occsBytesWritten) <- ostop os1
-
-            -- write the term itself
-            ts' <- tstep ts (word, cx, noccs, ooff0)
-            return $! T3 poff' (ooff0 + occsBytesWritten) ts'
-
-          stop (T3 _ _ ts) = tstop ts
+writeIndex ixDir sid schema cxWords = do
 
   withAppendFile (ixDir </> termVectorFile sid) $ \termsFile ->
     withAppendFile (ixDir </> occurrencesFile sid) $ \occsFile ->
     withAppendFile (ixDir </> positionsFile sid) $ \posFile -> do
 
-    Buffer.withBuffer (16 * 1024) $ \termBuf ->
-      Buffer.withBuffer (8  * 1024) $ \occBuf ->
-      Buffer.withBuffer (4  * 1024) $ \posBuf -> do
-
-      -- 'posWrite', 'occWrite', 'termWrite' describe the
-      -- schemas for the on-disk representation of terms,
-      -- positions and occurrences.
+    Buffer.withBuffer (16 * 1024) $ \termBuffer ->
+      Buffer.withBuffer (8  * 1024) $ \occBuffer ->
+      Buffer.withBuffer (4  * 1024) $ \posBuffer -> do
 
       let
+        posFlush :: Flush BytesWritten
+        posFlush = append posFile
+        {-# NOINLINE posFlush #-}
 
-        vint :: Write Int
-        vint = fromIntegral >$< varint64
+        occFlush :: Flush BytesWritten
+        occFlush = append occsFile
+        {-# NOINLINE occFlush #-}
 
-        posWrite :: Write Position
-        posWrite = vint
+        termFlush :: Flush BytesWritten
+        termFlush = append termsFile
+        {-# NOINLINE termFlush #-}
 
-        occWrite :: Write (DocId, (Int, Offset))
-        occWrite = (unDocId >$< vint) >*< vint >*< vint
+        foldPositions :: BytesWritten -> Position -> IO BytesWritten
+        foldPositions !bytesWritten position = do
+          n <- putWrite
+               posBuffer
+               posFlush
+               vint
+               position
+          return $! n + bytesWritten
 
-        termWrite :: Write (Int, (ByteString, (ContextNum, (Int, Offset))))
-        termWrite = vint >*< bytestring' >*< vint >*< vint >*< vint
+        foldOccurrences :: (Offset, Offset)
+                        -> DocId
+                        -> Positions.Positions
+                        -> IO (Offset, Offset)
+        foldOccurrences (!occOffset, !posOffset) docId positions = do
+          posBytes <- foldlM
+                      foldPositions
+                      0
+                      (Positions.toAscList positions)
 
-        -- here we tie everything together, the flush for 'encWriter'
-        -- always appends to the corresponding files on disk.
-        iw = indexWriter
-             ( (,) <$> count <*> encWriter posBuf (append posFile) posWrite )
-             ( (,) <$> count <*> encWriter occBuf (append occsFile) occWrite )
-             ( termWriter ( encWriter termBuf (append termsFile) termWrite ) )
+          occBytes <- putWrite
+                      occBuffer
+                      occFlush
+                      occurrenceWrite
+                      (docId, (Positions.size positions, posOffset))
 
-      -- again we need to hand-roll the fold as we have a one-to-many relationship
-      -- in context -> occurrences. This has potential for optimization as we
-      -- do the common prefix check over and over again for the same words if they
-      -- are present in multiple contexts.
-      _ <- case iw of
-        WR iwstart iwstep iwstop -> do
-          iws0 <- iwstart
-          iws1 <- foldlM (\iws (word, cxs) -> do
-                             foldlM (\iws' (cx, sr) -> do
-                                        iwstep iws' ( word
-                                                    , contextNum cx
-                                                    , searchResultToOccurrences sr
-                                                    )
-                                    ) iws (Map.toAscList cxs)
-                         ) iws0 wx
-          nterms <- iwstop iws1
-          return nterms
+          return $! (occOffset + occBytes, posOffset + posBytes)
 
+        foldWords :: (Int, Text, Offset, Offset)
+                  -> (Word, Occurrences)
+                  -> IO (Int, Text, Offset, Offset)
+        foldWords ( !wordsWritten
+                  , !lastWord
+                  , !occOffset
+                  , !posOffset
+                  ) (word, occs) = do
+
+          (occOffset', posOffset') <- foldlWithKeyM
+                                      foldOccurrences
+                                      (occOffset, posOffset)
+                                      occs
+
+          -- We encode the terms in a prefix free fashion. We look
+          -- for a common prefix with the previous insert word
+          -- and only encode the suffix.
+          let (prefix, suffix) = case Text.commonPrefixes lastWord word of
+                Just (p, _, s) -> (p, s)
+                Nothing        -> (Text.empty, word)
+
+          _ <- putWrite
+               termBuffer
+               termFlush
+               termWrite
+               ( ByteString.length (Text.encodeUtf8 prefix)
+               , ( Text.encodeUtf8 suffix
+                 , ( DocIdMap.size occs
+                   , occOffset
+                   )
+                 )
+               )
+
+          return $! (wordsWritten + 1, word, occOffset', posOffset')
+
+        foldContexts :: UM.IOVector Int
+                     -> (Offset, Offset)
+                     -> Int
+                     -> (Context, [(Word, Occurrences)])
+                     -> IO (Offset, Offset)
+        foldContexts wordCounts (!occOffset, !posOffset) i (cx, words) = do
+          (wordsWritten', _, occOffset', posOffset') <-
+            foldlM
+            foldWords
+            ( 0 :: Int , Text.empty , occOffset, posOffset )
+            words
+
+          UM.unsafeWrite wordCounts i wordsWritten'
+
+          return $! (occOffset', posOffset')
+
+      cxWordCount <- UM.unsafeNew (Map.size schema)
+      (!occOffset, !posOffset) <- foldlWithKeyM
+                                  (foldContexts cxWordCount)
+                                  (0, 0)
+                                  cxWords
+
+      Buffer.flush termBuffer termFlush
+      Buffer.flush occBuffer occFlush
+      Buffer.flush posBuffer posFlush
       return ()
-    return ()
+  return ()
+
+  where
+    vint@(W vintSize vintWrite) = fromIntegral >$< varint64
+
+    -- Helper which flushes and retries if buffer
+    -- is full
+    putWrite buffer flush (W size write) a =
+      putFlush buffer flush (size a) (write a)
+
+    putFlush buffer flush size write = do
+      notFull <- Buffer.hasEnoughBytes buffer size
+      case notFull of
+        True -> Buffer.put buffer write
+        False -> do _ <- Buffer.flush buffer flush
+                    putFlush buffer flush size write
 
 type SortedFields = V.Vector Field
 
@@ -309,6 +268,15 @@ writeDocuments ixDir sid fields docs = do
         True -> Buffer.put buffer write
         False -> do _ <- Buffer.flush buffer flush
                     putFlush buffer flush size write
+
+-- | A 'Write' for 'Occurrence'
+occurrenceWrite :: Write (DocId, (Int, Offset))
+occurrenceWrite = (unDocId >$< vint) >*< vint >*< vint
+  where vint = fromIntegral >$< varint64
+
+termWrite :: Write (Int, (ByteString, (Int, Offset)))
+termWrite = vint >*< bytestring' >*< vint >*< vint
+  where vint = fromIntegral >$< varint64
 
 -- | A 'Write' for 'DocDesc' fields.
 fieldValueWrite :: Write FieldValue
