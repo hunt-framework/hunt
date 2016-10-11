@@ -220,6 +220,8 @@ writeIndex ixDir contextNum sid wx = do
 
 type SortedFields = V.Vector Field
 
+-- | Write a list of 'Document's to disk in an apropriate format
+-- for efficient retrieval.
 writeDocuments :: FilePath
                -> SegmentId
                -> SortedFields
@@ -295,30 +297,9 @@ writeDocuments ixDir sid fields docs = do
   return ()
 
   where
-    W word8Size word8Write = word8
-    W w64Size w64Write     = word64
-    vint                   = fromIntegral >$< varint64
-    W vintSize vintWrite   = vint
-    W bsSize bsWrite       = bytestring'
-    W fvSize fvWrite       = vint >*< W size write
-      where
-        size (FV_Int i)    = vintSize i + tagSize
-        size (FV_Float _f) = undefined
-        size (FV_Text s)   = bsSize s + tagSize
-        size (FV_Binary b) = bsSize b + tagSize
-        size FV_Null       = 0
-
-        write (FV_Int i) op      = word8Write 0 op
-                                   >>= vintWrite i
-        write (FV_Float _f) op    = word8Write 2 op
-                                   >>= undefined
-        write (FV_Text s)op      = word8Write 3 op
-                                   >>= bsWrite s
-        write (FV_Binary b) op   = word8Write 4 op
-                                   >>= bsWrite b
-        write FV_Null op         = return op
-
-        tagSize = word8Size 0
+    W fvSize fvWrite            = vint >*< fieldValueWrite
+    W w64Size w64Write          = word64
+    vint@(W vintSize vintWrite) = fromIntegral >$< varint64
 
     -- Helper which flushes and retries if buffer
     -- is full
@@ -328,6 +309,28 @@ writeDocuments ixDir sid fields docs = do
         True -> Buffer.put buffer write
         False -> do _ <- Buffer.flush buffer flush
                     putFlush buffer flush size write
+
+-- | A 'Write' for 'DocDesc' fields.
+fieldValueWrite :: Write FieldValue
+fieldValueWrite = W size write
+  where
+    W word8Size word8Write = word8
+    W vintSize vintWrite   = fromIntegral >$< varint64
+    W bsSize bsWrite       = bytestring'
+
+    size (FV_Int i)    = vintSize i + tagSize
+    size (FV_Float _f) = undefined
+    size (FV_Text s)   = bsSize s + tagSize
+    size (FV_Binary b) = bsSize b + tagSize
+    size FV_Null       = 0
+
+    write (FV_Int i) op    = word8Write 0 op >>= vintWrite i
+    write (FV_Float _f) op = word8Write 2 op >>= undefined
+    write (FV_Text s)op    = word8Write 3 op >>= bsWrite s
+    write (FV_Binary b) op = word8Write 4 op >>= bsWrite b
+    write FV_Null op       = return op
+
+    tagSize = word8Size 0
 
 termVectorFile :: SegmentId -> FilePath
 termVectorFile sid = show sid <.> "tv"
