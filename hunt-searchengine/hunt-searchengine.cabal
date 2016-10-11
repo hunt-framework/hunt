@@ -129,7 +129,6 @@ library
     Hunt.Scoring.SearchResult
 
     Hunt.SegmentIndex.Commit
-    Hunt.SegmentIndex.Document
     Hunt.SegmentIndex.IndexWriter
     Hunt.SegmentIndex.Types
     Hunt.SegmentIndex.Types.SegmentId

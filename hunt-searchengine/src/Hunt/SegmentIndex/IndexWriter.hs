@@ -1,29 +1,30 @@
 module Hunt.SegmentIndex.IndexWriter where
 
+import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
-import qualified Hunt.ContextIndex          as CIx
-import           Hunt.SegmentIndex.Document
+import qualified Hunt.Common.DocDesc     as DocDesc
+import           Hunt.Common.Document
 import           Hunt.SegmentIndex.Types
 
-import           Data.Map                   (Map)
-import qualified Data.Map.Strict            as Map
-import           Data.Set                   (Set)
-import qualified Data.Set                   as Set
+import qualified Data.List               as List
+import           Data.Map                (Map)
+import qualified Data.Map.Strict         as Map
+import           Data.Set                (Set)
+import qualified Data.Set                as Set
 
 
 -- | Insert a batch of 'Document's.
-insertList :: [Document]
+insertList :: [ApiDocument]
            -> IndexWriter
            -> IO IndexWriter
 insertList docs iw = do
   undefined
 
   where
-    -- select all fields of all documents
-    -- if there are fields with same name
-    -- but different type we keep the type
-    -- of the first occurrence.
-    fields :: Map FieldName FieldType
-    fields = Map.unionsWith (\old _ -> old)
-             . fmap (Map.map fieldType . docFields)
+    -- collect all field names in the document
+    -- descriptions so we can build an efficient
+    -- mapping @Field -> FieldRank@.
+    fields :: Set Field
+    fields = Set.unions
+             . List.map (Set.fromList . DocDesc.fields . adDescr)
              $ docs

@@ -9,7 +9,13 @@
 
 -- ----------------------------------------------------------------------------
 
-module Hunt.Common.BasicTypes
+module Hunt.Common.BasicTypes (
+    module Hunt.Common.BasicTypes
+
+  , DocDesc
+  , Field
+  , FieldValue (..)
+  )
 where
 
 import           Control.Monad
@@ -18,7 +24,7 @@ import           Data.Binary hiding (Word)
 import           Data.Map
 import           Data.String
 import           Data.Text
-import           Hunt.Common.DocDesc (DocDesc)
+import           Hunt.Common.DocDesc (DocDesc, Field, FieldValue)
 import           Prelude hiding (Word)
 import qualified Text.Regex.XMLSchema.Generic as HXT
 

@@ -111,6 +111,9 @@ empty = mkDocDesc HM.empty
 size :: DocDesc -> Int
 size = HM.size . unDesc
 
+fields :: DocDesc -> [Field]
+fields = HM.keys . unDesc
+
 -- | Check if document description is empty.
 
 null :: DocDesc -> Bool
