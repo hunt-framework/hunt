@@ -19,7 +19,6 @@ import           Hunt.IO.Buffer                    (Buffer, Flush)
 import qualified Hunt.IO.Buffer                    as Buffer
 import           Hunt.IO.Files
 import           Hunt.IO.Write
-import           Hunt.IO.Writer
 import           Hunt.Scoring.SearchResult
 import           Hunt.SegmentIndex.Types.SegmentId
 
@@ -200,21 +199,12 @@ writeDocuments ixDir sid fields docs = do
             case DocDesc.lookupValue field descr of
               FV_Null -> return docBytesWritten
               value   -> do
-                let
-                  loop = do
-                    notFull <- Buffer.hasEnoughBytes
-                               fdtBuffer
-                               (fvSize (fieldRank, value))
-                    case notFull of
-                      True -> do
-                        n <- Buffer.put
-                             fdtBuffer
-                             (fvWrite (fieldRank, value))
-                        return (docBytesWritten + n)
-                      False -> do
-                        _ <- Buffer.flush fdtBuffer fdtFlush
-                        loop
-                loop
+                n <- putWrite
+                     fdtBuffer
+                     fdtFlush
+                     (vint >*< fieldValueWrite)
+                     (fieldRank, value)
+                return (docBytesWritten + n)
 
           -- For each document write its fields to the
           -- field data buffer
@@ -250,8 +240,8 @@ writeDocuments ixDir sid fields docs = do
   return ()
 
   where
-    W fvSize fvWrite            = vint >*< fieldValueWrite
-    vint@(W vintSize vintWrite) = fromIntegral >$< varint64
+    W fvSize fvWrite = vint >*< fieldValueWrite
+    vint             = fromIntegral >$< varint64
 
 -- Helper which flushes and retries if buffer
 -- is full

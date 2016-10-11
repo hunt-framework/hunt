@@ -105,7 +105,6 @@ library
     Hunt.IO.Files
     Hunt.IO.Read
     Hunt.IO.Write
-    Hunt.IO.Writer
 
     Hunt.DocTable
     Hunt.DocTable.HashedDocTable
