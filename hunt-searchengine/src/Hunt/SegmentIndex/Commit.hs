@@ -1,6 +1,9 @@
 {-# LANGUAGE BangPatterns  #-}
 {-# LANGUAGE PatternGuards #-}
-module Hunt.SegmentIndex.Commit where
+module Hunt.SegmentIndex.Commit (
+    writeIndex
+  , writeDocuments
+  ) where
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocDesc               (FieldValue (..))
@@ -165,18 +168,6 @@ writeIndex ixDir sid schema cxWords = do
   where
     vint@(W vintSize vintWrite) = fromIntegral >$< varint64
 
-    -- Helper which flushes and retries if buffer
-    -- is full
-    putWrite buffer flush (W size write) a =
-      putFlush buffer flush (size a) (write a)
-
-    putFlush buffer flush size write = do
-      notFull <- Buffer.hasEnoughBytes buffer size
-      case notFull of
-        True -> Buffer.put buffer write
-        False -> do _ <- Buffer.flush buffer flush
-                    putFlush buffer flush size write
-
 type SortedFields = V.Vector Field
 
 -- | Write a list of 'Document's to disk in an apropriate format
@@ -197,9 +188,11 @@ writeDocuments ixDir sid fields docs = do
         let
           fdtFlush :: Flush BytesWritten
           fdtFlush = append fdtFile
+          {-# NOINLINE fdtFlush #-}
 
           fdxFlush :: Flush BytesWritten
           fdxFlush = append fdxFile
+          {-# NOINLINE fdxFlush #-}
 
           -- For each field of a document write the fields one
           -- by one, sorted in 'fields' order.
@@ -230,21 +223,22 @@ writeDocuments ixDir sid fields docs = do
               descr = desc doc
               !size = DocDesc.size descr
 
-            lenBytes <- putFlush
+            lenBytes <- putWrite
                         fdtBuffer
                         fdtFlush
-                        (vintSize size)
-                        (vintWrite size)
+                        vint
+                        size
 
             docBytes <- V.ifoldM' (foldFields descr) 0 fields
 
             -- write the offset of the document field data
             -- to the document field index.
-            _ <- putFlush
+
+            _ <- putWrite
                  fdxBuffer
                  fdxFlush
-                 (w64Size (fromIntegral bytesWritten))
-                 (w64Write (fromIntegral bytesWritten))
+                 word64
+                 (fromIntegral bytesWritten)
 
             return (lenBytes + docBytes + bytesWritten)
 
@@ -257,17 +251,19 @@ writeDocuments ixDir sid fields docs = do
 
   where
     W fvSize fvWrite            = vint >*< fieldValueWrite
-    W w64Size w64Write          = word64
     vint@(W vintSize vintWrite) = fromIntegral >$< varint64
 
-    -- Helper which flushes and retries if buffer
-    -- is full
-    putFlush buffer flush size write = do
-      notFull <- Buffer.hasEnoughBytes buffer size
-      case notFull of
-        True -> Buffer.put buffer write
-        False -> do _ <- Buffer.flush buffer flush
-                    putFlush buffer flush size write
+-- Helper which flushes and retries if buffer
+-- is full
+putWrite :: Buffer -> Flush a -> Write t -> t -> IO Int
+putWrite buffer flush (W size write) a =
+  putFlush buffer flush (size a) (write a)
+  where putFlush buffer flush size write = do
+          notFull <- Buffer.hasEnoughBytes buffer size
+          case notFull of
+            True -> Buffer.put buffer write
+            False -> do _ <- Buffer.flush buffer flush
+                        putFlush buffer flush size write
 
 -- | A 'Write' for 'Occurrence'
 occurrenceWrite :: Write (DocId, (Int, Offset))
