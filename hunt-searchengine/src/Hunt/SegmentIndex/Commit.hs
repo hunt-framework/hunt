@@ -240,6 +240,28 @@ writeDocuments ixDir sid fields docs = do
           fdxFlush :: Flush BytesWritten
           fdxFlush = append fdxFile
 
+          -- For each field of a document write the fields one
+          -- by one, sorted in 'fields' order.
+          foldFields descr docBytesWritten fieldRank field = do
+            case DocDesc.lookupValue field descr of
+              FV_Null -> return docBytesWritten
+              value   -> do
+                let
+                  loop = do
+                    notFull <- Buffer.hasEnoughBytes
+                               fdtBuffer
+                               (fvSize (fieldRank, value))
+                    case notFull of
+                      True -> do
+                        n <- Buffer.put
+                             fdtBuffer
+                             (fvWrite (fieldRank, value))
+                        return (docBytesWritten + n)
+                      False -> do
+                        _ <- Buffer.flush fdtBuffer fdtFlush
+                        loop
+                loop
+
           -- For each document write its fields to the
           -- field data buffer
           foldDocs bytesWritten doc = do
@@ -247,35 +269,13 @@ writeDocuments ixDir sid fields docs = do
               descr = desc doc
               !size = DocDesc.size descr
 
-              -- for each field of a document write the fields one
-              -- by one, sorted in 'fields' order.
-              foldFields docBytesWritten fieldRank field = do
-                case DocDesc.lookupValue field descr of
-                  FV_Null -> return docBytesWritten
-                  value   -> do
-                    let
-                      loop = do
-                        notFull <- Buffer.hasEnoughBytes
-                                   fdtBuffer
-                                   (fvSize (fieldRank, value))
-                        case notFull of
-                          True -> do
-                            n <- Buffer.put
-                                 fdtBuffer
-                                 (fvWrite (fieldRank, value))
-                            return (docBytesWritten + n)
-                          False -> do
-                            _ <- Buffer.flush fdtBuffer fdtFlush
-                            loop
-                    loop
-
             lenBytes <- putFlush
                         fdtBuffer
                         fdtFlush
                         (vintSize size)
                         (vintWrite size)
 
-            docBytes <- V.ifoldM' foldFields 0 fields
+            docBytes <- V.ifoldM' (foldFields descr) 0 fields
 
             -- write the offset of the document field data
             -- to the document field index.
