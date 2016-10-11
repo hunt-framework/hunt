@@ -11,6 +11,8 @@ data Buffer =
          , bufPos   :: !(Ptr Word8)
          }
 
+type Flush a = Ptr Word8 -> Int -> IO a
+
 withBuffer :: Int -> (Buffer -> IO a) -> IO a
 withBuffer sz f = do
   fop <- mallocForeignPtrBytes sz
@@ -34,7 +36,7 @@ hasEnoughBytes buf n =
   bufEnd buf `minusPtr` bufPos buf >= n
 {-# INLINE hasEnoughBytes #-}
 
-flush :: (Ptr Word8 -> Int -> IO a) -> Buffer -> IO a
+flush :: Flush a -> Buffer -> IO a
 flush f buf = f (bufStart buf) (bufPos buf `minusPtr` bufStart buf)
 {-# INLINE flush #-}
 
