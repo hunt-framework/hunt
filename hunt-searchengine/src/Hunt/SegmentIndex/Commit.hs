@@ -240,8 +240,7 @@ writeDocuments ixDir sid fields docs = do
   return ()
 
   where
-    W fvSize fvWrite = vint >*< fieldValueWrite
-    vint             = fromIntegral >$< varint64
+    vint = fromIntegral >$< varint64
 
 -- Helper which flushes and retries if buffer
 -- is full
