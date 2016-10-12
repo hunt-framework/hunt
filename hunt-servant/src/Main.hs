@@ -5,6 +5,25 @@ import           Hunt.Server         (HuntServerConfiguration (..),
 import           Options.Applicative
 
 
+-- MAIN
+
+main :: IO ()
+main = execParser opts >>= runHuntServer
+  where
+    opts = info (helper <*> configuration)
+      ( fullDesc
+      <> progDesc "Start the Hunt server"
+      <> header "Hunt server" )
+
+
+-- | Run the server
+runHuntServer :: HuntServerConfiguration -> IO ()
+runHuntServer config = do
+  let port = huntServerPort config
+  putStrLn $ "Starting server on port " ++ show port
+  runWithConfig defaultConfig
+
+
 -- ARGUMENTS
 
 configuration :: Parser HuntServerConfiguration
@@ -51,23 +70,4 @@ configuration = HuntServerConfiguration
       <> metavar "LEVEL"
       <> help ("Log level to use for logging, defaults to " ++ show defaultPriority ))
       <|> pure defaultPriority
-
-
--- | Run the server
-runHuntServer :: HuntServerConfiguration -> IO ()
-runHuntServer config = do
-  let port = huntServerPort config
-  putStrLn $ "Starting server on port " ++ show port
-  runWithConfig defaultConfig
-
-
--- MAIN
-
-main :: IO ()
-main = execParser opts >>= runHuntServer
-  where
-    opts = info (helper <*> configuration)
-      ( fullDesc
-      <> progDesc "Start the Hunt server"
-      <> header "Hunt server" )
 
