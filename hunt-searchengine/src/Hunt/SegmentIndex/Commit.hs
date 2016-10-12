@@ -248,11 +248,16 @@ putWrite :: Buffer -> Flush a -> Write t -> t -> IO Int
 putWrite buffer flush (W size write) a =
   putFlush buffer flush (size a) (write a)
   where putFlush buffer flush size write = do
+          -- FIXME: we need to account for cases where
+          -- the Write is bigger than overall buffer size.
+          -- Resize the buffer etc.
           notFull <- Buffer.hasEnoughBytes buffer size
           case notFull of
-            True -> Buffer.put buffer write
             False -> do _ <- Buffer.flush buffer flush
-                        putFlush buffer flush size write
+                        return ()
+            True -> return ()
+          Buffer.put buffer write
+{-# INLINE putWrite #-}
 
 -- | A 'Write' for 'Occurrence'
 occurrenceWrite :: Write (DocId, (Int, Offset))
