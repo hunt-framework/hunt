@@ -19,18 +19,20 @@ data IndexDescriptor =
                             , idBuilder :: IndexBuilder a
                             }
 
-data IndexBuilder a where
-  IndexBuilder :: IO x
-               -> (x -> a -> TermInfo -> IO x)
-               -> (x -> IO (Index a))
-               -> IndexBuilder a
+data Builder a b where
+  Builder :: IO x
+          -> (x -> a -> IO x)
+          -> (x -> IO b)
+          -> Builder a b
+
+type IndexBuilder a = Builder (a, TermInfo) (Index a)
 
 textIndexBuilder :: IndexBuilder Text
-textIndexBuilder = IndexBuilder start step stop
+textIndexBuilder = Builder start step stop
   where
-    start        = pure $! StringMap.empty
-    step sm s ti = pure $! StringMap.insert (Text.unpack s) ti sm
-    stop sm = pure $! mkIndex sm
+    start           = pure $! StringMap.empty
+    step sm (s, ti) = pure $! StringMap.insert (Text.unpack s) ti sm
+    stop sm         = pure $! mkIndex sm
 
     mkIndex sm = undefined
  {-      Index { ixSearch = \t k -> do
