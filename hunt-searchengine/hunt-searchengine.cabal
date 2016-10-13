@@ -128,10 +128,13 @@ library
     Hunt.Scoring.SearchResult
 
     Hunt.SegmentIndex.Commit
+    Hunt.SegmentIndex.Descriptor
     Hunt.SegmentIndex.IndexWriter
     Hunt.SegmentIndex.Types
+    Hunt.SegmentIndex.Types.Index
     Hunt.SegmentIndex.Types.SegmentId
     Hunt.SegmentIndex.Types.SegmentMap
+    Hunt.SegmentIndex.Types.TermInfo
 
     Hunt.Utility
     Hunt.Utility.Log
