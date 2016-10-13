@@ -8,9 +8,10 @@ import           Hunt.SegmentIndex.Types.Index
 import           Hunt.SegmentIndex.Types.TermInfo
 import           Hunt.Utility
 
+import           Control.Arrow
 import qualified Data.StringMap.Strict            as StringMap
 import           Data.Text                        (Text)
-import qualified Data.Text as Text
+import qualified Data.Text                        as Text
 
 import           Prelude                          hiding (Word)
 
@@ -34,22 +35,33 @@ textIndexBuilder = Builder start step stop
     step sm (s, ti) = pure $! StringMap.insert (Text.unpack s) ti sm
     stop sm         = pure $! mkIndex sm
 
-    mkIndex sm = undefined
- {-      Index { ixSearch = \t k -> do
-                let
-                  toL      = StringMap.toListShortestFirst
-                  luCase   = toL .:: StringMap.lookupNoCase
-                  pfCase   = toL .:: StringMap.prefixFilter
-                  pfNoCase = toL .:: StringMap.prefixFilterNoCase
+    mkIndex sm =
+      let
+        search :: TextSearchOp -> Text -> IO [(Text, TermInfo)]
+        search t k = do
+          let
+            toL      = fmap (first Text.pack) . StringMap.toListShortestFirst
+            luCase   = toL .:: StringMap.lookupNoCase
+            pfCase   = toL .:: StringMap.prefixFilter
+            pfNoCase = toL .:: StringMap.prefixFilterNoCase
 
-                return $ case t of
-                  Case         -> case StringMap.lookup (Text.unpack k) pt of
-                                    Nothing -> []
-                                    Just xs -> [(k,xs)]
-                  NoCase       -> luCase k pt
-                  PrefixCase   -> pfCase k pt
-                  PrefixNoCase -> pfNoCase k pt
-            , ixSearchSc = \t k -> do
-                addDefScore <$> undefined
-            }
--}
+          return $ case t of
+            Case         -> case StringMap.lookup (Text.unpack k) sm of
+                              Nothing -> []
+                              Just xs -> [(k, xs)]
+            NoCase       -> luCase (Text.unpack k) sm
+            PrefixCase   -> pfCase (Text.unpack k) sm
+            PrefixNoCase -> pfNoCase (Text.unpack k) sm
+
+        lookupRange :: Text -> Text -> IO [(Text, TermInfo)]
+        lookupRange t1 t2 =
+          pure
+          $ fmap (first Text.pack)
+          $ StringMap.toList
+          $ StringMap.lookupRange (Text.unpack t1) (Text.unpack t2) sm
+
+      in Index { ixSearch        = search
+               , ixSearchSc      = \t k -> addDefScore <$> search t k
+               , ixLookupRange   = lookupRange
+               , ixLookupRangeSc = \t1 t2 -> addDefScore <$> lookupRange t1 t2
+               }
