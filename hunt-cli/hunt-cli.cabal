@@ -17,6 +17,7 @@ executable hunt-cli
   hs-source-dirs:      src
   main-is:             Main.hs
   build-depends:       base >= 4.7 && < 5
+                     , hunt-api
                      , http-client
                      , hunt-client
                      , hunt-searchengine
@@ -24,6 +25,8 @@ executable hunt-cli
                      , servant-client
                      , text
   other-modules:       Hunt.CLI
+                     , Hunt.CLI.Types
+                     , Hunt.CLI.Parser
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 
