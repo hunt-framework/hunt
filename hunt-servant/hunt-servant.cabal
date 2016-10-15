@@ -39,6 +39,7 @@ executable hunt-servant-server
                      , warp
   other-modules:       Hunt.Client
                      , Hunt.Server
+                     , Hunt.Server.API
                      , Hunt.Server.Configuration
                      , Hunt.Server.Template
   default-language:    Haskell2010

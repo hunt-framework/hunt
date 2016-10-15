@@ -12,7 +12,6 @@ module Hunt.API
   , SelectAPI
   , StatusAPI
   , IndexerAPI
-  , HtmlAPI
   , HuntAPI
 
   , huntAPI
@@ -30,10 +29,7 @@ import qualified Hunt.ClientInterface     as HC
 import           Hunt.Common.ApiDocument  (LimitedResult)
 import           Hunt.Interpreter.Command (CmdResult (..), Command (..))
 import           Hunt.Query.Intermediate  (RankedDoc)
-
 import           Servant.API
-import           Servant.HTML.Blaze
-import           Text.Blaze.Html          (Html)
 
 
 -- API
@@ -51,7 +47,6 @@ type HuntAPI =
   :<|> SelectAPI
   :<|> StatusAPI
   :<|> IndexerAPI
-  :<|> HtmlAPI
 
 
 type Offset = Int
@@ -167,10 +162,4 @@ type IndexerAPI =
    :<|> "indexer"
         :> Capture "filename" T.Text
         :> Get '[JSON] ()
-
-
-type HtmlAPI =
-        "quickstart"
-        :> Get '[HTML] Html
-   :<|> Get '[HTML] Html
 

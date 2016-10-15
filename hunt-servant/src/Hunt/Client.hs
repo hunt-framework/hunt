@@ -45,8 +45,6 @@ import           Servant.Client
 import           Hunt.ClientInterface
 import           Hunt.Query.Intermediate (RankedDoc)
 import           Network.HTTP.Client
-import           Servant.HTML.Blaze
-import           Text.Blaze.Html         (Html, preEscapedToMarkup)
 
 
 -- TYPES
@@ -137,24 +135,6 @@ indexStatus :: HuntClient CmdResult
 contextStatus :: T.Text -> HuntClient CmdResult
 
 
--- HTML
-
--- | Request the quickstart HTML page.
-quickstart :: HuntClient Html
-
--- | Request the index HTML page.
-home :: HuntClient Html
-
-
--- INSTANCES
-
--- I really don't like this. It relies on the assumption, that
--- the transmitted HTML is UTF-8 encoded. Currently
--- though, I don't know a way around this.
-instance MimeUnrender HTML Html where
-  mimeUnrender _ = return . preEscapedToMarkup . T.decodeUtf8
-
-
 -- CLIENT
 
 (search
@@ -164,6 +144,5 @@ instance MimeUnrender HTML Html where
  :<|> getWeight
  :<|> select
  :<|> (gcStatus :<|> doctableStatus :<|> indexStatus :<|> contextStatus)
- :<|> (storeIndex :<|> loadIndex)
- :<|> (quickstart :<|> home)) = client huntAPI
+ :<|> (storeIndex :<|> loadIndex)) = client huntAPI
 

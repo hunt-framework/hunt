@@ -32,10 +32,12 @@ import           Network.Wai                          (Application)
 import           Network.Wai.Handler.Warp             (run)
 import           Network.Wai.Middleware.RequestLogger (logStdoutDev)
 
-import           Hunt.API
+import           Hunt.Server.API
 import           Hunt.Server.Configuration
 import qualified Hunt.Server.Template                 as Templ
 import           Servant
+
+import           Servant.HTML.Blaze
 import           System.IO                            (stdout)
 import           System.Log.Formatter
 import           System.Log.Handler
@@ -74,19 +76,22 @@ tryLoadIndex env (Just indexFile) = do
 -- | Combine the HuntAPI with the server implementation
 -- to serve an application.
 serveApp :: DefHuntEnv -> Application
-serveApp = logStdoutDev . serve huntAPI . server
+serveApp = logStdoutDev . serve huntServerAPI . server
 
 
-server :: DefHuntEnv -> Server HuntAPI
-server env = search env
-        :<|> completion env
-        :<|> documents env
-        :<|> evaluate env
-        :<|> weight env
-        :<|> select env
-        :<|> status env
-        :<|> indexer env
+server :: DefHuntEnv -> Server HuntServerAPI
+server env = huntServer
         :<|> html
+  where
+    huntServer :: Server HuntAPI
+    huntServer = search env
+            :<|> completion env
+            :<|> documents env
+            :<|> evaluate env
+            :<|> weight env
+            :<|> select env
+            :<|> status env
+            :<|> indexer env
 
 
 -- | Provide server implementation of the search API based
