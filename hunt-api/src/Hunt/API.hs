@@ -24,13 +24,14 @@ module Hunt.API
   ) where
 
 
+import           Data.Proxy               (Proxy (Proxy))
 import qualified Data.Text                as T
 import qualified Hunt.ClientInterface     as HC
 import           Hunt.Common.ApiDocument  (LimitedResult)
 import           Hunt.Interpreter.Command (CmdResult (..), Command (..))
 import           Hunt.Query.Intermediate  (RankedDoc)
 
-import           Servant
+import           Servant.API
 import           Servant.HTML.Blaze
 import           Text.Blaze.Html          (Html)
 

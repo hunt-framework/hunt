@@ -24,6 +24,7 @@ executable hunt-servant-server
                      , bytestring
                      , hslogger
                      , http-client
+                     , hunt-api
                      , hunt-searchengine
                      , mtl
                      , optparse-applicative
@@ -36,8 +37,7 @@ executable hunt-servant-server
                      , wai
                      , wai-extra
                      , warp
-  other-modules:       Hunt.API
-                     , Hunt.Client
+  other-modules:       Hunt.Client
                      , Hunt.Server
                      , Hunt.Server.Configuration
                      , Hunt.Server.Template

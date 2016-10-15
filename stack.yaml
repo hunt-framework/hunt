@@ -4,6 +4,7 @@ packages:
   - ./hunt-crawler
   - ./hunt-searchengine
   - ./hunt-servant
+  - ./hunt-api
   - ./hunt-server
   - ./hunt-server-cli
   - ./hunt-test/data/jokes
