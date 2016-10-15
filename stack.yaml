@@ -6,6 +6,7 @@ packages:
   - ./hunt-servant
   - ./hunt-servant-client
   - ./hunt-api
+  - ./hunt-cli
   - ./hunt-server
   - ./hunt-server-cli
   - ./hunt-test/data/jokes
