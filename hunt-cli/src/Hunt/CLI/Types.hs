@@ -16,7 +16,8 @@ import           Servant.Client (BaseUrl)
 type ServerOptions = BaseUrl
 
 
--- |
+-- | The Command enumerates every possible command,
+-- which might be executed with this command line program.
 data Command
   = Eval ServerOptions FilePath
   | Load ServerOptions FilePath

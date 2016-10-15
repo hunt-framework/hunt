@@ -3,8 +3,8 @@ module Hunt.CLI
   , runCmd
   ) where
 
-import Hunt.CLI.Types
 import qualified Hunt.CLI.Parser as P
+import           Hunt.CLI.Types
 
 
 -- EXECUTING COMMANDS
