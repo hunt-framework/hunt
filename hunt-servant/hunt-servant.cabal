@@ -37,8 +37,7 @@ executable hunt-servant-server
                      , wai
                      , wai-extra
                      , warp
-  other-modules:       Hunt.Client
-                     , Hunt.Server
+  other-modules:       Hunt.Server
                      , Hunt.Server.API
                      , Hunt.Server.Configuration
                      , Hunt.Server.Template

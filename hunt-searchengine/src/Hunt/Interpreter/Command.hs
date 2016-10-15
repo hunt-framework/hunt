@@ -18,6 +18,7 @@ module Hunt.Interpreter.Command
   )
 where
 
+import           Control.Applicative ((<|>))
 import           Control.DeepSeq
 import           Control.Monad (mzero)
 import           Data.Aeson
@@ -230,6 +231,18 @@ instance ToJSON CmdResult where
     ResGeneric v    -> object . code 0 $ [ "res" .= v ]
     where
     code i = (:) ("code" .= (i :: Int))
+
+instance FromJSON CmdResult where
+  parseJSON (Object o) =
+    generic <|> suggestion <|> completion <|> search <|> ok
+    where
+      generic = ResGeneric <$> o .: "res"
+      suggestion = ResSuggestion <$> o .: "res"
+      completion = ResCompletion <$> o .: "res"
+      search = ResSearch <$> o .: "res"
+      -- TODO: Actually, we should specifically look for "res" here:
+      ok = pure ResOK
+  parseJSON val = error $ "FromJSON CmdResult failed on input: " ++ show val
 
 instance ToJSON CmdError where
   toJSON (ResError c m) = object

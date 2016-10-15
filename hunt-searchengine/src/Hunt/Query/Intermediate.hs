@@ -392,6 +392,14 @@ instance ToJSON RankedDoc where
         addScore _
           = error "toJSON rankedDoc: propably a bug introduced with #75"
 
+instance FromJSON RankedDoc where
+  parseJSON v@(Object o) =
+    RD <$> ((,) <$> score <*> doc)
+    where
+      score = o .: "score"
+      doc   = parseJSON v
+  parseJSON val = error $ "FromJSON RankedDoc failed on input: " ++ show val
+
 toDocumentResultPage :: Int -> Int -> [RankedDoc] -> [RankedDoc]
 toDocumentResultPage = Q.pageList
 

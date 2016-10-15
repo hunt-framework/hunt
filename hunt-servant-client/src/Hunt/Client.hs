@@ -25,13 +25,10 @@ module Hunt.Client
   , select
 
     -- Status
-  , gcStatus, doctableStatus, indexStatus, contextStatus, schemaStatus
+  , gcStatus, doctableStatus, indexStatus, contextStatus
 
     -- Index
   , storeIndex, loadIndex
-
-    -- Html
-  , quickstart, home
   ) where
 
 
@@ -39,12 +36,12 @@ import           Control.Monad.Except
 import qualified Data.Text               as T
 import qualified Data.Text.Lazy.Encoding as T
 import           Hunt.API
-import           Servant
 import           Servant.Client
 
 import           Hunt.ClientInterface
 import           Hunt.Query.Intermediate (RankedDoc)
 import           Network.HTTP.Client
+import           Servant.API
 
 
 -- TYPES
