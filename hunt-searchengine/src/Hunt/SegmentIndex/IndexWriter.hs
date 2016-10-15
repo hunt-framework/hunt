@@ -32,22 +32,27 @@ insertList :: [ApiDocument]
 insertList docs iw@IndexWriter{..} = do
   segmentId <- iwNewSegId
 
+  let
+    idsAndWords = [ (did, words) | (did, _, words) <- docsAndWords]
+    documents   = [ doc | (_, doc, _) <- docsAndWords]
+    inverted    = Map.mapWithKey (\cx _ ->
+                                    Map.toAscList
+                                    $ Map.fromListWith mappend
+                                    $ contentForCx cx idsAndWords) iwSchema
+
   -- Write the documents to disk!
   Commit.writeDocuments
     iwIndexDir
     segmentId
     sortedFields
-    [doc | (_, doc, _) <- docsAndWords]
+    documents
 
   -- Write the inverted index to disk!
-  case [(did, words) | (did, _, words) <- docsAndWords ] of
-    idsAndWords -> case
-      Map.mapWithKey (\cx _ -> contentForCx cx idsAndWords) iwSchema of
-      indexed -> Commit.writeIndex
-                   iwIndexDir
-                   segmentId
-                   iwSchema
-                   (Map.toList indexed)
+  Commit.writeIndex
+    iwIndexDir
+    segmentId
+    iwSchema
+    (Map.toList inverted)
 
   return iw
 
