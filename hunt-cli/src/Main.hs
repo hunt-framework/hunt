@@ -1,8 +1,8 @@
 module Main where
 
-import           Hunt.CLI
+import           Hunt.CLI            (runCommand, huntCLI)
 import           Options.Applicative (execParser)
 
 
 main :: IO ()
-main = execParser huntCLI >>= runCmd
+main = execParser huntCLI >>= runCommand

@@ -17,10 +17,13 @@ executable hunt-cli
   hs-source-dirs:      src
   main-is:             Main.hs
   build-depends:       base >= 4.7 && < 5
+                     , aeson
+                     , bytestring
                      , hunt-api
                      , http-client
-                     , hunt-client
+                     , hunt-servant-client
                      , hunt-searchengine
+                     , mtl
                      , optparse-applicative
                      , servant-client
                      , text

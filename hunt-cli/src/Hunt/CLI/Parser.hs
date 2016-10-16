@@ -13,7 +13,7 @@ import           Servant.Client      (BaseUrl, parseBaseUrl)
 
 -- | Build the full parser for parsing a @Command@
 -- from command line arguments.
-huntCLI :: ParserInfo Command
+huntCLI :: ParserInfo CliCommand
 huntCLI  = info (helper <*> commands)
     ( fullDesc
     <> progDesc "Query the server or work with a schema."
@@ -23,7 +23,7 @@ huntCLI  = info (helper <*> commands)
 
 -- COMMANDS
 
-commands :: Parser Command
+commands :: Parser CliCommand
 commands =
   subparser
   (  cmd "eval"        eval       "Evaluate command in a given file on the Hunt server"
@@ -39,19 +39,19 @@ commands =
       command name (info (helper <*> parser) (progDesc desc))
 
 
-eval :: Parser Command
+eval :: Parser CliCommand
 eval = Eval <$> serverOptions <*> file
 
 
-load :: Parser Command
+load :: Parser CliCommand
 load = Load <$> serverOptions <*> file
 
 
-store :: Parser Command
+store :: Parser CliCommand
 store = Store <$> serverOptions <*> file
 
 
-search :: Parser Command
+search :: Parser CliCommand
 search = Search <$> serverOptions <*> offset <*> limit <*> query
   where
     query = T.pack <$> (argument str (metavar "QUERY"))
@@ -67,21 +67,21 @@ search = Search <$> serverOptions <*> offset <*> limit <*> query
       <> help "Maximum number of results" )
 
 
-complete :: Parser Command
+complete :: Parser CliCommand
 complete = Completion <$> serverOptions <*> query
   where
     query = T.pack <$> (argument str (metavar "QUERY"))
 
 
-makeSchema :: Parser Command
+makeSchema :: Parser CliCommand
 makeSchema = MakeSchema <$> file
 
 
-makeInsert :: Parser Command
+makeInsert :: Parser CliCommand
 makeInsert = MakeInsert <$> file
 
 
-fromCsv :: Parser Command
+fromCsv :: Parser CliCommand
 fromCsv = FromCSV <$> file
 
 
