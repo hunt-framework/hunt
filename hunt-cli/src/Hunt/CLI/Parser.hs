@@ -29,13 +29,13 @@ commands =
   (  cmd "eval"        eval       "Evaluate command in a given file on the Hunt server"
   <> cmd "load"        load       "Load an index from a given file"
   <> cmd "store"       store      "Store an index to a given file"
-  <> cmd "search"      search     "Search the Hunt server for a given query" 
+  <> cmd "search"      search     "Search the Hunt server for a given query"
   <> cmd "complete"    complete   "Retrieve completion proposals for a given query"
   <> cmd "make-schema" makeSchema "Print JSON schema for a document"
   <> cmd "make-insert" makeInsert "Print JSON command for insertion of document"
   <> cmd "from-csv"    fromCsv    "Convert CSV to JSON and print the result" )
   where
-    cmd name parser desc = 
+    cmd name parser desc =
       command name (info (helper <*> parser) (progDesc desc))
 
 
@@ -101,5 +101,5 @@ serverOptions =
   <> value defaultServerOptions
   <> (help $ "Base URL of the Hunt server. Defaults to " ++ show defaultServerOptions ))
   where
-    parseUrl = eitherReader $ 
+    parseUrl = eitherReader $
       either (Left . show) Right . parseBaseUrl

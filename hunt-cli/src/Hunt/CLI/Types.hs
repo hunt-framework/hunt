@@ -8,12 +8,15 @@ module Hunt.CLI.Types
 
     -- Helpers
   , defaultServerOptions
+  , formatErr
   ) where
 
 
+import           Data.Aeson
 import qualified Data.Text      as T
+import           GHC.Generics
 import           Hunt.API       (Limit, Offset)
-import           Servant.Client (BaseUrl (..), Scheme (Http), ServantError)
+import           Servant.Client (BaseUrl (..), Scheme (Http), ServantError (..))
 
 
 -- COMMAND
@@ -49,3 +52,23 @@ data CliErr
   = JsonErr String
   | HttpErr ServantError
   deriving (Show)
+
+
+formatErr :: CliErr -> String
+formatErr (JsonErr err) = "JSON parsing failed with err:\n" ++ err
+formatErr (HttpErr err) =
+  case err of
+    FailureResponse status contentType body ->
+      "Request failed with code " ++ show status ++ " and response body\n\n> " ++ show body
+
+    DecodeFailure err _ body ->
+      "Decoding response failed with error\n" ++ show err ++ "\n\non body\n\n>" ++
+      show body
+
+    ConnectionError err ->
+      "Are you sure the Hunt server is running under the given URL? Here is the full error\n\n>" ++
+      show err
+
+    _ ->
+      "Sorry, either the content type is not supported or invalid"
+

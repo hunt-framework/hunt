@@ -18,6 +18,7 @@ executable hunt-cli
   main-is:             Main.hs
   build-depends:       base >= 4.7 && < 5
                      , aeson
+                     , aeson-pretty
                      , bytestring
                      , hunt-api
                      , http-client
