@@ -26,23 +26,17 @@ huntCLI  = info (helper <*> commands)
 commands :: Parser Command
 commands =
   subparser
-  (  command "eval" (info (helper <*> eval)
-      ( progDesc "Evaluate command in a given file on the Hunt server" ))
-  <> command "load" (info (helper <*> load)
-      ( progDesc "Load an index from a given file" ))
-  <> command "store" (info (helper <*> store)
-      ( progDesc "Store an index to a given file" ))
-  <> command "search" (info (helper <*> search)
-      ( progDesc "Search the Hunt server for a given query" ))
-  <> command "complete" (info (helper <*> complete)
-      ( progDesc "Retrieve completion proposals for a given query" ))
-  <> command "make-schema" (info (helper <*> makeSchema)
-      ( progDesc "Print JSON schema for a document" ))
-  <> command "make-insert" (info (helper <*> makeInsert)
-      ( progDesc "Print JSON command for insertion of document" ))
-  <> command "from-csv" (info (helper <*> fromCsv)
-      ( progDesc "Convert CSV to JSON and print the result" ))
-  )
+  (  cmd "eval"        eval       "Evaluate command in a given file on the Hunt server"
+  <> cmd "load"        load       "Load an index from a given file"
+  <> cmd "store"       store      "Store an index to a given file"
+  <> cmd "search"      search     "Search the Hunt server for a given query" 
+  <> cmd "complete"    complete   "Retrieve completion proposals for a given query"
+  <> cmd "make-schema" makeSchema "Print JSON schema for a document"
+  <> cmd "make-insert" makeInsert "Print JSON command for insertion of document"
+  <> cmd "from-csv"    fromCsv    "Convert CSV to JSON and print the result" )
+  where
+    cmd name parser desc = 
+      command name (info (helper <*> parser) (progDesc desc))
 
 
 eval :: Parser Command
