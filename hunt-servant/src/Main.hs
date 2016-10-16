@@ -1,9 +1,9 @@
 module Main where
 
+import           Data.Monoid         ((<>))
 import           Hunt.Server         (HuntServerConfiguration (..),
                                       defaultConfig, runWithConfig)
 import           Options.Applicative
-
 
 -- MAIN
 
@@ -70,4 +70,3 @@ configuration = HuntServerConfiguration
       <> metavar "LEVEL"
       <> help ("Log level to use for logging, defaults to " ++ show defaultPriority ))
       <|> pure defaultPriority
-
