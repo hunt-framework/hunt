@@ -94,24 +94,12 @@ file = argument str
 
 
 serverOptions :: Parser ServerOptions
-serverOptions = parseUrl <$> baseUrl
+serverOptions =
+  option parseUrl
+  ( long "baseUrl"
+  <> short 's'
+  <> value defaultServerOptions
+  <> (help $ "Base URL of the Hunt server. Defaults to " ++ show defaultServerOptions ))
   where
-    baseUrl =
-      strOption
-      ( long "baseUrl"
-      <> short 's'
-      <> value "http://localhost:3000"
-      <> help "Base URL of the Hunt server. Defaults to http://localhost:3000" )
-
-    parseUrl url =
-      case parseBaseUrl url of
-        Right baseUrl ->
-          baseUrl
-
-        Left err ->
-          -- It would be much nicer to be able to throw an
-          -- error with optparse-applicative. While partial functions
-          -- generally should be avoided, since this is a cli and
-          -- an error in the BaseUrl would stop any request from
-          -- happening anyways, this seems to be ok. Though hacky, still.
-          error $ show err
+    parseUrl = eitherReader $ 
+      either (Left . show) Right . parseBaseUrl
