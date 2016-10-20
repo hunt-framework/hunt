@@ -240,9 +240,6 @@ writeDocuments ixDir sid fields docs = do
         return ()
   return ()
 
-  where
-    vint = fromIntegral >$< varint64
-
 -- Helper which flushes and retries if buffer
 -- is full
 putWrite :: Buffer -> Flush a -> Write t -> t -> IO Int
