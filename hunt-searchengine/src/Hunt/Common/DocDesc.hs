@@ -23,7 +23,6 @@ import           Data.String
 import           Data.Text           (Text)
 import qualified Data.Text           as Text
 import           Data.Text.Binary    ()
-import qualified Data.Text.Encoding  as Text
 import           Data.Typeable
 
 -- ------------------------------------------------------------
@@ -35,7 +34,7 @@ type FieldRank = Int
 
 data FieldValue = FV_Int !Int
                 | FV_Float !Float
-                | FV_Text !ByteString
+                | FV_Text !Text
                 | FV_Binary !ByteString
                 | FV_Null
                 deriving (Eq, Show)
@@ -58,7 +57,7 @@ instance ToJSON FieldValue where
   toJSON fv = case fv of
     FV_Int i    -> toJSON i
     FV_Float f  -> toJSON f
-    FV_Text s   -> toJSON (Text.decodeUtf8 s)
+    FV_Text s   -> toJSON s
     FV_Binary _ -> Null -- TODO: maybe base64 encode binary values
     FV_Null     -> Null
 
@@ -72,7 +71,7 @@ instance ToFieldValue Float where
   toFieldValue = FV_Float
 
 instance ToFieldValue Text where
-  toFieldValue = FV_Text . Text.encodeUtf8
+  toFieldValue = FV_Text
 
 instance a ~ Char => ToFieldValue [a] where
   toFieldValue = toFieldValue . Text.pack
@@ -85,8 +84,7 @@ class FromFieldValue a where
   fromFieldValue :: FieldValue -> Maybe a
 
 instance FromFieldValue Text where
-  fromFieldValue (FV_Text s)
-    | Right s' <- Text.decodeUtf8' s = Just s'
+  fromFieldValue (FV_Text s) = Just s
   fromFieldValue _           = Nothing
 
 newtype DocDesc
