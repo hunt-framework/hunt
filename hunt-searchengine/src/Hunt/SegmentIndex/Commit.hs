@@ -31,6 +31,7 @@ import qualified Data.Map.Strict                   as Map
 import           Data.Text                         (Text)
 import qualified Data.Text                         as Text
 import qualified Data.Text.Encoding                as Text
+import qualified Data.Text.Foreign                 as Text
 import qualified Data.Vector                       as V
 import qualified Data.Vector.Unboxed.Mutable       as UM
 import           Data.Word                         hiding (Word)
@@ -126,8 +127,8 @@ writeIndex ixDir sid schema cxWords = do
                termBuffer
                termFlush
                termWrite
-               ( ByteString.length (Text.encodeUtf8 prefix)
-               , ( Text.encodeUtf8 suffix
+               ( Text.lengthWord16 prefix * 2
+               , ( suffix
                  , ( DocIdMap.size occs
                    , occOffset
                    )
@@ -259,14 +260,18 @@ putWrite buffer flush (W size write) a =
           Buffer.put buffer write
 {-# INLINE putWrite #-}
 
+vint :: Write Int
+vint = fromIntegral >$< varint64
+{-# INLINE vint #-}
+
 -- | A 'Write' for 'Occurrence'
 occurrenceWrite :: Write (DocId, (Int, Offset))
 occurrenceWrite = (unDocId >$< vint) >*< vint >*< vint
-  where vint = fromIntegral >$< varint64
+{-# INLINE occurrenceWrite #-}
 
-termWrite :: Write (Int, (ByteString, (Int, Offset)))
-termWrite = vint >*< bytestring' >*< vint >*< vint
-  where vint = fromIntegral >$< varint64
+termWrite :: Write (Int, (Text, (Int, Offset)))
+termWrite = vint >*< text >*< vint >*< vint
+{-# INLINE termWrite #-}
 
 -- | A 'Write' for 'DocDesc' fields.
 fieldValueWrite :: Write FieldValue
@@ -289,6 +294,7 @@ fieldValueWrite = W size write
     write FV_Null op       = return op
 
     tagSize = word8Size 0
+{-# INLINE fieldValueWrite #-}
 
 termVectorFile :: SegmentId -> FilePath
 termVectorFile sid = show sid <.> "tv"
