@@ -48,11 +48,14 @@ insertList docs iw@IndexWriter{..} = do
     documents
 
   -- Write the inverted index to disk!
-  Commit.writeIndex
-    iwIndexDir
-    segmentId
-    iwSchema
-    (Map.toList inverted)
+  _termInfos <- Commit.writeIndex
+                iwIndexDir
+                segmentId
+                iwSchema
+                (Map.toList inverted)
+
+
+
 
   return iw
 

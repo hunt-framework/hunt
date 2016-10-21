@@ -21,6 +21,7 @@ import           Hunt.IO.Files
 import           Hunt.IO.Write
 import           Hunt.Scoring.SearchResult
 import           Hunt.SegmentIndex.Types.SegmentId
+import           Hunt.SegmentIndex.Types.TermInfo
 
 import           Control.Monad.State.Strict
 import           Data.ByteString                   (ByteString)
@@ -39,7 +40,7 @@ import           Data.Word                         hiding (Word)
 import           Foreign.Ptr
 import           System.FilePath
 
-import           Prelude                           hiding (Word)
+import           Prelude                           hiding (Word, words)
 
 type ContextNum = Int
 
@@ -52,7 +53,7 @@ writeIndex :: FilePath
            -> SegmentId
            -> Schema
            -> [(Context, [(Word, Occurrences)])]
-           -> IO ()
+           -> IO [(Context, [(Word, TermInfo)])]
 writeIndex ixDir sid schema cxWords = do
 
   withAppendFile (ixDir </> termVectorFile sid) $ \termsFile ->
@@ -105,7 +106,7 @@ writeIndex ixDir sid schema cxWords = do
 
         foldWords :: (Int, Text, Offset, Offset)
                   -> (Word, Occurrences)
-                  -> IO (Int, Text, Offset, Offset)
+                  -> IO ((Word, TermInfo), (Int, Text, Offset, Offset))
         foldWords ( !wordsWritten
                   , !lastWord
                   , !occOffset
@@ -137,23 +138,26 @@ writeIndex ixDir sid schema cxWords = do
                  )
                )
 
-          return $! (wordsWritten + 1, word, occOffset', posOffset')
+          return $! ( (word, TermInfo occOffset numOccs)
+                    , (wordsWritten + 1, word, occOffset', posOffset')
+                    )
 
         foldContexts :: UM.IOVector Int
                      -> (Offset, Offset)
                      -> Int
                      -> (Context, [(Word, Occurrences)])
-                     -> IO ((Context, [(Word, Occurrences)]), (Offset, Offset))
+                     -> IO ((Context, [(Word, TermInfo)]), (Offset, Offset))
         foldContexts wordCounts (!occOffset, !posOffset) i (cx, words) = do
-          (wordsWritten', _, occOffset', posOffset') <-
-            foldlM
+
+          (words', (wordsWritten', _, occOffset', posOffset')) <-
+            mapAccumM
             foldWords
             ( 0 :: Int , Text.empty , occOffset, posOffset )
             words
 
           UM.unsafeWrite wordCounts i wordsWritten'
 
-          return $! ( (cx, words)
+          return $! ( (cx, words')
                     , (occOffset, posOffset')
                     )
 
@@ -162,16 +166,11 @@ writeIndex ixDir sid schema cxWords = do
       (!cxWords', (!occOffset, !posOffset)) <-
         mapAccumWithKeyM (foldContexts cxWordCount) (0,0) cxWords
 
---      (!occOffset, !posOffset) <- foldlWithKeyM
---                                  (foldContexts cxWordCount)
---                                  (0, 0)
---                                  cxWords
-
       Buffer.flush termBuffer termFlush
       Buffer.flush occBuffer occFlush
       Buffer.flush posBuffer posFlush
-      return ()
-  return ()
+
+      return cxWords'
 
   where
     vint@(W vintSize vintWrite) = fromIntegral >$< varint64
@@ -327,10 +326,10 @@ mapAccumWithKeyM f z xs =
   runStateT (traverseWithKey (\k x -> StateT (\s -> f s k x)) xs) z
 {-# INLINE mapAccumWithKeyM #-}
 
-mapAccumM' :: (Monad m, Traversable t)
-           => (a -> b -> m (c, a))
-           -> a
-           -> t b
-           -> m (t c, a)
-mapAccumM' f z xs = runStateT (traverse (\x -> StateT (\s -> f s x)) xs) z
-{-# INLINE mapAccumM' #-}
+mapAccumM :: (Monad m, Traversable t)
+          => (a -> b -> m (c, a))
+          -> a
+          -> t b
+          -> m (t c, a)
+mapAccumM f z xs = runStateT (traverse (\x -> StateT (\s -> f s x)) xs) z
+{-# INLINE mapAccumM #-}
