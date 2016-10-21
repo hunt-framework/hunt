@@ -1,15 +1,17 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Hunt.SegmentIndex.Types where
 
+import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet               (DocIdSet)
-import           Hunt.ContextIndex
 import           Hunt.Index.Schema
+import           Hunt.SegmentIndex.Types.Index      (IndexRepr)
 import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
 
-import           Data.Bits
+import           Data.Map                           (Map)
+import           Prelude                            hiding (Word)
 
-type TermIndex = String -- dummy
+type ContextMap = Map Context IndexRepr
 
 data Segment =
   Segment { segNumDocs     :: !Int
@@ -25,20 +27,9 @@ data Segment =
           , segSchema      :: !Schema
             -- ^ Since the 'Schema' can be changed we also store it
             -- per 'Segment'.
-          , segTermIndex   :: !TermIndex
+          , segTermIndex   :: !ContextMap
             -- ^ Indexes the terms and points to the stored occurrences
           }
-
--- | When deleting 'Document's via an 'IndexWriter' we need
--- to keep track of affected 'Segment's so we can write a new
--- delete generation.
-newtype DirtyFlags = DirtyFlags { unDirtyFlags :: Word }
-
-setDirtyDelDocs :: DirtyFlags -> DirtyFlags
-setDirtyDelDocs (DirtyFlags df) = DirtyFlags (setBit df 0)
-
-isDirtyDelDocs :: DirtyFlags -> Bool
-isDirtyDelDocs (DirtyFlags df) = testBit df 0
 
 -- | 'IndexWriter' offers an interface to manipulate the index.
 -- Forking new 'IndexWriter's from the 'SegmentIndex' *is* cheap.

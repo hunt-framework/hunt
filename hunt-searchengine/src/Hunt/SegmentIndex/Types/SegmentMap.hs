@@ -16,6 +16,7 @@ module Hunt.SegmentIndex.Types.SegmentMap (
 
 import           Hunt.SegmentIndex.Types.SegmentId
 
+import           Control.Arrow                     (first)
 import           Data.IntMap.Strict                (IntMap)
 import qualified Data.IntMap.Strict                as IM
 import           Data.Key
@@ -46,6 +47,9 @@ insert (SegmentId k) v (SM m) = SM (IM.insert k v m)
 map :: (a -> b) -> SegmentMap a -> SegmentMap b
 map f (SM m) = SM (IM.map f m)
 
+union :: SegmentMap a -> SegmentMap a -> SegmentMap a
+union (SM m1) (SM m2) = SM (IM.union m1 m2)
+
 unionWith :: (a -> a -> a) -> SegmentMap a -> SegmentMap a -> SegmentMap a
 unionWith f (SM m1) (SM m2) = SM (IM.unionWith f m1 m2)
 
@@ -57,3 +61,6 @@ intersectionWith f (SM m1) (SM m2) = SM (IM.intersectionWith f m1 m2)
 
 difference :: SegmentMap a -> SegmentMap b -> SegmentMap a
 difference (SM m1) (SM m2) = SM (IM.difference m1 m2)
+
+fromList :: [(SegmentId, a)] -> SegmentMap a
+fromList xs = SM (IM.fromList (fmap (first unSegmentId) xs))
