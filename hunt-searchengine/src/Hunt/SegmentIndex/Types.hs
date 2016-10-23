@@ -1,15 +1,19 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Hunt.SegmentIndex.Types where
 
+import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet               (DocIdSet)
-import           Hunt.ContextIndex
 import           Hunt.Index.Schema
+import           Hunt.SegmentIndex.Types.Index      (IndexRepr)
 import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
 
-import           Data.Bits
+import           Control.Concurrent.STM.TMVar
+import           Control.Concurrent.STM.TVar
+import           Data.Map                           (Map)
+import           Prelude                            hiding (Word)
 
-type TermIndex = String -- dummy
+type ContextMap = Map Context IndexRepr
 
 data Segment =
   Segment { segNumDocs     :: !Int
@@ -25,20 +29,9 @@ data Segment =
           , segSchema      :: !Schema
             -- ^ Since the 'Schema' can be changed we also store it
             -- per 'Segment'.
-          , segTermIndex   :: !TermIndex
+          , segTermIndex   :: !ContextMap
             -- ^ Indexes the terms and points to the stored occurrences
           }
-
--- | When deleting 'Document's via an 'IndexWriter' we need
--- to keep track of affected 'Segment's so we can write a new
--- delete generation.
-newtype DirtyFlags = DirtyFlags { unDirtyFlags :: Word }
-
-setDirtyDelDocs :: DirtyFlags -> DirtyFlags
-setDirtyDelDocs (DirtyFlags df) = DirtyFlags (setBit df 0)
-
-isDirtyDelDocs :: DirtyFlags -> Bool
-isDirtyDelDocs (DirtyFlags df) = testBit df 0
 
 -- | 'IndexWriter' offers an interface to manipulate the index.
 -- Forking new 'IndexWriter's from the 'SegmentIndex' *is* cheap.
@@ -47,10 +40,11 @@ data IndexWriter =
                 -- ^ When creating new 'Segment's we need to
                 -- know where to place them.
               , iwNewSegId    :: IO SegmentId
-              , iwSchema      :: Schema
                 -- ^ The 'IndexWriter' commits 'Segment's to
                 -- disk. So we need a way to generate unique
                 -- 'SegmentId's.
+              , iwSchema      :: Schema
+                -- ^ The 'SegmentIndex' has a 'Schema'.
               , iwSegments    :: SegmentMap Segment
                 -- ^ An 'IndexWriter' acts transactional over
                 -- the 'SegmentIndex'. These are the 'Segment's
@@ -67,6 +61,12 @@ data IndexWriter =
                 -- This 'IndexWriter' is the only one referencing
                 -- this 'Segment's for now. This allows for easy
                 -- merging and deleting 'Segment's if needed.
+              , iwModSegments :: SegmentMap Segment
+                -- ^ Everytime we delete documents we modify
+                -- 'Segments' from 'iwSegments' and put it in 'iwModSegments'.
+              , iwSegIxRef    :: SegIxRef
+                -- ^ A reference to the 'SegmentIndex' which creates
+                -- this 'IndexWriter'.
               }
 
 -- | 'IndexReader' is query-only and doesn't modify the index in any way.
@@ -77,16 +77,16 @@ data IndexReader =
 
 -- | The 'SegmentIndex' holding everything together.
 data SegmentIndex =
-  SegmentIndex { siIndexDir :: FilePath
+  SegmentIndex { siIndexDir :: !FilePath
                  -- ^ The directory where the 'Segment's and meta
                  -- data are stored.
-               , siSegIdGen :: SegIdGen
+               , siSegIdGen :: !SegIdGen
                  -- ^ 'IndexWriter's forked from the 'SegmentIndex'
                  -- need to create new 'Segment's (and hence 'SegmentId's).
                  -- This is a 'SegmentIndex' unique generator for 'SegmentId's.
-               , siSchema   :: Schema
+               , siSchema   :: !Schema
                  -- ^ 'Schema' for indexed fields
-               , siSegments :: SegmentMap Segment
+               , siSegments :: !(SegmentMap Segment)
                  -- ^ The 'Segment's currently in the 'SegmentIndex'.
                  -- Since 'IndexWriter' and 'IndexReader' many reference
                  -- 'Segment's from the 'SegmentIndex' we *must not*
@@ -94,10 +94,24 @@ data SegmentIndex =
                  -- referenced. But we can safely merge any 'Segment'
                  -- in here as the merge result will not appear in
                  -- 'IndexReader' and 'IndexWriter'.
-               , siSegRefs  :: SegmentMap Int
+               , siSegRefs  :: !(SegmentMap Int)
                  -- ^ A map counting references to the 'Segment's.
                  -- We need to make sure we don't delete 'Segment's
                  --  from disk while someone might read from them.
                  -- INVARIANT: 'SegmentId's not present here are
                  -- assumed a count of 0
                }
+
+-- | As forking of new 'IndexWriter' and 'IndexReader' involves no
+-- IO we can store 'SegmentIndex' in a 'TVar'.
+type SegIxRef = TVar SegmentIndex
+
+-- | A mutex-locked reference to an 'IndexWriter'.
+type IxWrRef = TMVar IndexWriter
+
+-- | A type indicating the result of a transaction.
+data CommitResult a = CommitOk a
+                    | CommitConflicts [Conflict]
+
+-- | The different conflict types which can arise.
+data Conflict = ConflictDelete !SegmentId

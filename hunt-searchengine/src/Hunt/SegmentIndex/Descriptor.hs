@@ -9,6 +9,7 @@ import           Hunt.SegmentIndex.Types.TermInfo
 import           Hunt.Utility
 
 import           Control.Arrow
+import           Data.Foldable
 import qualified Data.StringMap.Strict            as StringMap
 import           Data.Text                        (Text)
 import qualified Data.Text                        as Text
@@ -26,7 +27,16 @@ data Builder a b where
           -> (x -> IO b)
           -> Builder a b
 
+runBuilder :: Foldable f => Builder a b -> f a -> IO b
+runBuilder (Builder start step stop) xs = do
+  s  <- start
+  stop =<< foldlM step s xs
+{-# INLINE runBuilder #-}
+
 type IndexBuilder a = Builder (a, TermInfo) (Index a)
+
+textIndexDescr :: IndexDescriptor
+textIndexDescr = IndexDescriptor id textIndexBuilder
 
 textIndexBuilder :: IndexBuilder Text
 textIndexBuilder = Builder start step stop

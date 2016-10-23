@@ -133,7 +133,7 @@ start config = do
 #endif
 
   -- init interpreter
-  env <- initHunt :: IO DefHuntEnv
+  env <- initHunt "tmp-index" :: IO DefHuntEnv
 
   case readIndexOnStartup config of
     Just filename -> do

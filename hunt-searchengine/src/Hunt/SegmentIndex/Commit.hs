@@ -21,7 +21,9 @@ import           Hunt.IO.Files
 import           Hunt.IO.Write
 import           Hunt.Scoring.SearchResult
 import           Hunt.SegmentIndex.Types.SegmentId
+import           Hunt.SegmentIndex.Types.TermInfo
 
+import           Control.Monad.State.Strict
 import           Data.ByteString                   (ByteString)
 import qualified Data.ByteString                   as ByteString
 import           Data.Foldable
@@ -31,13 +33,14 @@ import qualified Data.Map.Strict                   as Map
 import           Data.Text                         (Text)
 import qualified Data.Text                         as Text
 import qualified Data.Text.Encoding                as Text
+import qualified Data.Text.Foreign                 as Text
 import qualified Data.Vector                       as V
 import qualified Data.Vector.Unboxed.Mutable       as UM
 import           Data.Word                         hiding (Word)
 import           Foreign.Ptr
 import           System.FilePath
 
-import           Prelude                           hiding (Word)
+import           Prelude                           hiding (Word, words)
 
 type ContextNum = Int
 
@@ -50,7 +53,7 @@ writeIndex :: FilePath
            -> SegmentId
            -> Schema
            -> [(Context, [(Word, Occurrences)])]
-           -> IO ()
+           -> IO [(Context, [(Word, TermInfo)])]
 writeIndex ixDir sid schema cxWords = do
 
   withAppendFile (ixDir </> termVectorFile sid) $ \termsFile ->
@@ -103,7 +106,7 @@ writeIndex ixDir sid schema cxWords = do
 
         foldWords :: (Int, Text, Offset, Offset)
                   -> (Word, Occurrences)
-                  -> IO (Int, Text, Offset, Offset)
+                  -> IO ((Word, TermInfo), (Int, Text, Offset, Offset))
         foldWords ( !wordsWritten
                   , !lastWord
                   , !occOffset
@@ -121,48 +124,53 @@ writeIndex ixDir sid schema cxWords = do
           let (prefix, suffix) = case Text.commonPrefixes lastWord word of
                 Just (p, _, s) -> (p, s)
                 Nothing        -> (Text.empty, word)
+              !numOccs         = DocIdMap.size occs
 
           _ <- putWrite
                termBuffer
                termFlush
                termWrite
-               ( ByteString.length (Text.encodeUtf8 prefix)
-               , ( Text.encodeUtf8 suffix
-                 , ( DocIdMap.size occs
+               ( Text.lengthWord16 prefix * 2
+               , ( suffix
+                 , ( numOccs
                    , occOffset
                    )
                  )
                )
 
-          return $! (wordsWritten + 1, word, occOffset', posOffset')
+          return $! ( (word, TermInfo occOffset numOccs)
+                    , (wordsWritten + 1, word, occOffset', posOffset')
+                    )
 
         foldContexts :: UM.IOVector Int
                      -> (Offset, Offset)
                      -> Int
                      -> (Context, [(Word, Occurrences)])
-                     -> IO (Offset, Offset)
+                     -> IO ((Context, [(Word, TermInfo)]), (Offset, Offset))
         foldContexts wordCounts (!occOffset, !posOffset) i (cx, words) = do
-          (wordsWritten', _, occOffset', posOffset') <-
-            foldlM
+
+          (words', (wordsWritten', _, occOffset', posOffset')) <-
+            mapAccumM
             foldWords
             ( 0 :: Int , Text.empty , occOffset, posOffset )
             words
 
           UM.unsafeWrite wordCounts i wordsWritten'
 
-          return $! (occOffset', posOffset')
+          return $! ( (cx, words')
+                    , (occOffset, posOffset')
+                    )
 
       cxWordCount <- UM.unsafeNew (Map.size schema)
-      (!occOffset, !posOffset) <- foldlWithKeyM
-                                  (foldContexts cxWordCount)
-                                  (0, 0)
-                                  cxWords
+
+      (!cxWords', (!occOffset, !posOffset)) <-
+        mapAccumWithKeyM (foldContexts cxWordCount) (0,0) cxWords
 
       Buffer.flush termBuffer termFlush
       Buffer.flush occBuffer occFlush
       Buffer.flush posBuffer posFlush
-      return ()
-  return ()
+
+      return cxWords'
 
   where
     vint@(W vintSize vintWrite) = fromIntegral >$< varint64
@@ -239,9 +247,6 @@ writeDocuments ixDir sid fields docs = do
         return ()
   return ()
 
-  where
-    vint = fromIntegral >$< varint64
-
 -- Helper which flushes and retries if buffer
 -- is full
 putWrite :: Buffer -> Flush a -> Write t -> t -> IO Int
@@ -259,14 +264,18 @@ putWrite buffer flush (W size write) a =
           Buffer.put buffer write
 {-# INLINE putWrite #-}
 
+vint :: Write Int
+vint = fromIntegral >$< varint64
+{-# INLINE vint #-}
+
 -- | A 'Write' for 'Occurrence'
 occurrenceWrite :: Write (DocId, (Int, Offset))
 occurrenceWrite = (unDocId >$< vint) >*< vint >*< vint
-  where vint = fromIntegral >$< varint64
+{-# INLINE occurrenceWrite #-}
 
-termWrite :: Write (Int, (ByteString, (Int, Offset)))
-termWrite = vint >*< bytestring' >*< vint >*< vint
-  where vint = fromIntegral >$< varint64
+termWrite :: Write (Int, (Text, (Int, Offset)))
+termWrite = vint >*< text >*< vint >*< vint
+{-# INLINE termWrite #-}
 
 -- | A 'Write' for 'DocDesc' fields.
 fieldValueWrite :: Write FieldValue
@@ -275,20 +284,22 @@ fieldValueWrite = W size write
     W word8Size word8Write = word8
     W vintSize vintWrite   = fromIntegral >$< varint64
     W bsSize bsWrite       = bytestring'
+    W tSize tWrite         = text
 
     size (FV_Int i)    = vintSize i + tagSize
     size (FV_Float _f) = undefined
-    size (FV_Text s)   = bsSize s + tagSize
+    size (FV_Text s)   = tSize s + tagSize
     size (FV_Binary b) = bsSize b + tagSize
     size FV_Null       = 0
 
     write (FV_Int i) op    = word8Write 0 op >>= vintWrite i
     write (FV_Float _f) op = word8Write 1 op >>= undefined
-    write (FV_Text s)op    = word8Write 2 op >>= bsWrite s
+    write (FV_Text s) op   = word8Write 2 op >>= tWrite s
     write (FV_Binary b) op = word8Write 3 op >>= bsWrite b
     write FV_Null op       = return op
 
     tagSize = word8Size 0
+{-# INLINE fieldValueWrite #-}
 
 termVectorFile :: SegmentId -> FilePath
 termVectorFile sid = show sid <.> "tv"
@@ -304,3 +315,21 @@ fieldIndexFile sid = show sid <.> "fdx"
 
 fieldDataFile :: SegmentId -> FilePath
 fieldDataFile sid = show sid <.> "fdt"
+
+
+mapAccumWithKeyM :: (Monad m, TraversableWithKey t)
+                 => (a -> Key t -> b -> m (c, a))
+                 -> a
+                 -> t b
+                 -> m (t c, a)
+mapAccumWithKeyM f z xs =
+  runStateT (traverseWithKey (\k x -> StateT (\s -> f s k x)) xs) z
+{-# INLINE mapAccumWithKeyM #-}
+
+mapAccumM :: (Monad m, Traversable t)
+          => (a -> b -> m (c, a))
+          -> a
+          -> t b
+          -> m (t c, a)
+mapAccumM f z xs = runStateT (traverse (\x -> StateT (\s -> f s x)) xs) z
+{-# INLINE mapAccumM #-}

@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE MagicHash         #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE UnboxedTuples     #-}
@@ -10,6 +9,7 @@ module Hunt.IO.Write (
   , varint64
   , bytestring
   , bytestring'
+  , text
 
   , divided
   , (>$<)
@@ -25,6 +25,8 @@ import qualified Data.ByteString                      as ByteString
 import qualified Data.ByteString.Internal             as ByteString
 import           Data.Functor.Contravariant
 import           Data.Functor.Contravariant.Divisible
+import           Data.Text                            (Text)
+import qualified Data.Text.Foreign                    as Text
 import           Data.Word
 import           Foreign.ForeignPtr.Unsafe
 import           Foreign.Ptr
@@ -113,3 +115,17 @@ bytestring' :: Write ByteString
 bytestring' = divide f varint64 bytestring
   where f s = ( fromIntegral (ByteString.length s), s)
 {-# INLINE CONLIKE bytestring' #-}
+
+text :: Write Text
+text = W size write
+  where
+    W vintSize vintWrite = fromIntegral >$< varint64
+
+    size t = case 2 * Text.lengthWord16 t of
+               tsz -> vintSize tsz + tsz
+
+    write t op =  case 2 * Text.lengthWord16 t of
+                    tsz -> do op'  <- vintWrite tsz op
+                              Text.unsafeCopyToPtr t (castPtr op')
+                              return $ op' `plusPtr` tsz
+{-# INLINE CONLIKE text #-}
