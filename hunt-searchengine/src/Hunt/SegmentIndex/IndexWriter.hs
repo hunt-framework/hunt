@@ -176,9 +176,6 @@ commit IndexWriter{..} si@SegmentIndex{..} =
                                 SegmentMap.unionWith (\new _old -> new) iwModSegments
                                 -- insert the new 'Segment's into 'siSegments'
                                 $ SegmentMap.union iwNewSegments siSegments
-
-                            , siSchema   = iwSchema
-                              -- TODO: check for write conflicts
                             }
        _  -> CommitConflicts conflicts
 

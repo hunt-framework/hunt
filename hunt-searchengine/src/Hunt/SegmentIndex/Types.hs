@@ -40,10 +40,11 @@ data IndexWriter =
                 -- ^ When creating new 'Segment's we need to
                 -- know where to place them.
               , iwNewSegId    :: IO SegmentId
-              , iwSchema      :: Schema
                 -- ^ The 'IndexWriter' commits 'Segment's to
                 -- disk. So we need a way to generate unique
                 -- 'SegmentId's.
+              , iwSchema      :: Schema
+                -- ^ The 'SegmentIndex' has a 'Schema'.
               , iwSegments    :: SegmentMap Segment
                 -- ^ An 'IndexWriter' acts transactional over
                 -- the 'SegmentIndex'. These are the 'Segment's

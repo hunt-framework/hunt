@@ -24,24 +24,37 @@ newSegmentIndex indexDir = do
   Directory.createDirectoryIfMissing True indexDir
 
   segIdGen <- newSegIdGen
-  siRef    <- newTVarIO $! SegmentIndex { siIndexDir = indexDir
-                                        , siSegIdGen = segIdGen
-                                        , siSchema   = Map.empty
-                                        , siSegments = SegmentMap.empty
-                                        , siSegRefs  = SegmentMap.empty
-                                        }
+  siRef    <- newTVarIO $! SegmentIndex {
+      siIndexDir = indexDir
+    , siSegIdGen = segIdGen
+    , siSchema   = Map.empty
+    , siSegments = SegmentMap.empty
+    , siSegRefs  = SegmentMap.empty
+    }
   return siRef
 
 insertContext :: SegIxRef
               -> Context
               -> ContextSchema
               -> IO ()
-insertContext sixref cx cxs = atomically $ do
-  six <- readTVar sixref
-  writeTVar sixref $! six { siSchema =
-                              Map.insertWith (\_ x -> x) cx cxs (siSchema six)
-                          }
-  return ()
+insertContext sixref cx cxs = do
+  atomically $ do
+    six <- readTVar sixref
+    writeTVar sixref $! six {
+        siSchema = Map.insertWith (\_ old -> old) cx cxs (siSchema six)
+      }
+  -- TODO: we need to commit  a new index version
+
+deleteContext :: SegIxRef
+              -> Context
+              -> IO ()
+deleteContext sixref cx = do
+  atomically $ do
+    six <- readTVar sixref
+    writeTVar sixref $! six {
+        siSchema = Map.delete cx (siSchema six)
+      }
+  -- TODO: we need to commit here
 
 -- | Fork a new 'IndexWriter' from a 'SegmentIndex'. This is very cheap
 -- and never fails.
