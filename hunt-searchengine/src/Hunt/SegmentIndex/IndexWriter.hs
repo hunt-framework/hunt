@@ -150,3 +150,30 @@ newSegment indexDirectory genSegId schema docs = do
           = map (second (Occ.singleton' did)) $ Map.toList wl
         getWlForCx cx' ws'
           = Map.findWithDefault Map.empty cx' ws'
+
+type CommitError = String
+
+commit :: IndexWriter -> SegmentIndex -> Either CommitError SegmentIndex
+commit IndexWriter{..} si@SegmentIndex{..} =
+  return $! si { siSegments = SegmentMap.union iwNewSegments siSegments
+                              -- TODO: check for write conflicts
+               , siSchema = iwSchema
+                            -- TODO: check for write conflicts
+               }
+
+close :: IndexWriter -> SegmentIndex -> Either CommitError SegmentIndex
+close ixwr segix = do
+
+  let
+    removeIfZero :: Int -> a -> Maybe Int
+    removeIfZero a _b = case a - 1 of
+                          x | x <= 0    -> Nothing
+                            | otherwise -> Just x
+
+  segix' <- commit ixwr segix
+  return segix' {
+    siSegRefs = SegmentMap.differenceWith
+                removeIfZero
+                (siSegRefs segix)
+                (iwSegments ixwr)
+    }

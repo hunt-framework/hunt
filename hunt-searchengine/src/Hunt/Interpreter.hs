@@ -78,7 +78,9 @@ import           Hunt.Query.Processor              (ProcessConfig (..),
 import           Hunt.Scoring.SearchResult         (ScoredDocs, UnScoredDocs,
                                                     searchResultToOccurrences,
                                                     unScoredDocsToDocIdSet)
+import qualified Hunt.SegmentIndex                 as SegmentIndex
 import qualified Hunt.SegmentIndex.Commit          as Commit
+import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.Utility                      (showText)
 import           Hunt.Utility.Log
@@ -89,10 +91,10 @@ import           System.IO.Error                   (isAlreadyInUseError,
                                                     tryIOError)
 import qualified System.Log.Logger                 as Log
 
-import qualified Hunt.SegmentIndex.IndexWriter as IW
+import qualified Hunt.SegmentIndex.IndexWriter     as IW
 
-import Hunt.SegmentIndex.Types
-import Hunt.SegmentIndex.Types.SegmentId
+import           Hunt.SegmentIndex.Types
+import           Hunt.SegmentIndex.Types.SegmentId
 
 -- ------------------------------------------------------------
 --
@@ -142,6 +144,8 @@ data HuntEnv dt = HuntEnv
   { -- | The context index (indexes, document table and schema).
     --   Stored in an 'XMVar' so that read access is always possible.
     huntIndex       :: XMVar (ContextIndex)
+    -- | The reference to the 'SegmentIndex'
+  , huntSixRef      :: SegIxRef
     -- | Available context types.
   , huntTypes       :: ContextTypes
     -- | Available normalizers.
@@ -154,8 +158,10 @@ data HuntEnv dt = HuntEnv
 type DefHuntEnv = HuntEnv (Documents Document)
 
 -- | Initialize the Hunt environment with default values.
-initHunt :: IO (HuntEnv dt)
-initHunt = initHuntEnv CIx.empty contextTypes normalizers def
+initHunt :: FilePath -> IO (HuntEnv dt)
+initHunt indexDir = do
+  sixRef <- SegmentIndex.newSegmentIndex indexDir
+  initHuntEnv CIx.empty sixRef contextTypes normalizers def
 
 -- | Default context types.
 contextTypes :: ContextTypes
@@ -167,13 +173,14 @@ normalizers = [cnUpperCase, cnLowerCase, cnZeroFill]
 
 -- | Initialize the Hunt environment.
 initHuntEnv :: ContextIndex
-           -> ContextTypes
-           -> [CNormalizer]
-           -> ProcessConfig
-           -> IO (HuntEnv dt)
-initHuntEnv ixx opt ns qc = do
+            -> SegIxRef
+            -> ContextTypes
+            -> [CNormalizer]
+            -> ProcessConfig
+            -> IO (HuntEnv dt)
+initHuntEnv ixx ref opt ns qc = do
   ixref <- newXMVar ixx
-  return $ HuntEnv ixref opt ns qc
+  return $ HuntEnv ixref ref opt ns qc
 
 -- ------------------------------------------------------------
 -- Command evaluation monad
@@ -317,7 +324,8 @@ execCmd' (Status sc)
   = execStatus sc
 
 execCmd' (InsertList docs)
-  = modIx $ execInsertList docs
+  = do segIx <- asks huntSixRef
+       modIx $ execInsertList docs segIx
 
 execCmd' (Update doc)
   = modIx $ execUpdate doc
@@ -394,17 +402,17 @@ execDeleteContext cx ixx
 -- /Note/: All contexts mentioned in the 'ApiDocument' need to exist.
 -- Documents/URIs must not exist.
 
-execInsertList :: [ApiDocument] -> ContextIndex -> Hunt dt (ContextIndex, CmdResult)
-execInsertList docs ixx
-    = do sidgen <- liftIO $ newSegIdGen
-         liftIO $ IW.insertList docs IndexWriter { iwIndexDir = "./"
-                                                 , iwNewSegId = genSegId sidgen
-                                                 , iwSchema = CIx.mapToSchema ixx
-                                                 , iwSegments = mempty
-                                                 , iwNewSegments = mempty
-                                                 }
+execInsertList :: [ApiDocument]
+               -> SegIxRef
+               -> ContextIndex
+               -> Hunt dt (ContextIndex, CmdResult)
+execInsertList docs segIx ixx
+    = do liftIO $ do
+           ixWr <- SegmentIndex.newIndexWriter segIx
+           SegmentIndex.insertDocuments ixWr docs
+           SegmentIndex.closeIndexWriter ixWr
 
-  -- existence check for all referenced contexts in all docs
+         -- existence check for all referenced contexts in all docs
          checkContextsExistence contexts ixx
 
          -- check no duplicates in docs

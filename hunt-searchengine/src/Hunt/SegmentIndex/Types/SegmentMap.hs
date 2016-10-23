@@ -62,5 +62,11 @@ intersectionWith f (SM m1) (SM m2) = SM (IM.intersectionWith f m1 m2)
 difference :: SegmentMap a -> SegmentMap b -> SegmentMap a
 difference (SM m1) (SM m2) = SM (IM.difference m1 m2)
 
+differenceWith :: (a -> b -> Maybe a)
+               -> SegmentMap a
+               -> SegmentMap b
+               -> SegmentMap a
+differenceWith f (SM m1) (SM m2) = SM (IM.differenceWith f m1 m2)
+
 fromList :: [(SegmentId, a)] -> SegmentMap a
 fromList xs = SM (IM.fromList (fmap (first unSegmentId) xs))

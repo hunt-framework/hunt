@@ -54,7 +54,7 @@ import           Text.Blaze.Html                      (Html)
 -- and start a server using the configuration specified.
 runWithConfig :: HuntServerConfiguration -> IO ()
 runWithConfig config = do
-  env <- initHunt :: IO DefHuntEnv
+  env <- initHunt "tmp-index" :: IO DefHuntEnv
   initLoggers (logPriority config) (logFile config)
   tryLoadIndex env $ readIndexOnStartup config
   run (huntServerPort config) (serveApp env)

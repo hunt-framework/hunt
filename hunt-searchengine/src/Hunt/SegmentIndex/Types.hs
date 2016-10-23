@@ -8,6 +8,7 @@ import           Hunt.SegmentIndex.Types.Index      (IndexRepr)
 import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
 
+import           Control.Concurrent.STM.TMVar
 import           Data.Map                           (Map)
 import           Prelude                            hiding (Word)
 
@@ -58,6 +59,9 @@ data IndexWriter =
                 -- This 'IndexWriter' is the only one referencing
                 -- this 'Segment's for now. This allows for easy
                 -- merging and deleting 'Segment's if needed.
+              , iwSegIxRef    :: SegIxRef
+                -- ^ A reference to the 'SegmentIndex' which creates
+                -- this 'IndexWriter'.
               }
 
 -- | 'IndexReader' is query-only and doesn't modify the index in any way.
@@ -68,16 +72,16 @@ data IndexReader =
 
 -- | The 'SegmentIndex' holding everything together.
 data SegmentIndex =
-  SegmentIndex { siIndexDir :: FilePath
+  SegmentIndex { siIndexDir :: !FilePath
                  -- ^ The directory where the 'Segment's and meta
                  -- data are stored.
-               , siSegIdGen :: SegIdGen
+               , siSegIdGen :: !SegIdGen
                  -- ^ 'IndexWriter's forked from the 'SegmentIndex'
                  -- need to create new 'Segment's (and hence 'SegmentId's).
                  -- This is a 'SegmentIndex' unique generator for 'SegmentId's.
-               , siSchema   :: Schema
+               , siSchema   :: !Schema
                  -- ^ 'Schema' for indexed fields
-               , siSegments :: SegmentMap Segment
+               , siSegments :: !(SegmentMap Segment)
                  -- ^ The 'Segment's currently in the 'SegmentIndex'.
                  -- Since 'IndexWriter' and 'IndexReader' many reference
                  -- 'Segment's from the 'SegmentIndex' we *must not*
@@ -85,10 +89,14 @@ data SegmentIndex =
                  -- referenced. But we can safely merge any 'Segment'
                  -- in here as the merge result will not appear in
                  -- 'IndexReader' and 'IndexWriter'.
-               , siSegRefs  :: SegmentMap Int
+               , siSegRefs  :: !(SegmentMap Int)
                  -- ^ A map counting references to the 'Segment's.
                  -- We need to make sure we don't delete 'Segment's
                  --  from disk while someone might read from them.
                  -- INVARIANT: 'SegmentId's not present here are
                  -- assumed a count of 0
                }
+
+type SegIxRef = TMVar SegmentIndex
+
+type IxWrRef = TMVar IndexWriter
