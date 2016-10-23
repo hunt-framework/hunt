@@ -47,17 +47,30 @@ insert (SegmentId k) v (SM m) = SM (IM.insert k v m)
 map :: (a -> b) -> SegmentMap a -> SegmentMap b
 map f (SM m) = SM (IM.map f m)
 
+filter :: (a -> Bool) -> SegmentMap a -> SegmentMap a
+filter p (SM m) = SM (IM.filter p m)
+
 union :: SegmentMap a -> SegmentMap a -> SegmentMap a
 union (SM m1) (SM m2) = SM (IM.union m1 m2)
 
 unionWith :: (a -> a -> a) -> SegmentMap a -> SegmentMap a -> SegmentMap a
 unionWith f (SM m1) (SM m2) = SM (IM.unionWith f m1 m2)
 
+intersection :: SegmentMap a -> SegmentMap b -> SegmentMap a
+intersection (SM m1) (SM m2) = SM (IM.intersection m1 m2)
+
 intersectionWith :: (a -> b -> c)
                  -> SegmentMap a
                  -> SegmentMap b
                  -> SegmentMap c
 intersectionWith f (SM m1) (SM m2) = SM (IM.intersectionWith f m1 m2)
+
+intersectionWithKey :: (SegmentId -> a -> b -> c)
+                    -> SegmentMap a
+                    -> SegmentMap b
+                    -> SegmentMap c
+intersectionWithKey f (SM m1) (SM m2) =
+  SM (IM.intersectionWithKey (\k x y -> f (SegmentId k) x y) m1 m2)
 
 difference :: SegmentMap a -> SegmentMap b -> SegmentMap a
 difference (SM m1) (SM m2) = SM (IM.difference m1 m2)
@@ -70,3 +83,6 @@ differenceWith f (SM m1) (SM m2) = SM (IM.differenceWith f m1 m2)
 
 fromList :: [(SegmentId, a)] -> SegmentMap a
 fromList xs = SM (IM.fromList (fmap (first unSegmentId) xs))
+
+elems :: SegmentMap a -> [a]
+elems (SM m) = IM.elems m

@@ -151,17 +151,38 @@ newSegment indexDirectory genSegId schema docs = do
         getWlForCx cx' ws'
           = Map.findWithDefault Map.empty cx' ws'
 
-type CommitError = String
-
-commit :: IndexWriter -> SegmentIndex -> Either CommitError SegmentIndex
+commit :: IndexWriter -> SegmentIndex -> CommitResult SegmentIndex
 commit IndexWriter{..} si@SegmentIndex{..} =
-  return $! si { siSegments = SegmentMap.union iwNewSegments siSegments
-                              -- TODO: check for write conflicts
-               , siSchema = iwSchema
-                            -- TODO: check for write conflicts
-               }
+  let
+    -- checks for conflcts on two segments
+    checkConflict :: SegmentId -> Segment -> Segment -> [Conflict]
+    checkConflict sid s1 s2 =
+      -- currently only the delete generations can be changed
+      -- so if we have modifed 'Segment's here they always conflict.
+      [ ConflictDelete sid
+      | segDelGen s1 /= segDelGen s2
+      ]
 
-close :: IndexWriter -> SegmentIndex -> Either CommitError SegmentIndex
+    conflicts :: [Conflict]
+    conflicts =
+      List.concat
+      $ SegmentMap.elems
+      $ SegmentMap.intersectionWithKey checkConflict siSegments
+      $ SegmentMap.intersection iwSegments iwModSegments
+
+  in case conflicts of
+       [] -> CommitOk $! si { siSegments =
+                                -- insert the modified 'Segment's
+                                SegmentMap.unionWith (\new _old -> new) iwModSegments
+                                -- insert the new 'Segment's into 'siSegments'
+                                $ SegmentMap.union iwNewSegments siSegments
+
+                            , siSchema   = iwSchema
+                              -- TODO: check for write conflicts
+                            }
+       _  -> CommitConflicts conflicts
+
+close :: IndexWriter -> SegmentIndex -> CommitResult SegmentIndex
 close ixwr segix = do
 
   let
@@ -170,10 +191,13 @@ close ixwr segix = do
                           x | x <= 0    -> Nothing
                             | otherwise -> Just x
 
-  segix' <- commit ixwr segix
-  return segix' {
-    siSegRefs = SegmentMap.differenceWith
-                removeIfZero
-                (siSegRefs segix)
-                (iwSegments ixwr)
-    }
+  case commit ixwr segix of
+    CommitOk segix' -> CommitOk segix' {
+      -- decrease the reference count so we can delete
+      -- obsolete 'Segment's
+      siSegRefs = SegmentMap.differenceWith
+                  removeIfZero
+                  (siSegRefs segix)
+                  (iwSegments ixwr)
+      }
+    conflict        -> conflict

@@ -22,13 +22,12 @@ newSegmentIndex indexDir = do
   Directory.createDirectoryIfMissing True indexDir
 
   segIdGen <- newSegIdGen
-  siRef    <- newTMVarIO $! SegmentIndex { siIndexDir = indexDir
-                                         , siSegIdGen = segIdGen
-                                         , siSchema   = Map.empty
-                                         , siSegments = SegmentMap.empty
-                                         , siSegRefs  = SegmentMap.empty
-                                         }
-
+  siRef    <- newTVarIO $! SegmentIndex { siIndexDir = indexDir
+                                        , siSegIdGen = segIdGen
+                                        , siSchema   = Map.empty
+                                        , siSegments = SegmentMap.empty
+                                        , siSegRefs  = SegmentMap.empty
+                                        }
   return siRef
 
 -- | Fork a new 'IndexWriter' from a 'SegmentIndex'. This is very cheap
@@ -36,7 +35,7 @@ newSegmentIndex indexDir = do
 newIndexWriter :: SegIxRef
                -> IO IxWrRef
 newIndexWriter sigRef = atomically $ do
-  si@SegmentIndex{..} <- takeTMVar sigRef
+  si@SegmentIndex{..} <- readTVar sigRef
 
   ixwr <- newTMVar $! IndexWriter {
       iwIndexDir    = siIndexDir
@@ -44,10 +43,11 @@ newIndexWriter sigRef = atomically $ do
     , iwSchema      = siSchema
     , iwSegments    = siSegments
     , iwNewSegments = SegmentMap.empty
+    , iwModSegments = SegmentMap.empty
     , iwSegIxRef    = sigRef
     }
 
-  putTMVar sigRef $! si {
+  writeTVar sigRef $! si {
         siSegRefs = SegmentMap.unionWith (+)
                     (SegmentMap.map (\_ -> 1) siSegments)
                     siSegRefs
@@ -61,11 +61,14 @@ insertDocuments ixwrref docs = do
   ixwr' <- IndexWriter.insertList docs ixwr
   atomically $ putTMVar ixwrref $! ixwr'
 
-closeIndexWriter :: IxWrRef -> IO ()
+closeIndexWriter :: IxWrRef -> IO (CommitResult ())
 closeIndexWriter ixwrref = atomically $ do
-  ixwr  <- takeTMVar ixwrref
-  segix <- takeTMVar (iwSegIxRef ixwr)
+  ixwr  <- readTMVar ixwrref
+  segix <- readTVar (iwSegIxRef ixwr)
 
   case IndexWriter.close ixwr segix of
-    Right segix' -> putTMVar (iwSegIxRef ixwr) segix'
-    Left err -> undefined -- FIXME:
+    CommitOk segix'           -> do
+      writeTVar (iwSegIxRef ixwr) $! segix'
+      return $ CommitOk ()
+    CommitConflicts conflicts ->
+      return $ CommitConflicts conflicts

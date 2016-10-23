@@ -407,10 +407,15 @@ execInsertList :: [ApiDocument]
                -> ContextIndex
                -> Hunt dt (ContextIndex, CmdResult)
 execInsertList docs segIx ixx
-    = do liftIO $ do
+    = do res <- liftIO $ do
            ixWr <- SegmentIndex.newIndexWriter segIx
            SegmentIndex.insertDocuments ixWr docs
            SegmentIndex.closeIndexWriter ixWr
+
+         case res of
+           CommitOk _ -> return (ixx, ResOK)
+           CommitConflicts conflicts ->
+             throwResError 409 "Write conflict"
 
          -- existence check for all referenced contexts in all docs
          checkContextsExistence contexts ixx

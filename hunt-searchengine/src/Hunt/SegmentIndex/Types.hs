@@ -9,6 +9,7 @@ import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
 
 import           Control.Concurrent.STM.TMVar
+import           Control.Concurrent.STM.TVar
 import           Data.Map                           (Map)
 import           Prelude                            hiding (Word)
 
@@ -59,6 +60,9 @@ data IndexWriter =
                 -- This 'IndexWriter' is the only one referencing
                 -- this 'Segment's for now. This allows for easy
                 -- merging and deleting 'Segment's if needed.
+              , iwModSegments :: SegmentMap Segment
+                -- ^ Everytime we delete documents we modify
+                -- 'Segments' from 'iwSegments' and put it in 'iwModSegments'.
               , iwSegIxRef    :: SegIxRef
                 -- ^ A reference to the 'SegmentIndex' which creates
                 -- this 'IndexWriter'.
@@ -97,6 +101,16 @@ data SegmentIndex =
                  -- assumed a count of 0
                }
 
-type SegIxRef = TMVar SegmentIndex
+-- | As forking of new 'IndexWriter' and 'IndexReader' involves no
+-- IO we can store 'SegmentIndex' in a 'TVar'.
+type SegIxRef = TVar SegmentIndex
 
+-- | A mutex-locked reference to an 'IndexWriter'.
 type IxWrRef = TMVar IndexWriter
+
+-- | A type indicating the result of a transaction.
+data CommitResult a = CommitOk a
+                    | CommitConflicts [Conflict]
+
+-- | The different conflict types which can arise.
+data Conflict = ConflictDelete !SegmentId
