@@ -31,6 +31,12 @@ import qualified Data.Vector                        as Vector
 
 import           Prelude                            hiding (Word)
 
+deleteDocuments :: DocIdSet -> Segment -> Segment
+deleteDocuments dids seg =
+  seg { segDelGen      = segDelGen seg + 1
+      , segDeletedDocs = dids <> segDeletedDocs seg
+      }
+
 -- | Insert a batch of 'Document's.
 insertList :: [ApiDocument]
            -> IndexWriter
@@ -171,12 +177,11 @@ commit IndexWriter{..} si@SegmentIndex{..} =
       $ SegmentMap.intersection iwSegments iwModSegments
 
   in case conflicts of
-       [] -> CommitOk $! si { siSegments =
-                                -- insert the modified 'Segment's
-                                SegmentMap.unionWith (\new _old -> new) iwModSegments
-                                -- insert the new 'Segment's into 'siSegments'
-                                $ SegmentMap.union iwNewSegments siSegments
-                            }
+       [] -> CommitOk $! si {
+           siSegments = SegmentMap.unionWith (\new _old -> new) iwModSegments
+                        -- insert the new 'Segment's into 'siSegments'
+                        $ SegmentMap.union iwNewSegments siSegments
+         }
        _  -> CommitConflicts conflicts
 
 close :: IndexWriter -> SegmentIndex -> CommitResult SegmentIndex
