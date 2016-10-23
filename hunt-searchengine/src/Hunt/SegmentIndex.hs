@@ -2,6 +2,8 @@
 module Hunt.SegmentIndex where
 
 import           Hunt.Common.ApiDocument            (ApiDocument)
+import           Hunt.Common.BasicTypes
+import           Hunt.Index.Schema
 import qualified Hunt.SegmentIndex.IndexWriter      as IndexWriter
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.SegmentId
@@ -29,6 +31,17 @@ newSegmentIndex indexDir = do
                                         , siSegRefs  = SegmentMap.empty
                                         }
   return siRef
+
+insertContext :: SegIxRef
+              -> Context
+              -> ContextSchema
+              -> IO ()
+insertContext sixref cx cxs = atomically $ do
+  six <- readTVar sixref
+  writeTVar sixref $! six { siSchema =
+                              Map.insertWith (\_ x -> x) cx cxs (siSchema six)
+                          }
+  return ()
 
 -- | Fork a new 'IndexWriter' from a 'SegmentIndex'. This is very cheap
 -- and never fails.

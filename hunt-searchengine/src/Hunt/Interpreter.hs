@@ -381,6 +381,9 @@ execInsertContext cx ct ixx
     impl                 <- askIndex . ctName . cxType $ ct
     norms                <- mapM (askNormalizer . cnName) $ cxNormalizer ct
 
+    six <- asks huntSixRef
+    liftIO $ SegmentIndex.insertContext six cx (newSchema cType norms)
+
     -- create new index instance and insert it with context
     return $ ( CIx.insertContext cx (newIx impl) (newSchema cType norms) ixx
              , ResOK
