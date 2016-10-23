@@ -81,14 +81,14 @@ testCmd cmd = fst <$> testRunCmd cmd
 
 testRunCmd :: Command -> IO (Either CmdError CmdResult, TestEnv)
 testRunCmd cmd = do
-  env <- initHunt :: IO DefHuntEnv
+  env <- initHunt "./tmp-index" :: IO DefHuntEnv
   res <- runCmd env cmd
   return (res, env)
 
 -- evaluate CM and check the result
 testCM' :: Bool -> TestCM () -> Assertion
 testCM' b int = do
-  env <- initHunt :: IO DefHuntEnv
+  env <- initHunt "./tmp-index" :: IO DefHuntEnv
   res <- runHunt int env
   (if b then isRight else isLeft) res @? "unexpected interpreter result: " ++ show res
 
@@ -543,7 +543,7 @@ toText (lat, lon) = (pack $ printf "%f" lat) <> "-" <> (pack $ printf "%f" lon)
 prop_position_range :: Double -> Double -> Double -> Double -> (Double, Double) -> Property
 prop_position_range x1' x2' x3' x4' (lon', lat') = monadicIO $ do
   res <- run $ do
-    env <- initHunt :: IO DefHuntEnv
+    env <- initHunt "./tmp-index" :: IO DefHuntEnv
     res' <- flip runHunt env $ do
       _ <- execCmd insertDefaultContext
       _ <- execCmd insertGeoContext
