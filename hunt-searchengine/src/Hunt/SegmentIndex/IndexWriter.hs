@@ -197,7 +197,7 @@ close ixwr segix = do
                             | otherwise -> Just x
 
   case commit ixwr segix of
-    CommitOk segix' -> CommitOk segix' {
+    CommitOk segix' -> CommitOk $! segix' {
       -- decrease the reference count so we can delete
       -- obsolete 'Segment's
       siSegRefs = SegmentMap.differenceWith
