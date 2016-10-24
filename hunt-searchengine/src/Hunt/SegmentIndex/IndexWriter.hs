@@ -6,6 +6,7 @@ import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocDesc                (FieldRank)
 import qualified Hunt.Common.DocDesc                as DocDesc
 import           Hunt.Common.DocId
+import           Hunt.Common.DocIdSet               (DocIdSet)
 import           Hunt.Common.Document
 import           Hunt.Common.Occurrences            (Occurrences)
 import qualified Hunt.Common.Occurrences            as Occ
