@@ -6,6 +6,7 @@ import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
 import qualified Hunt.SegmentIndex.IndexWriter      as IndexWriter
 import           Hunt.SegmentIndex.Types
+import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
 import qualified Hunt.SegmentIndex.Types.SegmentMap as SegmentMap
@@ -25,11 +26,12 @@ newSegmentIndex indexDir = do
 
   segIdGen <- newSegIdGen
   siRef    <- newTVarIO $! SegmentIndex {
-      siIndexDir = indexDir
-    , siSegIdGen = segIdGen
-    , siSchema   = Map.empty
-    , siSegments = SegmentMap.empty
-    , siSegRefs  = SegmentMap.empty
+      siGeneration = generationZero
+    , siIndexDir   = indexDir
+    , siSegIdGen   = segIdGen
+    , siSchema     = Map.empty
+    , siSegments   = SegmentMap.empty
+    , siSegRefs    = SegmentMap.empty
     }
   return siRef
 
