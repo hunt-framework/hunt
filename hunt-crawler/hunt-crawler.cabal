@@ -69,8 +69,12 @@ library
               , process                >= 1
               , SHA                    >= 1.4
               , text                   >= 0.11
-              , unix                   >= 2.3
               , vector                 >= 0.10
+
+  if os(windows)
+     build-depends: Win32 >= 2.1
+  else
+     build-depends: unix >= 2.3
 
   if flag(network-uri)
      build-depends: network-uri >= 2.6, network >= 2.6

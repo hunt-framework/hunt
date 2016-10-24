@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# OPTIONS #-}
 
 -- ------------------------------------------------------------
@@ -16,7 +17,12 @@ import           System.Directory               ( getTemporaryDirectory
                                                 )
 import           System.FilePath                ( (</>) )
 import           System.Process                 ( rawSystem )
+#ifdef mingw32_HOST_OS
+import           System.Win32.Process           ( getProcessID )
+#else
 import           System.Posix.Process           ( getProcessID )
+#endif
+
 import           System.IO.Unsafe               ( unsafePerformIO )
 
 import           Text.XML.HXT.Core
