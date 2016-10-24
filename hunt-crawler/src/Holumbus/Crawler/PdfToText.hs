@@ -17,15 +17,42 @@ import           System.Directory               ( getTemporaryDirectory
                                                 )
 import           System.FilePath                ( (</>) )
 import           System.Process                 ( rawSystem )
-#ifdef mingw32_HOST_OS
-import           System.Win32.Process           ( getProcessID )
-#else
-import           System.Posix.Process           ( getProcessID )
-#endif
 
 import           System.IO.Unsafe               ( unsafePerformIO )
 
 import           Text.XML.HXT.Core
+
+#ifdef mingw32_HOST_OS
+
+#if defined(i386_HOST_ARCH)
+# define WINDOWS_CCONV stdcall
+#elif defined(x86_64_HOST_ARCH)
+# define WINDOWS_CCONV ccall
+#else
+# error Unknown mingw32 arch
+#endif
+
+import Data.Word (Word32)
+
+type ProcessId = Word32
+
+foreign import WINDOWS_CCONV unsafe "windows.h GetCurrentProcessId"
+    c_GetCurrentProcessId :: IO ProcessId
+
+#undef WINDOWS_CCONV
+
+getCurrentProcessId :: IO ProcessId
+getCurrentProcessId = c_GetCurrentProcessId
+
+-- a little shim for Windows compatibility
+getProcessID :: IO ProcessId
+getProcessID = getCurrentProcessId
+
+#else
+import           System.Posix.Process           ( getProcessID )
+#endif
+
+
 
 -- ------------------------------------------------------------
 
