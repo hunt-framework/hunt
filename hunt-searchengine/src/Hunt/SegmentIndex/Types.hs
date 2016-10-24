@@ -4,6 +4,7 @@ module Hunt.SegmentIndex.Types where
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocIdSet               (DocIdSet)
 import           Hunt.Index.Schema
+import           Hunt.SegmentIndex.Types.Generation (Generation)
 import           Hunt.SegmentIndex.Types.Index      (IndexRepr)
 import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
@@ -23,12 +24,9 @@ data Segment =
             -- TODO: is this really needed? (Maybe a nice merge-metric)
           , segDeletedDocs :: !DocIdSet
             -- ^ The set of deleted 'DocId's
-          , segDelGen      :: !Int
+          , segDelGen      :: !Generation
             -- ^ Since 'Segment's are immutable itself we have
             -- to remember at which delete generation we are.
-          , segSchema      :: !Schema
-            -- ^ Since the 'Schema' can be changed we also store it
-            -- per 'Segment'.
           , segTermIndex   :: !ContextMap
             -- ^ Indexes the terms and points to the stored occurrences
           }
@@ -77,16 +75,18 @@ data IndexReader =
 
 -- | The 'SegmentIndex' holding everything together.
 data SegmentIndex =
-  SegmentIndex { siIndexDir :: !FilePath
+  SegmentIndex { siGeneration :: !Generation
+                 -- ^ The generation of the 'SegmentIndex'
+               , siIndexDir   :: !FilePath
                  -- ^ The directory where the 'Segment's and meta
                  -- data are stored.
-               , siSegIdGen :: !SegIdGen
+               , siSegIdGen   :: !SegIdGen
                  -- ^ 'IndexWriter's forked from the 'SegmentIndex'
                  -- need to create new 'Segment's (and hence 'SegmentId's).
                  -- This is a 'SegmentIndex' unique generator for 'SegmentId's.
-               , siSchema   :: !Schema
+               , siSchema     :: !Schema
                  -- ^ 'Schema' for indexed fields
-               , siSegments :: !(SegmentMap Segment)
+               , siSegments   :: !(SegmentMap Segment)
                  -- ^ The 'Segment's currently in the 'SegmentIndex'.
                  -- Since 'IndexWriter' and 'IndexReader' many reference
                  -- 'Segment's from the 'SegmentIndex' we *must not*
@@ -94,7 +94,7 @@ data SegmentIndex =
                  -- referenced. But we can safely merge any 'Segment'
                  -- in here as the merge result will not appear in
                  -- 'IndexReader' and 'IndexWriter'.
-               , siSegRefs  :: !(SegmentMap Int)
+               , siSegRefs    :: !(SegmentMap Int)
                  -- ^ A map counting references to the 'Segment's.
                  -- We need to make sure we don't delete 'Segment's
                  --  from disk while someone might read from them.

@@ -16,6 +16,7 @@
 
 module Hunt.Common.DocIdSet
   ( DocIdSet(..)
+  , empty
   , singleton
   , null
   , size
@@ -71,6 +72,9 @@ instance FromJSON DocIdSet where
                                Nothing -> mzero
                           ) S.empty ids
       return (DIS dis)
+
+empty :: DocIdSet
+empty = DIS S.empty
 
 difference :: DocIdSet -> DocIdSet -> DocIdSet
 difference (DIS s1) (DIS s2) = DIS $ S.difference s1 s2

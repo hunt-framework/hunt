@@ -7,6 +7,7 @@ import           Hunt.Common.DocDesc                (FieldRank)
 import qualified Hunt.Common.DocDesc                as DocDesc
 import           Hunt.Common.DocId
 import           Hunt.Common.DocIdSet               (DocIdSet)
+import qualified Hunt.Common.DocIdSet               as DocIdSet
 import           Hunt.Common.Document
 import           Hunt.Common.Occurrences            (Occurrences)
 import qualified Hunt.Common.Occurrences            as Occ
@@ -15,6 +16,7 @@ import           Hunt.Index.Schema.Analyze
 import qualified Hunt.SegmentIndex.Commit           as Commit
 import qualified Hunt.SegmentIndex.Descriptor       as IxDescr
 import           Hunt.SegmentIndex.Types
+import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.Index
 import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
@@ -35,7 +37,7 @@ import           Prelude                            hiding (Word)
 
 deleteDocuments :: DocIdSet -> Segment -> Segment
 deleteDocuments dids seg =
-  seg { segDelGen      = segDelGen seg + 1
+  seg { segDelGen      = nextGeneration (segDelGen seg)
       , segDeletedDocs = dids <> segDeletedDocs seg
       }
 
@@ -118,9 +120,8 @@ newSegment indexDirectory genSegId schema docs = do
   return ( segmentId
          , Segment { segNumDocs     = 0
                    , segNumTerms    = 0
-                   , segDeletedDocs = mempty
-                   , segDelGen      = 0
-                   , segSchema      = schema
+                   , segDeletedDocs = DocIdSet.empty
+                   , segDelGen      = generationZero
                    , segTermIndex   = Map.fromDistinctAscList cxMap
                    }
          )
