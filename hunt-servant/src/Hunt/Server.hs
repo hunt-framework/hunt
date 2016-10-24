@@ -38,6 +38,7 @@ import qualified Hunt.Server.Template                 as Templ
 import           Servant
 
 import           Servant.HTML.Blaze
+import           System.Directory                     (getCurrentDirectory)
 import           System.IO                            (stdout)
 import           System.Log.Formatter
 import           System.Log.Handler
@@ -54,23 +55,22 @@ import           Text.Blaze.Html                      (Html)
 -- and start a server using the configuration specified.
 runWithConfig :: HuntServerConfiguration -> IO ()
 runWithConfig config = do
-  env <- initHunt "tmp-index" :: IO DefHuntEnv
+  indexDir <- getIndexDir $ indexDirectory config
+  env <- initHunt indexDir :: IO DefHuntEnv
   initLoggers (logPriority config) (logFile config)
-  tryLoadIndex env $ readIndexOnStartup config
   run (huntServerPort config) (serveApp env)
 
 
-tryLoadIndex :: DefHuntEnv -> Maybe FilePath -> IO ()
-tryLoadIndex _ Nothing = return ()
-tryLoadIndex env (Just indexFile) = do
-  cmdResult <- runCmd env $ HC.cmdLoadIndex indexFile
-  case cmdResult of
-    Right _  ->
-      debugM $ "Index loaded: " ++ indexFile
+getIndexDir :: FilePath -> IO FilePath
+getIndexDir configuredDir
+  | configuredDir == defaultDir = defaultDirectory
+  | otherwise = return configuredDir
+  where
+    defaultDir = indexDirectory defaultConfig
 
-    Left err -> do
-      errorM (show err)
-      fail (show err)
+    defaultDirectory = do
+      dir <- getCurrentDirectory
+      return $ dir ++ "/" ++ "data"
 
 
 -- | Combine the HuntAPI with the server implementation

@@ -37,6 +37,7 @@ configuration = HuntServerConfiguration
     defaultHost     = huntServerHost defaultConfig
     defaultPort     = huntServerPort defaultConfig
     defaultLog      = logFile defaultConfig
+    defaultDir      = indexDirectory defaultConfig
     defaultPriority = logPriority defaultConfig
 
     hostOption = strOption
@@ -53,11 +54,11 @@ configuration = HuntServerConfiguration
       <|> pure defaultPort
 
     indexOption = option auto
-      ( long "with-index"
+      ( long "index-directory"
       <> short 'i'
-      <> metavar "INDEX"
-      <> help "Index file to use when starting the server" )
-      <|> pure (readIndexOnStartup defaultConfig)
+      <> metavar "DIR"
+      <> help ("Directory for hunt to store data, defaults to \"$(pwd)/data\""))
+      <|> pure defaultDir
 
     logFileOption = strOption
       ( long "logfile"
