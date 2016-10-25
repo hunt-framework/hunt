@@ -26,7 +26,7 @@ newSegmentIndex indexDir = do
   Directory.createDirectoryIfMissing True indexDir
 
   segIdGen <- newSegIdGen
-  siRef    <- newTVarIO $! SegmentIndex {
+  siRef    <- newTMVarIO $! SegmentIndex {
       siGeneration = generationZero
     , siIndexDir   = indexDir
     , siSegIdGen   = segIdGen
@@ -42,8 +42,8 @@ insertContext :: SegIxRef
               -> IO ()
 insertContext sixref cx cxs = do
   atomically $ do
-    six <- readTVar sixref
-    writeTVar sixref $! six {
+    six <- readTMVar sixref
+    putTMVar sixref $! six {
         siSchema = Map.insertWith (\_ old -> old) cx cxs (siSchema six)
       }
   -- TODO: we need to commit  a new index version
@@ -53,8 +53,8 @@ deleteContext :: SegIxRef
               -> IO ()
 deleteContext sixref cx = do
   atomically $ do
-    six <- readTVar sixref
-    writeTVar sixref $! six {
+    six <- readTMVar sixref
+    putTMVar sixref $! six {
         siSchema = Map.delete cx (siSchema six)
       }
   -- TODO: we need to commit here
@@ -64,7 +64,7 @@ deleteContext sixref cx = do
 newIndexWriter :: SegIxRef
                -> IO IxWrRef
 newIndexWriter sigRef = atomically $ do
-  si@SegmentIndex{..} <- readTVar sigRef
+  si@SegmentIndex{..} <- readTMVar sigRef
 
   ixwr <- newTMVar $! IndexWriter {
       iwIndexDir    = siIndexDir
@@ -76,7 +76,7 @@ newIndexWriter sigRef = atomically $ do
     , iwSegIxRef    = sigRef
     }
 
-  writeTVar sigRef $! si {
+  putTMVar sigRef $! si {
         siSegRefs = SegmentMap.unionWith (+)
                     (SegmentMap.map (\_ -> 1) siSegments)
                     siSegRefs
@@ -92,8 +92,9 @@ insertDocuments ixwrref docs = do
 
 closeIndexWriter :: IxWrRef -> IO (CommitResult ())
 closeIndexWriter ixwrref = do
+  -- TODO: make this exception safe!
   ixwr  <- atomically $ readTMVar ixwrref
-  segix <- atomically $ readTVar (iwSegIxRef ixwr)
+  segix <- atomically $ readTMVar (iwSegIxRef ixwr)
 
   case IndexWriter.close ixwr segix of
     CommitOk segix'           -> do
@@ -110,7 +111,7 @@ closeIndexWriter ixwrref = do
         (siSchema segix)
         (siSegments segix)
 
-      atomically $ writeTVar (iwSegIxRef ixwr) $! segix'
+      atomically $ putTMVar (iwSegIxRef ixwr) $! segix'
       return $ CommitOk ()
     CommitConflicts conflicts ->
       return $ CommitConflicts conflicts
