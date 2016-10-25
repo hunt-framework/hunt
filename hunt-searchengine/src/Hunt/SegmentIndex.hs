@@ -93,8 +93,8 @@ insertDocuments ixwrref docs = do
 closeIndexWriter :: IxWrRef -> IO (CommitResult ())
 closeIndexWriter ixwrref = do
   -- TODO: make this exception safe!
-  ixwr  <- atomically $ readTMVar ixwrref
-  segix <- atomically $ readTMVar (iwSegIxRef ixwr)
+  ixwr  <- atomically $ takeTMVar ixwrref
+  segix <- atomically $ takeTMVar (iwSegIxRef ixwr)
 
   case IndexWriter.close ixwr segix of
     CommitOk segix'           -> do
