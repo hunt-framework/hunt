@@ -4,6 +4,7 @@ module Hunt.SegmentIndex where
 import           Hunt.Common.ApiDocument            (ApiDocument)
 import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
+import qualified Hunt.SegmentIndex.Commit           as Commit
 import qualified Hunt.SegmentIndex.IndexWriter      as IndexWriter
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
@@ -90,13 +91,26 @@ insertDocuments ixwrref docs = do
   atomically $ putTMVar ixwrref $! ixwr'
 
 closeIndexWriter :: IxWrRef -> IO (CommitResult ())
-closeIndexWriter ixwrref = atomically $ do
-  ixwr  <- readTMVar ixwrref
-  segix <- readTVar (iwSegIxRef ixwr)
+closeIndexWriter ixwrref = do
+  ixwr  <- atomically $ readTMVar ixwrref
+  segix <- atomically $ readTVar (iwSegIxRef ixwr)
 
   case IndexWriter.close ixwr segix of
     CommitOk segix'           -> do
-      writeTVar (iwSegIxRef ixwr) $! segix'
+
+      let
+        nextSegId :: SegmentId
+        nextSegId = maybe segmentZero fst
+                    $ SegmentMap.findMax (siSegments segix)
+
+      Commit.writeMetaIndex
+        (siIndexDir segix)
+        (siGeneration segix)
+        nextSegId
+        (siSchema segix)
+        (siSegments segix)
+
+      atomically $ writeTVar (iwSegIxRef ixwr) $! segix'
       return $ CommitOk ()
     CommitConflicts conflicts ->
       return $ CommitConflicts conflicts

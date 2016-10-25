@@ -38,6 +38,9 @@ instance TraversableWithKey SegmentMap where
 null :: SegmentMap a -> Bool
 null = IM.null . unSM
 
+size :: SegmentMap a -> Int
+size = IM.size . unSM
+
 empty :: SegmentMap a
 empty = SM IM.empty
 
@@ -86,3 +89,9 @@ fromList xs = SM (IM.fromList (fmap (first unSegmentId) xs))
 
 elems :: SegmentMap a -> [a]
 elems (SM m) = IM.elems m
+
+findMax :: SegmentMap a -> Maybe (SegmentId, a)
+findMax (SM m)
+  | IM.null m = Nothing
+  | otherwise = case IM.findMax m of
+                  (k, v) -> Just (SegmentId k, v)

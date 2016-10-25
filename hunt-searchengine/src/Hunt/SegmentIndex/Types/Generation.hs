@@ -1,7 +1,10 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Hunt.SegmentIndex.Types.Generation where
 
+import           Data.Binary (Binary)
+
 newtype Generation = Generation Int
-                   deriving (Eq, Ord)
+                   deriving (Binary, Eq, Ord)
 
 instance Show Generation where
   show (Generation g) = show g

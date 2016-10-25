@@ -2,13 +2,17 @@
 module Hunt.SegmentIndex.Types.SegmentId where
 
 import           Control.Monad.Primitive
+import           Data.Binary             (Binary)
 import           Data.Char
 import           Data.Primitive.PrimRef
 import           Numeric                 (readInt, showIntAtBase)
 
 -- | Uniquely identifies a 'Segment'.
 newtype SegmentId = SegmentId { unSegmentId :: Int }
-                  deriving (Eq, Ord, Enum)
+                  deriving (Binary, Eq, Ord, Enum)
+
+segmentZero :: SegmentId
+segmentZero = SegmentId 1
 
 instance Show SegmentId where
   show (SegmentId sid) = '_' : showIntAtBase 36 intToDigit36 sid ""
