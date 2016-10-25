@@ -9,6 +9,11 @@ newtype Generation = Generation Int
 instance Show Generation where
   show (Generation g) = show g
 
+instance Read Generation where
+  readsPrec x s = case readsPrec x s of
+                    [(g, "")] -> [(Generation g, "")]
+                    _         -> []
+
 generationZero :: Generation
 generationZero = Generation 0
 
