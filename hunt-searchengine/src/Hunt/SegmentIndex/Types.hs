@@ -9,7 +9,7 @@ import           Hunt.SegmentIndex.Types.Index      (IndexRepr)
 import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
 
-import           Control.Concurrent.STM.TMVar
+import           Control.Concurrent.MVar
 import           Data.Map                           (Map)
 import           Prelude                            hiding (Word)
 
@@ -101,12 +101,11 @@ data SegmentIndex =
                  -- assumed a count of 0
                }
 
--- | As forking of new 'IndexWriter' and 'IndexReader' involves no
--- IO we can store 'SegmentIndex' in a 'TVar'.
-type SegIxRef = TMVar SegmentIndex
+-- | An exlusive lock for 'SegmentIndex'.
+type SegIxRef = MVar SegmentIndex
 
 -- | A mutex-locked reference to an 'IndexWriter'.
-type IxWrRef = TMVar IndexWriter
+type IxWrRef = MVar IndexWriter
 
 -- | A type indicating the result of a transaction.
 data CommitResult a = CommitOk a

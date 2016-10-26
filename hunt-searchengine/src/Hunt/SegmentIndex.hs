@@ -1,5 +1,15 @@
 {-# LANGUAGE RecordWildCards #-}
-module Hunt.SegmentIndex where
+module Hunt.SegmentIndex (
+    SegIxRef
+  , newSegmentIndex
+  , insertContext
+  , deleteContext
+
+  , newWriter
+  , insertDocuments
+  , closeWriter
+
+  ) where
 
 import           Hunt.Common.ApiDocument            (ApiDocument)
 import           Hunt.Common.BasicTypes
@@ -12,6 +22,7 @@ import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
 import qualified Hunt.SegmentIndex.Types.SegmentMap as SegmentMap
 
+import           Control.Concurrent.MVar
 import           Control.Concurrent.STM
 import           Data.Map                           (Map)
 import qualified Data.Map.Strict                    as Map
@@ -26,7 +37,7 @@ newSegmentIndex indexDir = do
   Directory.createDirectoryIfMissing True indexDir
 
   segIdGen <- newSegIdGen
-  siRef    <- newTMVarIO $! SegmentIndex {
+  siRef    <- newMVar $! SegmentIndex {
       siGeneration = generationZero
     , siIndexDir   = indexDir
     , siSegIdGen   = segIdGen
@@ -41,32 +52,31 @@ insertContext :: SegIxRef
               -> ContextSchema
               -> IO ()
 insertContext sixref cx cxs = do
-  atomically $ do
-    six <- readTMVar sixref
-    putTMVar sixref $! six {
-        siSchema = Map.insertWith (\_ old -> old) cx cxs (siSchema six)
-      }
-  -- TODO: we need to commit  a new index version
+  withSegmentIndex sixref $ \si ->
+    let
+      si' = si {
+          siSchema = Map.insertWith (\_ old -> old) cx cxs (siSchema si)
+        }
+    in return (si', ())
 
 deleteContext :: SegIxRef
               -> Context
               -> IO ()
 deleteContext sixref cx = do
-  atomically $ do
-    six <- readTMVar sixref
-    putTMVar sixref $! six {
-        siSchema = Map.delete cx (siSchema six)
-      }
-  -- TODO: we need to commit here
+  withSegmentIndex sixref $ \si ->
+    let
+      si' = si {
+          siSchema = Map.delete cx (siSchema si)
+        }
+    in return (si', ())
 
 -- | Fork a new 'IndexWriter' from a 'SegmentIndex'. This is very cheap
 -- and never fails.
-newIndexWriter :: SegIxRef
-               -> IO IxWrRef
-newIndexWriter sigRef = atomically $ do
-  si@SegmentIndex{..} <- readTMVar sigRef
+newWriter :: SegIxRef
+          -> IO IxWrRef
+newWriter sigRef = withSegmentIndex sigRef $ \si@SegmentIndex{..} -> do
 
-  ixwr <- newTMVar $! IndexWriter {
+  ixwr <- newMVar $! IndexWriter {
       iwIndexDir    = siIndexDir
     , iwNewSegId    = genSegId siSegIdGen
     , iwSchema      = siSchema
@@ -76,42 +86,54 @@ newIndexWriter sigRef = atomically $ do
     , iwSegIxRef    = sigRef
     }
 
-  putTMVar sigRef $! si {
-        siSegRefs = SegmentMap.unionWith (+)
-                    (SegmentMap.map (\_ -> 1) siSegments)
-                    siSegRefs
-      }
+  let
+    si' = si {
+      siSegRefs = SegmentMap.unionWith (+)
+                  (SegmentMap.map (\_ -> 1) siSegments)
+                  siSegRefs
+             }
 
-  return ixwr
+  return (si', ixwr)
 
 insertDocuments :: IxWrRef -> [ApiDocument] -> IO ()
 insertDocuments ixwrref docs = do
-  ixwr  <- atomically $ takeTMVar ixwrref
-  ixwr' <- IndexWriter.insertList docs ixwr
-  atomically $ putTMVar ixwrref $! ixwr'
+  withIndexWriter ixwrref $ \ixwr -> do
+    ixwr' <- IndexWriter.insertList docs ixwr
+    return (ixwr', ())
 
-closeIndexWriter :: IxWrRef -> IO (CommitResult ())
-closeIndexWriter ixwrref = do
-  -- TODO: make this exception safe!
-  ixwr  <- atomically $ takeTMVar ixwrref
-  segix <- atomically $ takeTMVar (iwSegIxRef ixwr)
+closeWriter :: IxWrRef -> IO (CommitResult ())
+closeWriter ixwrref = do
+  withIndexWriter ixwrref $ \ixwr -> do
+    r <- withSegmentIndex (iwSegIxRef ixwr) $ \si -> do
 
-  case IndexWriter.close ixwr segix of
-    CommitOk segix'           -> do
+      case IndexWriter.close ixwr si of
+        CommitOk si' -> do
 
-      let
-        nextSegId :: SegmentId
-        nextSegId = maybe segmentZero fst
-                    $ SegmentMap.findMax (siSegments segix)
+          let
+            nextSegId :: SegmentId
+            nextSegId = maybe segmentZero fst
+                        $ SegmentMap.findMax (siSegments si')
 
-      Commit.writeMetaIndex
-        (siIndexDir segix)
-        (siGeneration segix)
-        nextSegId
-        (siSchema segix)
-        (siSegments segix)
+          Commit.writeMetaIndex
+            (siIndexDir si')
+            (siGeneration si')
+            nextSegId
+            (siSchema si')
+            (siSegments si')
 
-      atomically $ putTMVar (iwSegIxRef ixwr) $! segix'
-      return $ CommitOk ()
-    CommitConflicts conflicts ->
-      return $ CommitConflicts conflicts
+          return $ ( si'
+                   , CommitOk ()
+                   )
+
+        CommitConflicts conflicts ->
+          return $ ( si
+                   , CommitConflicts conflicts
+                   )
+
+    return (ixwr, r)
+
+withSegmentIndex :: SegIxRef -> (SegmentIndex -> IO (SegmentIndex, a)) -> IO a
+withSegmentIndex ref action = modifyMVar ref action
+
+withIndexWriter :: IxWrRef -> (IndexWriter -> IO (IndexWriter, a)) -> IO a
+withIndexWriter ref action = modifyMVar ref action

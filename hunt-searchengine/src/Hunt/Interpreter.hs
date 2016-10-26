@@ -411,9 +411,9 @@ execInsertList :: [ApiDocument]
                -> Hunt dt (ContextIndex, CmdResult)
 execInsertList docs segIx ixx
     = do res <- liftIO $ do
-           ixWr <- SegmentIndex.newIndexWriter segIx
+           ixWr <- SegmentIndex.newWriter segIx
            SegmentIndex.insertDocuments ixWr docs
-           SegmentIndex.closeIndexWriter ixWr
+           SegmentIndex.closeWriter ixWr
 
          case res of
            CommitOk _ -> return (ixx, ResOK)
