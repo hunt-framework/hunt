@@ -47,6 +47,8 @@ newSegmentIndex indexDir = do
     }
   return siRef
 
+-- | Inserts a 'Context' into the index.
+--  /Note/: Does nothing if the context already exists.
 insertContext :: SegIxRef
               -> Context
               -> ContextSchema
@@ -59,6 +61,7 @@ insertContext sixref cx cxs = do
         }
     in return (si', ())
 
+-- | Removes context (including the index and the schema).
 deleteContext :: SegIxRef
               -> Context
               -> IO ()
@@ -95,17 +98,23 @@ newWriter sigRef = withSegmentIndex sigRef $ \si@SegmentIndex{..} -> do
 
   return (si', ixwr)
 
+-- | Insert multiple 'ApiDocument's to the index.
 insertDocuments :: IxWrRef -> [ApiDocument] -> IO ()
 insertDocuments ixwrref docs = do
   withIndexWriter ixwrref $ \ixwr -> do
     ixwr' <- IndexWriter.insertList docs ixwr
     return (ixwr', ())
 
+-- | Closes the 'IndexWriter' and commits all changes.
+-- After a call to 'closeWriter' any change made is
+-- guaranteed to be persisted on disk if there are
+-- no write conflicts or exceptions.
 closeWriter :: IxWrRef -> IO (CommitResult ())
 closeWriter ixwrref = do
   withIndexWriter ixwrref $ \ixwr -> do
     r <- withSegmentIndex (iwSegIxRef ixwr) $ \si -> do
 
+      -- check for conflicts with the 'SegmentIndex'
       case IndexWriter.close ixwr si of
         CommitOk si' -> do
 
@@ -114,6 +123,9 @@ closeWriter ixwrref = do
             nextSegId = maybe segmentZero fst
                         $ SegmentMap.findMax (siSegments si')
 
+          -- well, there were no conflicts we are
+          -- good to write a new index generation to
+          -- disk.
           Commit.writeMetaIndex
             (siIndexDir si')
             (siGeneration si')
