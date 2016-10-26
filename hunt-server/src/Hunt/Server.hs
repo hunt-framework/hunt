@@ -1,77 +1,256 @@
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE CPP #-}
--- http://ghc.haskell.org/trac/ghc/blog/LetGeneralisationInGhc7
--- {-# LANGUAGE NoMonoLocalBinds  #-}
-
--- ----------------------------------------------------------------------------
-{- |
-  The Hunt server.
-
-  Routes:
-
-    [@POST \/eval@]                          Evaluates 'Command's.
-
-    [@GET  \/search\/:query\/@]              Search (unlimited # of results).
-
-    [@GET  \/search\/:query\/:offset\/:mx@]  Search with pagination.
-
-    [@GET  \/weight\/:query\/@]              Search and return weights of documents
-
-    [@GET  \/completion\/:query\/:mx@]       Word completions with maximum.
-
-    [@POST \/document\/insert@]              Insert 'ApiDocument's.
-
-    [@POST \/document\/update@]              Update 'ApiDocument's.
-
-    [@POST \/document\/delete@]              Delete documents by URI.
-
-    [@GET  \/binary\/save\/:filename@]       Store the index.
-
-    [@GET  \/binary\/load\/:filename@]       Load an index.
-
-    [@GET  \/status\/gc@]                    Garbage collection statistics.
-
-    [@GET  \/status\/doctable@]              JSON dump of the document table (/experimental/).
-
-    [@GET  \/status\/index@]                 JSON dump of the index (/experimental/).
--}
--- ----------------------------------------------------------------------------
+{-# LANGUAGE TypeOperators     #-}
 
 module Hunt.Server
-       ( -- * Starting the Server
-         start
-         -- * Configuration
-       , HuntServerConfiguration (..)
-       )
-where
+  ( -- Configuration
+    HuntServerConfiguration (..)
+  , defaultConfig
+
+    -- Server
+  , serveApp
+  , runWithConfig
+  ) where
+
+
+import qualified Data.ByteString.Lazy                 as LB
+import qualified Data.Text                            as T
+import qualified Data.Text.Encoding                   as TE
 
 import           Control.Monad.Except
-import           Data.String (fromString)
-import           Data.Text (Text)
-import           Hunt.ClientInterface
+
+import qualified Hunt.ClientInterface                 as HC
+import           Hunt.Common.ApiDocument              (LimitedResult)
 import           Hunt.Interpreter
-import           Hunt.Interpreter.Command (StatusCmd (..))
-import           Hunt.Server.Common
-import qualified Hunt.Server.Schrotty as Schrotty
-import           Hunt.Server.Schrotty hiding (Options)
-import qualified Hunt.Server.Template as Tmpl
-import qualified Network.Wai.Handler.Warp as W
-import           Network.Wai.Middleware.RequestLogger
-import           System.IO (stdout)
+import           Hunt.Interpreter.Command             (CmdResult (..),
+                                                       Command (..),
+                                                       StatusCmd (..), ceMsg)
+import           Hunt.Query.Intermediate              (RankedDoc)
+
+import           Network.Wai                          (Application)
+import           Network.Wai.Handler.Warp             (run)
+import           Network.Wai.Middleware.RequestLogger (logStdoutDev)
+
+import           Hunt.Server.API
+import           Hunt.Server.Configuration
+import qualified Hunt.Server.Template                 as Templ
+import           Servant
+
+import           Servant.HTML.Blaze
+import           System.Directory                     (getCurrentDirectory)
+import           System.IO                            (stdout)
 import           System.Log.Formatter
 import           System.Log.Handler
 import           System.Log.Handler.Simple
-import qualified System.Log.Logger as Log
-import           System.Log.Logger hiding (debugM, errorM, warningM)
+import           System.Log.Logger                    hiding (debugM, errorM,
+                                                       warningM)
+import qualified System.Log.Logger                    as Log
+import           Text.Blaze.Html                      (Html)
 
-#ifdef SUPPORT_STATSD
-import qualified Data.Text as T
-import           System.Remote.Monitoring.Statsd (defaultStatsdOptions, forkStatsd, StatsdOptions(..))
-import           System.Metrics (registerGcMetrics, newStore)
-#endif
 
--- ------------------------------------------------------------
--- Logging
+-- SERVER
+
+-- | Initialize DefHuntEnv based on the configuration
+-- and start a server using the configuration specified.
+runWithConfig :: HuntServerConfiguration -> IO ()
+runWithConfig config = do
+  indexDir <- getIndexDir $ indexDirectory config
+  env <- initHunt indexDir :: IO DefHuntEnv
+  initLoggers (logPriority config) (logFile config)
+  run (huntServerPort config) (serveApp env)
+
+
+getIndexDir :: FilePath -> IO FilePath
+getIndexDir configuredDir
+  | configuredDir == defaultDir = defaultDirectory
+  | otherwise = return configuredDir
+  where
+    defaultDir = indexDirectory defaultConfig
+
+    defaultDirectory = do
+      dir <- getCurrentDirectory
+      return $ dir ++ "/" ++ "data"
+
+
+-- | Combine the HuntAPI with the server implementation
+-- to serve an application.
+serveApp :: DefHuntEnv -> Application
+serveApp = logStdoutDev . serve huntServerAPI . server
+
+
+server :: DefHuntEnv -> Server HuntServerAPI
+server env = huntServer
+        :<|> html
+  where
+    huntServer :: Server HuntAPI
+    huntServer = search env
+            :<|> completion env
+            :<|> documents env
+            :<|> evaluate env
+            :<|> weight env
+            :<|> select env
+            :<|> status env
+
+
+-- | Provide server implementation of the search API based
+-- on the given Hunt Environment.
+search :: DefHuntEnv -> Server SearchAPI
+search env = search'
+  where
+    search' :: T.Text -> Maybe Offset -> Maybe Limit -> HuntResult (LimitedResult RankedDoc)
+    search' query offset limit
+      = evalQuery cmdSearch env query >>= getLimitedResult
+      where
+        withOffset = maybe id HC.setResultOffset offset
+        withLimit  = maybe id HC.setMaxResults limit
+        cmdSearch  = withOffset . withLimit . HC.cmdSearch
+
+
+-- | Provide server implementation of the completion API based
+-- on the given Hunt environment
+completion :: DefHuntEnv -> Server CompletionAPI
+completion env = complete
+  where
+    complete :: T.Text -> Maybe Limit -> HuntResult Suggestion
+    complete query limit
+      = evalQuery cmdComplete env query >>= getCompletionResult
+      where
+        withLimit = maybe id HC.setMaxResults limit
+        cmdComplete = withLimit . HC.cmdCompletion
+
+
+-- | Provide server implementation of the document API based
+-- on the given Hunt environment
+documents :: DefHuntEnv -> Server DocumentAPI
+documents env = insert
+           :<|> update
+           :<|> delete
+  where
+    insert :: HC.ApiDocument -> HuntResult ()
+    insert doc = evalCmdWith env cmdInsert >>= getOkResult
+      where
+        cmdInsert = HC.cmdInsertDoc doc
+
+    update :: HC.ApiDocument -> HuntResult ()
+    update doc = evalCmdWith env cmdUpdate >>= getOkResult
+      where
+        cmdUpdate = HC.cmdUpdateDoc doc
+
+    delete :: HC.ApiDocument -> HuntResult ()
+    delete doc = evalCmdWith env cmdDelete >>= getOkResult
+      where
+        cmdDelete = HC.cmdDeleteDoc (HC.adUri doc)
+
+
+-- | Provide server implementation of the status API based
+-- on the given Hunt environment
+status :: DefHuntEnv -> Server StatusAPI
+status env = gc
+        :<|> doctable
+        :<|> index
+        :<|> context
+  where
+    gc :: HuntResult CmdResult
+    gc = evalCmdWith env $ HC.cmdStatus StatusGC
+
+    doctable :: HuntResult CmdResult
+    doctable = evalCmdWith env $ HC.cmdStatus StatusDocTable
+
+    index :: HuntResult CmdResult
+    index = evalCmdWith env $ HC.cmdStatus StatusIndex
+
+    context :: T.Text -> HuntResult CmdResult
+    context = evalCmdWith env . HC.cmdStatus . StatusContext
+
+
+evaluate :: DefHuntEnv -> Server EvalAPI
+evaluate = evalCmdWith
+
+
+-- | Provide server implementation of the weight API based
+-- on the given Hunt environment
+weight :: DefHuntEnv -> Server WeightAPI
+weight env = weight'
+  where
+    weight' :: T.Text -> HuntResult (LimitedResult RankedDoc)
+    weight' query
+      = evalQuery cmdSearch env query >>= getLimitedResult
+      where
+        cmdSearch
+          = HC.setWeightIncluded . HC.setSelectedFields [] . HC.cmdSearch
+
+
+-- | Provide server implementation of the select API based
+-- on the given Hunt environment
+select :: DefHuntEnv -> Server SelectAPI
+select env = select'
+  where
+    select' :: T.Text -> HuntResult (LimitedResult RankedDoc)
+    select' query
+      = evalQuery HC.cmdSelect env query >>= getLimitedResult
+
+
+html :: Server HtmlAPI
+html = quickstart
+  :<|> index
+  where
+    quickstart :: HuntResult Html
+    quickstart = return Templ.quickstart
+
+    index :: HuntResult Html
+    index = return $ Templ.index 0
+
+
+-- INTERPRETER HELPERS
+
+type HuntResult a = ExceptT ServantErr IO a
+
+-- | Parse a given query. A fail results in a HTTP 500 error.
+parseQuery :: T.Text -> HuntResult HC.Query
+parseQuery = eval . HC.parseQuery . T.unpack
+  where
+    eval (Right query) = return query
+    eval (Left _err)   = throwError err500 { errBody = "Could not parse query." }
+
+
+-- | Evaluate a given command based on the given Hunt environment.
+-- An error will result in a HTTP 500 error.
+evalCmdWith :: DefHuntEnv -> Command -> HuntResult CmdResult
+evalCmdWith env cmd = liftIO (runCmd env cmd) >>= eval
+  where
+    eval (Right result) = return result
+    eval (Left err)    = throwError err500 { errBody = LB.fromStrict (TE.encodeUtf8 (ceMsg err)) }
+
+
+-- | Evaluate a given Query as a T.Text.
+evalQuery :: (HC.Query -> Command) -> DefHuntEnv -> T.Text -> HuntResult CmdResult
+evalQuery mkCmd env query
+  = parseQuery query >>= return . mkCmd >>= evalCmdWith env
+
+
+-- | Return a limited result from the given CmdResult. For
+-- everything else, throw an error.
+getLimitedResult :: CmdResult -> HuntResult (LimitedResult RankedDoc)
+getLimitedResult (ResSearch docs) = return docs
+getLimitedResult _ = throwError err500 { errBody = "Internal server error" }
+
+
+-- | Return a completion result from the given CmdResult. For
+-- everything else, throw an error.
+getCompletionResult :: CmdResult -> HuntResult Suggestion
+getCompletionResult (ResSuggestion sug) = return sug
+getCompletionResult _ = throwError err500 { errBody = "Internal server error" }
+
+
+-- | Return a completion result from the given CmdResult. For
+-- everything else, throw an error.
+getOkResult :: CmdResult -> HuntResult ()
+getOkResult ResOK = return ()
+getOkResult _ = throwError err500 { errBody = "Internal server error" }
+
+
+-- LOGGING HELPERS
 
 -- | Name of the module for logging purposes.
 modName :: String
@@ -84,11 +263,11 @@ debugM = Log.debugM modName
 -- | Log a message at 'WARNING' priority.
 warningM :: String -> IO ()
 warningM = Log.warningM modName
+-}
 
 -- | Log a message at 'ERROR' priority.
 errorM :: String -> IO ()
 errorM = Log.errorM modName
--}
 
 -- | Convenience function to add a log formatter.
 withFormatter :: (Monad m, LogHandler r) => m r -> LogFormatter r -> m r
@@ -97,8 +276,8 @@ withFormatter h f = liftM (flip setFormatter f) h
 -- | Initializes the loggers (stdout, file).
 --   Sets the stdout logger to the given priority
 --   and sets the path and 'DEBUG' priority for the file logger.
-initLoggers :: HuntServerConfiguration -> IO ()
-initLoggers config = do
+initLoggers :: Priority -> FilePath -> IO ()
+initLoggers prio logFilePath = do
   -- formatter
   let defFormatter = simpleLogFormatter "[$time : $loggername : $prio] $msg"
 
@@ -106,174 +285,9 @@ initLoggers config = do
   updateGlobalLogger rootLoggerName clearLevel
 
   -- stdout root logger
-  handlerBare <- streamHandler stdout (logPriority config) `withFormatter` defFormatter
+  handlerBare <- streamHandler stdout prio `withFormatter` defFormatter
   updateGlobalLogger rootLoggerName (setHandlers [handlerBare])
 
   -- file logger always at 'DEBUG' level
-  handlerFile <- fileHandler (logFile config) DEBUG `withFormatter` defFormatter
+  handlerFile <- fileHandler logFilePath DEBUG `withFormatter` defFormatter
   updateGlobalLogger rootLoggerName (addHandler handlerFile)
-
--- ------------------------------------------------------------
-
--- | Start the server.
-start :: HuntServerConfiguration -> IO ()
-start config = do
-  -- initialize loggers
-  initLoggers config
-
-  debugM "Application start"
-
-#ifdef SUPPORT_STATSD
-  when (not $ null $ statsDHost config) $ do
-    statsDStore <- newStore
-    registerGcMetrics statsDStore
-    let statsDOpts = defaultStatsdOptions {host = (T.pack $ statsDHost config), port = (statsDPort config), prefix = "Hunt-Server"}
-    _ <- forkStatsd statsDOpts statsDStore
-    debugM $ "Connected to statsD: " ++ (statsDHost config) ++ ":" ++ (show $ statsDPort config)
-#endif
-
-  -- init interpreter
-  env <- initHunt "tmp-index" :: IO DefHuntEnv
-
-  case readIndexOnStartup config of
-    Just filename -> do
-      res <- liftIO $ runCmd env $ cmdLoadIndex filename
-      case res of
-        Right _  -> debugM $ "Index loaded: " ++ filename
-        Left err -> fail $ show err
-    Nothing -> return ()
-
-  let options1 = Schrotty.Options
-        { verbose  = 1
-        , settings = W.setHost (fromString $ huntServerHost config)
-                   $ W.setPort (huntServerPort config)
-                   $ W.defaultSettings
-        }
-  -- start schrotty
-  schrottyOpts options1 $ do
-
-    -- request / response logging
-    middleware logStdoutDev
-
-    -- ------------------------------------------------------------
-    -- XXX: maybe move to schrotty?
-
-    let interpret = runCmd env
-
-    let eval cmd = do
-        res <- liftIO $ interpret cmd
-        case res of
-          Left res' -> do
-            raise $ InterpreterError res'
-          Right res' ->
-            case res' of
-              ResOK               -> json $ JsonSuccess ("ok" :: Text)
-              ResSearch docs      -> json $ JsonSuccess docs
-              ResCompletion wrds  -> json $ JsonSuccess wrds
-              ResSuggestion wrds  -> json $ JsonSuccess wrds
-              ResGeneric val      -> json $ JsonSuccess val
-
-    let evalQuery mkCmd q = case parseQuery q of
-          Right qry -> eval $ mkCmd qry
-          Left  err -> raise $ Json 700 err
-
-    let batch cmd = cmdSequence . map cmd
-
-    -- ------------------------------------------------------------
-
-    get "/"           $ redirect "/search"
-    get "/search"     $ html . Tmpl.index $ (0::Int)
-    get "/quickstart" $ html Tmpl.quickstart
-
-    -- ------------------------------------------------------------
-
-    -- interpreter
-    post "/eval" $ do
-      cmd <- jsonData
-      eval cmd
-
-    -- ------------------------------------------------------------
-
-    -- simple query with unlimited # of hits
-    get "/search/:query/" $ do
-      query    <- param "query"
-      evalQuery cmdSearch query
-
-    -- simple query with unlimited # of hits
-    get "/select/:query/" $ do
-      query    <- param "query"
-      evalQuery cmdSelect query
-
-    -- paged query
-    get "/search/:query/:offset/:mx" $ do
-      query    <- param "query"
-      offset   <- param "offset"
-      mx       <- param "mx"
-      evalQuery ( setResultOffset offset
-                  . setMaxResults mx
-                  . cmdSearch
-                ) query
-
-    -- simple query for reading the weight of documents
-    get "/weight/:query/" $ do
-      query    <- param "query"
-      evalQuery ( setWeightIncluded
-                  . setSelectedFields []
-                  . cmdSearch
-                ) query
-
-    -- completion
-    get "/completion/:query/:mx" $ do
-      query <- param "query"
-      mx    <- param "mx"
-      evalQuery ( setMaxResults mx
-                  . cmdCompletion
-                ) query
-
-    -- simple query with unlimited # of hits
-    get "/select/:query/" $ do
-      query    <- param "query"
-      evalQuery (\q -> cmdSelect q) query
-
-    -- insert a document (fails if a document (the uri) already exists)
-    post "/document/insert" $ do
-      jss <- jsonData
-      eval $ batch cmdInsertDoc jss
-
-    -- update a document (fails if a document (the uri) does not exist)
-    post "/document/update" $ do
-      jss <- jsonData
-      eval $ batch cmdUpdateDoc jss
-
-    -- delete a set of documents by URI
-    post "/document/delete" $ do
-      jss <- jsonData
-      eval $ batch cmdDeleteDoc jss
-
-    -- write the indexer to disk
-    get "/binary/save/:filename" $ do
-      filename  <- param "filename"
-      eval $ cmdStoreIndex filename
-
-    -- load indexer from disk
-    get "/binary/load/:filename" $ do
-      filename  <- param "filename"
-      eval $ cmdLoadIndex filename
-
-    -- status commands
-    get "/status/gc" $ do
-      eval $ cmdStatus StatusGC            -- garbage collector status
-
-    get "/status/doctable" $ do
-      eval $ cmdStatus StatusDocTable      -- status of document table
-
-    get "/status/index" $ do
-      eval $ cmdStatus StatusIndex         -- status of search index
-
-    get "/status/context/:cx" $ do
-      query <- param "cx"
-      eval $ cmdStatus (StatusContext query)
-
-    notFound $ raise NotFound
-
--- ------------------------------------------------------------

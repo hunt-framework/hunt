@@ -30,6 +30,7 @@ executable html-hunter
                  , hunt-searchengine      >= 0.2
                  , HTTP                   >= 4000.2
                  , hunt-client
+                 , servant-client
                  , hxt                    >= 9.1   && < 10
                  , hxt-http               >= 9     && < 10
                  , hxt-regex-xmlschema    >= 9     && < 10

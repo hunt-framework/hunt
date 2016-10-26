@@ -2,7 +2,9 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 module Hunt.Client
-  ( HuntClient
+  ( -- Requests
+    HuntRequest
+  , request
 
     -- Search
   , search
@@ -45,7 +47,15 @@ import           Servant.API
 
 -- | The HuntClient is just a shorthand for a function which is
 -- able to query the HuntAPI provided a Manager and a BaseUrl.
-type HuntClient a = Manager -> BaseUrl -> ExceptT ServantError IO a
+type HuntRequest a = Manager -> BaseUrl -> ExceptT ServantError IO a
+
+
+-- | Runs the given @HuntRequet@ against the provided BaseUrl, with
+-- the default newManager.
+request :: BaseUrl -> HuntRequest a -> ExceptT ServantError IO a
+request baseUrl req = do
+  manager <- lift $ newManager defaultManagerSettings
+  req manager baseUrl
 
 
 -- SEARCH
@@ -53,69 +63,69 @@ type HuntClient a = Manager -> BaseUrl -> ExceptT ServantError IO a
 -- | Search for the given query and restrict the result by starting
 -- from @offset@ only including @limit@ results. For an unlimited number
 -- of results @offset@ and @limit@ may be @Nothing@.
-search :: T.Text -> Maybe Offset -> Maybe Limit -> HuntClient (LimitedResult RankedDoc)
+search :: T.Text -> Maybe Offset -> Maybe Limit -> HuntRequest (LimitedResult RankedDoc)
 
 -- | Search for the given query with an unlimited number of results.
-search' :: T.Text -> HuntClient (LimitedResult RankedDoc)
+search' :: T.Text -> HuntRequest (LimitedResult RankedDoc)
 search' query = search query Nothing Nothing
 
 
 -- COMPLETION
 
 -- | Provide a completion limited by @limit@.
-complete :: T.Text -> Maybe Limit -> HuntClient Suggestion
+complete :: T.Text -> Maybe Limit -> HuntRequest Suggestion
 
 -- | Provide an unlimited number of completions.
-completeAll :: T.Text -> HuntClient Suggestion
+completeAll :: T.Text -> HuntRequest Suggestion
 completeAll query = complete query Nothing
 
 
 -- DOCUMENTS
 
 -- | Insert the given @document@ into the current index.
-insertDoc :: ApiDocument -> HuntClient ()
+insertDoc :: ApiDocument -> HuntRequest ()
 
 -- | Update the given @document@ in the current index.
-updateDoc :: ApiDocument -> HuntClient ()
+updateDoc :: ApiDocument -> HuntRequest ()
 
 -- | Remove the given @document@ from the current index.
-removeDoc :: ApiDocument -> HuntClient ()
+removeDoc :: ApiDocument -> HuntRequest ()
 
 
 -- EVAL
 
 -- | Evaluate an arbitrary @command@ and return the
 -- resulting @CmdResult@.
-eval :: Command -> HuntClient CmdResult
+eval :: Command -> HuntRequest CmdResult
 
 
 -- WEIGHT
 
 -- | Search for documents satisfying the given @query@
 -- and provide a weighted result.
-getWeight :: T.Text -> HuntClient (LimitedResult RankedDoc)
+getWeight :: T.Text -> HuntRequest (LimitedResult RankedDoc)
 
 
 -- SELECT
 
 -- | Select an unlimited number of results for the given @query@.
-select :: T.Text -> HuntClient (LimitedResult RankedDoc)
+select :: T.Text -> HuntRequest (LimitedResult RankedDoc)
 
 
 -- STATUS
 
 -- | Request the GC status.
-gcStatus :: HuntClient CmdResult
+gcStatus :: HuntRequest CmdResult
 
 -- | Request the status of the DocTable.
-doctableStatus :: HuntClient CmdResult
+doctableStatus :: HuntRequest CmdResult
 
 -- | Request the status of the current index.
-indexStatus :: HuntClient CmdResult
+indexStatus :: HuntRequest CmdResult
 
 -- | Request the status of a context identified by
 -- the given name. This is experimental.
-contextStatus :: T.Text -> HuntClient CmdResult
+contextStatus :: T.Text -> HuntRequest CmdResult
 
 
 -- CLIENT

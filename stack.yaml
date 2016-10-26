@@ -3,12 +3,9 @@ packages:
   - ./hunt-client
   - ./hunt-crawler
   - ./hunt-searchengine
-  - ./hunt-servant
-  - ./hunt-servant-client
   - ./hunt-api
   - ./hunt-cli
   - ./hunt-server
-  - ./hunt-server-cli
   - ./hunt-test/data/jokes
 extra-deps:
   - data-r-tree-0.0.5.0

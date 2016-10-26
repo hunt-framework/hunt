@@ -24,7 +24,7 @@ executable hunt-cli
                      , containers
                      , http-client
                      , hunt-api
-                     , hunt-servant-client
+                     , hunt-client
                      , hunt-searchengine
                      , mtl
                      , optparse-applicative

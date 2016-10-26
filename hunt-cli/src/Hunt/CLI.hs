@@ -106,10 +106,9 @@ decodeJson = either throw return . eitherDecode
   where throw = throwError . JsonErr
 
 
-request :: ServerOptions -> HC.HuntClient a -> Cmd a
-request opts req = do
-  manager <- lift $ newManager defaultManagerSettings
-  withExceptT HttpErr $ req manager opts
+request :: ServerOptions -> HC.HuntRequest a -> Cmd a
+request opts req =
+  withExceptT HttpErr $ HC.request opts req
 
 
 decodeApiDocs :: LBS.ByteString -> Cmd [HC.ApiDocument]

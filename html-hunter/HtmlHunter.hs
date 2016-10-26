@@ -31,7 +31,8 @@ import           Data.Maybe (fromMaybe)
 import           Data.Text (Text)
 import qualified Data.Text as T
 import           Hunt.ClientInterface
-import           Hunt.Server.Client (evalOnServer_)
+import qualified Hunt.Client as HC
+import Servant.Client (parseBaseUrl)
 import           System.Console.CmdArgs
 import           System.Exit
 import           System.IO
@@ -204,14 +205,17 @@ emitRes cmd
     where
       sendCmd Nothing Nothing
           = sendCmdToFile ""                 -- default: sent result to stdout
-      sendCmd Nothing (Just s)
-          = void . (evalOnServer_ (T.pack s))
+      sendCmd Nothing (Just s) =
+        \dom -> do
+          baseUrl <- parseBaseUrl s
+          void $ runExceptT $ HC.request baseUrl $ HC.eval dom
       sendCmd (Just f) Nothing
           = sendCmdToFile f
       sendCmd (Just f) (Just s)
           = \ dom -> do
             sendCmdToFile f dom
-            void $ evalOnServer_  (T.pack s) dom
+            baseUrl <- parseBaseUrl s
+            void $ runExceptT $ HC.request baseUrl $ HC.eval dom
 
 notice :: String -> HIO ()
 notice msg

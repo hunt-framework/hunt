@@ -1,29 +1,20 @@
--- ----------------------------------------------------------------------------
-{- |
-  The main Hunt front-end template.
--}
--- ----------------------------------------------------------------------------
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes       #-}
+{-# LANGUAGE TemplateHaskell   #-}
+module Hunt.Server.Template where
 
-module Hunt.Server.Template
-  ( index
-  , quickstart
-  )
-where
-
-import qualified Data.Text.Lazy as LT
-
+import           Text.Blaze                    (ToMarkup)
+import           Text.Blaze.Html               (Html, preEscapedLazyText)
 import           Text.Hamlet
 import           Text.Julius
-import           Text.Blaze.Html.Renderer.Text    (renderHtml)
-import           Text.Blaze                       (Markup, ToMarkup)
 
 -- ------------------------------------------------------------
 
 -- | Main page.
-index :: Int -> LT.Text
+index :: Int -> Html
 index _docs =
   -- generate html with hamlet
-  (renderHtml . defaultLayout $ [xshamlet|
+  (defaultLayout $ [xshamlet|
 <div .page-header>
   <h1>Search Documents</h1>
 <div .row>
@@ -64,10 +55,10 @@ index _docs =
   <div .col-xs-4>
     #{examplesWidget}
 <br />
-|]) `LT.append`
+|]) `mappend`
   -- generate javascript
   -- XXX TODO: refactor all this messy javascript into a hunt-client-js library
-  renderJavascriptUrl (\_ _ -> "") [julius|
+ (preEscapedLazyText $ renderJavascriptUrl (\_ _ -> "") [julius|
 <script>
   $(document).ready(function() {
 
@@ -168,17 +159,13 @@ index _docs =
         query = query.trim();
         var norm = query.replace(/[:\(\)\"]/g," ");
         var rightmost = norm.split (" ").filter(Boolean).pop();
-        $.get("/completion/" + encodeURIComponent(query) + "/" + globalCompletionMax, function(data) {
+        $.get("/completion/" + encodeURIComponent(query) + "?limit=" + globalCompletionMax, function(data) {
           var result = [];
           // TODO sort by rank
-          if (data.code === 0)
-          {
-            $(data.msg).each(function(i, e) {
-              var r = query.replace(new RegExp(rightmost + "(?=[^" + rightmost +" ]*$)"), e[0]);
-              result.push(r);
-            });
-          }
-          console.log(result);
+          $(data).each(function(i, e) {
+            var r = query.replace(new RegExp(rightmost + "(?=[^" + rightmost +" ]*$)"), e[0]);
+            result.push(r);
+          });
           callback(result);
         })
       },
@@ -208,10 +195,7 @@ index _docs =
     });
 
     // handles simple search responses without paging
-    var simpleSearchCompletedHandler = function(data) {
-        if (data.code === 0)
-        {
-          var docs = data.msg;
+    var simpleSearchCompletedHandler = function(docs) {
           if (docs.length === 0)
           {
             $("#result-body").html(snippet_no_results);
@@ -240,44 +224,31 @@ index _docs =
              }
           });
           $("#result-body").html(res);
-        }
-        else
-        {
-           alert("Error occurred - please check server!");
-        }
     };
 
     // handles search results with paging
-    var pagedSearchCompletedHandler = function(data) {
-        if (data.code === 0)
-        {
-          var pager = data.msg;
-          pagerMax = pager.max;
-          if (pagerMax < 0) { pagerMax = 1000000 };
-          globalPage    = pager.offset / pager.max + 1;
-          globalPerPage = pager.max;
-          globalResults = pager.count;
-          globalPages   = Math.max(Math.ceil(globalResults / globalPerPage),1);
-          simpleSearchCompletedHandler({code:0, msg:pager.result});
+    var pagedSearchCompletedHandler = function(pager) {
+        pagerMax = pager.max;
+        if (pagerMax < 0) { pagerMax = 1000000 };
+        globalPage    = pager.offset / pager.max + 1;
+        globalPerPage = pager.max;
+        globalResults = pager.count;
+        globalPages   = Math.max(Math.ceil(globalResults / globalPerPage),1);
+        simpleSearchCompletedHandler(pager.result);
 
-          $("#result-count").html(globalResults + " documents found");
-          $("#pagination-next").removeClass("disabled");
-          $("#pagination-prev").removeClass("disabled");
-          $("#pagination-page").text("Page " + globalPage + " of " + globalPages);
-          if (globalPage === 1)
-          {
-             $("#pagination-prev").addClass("disabled");
-          }
-          if (globalPage === globalPages)
-          {
-             $("#pagination-next").addClass("disabled");
-          }
-	  $("#paginator").show();
-        }
-        else
+        $("#result-count").html(globalResults + " documents found");
+        $("#pagination-next").removeClass("disabled");
+        $("#pagination-prev").removeClass("disabled");
+        $("#pagination-page").text("Page " + globalPage + " of " + globalPages);
+        if (globalPage === 1)
         {
-           alert("Error occurred - please check server!");
+           $("#pagination-prev").addClass("disabled");
         }
+        if (globalPage === globalPages)
+        {
+           $("#pagination-next").addClass("disabled");
+        }
+	$("#paginator").show();
     };
 
 
@@ -290,15 +261,15 @@ index _docs =
          $("#result-body").html(snippet_no_results);
          return false;
       }
-      $.get("/search/" + encodeURIComponent(query) + "/" + ((globalPage-1) * globalPerPage) + "/" + globalPerPage, pagedSearchCompletedHandler);
+      $.get("/search/" + encodeURIComponent(query) + "?offset=" + ((globalPage-1) * globalPerPage) + "&limit=" + globalPerPage, pagedSearchCompletedHandler);
      };
   });
 </script>
-|]
+|])
 
-quickstart :: LT.Text
+quickstart :: Html
 quickstart =
-  (renderHtml . defaultLayout $ [xshamlet|
+  (defaultLayout $ [xshamlet|
 <div .page-header>
   <h1>Quickstart&nbsp;&nbsp;
     <small>Query Interface
@@ -377,9 +348,9 @@ quickstart =
 <br />
 <br />
 <br />
-|])`LT.append`
+|])`mappend`
   -- generate javascript
-  renderJavascriptUrl (\_ _ -> "") [julius|
+  (preEscapedLazyText $ renderJavascriptUrl (\_ _ -> "") [julius|
 <script>
   $(document).ready(function() {
     var format = function(ev) {
@@ -396,6 +367,7 @@ quickstart =
       var json = $("[data-query='"+query+"']").val();
       $.ajax({
         url: "http://localhost:3000/eval",
+        contentType: 'application/json',
         data: json,
         type: 'POST'
       });
@@ -405,11 +377,11 @@ quickstart =
     $(".json").each(format);
   });
 </script>
-|]
+|])
 
 
 -- | template snippet for widget containing query examples
-examplesWidget :: Markup
+examplesWidget :: Html
 examplesWidget = [xshamlet|
 <div .panel .panel-primary>
   <div .panel-heading>
@@ -463,7 +435,7 @@ examplesWidget = [xshamlet|
 
 
 -- | default layout
-defaultLayout :: ToMarkup a => a -> Markup
+defaultLayout :: ToMarkup a => a -> Html
 defaultLayout content = [xshamlet|
 <!DOCTYPE html>
 <html lang="en">
@@ -486,7 +458,7 @@ defaultLayout content = [xshamlet|
         <div .navbar-collapse .collapse>
           <ul .nav .navbar-nav>
             <li>
-              <a href="/search">Search
+              <a href="/">Search
             <li>
               <a href="/quickstart">Quickstart
             <li>
