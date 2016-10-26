@@ -30,6 +30,7 @@ where
 
 import           Control.Arrow                     (second)
 import           Control.Concurrent.XMVar
+import           Control.Exception
 import           Control.Monad.Except
 import           Control.Monad.Reader
 import           Data.Aeson                        (ToJSON (..), object, (.=))
@@ -160,8 +161,15 @@ type DefHuntEnv = HuntEnv (Documents Document)
 -- | Initialize the Hunt environment with default values.
 initHunt :: FilePath -> IO (HuntEnv dt)
 initHunt indexDir = do
-  sixRef <- SegmentIndex.newSegmentIndex indexDir
-  initHuntEnv CIx.empty sixRef contextTypes normalizers def
+  sixRef <- SegmentIndex.openOrNewSegmentIndex
+            indexDir
+            SegmentIndex.AccessReadWrite
+            SegmentIndex.RevHead
+
+  case sixRef of
+    Left err -> throwIO err
+    Right si -> do
+      initHuntEnv CIx.empty si contextTypes normalizers def
 
 -- | Default context types.
 contextTypes :: ContextTypes

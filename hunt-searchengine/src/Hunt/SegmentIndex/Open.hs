@@ -10,6 +10,10 @@ import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.SegmentId
 import qualified Hunt.SegmentIndex.Types.SegmentMap as SegmentMap
 
+import           Control.Concurrent.MVar
+import           Control.Exception
+import           Control.Monad
+import           Control.Monad.Except
 import qualified Data.List                          as List
 import qualified Data.Map                           as Map
 import           Data.Ord
@@ -17,6 +21,10 @@ import qualified System.Directory                   as Directory
 import           Text.Read
 
 data ErrOpen = ErrRevisionNotFound
+             | ErrInvalidIndexDirectory
+             deriving (Eq, Show)
+
+instance Exception ErrOpen
 
 data AccessMode = AccessReadOnly
                 | AccessReadWrite
@@ -27,10 +35,18 @@ data AtRevision = RevHead
 openOrNewSegmentIndex :: FilePath
                       -> AccessMode
                       -> AtRevision
-                      -> IO (Either ErrOpen SegmentIndex)
-openOrNewSegmentIndex indexDirectory accessMode atRevision = do
+                      -> IO (Either ErrOpen SegIxRef)
+openOrNewSegmentIndex indexDirectory accessMode atRevision = runExceptT $ do
 
-  ixfiles <- Directory.listDirectory indexDirectory
+  indexDirIsFile <- liftIO $ Directory.doesFileExist indexDirectory
+  when indexDirIsFile $ do
+    throwError ErrInvalidIndexDirectory
+
+  indexDirExists <- liftIO $ Directory.doesDirectoryExist indexDirectory
+  unless indexDirExists $ do
+    liftIO $ Directory.createDirectoryIfMissing True indexDirectory
+
+  ixfiles <- liftIO $ Directory.listDirectory indexDirectory
 
   let
     wantsRevSpec :: Bool
@@ -59,7 +75,7 @@ openOrNewSegmentIndex indexDirectory accessMode atRevision = do
   case revisions of
     -- there were no generations saved in the directory
     -- just create a new 'SegmentIndex'
-    []    -> Right <$> newSegmentIndex indexDirectory
+    []    -> liftIO $ newSegmentIndex indexDirectory
 
     -- we want a specific generation and this is the most
     -- recent. Open the index with any 'AccessMode'.
@@ -83,15 +99,15 @@ openOrNewSegmentIndex indexDirectory accessMode atRevision = do
 openSegmentIndex :: FilePath
                  -> AccessMode
                  -> Generation
-                 -> IO (Either ErrOpen SegmentIndex)
+                 -> ExceptT ErrOpen IO SegIxRef
 openSegmentIndex indexDirectory accessMode generation = do
   undefined
 
 -- | Create a new 'SegmentIndex' in the given directory.
-newSegmentIndex :: FilePath -> IO SegmentIndex
+newSegmentIndex :: FilePath -> IO SegIxRef
 newSegmentIndex indexDirectory = do
   segIdGen <- newSegIdGen
-  return $! SegmentIndex {
+  newMVar $! SegmentIndex {
       siGeneration = generationZero
     , siIndexDir   = indexDirectory
     , siSegIdGen   = segIdGen

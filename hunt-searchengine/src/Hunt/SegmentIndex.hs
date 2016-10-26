@@ -1,14 +1,18 @@
 {-# LANGUAGE RecordWildCards #-}
 module Hunt.SegmentIndex (
     SegIxRef
-  , newSegmentIndex
+
+  , openOrNewSegmentIndex
+  , AccessMode(..)
+  , AtRevision(..)
+  , ErrOpen(..)
+
   , insertContext
   , deleteContext
 
   , newWriter
   , insertDocuments
   , closeWriter
-
   ) where
 
 import           Hunt.Common.ApiDocument            (ApiDocument)
@@ -16,6 +20,7 @@ import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
 import qualified Hunt.SegmentIndex.Commit           as Commit
 import qualified Hunt.SegmentIndex.IndexWriter      as IndexWriter
+import           Hunt.SegmentIndex.Open
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.SegmentId
