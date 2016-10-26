@@ -38,14 +38,17 @@ type IndexBuilder a = Builder (a, TermInfo) (Index a)
 textIndexDescr :: IndexDescriptor
 textIndexDescr = IndexDescriptor id textIndexBuilder
 
+data T2 a b = T2 !a !b
+
 textIndexBuilder :: IndexBuilder Text
 textIndexBuilder = Builder start step stop
   where
-    start           = pure $! StringMap.empty
-    step sm (s, ti) = pure $! StringMap.insert (Text.unpack s) ti sm
-    stop sm         = pure $! mkIndex sm
+    start                  = pure $! T2 0 StringMap.empty
+    step (T2 n sm) (s, ti) =
+      pure $! T2 (n + 1) (StringMap.insert (Text.unpack s) ti sm)
+    stop (T2 n sm)         = pure $! mkIndex n sm
 
-    mkIndex sm =
+    mkIndex n sm =
       let
         search :: TextSearchOp -> Text -> IO [(Text, TermInfo)]
         search t k = do
@@ -74,4 +77,5 @@ textIndexBuilder = Builder start step stop
                , ixSearchSc      = \t k -> addDefScore <$> search t k
                , ixLookupRange   = lookupRange
                , ixLookupRangeSc = \t1 t2 -> addDefScore <$> lookupRange t1 t2
+               , ixNumTerms      = n
                }

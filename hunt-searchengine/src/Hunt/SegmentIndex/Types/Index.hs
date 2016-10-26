@@ -9,6 +9,9 @@ import           Prelude                          hiding (Word)
 
 data IndexRepr = forall a. IndexRepr (Word -> a) !(Index a)
 
+indexReprNumTerms :: IndexRepr -> Int
+indexReprNumTerms (IndexRepr _ ix) = ixNumTerms ix
+
 -- | The index type which needs to be implemented to be used by the 'Interpreter'.
 --   The implementation must have a value type parameter.
 data Index a =
@@ -29,4 +32,5 @@ data Index a =
           -- and estimating the similarity of these keys.
           --
           -- The default implementation is attaching always the default score (1.0)
+        , ixNumTerms      :: Int
         }

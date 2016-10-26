@@ -23,6 +23,7 @@ import qualified Hunt.SegmentIndex.IndexWriter      as IndexWriter
 import           Hunt.SegmentIndex.Open
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
+import           Hunt.SegmentIndex.Types.Index
 import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
 import qualified Hunt.SegmentIndex.Types.SegmentMap as SegmentMap
@@ -127,6 +128,13 @@ closeWriter ixwrref = do
                    )
 
     return (ixwr, r)
+
+segmentToSegmentInfo :: Segment -> SegmentInfo
+segmentToSegmentInfo Segment{..} = SegmentInfo {
+    segiNumDocs     = segNumDocs
+  , segiDelGen      = segDelGen
+  , segiContextInfo = Map.map indexReprNumTerms segTermIndex
+  }
 
 withSegmentIndex :: SegIxRef -> (SegmentIndex -> IO (SegmentIndex, a)) -> IO a
 withSegmentIndex ref action = modifyMVar ref action
