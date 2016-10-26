@@ -28,29 +28,8 @@ import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
 import qualified Hunt.SegmentIndex.Types.SegmentMap as SegmentMap
 
 import           Control.Concurrent.MVar
-import           Control.Concurrent.STM
 import           Data.Map                           (Map)
 import qualified Data.Map.Strict                    as Map
-import qualified System.Directory                   as Directory
-
--- | Create new 'SegmentIndex' at the given index directory.
-newSegmentIndex :: FilePath
-                -> IO SegIxRef
-newSegmentIndex indexDir = do
-
-  -- TODO: bail out if index directory contains an index
-  Directory.createDirectoryIfMissing True indexDir
-
-  segIdGen <- newSegIdGen
-  siRef    <- newMVar $! SegmentIndex {
-      siGeneration = generationZero
-    , siIndexDir   = indexDir
-    , siSegIdGen   = segIdGen
-    , siSchema     = Map.empty
-    , siSegments   = SegmentMap.empty
-    , siSegRefs    = SegmentMap.empty
-    }
-  return siRef
 
 -- | Inserts a 'Context' into the index.
 --  /Note/: Does nothing if the context already exists.
