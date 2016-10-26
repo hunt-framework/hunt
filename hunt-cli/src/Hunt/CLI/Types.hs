@@ -38,8 +38,6 @@ defaultServerOptions = BaseUrl
 -- which might be executed with this command line program.
 data CliCommand
   = Eval ServerOptions FilePath
-  | Load ServerOptions FilePath
-  | Store ServerOptions FilePath
   | Search ServerOptions (Maybe Offset) (Maybe Limit) T.Text
   | Completion ServerOptions T.Text
   | MakeSchema FilePath

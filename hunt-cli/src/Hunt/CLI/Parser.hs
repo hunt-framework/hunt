@@ -6,7 +6,7 @@ module Hunt.CLI.Parser
 import qualified Data.Text           as T
 import           Hunt.CLI.Types
 import           Options.Applicative
-import           Servant.Client      (BaseUrl, parseBaseUrl)
+import           Servant.Client      (parseBaseUrl)
 
 
 -- API
@@ -27,8 +27,6 @@ commands :: Parser CliCommand
 commands =
   subparser
   (  cmd "eval"        eval       "Evaluate command in a given file on the Hunt server"
-  <> cmd "load"        load       "Load an index from a given file"
-  <> cmd "store"       store      "Store an index to a given file"
   <> cmd "search"      search     "Search the Hunt server for a given query"
   <> cmd "complete"    complete   "Retrieve completion proposals for a given query"
   <> cmd "make-schema" makeSchema "Print JSON schema for a document"
@@ -41,14 +39,6 @@ commands =
 
 eval :: Parser CliCommand
 eval = Eval <$> serverOptions <*> file
-
-
-load :: Parser CliCommand
-load = Load <$> serverOptions <*> file
-
-
-store :: Parser CliCommand
-store = Store <$> serverOptions <*> file
 
 
 search :: Parser CliCommand

@@ -7,8 +7,11 @@ import           Control.Monad.Except
 import           Data.Aeson
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import qualified Data.ByteString.Lazy.Char8 as LBS
+import qualified Data.Csv                   as CSV
 import           Data.Either                (either)
+import qualified Data.Map                   as M
 import qualified Data.Text                  as T
+import qualified Data.Vector                as V
 import qualified Hunt.API                   as HC
 import qualified Hunt.CLI.Parser            as P
 import           Hunt.CLI.Types
@@ -35,14 +38,6 @@ runCommand command =
     Eval opts file ->
       printCmd (putStrLn . show) $ eval opts file
 
-    Load opts file ->
-      printCmd printSuccess $ load opts file
-      where printSuccess = const $ putStrLn $ "Successfully loaded index from " ++ file
-
-    Store opts file ->
-      printCmd printSuccess $ store opts file
-      where printSuccess = const $ putStrLn $ "Successfully stored index in " ++ file
-
     Search opts offset limit query ->
       printCmd printJson $ search opts offset limit query
 
@@ -56,21 +51,13 @@ runCommand command =
       printCmd printJson $ makeInsert file
 
     FromCSV file ->
-      putStrLn "Not implemented yet!"
+      printCmd printJson $ fromCsv file
 
 
 -- OPERATIONS
 
 eval :: ServerOptions -> FilePath -> Cmd I.CmdResult
 eval opts file = readAll file >>= decodeJson >>= request opts . HC.eval
-
-
-load :: ServerOptions -> FilePath -> Cmd ()
-load opts fileName = request opts $ HC.loadIndex $ T.pack fileName
-
-
-store :: ServerOptions -> FilePath -> Cmd ()
-store opts fileName = request opts $ HC.storeIndex $ T.pack fileName
 
 
 search :: ServerOptions -> Maybe Offset -> Maybe Limit -> T.Text -> Cmd (LimitedResult RankedDoc)
@@ -90,6 +77,13 @@ makeSchema file = do
 makeInsert :: FilePath -> Cmd I.Command
 makeInsert file = readAll file >>= decodeApiDocs >>= insertDocs
   where insertDocs = return . HC.cmdSequence . fmap HC.cmdInsertDoc
+
+
+fromCsv :: FilePath -> Cmd ()
+fromCsv = undefined
+  where
+    eval :: LBS.ByteString -> Either String (CSV.Header, V.Vector (M.Map T.Text T.Text))
+    eval input = undefined
 
 
 -- HELPERS
@@ -119,5 +113,4 @@ request opts req = do
 
 
 decodeApiDocs :: LBS.ByteString -> Cmd [HC.ApiDocument]
-decodeApiDocs json =
-  HC.insertCmdsToDocuments <$> decodeJson json
+decodeApiDocs json = HC.insertCmdsToDocuments <$> decodeJson json

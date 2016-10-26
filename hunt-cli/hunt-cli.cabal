@@ -21,6 +21,7 @@ executable hunt-cli
                      , aeson-pretty
                      , bytestring
                      , cassava
+                     , containers
                      , http-client
                      , hunt-api
                      , hunt-servant-client
@@ -29,6 +30,7 @@ executable hunt-cli
                      , optparse-applicative
                      , servant-client
                      , text
+                     , vector
   other-modules:       Hunt.CLI
                      , Hunt.CLI.Types
                      , Hunt.CLI.Parser
