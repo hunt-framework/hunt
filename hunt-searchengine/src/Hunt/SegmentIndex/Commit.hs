@@ -71,7 +71,6 @@ writeMetaIndex indexDirectory indexGeneration segmentId schema segments = do
     putSegment segmentId Segment{..} = do
       Binary.put segmentId
       Binary.put segNumDocs
-      Binary.put segNumTerms
       Binary.put segDelGen
 
     putMetaData :: Binary.Put

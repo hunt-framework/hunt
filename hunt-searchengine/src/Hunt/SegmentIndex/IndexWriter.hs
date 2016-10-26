@@ -119,7 +119,6 @@ newSegment indexDirectory genSegId schema docs = do
 
   return ( segmentId
          , Segment { segNumDocs     = 0
-                   , segNumTerms    = 0
                    , segDeletedDocs = DocIdSet.empty
                    , segDelGen      = generationZero
                    , segTermIndex   = Map.fromDistinctAscList cxMap
