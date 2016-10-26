@@ -5,7 +5,7 @@ module Hunt.SegmentIndex (
   , openOrNewSegmentIndex
   , AccessMode(..)
   , AtRevision(..)
-  , ErrOpen(..)
+  , IndexOpenError(..)
 
   , insertContext
   , deleteContext

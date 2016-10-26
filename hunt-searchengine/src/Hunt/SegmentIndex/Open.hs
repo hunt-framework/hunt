@@ -2,7 +2,7 @@ module Hunt.SegmentIndex.Open (
     openOrNewSegmentIndex
   , AccessMode (..)
   , AtRevision (..)
-  , ErrOpen (..)
+  , IndexOpenError (..)
   ) where
 
 import           Hunt.SegmentIndex.Types
@@ -20,11 +20,11 @@ import           Data.Ord
 import qualified System.Directory                   as Directory
 import           Text.Read
 
-data ErrOpen = ErrRevisionNotFound
-             | ErrInvalidIndexDirectory
-             deriving (Eq, Show)
+data IndexOpenError = ErrRevisionNotFound
+                    | ErrInvalidIndexDirectory
+                    deriving (Eq, Show)
 
-instance Exception ErrOpen
+instance Exception IndexOpenError
 
 data AccessMode = AccessReadOnly
                 | AccessReadWrite
@@ -35,7 +35,7 @@ data AtRevision = RevHead
 openOrNewSegmentIndex :: FilePath
                       -> AccessMode
                       -> AtRevision
-                      -> IO (Either ErrOpen SegIxRef)
+                      -> IO (Either IndexOpenError SegIxRef)
 openOrNewSegmentIndex indexDirectory accessMode atRevision = runExceptT $ do
 
   indexDirIsFile <- liftIO $ Directory.doesFileExist indexDirectory
@@ -99,7 +99,7 @@ openOrNewSegmentIndex indexDirectory accessMode atRevision = runExceptT $ do
 openSegmentIndex :: FilePath
                  -> AccessMode
                  -> Generation
-                 -> ExceptT ErrOpen IO SegIxRef
+                 -> ExceptT IndexOpenError IO SegIxRef
 openSegmentIndex indexDirectory accessMode generation = do
   undefined
 
