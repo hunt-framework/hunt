@@ -133,6 +133,7 @@ library
     Hunt.SegmentIndex.Commit
     Hunt.SegmentIndex.Descriptor
     Hunt.SegmentIndex.IndexWriter
+    Hunt.SegmentIndex.Open              
     Hunt.SegmentIndex.Types
     Hunt.SegmentIndex.Types.Generation
     Hunt.SegmentIndex.Types.Index

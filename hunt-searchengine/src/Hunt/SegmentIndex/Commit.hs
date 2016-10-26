@@ -1,52 +1,87 @@
-{-# LANGUAGE BangPatterns  #-}
-{-# LANGUAGE PatternGuards #-}
+{-# LANGUAGE BangPatterns    #-}
+{-# LANGUAGE PatternGuards   #-}
+{-# LANGUAGE RecordWildCards #-}
 module Hunt.SegmentIndex.Commit (
-    writeIndex
+    writeMetaIndex
+  , writeIndex
   , writeDocuments
   ) where
 
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocDesc               (FieldValue (..))
-import qualified Hunt.Common.DocDesc               as DocDesc
+import           Hunt.Common.DocDesc                (FieldValue (..))
+import qualified Hunt.Common.DocDesc                as DocDesc
 import           Hunt.Common.DocId
-import qualified Hunt.Common.DocIdMap              as DocIdMap
-import qualified Hunt.Common.DocIdSet              as DocIdSet
+import qualified Hunt.Common.DocIdMap               as DocIdMap
+import qualified Hunt.Common.DocIdSet               as DocIdSet
 import           Hunt.Common.Document
-import           Hunt.Common.Occurrences           (Occurrences)
-import qualified Hunt.Common.Positions             as Positions
+import           Hunt.Common.Occurrences            (Occurrences)
+import qualified Hunt.Common.Positions              as Positions
 import           Hunt.Index.Schema
-import           Hunt.IO.Buffer                    (Buffer, Flush)
-import qualified Hunt.IO.Buffer                    as Buffer
+import           Hunt.IO.Buffer                     (Buffer, Flush)
+import qualified Hunt.IO.Buffer                     as Buffer
 import           Hunt.IO.Files
 import           Hunt.IO.Write
 import           Hunt.Scoring.SearchResult
+import           Hunt.SegmentIndex.Types
+import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.SegmentId
+import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
+import qualified Hunt.SegmentIndex.Types.SegmentMap as SegmentMap
 import           Hunt.SegmentIndex.Types.TermInfo
 
 import           Control.Monad.State.Strict
-import           Data.ByteString                   (ByteString)
-import qualified Data.ByteString                   as ByteString
+import qualified Data.Binary                        as Binary
+import qualified Data.Binary.Put                    as Binary
+import           Data.ByteString                    (ByteString)
+import qualified Data.ByteString                    as ByteString
+import qualified Data.ByteString.Builder            as Builder
 import           Data.Foldable
 import           Data.Key
-import           Data.Map                          (Map)
-import qualified Data.Map.Strict                   as Map
-import           Data.Text                         (Text)
-import qualified Data.Text                         as Text
-import qualified Data.Text.Encoding                as Text
-import qualified Data.Text.Foreign                 as Text
-import qualified Data.Vector                       as V
-import qualified Data.Vector.Unboxed.Mutable       as UM
-import           Data.Word                         hiding (Word)
+import           Data.Map                           (Map)
+import qualified Data.Map.Strict                    as Map
+import           Data.Text                          (Text)
+import qualified Data.Text                          as Text
+import qualified Data.Text.Encoding                 as Text
+import qualified Data.Text.Foreign                  as Text
+import qualified Data.Vector                        as V
+import qualified Data.Vector.Unboxed.Mutable        as UM
+import           Data.Word                          hiding (Word)
 import           Foreign.Ptr
 import           System.FilePath
+import           System.IO                          (IOMode (WriteMode),
+                                                     withFile)
 
-import           Prelude                           hiding (Word, words)
+import           Prelude                            hiding (Word, words)
 
 type ContextNum = Int
 
 type Offset = Int
 
 type BytesWritten = Int
+
+writeMetaIndex :: FilePath
+               -> Generation
+               -> SegmentId
+               -> Schema
+               -> SegmentMap Segment
+               -> IO ()
+writeMetaIndex indexDirectory indexGeneration segmentId schema segments = do
+  let
+    putSegment :: SegmentId -> Segment -> Binary.Put
+    putSegment segmentId Segment{..} = do
+      Binary.put segmentId
+      Binary.put segNumDocs
+      Binary.put segNumTerms
+      Binary.put segDelGen
+
+    putMetaData :: Binary.Put
+    putMetaData = do
+      Binary.put schema
+      Binary.put (SegmentMap.size segments)
+      forWithKey_ segments putSegment
+
+  withFile (indexDirectory </> metaIndexFile indexGeneration) WriteMode
+    $ \mixFile -> Builder.hPutBuilder mixFile $ Binary.execPut putMetaData
 
 -- | Write the inverted index to disk.
 writeIndex :: FilePath
@@ -316,6 +351,8 @@ fieldIndexFile sid = show sid <.> "fdx"
 fieldDataFile :: SegmentId -> FilePath
 fieldDataFile sid = show sid <.> "fdt"
 
+metaIndexFile :: Generation -> FilePath
+metaIndexFile gen = "gen_" ++ show gen
 
 mapAccumWithKeyM :: (Monad m, TraversableWithKey t)
                  => (a -> Key t -> b -> m (c, a))
