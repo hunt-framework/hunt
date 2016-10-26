@@ -91,7 +91,6 @@ server env = huntServer
             :<|> weight env
             :<|> select env
             :<|> status env
-            :<|> indexer env
 
 
 -- | Provide server implementation of the search API based
@@ -190,21 +189,6 @@ select env = select'
     select' :: T.Text -> HuntResult (LimitedResult RankedDoc)
     select' query
       = evalQuery HC.cmdSelect env query >>= getLimitedResult
-
-
--- | Provide server implementation of the indexer API based
--- on the given Hunt environment
-indexer :: DefHuntEnv -> Server IndexerAPI
-indexer env = store
-         :<|> load
-  where
-    store :: T.Text -> HuntResult ()
-    store filename
-      = evalCmdWith env (HC.cmdStoreIndex $ T.unpack filename) >>= getOkResult
-
-    load :: T.Text -> HuntResult ()
-    load filename
-      = evalCmdWith env (HC.cmdLoadIndex $ T.unpack filename) >>= getOkResult
 
 
 html :: Server HtmlAPI

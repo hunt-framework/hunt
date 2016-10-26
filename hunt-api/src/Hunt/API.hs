@@ -11,7 +11,6 @@ module Hunt.API
   , WeightAPI
   , SelectAPI
   , StatusAPI
-  , IndexerAPI
   , HuntAPI
 
   , huntAPI
@@ -46,7 +45,6 @@ type HuntAPI =
   :<|> WeightAPI
   :<|> SelectAPI
   :<|> StatusAPI
-  :<|> IndexerAPI
 
 
 type Offset = Int
@@ -148,18 +146,4 @@ type StatusAPI =
         :> "context"
         :> Capture "name" T.Text
         :> Get '[JSON] CmdResult
-
-
--- | Hunt Indexer API, providing the following endpoints:
---
--- POST /indexer/:filename       Store the index.
---
--- GET  /indexer/:filename       Load an index.
-type IndexerAPI =
-        "indexer"
-        :> Capture "filename" T.Text
-        :> Post '[JSON] ()
-   :<|> "indexer"
-        :> Capture "filename" T.Text
-        :> Get '[JSON] ()
 

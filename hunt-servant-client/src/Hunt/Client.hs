@@ -26,9 +26,6 @@ module Hunt.Client
 
     -- Status
   , gcStatus, doctableStatus, indexStatus, contextStatus
-
-    -- Index
-  , storeIndex, loadIndex
   ) where
 
 
@@ -105,17 +102,6 @@ getWeight :: T.Text -> HuntClient (LimitedResult RankedDoc)
 select :: T.Text -> HuntClient (LimitedResult RankedDoc)
 
 
--- INDEX
-
--- | Store the current index in a file with the given
--- @filename@.
-storeIndex :: T.Text -> HuntClient ()
-
--- | Replace the current index by loading the one
--- in the given @file@.
-loadIndex :: T.Text -> HuntClient ()
-
-
 -- STATUS
 
 -- | Request the GC status.
@@ -140,6 +126,5 @@ contextStatus :: T.Text -> HuntClient CmdResult
  :<|> eval
  :<|> getWeight
  :<|> select
- :<|> (gcStatus :<|> doctableStatus :<|> indexStatus :<|> contextStatus)
- :<|> (storeIndex :<|> loadIndex)) = client huntAPI
+ :<|> (gcStatus :<|> doctableStatus :<|> indexStatus :<|> contextStatus)) = client huntAPI
 
