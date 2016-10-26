@@ -72,8 +72,9 @@ data IndexReader =
   IndexReader { irSegments :: SegmentMap Segment
               }
 
--- | The 'SegmentIndex' holding everything together.
-data SegmentIndex =
+-- | The 'SegmentIndex' holding everything together. It is parametric
+-- in 'a' which is used to hold different representations for 'Segment's.
+data GenSegmentIndex a =
   SegmentIndex { siGeneration :: !Generation
                  -- ^ The generation of the 'SegmentIndex'
                , siIndexDir   :: !FilePath
@@ -85,7 +86,7 @@ data SegmentIndex =
                  -- This is a 'SegmentIndex' unique generator for 'SegmentId's.
                , siSchema     :: !Schema
                  -- ^ 'Schema' for indexed fields
-               , siSegments   :: !(SegmentMap Segment)
+               , siSegments   :: !(SegmentMap a)
                  -- ^ The 'Segment's currently in the 'SegmentIndex'.
                  -- Since 'IndexWriter' and 'IndexReader' many reference
                  -- 'Segment's from the 'SegmentIndex' we *must not*
@@ -100,6 +101,8 @@ data SegmentIndex =
                  -- INVARIANT: 'SegmentId's not present here are
                  -- assumed a count of 0
                }
+
+type SegmentIndex = GenSegmentIndex Segment
 
 -- | An exlusive lock for 'SegmentIndex'.
 type SegIxRef = MVar SegmentIndex
