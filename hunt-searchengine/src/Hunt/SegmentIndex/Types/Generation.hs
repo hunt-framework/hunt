@@ -2,9 +2,10 @@
 module Hunt.SegmentIndex.Types.Generation where
 
 import           Data.Binary (Binary)
+import           Data.Store
 
 newtype Generation = Generation Int
-                   deriving (Binary, Eq, Ord)
+                   deriving (Store, Binary, Eq, Ord)
 
 instance Show Generation where
   show (Generation g) = show g

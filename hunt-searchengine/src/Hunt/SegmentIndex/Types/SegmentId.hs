@@ -5,11 +5,12 @@ import           Control.Monad.Primitive
 import           Data.Binary             (Binary)
 import           Data.Char
 import           Data.Primitive.PrimRef
+import           Data.Store
 import           Numeric                 (readInt, showIntAtBase)
 
 -- | Uniquely identifies a 'Segment'.
 newtype SegmentId = SegmentId { unSegmentId :: Int }
-                  deriving (Binary, Eq, Ord, Enum)
+                  deriving (Store, Binary, Eq, Ord, Enum)
 
 segmentZero :: SegmentId
 segmentZero = SegmentId 1
