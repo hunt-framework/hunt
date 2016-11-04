@@ -12,4 +12,6 @@ extra-deps:
   - data-stringmap-1.0.1.1
   - hxt-cache-9.1.0.1
   - hxt-xpath-9.1.2.2
+  - store-0.3
+  - store-core-0.3
 resolver: nightly-2016-08-06

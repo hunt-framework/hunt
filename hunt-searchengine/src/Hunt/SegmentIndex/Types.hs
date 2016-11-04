@@ -15,18 +15,6 @@ import           Prelude                            hiding (Word)
 
 type ContextMap = Map Context IndexRepr
 
--- | A simplified representation for 'Segment' which is used
--- to store 'Segment's on disk.
-data SegmentInfo =
-  SegmentInfo {
-     segiNumDocs     :: !Int
-     -- ^ The number of documents in this 'Segment'
-   , segiDelGen      :: !Generation
-     -- ^ The delete 'Generation'
-   , segiContextInfo :: !(Map Context Int)
-     -- ^ The number of terms stored per context
-   }
-
 -- | The in-memory representation of a 'Segment'
 data Segment =
   Segment { segNumDocs     :: !Int

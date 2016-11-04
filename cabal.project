@@ -5,8 +5,5 @@ packages:
           hunt-client/
           hunt-crawler/
           hunt-searchengine/
-          hunt-servant
-          hunt-servant-client
-          hunt-server-cli/
           hunt-server/
           html-hunter/

@@ -27,7 +27,8 @@ newtype SegmentMap a = SM { unSM :: IntMap a }
                               , Lookup, Indexable, Adjustable
                               , FoldableWithKey, Foldable
                               , Monoid
-                              , Traversable )
+                              , Traversable
+                              , Show)
 
 type instance Key SegmentMap = SegmentId
 

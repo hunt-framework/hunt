@@ -129,13 +129,6 @@ closeWriter ixwrref = do
 
     return (ixwr, r)
 
-segmentToSegmentInfo :: Segment -> SegmentInfo
-segmentToSegmentInfo Segment{..} = SegmentInfo {
-    segiNumDocs     = segNumDocs
-  , segiDelGen      = segDelGen
-  , segiContextInfo = Map.map indexReprNumTerms segTermIndex
-  }
-
 withSegmentIndex :: SegIxRef -> (SegmentIndex -> IO (SegmentIndex, a)) -> IO a
 withSegmentIndex ref action = modifyMVar ref action
 
