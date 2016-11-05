@@ -16,6 +16,8 @@ library
   hs-source-dirs:      src
   exposed-modules:     Hunt.Client
   build-depends:       base >= 4.7 && < 5
+                     , aeson
+                     , bytestring
                      , http-client
                      , hunt-api
                      , hunt-searchengine

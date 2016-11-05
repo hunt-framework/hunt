@@ -207,15 +207,15 @@ emitRes cmd
           = sendCmdToFile ""                 -- default: sent result to stdout
       sendCmd Nothing (Just s) =
         \dom -> do
-          baseUrl <- parseBaseUrl s
-          void $ runExceptT $ HC.request baseUrl $ HC.eval dom
+          client <- parseBaseUrl s >>= HC.withBaseUrl
+          void $ HC.runClientM (HC.eval dom) client
       sendCmd (Just f) Nothing
           = sendCmdToFile f
       sendCmd (Just f) (Just s)
           = \ dom -> do
             sendCmdToFile f dom
-            baseUrl <- parseBaseUrl s
-            void $ runExceptT $ HC.request baseUrl $ HC.eval dom
+            client <- parseBaseUrl s >>= HC.withBaseUrl
+            void $ HC.runClientM (HC.eval dom) client
 
 notice :: String -> HIO ()
 notice msg

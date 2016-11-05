@@ -1,10 +1,10 @@
-{-# LANGUAGE FlexibleInstances     #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
 module Hunt.Client
-  ( -- Requests
-    HuntRequest
-  , request
+  ( -- * Client
+    withBaseUrl
+  , runClientM
+
+    -- * API
 
     -- Search
   , search
@@ -32,105 +32,106 @@ module Hunt.Client
 
 
 import           Control.Monad.Except
+import           Data.Aeson
+import qualified Data.ByteString.Lazy    as LBS
 import qualified Data.Text               as T
-import qualified Data.Text.Lazy.Encoding as T
 import           Hunt.API
-import           Servant.Client
-
 import           Hunt.ClientInterface
 import           Hunt.Query.Intermediate (RankedDoc)
-import           Network.HTTP.Client
+import           Network.HTTP.Client     (newManager, defaultManagerSettings)
 import           Servant.API
+import           Servant.Client          (BaseUrl, ClientEnv (..), ClientM,
+                                          ServantError (DecodeFailure), client, runClientM)
 
 
--- TYPES
+-- CLIENT
 
--- | The HuntClient is just a shorthand for a function which is
--- able to query the HuntAPI provided a Manager and a BaseUrl.
-type HuntRequest a = Manager -> BaseUrl -> ExceptT ServantError IO a
-
-
--- | Runs the given @HuntRequet@ against the provided BaseUrl, with
--- the default newManager.
-request :: BaseUrl -> HuntRequest a -> ExceptT ServantError IO a
-request baseUrl req = do
-  manager <- lift $ newManager defaultManagerSettings
-  req manager baseUrl
+withBaseUrl :: (MonadIO m) => BaseUrl -> m ClientEnv
+withBaseUrl baseUrl = do
+  man <- liftIO $ newManager defaultManagerSettings
+  return $ ClientEnv man baseUrl
 
 
 -- SEARCH
 
+search :: (FromJSON a) => T.Text -> Maybe Offset -> Maybe Limit -> ClientM (LimitedResult a)
+search query offset limit = do
+  result <- search' query offset limit
+  let encoded = encode result
+  either (decodeFailure encoded) return $ eitherDecode encoded
+  where
+    decodeFailure :: LBS.ByteString -> String -> ClientM a
+    decodeFailure body err =
+      throwError $ DecodeFailure err "application/json" body
+
+
 -- | Search for the given query and restrict the result by starting
 -- from @offset@ only including @limit@ results. For an unlimited number
 -- of results @offset@ and @limit@ may be @Nothing@.
-search :: T.Text -> Maybe Offset -> Maybe Limit -> HuntRequest (LimitedResult RankedDoc)
-
--- | Search for the given query with an unlimited number of results.
-search' :: T.Text -> HuntRequest (LimitedResult RankedDoc)
-search' query = search query Nothing Nothing
+search' :: T.Text -> Maybe Offset -> Maybe Limit -> ClientM (LimitedResult RankedDoc)
 
 
 -- COMPLETION
 
 -- | Provide a completion limited by @limit@.
-complete :: T.Text -> Maybe Limit -> HuntRequest Suggestion
+complete :: T.Text -> Maybe Limit -> ClientM Suggestion
 
 -- | Provide an unlimited number of completions.
-completeAll :: T.Text -> HuntRequest Suggestion
+completeAll :: T.Text -> ClientM Suggestion
 completeAll query = complete query Nothing
 
 
 -- DOCUMENTS
 
 -- | Insert the given @document@ into the current index.
-insertDoc :: ApiDocument -> HuntRequest ()
+insertDoc :: ApiDocument -> ClientM ()
 
 -- | Update the given @document@ in the current index.
-updateDoc :: ApiDocument -> HuntRequest ()
+updateDoc :: ApiDocument -> ClientM ()
 
 -- | Remove the given @document@ from the current index.
-removeDoc :: ApiDocument -> HuntRequest ()
+removeDoc :: ApiDocument -> ClientM ()
 
 
 -- EVAL
 
 -- | Evaluate an arbitrary @command@ and return the
 -- resulting @CmdResult@.
-eval :: Command -> HuntRequest CmdResult
+eval :: Command -> ClientM CmdResult
 
 
 -- WEIGHT
 
 -- | Search for documents satisfying the given @query@
 -- and provide a weighted result.
-getWeight :: T.Text -> HuntRequest (LimitedResult RankedDoc)
+getWeight :: T.Text -> ClientM (LimitedResult RankedDoc)
 
 
 -- SELECT
 
 -- | Select an unlimited number of results for the given @query@.
-select :: T.Text -> HuntRequest (LimitedResult RankedDoc)
+select :: T.Text -> ClientM (LimitedResult RankedDoc)
 
 
 -- STATUS
 
 -- | Request the GC status.
-gcStatus :: HuntRequest CmdResult
+gcStatus :: ClientM CmdResult
 
 -- | Request the status of the DocTable.
-doctableStatus :: HuntRequest CmdResult
+doctableStatus :: ClientM CmdResult
 
 -- | Request the status of the current index.
-indexStatus :: HuntRequest CmdResult
+indexStatus :: ClientM CmdResult
 
 -- | Request the status of a context identified by
 -- the given name. This is experimental.
-contextStatus :: T.Text -> HuntRequest CmdResult
+contextStatus :: T.Text -> ClientM CmdResult
 
 
 -- CLIENT
 
-(search
+(search'
  :<|> complete
  :<|> (insertDoc :<|> updateDoc :<|> removeDoc)
  :<|> eval

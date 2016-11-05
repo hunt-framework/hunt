@@ -22,7 +22,7 @@ import           Hunt.Interpreter
 import qualified Hunt.Interpreter.Command   as I
 import           Hunt.Query.Intermediate    (RankedDoc)
 import           Network.HTTP.Client
-import           Servant.Client             (BaseUrl)
+import           Servant.Client             (BaseUrl, ClientM)
 
 
 -- EXECUTING COMMANDS
@@ -106,9 +106,11 @@ decodeJson = either throw return . eitherDecode
   where throw = throwError . JsonErr
 
 
-request :: ServerOptions -> HC.HuntRequest a -> Cmd a
-request opts req =
-  withExceptT HttpErr $ HC.request opts req
+request :: ServerOptions -> ClientM a -> Cmd a
+request baseUrl req = do
+  client <- lift $ HC.withBaseUrl baseUrl
+  result <- lift $ HC.runClientM req client
+  either (throwError . HttpErr) return result
 
 
 decodeApiDocs :: LBS.ByteString -> Cmd [HC.ApiDocument]
