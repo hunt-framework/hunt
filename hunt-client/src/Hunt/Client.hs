@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Hunt.Client
   ( -- * Client
     withBaseUrl
@@ -34,15 +34,16 @@ module Hunt.Client
 
 import           Control.Monad.Except
 import           Data.Aeson
-import qualified Data.ByteString.Lazy.Char8    as LBS
-import qualified Data.Text               as T
+import qualified Data.ByteString.Lazy.Char8 as LBS
+import qualified Data.Text                  as T
 import           Hunt.API
 import           Hunt.ClientInterface
-import           Hunt.Query.Intermediate (RankedDoc)
-import           Network.HTTP.Client     (newManager, defaultManagerSettings)
+import           Hunt.Query.Intermediate    (RankedDoc)
+import           Network.HTTP.Client        (defaultManagerSettings, newManager)
 import           Servant.API
-import           Servant.Client          (BaseUrl, ClientEnv (..), ClientM,
-                                          ServantError (DecodeFailure), client, runClientM)
+import           Servant.Client             (BaseUrl, ClientEnv (..), ClientM,
+                                             ServantError (DecodeFailure),
+                                             client, runClientM)
 
 
 -- CLIENT
