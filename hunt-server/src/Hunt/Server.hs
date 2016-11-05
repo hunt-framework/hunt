@@ -206,13 +206,6 @@ html = quickstart
 
 type HuntResult a = ExceptT ServantErr IO a
 
--- | Parse a given query. A fail results in a HTTP 500 error.
-parseQuery :: T.Text -> HuntResult HC.Query
-parseQuery = eval . HC.parseQuery . T.unpack
-  where
-    eval (Right query) = return query
-    eval (Left _err)   = throwError err500 { errBody = "Could not parse query." }
-
 
 -- | Evaluate a given command based on the given Hunt environment.
 -- An error will result in a HTTP 500 error.
