@@ -66,7 +66,7 @@ search opts offset limit query =
 
 
 complete :: ServerOptions -> T.Text -> Cmd HC.Suggestion
-complete opts = request opts . HC.completeAll
+complete opts query = request opts $ HC.completeText query Nothing
 
 
 makeSchema :: FilePath -> Cmd I.Command

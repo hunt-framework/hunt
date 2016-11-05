@@ -24,6 +24,7 @@ module Hunt.API
 
 import           Data.Proxy               (Proxy (Proxy))
 import qualified Data.Text                as T
+import           Hunt.ClientInterface     (Query)
 import qualified Hunt.ClientInterface     as HC
 import           Hunt.Common.ApiDocument  (LimitedResult)
 import           Hunt.Interpreter.Command (CmdResult (..), Command (..))
@@ -57,7 +58,7 @@ type Limit  = Int
 -- GET search/:query                     Search (unlimited # of results)
 type SearchAPI =
         "search"
-        :> Capture "query" HC.Query
+        :> Capture "query" Query
         :> QueryParam "offset" Offset
         :> QueryParam "limit"  Limit
         :> Get '[JSON] (LimitedResult RankedDoc)
@@ -70,7 +71,7 @@ type Suggestion = [(T.Text, HC.Score)]
 -- GET  completion/:query?limit=10       Word completions with limit.
 type CompletionAPI =
         "completion"
-        :> Capture "query" T.Text
+        :> Capture "query" Query
         :> QueryParam "limit" Limit
         :> Get '[JSON] Suggestion
 
@@ -108,7 +109,7 @@ type EvalAPI =
 -- GET  /weight/:query               Search and return weights of documents
 type WeightAPI =
         "weight"
-        :> Capture "query" T.Text
+        :> Capture "query" Query
         :> Get '[JSON] (LimitedResult RankedDoc)
 
 
@@ -117,7 +118,7 @@ type WeightAPI =
 -- GET  /select/:query               Select raw without ordering (unlimited # of results)
 type SelectAPI =
         "select"
-        :> Capture "query" T.Text
+        :> Capture "query" Query
         :> Get '[JSON] (LimitedResult RankedDoc)
 
 
@@ -150,8 +151,8 @@ type StatusAPI =
 
 -- INSTANCES
 
-instance ToHttpApiData HC.Query where
+instance ToHttpApiData Query where
   toUrlPiece = HC.printQuery
 
-instance FromHttpApiData HC.Query where
+instance FromHttpApiData Query where
   parseUrlPiece = HC.parseQuery . T.unpack

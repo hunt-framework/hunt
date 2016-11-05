@@ -112,9 +112,9 @@ search env = search'
 completion :: DefHuntEnv -> Server CompletionAPI
 completion env = complete
   where
-    complete :: T.Text -> Maybe Limit -> HuntResult Suggestion
+    complete :: HC.Query -> Maybe Limit -> HuntResult Suggestion
     complete query limit
-      = evalQuery cmdComplete env query >>= getCompletionResult
+      = evalCmdWith env (cmdComplete query) >>= getCompletionResult
       where
         withLimit = maybe id HC.setMaxResults limit
         cmdComplete = withLimit . HC.cmdCompletion
@@ -173,9 +173,9 @@ evaluate = evalCmdWith
 weight :: DefHuntEnv -> Server WeightAPI
 weight env = weight'
   where
-    weight' :: T.Text -> HuntResult (LimitedResult RankedDoc)
+    weight' :: HC.Query -> HuntResult (LimitedResult RankedDoc)
     weight' query
-      = evalQuery cmdSearch env query >>= getLimitedResult
+      = evalCmdWith env (cmdSearch query) >>= getLimitedResult
       where
         cmdSearch
           = HC.setWeightIncluded . HC.setSelectedFields [] . HC.cmdSearch
@@ -186,9 +186,9 @@ weight env = weight'
 select :: DefHuntEnv -> Server SelectAPI
 select env = select'
   where
-    select' :: T.Text -> HuntResult (LimitedResult RankedDoc)
+    select' :: HC.Query -> HuntResult (LimitedResult RankedDoc)
     select' query
-      = evalQuery HC.cmdSelect env query >>= getLimitedResult
+      = evalCmdWith env (HC.cmdSelect query) >>= getLimitedResult
 
 
 html :: Server HtmlAPI
@@ -221,12 +221,6 @@ evalCmdWith env cmd = liftIO (runCmd env cmd) >>= eval
   where
     eval (Right result) = return result
     eval (Left err)    = throwError err500 { errBody = LB.fromStrict (TE.encodeUtf8 (ceMsg err)) }
-
-
--- | Evaluate a given Query as a T.Text.
-evalQuery :: (HC.Query -> Command) -> DefHuntEnv -> T.Text -> HuntResult CmdResult
-evalQuery mkCmd env query
-  = parseQuery query >>= return . mkCmd >>= evalCmdWith env
 
 
 -- | Return a limited result from the given CmdResult. For

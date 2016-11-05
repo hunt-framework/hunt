@@ -13,6 +13,7 @@ module Hunt.Client
 
     -- Completion
   , complete
+  , completeText
   , completeAll
 
     -- Documents
@@ -68,13 +69,9 @@ search query offset limit = do
 
 
 searchText :: (FromJSON a) => T.Text -> Maybe Offset -> Maybe Limit -> ClientM (LimitedResult a)
-searchText query offset limit =
-  case parseQuery $ T.unpack query of
-    Left err ->
-      throwError $ DecodeFailure (T.unpack err) "text/plain" (LBS.pack $ T.unpack query)
-
-    Right query' ->
-      search query' offset limit
+searchText queryText offset limit = do
+  query <- parseQuery' queryText
+  search query offset limit
 
 
 -- | Search for the given query and restrict the result by starting
@@ -85,11 +82,18 @@ search' :: Query -> Maybe Offset -> Maybe Limit -> ClientM (LimitedResult Ranked
 
 -- COMPLETION
 
+completeText :: T.Text -> Maybe Limit -> ClientM Suggestion
+completeText queryText limit = do
+  query <- parseQuery' queryText
+  complete query limit
+
+
 -- | Provide a completion limited by @limit@.
-complete :: T.Text -> Maybe Limit -> ClientM Suggestion
+complete :: Query -> Maybe Limit -> ClientM Suggestion
+
 
 -- | Provide an unlimited number of completions.
-completeAll :: T.Text -> ClientM Suggestion
+completeAll :: Query -> ClientM Suggestion
 completeAll query = complete query Nothing
 
 
@@ -116,13 +120,13 @@ eval :: Command -> ClientM CmdResult
 
 -- | Search for documents satisfying the given @query@
 -- and provide a weighted result.
-getWeight :: T.Text -> ClientM (LimitedResult RankedDoc)
+getWeight :: Query -> ClientM (LimitedResult RankedDoc)
 
 
 -- SELECT
 
 -- | Select an unlimited number of results for the given @query@.
-select :: T.Text -> ClientM (LimitedResult RankedDoc)
+select :: Query -> ClientM (LimitedResult RankedDoc)
 
 
 -- STATUS
@@ -151,3 +155,12 @@ contextStatus :: T.Text -> ClientM CmdResult
  :<|> select
  :<|> (gcStatus :<|> doctableStatus :<|> indexStatus :<|> contextStatus)) = client huntAPI
 
+
+-- HELPERS
+
+parseQuery' :: T.Text -> ClientM Query
+parseQuery' query = either handleErr return $ parseQuery $ T.unpack query
+  where
+    handleErr :: T.Text -> ClientM Query
+    handleErr err = 
+      throwError $ DecodeFailure (T.unpack err) "text/plain" (LBS.pack $ T.unpack query)
