@@ -8,6 +8,7 @@ module Hunt.Client
 
     -- Search
   , search
+  , searchText
   , search'
 
     -- Completion
@@ -33,7 +34,7 @@ module Hunt.Client
 
 import           Control.Monad.Except
 import           Data.Aeson
-import qualified Data.ByteString.Lazy    as LBS
+import qualified Data.ByteString.Lazy.Char8    as LBS
 import qualified Data.Text               as T
 import           Hunt.API
 import           Hunt.ClientInterface
@@ -54,7 +55,7 @@ withBaseUrl baseUrl = do
 
 -- SEARCH
 
-search :: (FromJSON a) => T.Text -> Maybe Offset -> Maybe Limit -> ClientM (LimitedResult a)
+search :: (FromJSON a) => Query -> Maybe Offset -> Maybe Limit -> ClientM (LimitedResult a)
 search query offset limit = do
   result <- search' query offset limit
   let encoded = encode result
@@ -65,10 +66,20 @@ search query offset limit = do
       throwError $ DecodeFailure err "application/json" body
 
 
+searchText :: (FromJSON a) => T.Text -> Maybe Offset -> Maybe Limit -> ClientM (LimitedResult a)
+searchText query offset limit =
+  case parseQuery $ T.unpack query of
+    Left err ->
+      throwError $ DecodeFailure (T.unpack err) "text/plain" (LBS.pack $ T.unpack query)
+
+    Right query' ->
+      search query' offset limit
+
+
 -- | Search for the given query and restrict the result by starting
 -- from @offset@ only including @limit@ results. For an unlimited number
 -- of results @offset@ and @limit@ may be @Nothing@.
-search' :: T.Text -> Maybe Offset -> Maybe Limit -> ClientM (LimitedResult RankedDoc)
+search' :: Query -> Maybe Offset -> Maybe Limit -> ClientM (LimitedResult RankedDoc)
 
 
 -- COMPLETION

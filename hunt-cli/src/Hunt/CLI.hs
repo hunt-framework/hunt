@@ -62,7 +62,7 @@ eval opts file = readAll file >>= decodeJson >>= request opts . HC.eval
 
 search :: ServerOptions -> Maybe Offset -> Maybe Limit -> T.Text -> Cmd (LimitedResult RankedDoc)
 search opts offset limit query =
-  request opts $ HC.search query offset limit
+  request opts $ HC.searchText query offset limit
 
 
 complete :: ServerOptions -> T.Text -> Cmd HC.Suggestion

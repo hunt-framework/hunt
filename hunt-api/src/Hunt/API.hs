@@ -57,7 +57,7 @@ type Limit  = Int
 -- GET search/:query                     Search (unlimited # of results)
 type SearchAPI =
         "search"
-        :> Capture "query" T.Text
+        :> Capture "query" HC.Query
         :> QueryParam "offset" Offset
         :> QueryParam "limit"  Limit
         :> Get '[JSON] (LimitedResult RankedDoc)
@@ -147,3 +147,11 @@ type StatusAPI =
         :> Capture "name" T.Text
         :> Get '[JSON] CmdResult
 
+
+-- INSTANCES
+
+instance ToHttpApiData HC.Query where
+  toUrlPiece = HC.printQuery
+
+instance FromHttpApiData HC.Query where
+  parseUrlPiece = HC.parseQuery . T.unpack

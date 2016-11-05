@@ -98,9 +98,9 @@ server env = huntServer
 search :: DefHuntEnv -> Server SearchAPI
 search env = search'
   where
-    search' :: T.Text -> Maybe Offset -> Maybe Limit -> HuntResult (LimitedResult RankedDoc)
+    search' :: HC.Query -> Maybe Offset -> Maybe Limit -> HuntResult (LimitedResult RankedDoc)
     search' query offset limit
-      = evalQuery cmdSearch env query >>= getLimitedResult
+      = evalCmdWith env (cmdSearch query) >>= getLimitedResult
       where
         withOffset = maybe id HC.setResultOffset offset
         withLimit  = maybe id HC.setMaxResults limit
