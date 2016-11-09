@@ -138,8 +138,9 @@ library
     Hunt.SegmentIndex.IndexWriter
     Hunt.SegmentIndex.Open
     Hunt.SegmentIndex.Store
-    Hunt.SegmentIndex.Store.TermInfos
+    Hunt.SegmentIndex.Store.DirLayout
     Hunt.SegmentIndex.Store.Documents
+    Hunt.SegmentIndex.Store.TermInfos
     Hunt.SegmentIndex.Types
     Hunt.SegmentIndex.Types.Generation
     Hunt.SegmentIndex.Types.Index
