@@ -20,7 +20,6 @@ import           Control.Arrow                     (first)
 import           Data.IntMap.Strict                (IntMap)
 import qualified Data.IntMap.Strict                as IM
 import           Data.Key
-import           Data.Store
 
 -- | A map indexed by 'SegmentId'.
 newtype SegmentMap a = SM { unSM :: IntMap a }
@@ -30,7 +29,6 @@ newtype SegmentMap a = SM { unSM :: IntMap a }
                               , Monoid
                               , Traversable
                               , Show
-                              , Store
                               )
 
 type instance Key SegmentMap = SegmentId
