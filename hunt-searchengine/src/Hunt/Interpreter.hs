@@ -160,10 +160,20 @@ type DefHuntEnv = HuntEnv (Documents Document)
 -- | Initialize the Hunt environment with default values.
 initHunt :: FilePath -> IO (HuntEnv dt)
 initHunt indexDir = do
+
+  let
+    askContextType t =
+       return $ L.find (\s -> t == ctName s) contextTypes
+
+    askNormalizer t =
+      return $ L.find (\s -> t == cnName s) normalizers
+
   sixRef <- SegmentIndex.openOrNewSegmentIndex
             indexDir
             SegmentIndex.AccessReadWrite
             SegmentIndex.RevHead
+            askContextType
+            askNormalizer
 
   case sixRef of
     Left err -> throwIO err

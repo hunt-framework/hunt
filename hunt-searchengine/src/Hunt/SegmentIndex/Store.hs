@@ -69,10 +69,12 @@ segmentIndexToSegmentInfos SegmentIndex{..} =
 data IndexLoadError = ErrContextTypeNotFound
                     | ErrNormalizerNotFound
                     | ErrDecodingFailed
-                    deriving (Show)
+                    deriving (Eq, Show)
 
 instance Exception IndexLoadError
 
+-- | Load the 'SegmentInfo' file and populate the 'Schema' with
+-- the in-scope 'ContextType's and 'CNormalizer's.
 segmentInfosToSegmentIndex :: FilePath
                            -> Generation
                            -> (Text -> IO (Maybe ContextType))
@@ -131,6 +133,14 @@ readSegmentInfos indexDirectory generation = do
   case msi of
     Right si -> return si
     Left _   -> throwError ErrDecodingFailed
+
+readTermVectors :: FilePath
+                -> Schema
+                -> SegmentId
+                -> SegmentInfo
+                -> ExceptT IndexLoadError IO Segment
+readTermVectors indexDirectory schema segmentId = do
+  undefined
 
 storeSegmentInfos :: FilePath
                   -> Generation

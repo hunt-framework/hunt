@@ -5,6 +5,9 @@ module Hunt.SegmentIndex.Open (
   , IndexOpenError (..)
   ) where
 
+import           Hunt.Index.Schema
+import           Hunt.SegmentIndex.Store            (IndexLoadError)
+import qualified Hunt.SegmentIndex.Store            as Store
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.SegmentId
@@ -17,11 +20,14 @@ import           Control.Monad.Except
 import qualified Data.List                          as List
 import qualified Data.Map                           as Map
 import           Data.Ord
+import           Data.Text                          (Text)
 import qualified System.Directory                   as Directory
 import           Text.Read
 
+
 data IndexOpenError = ErrRevisionNotFound
                     | ErrInvalidIndexDirectory
+                    | ErrLoadIndex IndexLoadError
                     deriving (Eq, Show)
 
 instance Exception IndexOpenError
@@ -35,8 +41,14 @@ data AtRevision = RevHead
 openOrNewSegmentIndex :: FilePath
                       -> AccessMode
                       -> AtRevision
+                      -> (Text -> IO (Maybe ContextType))
+                      -> (Text -> IO (Maybe CNormalizer))
                       -> IO (Either IndexOpenError SegIxRef)
-openOrNewSegmentIndex indexDirectory accessMode atRevision = runExceptT $ do
+openOrNewSegmentIndex indexDirectory
+                      accessMode
+                      atRevision
+                      askContextType
+                      askNormalizer = runExceptT $ do
 
   indexDirIsFile <- liftIO $ Directory.doesFileExist indexDirectory
   when indexDirIsFile $ do
@@ -81,7 +93,12 @@ openOrNewSegmentIndex indexDirectory accessMode atRevision = runExceptT $ do
     -- recent. Open the index with any 'AccessMode'.
     (gen:_)
       | RevSpec wanted <- atRevision
-      , gen == wanted -> openSegmentIndex indexDirectory accessMode wanted
+      , gen == wanted -> openSegmentIndex
+                         indexDirectory
+                         accessMode
+                         wanted
+                         askContextType
+                         askNormalizer
 
     -- we want a specific generation and its somewhere between
     -- many others. We open the 'SegmentIndex' with 'AccessReadOnly'
@@ -89,19 +106,50 @@ openOrNewSegmentIndex indexDirectory accessMode atRevision = runExceptT $ do
     gens
       | RevSpec wanted <- atRevision
       , wanted `List.elem` gens ->
-          openSegmentIndex indexDirectory AccessReadOnly wanted
+          openSegmentIndex
+          indexDirectory
+          AccessReadOnly
+          wanted
+          askContextType
+          askNormalizer
 
     -- we want the HEAD generation we can access it here with any
     -- 'AccessMode'.
       | otherwise ->
-          openSegmentIndex indexDirectory accessMode (head gens)
+          openSegmentIndex
+          indexDirectory
+          accessMode
+          (head gens)
+          askContextType
+          askNormalizer
 
 openSegmentIndex :: FilePath
                  -> AccessMode
                  -> Generation
+                 -> (Text -> IO (Maybe ContextType))
+                 -> (Text -> IO (Maybe CNormalizer))
                  -> ExceptT IndexOpenError IO SegIxRef
-openSegmentIndex indexDirectory accessMode generation = do
-  undefined
+openSegmentIndex indexDirectory
+                 accessMode
+                 generation
+                 askContextType
+                 askNormalizer = withExceptT ErrLoadIndex $ do
+
+  segmentInfos <- Store.readSegmentInfos indexDirectory generation
+  segmentIndex <- Store.segmentInfosToSegmentIndex
+                  indexDirectory
+                  generation
+                  askContextType
+                  askNormalizer
+                  segmentInfos
+
+  -- FIXME: for now we ex-out any segments
+  let segmentIndex' = segmentIndex {
+        siSegments = SegmentMap.empty
+        }
+
+  ref <- liftIO $ newMVar segmentIndex'
+  return ref
 
 -- | Create a new 'SegmentIndex' in the given directory.
 newSegmentIndex :: FilePath -> IO SegIxRef
