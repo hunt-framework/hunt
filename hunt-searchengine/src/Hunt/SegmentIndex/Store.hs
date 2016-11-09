@@ -129,3 +129,16 @@ storeSegmentInfos indexDirectory generation segmentInfos = do
   Binary.encodeFile
     (indexDirectory </> segmentInfosFile generation)
     segmentInfos
+
+
+data ErrReadSegmentInfos = ErrDecodingFailed
+
+readSegmentInfos :: FilePath
+                 -> Generation
+                 -> IO (Either ErrReadSegmentInfos SegmentInfos)
+readSegmentInfos indexDirectory generation = do
+  msi <- Binary.decodeFileOrFail
+         (indexDirectory </> segmentInfosFile generation)
+  case msi of
+    Right si -> return $ Right si
+    Left _   -> return $ Left ErrDecodingFailed
