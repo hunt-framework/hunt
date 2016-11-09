@@ -7,6 +7,7 @@ import           GHC.Generics
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
+import           Hunt.SegmentIndex.Store.DirLayout
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.Index
@@ -128,6 +129,3 @@ storeSegmentInfos indexDirectory generation segmentInfos = do
   Binary.encodeFile
     (indexDirectory </> segmentInfosFile generation)
     segmentInfos
-
-segmentInfosFile :: Generation -> FilePath
-segmentInfosFile gen = "gen_" ++ show gen

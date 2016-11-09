@@ -20,5 +20,5 @@ fieldIndexFile sid = show sid <.> "fdx"
 fieldDataFile :: SegmentId -> FilePath
 fieldDataFile sid = show sid <.> "fdt"
 
-metaIndexFile :: Generation -> FilePath
-metaIndexFile gen = "gen_" ++ show gen
+segmentInfosFile :: Generation -> FilePath
+segmentInfosFile gen = "gen_" ++ show gen
