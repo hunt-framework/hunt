@@ -134,11 +134,12 @@ library
     Hunt.Scoring.SearchResult
 
     Hunt.SegmentIndex
-    Hunt.SegmentIndex.Commit
     Hunt.SegmentIndex.Descriptor
     Hunt.SegmentIndex.IndexWriter
     Hunt.SegmentIndex.Open
     Hunt.SegmentIndex.Store
+    Hunt.SegmentIndex.Store.TermInfos
+    Hunt.SegmentIndex.Store.Documents
     Hunt.SegmentIndex.Types
     Hunt.SegmentIndex.Types.Generation
     Hunt.SegmentIndex.Types.Index

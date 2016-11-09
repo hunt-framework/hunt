@@ -13,7 +13,8 @@ import           Hunt.Common.Occurrences            (Occurrences)
 import qualified Hunt.Common.Occurrences            as Occ
 import           Hunt.Index.Schema
 import           Hunt.Index.Schema.Analyze
-import qualified Hunt.SegmentIndex.Commit           as Commit
+import qualified Hunt.SegmentIndex.Store.TermInfos  as Store
+import qualified Hunt.SegmentIndex.Store.Documents  as Store
 import qualified Hunt.SegmentIndex.Descriptor       as IxDescr
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
@@ -93,7 +94,7 @@ newSegment indexDirectory genSegId schema docs = do
 
   -- write the documents to disk and keep
   -- a mapping from DocId -> Offset
-  Commit.writeDocuments
+  Store.writeDocuments
     indexDirectory
     segmentId
     sortedFields
@@ -102,7 +103,7 @@ newSegment indexDirectory genSegId schema docs = do
   -- write the terms to disk and remember
   -- for each word where its occurrences
   -- are stored
-  termInfos <- Commit.writeIndex
+  termInfos <- Store.writeIndex
                indexDirectory
                segmentId
                schema

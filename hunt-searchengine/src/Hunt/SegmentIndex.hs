@@ -18,9 +18,9 @@ module Hunt.SegmentIndex (
 import           Hunt.Common.ApiDocument            (ApiDocument)
 import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
-import qualified Hunt.SegmentIndex.Commit           as Commit
 import qualified Hunt.SegmentIndex.IndexWriter      as IndexWriter
 import           Hunt.SegmentIndex.Open
+import qualified Hunt.SegmentIndex.Store            as Store
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.Index
@@ -111,12 +111,10 @@ closeWriter ixwrref = do
           -- well, there were no conflicts we are
           -- good to write a new index generation to
           -- disk.
-          Commit.writeMetaIndex
+          Store.storeSegmentInfos
             (siIndexDir si')
             (siGeneration si')
-            nextSegId
-            (siSchema si')
-            (siSegments si')
+            (Store.segmentIndexToSegmentInfos si')
 
           return $ ( si'
                    , CommitOk ()

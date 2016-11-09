@@ -1,11 +1,7 @@
 {-# LANGUAGE BangPatterns    #-}
 {-# LANGUAGE PatternGuards   #-}
 {-# LANGUAGE RecordWildCards #-}
-module Hunt.SegmentIndex.Commit (
-    writeMetaIndex
-  , writeIndex
-  , writeDocuments
-  ) where
+module Hunt.SegmentIndex.Store.TermInfos where
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocDesc                (FieldValue (..))
@@ -22,6 +18,7 @@ import qualified Hunt.IO.Buffer                     as Buffer
 import           Hunt.IO.Files
 import           Hunt.IO.Write
 import           Hunt.Scoring.SearchResult
+import           Hunt.SegmentIndex.Store.DirLayout
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.SegmentId
@@ -53,34 +50,9 @@ import           System.IO                          (IOMode (WriteMode),
 
 import           Prelude                            hiding (Word, words)
 
-type ContextNum = Int
-
 type Offset = Int
 
 type BytesWritten = Int
-
-writeMetaIndex :: FilePath
-               -> Generation
-               -> SegmentId
-               -> Schema
-               -> SegmentMap Segment
-               -> IO ()
-writeMetaIndex indexDirectory indexGeneration segmentId schema segments = do
-  let
-    putSegment :: SegmentId -> Segment -> Binary.Put
-    putSegment segmentId Segment{..} = do
-      Binary.put segmentId
-      Binary.put segNumDocs
-      Binary.put segDelGen
-
-    putMetaData :: Binary.Put
-    putMetaData = do
-      Binary.put schema
-      Binary.put (SegmentMap.size segments)
-      forWithKey_ segments putSegment
-
-  withFile (indexDirectory </> metaIndexFile indexGeneration) WriteMode
-    $ \mixFile -> Builder.hPutBuilder mixFile $ Binary.execPut putMetaData
 
 -- | Write the inverted index to disk.
 writeIndex :: FilePath
@@ -209,78 +181,6 @@ writeIndex ixDir sid schema cxWords = do
   where
     vint@(W vintSize vintWrite) = fromIntegral >$< varint64
 
-type SortedFields = V.Vector Field
-
--- | Write a list of 'Document's to disk in an apropriate format
--- for efficient retrieval.
-writeDocuments :: FilePath
-               -> SegmentId
-               -> SortedFields
-               -> [Document]
-               -> IO ()
-writeDocuments ixDir sid fields docs = do
-
-  withAppendFile (ixDir </> fieldDataFile sid) $ \fdtFile ->
-    withAppendFile (ixDir </> fieldIndexFile sid) $ \fdxFile -> do
-
-    Buffer.withBuffer (2 * 1024) $ \fdxBuffer -> do
-      Buffer.withBuffer (16 * 1024) $ \fdtBuffer -> do
-
-        let
-          fdtFlush :: Flush BytesWritten
-          fdtFlush = append fdtFile
-          {-# NOINLINE fdtFlush #-}
-
-          fdxFlush :: Flush BytesWritten
-          fdxFlush = append fdxFile
-          {-# NOINLINE fdxFlush #-}
-
-          -- For each field of a document write the fields one
-          -- by one, sorted in 'fields' order.
-          foldFields descr docBytesWritten fieldRank field = do
-            case DocDesc.lookupValue field descr of
-              FV_Null -> return docBytesWritten
-              value   -> do
-                n <- putWrite
-                     fdtBuffer
-                     fdtFlush
-                     (vint >*< fieldValueWrite)
-                     (fieldRank, value)
-                return (docBytesWritten + n)
-
-          -- For each document write its fields to the
-          -- field data buffer
-          foldDocs bytesWritten doc = do
-            let
-              descr = desc doc
-              !size = DocDesc.size descr
-
-            lenBytes <- putWrite
-                        fdtBuffer
-                        fdtFlush
-                        vint
-                        size
-
-            docBytes <- V.ifoldM' (foldFields descr) 0 fields
-
-            -- write the offset of the document field data
-            -- to the document field index.
-
-            _ <- putWrite
-                 fdxBuffer
-                 fdxFlush
-                 word64
-                 (fromIntegral bytesWritten)
-
-            return (lenBytes + docBytes + bytesWritten)
-
-        _ <- foldlM foldDocs 0 docs
-
-        Buffer.flush fdtBuffer fdtFlush
-        Buffer.flush fdxBuffer fdxFlush
-        return ()
-  return ()
-
 -- Helper which flushes and retries if buffer
 -- is full
 putWrite :: Buffer -> Flush a -> Write t -> t -> IO Int
@@ -310,48 +210,6 @@ occurrenceWrite = (unDocId >$< vint) >*< vint >*< vint
 termWrite :: Write (Int, (Text, (Int, Offset)))
 termWrite = vint >*< text >*< vint >*< vint
 {-# INLINE termWrite #-}
-
--- | A 'Write' for 'DocDesc' fields.
-fieldValueWrite :: Write FieldValue
-fieldValueWrite = W size write
-  where
-    W word8Size word8Write = word8
-    W vintSize vintWrite   = fromIntegral >$< varint64
-    W bsSize bsWrite       = bytestring'
-    W tSize tWrite         = text
-
-    size (FV_Int i)    = vintSize i + tagSize
-    size (FV_Float _f) = undefined
-    size (FV_Text s)   = tSize s + tagSize
-    size (FV_Binary b) = bsSize b + tagSize
-    size FV_Null       = 0
-
-    write (FV_Int i) op    = word8Write 0 op >>= vintWrite i
-    write (FV_Float _f) op = word8Write 1 op >>= undefined
-    write (FV_Text s) op   = word8Write 2 op >>= tWrite s
-    write (FV_Binary b) op = word8Write 3 op >>= bsWrite b
-    write FV_Null op       = return op
-
-    tagSize = word8Size 0
-{-# INLINE fieldValueWrite #-}
-
-termVectorFile :: SegmentId -> FilePath
-termVectorFile sid = show sid <.> "tv"
-
-occurrencesFile :: SegmentId -> FilePath
-occurrencesFile sid = show sid <.> "occ"
-
-positionsFile :: SegmentId -> FilePath
-positionsFile sid = show sid <.> "pos"
-
-fieldIndexFile :: SegmentId -> FilePath
-fieldIndexFile sid = show sid <.> "fdx"
-
-fieldDataFile :: SegmentId -> FilePath
-fieldDataFile sid = show sid <.> "fdt"
-
-metaIndexFile :: Generation -> FilePath
-metaIndexFile gen = "gen_" ++ show gen
 
 mapAccumWithKeyM :: (Monad m, TraversableWithKey t)
                  => (a -> Key t -> b -> m (c, a))

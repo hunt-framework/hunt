@@ -17,6 +17,7 @@ module Hunt.SegmentIndex.Types.SegmentMap (
 import           Hunt.SegmentIndex.Types.SegmentId
 
 import           Control.Arrow                     (first)
+import           Data.Binary                       (Binary)
 import           Data.IntMap.Strict                (IntMap)
 import qualified Data.IntMap.Strict                as IM
 import           Data.Key
@@ -29,6 +30,7 @@ newtype SegmentMap a = SM { unSM :: IntMap a }
                               , Monoid
                               , Traversable
                               , Show
+                              , Binary
                               )
 
 type instance Key SegmentMap = SegmentId

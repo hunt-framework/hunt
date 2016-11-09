@@ -80,7 +80,6 @@ import           Hunt.Scoring.SearchResult         (ScoredDocs, UnScoredDocs,
                                                     searchResultToOccurrences,
                                                     unScoredDocsToDocIdSet)
 import qualified Hunt.SegmentIndex                 as SegmentIndex
-import qualified Hunt.SegmentIndex.Commit          as Commit
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.Utility                      (showText)
@@ -345,11 +344,7 @@ execCmd' (DeleteByQuery q)
   = modIx $ execDeleteByQuery q
 
 execCmd' (StoreIx filename)
-  = withIx $ \ixx -> do sid <- liftIO $ genSegId =<< newSegIdGen
-                        liftIO $ Commit.writeIndex "./" sid (CIx.mapToSchema ixx) (CIx.indexedWords ixx)
-                        return ResOK
-                        --execStore filename ixx
-
+  = withIx $ \ixx -> undefined
   where
     cxToCxNum ixx cx = M.findIndex cx (CIx.mapToSchema ixx)
 

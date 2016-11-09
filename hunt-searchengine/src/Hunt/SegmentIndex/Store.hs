@@ -1,5 +1,6 @@
-{-# LANGUAGE DeriveGeneric   #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DeriveGeneric         #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE RecordWildCards       #-}
 module Hunt.SegmentIndex.Store where
 
 import           GHC.Generics
@@ -15,11 +16,14 @@ import qualified Hunt.SegmentIndex.Types.SegmentMap as SegmentMap
 
 import           Control.Exception
 import           Control.Monad.Except
-import           Data.Traversable
+import           Data.Binary                        (Binary)
+import qualified Data.Binary                        as Binary
 import           Data.Map                           (Map)
 import qualified Data.Map.Strict                    as Map
 import           Data.Store
 import           Data.Text                          (Text)
+import           Data.Traversable
+import           System.FilePath                    ((</>))
 
 -- | A simplified representation for 'Segment' which is used
 -- to store 'Segment's on disk.
@@ -30,12 +34,16 @@ data SegmentInfo =
    , segiContextInfo :: !(Map Context Int)
    } deriving (Generic)
 
+instance Binary SegmentInfo
+
 data SegmentInfos =
   SegmentInfos {
       sisSegmentIdGen :: !SegmentId
     , sisSchema       :: !Schema
     , sisSegmentInfos :: !(SegmentMap SegmentInfo)
     } deriving (Generic)
+
+instance Binary SegmentInfos
 
 segmentToSegmentInfo :: Segment -> SegmentInfo
 segmentToSegmentInfo Segment{..} = SegmentInfo {
@@ -82,7 +90,7 @@ segmentInfosToSegmentIndex indexDirectory
     withError e f = \x -> do
       mx <- liftIO $ f x
       case mx of
-        Just x ->  return x
+        Just x  ->  return x
         Nothing -> throwError e
 
     askContextType' =
@@ -111,3 +119,15 @@ segmentInfosToSegmentIndex indexDirectory
       , siSegments   = sisSegmentInfos
       , siSegRefs    = SegmentMap.empty
       }
+
+storeSegmentInfos :: FilePath
+                  -> Generation
+                  -> SegmentInfos
+                  -> IO ()
+storeSegmentInfos indexDirectory generation segmentInfos = do
+  Binary.encodeFile
+    (indexDirectory </> segmentInfosFile generation)
+    segmentInfos
+
+segmentInfosFile :: Generation -> FilePath
+segmentInfosFile gen = "gen_" ++ show gen
