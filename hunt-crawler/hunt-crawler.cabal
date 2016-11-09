@@ -46,9 +46,6 @@ library
     Holumbus.Crawler.Util
     Holumbus.Crawler.XmlArrows
 
-  other-modules:
-    Data.IntSet.Cache
-
   build-depends:
                 base                   >= 4.8
               , binary                 >= 0.5
