@@ -6,23 +6,26 @@
 module Hunt.Common.DocDesc
 where
 
-import           Prelude             hiding (lookup)
+import           Prelude              hiding (lookup)
 
-import           Control.Arrow       (second)
+import           Control.Arrow        (second)
 import           Control.DeepSeq
-import           Control.Monad       (mzero)
+import           Control.Monad        (mzero)
 
-import           Data.Aeson          (FromJSON (..), ToJSON (..), Value (..),
-                                      decode, encode)
-import           Data.Binary         (Binary (..))
-import           Data.ByteString     (ByteString)
-import qualified Data.HashMap.Strict as HM
-import           Data.Maybe          (fromMaybe)
-import qualified Data.Scientific     as Scientific
+import           Data.Aeson           (FromJSON (..), ToJSON (..), Value (..),
+                                       decode, decode', encode)
+import qualified Data.Aeson.Encoding.Internal as Enc
+import           Data.Binary          (Binary (..))
+import qualified Data.ByteString.Builder as Builder
+import           Data.ByteString      (ByteString)
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.HashMap.Strict  as HM
+import           Data.Maybe           (fromMaybe)
+import qualified Data.Scientific      as Scientific
 import           Data.String
-import           Data.Text           (Text)
-import qualified Data.Text           as Text
-import           Data.Text.Binary    ()
+import           Data.Text            (Text)
+import qualified Data.Text            as Text
+import           Data.Text.Binary     ()
 import           Data.Typeable
 
 -- ------------------------------------------------------------
@@ -35,9 +38,13 @@ type FieldRank = Int
 data FieldValue = FV_Int !Int
                 | FV_Float !Float
                 | FV_Text !Text
+                | FV_Json !ByteString
                 | FV_Binary !ByteString
                 | FV_Null
                 deriving (Eq, Show)
+
+jsonValue :: ToJSON a => a -> FieldValue
+jsonValue = FV_Json . LBS.toStrict . encode
 
 instance IsString FieldValue where
   fromString = FV_Text . fromString
@@ -51,15 +58,26 @@ instance FromJSON FieldValue where
     Number n -> pure $ case Scientific.floatingOrInteger n of
                          Left f  -> toFieldValue (f :: Float)
                          Right i -> toFieldValue (i :: Int)
-    _ -> mzero
+    x        -> pure $ jsonValue x
 
 instance ToJSON FieldValue where
   toJSON fv = case fv of
     FV_Int i    -> toJSON i
     FV_Float f  -> toJSON f
     FV_Text s   -> toJSON s
+    FV_Json j   -> case decode' (LBS.fromStrict j) of
+                     Just v  -> v
+                     Nothing -> error "invalid"
     FV_Binary _ -> Null -- TODO: maybe base64 encode binary values
     FV_Null     -> Null
+
+  toEncoding fv = case fv of
+    FV_Int i    -> toEncoding i
+    FV_Float f  -> toEncoding f
+    FV_Text t   -> toEncoding t
+    FV_Json j   -> Enc.unsafeToEncoding (Builder.byteString j)
+    FV_Binary _ -> toEncoding Null -- TODO: see toJSON
+    FV_Null     -> toEncoding Null
 
 class ToFieldValue a where
   toFieldValue :: a -> FieldValue
