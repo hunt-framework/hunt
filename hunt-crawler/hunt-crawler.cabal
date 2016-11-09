@@ -30,7 +30,6 @@ library
     Control.Concurrent.MapFold
     Control.Monad.ReaderStateIOError
     Control.Sequential.MapFoldBinary
-    Data.IntSet.Cache
     Holumbus.Crawler.CacheCore
     Holumbus.Crawler.Constants
     Holumbus.Crawler.Core
@@ -46,6 +45,9 @@ library
     Holumbus.Crawler.URIs
     Holumbus.Crawler.Util
     Holumbus.Crawler.XmlArrows
+
+  other-modules:
+    Data.IntSet.Cache
 
   build-depends:
                 base                   >= 4.8
