@@ -158,12 +158,14 @@ fieldValueWrite = W size write
     size (FV_Float _f) = undefined
     size (FV_Text s)   = tSize s + tagSize
     size (FV_Binary b) = bsSize b + tagSize
+    size (FV_Json j)   = bsSize j + tagSize
     size FV_Null       = 0
 
     write (FV_Int i) op    = word8Write 0 op >>= vintWrite i
     write (FV_Float _f) op = word8Write 1 op >>= undefined
     write (FV_Text s) op   = word8Write 2 op >>= tWrite s
     write (FV_Binary b) op = word8Write 3 op >>= bsWrite b
+    write (FV_Json j) op   = word8Write 4 op >>= bsWrite j
     write FV_Null op       = return op
 
     tagSize = word8Size 0
