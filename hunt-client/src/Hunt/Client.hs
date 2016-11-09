@@ -2,6 +2,7 @@
 module Hunt.Client
   ( -- * Client
     withBaseUrl
+  , huntBaseUrl
   , runClientM
 
     -- * API
@@ -42,12 +43,17 @@ import           Hunt.ClientInterface
 import           Hunt.Query.Intermediate    (RankedDoc)
 import           Network.HTTP.Client        (defaultManagerSettings, newManager)
 import           Servant.API
-import           Servant.Client             (BaseUrl, ClientEnv (..), ClientM,
+import           Servant.Client             (BaseUrl (BaseUrl), ClientEnv (..),
+                                             ClientM, Scheme (Http),
                                              ServantError (DecodeFailure),
                                              client, runClientM)
 
 
 -- CLIENT
+
+huntBaseUrl :: BaseUrl
+huntBaseUrl = BaseUrl Http "localhost" 3000 ""
+
 
 withBaseUrl :: (MonadIO m) => BaseUrl -> m ClientEnv
 withBaseUrl baseUrl = do
@@ -162,5 +168,5 @@ parseQuery' :: T.Text -> ClientM Query
 parseQuery' query = either handleErr return $ parseQuery $ T.unpack query
   where
     handleErr :: T.Text -> ClientM Query
-    handleErr err = 
+    handleErr err =
       throwError $ DecodeFailure (T.unpack err) "text/plain" (LBS.pack $ T.unpack query)
