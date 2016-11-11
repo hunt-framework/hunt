@@ -3,6 +3,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Hunt.SegmentIndex.Store.TermInfos where
 
+import           Control.Exception
 import           Control.Monad.State.Strict
 import qualified Data.Binary                        as Binary
 import qualified Data.Binary.Get                    as Binary
@@ -61,21 +62,26 @@ type Offset = Int
 
 type BytesWritten = Int
 
--- | Internal data type used for streaming terms and their @TermInfo@s.
-data TermInfos = TI_Cons !Text !TermInfo TermInfos
-               | TI_Nil LByteString.ByteString
+data DecodingError = DecodingError String
+                   deriving (Eq, Show)
 
--- | Lazily streams n @TermInfo@s from a @Data.ByteString.Lazy@
-termInfos :: Int -> LByteString.ByteString -> TermInfos
-termInfos nterms bytes =
+instance Exception DecodingError
+
+-- | A stream of @Text@ and @TermInfo@.
+-- TODO: needs failure state
+data TermInfos = TI_Cons !Word !TermInfo TermInfos
+               | TI_Nil (Maybe String) LByteString.ByteString
+
+-- | Lazily streams n @TermInfo@s from a @Data.ByteString.Lazy@.
+readTermInfos :: Int -> LByteString.ByteString -> TermInfos
+readTermInfos nterms bytes =
   let
     -- we really want to make sure we are lazy in the spine
     -- and strict in the leafes here to avoid space leaks
-    getTermInfo :: Text -> Binary.Get (Text, TermInfo)
+    getTermInfo :: Word -> Binary.Get (Word, TermInfo)
     getTermInfo lastWord = do
       VarInt prefixLen <- deserialize
-      VarInt suffixLen <- deserialize
-      suffix           <- getRawText suffixLen
+      suffix           <- getRawText
       VarInt occCount  <- deserialize
       VarInt occOffset <- deserialize
       case Text.take prefixLen lastWord `Text.append` suffix of
@@ -83,22 +89,27 @@ termInfos nterms bytes =
           termInfo -> case (word, termInfo) of
             wordAndTermInfo -> pure $! wordAndTermInfo
 
+    -- lazily decodes the bytes into terms and @TermInfo@.
     loop !n !lastWord !bs
-      | n <= 0    = TI_Nil bs
+      | n <= 0    = TI_Nil Nothing bs
       | otherwise = case Binary.runGetOrFail (getTermInfo lastWord) bs of
                       Right (bs', _, (word, termInfo)) ->
-                        case TI_Cons word termInfo (loop (n - 1) word bs') of
-                          cons -> cons
-                      Left (bs', _, _) ->
-                        case TI_Nil bs' of
-                          nil -> nil
-
+                        TI_Cons word termInfo (loop (n - 1) word bs')
+                      Left (bs', _, err) ->
+                        TI_Nil (Just err) bs'
   in loop nterms Text.empty bytes
 
-getRawText :: Int -> Binary.Get Text
-getRawText nbytes = Binary.readNWith nbytes $ \op ->
-  Text.fromPtr (castPtr op) (fromIntegral (nbytes `unsafeShiftR` 1))
+-- | The standard @Text@ @Binary@ instance first converts
+-- to UTF-8 charset.
+getRawText :: Binary.Get Text
+getRawText = do
+  VarInt nbytes <- deserialize
+  Binary.readNWith nbytes $ \op ->
+    Text.fromPtr (castPtr op) (fromIntegral (nbytes `unsafeShiftR` 1))
 
+-- | Reads the term vector file for a specific @SegmentId@.
+-- Needs the term counts for each context. Doesn't read contexts
+-- which are not in the @Schema@.
 readTermVector :: FilePath
                -> Schema
                -> SegmentId
@@ -106,18 +117,21 @@ readTermVector :: FilePath
                -> IO ContextMap
 readTermVector indexDirectory schema segmentId termVectorSizes =
   let
+    -- loop over every term and @TermInfo@ and incrementally
+    -- construct an efficient index structure for lookups.
     buildContextMap :: LByteString.ByteString
                     -> Context
                     -> ContextSchema
                     -> IO (IndexRepr, LByteString.ByteString)
     buildContextMap bytes context contextSchema
       | Just termCount <- Map.lookup context termVectorSizes = do
+          -- TODO: support other index types
           case textIndexDescr of
-            -- TODO: support other index types
             IndexDescriptor toIxTerm builder -> case builder of
               (Builder startBuilder insertTerm finishBuilder) -> do
                 let
-                  loop !indexBuilder (TI_Nil bytes') = do
+                  -- TODO: failure state here
+                  loop !indexBuilder (TI_Nil err bytes') = do
                     index <- finishBuilder indexBuilder
                     return $! (IndexRepr toIxTerm index, bytes')
                   loop !indexBuilder (TI_Cons term termInfo rest) = do
@@ -125,7 +139,7 @@ readTermVector indexDirectory schema segmentId termVectorSizes =
                     loop indexBuilder' rest
 
                 initialIndexBuilder <- startBuilder
-                loop initialIndexBuilder (termInfos termCount bytes)
+                loop initialIndexBuilder (readTermInfos termCount bytes)
 
       | otherwise =
           return $! (IndexRepr (\_ -> ()) emptyIndex, bytes)
