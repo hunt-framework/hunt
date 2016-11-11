@@ -26,11 +26,19 @@ data Index a =
         , ixLookupRange   :: a -> a -> IO [(a, TermInfo)]
           -- ^ Search within a range of two keys.
         , ixLookupRangeSc :: a -> a -> IO [(a, (Score, TermInfo))]
-
           -- ^ Search withinin a range and scoring of the result by
           -- comparing the keys of the bounds with the key in the result
           -- and estimating the similarity of these keys.
           --
           -- The default implementation is attaching always the default score (1.0)
         , ixNumTerms      :: Int
+        }
+
+emptyIndex :: Index a
+emptyIndex =
+  Index { ixSearch        = \_ _ -> return []
+        , ixSearchSc      = \_ _ -> return []
+        , ixLookupRange   = \_ _ -> return []
+        , ixLookupRangeSc = \_ _ -> return []
+        , ixNumTerms      = 0
         }

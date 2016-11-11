@@ -3,6 +3,30 @@
 {-# LANGUAGE RecordWildCards #-}
 module Hunt.SegmentIndex.Store.TermInfos where
 
+import           Control.Monad.State.Strict
+import qualified Data.Binary                        as Binary
+import qualified Data.Binary.Get                    as Binary
+import qualified Data.Binary.Get.Internal           as Binary
+import qualified Data.Binary.Put                    as Binary
+import           Data.Bits
+import           Data.Bytes.Serial
+import           Data.Bytes.VarInt
+import           Data.ByteString                    (ByteString)
+import qualified Data.ByteString                    as ByteString
+import qualified Data.ByteString.Builder            as Builder
+import qualified Data.ByteString.Lazy               as LByteString
+import           Data.Foldable
+import           Data.Key
+import           Data.Map                           (Map)
+import qualified Data.Map.Strict                    as Map
+import           Data.Text                          (Text)
+import qualified Data.Text                          as Text
+import qualified Data.Text.Encoding                 as Text
+import qualified Data.Text.Foreign                  as Text
+import qualified Data.Vector                        as V
+import qualified Data.Vector.Unboxed.Mutable        as UM
+import           Data.Word                          hiding (Word)
+import           Foreign.Ptr
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocDesc                (FieldValue (..))
 import qualified Hunt.Common.DocDesc                as DocDesc
@@ -18,32 +42,15 @@ import qualified Hunt.IO.Buffer                     as Buffer
 import           Hunt.IO.Files
 import           Hunt.IO.Write
 import           Hunt.Scoring.SearchResult
+import           Hunt.SegmentIndex.Descriptor
 import           Hunt.SegmentIndex.Store.DirLayout
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
+import           Hunt.SegmentIndex.Types.Index
 import           Hunt.SegmentIndex.Types.SegmentId
 import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
 import qualified Hunt.SegmentIndex.Types.SegmentMap as SegmentMap
 import           Hunt.SegmentIndex.Types.TermInfo
-
-import           Control.Monad.State.Strict
-import qualified Data.Binary                        as Binary
-import qualified Data.Binary.Put                    as Binary
-import           Data.ByteString                    (ByteString)
-import qualified Data.ByteString                    as ByteString
-import qualified Data.ByteString.Builder            as Builder
-import           Data.Foldable
-import           Data.Key
-import           Data.Map                           (Map)
-import qualified Data.Map.Strict                    as Map
-import           Data.Text                          (Text)
-import qualified Data.Text                          as Text
-import qualified Data.Text.Encoding                 as Text
-import qualified Data.Text.Foreign                  as Text
-import qualified Data.Vector                        as V
-import qualified Data.Vector.Unboxed.Mutable        as UM
-import           Data.Word                          hiding (Word)
-import           Foreign.Ptr
 import           System.FilePath
 import           System.IO                          (IOMode (WriteMode),
                                                      withFile)
@@ -53,6 +60,80 @@ import           Prelude                            hiding (Word, words)
 type Offset = Int
 
 type BytesWritten = Int
+
+-- | Internal data type used for streaming terms and their @TermInfo@s.
+data TermInfos = TI_Cons !Text !TermInfo TermInfos
+               | TI_Nil LByteString.ByteString
+
+-- | Lazily streams n @TermInfo@s from a @Data.ByteString.Lazy@
+termInfos :: Int -> LByteString.ByteString -> TermInfos
+termInfos nterms bytes =
+  let
+    -- we really want to make sure we are lazy in the spine
+    -- and strict in the leafes here to avoid space leaks
+    getTermInfo :: Text -> Binary.Get (Text, TermInfo)
+    getTermInfo lastWord = do
+      VarInt prefixLen <- deserialize
+      VarInt suffixLen <- deserialize
+      suffix           <- getRawText suffixLen
+      VarInt occCount  <- deserialize
+      VarInt occOffset <- deserialize
+      case Text.take prefixLen lastWord `Text.append` suffix of
+        word -> case TermInfo occCount occOffset of
+          termInfo -> case (word, termInfo) of
+            wordAndTermInfo -> pure $! wordAndTermInfo
+
+    loop !n !lastWord !bs
+      | n <= 0    = TI_Nil bs
+      | otherwise = case Binary.runGetOrFail (getTermInfo lastWord) bs of
+                      Right (bs', _, (word, termInfo)) ->
+                        case TI_Cons word termInfo (loop (n - 1) word bs') of
+                          cons -> cons
+                      Left (bs', _, _) ->
+                        case TI_Nil bs' of
+                          nil -> nil
+
+  in loop nterms Text.empty bytes
+
+getRawText :: Int -> Binary.Get Text
+getRawText nbytes = Binary.readNWith nbytes $ \op ->
+  Text.fromPtr (castPtr op) (fromIntegral (nbytes `unsafeShiftR` 1))
+
+readTermVector :: FilePath
+               -> Schema
+               -> SegmentId
+               -> Map Context Int
+               -> IO ContextMap
+readTermVector indexDirectory schema segmentId termVectorSizes =
+  let
+    buildContextMap :: LByteString.ByteString
+                    -> Context
+                    -> ContextSchema
+                    -> IO (IndexRepr, LByteString.ByteString)
+    buildContextMap bytes context contextSchema
+      | Just termCount <- Map.lookup context termVectorSizes = do
+          case textIndexDescr of
+            -- TODO: support other index types
+            IndexDescriptor toIxTerm builder -> case builder of
+              (Builder startBuilder insertTerm finishBuilder) -> do
+                let
+                  loop !indexBuilder (TI_Nil bytes') = do
+                    index <- finishBuilder indexBuilder
+                    return $! (IndexRepr toIxTerm index, bytes')
+                  loop !indexBuilder (TI_Cons term termInfo rest) = do
+                    indexBuilder' <- insertTerm indexBuilder (toIxTerm term, termInfo)
+                    loop indexBuilder' rest
+
+                initialIndexBuilder <- startBuilder
+                loop initialIndexBuilder (termInfos termCount bytes)
+
+      | otherwise =
+          return $! (IndexRepr (\_ -> ()) emptyIndex, bytes)
+
+  in do
+    content    <- LByteString.readFile (indexDirectory </> termVectorFile segmentId)
+    (cxMap, _) <- mapAccumWithKeyM buildContextMap content schema
+    return $! Map.filter (\ixRepr -> indexReprNumTerms ixRepr > 0) cxMap
 
 -- | Write the inverted index to disk.
 writeIndex :: FilePath

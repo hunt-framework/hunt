@@ -8,6 +8,7 @@ import           GHC.Generics
 import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
 import           Hunt.SegmentIndex.Store.DirLayout
+import qualified Hunt.SegmentIndex.Store.TermInfos as TermInfos
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.Index
@@ -134,13 +135,26 @@ readSegmentInfos indexDirectory generation = do
     Right si -> return si
     Left _   -> throwError ErrDecodingFailed
 
-readTermVectors :: FilePath
-                -> Schema
-                -> SegmentId
-                -> SegmentInfo
-                -> ExceptT IndexLoadError IO Segment
-readTermVectors indexDirectory schema segmentId = do
-  undefined
+readSegments :: FilePath
+             -> Schema
+             -> SegmentMap SegmentInfo
+             -> ExceptT IndexLoadError IO (SegmentMap Segment)
+readSegments indexDirectory schema segmentInfos = do
+  SegmentMap.forWithKey segmentInfos $ \segmentId segmentInfo -> do
+
+    termIndex <- liftIO
+                 $ TermInfos.readTermVector
+                 indexDirectory
+                 schema
+                 segmentId
+                 (segiContextInfo segmentInfo)
+
+    return $! Segment {
+        segNumDocs     = segiNumDocs segmentInfo
+      , segDeletedDocs = mempty
+      , segDelGen      = segiDelGen segmentInfo
+      , segTermIndex   = termIndex
+      }
 
 storeSegmentInfos :: FilePath
                   -> Generation

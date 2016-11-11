@@ -1,3 +1,4 @@
+{-# LANGUAGE PatternGuards #-}
 module Hunt.SegmentIndex.Open (
     openOrNewSegmentIndex
   , AccessMode (..)
@@ -142,13 +143,15 @@ openSegmentIndex indexDirectory
                   askContextType
                   askNormalizer
                   segmentInfos
+  segments <- Store.readSegments
+              indexDirectory
+              (siSchema segmentIndex)
+              (siSegments segmentIndex)
 
-  -- FIXME: for now we ex-out any segments
-  let segmentIndex' = segmentIndex {
-        siSegments = SegmentMap.empty
-        }
-
-  ref <- liftIO $ newMVar segmentIndex'
+  ref <- liftIO
+         $ newMVar
+         $! segmentIndex { siSegments = segments
+                         }
   return ref
 
 -- | Create a new 'SegmentIndex' in the given directory.

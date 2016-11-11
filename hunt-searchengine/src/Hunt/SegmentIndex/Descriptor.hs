@@ -79,3 +79,4 @@ textIndexBuilder = Builder start step stop
                , ixLookupRangeSc = \t1 t2 -> addDefScore <$> lookupRange t1 t2
                , ixNumTerms      = n
                }
+{-# INLINE textIndexBuilder #-}
