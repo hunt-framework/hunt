@@ -4,6 +4,7 @@
 module Hunt.SegmentIndex.Store.TermInfos where
 
 import           Control.Exception
+import           Control.Monad.Except
 import           Control.Monad.State.Strict
 import qualified Data.Binary                        as Binary
 import qualified Data.Binary.Get                    as Binary
@@ -62,15 +63,14 @@ type Offset = Int
 
 type BytesWritten = Int
 
-data DecodingError = DecodingError String
-                   deriving (Eq, Show)
+data TermInfoDecodingError = TermInfoDecodingError String
+                           deriving (Eq, Show)
 
-instance Exception DecodingError
+instance Exception TermInfoDecodingError
 
 -- | A stream of @Text@ and @TermInfo@.
--- TODO: needs failure state
 data TermInfos = TI_Cons !Word !TermInfo TermInfos
-               | TI_Nil (Maybe String) LByteString.ByteString
+               | TI_Nil (Maybe TermInfoDecodingError) !LByteString.ByteString
 
 -- | Lazily streams n @TermInfo@s from a @Data.ByteString.Lazy@.
 readTermInfos :: Int -> LByteString.ByteString -> TermInfos
@@ -96,7 +96,7 @@ readTermInfos nterms bytes =
                       Right (bs', _, (word, termInfo)) ->
                         TI_Cons word termInfo (loop (n - 1) word bs')
                       Left (bs', _, err) ->
-                        TI_Nil (Just err) bs'
+                        TI_Nil (Just (TermInfoDecodingError err)) bs'
   in loop nterms Text.empty bytes
 
 -- | The standard @Text@ @Binary@ instance first converts
@@ -114,7 +114,7 @@ readTermVector :: FilePath
                -> Schema
                -> SegmentId
                -> Map Context Int
-               -> IO ContextMap
+               -> IO (Either TermInfoDecodingError ContextMap)
 readTermVector indexDirectory schema segmentId termVectorSizes =
   let
     -- loop over every term and @TermInfo@ and incrementally
@@ -122,7 +122,7 @@ readTermVector indexDirectory schema segmentId termVectorSizes =
     buildContextMap :: LByteString.ByteString
                     -> Context
                     -> ContextSchema
-                    -> IO (IndexRepr, LByteString.ByteString)
+                    -> ExceptT TermInfoDecodingError IO (IndexRepr, LByteString.ByteString)
     buildContextMap bytes context contextSchema
       | Just termCount <- Map.lookup context termVectorSizes = do
           -- TODO: support other index types
@@ -130,24 +130,35 @@ readTermVector indexDirectory schema segmentId termVectorSizes =
             IndexDescriptor toIxTerm builder -> case builder of
               (Builder startBuilder insertTerm finishBuilder) -> do
                 let
-                  -- TODO: failure state here
-                  loop !indexBuilder (TI_Nil err bytes') = do
-                    index <- finishBuilder indexBuilder
-                    return $! (IndexRepr toIxTerm index, bytes')
-                  loop !indexBuilder (TI_Cons term termInfo rest) = do
+                  loop (TI_Nil merr bytes') !indexBuilder
+                    | Just decodingError <- merr =
+                        return $! Left $! decodingError
+                    | otherwise = do
+                        index <- finishBuilder indexBuilder
+                        return $! Right $!
+                          case IndexRepr toIxTerm index of
+                            indexRepr -> (indexRepr, bytes')
+                  loop (TI_Cons term termInfo rest) !indexBuilder = do
                     indexBuilder' <- insertTerm indexBuilder (toIxTerm term, termInfo)
-                    loop indexBuilder' rest
+                    loop rest indexBuilder'
 
-                initialIndexBuilder <- startBuilder
-                loop initialIndexBuilder (readTermInfos termCount bytes)
+                mindex <- liftIO
+                          $ loop (readTermInfos termCount bytes) =<< startBuilder
 
+                case mindex of
+                  Right (index, bytes') -> return (index, bytes')
+                  Left err              -> throwError err
       | otherwise =
           return $! (IndexRepr (\_ -> ()) emptyIndex, bytes)
 
   in do
-    content    <- LByteString.readFile (indexDirectory </> termVectorFile segmentId)
-    (cxMap, _) <- mapAccumWithKeyM buildContextMap content schema
-    return $! Map.filter (\ixRepr -> indexReprNumTerms ixRepr > 0) cxMap
+    content     <- LByteString.readFile
+                   (indexDirectory </> termVectorFile segmentId)
+    mContextMap <- runExceptT
+                   $ mapAccumWithKeyM buildContextMap content schema
+    case mContextMap of
+      Right (contextMap, _) -> return $! Right $! contextMap
+      Left err              -> return $! Left err
 
 -- | Write the inverted index to disk.
 writeIndex :: FilePath

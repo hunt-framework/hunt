@@ -142,19 +142,21 @@ readSegments :: FilePath
 readSegments indexDirectory schema segmentInfos = do
   SegmentMap.forWithKey segmentInfos $ \segmentId segmentInfo -> do
 
-    termIndex <- liftIO
-                 $ TermInfos.readTermVector
-                 indexDirectory
-                 schema
-                 segmentId
-                 (segiContextInfo segmentInfo)
+    mtermIndex <- liftIO
+                  $ TermInfos.readTermVector
+                  indexDirectory
+                  schema
+                  segmentId
+                  (segiContextInfo segmentInfo)
 
-    return $! Segment {
-        segNumDocs     = segiNumDocs segmentInfo
-      , segDeletedDocs = mempty
-      , segDelGen      = segiDelGen segmentInfo
-      , segTermIndex   = termIndex
-      }
+    case mtermIndex of
+      Right termIndex -> return $! Segment {
+          segNumDocs     = segiNumDocs segmentInfo
+        , segDeletedDocs = mempty
+        , segDelGen      = segiDelGen segmentInfo
+        , segTermIndex   = termIndex
+        }
+      Left _err -> throwError ErrDecodingFailed
 
 storeSegmentInfos :: FilePath
                   -> Generation
