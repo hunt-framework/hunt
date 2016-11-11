@@ -124,12 +124,15 @@ readTermVector indexDirectory schema segmentId termVectorSizes =
                     -> ContextSchema
                     -> ExceptT TermInfoDecodingError IO (IndexRepr, LByteString.ByteString)
     buildContextMap bytes context contextSchema
-      | Just termCount <- Map.lookup context termVectorSizes = do
+      | Just termCount <- Map.lookup context termVectorSizes
+      , termCount > 0 = do
           -- TODO: support other index types
           case textIndexDescr of
             IndexDescriptor toIxTerm builder -> case builder of
               (Builder startBuilder insertTerm finishBuilder) -> do
                 let
+                  -- traverse the stream and build the index
+                  -- incrementally
                   loop (TI_Nil merr bytes') !indexBuilder
                     | Just decodingError <- merr =
                         return $! Left $! decodingError
