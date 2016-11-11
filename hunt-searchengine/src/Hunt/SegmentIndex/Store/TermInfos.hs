@@ -63,8 +63,8 @@ type Offset = Int
 
 type BytesWritten = Int
 
-data TermInfoDecodingError = TermInfoDecodingError String
-                           deriving (Eq, Show)
+newtype TermInfoDecodingError = TermInfoDecodingError String
+                              deriving (Eq, Show)
 
 instance Exception TermInfoDecodingError
 
