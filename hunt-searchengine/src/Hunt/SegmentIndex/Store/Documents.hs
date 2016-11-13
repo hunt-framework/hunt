@@ -54,6 +54,15 @@ type BytesWritten = Int
 
 type SortedFields = V.Vector Field
 
+writeFieldInfos :: FilePath
+                -> SegmentId
+                -> SortedFields
+                -> IO ()
+writeFieldInfos indexDirectory segmentId fields = do
+  Binary.encodeFile
+    (indexDirectory </> fieldInfoFile segmentId)
+    (V.toList fields)
+
 -- | Write a list of 'Document's to disk in an apropriate format
 -- for efficient retrieval.
 writeDocuments :: FilePath

@@ -100,6 +100,11 @@ newSegment indexDirectory genSegId schema docs = do
     sortedFields
     [ doc | (_, doc, _) <- docsAndWords ]
 
+  Store.writeFieldInfos
+    indexDirectory
+    segmentId
+    sortedFields
+
   -- write the terms to disk and remember
   -- for each word where its occurrences
   -- are stored

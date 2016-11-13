@@ -14,6 +14,9 @@ occurrencesFile sid = show sid <.> "occ"
 positionsFile :: SegmentId -> FilePath
 positionsFile sid = show sid <.> "pos"
 
+fieldInfoFile :: SegmentId -> FilePath
+fieldInfoFile sid = show sid <.> "fnm"
+
 fieldIndexFile :: SegmentId -> FilePath
 fieldIndexFile sid = show sid <.> "fdx"
 
