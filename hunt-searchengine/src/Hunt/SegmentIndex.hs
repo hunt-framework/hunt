@@ -116,7 +116,7 @@ closeWriter ixwrref = do
             (siGeneration si')
             (Store.segmentIndexToSegmentInfos si')
 
-          return $ ( si'
+          return $ ( si' { siGeneration = nextGeneration (siGeneration si') }
                    , CommitOk ()
                    )
 
