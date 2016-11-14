@@ -3,6 +3,7 @@ module Hunt.CLI.Parser
   ) where
 
 
+import           Data.Monoid         ((<>))
 import qualified Data.Text           as T
 import           Hunt.CLI.Types
 import           Options.Applicative
