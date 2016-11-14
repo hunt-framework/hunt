@@ -13,6 +13,7 @@
 TAGS
 cabal-dev
 cabal.sandbox.config
+data/
 dist
 dist-newstyle
 dist-stack
