@@ -6,6 +6,7 @@
 *~
 .DS_Store
 .cabal-sandbox
+.ghc.environment.*
 .stack-work
 .virthualenv
 /hunt-demos/geoFrontend/data/map.xml
