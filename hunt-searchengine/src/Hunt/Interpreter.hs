@@ -737,8 +737,7 @@ execStatus (StatusIndex {- context -})
     where
       -- context = "type"
       _dumpIndex ixx
-        = do let words = CIx.indexedWords ixx
-             return $ ResGeneric (toJSON words)
+        = undefined
 
 -- ------------------------------------------------------------
 

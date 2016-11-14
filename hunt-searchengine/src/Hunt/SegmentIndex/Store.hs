@@ -22,7 +22,6 @@ import           Data.Binary                        (Binary)
 import qualified Data.Binary                        as Binary
 import           Data.Map                           (Map)
 import qualified Data.Map.Strict                    as Map
-import           Data.Store
 import           Data.Text                          (Text)
 import           Data.Traversable
 import           System.FilePath                    ((</>))
