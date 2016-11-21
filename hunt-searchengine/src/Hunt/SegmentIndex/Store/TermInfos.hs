@@ -76,6 +76,14 @@ data TermInfos = TI_Cons !Word !TermInfo TermInfos
 readTermInfos :: Int -> LByteString.ByteString -> TermInfos
 readTermInfos nterms bytes =
   let
+    -- | The standard @Text@ @Binary@ instance first converts
+    -- to UTF-8 charset.
+    getRawText :: Binary.Get Text
+    getRawText = do
+      VarInt nbytes <- deserialize
+      Binary.readNWith nbytes $ \op ->
+        Text.fromPtr (castPtr op) (fromIntegral (nbytes `unsafeShiftR` 1))
+
     -- we really want to make sure we are lazy in the spine
     -- and strict in the leafes here to avoid space leaks
     getTermInfo :: Word -> Binary.Get (Word, TermInfo)
@@ -97,15 +105,8 @@ readTermInfos nterms bytes =
                         TI_Cons word termInfo (loop (n - 1) word bs')
                       Left (bs', _, err) ->
                         TI_Nil (Just (TermInfoDecodingError err)) bs'
-  in loop nterms Text.empty bytes
 
--- | The standard @Text@ @Binary@ instance first converts
--- to UTF-8 charset.
-getRawText :: Binary.Get Text
-getRawText = do
-  VarInt nbytes <- deserialize
-  Binary.readNWith nbytes $ \op ->
-    Text.fromPtr (castPtr op) (fromIntegral (nbytes `unsafeShiftR` 1))
+  in loop nterms Text.empty bytes
 
 -- | Reads the term vector file for a specific @SegmentId@.
 -- Needs the term counts for each context. Doesn't read contexts
@@ -129,7 +130,7 @@ readTermVector indexDirectory schema segmentId termVectorSizes =
           -- TODO: support other index types
           case textIndexDescr of
             IndexDescriptor toIxTerm builder -> case builder of
-              (Builder startBuilder insertTerm finishBuilder) -> do
+              (Builder startBuilder insertTerm finishBuilder) ->
                 let
                   -- traverse the stream and build the index
                   -- incrementally
@@ -144,13 +145,12 @@ readTermVector indexDirectory schema segmentId termVectorSizes =
                   loop (TI_Cons term termInfo rest) !indexBuilder = do
                     indexBuilder' <- insertTerm indexBuilder (toIxTerm term, termInfo)
                     loop rest indexBuilder'
-
-                mindex <- liftIO
-                          $ loop (readTermInfos termCount bytes) =<< startBuilder
-
-                case mindex of
-                  Right (index, bytes') -> return (index, bytes')
-                  Left err              -> throwError err
+                in do
+                  mindex <- liftIO
+                            $ loop (readTermInfos termCount bytes) =<< startBuilder
+                  case mindex of
+                    Right (index, bytes') -> return (index, bytes')
+                    Left err              -> throwError err
       | otherwise =
           return $! (IndexRepr (\_ -> ()) emptyIndex, bytes)
 
