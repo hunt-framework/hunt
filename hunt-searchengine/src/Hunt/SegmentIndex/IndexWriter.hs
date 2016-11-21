@@ -80,7 +80,7 @@ newSegment :: FilePath
            -> Schema
            -> [ApiDocument]
            -> IO (SegmentId, Segment)
-newSegment indexDirectory genSegId schema docs =
+newSegment indexDirectory newSegId schema docs =
   let
     idsAndWords :: [(DocId, Words)]
     idsAndWords =
@@ -96,7 +96,7 @@ newSegment indexDirectory genSegId schema docs =
                          $ contentForCx cx idsAndWords
                      ) schema
   in do
-    segmentId <- genSegId
+    segmentId <- newSegId
     -- write the documents to disk and keep
     -- a mapping from DocId -> Offset
     Store.writeDocuments
@@ -128,42 +128,47 @@ newSegment indexDirectory genSegId schema docs =
                 $ List.map (first repr) termInfo
           return (cx, IndexRepr repr ix)
 
-    return ( segmentId
-           , Segment { segNumDocs     = 0
-                     , segDeletedDocs = DocIdSet.empty
-                     , segDelGen      = generationZero
-                     , segTermIndex   = Map.fromDistinctAscList cxMap
-                    }
-           )
+    let
+      segment :: Segment
+      segment =
+        Segment { segNumDocs     = 0
+                , segDeletedDocs = DocIdSet.empty
+                , segDelGen      = generationZero
+                , segTermIndex   = Map.fromDistinctAscList cxMap
+                }
+
+    segment `seq` return (segmentId, segment)
   where
     -- collect all field names in the document
     -- descriptions so we can build an efficient
     -- mapping @Field -> FieldRank@.
     fields :: Set Field
-    fields = Set.unions
-             . List.map (Set.fromList . DocDesc.fields . adDescr)
-             $ docs
+    fields =
+      Set.unions
+      . List.map (Set.fromList . DocDesc.fields . adDescr)
+      $ docs
 
     sortedFields :: Vector.Vector Field
-    sortedFields = Vector.fromListN
-                   (Set.size fields)
-                   (Set.toAscList fields)
+    sortedFields =
+      Vector.fromListN
+      (Set.size fields)
+      (Set.toAscList fields)
 
     -- convert ApiDocuments to Documents, delete null values,
     -- and break index data into words by applying the scanner
     -- given by the schema spec for the appropriate contexts
     docsAndWords :: [(DocId, Document, Words)]
-    docsAndWords
-      = List.zipWith (\i (d, ws) -> (DocId i, d, ws)) [0..]
-        . List.map ( (\ (d, _dw, ws) -> (d, ws))
-                     . toDocAndWords' schema
-                   )
-        $ docs
+    docsAndWords =
+      List.zipWith (\i (d, ws) -> (DocId i, d, ws)) [0..]
+      . List.map ( (\ (d, _dw, ws) -> (d, ws))
+                    . toDocAndWords' schema
+                 )
+      $ docs
 
     -- | Computes the words and occurrences out of a list for one context
     contentForCx :: Context -> [(DocId, Words)] -> [(Word, Occurrences)]
-    contentForCx cx vs
-      = concatMap (invert . second (getWlForCx cx)) vs
+    contentForCx cx vs =
+      concatMap (invert . second (getWlForCx cx)) vs
       where
         invert (did, wl)
           = map (second (Occ.singleton' did)) $ Map.toList wl
