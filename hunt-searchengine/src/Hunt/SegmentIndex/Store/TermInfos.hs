@@ -98,6 +98,7 @@ readTermInfos nterms bytes =
             wordAndTermInfo -> pure $! wordAndTermInfo
 
     -- lazily decodes the bytes into terms and @TermInfo@.
+    loop :: Int -> Word -> LByteString.ByteString -> TermInfos
     loop !n !lastWord !bs
       | n <= 0    = TI_Nil Nothing bs
       | otherwise = case Binary.runGetOrFail (getTermInfo lastWord) bs of
