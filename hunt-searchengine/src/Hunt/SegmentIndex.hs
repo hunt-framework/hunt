@@ -84,9 +84,8 @@ newWriter segmentIndexRef =
 -- | Insert multiple 'ApiDocument's to the index.
 insertDocuments :: IxWrRef -> [ApiDocument] -> IO ()
 insertDocuments indexWriterRef documents = do
-  withIndexWriter indexWriterRef $ \indexWriter -> do
-    indexWriter'  <- IndexWriter.insertList documents indexWriter
-    return (indexWriter', ())
+  withIndexWriter_ indexWriterRef $ \indexWriter -> do
+    IndexWriter.insertList documents indexWriter
 
 -- | Closes the 'IndexWriter' and commits all changes.
 -- After a call to 'closeWriter' any change made is
@@ -123,3 +122,6 @@ withSegmentIndex_ segmentIndexRef action = modifyMVar_ segmentIndexRef action
 
 withIndexWriter :: IxWrRef -> (IndexWriter -> IO (IndexWriter, a)) -> IO a
 withIndexWriter segmentIndexRef action = modifyMVar segmentIndexRef action
+
+withIndexWriter_ :: IxWrRef -> (IndexWriter -> IO IndexWriter) -> IO ()
+withIndexWriter_ indexWriterRef action = modifyMVar_ indexWriterRef action
