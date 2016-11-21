@@ -94,7 +94,7 @@ insertDocuments indexWriterRef documents = do
 closeWriter :: IxWrRef -> IO (Commit ())
 closeWriter indexWriterRef = do
   withIndexWriter indexWriterRef $ \indexWriter -> do
-    result <- withSegmentIndex (iwSegIxRef indexWriter) $ \segmentIndex -> do
+    withSegmentIndex (iwSegIxRef indexWriter) $ \segmentIndex -> do
       case IndexWriter.close indexWriter segmentIndex of
         Right segmentIndex' -> do
           -- well, there were no conflicts we are
@@ -107,12 +107,10 @@ closeWriter indexWriterRef = do
 
           return ( segmentIndex' { siGeneration =
                                     nextGeneration (siGeneration segmentIndex') }
-                 , Right ()
+                 , (indexWriter, Right ())
                  )
         Left conflicts ->
-            return (segmentIndex, Left conflicts)
-
-    return (indexWriter, result)
+            return (segmentIndex, (indexWriter, Left conflicts))
 
 withSegmentIndex :: SegIxRef -> (SegmentIndex -> IO (SegmentIndex, a)) -> IO a
 withSegmentIndex segmentIndexRef action = modifyMVar segmentIndexRef action
