@@ -94,38 +94,37 @@ insertDocuments ixwrref docs = do
 -- After a call to 'closeWriter' any change made is
 -- guaranteed to be persisted on disk if there are
 -- no write conflicts or exceptions.
-closeWriter :: IxWrRef -> IO (CommitResult ())
-closeWriter ixwrref = do
-  withIndexWriter ixwrref $ \ixwr -> do
-    r <- withSegmentIndex (iwSegIxRef ixwr) $ \si -> do
-
-      -- check for conflicts with the 'SegmentIndex'
-      case IndexWriter.close ixwr si of
-        CommitOk si' -> do
-
+closeWriter :: IxWrRef -> IO (Commit ())
+closeWriter indexWriterRef = do
+  withIndexWriter indexWriterRef $ \indexWriter -> do
+    r <- withSegmentIndex (iwSegIxRef indexWriter) $ \segmentIndex -> do
+      case IndexWriter.close indexWriter segmentIndex of
+        Right segmentIndex' ->
           let
             nextSegId :: SegmentId
-            nextSegId = maybe segmentZero fst
-                        $ SegmentMap.findMax (siSegments si')
+            nextSegId =
+              case SegmentMap.findMax (siSegments segmentIndex') of
+                Just (segmentId, _) -> segmentId
+                Nothing             -> segmentZero
+          in do
+            -- well, there were no conflicts we are
+            -- good to write a new index generation to
+            -- disk.
+            Store.storeSegmentInfos
+              (siIndexDir segmentIndex')
+              (siGeneration segmentIndex')
+              (Store.segmentIndexToSegmentInfos segmentIndex')
 
-          -- well, there were no conflicts we are
-          -- good to write a new index generation to
-          -- disk.
-          Store.storeSegmentInfos
-            (siIndexDir si')
-            (siGeneration si')
-            (Store.segmentIndexToSegmentInfos si')
-
-          return $ ( si' { siGeneration = nextGeneration (siGeneration si') }
-                   , CommitOk ()
+            return ( segmentIndex' {
+                      siGeneration = nextGeneration (siGeneration segmentIndex') }
+                   , Right ()
+                   )
+        Left conflicts ->
+            return ( segmentIndex
+                   , Left conflicts
                    )
 
-        CommitConflicts conflicts ->
-          return $ ( si
-                   , CommitConflicts conflicts
-                   )
-
-    return (ixwr, r)
+    return (indexWriter, r)
 
 withSegmentIndex :: SegIxRef -> (SegmentIndex -> IO (SegmentIndex, a)) -> IO a
 withSegmentIndex ref action = modifyMVar ref action

@@ -108,9 +108,8 @@ type SegIxRef = MVar SegmentIndex
 -- | A mutex-locked reference to an 'IndexWriter'.
 type IxWrRef = MVar IndexWriter
 
--- | A type indicating the result of a transaction.
-data CommitResult a = CommitOk a
-                    | CommitConflicts [Conflict]
-
 -- | The different conflict types which can arise.
 data Conflict = ConflictDelete !SegmentId
+
+-- | A computation which commits an @IndexWriter@.
+type Commit a = Either [Conflict] a

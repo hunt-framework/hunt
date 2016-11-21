@@ -24,6 +24,7 @@ import           Hunt.SegmentIndex.Types.SegmentMap (SegmentMap)
 import qualified Hunt.SegmentIndex.Types.SegmentMap as SegmentMap
 
 import           Control.Arrow
+import           Control.Monad.Error.Class
 import qualified Control.Monad.Parallel             as Par
 import qualified Data.List                          as List
 import           Data.Map                           (Map)
@@ -165,8 +166,10 @@ newSegment indexDirectory genSegId schema docs = do
         getWlForCx cx' ws'
           = Map.findWithDefault Map.empty cx' ws'
 
-commit :: IndexWriter -> SegmentIndex -> CommitResult SegmentIndex
-commit IndexWriter{..} si@SegmentIndex{..} =
+-- | If no conflict occurred the resulting @SegmentIndex@
+-- contains any new and modified @Segment@s.
+commit :: IndexWriter -> SegmentIndex -> Commit SegmentIndex
+commit IndexWriter{..} segmentIndex@SegmentIndex{..} =
   let
     -- checks for conflcts on two segments
     checkConflict :: SegmentId -> Segment -> Segment -> [Conflict]
@@ -184,30 +187,37 @@ commit IndexWriter{..} si@SegmentIndex{..} =
       $ SegmentMap.intersectionWithKey checkConflict siSegments
       $ SegmentMap.intersection iwSegments iwModSegments
 
+    mergedSegments :: SegmentMap Segment
+    mergedSegments =
+      SegmentMap.unionWith (\new _old -> new) iwModSegments
+      $ SegmentMap.union iwModSegments siSegments
+
   in case conflicts of
-       [] -> CommitOk $! si {
-           siSegments = SegmentMap.unionWith (\new _old -> new) iwModSegments
-                        -- insert the new 'Segment's into 'siSegments'
-                        $ SegmentMap.union iwNewSegments siSegments
-         }
-       _  -> CommitConflicts conflicts
+       [] -> return $! segmentIndex { siSegments = mergedSegments }
+       _  -> throwError conflicts
 
-close :: IndexWriter -> SegmentIndex -> CommitResult SegmentIndex
-close ixwr segix = do
-
+-- | Close the @IndexWriter@:
+--     - Checks for conflicts and merges all new and modified @Segment@s.
+--     - Decreases the reference counts for all retained @Segment@s.
+close :: IndexWriter -> SegmentIndex -> Commit SegmentIndex
+close indexWriter segmentIndex =
   let
     removeIfZero :: Int -> a -> Maybe Int
-    removeIfZero a _b = case a - 1 of
-                          x | x <= 0    -> Nothing
-                            | otherwise -> Just x
+    removeIfZero a _b =
+      case a - 1 of
+        x | x <= 0    -> Nothing
+          | otherwise -> Just x
 
-  case commit ixwr segix of
-    CommitOk segix' -> CommitOk $! segix' {
+    decRefCount :: SegmentMap Int -> SegmentMap a -> SegmentMap Int
+    decRefCount ax bx =
+      SegmentMap.differenceWith removeIfZero ax bx
+
+  in do
+    segmentIndex' <- commit indexWriter segmentIndex
+    return $! segmentIndex' {
       -- decrease the reference count so we can delete
       -- obsolete 'Segment's
-      siSegRefs = SegmentMap.differenceWith
-                  removeIfZero
-                  (siSegRefs segix)
-                  (iwSegments ixwr)
+      siSegRefs = decRefCount
+                  (siSegRefs segmentIndex')
+                  (iwSegments indexWriter)
       }
-    conflict        -> conflict

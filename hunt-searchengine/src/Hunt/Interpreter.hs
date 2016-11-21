@@ -429,9 +429,9 @@ execInsertList docs segIx ixx
            SegmentIndex.closeWriter ixWr
 
          case res of
-           CommitOk _ -> return (ixx, ResOK)
-           CommitConflicts conflicts ->
-             throwResError 409 "Write conflict"
+           Right () -> return (ixx, ResOK)
+           Left conflicts ->
+            throwResError 409 "Write conflict"
 
          -- existence check for all referenced contexts in all docs
          checkContextsExistence contexts ixx
