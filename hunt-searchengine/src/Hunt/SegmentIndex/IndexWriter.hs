@@ -3,7 +3,6 @@ module Hunt.SegmentIndex.IndexWriter where
 
 import           Hunt.Common.ApiDocument
 import           Hunt.Common.BasicTypes
-import           Hunt.Common.DocDesc                (FieldRank)
 import qualified Hunt.Common.DocDesc                as DocDesc
 import           Hunt.Common.DocId
 import           Hunt.Common.DocIdSet               (DocIdSet)
@@ -25,7 +24,6 @@ import qualified Hunt.SegmentIndex.Types.SegmentMap as SegmentMap
 
 import           Control.Arrow
 import           Control.Monad.Error.Class
-import qualified Control.Monad.Parallel             as Par
 import qualified Data.List                          as List
 import           Data.Map                           (Map)
 import qualified Data.Map.Strict                    as Map
@@ -82,55 +80,61 @@ newSegment :: FilePath
            -> Schema
            -> [ApiDocument]
            -> IO (SegmentId, Segment)
-newSegment indexDirectory genSegId schema docs = do
-
-  segmentId <- genSegId
-
+newSegment indexDirectory genSegId schema docs =
   let
-    idsAndWords = [ (did, words) | (did, _, words) <- docsAndWords]
-    inverted    = Map.mapWithKey (\cx _ ->
-                                    Map.toAscList
-                                    $ Map.fromListWith mappend
-                                    $ contentForCx cx idsAndWords) schema
+    idsAndWords :: [(DocId, Words)]
+    idsAndWords =
+      [ (did, words_)
+      | (did, _, words_) <- docsAndWords
+      ]
 
-  -- write the documents to disk and keep
-  -- a mapping from DocId -> Offset
-  Store.writeDocuments
-    indexDirectory
-    segmentId
-    sortedFields
-    [ doc | (_, doc, _) <- docsAndWords ]
+    inverted :: Map Context [(Word, Occurrences)]
+    inverted =
+      Map.mapWithKey (\cx _ ->
+                         Map.toAscList
+                         $ Map.fromListWith mappend
+                         $ contentForCx cx idsAndWords
+                     ) schema
+  in do
+    segmentId <- genSegId
+    -- write the documents to disk and keep
+    -- a mapping from DocId -> Offset
+    Store.writeDocuments
+      indexDirectory
+      segmentId
+      sortedFields
+      [ doc | (_, doc, _) <- docsAndWords ]
 
-  Store.writeFieldInfos
-    indexDirectory
-    segmentId
-    sortedFields
+    Store.writeFieldInfos
+      indexDirectory
+      segmentId
+      sortedFields
 
-  -- write the terms to disk and remember
-  -- for each word where its occurrences
-  -- are stored
-  termInfos <- Store.writeIndex
-               indexDirectory
-               segmentId
-               schema
-               (Map.toList inverted)
+    -- write the terms to disk and remember
+    -- for each word where its occurrences
+    -- are stored
+    termInfos <- Store.writeIndex
+                indexDirectory
+                segmentId
+                schema
+                (Map.toList inverted)
 
-  -- construct a lookup optimized index
-  -- for the contexts
-  cxMap <- for termInfos $ \(cx, termInfo) ->
-    case IxDescr.textIndexDescr of
-      IxDescr.IndexDescriptor repr builder -> do
-        ix <- IxDescr.runBuilder builder
-              $ List.map (first repr) termInfo
-        return (cx, IndexRepr repr ix)
+    -- construct a lookup optimized index
+    -- for the contexts
+    cxMap <- for termInfos $ \(cx, termInfo) ->
+      case IxDescr.textIndexDescr of
+        IxDescr.IndexDescriptor repr builder -> do
+          ix <- IxDescr.runBuilder builder
+                $ List.map (first repr) termInfo
+          return (cx, IndexRepr repr ix)
 
-  return ( segmentId
-         , Segment { segNumDocs     = 0
-                   , segDeletedDocs = DocIdSet.empty
-                   , segDelGen      = generationZero
-                   , segTermIndex   = Map.fromDistinctAscList cxMap
-                   }
-         )
+    return ( segmentId
+           , Segment { segNumDocs     = 0
+                     , segDeletedDocs = DocIdSet.empty
+                     , segDelGen      = generationZero
+                     , segTermIndex   = Map.fromDistinctAscList cxMap
+                    }
+           )
   where
     -- collect all field names in the document
     -- descriptions so we can build an efficient
