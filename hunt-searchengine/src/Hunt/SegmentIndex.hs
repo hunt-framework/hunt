@@ -74,10 +74,10 @@ newWriter segmentIndexRef =
 
   let
     segmentIndex' = segmentIndex {
-      siSegRefs = SegmentMap.unionWith (+)
-                  (SegmentMap.map (\_ -> 1) siSegments)
-                  siSegRefs
-             }
+        siSegRefs = SegmentMap.unionWith (+)
+                    (SegmentMap.map (\_ -> 1) siSegments)
+                    siSegRefs
+      }
 
   return (segmentIndex', indexWriter)
 
