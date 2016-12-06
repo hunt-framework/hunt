@@ -12,8 +12,8 @@ import           Hunt.Common.Occurrences            (Occurrences)
 import qualified Hunt.Common.Occurrences            as Occ
 import           Hunt.Index.Schema
 import           Hunt.Index.Schema.Analyze
-import qualified Hunt.SegmentIndex.Store.TermInfos  as Store
-import qualified Hunt.SegmentIndex.Store.Documents  as Store
+import qualified Hunt.SegmentIndex.Directory.TermInfos as Store
+import qualified Hunt.SegmentIndex.Directory.Documents as Store
 import qualified Hunt.SegmentIndex.Descriptor       as IxDescr
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation

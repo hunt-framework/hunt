@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns    #-}
 {-# LANGUAGE PatternGuards   #-}
 {-# LANGUAGE RecordWildCards #-}
-module Hunt.SegmentIndex.Store.TermInfos where
+module Hunt.SegmentIndex.Directory.TermInfos where
 
 import           Control.Exception
 import           Control.Monad.Except
@@ -45,7 +45,7 @@ import           Hunt.IO.Files
 import           Hunt.IO.Write
 import           Hunt.Scoring.SearchResult
 import           Hunt.SegmentIndex.Descriptor
-import           Hunt.SegmentIndex.Store.DirLayout
+import           Hunt.SegmentIndex.Directory.Layout
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.Index

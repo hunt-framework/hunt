@@ -20,7 +20,7 @@ import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
 import qualified Hunt.SegmentIndex.IndexWriter      as IndexWriter
 import           Hunt.SegmentIndex.Open
-import qualified Hunt.SegmentIndex.Store            as Store
+import qualified Hunt.SegmentIndex.Directory        as Directory
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.SegmentId
@@ -100,10 +100,10 @@ closeWriter indexWriterRef = do
           -- well, there were no conflicts we are
           -- good to write a new index generation to
           -- disk.
-          Store.storeSegmentInfos
+          Directory.storeSegmentInfos
             (siIndexDir segmentIndex')
             (siGeneration segmentIndex')
-            (Store.segmentIndexToSegmentInfos segmentIndex')
+            (Directory.segmentIndexToSegmentInfos segmentIndex')
 
           return ( segmentIndex' { siGeneration =
                                     nextGeneration (siGeneration segmentIndex') }

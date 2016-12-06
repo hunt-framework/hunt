@@ -1,4 +1,4 @@
-module Hunt.SegmentIndex.Store.DirLayout where
+module Hunt.SegmentIndex.Directory.Layout where
 
 import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.SegmentId

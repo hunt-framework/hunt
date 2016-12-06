@@ -134,10 +134,10 @@ library
     Hunt.SegmentIndex.Descriptor
     Hunt.SegmentIndex.IndexWriter
     Hunt.SegmentIndex.Open
-    Hunt.SegmentIndex.Store
-    Hunt.SegmentIndex.Store.DirLayout
-    Hunt.SegmentIndex.Store.Documents
-    Hunt.SegmentIndex.Store.TermInfos
+    Hunt.SegmentIndex.Directory
+    Hunt.SegmentIndex.Directory.Layout
+    Hunt.SegmentIndex.Directory.Documents
+    Hunt.SegmentIndex.Directory.TermInfos
     Hunt.SegmentIndex.Types
     Hunt.SegmentIndex.Types.Generation
     Hunt.SegmentIndex.Types.Index

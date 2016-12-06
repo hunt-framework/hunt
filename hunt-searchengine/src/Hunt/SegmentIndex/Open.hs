@@ -7,8 +7,8 @@ module Hunt.SegmentIndex.Open (
   ) where
 
 import           Hunt.Index.Schema
-import           Hunt.SegmentIndex.Store            (IndexLoadError)
-import qualified Hunt.SegmentIndex.Store            as Store
+import           Hunt.SegmentIndex.Directory            (IndexLoadError)
+import qualified Hunt.SegmentIndex.Directory            as Store
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.SegmentId

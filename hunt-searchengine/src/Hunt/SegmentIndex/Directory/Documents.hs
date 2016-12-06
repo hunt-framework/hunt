@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns    #-}
 {-# LANGUAGE PatternGuards   #-}
 {-# LANGUAGE RecordWildCards #-}
-module Hunt.SegmentIndex.Store.Documents where
+module Hunt.SegmentIndex.Directory.Documents where
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Common.DocDesc                (FieldValue (..))
@@ -18,7 +18,7 @@ import qualified Hunt.IO.Buffer                     as Buffer
 import           Hunt.IO.Files
 import           Hunt.IO.Write
 import           Hunt.Scoring.SearchResult
-import           Hunt.SegmentIndex.Store.DirLayout
+import           Hunt.SegmentIndex.Directory.Layout
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.SegmentId

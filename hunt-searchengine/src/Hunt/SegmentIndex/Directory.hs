@@ -1,14 +1,14 @@
 {-# LANGUAGE DeriveGeneric         #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RecordWildCards       #-}
-module Hunt.SegmentIndex.Store where
+module Hunt.SegmentIndex.Directory where
 
 import           GHC.Generics
 
 import           Hunt.Common.BasicTypes
 import           Hunt.Index.Schema
-import           Hunt.SegmentIndex.Store.DirLayout
-import qualified Hunt.SegmentIndex.Store.TermInfos as TermInfos
+import           Hunt.SegmentIndex.Directory.Layout
+import qualified Hunt.SegmentIndex.Directory.TermInfos as TermInfos
 import           Hunt.SegmentIndex.Types
 import           Hunt.SegmentIndex.Types.Generation
 import           Hunt.SegmentIndex.Types.Index
