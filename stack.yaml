@@ -7,6 +7,7 @@ packages:
   - ./hunt-cli
   - ./hunt-server
   - ./hunt-test/data/jokes
+  - ./fox
 extra-deps:
   - aeson-1.0.2.1
   - data-r-tree-0.0.5.0
