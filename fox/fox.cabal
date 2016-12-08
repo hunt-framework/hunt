@@ -17,6 +17,10 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Fox.Index
+                       Fox.Index.Directory
+                       Fox.Index.Monad
+                       Fox.Index.Writer
+                       Fox.Types
                        Fox.Types.Document
                        Fox.Types.DocDesc
                        Fox.Types.Generation
@@ -33,6 +37,7 @@ library
                        containers,
                        ghc-prim,
                        keys,
+                       mtl,
                        primitive,
                        text,
                        unordered-containers

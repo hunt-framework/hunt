@@ -22,6 +22,8 @@ import           Data.IntMap.Strict  (IntMap)
 import qualified Data.IntMap.Strict  as IM
 import           Data.Key
 
+type SegmentSet = SegmentMap ()
+
 -- | A map indexed by 'SegmentId'.
 newtype SegmentMap a = SM { unSM :: IntMap a }
                      deriving ( Functor, Keyed, Zip, ZipWithKey
