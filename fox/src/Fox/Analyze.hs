@@ -15,6 +15,7 @@ module Fox.Analyze (
 
 import           Fox.Types
 
+import qualified Data.List as List
 import           Data.Text (Text)
 import qualified Data.Char as Char
 import qualified Data.Text as Text
@@ -45,6 +46,9 @@ tokenizeDigits = Tokenizer $ splitText (not . Char.isDigit)
 
 tokenizeNonWhitespace :: Tokenizer
 tokenizeNonWhitespace = Tokenizer $ splitText Char.isSpace
+
+filter :: (Token -> Bool) -> Filter
+filter p = Filter $ \xs -> List.filter p xs
 
 splitText :: (Char -> Bool) -> FieldValue -> [Token]
 splitText p (FV_Text s) = split p s
