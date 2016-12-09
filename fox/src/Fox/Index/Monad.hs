@@ -2,6 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Fox.Index.Monad where
 
+import           Fox.Analyze
 import           Fox.Index.Directory
 import           Fox.Types
 
@@ -29,6 +30,7 @@ data IxWrEnv =
           , iwSegments :: !(SegmentMap Segment)
           -- ^ An @IndexWriter@ action is transactional
           -- over the current state of the @Index@.
+--          , iwAddKnownFields :: [(Field, FieldType)] -> IO (Maybe ())
           }
 
 data IxWrState =
@@ -40,8 +42,9 @@ data IxWrState =
             -- ^ Everytime we delete documents from a @Segment@
             -- or update the fields weights we need to keep track
             -- of it here.
+            , iwAnalyzer :: !Analyzer
+            -- ^ @Document@s are analyzed by this @Analyzer@.
             }
-
 
 -- | A write transaction over the @Index@. The @Index@ is updated
 -- transactionally.

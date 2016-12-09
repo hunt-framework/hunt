@@ -16,7 +16,8 @@ extra-source-files:  ChangeLog.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Fox.Index
+  exposed-modules:     Fox.Analyze
+                       Fox.Index
                        Fox.Index.Directory
                        Fox.Index.Monad
                        Fox.Index.Writer
@@ -27,7 +28,7 @@ library
                        Fox.Types.Score
                        Fox.Types.SegmentId
                        Fox.Types.SegmentMap
-                       
+
   other-modules:       Data.Primitive.PrimRef
 
   -- other-extensions:

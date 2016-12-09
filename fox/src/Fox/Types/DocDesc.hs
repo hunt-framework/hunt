@@ -6,7 +6,7 @@ import qualified Data.HashMap.Strict as HashMap
 import           Data.Int            (Int64)
 import           Data.Text           (Text)
 
-type Field = Text
+type FieldName = Text
 
 data FieldValue = FV_Int  !Int64
                 | FV_Float !Float
@@ -16,14 +16,22 @@ data FieldValue = FV_Int  !Int64
                 | FV_Null
                 deriving (Eq, Show)
 
-newtype DocDesc = DocDesc { unDesc :: HashMap Field FieldValue }
+data FieldType = FT_Int
+               | FT_Float
+               | FT_Text
+               | FT_Json
+               | FT_Binary
+               | FT_Null
+               deriving (Eq, Show)
+
+newtype DocDesc = DocDesc { unDesc :: HashMap FieldName FieldValue }
                 deriving (Eq, Show)
 
 instance Monoid DocDesc where
   mempty  = empty
   mappend = union
 
-mkDocDesc :: HashMap Field FieldValue -> DocDesc
+mkDocDesc :: HashMap FieldName FieldValue -> DocDesc
 mkDocDesc fields = DocDesc fields
 
 null :: DocDesc -> Bool
@@ -35,7 +43,7 @@ empty = mkDocDesc HashMap.empty
 size :: DocDesc -> Int
 size (DocDesc dd) = HashMap.size dd
 
-fields :: DocDesc -> [Field]
+fields :: DocDesc -> [FieldName]
 fields (DocDesc dd) = HashMap.keys dd
 
 union :: DocDesc -> DocDesc -> DocDesc

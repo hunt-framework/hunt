@@ -1,6 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Fox.Index where
 
+import           Fox.Analyze
 import           Fox.Index.Directory
 import           Fox.Index.Monad
 import           Fox.Types
@@ -11,15 +12,23 @@ import           Control.Exception
 import           Control.Monad.Except
 import qualified Data.List               as List
 
+-- | A synchronized, mutable reference to an @Index@
 type IndexRef = MVar Index
 
+-- | @Index@ holds the meta data for the actual index.
 data Index =
   Index { ixIndexDir    :: !IndexDirectory
+          -- ^ the directory where the indexed data resides.
         , ixSegments    :: !(SegmentMap Segment)
+          -- ^ @Segment@s contained in this @Index@.
         , ixSegmentRefs :: !(SegmentMap Int)
+          -- ^ Hold reference counts for @Segment@s which
+          -- are used in transactions.
         , ixSegIdGen    :: !SegIdGen
         }
 
+-- | A @Conflict@ occurs if two transactions changed the same
+-- @Segment@s.
 data Conflict = ConflictDelete SegmentId
 
 type Commit a = Either [Conflict] a
@@ -28,16 +37,21 @@ type Commit a = Either [Conflict] a
 -- This only locks the @Index@ only in conflict checking
 -- phase so multiple concurrent @runIndexWriter@ calls
 -- are possible.
-runWriter :: IndexRef -> IndexWriter a -> IO (Commit a)
-runWriter indexRef indexWriter = do
+runWriter :: Analyzer -> IndexRef -> IndexWriter a -> IO (Commit a)
+runWriter analyzer indexRef indexWriter = do
   -- we better bracket here. If there is an exception in
   -- the transaction we better dereference the referenced
   -- segments.
   bracket forkIxWrEnv closeIxWrEnv $ \writerEnv -> do
-    let writerState =
-          IxWrState { iwNewSegments   = SegmentMap.empty
-                    , iwModSegments   = SegmentMap.empty
-                    }
+    let
+      writerState =
+        IxWrState { iwNewSegments   = SegmentMap.empty
+                  , iwModSegments   = SegmentMap.empty
+                  , iwAnalyzer      = analyzer
+                  }
+
+      -- make sure that same field names have the same type.
+      checkFields fields = modIndex indexRef $ \index -> (index, Just ())
 
     -- run the transaction. Note that it can start merges
     -- by itself.
