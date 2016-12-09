@@ -10,6 +10,8 @@ import qualified Fox.Types.SegmentMap    as SegmentMap
 import           Control.Concurrent.MVar
 import           Control.Exception
 import           Control.Monad.Except
+import           Data.HashMap.Strict     (HashMap)
+import qualified Data.HashMap.Strict     as HashMap
 import qualified Data.List               as List
 
 -- | A synchronized, mutable reference to an @Index@
@@ -25,11 +27,15 @@ data Index =
           -- ^ Hold reference counts for @Segment@s which
           -- are used in transactions.
         , ixSegIdGen    :: !SegIdGen
+          -- ^ Generate new @SegmentId@s.
+        , ixSchema      :: !Schema
+          -- ^ A mapping from fields to their types.
         }
 
 -- | A @Conflict@ occurs if two transactions changed the same
 -- @Segment@s.
 data Conflict = ConflictDelete SegmentId
+              | ConflictFields FieldName FieldType FieldType
 
 type Commit a = Either [Conflict] a
 
@@ -48,10 +54,8 @@ runWriter analyzer indexRef indexWriter = do
         IxWrState { iwNewSegments   = SegmentMap.empty
                   , iwModSegments   = SegmentMap.empty
                   , iwAnalyzer      = analyzer
+                  , iwNewSchema     = mempty
                   }
-
-      -- make sure that same field names have the same type.
-      checkFields fields = modIndex indexRef $ \index -> (index, Just ())
 
     -- run the transaction. Note that it can start merges
     -- by itself.
@@ -79,6 +83,7 @@ runWriter analyzer indexRef indexWriter = do
         env = IxWrEnv { iwIndexDir = ixIndexDir index
                       , iwNewSegId = genSegId (ixSegIdGen index)
                       , iwSegments = ixSegments index
+                      , iwSchema   = ixSchema index
                       }
       in (index', env)
 
@@ -103,19 +108,28 @@ runWriter analyzer indexRef indexWriter = do
     commit index@Index{..} IxWrEnv{..} IxWrState{..} =
       let
         -- checks for conflcts on two segments
-        checkConflict :: SegmentId -> Segment -> Segment -> [Conflict]
-        checkConflict sid old new =
+        checkDelConflict :: SegmentId -> Segment -> Segment -> [Conflict]
+        checkDelConflict sid old new =
           -- currently only the delete generations can be changed
           -- so if we have modifed 'Segment's here they always conflict.
           [ ConflictDelete sid
           | segDelGen old /= segDelGen new
           ]
 
+        -- check whether we have conflicting field definitions.
+        checkSchemaConflict :: [Conflict]
+        checkSchemaConflict =
+          mconcat $ HashMap.elems $ HashMap.intersectionWithKey check iwNewSchema ixSchema
+          where
+            check fieldName fieldTy1 fieldTy2
+              | fieldTy1 /= fieldTy2 = [ConflictFields fieldName fieldTy1 fieldTy2]
+              | otherwise            = []
+
         conflicts :: [Conflict]
         conflicts =
           List.concat
           $ SegmentMap.elems
-          $ SegmentMap.intersectionWithKey checkConflict ixSegments
+          $ SegmentMap.intersectionWithKey checkDelConflict ixSegments
           $ SegmentMap.intersection iwSegments iwModSegments
 
         mergedSegments :: SegmentMap Segment

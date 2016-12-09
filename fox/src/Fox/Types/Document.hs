@@ -10,7 +10,7 @@ import           Data.Word           (Word8)
 
 data Document =
   Document { docWeight :: !Float
-           , docFields :: ![(FieldName, DocField)]
+           , docFields :: !(HashMap FieldName DocField)
            }
 
 newtype FieldFlags = FieldFlags Word8
@@ -27,8 +27,6 @@ fieldStore (FieldFlags w) = w .&. 0x02 /= 0
 setFieldStore :: FieldFlags -> FieldFlags
 setFieldStore (FieldFlags w) = FieldFlags (w .|. 0x02)
 
-data FieldType = FieldType
-
 data DocField =
   DocField { fieldFlags :: !FieldFlags
            , fieldBoost :: !Float
@@ -36,4 +34,4 @@ data DocField =
            }
 
 emptyDocument :: Document
-emptyDocument = Document 0.0 []
+emptyDocument = Document 0.0 HashMap.empty

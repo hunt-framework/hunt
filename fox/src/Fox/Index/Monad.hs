@@ -30,11 +30,15 @@ data IxWrEnv =
           , iwSegments :: !(SegmentMap Segment)
           -- ^ An @IndexWriter@ action is transactional
           -- over the current state of the @Index@.
---          , iwAddKnownFields :: [(Field, FieldType)] -> IO (Maybe ())
+          , iwSchema   :: !Schema
+          -- ^ We need to remember which fields have which types.
           }
 
 data IxWrState =
-  IxWrState { iwNewSegments   :: !(SegmentMap Segment)
+  IxWrState { iwNewSchema :: !Schema
+              -- ^ Adding new, unseen fields to the schema here.
+              -- INVARIANT: doesn't contain any fields from iwSchema.
+            , iwNewSegments   :: !(SegmentMap Segment)
               -- ^ new @Segment@s created in an @IndexWriter@
               -- action. INVARIANT: `iwSegments` and `iwNewSegments`
               -- are disjoint.
@@ -46,7 +50,7 @@ data IxWrState =
             -- ^ @Document@s are analyzed by this @Analyzer@.
             }
 
--- | A write transaction over the @Index@. The @Index@ is updated
+-- | a write transaction over the @Index@. The @Index@ is updated
 -- transactionally.
 newtype IndexWriter a =
   IndexWriter { unIndexWriter :: ReaderT IxWrEnv (StateT IxWrState IO) a }

@@ -12,7 +12,9 @@ data FieldValue = FV_Int  !Int64
                 | FV_Float !Float
                 | FV_Text !Text
                 | FV_Json !ByteString
+                -- ^ @ByteString@ contains valid JSON
                 | FV_Binary !ByteString
+                -- ^ @ByteString@ contains any data
                 | FV_Null
                 deriving (Eq, Show)
 

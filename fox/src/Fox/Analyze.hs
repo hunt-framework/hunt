@@ -21,6 +21,7 @@ import qualified Data.Char as Char
 import qualified Data.Text as Text
 import           Data.Text.Internal
 import           Data.Text.Unsafe
+import           Prelude hiding (filter, map)
 
 type Token = Text
 
@@ -50,9 +51,18 @@ tokenizeNonWhitespace = Tokenizer $ splitText Char.isSpace
 filter :: (Token -> Bool) -> Filter
 filter p = Filter $ \xs -> List.filter p xs
 
+map :: (Token -> Token) -> Filter
+map f = Filter $ \xs -> List.map f xs
+
+filterEmpty :: Filter
+filterEmpty = filter Text.null
+
 splitText :: (Char -> Bool) -> FieldValue -> [Token]
-splitText p (FV_Text s) = split p s
-splitText p _           = []
+splitText p v =
+  case v of
+    FV_Text s -> go s
+    _         -> go Text.empty
+  where go s = split p s
 {-# INLINE splitText #-}
 
 split :: (Char -> Bool) -> Text -> [Text]
@@ -67,5 +77,5 @@ split isDelim t@(Text arr off len) = loop 0 0
           then loop (start+1) (start+1)
           else Text arr (start+off) (n-start) : loop (n+d) (n+d)
       | otherwise = loop start (n+d)
-      where Iter c d = iter t n
+      where !(Iter !c !d) = iter t n
 {-# INLINE split #-}
