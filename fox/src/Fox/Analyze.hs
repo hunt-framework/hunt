@@ -26,7 +26,7 @@ import           Prelude hiding (filter, map)
 type Token = Text
 
 -- | Split a @FieldValue@ into @Token@s.
-newtype Analyzer = Analyzer { runAnalyzer :: FieldValue -> [Token] }
+newtype Analyzer = Analyzer { runAnalyzer :: FieldName -> FieldValue -> [Token] }
 
 -- | Split @Token@s from @FieldValue@.
 newtype Tokenizer = Tokenizer { runTokenizer :: FieldValue -> [Token] }
@@ -36,17 +36,17 @@ newtype Filter = Filter { runFilter :: [Token] -> [Token] }
 
 -- | Create an @Analyzer@ from @Tokenizer@ and @Filter@.
 newAnalyzer :: Tokenizer -> Filter -> Analyzer
-newAnalyzer tokenizer filters = Analyzer $ \value ->
+newAnalyzer tokenizer filters = Analyzer $ \_ value ->
   runFilter filters (runTokenizer tokenizer value)
 
 tokenizeAlpha :: Tokenizer
-tokenizeAlpha = Tokenizer $ splitText (not . Char.isAlphaNum)
+tokenizeAlpha = Tokenizer $ splitText (\c -> not (Char.isAlphaNum c))
 
 tokenizeDigits :: Tokenizer
-tokenizeDigits = Tokenizer $ splitText (not . Char.isDigit)
+tokenizeDigits = Tokenizer $ splitText (\c -> not (Char.isDigit c))
 
 tokenizeNonWhitespace :: Tokenizer
-tokenizeNonWhitespace = Tokenizer $ splitText Char.isSpace
+tokenizeNonWhitespace = Tokenizer $ splitText (\c -> Char.isSpace c)
 
 filter :: (Token -> Bool) -> Filter
 filter p = Filter $ \xs -> List.filter p xs
@@ -55,7 +55,7 @@ map :: (Token -> Token) -> Filter
 map f = Filter $ \xs -> List.map f xs
 
 filterEmpty :: Filter
-filterEmpty = filter Text.null
+filterEmpty = filter (\x -> not (Text.null x))
 
 splitText :: (Char -> Bool) -> FieldValue -> [Token]
 splitText p v =

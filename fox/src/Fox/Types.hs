@@ -1,6 +1,6 @@
 module Fox.Types (
     Document(..)
-  , DocField
+  , DocField(..)
   , FieldName
   , FieldType(..)
   , FieldValue(..)
@@ -22,6 +22,7 @@ module Fox.Types (
   , SegmentSet
 
   , Schema
+
   ) where
 
 import           Fox.Types.DocDesc    (DocDesc, mkDocDesc)
@@ -36,4 +37,6 @@ import           Fox.Types.SegmentMap (SegmentMap, SegmentSet)
 
 import           Data.HashMap.Strict  (HashMap)
 
+-- | A @Schema@ keeps track which fields and their respective
+-- type are in the index.
 type Schema = HashMap FieldName FieldType

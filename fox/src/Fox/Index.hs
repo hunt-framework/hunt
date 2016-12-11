@@ -48,12 +48,11 @@ runWriter analyzer indexRef indexWriter = do
   -- we better bracket here. If there is an exception in
   -- the transaction we better dereference the referenced
   -- segments.
-  bracket forkIxWrEnv closeIxWrEnv $ \writerEnv -> do
+  bracket (forkIxWrEnv analyzer) closeIxWrEnv $ \writerEnv -> do
     let
       writerState =
         IxWrState { iwNewSegments   = SegmentMap.empty
                   , iwModSegments   = SegmentMap.empty
-                  , iwAnalyzer      = analyzer
                   , iwNewSchema     = mempty
                   }
 
@@ -67,8 +66,8 @@ runWriter analyzer indexRef indexWriter = do
         Left conflicts -> (index, throwError conflicts)
   where
     -- Fork an environment for a new transaction
-    forkIxWrEnv :: IO IxWrEnv
-    forkIxWrEnv = modIndex indexRef $ \index ->
+    forkIxWrEnv :: Analyzer -> IO IxWrEnv
+    forkIxWrEnv anal = modIndex indexRef $ \index ->
       let
         -- increase the ref count for every Segment.
         -- so we don't garbage collect any Segments
@@ -84,6 +83,7 @@ runWriter analyzer indexRef indexWriter = do
                       , iwNewSegId = genSegId (ixSegIdGen index)
                       , iwSegments = ixSegments index
                       , iwSchema   = ixSchema index
+                      , iwAnalyzer = anal
                       }
       in (index', env)
 

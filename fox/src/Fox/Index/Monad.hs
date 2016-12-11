@@ -32,6 +32,8 @@ data IxWrEnv =
           -- over the current state of the @Index@.
           , iwSchema   :: !Schema
           -- ^ We need to remember which fields have which types.
+          , iwAnalyzer :: !Analyzer
+          -- ^ @Document@s are analyzed by this @Analyzer@.
           }
 
 data IxWrState =
@@ -46,8 +48,6 @@ data IxWrState =
             -- ^ Everytime we delete documents from a @Segment@
             -- or update the fields weights we need to keep track
             -- of it here.
-            , iwAnalyzer :: !Analyzer
-            -- ^ @Document@s are analyzed by this @Analyzer@.
             }
 
 -- | a write transaction over the @Index@. The @Index@ is updated
@@ -60,6 +60,9 @@ runIndexWriter :: IxWrEnv -> IxWrState -> IndexWriter a -> IO (a, IxWrState)
 runIndexWriter env st action =
   runStateT (runReaderT (unIndexWriter action) env) st
 
+askAnalyzer :: IndexWriter Analyzer
+askAnalyzer = IndexWriter $ asks iwAnalyzer
+
 askNewSegments :: IndexWriter (SegmentMap Segment)
 askNewSegments = IndexWriter $ gets iwNewSegments
 
@@ -68,6 +71,10 @@ askModSegments = IndexWriter $ gets iwModSegments
 
 newSegmentId :: IndexWriter SegmentId
 newSegmentId = IndexWriter $ asks iwNewSegId >>= liftIO
+
+withAnalyzer :: Analyzer -> IndexWriter a -> IndexWriter a
+withAnalyzer analyzer action = IndexWriter $
+  local (\env -> env { iwAnalyzer = analyzer }) (unIndexWriter action)
 
 -- | A read-only transaction over the @Index@.
 newtype IndexReader a =
