@@ -26,6 +26,14 @@ data FieldType = FT_Int
                | FT_Null
                deriving (Eq, Show)
 
+fieldType :: FieldValue -> FieldType
+fieldType FV_Int{}    = FT_Int
+fieldType FV_Float{}  = FT_Float
+fieldType FV_Text{}   = FT_Text
+fieldType FV_Json{}   = FT_Json
+fieldType FV_Binary{} = FT_Binary
+fieldType FV_Null{}   = FT_Null
+
 newtype DocDesc = DocDesc { unDesc :: HashMap FieldName FieldValue }
                 deriving (Eq, Show)
 

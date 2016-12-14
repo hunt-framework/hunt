@@ -31,15 +31,17 @@ library
 
   other-modules:       Data.Primitive.PrimRef
 
+  ghc-options:         -O2
+
   -- other-extensions:
   build-depends:       base >=4.6 && <4.10,
                        binary,
                        bytestring,
                        containers,
                        ghc-prim,
-                       keys,
+                       keys >=3.0 && <4.0,
                        mtl,
-                       primitive,
+                       primitive >0.6,
                        text,
                        unordered-containers
   hs-source-dirs:      src

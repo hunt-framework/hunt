@@ -32,12 +32,6 @@ data Index =
           -- ^ A mapping from fields to their types.
         }
 
--- | A @Conflict@ occurs if two transactions changed the same
--- @Segment@s.
-data Conflict = ConflictDelete SegmentId
-              | ConflictFields FieldName FieldType FieldType
-
-type Commit a = Either [Conflict] a
 
 -- | Run an @IndexWriter@ transaction over the @Index@.
 -- This only locks the @Index@ only in conflict checking
@@ -58,7 +52,7 @@ runWriter analyzer indexRef indexWriter = do
 
     -- run the transaction. Note that it can start merges
     -- by itself.
-    (result, writerState') <- runIndexWriter writerEnv writerState indexWriter
+    Right (result, writerState') <- runIndexWriter writerEnv writerState indexWriter
 
     modIndex indexRef $ \index ->
       case commit index writerEnv writerState' of

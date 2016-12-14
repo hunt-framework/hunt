@@ -4,8 +4,7 @@ module Fox.Types (
   , FieldName
   , FieldType(..)
   , FieldValue(..)
-  , DocDesc
-  , mkDocDesc
+  , dfType
 
   , SegmentId
   , firstSegmentId
@@ -28,7 +27,7 @@ module Fox.Types (
 import           Fox.Types.DocDesc    (DocDesc, mkDocDesc)
 import           Fox.Types.DocDesc    (FieldName, FieldType (..),
                                        FieldValue (..))
-import           Fox.Types.Document   (DocField (..), Document (..))
+import           Fox.Types.Document   (DocField (..), Document (..), dfType)
 import           Fox.Types.Generation (Generation, firstGeneration,
                                        nextGeneration)
 import           Fox.Types.SegmentId  (SegIdGen, SegmentId, firstSegmentId,
