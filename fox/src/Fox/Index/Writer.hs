@@ -24,6 +24,8 @@ insertDocument doc = insertDocuments [doc]
 
 data Indexer = Indexer !Int !Schema
 
+type DocId = Integer
+
 insertDocuments :: [Document] -> IndexWriter Bool
 insertDocuments docs = do
   analyzer <- askAnalyzer
@@ -35,12 +37,25 @@ insertDocuments docs = do
   1: { name: "Alex Metzger", nachname: "Metzger"}
   2: { name: "M Metzger", nachname: "Metzger"}
 
-  docsAndIds = zip [0..] docs
+  docsAndIds = map zip [0..] docFields
+
+  type Result = Map Token (Map FieldName [DocId])
+  start [Document] -> [(DocId, (FieldName, DocField))]
+  start = zip [0..] . map docFields
+  
+
+  analyze :: DocId -> FieldName -> DocField -> [(Token, FieldName, FieldType, DocId)]
+  analyze = undefined
+
+  checkForConflict :: [(Token, FieldName, FieldType, DocId)] -> Either Conflict [(Token, FieldName, DocId)]
+
+  insert :: Token -> FieldName -> DocId -> Result -> Result
+  insert = undefined
 
 
+  (Token, [(FieldName, [DocId])])
 
-
-  Map Token (Map Field [DocId])
+  Map Token (Map FieldName [DocId])
 
 
   DocId -> Document
