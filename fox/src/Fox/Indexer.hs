@@ -31,6 +31,8 @@ data IndexerState =
                , isDocs          :: !(Seq Document)
                }
 
+-- | A @Index@ processes any indexeable field of a @Document@ and
+-- inverts its fields.
 newtype Indexer a =
   Indexer { unIndexer :: StateT IndexerState (Except Conflict) a }
   deriving (Functor, Applicative, Monad)
@@ -80,11 +82,10 @@ checkFieldTy :: FieldName -> FieldValue -> Indexer FieldType
 checkFieldTy fieldName fieldValue = do
   let fieldTy' = fieldType fieldValue
   mFieldTy <- getFieldTy fieldName
+  putFieldTy fieldName fieldTy'
   case mFieldTy of
-    Just fieldTy | fieldTy == fieldTy' -> return fieldTy
-                 | otherwise -> fieldTyConflict fieldName fieldTy fieldTy'
-    Nothing -> do putFieldTy fieldName fieldTy'
-                  return fieldTy'
+    Just fieldTy | fieldTy /= fieldTy' -> fieldTyConflict fieldName fieldTy fieldTy'
+    Nothing -> return fieldTy'
 
 insertToken :: FieldName -> Token -> DocId -> Int -> FieldIndex -> FieldIndex
 insertToken fieldName token docId pos fieldIndex =
