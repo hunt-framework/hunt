@@ -85,7 +85,7 @@ checkFieldTy fieldName fieldValue = do
   putFieldTy fieldName fieldTy'
   case mFieldTy of
     Just fieldTy | fieldTy /= fieldTy' -> fieldTyConflict fieldName fieldTy fieldTy'
-    Nothing -> return fieldTy'
+    _ -> return fieldTy'
 
 insertToken :: FieldName -> Token -> DocId -> Int -> FieldIndex -> FieldIndex
 insertToken fieldName token docId pos fieldIndex =
