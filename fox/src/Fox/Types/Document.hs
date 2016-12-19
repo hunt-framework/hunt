@@ -20,9 +20,10 @@ nextDocId (DocId d) = DocId (d + 1)
 data Document =
   Document { docWeight :: !Float
            , docFields :: [(FieldName, DocField)]
-           }
+           } deriving (Show)
 
 newtype FieldFlags = FieldFlags Word8
+                   deriving (Show)
 
 fieldIndexable :: FieldFlags -> Bool
 fieldIndexable (FieldFlags w) = w .&. 0x01 /= 0
@@ -40,7 +41,7 @@ data DocField =
   DocField { dfFlags  :: !FieldFlags
            , dfWeight :: !Float
            , dfValue  :: FieldValue
-           }
+           } deriving (Show)
 
 dfType :: DocField -> FieldType
 dfType df = fieldType (dfValue df)

@@ -92,11 +92,11 @@ insertToken fieldName token docId pos fieldIndex =
     singOccs = Occurrences.singleton docId pos
 
     insertField fields = Map.insertWith
-                         (\occs _ -> Occurrences.insert docId pos occs)
+                         (\_ occs -> Occurrences.insert docId pos occs)
                          fieldName singOccs fields
 
     insert index = Map.insertWith
-                   (\fields _ -> insertField fields)
+                   (\_ fields -> insertField fields)
                    token
                    (Map.singleton fieldName singOccs)
                    index
