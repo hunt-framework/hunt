@@ -47,7 +47,7 @@ runWriter analyzer indexRef indexWriter = do
       writerState =
         IxWrState { iwNewSegments   = SegmentMap.empty
                   , iwModSegments   = SegmentMap.empty
-                  , iwNewSchema     = mempty
+                  , iwIndexer       = emptyIndexer
                   }
 
     -- run the transaction. Note that it can start merges
@@ -113,7 +113,9 @@ runWriter analyzer indexRef indexWriter = do
         -- check whether we have conflicting field definitions.
         checkSchemaConflict :: [Conflict]
         checkSchemaConflict =
-          mconcat $ HashMap.elems $ HashMap.intersectionWithKey check iwNewSchema ixSchema
+          mconcat
+          $ HashMap.elems
+          $ HashMap.intersectionWithKey check (indSchema iwIndexer) ixSchema
           where
             check fieldName fieldTy1 fieldTy2
               | fieldTy1 /= fieldTy2 = [ConflictFields fieldName fieldTy1 fieldTy2]

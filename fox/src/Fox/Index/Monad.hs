@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes                 #-}
 module Fox.Index.Monad where
 
 import           Fox.Analyze
@@ -10,6 +10,37 @@ import           Fox.Types
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Control.Monad.State.Strict
+import           Data.Map                   (Map)
+import           Data.Sequence              (Seq)
+import qualified Data.Sequence              as Seq
+
+
+-- | Generate a new @DocId@ by incrementing.
+type DocIdGen = DocId
+
+-- | A synonym for an inverted index optimized for
+-- insertions of terms.
+type FieldIndex = Map Token (Map FieldName Occurrences)
+
+-- | Every @Document@ indexed by an @IndexWrter@ goes into
+-- the @Indexer@ first. It collects all kind of useful information
+-- and inverts the index which can then be processed into a more
+-- efficient form.
+data Indexer = Indexer { indSchema   :: !Schema
+                       , indDocIdGen :: !DocIdGen
+                       , indIndex    :: !FieldIndex
+                       , indDocs     :: !(Seq Document)
+                       }
+
+indNumDocs :: Indexer -> Int
+indNumDocs ind = Seq.length (indDocs ind)
+
+emptyIndexer :: Indexer
+emptyIndexer = Indexer { indSchema   = mempty
+                       , indDocIdGen = firstDocId
+                       , indIndex    = mempty
+                       , indDocs     = mempty
+                       }
 
 -- | A @Conflict@ occurs if two transactions changed the same
 -- @Segment@s.
@@ -45,17 +76,15 @@ data IxWrEnv =
           }
 
 data IxWrState =
-  IxWrState { iwNewSchema :: !Schema
-              -- ^ Adding new, unseen fields to the schema here.
-              -- INVARIANT: doesn't contain any fields from iwSchema.
-            , iwNewSegments   :: !(SegmentMap Segment)
+  IxWrState { iwNewSegments :: !(SegmentMap Segment)
               -- ^ new @Segment@s created in an @IndexWriter@
               -- action. INVARIANT: `iwSegments` and `iwNewSegments`
               -- are disjoint.
-            , iwModSegments   :: !(SegmentMap Segment)
-            -- ^ Everytime we delete documents from a @Segment@
-            -- or update the fields weights we need to keep track
-            -- of it here.
+            , iwModSegments :: !(SegmentMap Segment)
+              -- ^ Everytime we delete documents from a @Segment@
+              -- or update the fields weights we need to keep track
+              -- of it here.
+            , iwIndexer     :: !Indexer
             }
 
 data ErrWriter = ErrConflict [Conflict]
@@ -109,11 +138,14 @@ withAnalyzer :: Analyzer -> IndexWriter a -> IndexWriter a
 withAnalyzer analyzer (IndexWriter m) = IndexWriter $ \succ_ fail_ env st ->
   m succ_ fail_ (env { iwAnalyzer = analyzer }) st
 
+withIndexer :: (Indexer -> Either Conflict Indexer) -> IndexWriter ()
+withIndexer f = IndexWriter $ \succ_ fail_ env st ->
+  case f (iwIndexer st) of
+    Right indexer' -> succ_ () (st { iwIndexer = indexer' })
+    Left conflict  -> fail_ $ ErrConflict [conflict]
+
 askSchema :: IndexWriter Schema
 askSchema = IndexWriter $ \succ_ _fail_ env st -> succ_ (iwSchema env) st
-
-askModSchema :: IndexWriter Schema
-askModSchema = IndexWriter $ \succ_ _fail_ _env st -> succ_ (iwNewSchema st) st
 
 -- | A read-only transaction over the @Index@.
 newtype IndexReader a =

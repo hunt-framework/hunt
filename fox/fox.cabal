@@ -21,7 +21,6 @@ library
                        Fox.Index.Directory
                        Fox.Index.Monad
                        Fox.Index.Writer
-                       Fox.Indexer
                        Fox.Types
                        Fox.Types.DocDesc
                        Fox.Types.DocIdMap
