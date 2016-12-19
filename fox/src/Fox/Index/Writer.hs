@@ -1,15 +1,14 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE BangPatterns #-}
 module Fox.Index.Writer where
 
 import           Fox.Analyze         (Analyzer, runAnalyzer)
 import           Fox.Index.Monad
 import           Fox.Indexer
 import           Fox.Types
+import           Fox.Types.DocDesc
+import           Fox.Types.Document
 
-import Fox.Types.Document
-import Fox.Types.DocDesc
-
+import           Control.Applicative
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.IntMap.Strict  as IntMap
@@ -30,11 +29,13 @@ insertDocument doc = insertDocuments [doc]
 insertDocuments :: [Document] -> IndexWriter ()
 insertDocuments docs = do
   analyzer <- askAnalyzer
-  schema   <- askFullSchema
+  schema   <- askSchema
+  wrSchema <- askModSchema
 
   let
     lookupGlobalFieldTy fieldName =
-      HashMap.lookup fieldName schema
+          HashMap.lookup fieldName wrSchema
+      <|> HashMap.lookup fieldName schema
 
     indexResult = runIndexer lookupGlobalFieldTy $
       for docs $ \doc -> invertDocument analyzer doc
