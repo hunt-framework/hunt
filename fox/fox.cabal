@@ -21,15 +21,21 @@ library
                        Fox.Index.Directory
                        Fox.Index.Monad
                        Fox.Index.Writer
+                       Fox.Indexer
                        Fox.Types
-                       Fox.Types.Document
                        Fox.Types.DocDesc
+                       Fox.Types.DocIdMap
+                       Fox.Types.DocIdSet
+                       Fox.Types.Document
                        Fox.Types.Generation
+                       Fox.Types.Occurrences
+                       Fox.Types.Positions
                        Fox.Types.Score
                        Fox.Types.SegmentId
                        Fox.Types.SegmentMap
 
-  other-modules:       Data.Primitive.PrimRef
+  other-modules:       Data.IntSet.Cache
+                       Data.Primitive.PrimRef
 
   ghc-options:         -O2
 
@@ -38,11 +44,13 @@ library
                        binary,
                        bytestring,
                        containers,
+                       deepseq,
                        ghc-prim,
                        keys >=3.0 && <4.0,
                        mtl,
                        primitive >0.6,
                        text,
-                       unordered-containers
+                       unordered-containers,
+                       vector
   hs-source-dirs:      src
   default-language:    Haskell2010

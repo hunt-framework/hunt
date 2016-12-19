@@ -34,6 +34,10 @@ newtype Tokenizer = Tokenizer { runTokenizer :: FieldValue -> [Token] }
 -- | Filters a sequence of @Token@s.
 newtype Filter = Filter { runFilter :: [Token] -> [Token] }
 
+instance Monoid Filter where
+  mempty  = identityFilter
+  mappend = composeFilter
+
 -- | Create an @Analyzer@ from @Tokenizer@ and @Filter@.
 newAnalyzer :: Tokenizer -> Filter -> Analyzer
 newAnalyzer tokenizer filters = Analyzer $ \_ value ->
@@ -51,11 +55,18 @@ tokenizeNonWhitespace = Tokenizer $ splitText (\c -> Char.isSpace c)
 filter :: (Token -> Bool) -> Filter
 filter p = Filter $ \xs -> List.filter p xs
 
+identityFilter :: Filter
+identityFilter = Filter $ \xs -> xs
+
+composeFilter :: Filter -> Filter -> Filter
+composeFilter f g = Filter $ \xs ->
+  runFilter g (runFilter f xs)
+
 map :: (Token -> Token) -> Filter
 map f = Filter $ \xs -> List.map f xs
 
 filterEmpty :: Filter
-filterEmpty = filter (\x -> not (Text.null x))
+filterEmpty = filter (not . Text.null)
 
 splitText :: (Char -> Bool) -> FieldValue -> [Token]
 splitText p v =

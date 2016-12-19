@@ -115,6 +115,10 @@ askSchema = IndexWriter $ \succ_ _fail_ env st -> succ_ (iwSchema env) st
 askModSchema :: IndexWriter Schema
 askModSchema = IndexWriter $ \succ_ _fail_ _env st -> succ_ (iwNewSchema st) st
 
+askFullSchema :: IndexWriter Schema
+askFullSchema = IndexWriter $ \succ_ _fail_ env st ->
+  succ_ (iwNewSchema st `mappend` iwSchema env) st
+
 -- | A read-only transaction over the @Index@.
 newtype IndexReader a =
   IndexReader { unIndexReader :: ReaderT (SegmentMap Segment) IO a }

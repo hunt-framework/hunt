@@ -7,6 +7,15 @@ import           Data.Bits
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.Word           (Word8)
+import           Data.Int (Int32)
+
+newtype DocId = DocId { unDocId :: Int }
+
+firstDocId :: DocId
+firstDocId = DocId 0
+
+nextDocId :: DocId -> DocId
+nextDocId (DocId d) = DocId (d + 1)
 
 data Document =
   Document { docWeight :: !Float
@@ -38,3 +47,7 @@ dfType df = fieldType (dfValue df)
 
 emptyDocument :: Document
 emptyDocument = Document 0.0 []
+
+filterStorable :: Document -> Document
+filterStorable doc =
+  doc { docFields = filter (fieldStore . dfFlags . snd) (docFields doc) }
