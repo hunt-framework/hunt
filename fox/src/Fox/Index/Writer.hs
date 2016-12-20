@@ -15,15 +15,14 @@ import           Control.Monad.Except
 import           Control.Monad.State.Strict
 import           Data.Foldable
 import qualified Data.HashMap.Strict        as HashMap
+import           Data.Map                   (Map)
 import qualified Data.Map.Strict            as Map
 import qualified Data.Sequence              as Seq
+
 
 -- | Try to lookup the type of a field in an environment
 -- global to a transaction.
 type GlobalFieldTy = FieldName -> Maybe FieldType
-
-tryMerge :: IndexWriter ()
-tryMerge = undefined
 
 insertDocument :: Document -> IndexWriter ()
 insertDocument doc = insertDocuments [doc]
@@ -33,19 +32,36 @@ insertDocuments docs = do
   analyzer        <- askAnalyzer
   schema          <- askSchema
   bufferedDocs    <- numBufferedDocs
-  maxBufferedDocs <- maxBufferedDocs
+  maxBufferedDocs <- maxNumBufferedDocs
 
   let
     lookupGlobalFieldTy fieldName =
       HashMap.lookup fieldName schema
 
+    freeBufferSpace =
+      min (maxBufferedDocs - bufferedDocs) 0
+
+    -- put docs in batches of size `maxBufferedDocs`
+    -- these batches can be indexed in parallel given
+    -- we can merge several indexers.
+    batches =
+      [docs]
+
+  -- Lots of documents have been indexed
+  -- already. Flush buffer to disk to make
+  -- room for new documents.
+  when (freeBufferSpace <= 0) flush
+
   withIndexer $ indexDocs analyzer docs lookupGlobalFieldTy
 
-maxBufferedDocs :: IndexWriter Int
-maxBufferedDocs = askConfig iwcMaxBufferedDocs
+maxNumBufferedDocs :: IndexWriter Int
+maxNumBufferedDocs = askConfig iwcMaxBufferedDocs
 
 numBufferedDocs :: IndexWriter Int
 numBufferedDocs = askIndexer indNumDocs
+
+indexSchema :: IndexWriter Schema
+indexSchema = askIndexer indSchema
 
 indexDocs :: Analyzer
           -> [Document]
@@ -136,6 +152,27 @@ indexDoc analyzer document getGlobalFieldTy indexer = runIndexer $ do
           invert (position + 1) toks $! insertToken fieldName token docId position index
       in do
         modify $ \s -> s { indIndex = invert 0 tokens (indIndex s) }
+
+tryMerge :: IndexWriter ()
+tryMerge = return ()
+
+flush :: IndexWriter ()
+flush = do
+  schema <- indexSchema
+
+  let
+    -- we sort every field known to the indexer to
+    -- use stable numbers as shorter field names.
+    sortedFields :: Map FieldName FieldType
+    sortedFields = Map.fromList (HashMap.toList schema)
+
+    -- fieldOrd is total over any field the indexer
+    -- saw.
+    fieldOrd :: FieldName -> Int
+    fieldOrd fieldName =
+      Map.findIndex fieldName sortedFields
+
+  return ()
 
 doc1 = Document { docWeight = 1.0
                 , docFields = [ ("name", DocField (FieldFlags 0x03) 1.0  (FV_Text "Moritz Drexl"))
