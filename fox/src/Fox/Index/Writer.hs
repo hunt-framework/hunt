@@ -115,9 +115,9 @@ indexDoc analyzer document getGlobalFieldTy indexer = runIndexer $ do
                             index
       in updateField fieldIndex
 
-    invertField analyzer fieldName fieldValue docId =
+    invertField anal fieldName fieldValue docId =
       let
-        tokens = runAnalyzer analyzer fieldName fieldValue
+        tokens = runAnalyzer anal fieldName fieldValue
 
         invert !_position [] index          = index
         invert !position (token:toks) index =
