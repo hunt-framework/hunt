@@ -54,7 +54,7 @@ indexDoc analyzer document getGlobalFieldTy indexer = runIndexer $ do
   for_ (docFields document) $ \(fieldName, docField) -> do
     -- note the type of field even if field is not indexable
     -- we want to know all fields occurring in the docs.
-    fieldTy <- checkFieldTy fieldName (dfValue docField)
+    checkFieldTy fieldName (dfValue docField)
     when (Doc.fieldIndexable (dfFlags docField)) $ do
       invertField analyzer fieldName (dfValue docField) docId
   where
@@ -95,7 +95,7 @@ indexDoc analyzer document getGlobalFieldTy indexer = runIndexer $ do
       case mFieldTy of
         Just fieldTy | fieldTy /= fieldTy' ->
                          fieldTyConflict fieldName fieldTy fieldTy'
-        _ -> return fieldTy'
+        _ -> return ()
 
     -- this is the meat: create a mapping: Token -> FieldName -> Occurrences
     insertToken fieldName token docId pos fieldIndex =
