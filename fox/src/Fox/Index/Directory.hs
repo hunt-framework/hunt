@@ -24,4 +24,4 @@ openIndexDirectory indexDir = runExceptT $ do
   unless dirExists $
     liftIO $ createDirectoryIfMissing True indexDir
 
-  return undefined
+  return $ IndexDirectory indexDir
