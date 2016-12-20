@@ -3,10 +3,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Fox.Index.Writer where
 
-import           Fox.Analyze                (Analyzer, Token, runAnalyzer)
+import           Fox.Analyze                (Analyzer, runAnalyzer)
 import           Fox.Index.Monad
 import           Fox.Types
-import           Fox.Types.DocDesc
 import           Fox.Types.Document
 import qualified Fox.Types.Document         as Doc
 import qualified Fox.Types.Occurrences      as Occurrences
@@ -15,19 +14,9 @@ import           Control.Applicative
 import           Control.Monad.Except
 import           Control.Monad.State.Strict
 import           Data.Foldable
-import           Data.HashMap.Strict        (HashMap)
 import qualified Data.HashMap.Strict        as HashMap
-import qualified Data.IntMap.Strict         as IntMap
-import           Data.Key
-import           Data.Map                   (Map)
 import qualified Data.Map.Strict            as Map
-import           Data.Sequence              (Seq)
 import qualified Data.Sequence              as Seq
-import           Data.Set                   (Set)
-import qualified Data.Set                   as Set
-import qualified Data.Set
-import           Data.Traversable
-
 
 tryMerge :: IndexWriter ()
 tryMerge = undefined
@@ -39,12 +28,10 @@ insertDocuments :: [Document] -> IndexWriter ()
 insertDocuments docs = do
   analyzer <- askAnalyzer
   schema   <- askSchema
-
   let
     lookupGlobalFieldTy fieldName =
       HashMap.lookup fieldName schema
-
-  withIndexer $ indexDocs analyzer docs lookupGlobalFieldTy  
+  withIndexer $ indexDocs analyzer docs lookupGlobalFieldTy
 
 type GlobalFieldTy = FieldName -> Maybe FieldType
 
