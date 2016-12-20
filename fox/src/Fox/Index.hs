@@ -10,7 +10,6 @@ import qualified Fox.Types.SegmentMap    as SegmentMap
 import           Control.Concurrent.MVar
 import           Control.Exception
 import           Control.Monad.Except
-import           Data.HashMap.Strict     (HashMap)
 import qualified Data.HashMap.Strict     as HashMap
 import qualified Data.List               as List
 
@@ -30,8 +29,8 @@ data Index =
           -- ^ Generate new @SegmentId@s.
         , ixSchema      :: !Schema
           -- ^ A mapping from fields to their types.
+        , ixWriterConfig :: !IxWrConfig
         }
-
 
 -- | Run an @IndexWriter@ transaction over the @Index@.
 -- This only locks the @Index@ only in conflict checking
@@ -78,6 +77,7 @@ runWriter analyzer indexRef indexWriter = do
                       , iwSegments = ixSegments index
                       , iwSchema   = ixSchema index
                       , iwAnalyzer = anal
+                      , iwConfig   = ixWriterConfig index
                       }
       in (index', env)
 
@@ -110,9 +110,16 @@ runWriter analyzer indexRef indexWriter = do
           | segDelGen old /= segDelGen new
           ]
 
+        deleteConflicts :: [Conflict]
+        deleteConflicts =
+          List.concat
+          $ SegmentMap.elems
+          $ SegmentMap.intersectionWithKey checkDelConflict ixSegments
+          $ SegmentMap.intersection iwSegments iwModSegments
+
         -- check whether we have conflicting field definitions.
-        checkSchemaConflict :: [Conflict]
-        checkSchemaConflict =
+        schemaConflicts :: [Conflict]
+        schemaConflicts =
           mconcat
           $ HashMap.elems
           $ HashMap.intersectionWithKey check (indSchema iwIndexer) ixSchema
@@ -121,21 +128,14 @@ runWriter analyzer indexRef indexWriter = do
               | fieldTy1 /= fieldTy2 = [ConflictFields fieldName fieldTy1 fieldTy2]
               | otherwise            = []
 
-        conflicts :: [Conflict]
-        conflicts =
-          List.concat
-          $ SegmentMap.elems
-          $ SegmentMap.intersectionWithKey checkDelConflict ixSegments
-          $ SegmentMap.intersection iwSegments iwModSegments
-
         mergedSegments :: SegmentMap Segment
         mergedSegments =
           SegmentMap.unionWith (\new _old -> new) iwModSegments
           $ SegmentMap.union iwModSegments ixSegments
 
-      in case conflicts of
+      in case schemaConflicts ++ deleteConflicts of
         [] -> return $! index { ixSegments = mergedSegments }
-        _  -> throwError conflicts
+        xs -> throwError xs
 
 modIndex :: IndexRef -> (Index -> (Index, a)) -> IO a
 modIndex indexRef f =

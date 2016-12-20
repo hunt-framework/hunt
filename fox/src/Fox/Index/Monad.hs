@@ -58,6 +58,13 @@ data ModifiedSegment =
 -- merge is finished. It is guaranteed to not throw an exception.
 type PendingMerge = IO ()
 
+-- | Configuration for @IndexWriter@.
+data IxWrConfig =
+  IxWrConfig { iwcMaxBufferedDocs :: !Int
+               -- ^ The @IndexWriter@s @Indexer@ keeps @iwcMaxBufferedDocs@
+               -- documents in memory before flushing to disk.
+             }
+
 data IxWrEnv =
   IxWrEnv { iwIndexDir :: !IndexDirectory
           -- ^ When creating new @Segment@s we
@@ -73,6 +80,7 @@ data IxWrEnv =
           -- ^ We need to remember which fields have which types.
           , iwAnalyzer :: !Analyzer
           -- ^ @Document@s are analyzed by this @Analyzer@.
+          , iwConfig   :: !IxWrConfig
           }
 
 data IxWrState =
@@ -129,7 +137,7 @@ errConflicts conflicts = IndexWriter $ \_succ_ fail_ _env _st ->
 
 runIndexWriter :: IxWrEnv -> IxWrState -> IndexWriter a -> IO (Either ErrWriter (a, IxWrState))
 runIndexWriter env st action =
-  unIndexWriter action (\a st -> pure $ Right (a, st)) (\e -> pure (Left e)) env st
+  unIndexWriter action (\a _st -> pure $ Right (a, st)) (\e -> pure (Left e)) env st
 
 askAnalyzer :: IndexWriter Analyzer
 askAnalyzer = IndexWriter $ \succ_ _ env st -> succ_ (iwAnalyzer env) st
@@ -139,13 +147,22 @@ withAnalyzer analyzer (IndexWriter m) = IndexWriter $ \succ_ fail_ env st ->
   m succ_ fail_ (env { iwAnalyzer = analyzer }) st
 
 withIndexer :: (Indexer -> Either Conflict Indexer) -> IndexWriter ()
-withIndexer f = IndexWriter $ \succ_ fail_ env st ->
+withIndexer f = IndexWriter $ \succ_ fail_ _env st ->
   case f (iwIndexer st) of
     Right indexer' -> succ_ () (st { iwIndexer = indexer' })
     Left conflict  -> fail_ $ ErrConflict [conflict]
 
+askIndexer :: (Indexer -> a) -> IndexWriter a
+askIndexer f = IndexWriter $ \succ_ _fail _env st ->
+  succ_ (f (iwIndexer st)) st
+
+askConfig :: (IxWrConfig -> a) -> IndexWriter a
+askConfig f = IndexWriter $ \ succ_ _fail env st ->
+  succ_ (f (iwConfig env)) st
+
 askSchema :: IndexWriter Schema
 askSchema = IndexWriter $ \succ_ _fail_ env st -> succ_ (iwSchema env) st
+
 
 -- | A read-only transaction over the @Index@.
 newtype IndexReader a =

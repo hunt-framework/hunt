@@ -18,6 +18,10 @@ import qualified Data.HashMap.Strict        as HashMap
 import qualified Data.Map.Strict            as Map
 import qualified Data.Sequence              as Seq
 
+-- | Try to lookup the type of a field in an environment
+-- global to a transaction.
+type GlobalFieldTy = FieldName -> Maybe FieldType
+
 tryMerge :: IndexWriter ()
 tryMerge = undefined
 
@@ -26,14 +30,22 @@ insertDocument doc = insertDocuments [doc]
 
 insertDocuments :: [Document] -> IndexWriter ()
 insertDocuments docs = do
-  analyzer <- askAnalyzer
-  schema   <- askSchema
+  analyzer        <- askAnalyzer
+  schema          <- askSchema
+  bufferedDocs    <- numBufferedDocs
+  maxBufferedDocs <- maxBufferedDocs
+
   let
     lookupGlobalFieldTy fieldName =
       HashMap.lookup fieldName schema
+
   withIndexer $ indexDocs analyzer docs lookupGlobalFieldTy
 
-type GlobalFieldTy = FieldName -> Maybe FieldType
+maxBufferedDocs :: IndexWriter Int
+maxBufferedDocs = askConfig iwcMaxBufferedDocs
+
+numBufferedDocs :: IndexWriter Int
+numBufferedDocs = askIndexer indNumDocs
 
 indexDocs :: Analyzer
           -> [Document]
