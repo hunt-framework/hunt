@@ -44,6 +44,8 @@ library
                        bytestring,
                        containers,
                        deepseq,
+                       directory,
+                       filepath,
                        ghc-prim,
                        keys >=3.0 && <4.0,
                        mtl,
