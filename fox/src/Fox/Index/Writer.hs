@@ -19,7 +19,6 @@ import           Data.Map                   (Map)
 import qualified Data.Map.Strict            as Map
 import qualified Data.Sequence              as Seq
 
-
 -- | Try to lookup the type of a field in an environment
 -- global to a transaction.
 type GlobalFieldTy = FieldName -> Maybe FieldType

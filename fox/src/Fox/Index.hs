@@ -45,7 +45,7 @@ runWriter analyzer indexRef indexWriter = do
     let
       writerState =
         IxWrState { iwNewSegments   = SegmentMap.empty
-                  , iwModSegments   = SegmentMap.empty
+                  , iwDeletedDocs   = SegmentMap.empty
                   , iwIndexer       = emptyIndexer
                   }
 
@@ -102,20 +102,17 @@ runWriter analyzer indexRef indexWriter = do
     commit index@Index{..} IxWrEnv{..} IxWrState{..} =
       let
         -- checks for conflcts on two segments
-        checkDelConflict :: SegmentId -> Segment -> Segment -> [Conflict]
-        checkDelConflict sid old new =
-          -- currently only the delete generations can be changed
-          -- so if we have modifed 'Segment's here they always conflict.
-          [ ConflictDelete sid
+        checkSegmentConflict :: SegmentId -> Segment -> Segment -> [Conflict]
+        checkSegmentConflict segmentId old new =
+          [ ConflictDelete segmentId
           | segDelGen old /= segDelGen new
           ]
 
-        deleteConflicts :: [Conflict]
-        deleteConflicts =
+        indexConflicts :: [Conflict]
+        indexConflicts =
           List.concat
           $ SegmentMap.elems
-          $ SegmentMap.intersectionWithKey checkDelConflict ixSegments
-          $ SegmentMap.intersection iwSegments iwModSegments
+          $ SegmentMap.intersectionWithKey checkSegmentConflict ixSegments iwNewSegments
 
         -- check whether we have conflicting field definitions.
         schemaConflicts :: [Conflict]
@@ -130,10 +127,9 @@ runWriter analyzer indexRef indexWriter = do
 
         mergedSegments :: SegmentMap Segment
         mergedSegments =
-          SegmentMap.unionWith (\new _old -> new) iwModSegments
-          $ SegmentMap.union iwModSegments ixSegments
+          SegmentMap.unionWith (\new _old -> new) iwNewSegments ixSegments
 
-      in case schemaConflicts ++ deleteConflicts of
+      in case schemaConflicts ++ indexConflicts of
         [] -> return $! index { ixSegments = mergedSegments }
         xs -> throwError xs
 

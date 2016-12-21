@@ -85,13 +85,10 @@ data IxWrEnv =
 
 data IxWrState =
   IxWrState { iwNewSegments :: !(SegmentMap Segment)
-              -- ^ new @Segment@s created in an @IndexWriter@
-              -- action. INVARIANT: `iwSegments` and `iwNewSegments`
-              -- are disjoint.
-            , iwModSegments :: !(SegmentMap Segment)
-              -- ^ Everytime we delete documents from a @Segment@
-              -- or update the fields weights we need to keep track
-              -- of it here.
+              -- ^ new or modified @Segment@s created in
+              -- an @IndexWriter@ action.
+            , iwDeletedDocs :: !(SegmentMap DocIdSet)
+              -- ^ Remember deleted documents for each @Segment@.
             , iwIndexer     :: !Indexer
             }
 
@@ -161,8 +158,8 @@ askConfig f = IndexWriter $ \ succ_ _fail env st ->
   succ_ (f (iwConfig env)) st
 
 askSchema :: IndexWriter Schema
-askSchema = IndexWriter $ \succ_ _fail_ env st -> succ_ (iwSchema env) st
-
+askSchema = IndexWriter $ \succ_ _fail_ env st ->
+  succ_ (iwSchema env) st
 
 -- | A read-only transaction over the @Index@.
 newtype IndexReader a =

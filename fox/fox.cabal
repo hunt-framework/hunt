@@ -42,7 +42,7 @@ library
   build-depends:       base >=4.6 && <4.10,
                        binary,
                        bytestring,
-                       containers,
+                       containers >=0.5.9.1,
                        deepseq,
                        directory,
                        filepath,

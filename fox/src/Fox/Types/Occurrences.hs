@@ -113,6 +113,9 @@ subtract                = DM.differenceWith subtractPositions
 intersectOccurrences    :: (Positions -> Positions -> Positions) ->
                            Occurrences -> Occurrences -> Occurrences
 intersectOccurrences pf os1 os2
-    = DM.filter (not . Pos.null) $ DM.intersectionWith pf os1 os2
+  = DM.intersectionWith' (\p1 p2 -> case pf p1 p2 of
+                                      p3 | not (Pos.null p3) -> Just p3
+                                         | otherwise         -> Nothing
+                         ) os1 os2
 
 -- ------------------------------------------------------------

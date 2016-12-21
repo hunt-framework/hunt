@@ -21,6 +21,7 @@ module Fox.Types.DocIdMap
   , diffWithSet
   , unionWith
   , intersectionWith
+  , intersectionWith'
   , differenceWith
   , unionsWith
   , map
@@ -145,7 +146,7 @@ difference              = liftDIM2 $ IM.difference
 
 -- | Difference between the map and a set of 'DocId's.
 diffWithSet             :: DocIdMap v -> DocIdSet -> DocIdMap v
-diffWithSet m s         = m `difference` (DIM $ IM.fromSet (const ()) (unDIS s))
+diffWithSet (DIM m) (DIS s) = DIM $ IM.withoutKeys m s
 
 -- | The union with a combining function.
 unionWith               :: (v -> v -> v) -> DocIdMap v -> DocIdMap v -> DocIdMap v
@@ -154,6 +155,10 @@ unionWith f             = liftDIM2 $ IM.unionWith f
 -- | The intersection with a combining function.
 intersectionWith        :: (v1 -> v2 -> v3) -> DocIdMap v1 -> DocIdMap v2 -> DocIdMap v3
 intersectionWith f      = liftDIM2 $ IM.intersectionWith f
+
+intersectionWith'       :: (v1 -> v2 -> Maybe v3) -> DocIdMap v1 -> DocIdMap v2 -> DocIdMap v3
+intersectionWith' f (DIM a) (DIM b) =
+  DIM $ IM.mergeWithKey (\_ x y -> f x y) (\_ -> IM.empty) (\_ -> IM.empty) a b
 
 -- | Difference with a combining function.
 differenceWith          :: (v -> v -> Maybe v) -> DocIdMap v -> DocIdMap v -> DocIdMap v
@@ -222,7 +227,7 @@ fromList                = DIM . IM.fromList . L.map (first unDocId)
 
 -- | Create a map from a set of 'DocId' values
 fromDocIdSet            :: (Int -> v) -> DocIdSet -> DocIdMap v
-fromDocIdSet f s        = DIM $ IM.fromSet f (toIntSet s)
+fromDocIdSet f (DIS s)  = DIM $ IM.fromSet f s
 
 -- | Build a map from a list of 'DocId'\/value pairs where the 'DocId's are in ascending order.
 fromAscList             :: [(DocId, v)] -> DocIdMap v
@@ -260,6 +265,7 @@ elems                   = IM.elems . unDIM
 {-# INLINE difference #-}
 {-# INLINE unionWith #-}
 {-# INLINE intersectionWith #-}
+{-# INLINE intersectionWith' #-}
 {-# INLINE differenceWith #-}
 {-# INLINE unionsWith #-}
 {-# INLINE map #-}
