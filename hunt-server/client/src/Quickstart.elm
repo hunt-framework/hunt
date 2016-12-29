@@ -32,11 +32,12 @@ viewConfig =
 view : ViewConfig msg -> Html msg
 view (ViewConfig config) =
     article
-        []
+        [ class "quickstart" ]
         [ introduction
         , contextCreation config.createContexts
         , insertingDocuments config.insertDocs
         , executingQueries
+        , conclusion
         ]
 
 
@@ -47,17 +48,19 @@ view (ViewConfig config) =
 introduction : Html msg
 introduction =
     Markdown.toHtml [] <| """
-# Quickstart
+# Quickstart Guide
 
-## About Contexts
+The following short guide should give you a quick overview and some
+sample data to play around and dive into [Hunt](https://github.com/hunt-framework/hunt).
 
-### Contexts
+
+## Contexts
 
 The term context has already been introduced in the Holumbus framework.
-It isused to classify and distinguishes indexed information.
+It is used to classify and distinguish indexed information.
 
 
-### Context Schema
+### Schema
 
 Each context is created with an individual schema.
 
@@ -76,7 +79,7 @@ the contexts behaviour. That includes:
 - Definition of the index type to use (text, date, geolocation, ...).
 
 
-### Context Types
+### Types
 
 Each index implementation is integrated into the search engine as a
 context type.
@@ -101,8 +104,6 @@ This includes:
 
 ## Example
 
-### Scenario introduction
-
 Consider the maintaining of a blog-like news website. Each blog entry contains
 a subject, the date of publication, the content and the location, where
 the news happened.
@@ -118,11 +119,11 @@ search and filter the articles.
 
 contextCreation : (Value -> msg) -> Html msg
 contextCreation toMsg =
-    div
+    section
         [ class "context-creation"
         ]
         [ contextCreationPreface
-        , executableCmds toMsg "Create Contexts" createContextCmds
+        , runnableExample toMsg createContextCmds
         ]
 
 
@@ -194,10 +195,10 @@ createContextCmds =
 
 insertingDocuments : (Value -> msg) -> Html msg
 insertingDocuments toMsg =
-    div
+    section
         [ class "inserting-documents" ]
         [ insertingDocumentsPreface
-        , executableCmds toMsg "Insert Documents" insertDocsCmds
+        , runnableExample toMsg insertDocsCmds
         ]
 
 
@@ -342,11 +343,24 @@ The same query would look like this in JSON:
 
 
 
+-- 5. CONCLUSION
+
+
+conclusion : Html msg
+conclusion =
+    Markdown.toHtml [] """
+## Conclusion
+
+
+"""
+
+
+
 -- HELPERS
 
 
-executableCmds : (Value -> msg) -> String -> Result String Value -> Html msg
-executableCmds toMsg buttonText value =
+runnableExample : (Value -> msg) -> Result String Value -> Html msg
+runnableExample toMsg value =
     let
         clickHandler =
             case value of
@@ -366,7 +380,7 @@ executableCmds toMsg buttonText value =
                     ]
                 ]
             , button clickHandler
-                [ text buttonText
+                [ text "Run"
                 ]
             ]
 

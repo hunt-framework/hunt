@@ -95,10 +95,10 @@ view model =
             div
                 []
                 [ text "Hello Hunt!"
-                , a [ href "#/examples" ] [ text "Examples" ]
+                , a [ href ("#/" ++ (toPath Quickstart)) ] [ text "Examples" ]
                 ]
 
-        Examples ->
+        Quickstart ->
             Quickstart.view quickstartViewConfig
 
 

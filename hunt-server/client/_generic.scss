@@ -1,0 +1,130 @@
+// This is all pretty much stolen from inuit.css
+// https://github.com/inuitcss/inuitcss
+
+// SETTINGS
+
+$global-font-size: 20px;
+$global-line-height: 36px;
+
+$global-spacing-unit: round($global-line-height);
+
+
+// MIXINS
+
+@mixin font-size($font-size, $line-height: auto, $important: false) {
+
+  @if (type-of($font-size) == number) {
+    @if (unit($font-size) != "px") {
+      @error "`#{$font-size}` needs to be a pixel value.";
+    }
+  } @else {
+    @error "`#{$font-size}` needs to be a number.";
+  }
+
+  @if ($important == true) {
+    $important: !important;
+  } @elseif ($important == false) {
+    $important: null;
+  } @else {
+    @error "`#{$important}` needs to be `true` or `false`."
+  }
+
+  // We provide a `px` fallback for old IEs not supporting `rem` values.
+  font-size: $font-size $important;
+  font-size: ($font-size / $global-font-size) * 1rem $important;
+
+  @if ($line-height == 'auto') {
+    line-height: ceil($font-size / $global-line-height) * ($global-line-height / $font-size) $important;
+  }
+
+  @else {
+
+    @if (type-of($line-height) == number or $line-height == 'inherit' or $line-height == 'normal') {
+      line-height: $line-height $important;
+    }
+
+    @elseif ($line-height != 'none' and $line-height != false) {
+      @error "D’oh! `#{$line-height}` is not a valid value for `$line-height`."
+    }
+
+  }
+
+}
+
+
+
+// GENERIC
+
+* {
+  box-sizing: border-box;
+}
+
+
+html {
+  font-size: ($global-font-size / 16px) * 1em;
+  line-height: $global-line-height / $global-font-size;
+  overflow-y: scroll;
+  min-height: 100%;
+}
+
+
+body {
+  font-family: 'Open Sans', sans-serif;
+  color: #333;
+  font-weight: lighter;
+}
+
+
+// SHARED
+
+address,
+h1, h2, h3, h4, h5, h6,
+blockquote, p, pre,
+dl, ol, ul,
+figure,
+hr,
+table,
+fieldset {
+  margin-bottom: $global-spacing-unit;
+}
+
+
+
+dd, ol, ul {
+  margin-left: $global-spacing-unit;
+}
+
+
+// HEADINGS
+
+$font-size-h1:  36px !default;
+$font-size-h2:  28px !default;
+$font-size-h3:  24px !default;
+$font-size-h4:  20px !default;
+$font-size-h5:  18px !default;
+$font-size-h6:  16px !default;
+
+
+h1 {
+  @include font-size($font-size-h1);
+}
+
+h2 {
+  @include font-size($font-size-h2);
+}
+
+h3 {
+  @include font-size($font-size-h3);
+}
+
+h4 {
+  @include font-size($font-size-h4);
+}
+
+h5 {
+  @include font-size($font-size-h5);
+}
+
+h6 {
+  @include font-size($font-size-h6);
+}

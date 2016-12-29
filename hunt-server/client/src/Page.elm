@@ -14,14 +14,14 @@ import UrlParser as Url exposing ((</>), s, top)
 
 type Page
     = Index
-    | Examples
+    | Quickstart
 
 
 urlParser : Url.Parser (Page -> a) a
 urlParser =
     Url.oneOf
         [ Url.map Index top
-        , Url.map Examples (s "examples")
+        , Url.map Quickstart (s "quickstart")
         ]
 
 
@@ -31,5 +31,5 @@ toPath page =
         Index ->
             ""
 
-        Examples ->
-            "examples"
+        Quickstart ->
+            "quickstart"

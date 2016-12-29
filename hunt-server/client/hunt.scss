@@ -1,14 +1,47 @@
 @import url('https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,700');
 
-//
-// GENERIC
-//
+@import "generic";
 
-* {
-  box-sizing: border-box;
+// CODE
+
+pre {
+  background: #FAFAFA;
+  color: #444;
+  padding: ($global-spacing-unit / 2);
+  box-shadow: inset 0px 0px 5px #eee;
+  overflow-x: auto;
+}
+
+pre, code {
+  font-size: 0.8rem;
 }
 
 
-html {
-  font-family: 'Open Sans', sans-serif;
+
+// QUICKSTART
+
+.quickstart {
+  max-width: 820px;
+  padding: $global-spacing-unit;
+  margin: auto;
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: lighter;
+  }
+}
+
+.executable-json {
+  position: relative;
+  
+  button {
+    position: absolute;
+    right: ($global-spacing-unit / 4);
+    top: ($global-spacing-unit / 4);
+    font-size: 0.8em;
+    padding: ($global-spacing-unit / 4) ($global-spacing-unit / 2);
+
+    &:hover {
+      cursor: pointer;
+    }
+  }
 }
