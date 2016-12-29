@@ -3,10 +3,13 @@ module Main
         ( main
         )
 
-import Html exposing (Html, div, text)
+import Html exposing (Html, div, text, a)
+import Html.Attributes exposing (href)
+import Json.Decode as Json
 import Navigation
 import UrlParser as Url
 import Page exposing (Page(..), urlParser, toPath)
+import Quickstart
 
 
 -- MAIN
@@ -42,6 +45,8 @@ init location =
 
 type Msg
     = UrlChange Navigation.Location
+    | CreateContexts Json.Value
+    | InsertDocs Json.Value
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -49,6 +54,16 @@ update msg model =
     case msg of
         UrlChange location ->
             urlUpdate location model
+
+        CreateContexts contexts ->
+            ( model
+            , Cmd.none
+            )
+
+        InsertDocs docs ->
+            ( model
+            , Cmd.none
+            )
 
 
 
@@ -77,26 +92,22 @@ view : Model -> Html Msg
 view model =
     case model.page of
         Index ->
-            viewIndex
+            div
+                []
+                [ text "Hello Hunt!"
+                , a [ href "#/examples" ] [ text "Examples" ]
+                ]
 
         Examples ->
-            viewExamples
+            Quickstart.view quickstartViewConfig
 
 
-viewIndex : Html Msg
-viewIndex =
-    div
-        []
-        [ text "Hello Hunt!"
-        ]
-
-
-viewExamples : Html Msg
-viewExamples =
-    div
-        []
-        [ text "Hello Examples"
-        ]
+quickstartViewConfig : Quickstart.ViewConfig Msg
+quickstartViewConfig =
+    Quickstart.viewConfig
+        { createContexts = CreateContexts
+        , insertDocs = InsertDocs
+        }
 
 
 
