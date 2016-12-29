@@ -1,0 +1,26 @@
+{
+  "name": "client",
+  "version": "1.0.0",
+  "description": "Implementation of a simple frontend of hunt in elm",
+  "main": "index.js",
+  "scripts": {
+    "deps": "npm install && elm-package install --yes",
+    "dev": "webpack-dev-server --port 8000",
+    "build": "rm -rf build && webpack",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Matthias Metzger",
+  "license": "MIT",
+  "devDependencies": {
+    "css-loader": "^0.26.1",
+    "elm-webpack-loader": "^4.1.1",
+    "extract-text-webpack-plugin": "^1.0.1",
+    "file-loader": "^0.9.0",
+    "node-sass": "^4.1.1",
+    "normalize.css": "^5.0.0",
+    "sass-loader": "^4.1.1",
+    "style-loader": "^0.13.1",
+    "webpack": "^1.14.0",
+    "webpack-dev-server": "^1.16.2"
+  }
+}
