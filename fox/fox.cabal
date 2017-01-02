@@ -21,6 +21,9 @@ library
                        Fox.Index.Directory
                        Fox.Index.Monad
                        Fox.Index.Writer
+                       Fox.IO.Buffer
+                       Fox.IO.Files
+                       Fox.IO.Write
                        Fox.Types
                        Fox.Types.DocDesc
                        Fox.Types.DocIdMap
@@ -43,6 +46,7 @@ library
                        binary,
                        bytestring,
                        containers >=0.5.9.1,
+                       contravariant,
                        deepseq,
                        directory,
                        filepath,

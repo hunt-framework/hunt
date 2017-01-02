@@ -15,6 +15,8 @@ import           GHC.Types               (Int (I#))
 
 newtype PrimRef s a = PrimRef (MutableByteArray s)
 
+type PrimRefIO a = PrimRef (PrimState IO) a
+
 instance Eq (PrimRef s a) where
   PrimRef m == PrimRef n = sameMutableByteArray m n
   {-# INLINE (==) #-}
