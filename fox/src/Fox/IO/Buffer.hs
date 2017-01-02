@@ -54,6 +54,12 @@ pokeBytesWritten (Buffer op) n =
   poke (castPtr (op `plusPtr` (2 * sizeOfPtr))) n
 {-# INLINE pokeBytesWritten #-}
 
+incrBytesWritten :: Buffer -> Int -> IO ()
+incrBytesWritten buf n = do
+  x <- peekBytesWritten buf
+  pokeBytesWritten buf (x + n)
+{-# INLINE incrBytesWritten #-}
+
 newBuffer :: Int -> IO Buffer
 newBuffer bufSize = do
   -- we use cs malloc here to avoid
@@ -87,9 +93,8 @@ put buf insert = do
   pos' <- insert pos
   pokePos buf pos'
   let len = pos' `minusPtr` pos
-  bytesWritten_ <- peekBytesWritten buf
-  pokeBytesWritten buf (bytesWritten_ + len)
-  return (pos' `minusPtr` pos)
+  incrBytesWritten buf len
+  return len
 {-# INLINE put #-}
 
 flush :: Buffer -> (Ptr Word8 -> Int -> IO a) -> IO a
@@ -114,22 +119,19 @@ withWriteBuffer sz flsh action = do
     action (WriteBuffer buffer flsh)
 {-# INLINE withWriteBuffer #-}
 
-bytesWritten :: WriteBuffer -> IO Int
-bytesWritten (WriteBuffer buffer _) = peekBytesWritten buffer
-{-# INLINE bytesWritten #-}
-
 offset :: WriteBuffer -> IO Int
-offset = bytesWritten
+offset (WriteBuffer buffer _) = peekBytesWritten buffer
 {-# INLINE offset #-}
 
 write :: WriteBuffer -> Int -> (Ptr Word8 -> IO (Ptr Word8)) -> IO Int
 write (WriteBuffer buffer flush_) sz insert = do
   hasEnough <- hasEnoughBytes buffer sz
-  bytesWritten1 <- if not hasEnough
-                  then flush buffer flush_
-                  else return 0
-  bytesWritten2 <- put buffer insert
-  return (bytesWritten1 + bytesWritten2)
+  if not hasEnough
+    then do _ <- flush buffer flush_
+            return ()
+    else return ()
+  bytesWritten_ <- put buffer insert
+  return bytesWritten_
 {-# INLINE write #-}
 
 writeByteString :: WriteBuffer -> ByteString.ByteString -> IO Int
@@ -137,11 +139,10 @@ writeByteString wb@(WriteBuffer buffer flush_) (ByteString.PS fop off len) = do
   withForeignPtr fop $ \op -> do
     bufSz <- size buffer
     if bufSz < len
-      then do bytesWritten1 <- flush buffer flush_
+      then do _ <- flush buffer flush_
               _ <- flush_ (op `plusPtr` off) len
-              bytesWritten2 <- peekBytesWritten buffer
-              pokeBytesWritten buffer (bytesWritten2 + len)
-              return (bytesWritten1 + len)
+              incrBytesWritten buffer len
+              return len
       else write wb len (\dst -> do ByteString.memcpy dst (op `plusPtr` off) len
                                     return (dst `plusPtr` len)
                         )
