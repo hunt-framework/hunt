@@ -22,6 +22,8 @@ type DocIdGen = DocId
 -- insertions of terms.
 type FieldIndex = Map Token (Map FieldName Occurrences)
 
+type BufferedDocs = Seq Document
+
 -- | Every @Document@ indexed by an @IndexWrter@ goes into
 -- the @Indexer@ first. It collects all kind of useful information
 -- and inverts the index which can then be processed into a more
@@ -29,9 +31,9 @@ type FieldIndex = Map Token (Map FieldName Occurrences)
 data Indexer = Indexer { indSchema   :: !Schema
                        , indDocIdGen :: !DocIdGen
                        , indIndex    :: !FieldIndex
-                       , indDocs     :: !(Seq Document)
+                       , indDocs     :: !BufferedDocs
                        }
-
+                       
 indNumDocs :: Indexer -> Int
 indNumDocs ind = Seq.length (indDocs ind)
 

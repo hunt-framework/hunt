@@ -3,7 +3,9 @@ module Fox.Index.Directory (
     IndexDirErr(..)
   , IndexDirectory
   , openIndexDirectory
+
   , writeTermIndex
+  , writeDocuments
   ) where
 
 import           Fox.Analyze            (Token)
@@ -21,6 +23,7 @@ import           Data.Bits
 import           Data.Foldable
 import           Data.Key
 import           Data.Map               (Map)
+import           Data.Sequence          (Seq)
 import           Data.Text              (Text)
 import qualified Data.Text              as Text
 import qualified Data.Text.Foreign      as Text
@@ -166,6 +169,14 @@ writeTermIndex indexDirectory segmentId fieldOrd fieldIndex = do
     write_ writeBuffer (W size put) a = do
       _ <- write writeBuffer (size a) (put a)
       return ()
+
+writeDocuments :: IndexDirectory
+               -> SegmentId
+               -> (FieldName -> FieldOrd)
+               -> Seq Document
+               -> IO ()
+writeDocuments indexDirectory segmentId fieldOrd documents = do
+  return ()
 
 termVectorFile :: IndexDirectory -> SegmentId -> FilePath
 termVectorFile indexDirectory segmentId =

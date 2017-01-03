@@ -24,6 +24,24 @@ import qualified Data.Sequence              as Seq
 -- global to a transaction.
 type GlobalFieldTy = FieldName -> Maybe FieldType
 
+maxNumBufferedDocs :: IndexWriter Int
+maxNumBufferedDocs = askConfig iwcMaxBufferedDocs
+
+numBufferedDocs :: IndexWriter Int
+numBufferedDocs = askIndexer indNumDocs
+
+indexSchema :: IndexWriter Schema
+indexSchema = askIndexer indSchema
+
+bufferedFieldIndex :: IndexWriter FieldIndex
+bufferedFieldIndex = askIndexer indIndex
+
+bufferedDocuments :: IndexWriter BufferedDocs
+bufferedDocuments = askIndexer indDocs
+
+clearIndexer :: IndexWriter ()
+clearIndexer = withIndexer (\_ -> pure emptyIndexer)
+
 insertDocument :: Document -> IndexWriter ()
 insertDocument doc = insertDocuments [doc]
 
@@ -54,18 +72,6 @@ insertDocuments docs = do
   when (freeBufferSpace <= 0) flush
 
   withIndexer $ indexDocs analyzer docs lookupGlobalFieldTy
-
-maxNumBufferedDocs :: IndexWriter Int
-maxNumBufferedDocs = askConfig iwcMaxBufferedDocs
-
-numBufferedDocs :: IndexWriter Int
-numBufferedDocs = askIndexer indNumDocs
-
-indexSchema :: IndexWriter Schema
-indexSchema = askIndexer indSchema
-
-bufferedFieldIndex :: IndexWriter FieldIndex
-bufferedFieldIndex = askIndexer indIndex
 
 indexDocs :: Analyzer
           -> [Document]
@@ -164,7 +170,9 @@ flush :: IndexWriter ()
 flush = do
   mNewSegment <- createSegment
   case mNewSegment of
-    Just (sid, segment) -> insertSegment sid segment
+    Just (sid, segment) -> do
+      insertSegment sid segment
+      clearIndexer
     Nothing             -> return ()
 
 -- | Create a new @Segment@ from indexed documents. If there are
@@ -180,6 +188,7 @@ createSegment = do
       segmentId  <- newSegmentId
       schema     <- indexSchema
       fieldIndex <- bufferedFieldIndex
+      documents  <- bufferedDocuments
 
       let
         -- we sort every field known to the indexer to
@@ -195,6 +204,7 @@ createSegment = do
 
       withIndexDirectory $ \indexDirectory -> do
         IndexDirectory.writeTermIndex indexDirectory segmentId fieldOrd fieldIndex
+        IndexDirectory.writeDocuments indexDirectory segmentId fieldOrd documents
 
       return (segmentId, undefined)
 
