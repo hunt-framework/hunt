@@ -34,6 +34,7 @@ import qualified Data.Text.Foreign      as Text
 import           System.Directory
 import           System.FilePath
 
+-- | Small helper which carries the @IndexDirectory@ around.
 newtype IDir a = IDir { runIDir :: IndexDirectory -> IO a }
 
 instance Functor IDir where
@@ -49,13 +50,15 @@ instance Monad IDir where
 instance MonadIO IDir where
   liftIO m = IDir $ \_ -> m
 
+-- | Root directory where the index files are stored.
 newtype IndexDirectory = IndexDirectory { _unIndexDirectory :: FilePath }
                        deriving (Eq, Ord, Show)
 
-
+-- | Errors occurring while opening an @IndexDirectory@.
 data IndexDirErr = ErrInvalidDirectory
                  | ErrIndexLocked
 
+-- | Opens a directory for reading and writing.
 openIndexDirectory :: FilePath -> IO (Either IndexDirErr IndexDirectory)
 openIndexDirectory indexDir = runExceptT $ do
     -- bail out early so we don't overwrite anything
@@ -93,6 +96,7 @@ _termWrite :: Write (Int, (Text, (FieldOrd, (Int, Offset))))
 _termWrite = varint >*< text >*< varint >*< varint >*< varint
 {-# INLINE _termWrite #-}
 
+-- | Write a @FieldIndex@ to disk.
 writeTermIndex :: SegmentId
                -> (FieldName -> FieldOrd)
                -> Map Token (Map FieldName Occurrences)
@@ -188,6 +192,7 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
       _ <- write writeBuffer (size a) (put a)
       return ()
 
+-- | Write buffered docs to disk.
 writeDocuments :: SegmentId
                -> (FieldName -> FieldOrd)
                -> Seq Document
@@ -195,10 +200,13 @@ writeDocuments :: SegmentId
 writeDocuments _segmentId _fieldOrd _documents = do
   return ()
 
+-- | Create an @AppendFile@ in the @IndexDirectory@ for appending.
 withAppendFile :: IDir FilePath -> (AppendFile -> IDir a) -> IDir a
 withAppendFile mkPath action = IDir $ \indexDirectory -> do
   path <- runIDir mkPath indexDirectory
   Files.withAppendFile path $ \af -> runIDir (action af) indexDirectory
+
+-- selectors for file names in the @IndexDirectory@.
 
 termVectorFile :: SegmentId -> IDir FilePath
 termVectorFile segmentId = IDir $ \indexDirectory ->
