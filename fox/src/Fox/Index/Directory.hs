@@ -1,4 +1,9 @@
-module Fox.Index.Directory where
+module Fox.Index.Directory (
+    IndexDirErr(..)
+  , IndexDirectory
+  , openIndexDirectory
+  , writeTermIndex
+  ) where
 
 import           Fox.Analyze            (Token)
 import           Fox.IO.Buffer          (WriteBuffer, offset, withWriteBuffer,
@@ -12,9 +17,11 @@ import qualified Fox.Types.Positions    as Positions
 import           Control.Monad.Except
 import           Control.Monad.IO.Class
 import           Data.Foldable
+import           Data.Key
 import           Data.Map               (Map)
 import qualified Data.Map.Strict        as Map
 import           System.Directory
+import           System.FilePath
 
 newtype IndexDirectory = IndexDirectory { unIndexDirectory :: FilePath }
                        deriving (Eq, Ord, Show)
@@ -43,12 +50,15 @@ type Offset = Int
 
 docIdWrite :: Write DocId
 docIdWrite = unDocId >$< varint
+{-# INLINE docIdWrite #-}
 
 posWrite :: Write Position
 posWrite = varint
+{-# INLINE posWrite #-}
 
 occWrite :: Write (DocId, (Int, Offset))
 occWrite = docIdWrite >*< varint >*< varint
+{-# INLINE occWrite #-}
 
 writeTermIndex :: IndexDirectory
                -> SegmentId
@@ -56,18 +66,21 @@ writeTermIndex :: IndexDirectory
                -> Map Token (Map FieldName Occurrences)
                -> IO ()
 writeTermIndex indexDirectory segmentId fieldTy fieldIndex = do
-  withAppendFile (termVectorFile indexDirectory) $ \tvFile ->
-    withAppendFile (occurrenceFile indexDirectory) $ \occFile ->
-    withAppendFile (positionFile indexDirectory) $ \posFile -> do
+  withAppendFile (termVectorFile indexDirectory segmentId) $ \tvFile ->
+    withAppendFile (occurrenceFile indexDirectory segmentId) $ \occFile ->
+    withAppendFile (positionFile indexDirectory segmentId) $ \posFile -> do
 
       let
+        defaultBufSize :: Int
+        defaultBufSize = 32 * 1024
+
         tvFlush  = append tvFile
         occFlush = append occFile
         posFlush = append posFile
 
-      withWriteBuffer (32 * 1024) tvFlush $ \tvBuf ->
-        withWriteBuffer (32 * 1024) occFlush $ \occBuf ->
-        withWriteBuffer (32 * 1024) posFlush $ \posBuf -> do
+      withWriteBuffer defaultBufSize tvFlush $ \tvBuf ->
+        withWriteBuffer defaultBufSize occFlush $ \occBuf ->
+        withWriteBuffer defaultBufSize posFlush $ \posBuf -> do
 
         let
           writePosition :: Position -> IO ()
@@ -81,23 +94,29 @@ writeTermIndex indexDirectory segmentId fieldTy fieldIndex = do
             write_ occBuf occWrite (docId, (Positions.size positions, positionsOffset))
 
           writeTerm :: Bool -> Token -> Token -> FieldName -> Occurrences -> IO ()
-          writeTerm True lastToken token fieldName occurrences = do
-            undefined
-          writeTerm _ lastToken token fieldName occurrecnes = do
-            undefined
+          writeTerm sameToken lastToken token fieldName occurrences = do
+            forWithKey_ occurrences $ \docId positions -> writeOccs docId positions
 
-        undefined
+        forWithKey_ fieldIndex $ \token fields -> do
+          forWithKey_ fields $ \fieldName occs -> do
+            writeTerm False token token fieldName occs
   where
     write_ :: WriteBuffer -> Write a -> a -> IO ()
     write_ writeBuffer (W size put) a = do
       _ <- write writeBuffer (size a) (put a)
       return ()
 
-termVectorFile :: IndexDirectory -> FilePath
-termVectorFile = undefined
+termVectorFile :: IndexDirectory -> SegmentId -> FilePath
+termVectorFile indexDirectory segmentId =
+  indexDirectory <//> show segmentId <.> "tv"
 
-occurrenceFile :: IndexDirectory -> FilePath
-occurrenceFile = undefined
+occurrenceFile :: IndexDirectory -> SegmentId -> FilePath
+occurrenceFile indexDirectory segmentId =
+  indexDirectory <//> show segmentId <.> "occs"
 
-positionFile :: IndexDirectory -> FilePath
-positionFile = undefined
+positionFile :: IndexDirectory -> SegmentId -> FilePath
+positionFile indexDirectory segmentId =
+  indexDirectory <//> show segmentId <.> "pos"
+
+(<//>) :: IndexDirectory -> FilePath -> FilePath
+(<//>) (IndexDirectory indexDirectory) path = indexDirectory </> path

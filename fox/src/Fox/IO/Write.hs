@@ -70,12 +70,15 @@ word64 :: Write Word64
 word64 = fromStorable
 {-# INLINE CONLIKE word64 #-}
 
+
+-- NB. be careful here with INLINE pragmas!
+-- Annotating `varword` with INLINE duplicates the small (and very fast)
+-- inner loop all over the place.
 varword :: Write Word
 varword = W (\_ -> 9) go
   where
     go (W# w) (Ptr p) = IO $ \s0 -> case loop w p s0 of
                                          (# s1, p' #) -> (# s1, Ptr p' #)
-    {-# INLINE go #-}
 
     loop w p s0
       | isTrue# (ltWord# w (int2Word# 0x80#)) =
@@ -84,9 +87,6 @@ varword = W (\_ -> 9) go
       | otherwise =
         case writeWord8OffAddr# p 0# ((narrow8Word# (or# w (int2Word# 0x80#)))) s0 of
           s1 -> loop (uncheckedShiftRL# w 7#) (plusAddr# p 1#) s1
-    {-# NOINLINE loop #-}
-
-{-# INLINE varword #-}
 
 varint64 :: Write Int64
 varint64 = fromIntegral >$< varword
