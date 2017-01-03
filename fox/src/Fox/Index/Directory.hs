@@ -17,20 +17,19 @@ import           Fox.Types.Document
 import qualified Fox.Types.Positions    as Positions
 
 import           Control.Monad.Except
-import           Control.Monad.IO.Class
 import           Data.Bits
 import           Data.Foldable
 import           Data.Key
 import           Data.Map               (Map)
-import qualified Data.Map.Strict        as Map
 import           Data.Text              (Text)
 import qualified Data.Text              as Text
 import qualified Data.Text.Foreign      as Text
 import           System.Directory
 import           System.FilePath
 
-newtype IndexDirectory = IndexDirectory { unIndexDirectory :: FilePath }
+newtype IndexDirectory = IndexDirectory { _unIndexDirectory :: FilePath }
                        deriving (Eq, Ord, Show)
+
 
 data IndexDirErr = ErrInvalidDirectory
                  | ErrIndexLocked

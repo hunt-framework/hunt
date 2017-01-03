@@ -5,6 +5,7 @@ module Fox.Index.Writer where
 
 import           Fox.Analyze                (Analyzer, runAnalyzer)
 import           Fox.Index.Monad
+import Fox.Index.Directory as IndexDirectory
 import           Fox.Types
 import           Fox.Types.Document
 import qualified Fox.Types.Document         as Doc
@@ -43,8 +44,9 @@ insertDocuments docs = do
     -- put docs in batches of size `maxBufferedDocs`
     -- these batches can be indexed in parallel given
     -- we can merge several indexers.
-    batches =
+    _batches =
       [docs]
+
 
   -- Lots of documents have been indexed
   -- already. Flush buffer to disk to make
@@ -61,6 +63,9 @@ numBufferedDocs = askIndexer indNumDocs
 
 indexSchema :: IndexWriter Schema
 indexSchema = askIndexer indSchema
+
+bufferedFieldIndex :: IndexWriter FieldIndex
+bufferedFieldIndex = askIndexer indIndex
 
 indexDocs :: Analyzer
           -> [Document]
@@ -156,29 +161,47 @@ tryMerge :: IndexWriter ()
 tryMerge = return ()
 
 flush :: IndexWriter ()
-flush = do
-  schema <- indexSchema
+flush = return ()
 
-  let
-    -- we sort every field known to the indexer to
-    -- use stable numbers as shorter field names.
-    sortedFields :: Map FieldName FieldType
-    sortedFields = Map.fromList (HashMap.toList schema)
+-- | Create a new @Segment@ from indexed documents. If there are
+-- no documents buffered returns @Nothing@.
+createSegment :: IndexWriter (Maybe (SegmentId, Segment))
+createSegment = do
+  isEmpty <- askIndexer indNull
+  if not isEmpty
+    then Just <$> createSegment_
+    else return Nothing
+  where
+    createSegment_ = do
+      segmentId  <- newSegmentId
+      schema     <- indexSchema
+      fieldIndex <- bufferedFieldIndex
 
-    -- fieldOrd is total over any field the indexer
-    -- saw.
-    fieldOrd :: FieldName -> Int
-    fieldOrd fieldName =
-      Map.findIndex fieldName sortedFields
+      let
+        -- we sort every field known to the indexer to
+        -- use stable numbers as shorter field names.
+        sortedFields :: Map FieldName FieldType
+        sortedFields = Map.fromList (HashMap.toList schema)
 
-  return ()
+        -- fieldOrd is total over any field the indexer
+        -- saw.
+        fieldOrd :: FieldName -> Int
+        fieldOrd fieldName =
+          Map.findIndex fieldName sortedFields
 
+      withIndexDirectory $ \indexDirectory -> do
+        IndexDirectory.writeTermIndex indexDirectory segmentId fieldOrd fieldIndex
+
+      return (segmentId, undefined)
+
+doc1 :: Document
 doc1 = Document { docWeight = 1.0
                 , docFields = [ ("name", DocField (FieldFlags 0x03) 1.0  (FV_Text "Moritz Drexl"))
                               , ("lieblingsfarbe", DocField (FieldFlags 0x03) 1.0 (FV_Text "rot blau grün"))
                               ]
                 }
 
+doc2 :: Document
 doc2 = Document { docWeight = 1.0
                 , docFields = [ ("name", DocField (FieldFlags 0x03) 1.0  (FV_Text "Alex Biehl"))
                               , ("lieblingsfarbe", DocField (FieldFlags 0x03) 1.0 (FV_Text "lila rot grün"))

@@ -39,7 +39,7 @@ library
   other-modules:       Data.IntSet.Cache
                        Data.Primitive.PrimRef
 
-  ghc-options:         -O2
+  ghc-options:         -O2 -Wall
 
   -- other-extensions:
   build-depends:       base >=4.6 && <4.10,

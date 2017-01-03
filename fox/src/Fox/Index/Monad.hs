@@ -9,11 +9,10 @@ import           Fox.Types
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
-import           Control.Monad.State.Strict
 import           Data.Map                   (Map)
+import qualified Data.Map as Map
 import           Data.Sequence              (Seq)
 import qualified Data.Sequence              as Seq
-
 
 -- | Generate a new @DocId@ by incrementing.
 type DocIdGen = DocId
@@ -34,6 +33,10 @@ data Indexer = Indexer { indSchema   :: !Schema
 
 indNumDocs :: Indexer -> Int
 indNumDocs ind = Seq.length (indDocs ind)
+
+-- | Check if an @Indexer@ has no buffered documents.
+indNull :: Indexer -> Bool
+indNull ind = Map.null (indIndex ind)
 
 emptyIndexer :: Indexer
 emptyIndexer = Indexer { indSchema   = mempty
@@ -116,11 +119,11 @@ instance Applicative IndexWriter where
 
 instance Monad IndexWriter where
   IndexWriter m >>= f = IndexWriter $ \succ_ fail_ env st ->
-    m (\a st' -> unIndexWriter (f a) succ_ fail_ env st) fail_ env st
+    m (\a st' -> unIndexWriter (f a) succ_ fail_ env st') fail_ env st
   {-# INLINE (>>=) #-}
 
 instance MonadIO IndexWriter where
-  liftIO action = IndexWriter $ \succ_ fail_ env st -> do
+  liftIO action = IndexWriter $ \succ_ _ _ st -> do
     x <- action
     succ_ x st
   {-# INLINE liftIO #-}
@@ -148,6 +151,15 @@ withIndexer f = IndexWriter $ \succ_ fail_ _env st ->
   case f (iwIndexer st) of
     Right indexer' -> succ_ () (st { iwIndexer = indexer' })
     Left conflict  -> fail_ $ ErrConflict [conflict]
+
+withIndexDirectory :: (IndexDirectory -> IO a) -> IndexWriter a
+withIndexDirectory f = askEnv iwIndexDir >>= liftIO . f
+
+askEnv :: (IxWrEnv -> a) -> IndexWriter a
+askEnv f = IndexWriter $ \succ_ _ env st -> succ_ (f env) st
+
+newSegmentId :: IndexWriter SegmentId
+newSegmentId = askEnv iwNewSegId >>= liftIO
 
 askIndexer :: (Indexer -> a) -> IndexWriter a
 askIndexer f = IndexWriter $ \succ_ _fail _env st ->
