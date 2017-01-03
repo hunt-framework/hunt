@@ -202,9 +202,9 @@ createSegment = do
         fieldOrd fieldName =
           Map.findIndex fieldName sortedFields
 
-      withIndexDirectory $ \indexDirectory -> do
-        IndexDirectory.writeTermIndex indexDirectory segmentId fieldOrd fieldIndex
-        IndexDirectory.writeDocuments indexDirectory segmentId fieldOrd documents
+      withIndexDirectory $ do
+        IndexDirectory.writeTermIndex segmentId fieldOrd fieldIndex
+        IndexDirectory.writeDocuments segmentId fieldOrd documents
 
       return (segmentId, undefined)
 

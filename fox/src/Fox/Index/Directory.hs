@@ -4,6 +4,9 @@ module Fox.Index.Directory (
   , IndexDirectory
   , openIndexDirectory
 
+  , IDir
+  , runIDir
+
   , writeTermIndex
   , writeDocuments
   ) where
@@ -11,7 +14,8 @@ module Fox.Index.Directory (
 import           Fox.Analyze            (Token)
 import           Fox.IO.Buffer          (WriteBuffer, flush, offset,
                                          withWriteBuffer, write)
-import           Fox.IO.Files
+import           Fox.IO.Files (AppendFile)
+import qualified Fox.IO.Files as Files
 import           Fox.IO.Write
 import           Fox.Types
 import qualified Fox.Types.DocIdMap     as DocIdMap
@@ -29,6 +33,21 @@ import qualified Data.Text              as Text
 import qualified Data.Text.Foreign      as Text
 import           System.Directory
 import           System.FilePath
+
+newtype IDir a = IDir { runIDir :: IndexDirectory -> IO a }
+
+instance Functor IDir where
+  fmap f (IDir m) = IDir (\i -> fmap f (m i))
+
+instance Applicative IDir where
+  pure a = IDir (\_ -> pure a)
+  IDir fm <*> IDir fa = IDir $ \i -> fm i <*> fa i
+
+instance Monad IDir where
+  IDir m >>= f = IDir $ \i -> m i >>= \a -> runIDir (f a) i
+
+instance MonadIO IDir where
+  liftIO m = IDir $ \_ -> m
 
 newtype IndexDirectory = IndexDirectory { _unIndexDirectory :: FilePath }
                        deriving (Eq, Ord, Show)
@@ -74,26 +93,25 @@ _termWrite :: Write (Int, (Text, (FieldOrd, (Int, Offset))))
 _termWrite = varint >*< text >*< varint >*< varint >*< varint
 {-# INLINE _termWrite #-}
 
-writeTermIndex :: IndexDirectory
-               -> SegmentId
+writeTermIndex :: SegmentId
                -> (FieldName -> FieldOrd)
                -> Map Token (Map FieldName Occurrences)
-               -> IO ()
-writeTermIndex indexDirectory segmentId fieldOrd fieldIndex = do
+               -> IDir ()
+writeTermIndex segmentId fieldOrd fieldIndex = do
 
   -- open all files needed for index writing
-  withAppendFile (termVectorFile indexDirectory segmentId) $ \tvFile ->
-    withAppendFile (occurrenceFile indexDirectory segmentId) $ \occFile ->
-    withAppendFile (positionFile indexDirectory segmentId) $ \posFile -> do
+  withAppendFile (termVectorFile segmentId) $ \tvFile ->
+    withAppendFile (occurrenceFile segmentId) $ \occFile ->
+    withAppendFile (positionFile segmentId) $ \posFile -> liftIO $ do
 
       let
         defaultBufSize :: Int
         defaultBufSize = 32 * 1024
 
         -- Full buffers are flushed with these
-        tvFlush  = append tvFile
-        occFlush = append occFile
-        posFlush = append posFile
+        tvFlush  = Files.append tvFile
+        occFlush = Files.append occFile
+        posFlush = Files.append posFile
 
       -- allocate WriteBuffers for any file we want to write.
       -- WriteBuffers keep track of the current offset which
@@ -170,25 +188,29 @@ writeTermIndex indexDirectory segmentId fieldOrd fieldIndex = do
       _ <- write writeBuffer (size a) (put a)
       return ()
 
-writeDocuments :: IndexDirectory
-               -> SegmentId
+writeDocuments :: SegmentId
                -> (FieldName -> FieldOrd)
                -> Seq Document
-               -> IO ()
-writeDocuments indexDirectory segmentId fieldOrd documents = do
+               -> IDir ()
+writeDocuments _segmentId _fieldOrd _documents = do
   return ()
 
-termVectorFile :: IndexDirectory -> SegmentId -> FilePath
-termVectorFile indexDirectory segmentId =
-  indexDirectory <//> show segmentId <.> "tv"
+withAppendFile :: IDir FilePath -> (AppendFile -> IDir a) -> IDir a
+withAppendFile mkPath action = IDir $ \indexDirectory -> do
+  path <- runIDir mkPath indexDirectory
+  Files.withAppendFile path $ \af -> runIDir (action af) indexDirectory
 
-occurrenceFile :: IndexDirectory -> SegmentId -> FilePath
-occurrenceFile indexDirectory segmentId =
-  indexDirectory <//> show segmentId <.> "occs"
+termVectorFile :: SegmentId -> IDir FilePath
+termVectorFile segmentId = IDir $ \indexDirectory ->
+  return $ indexDirectory <//> show segmentId <.> "tv"
 
-positionFile :: IndexDirectory -> SegmentId -> FilePath
-positionFile indexDirectory segmentId =
-  indexDirectory <//> show segmentId <.> "pos"
+occurrenceFile :: SegmentId -> IDir FilePath
+occurrenceFile segmentId = IDir $ \indexDirectory ->
+  return $ indexDirectory <//> show segmentId <.> "occs"
+
+positionFile :: SegmentId -> IDir FilePath
+positionFile segmentId = IDir $ \indexDirectory ->
+  return $ indexDirectory <//> show segmentId <.> "pos"
 
 (<//>) :: IndexDirectory -> FilePath -> FilePath
 (<//>) (IndexDirectory indexDirectory) path = indexDirectory </> path

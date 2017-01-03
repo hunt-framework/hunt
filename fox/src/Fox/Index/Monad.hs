@@ -155,8 +155,9 @@ withIndexer f = IndexWriter $ \succ_ fail_ _env st ->
     Right indexer' -> succ_ () (st { iwIndexer = indexer' })
     Left conflict  -> fail_ $ ErrConflict [conflict]
 
-withIndexDirectory :: (IndexDirectory -> IO a) -> IndexWriter a
-withIndexDirectory f = askEnv iwIndexDir >>= liftIO . f
+withIndexDirectory :: IDir a -> IndexWriter a
+withIndexDirectory f = askEnv iwIndexDir >>= \indexDirectory ->
+  liftIO (runIDir f indexDirectory)
 
 askEnv :: (IxWrEnv -> a) -> IndexWriter a
 askEnv f = IndexWriter $ \succ_ _ env st -> succ_ (f env) st
