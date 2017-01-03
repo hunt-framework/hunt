@@ -6,6 +6,7 @@ module Fox.Index.Monad where
 import           Fox.Analyze
 import           Fox.Index.Directory
 import           Fox.Types
+import qualified Fox.Types.SegmentMap as SegmentMap
 
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
@@ -172,6 +173,12 @@ askConfig f = IndexWriter $ \ succ_ _fail env st ->
 askSchema :: IndexWriter Schema
 askSchema = IndexWriter $ \succ_ _fail_ env st ->
   succ_ (iwSchema env) st
+
+insertSegment :: SegmentId -> Segment -> IndexWriter ()
+insertSegment segmentId segment = IndexWriter $ \succ_ _fail _ st ->
+  succ_ () (st { iwNewSegments =
+                  SegmentMap.insert segmentId segment  (iwNewSegments st)
+              })
 
 -- | A read-only transaction over the @Index@.
 newtype IndexReader a =

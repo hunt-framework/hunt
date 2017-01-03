@@ -161,7 +161,11 @@ tryMerge :: IndexWriter ()
 tryMerge = return ()
 
 flush :: IndexWriter ()
-flush = return ()
+flush = do
+  mNewSegment <- createSegment
+  case mNewSegment of
+    Just (sid, segment) -> insertSegment sid segment
+    Nothing             -> return ()
 
 -- | Create a new @Segment@ from indexed documents. If there are
 -- no documents buffered returns @Nothing@.
