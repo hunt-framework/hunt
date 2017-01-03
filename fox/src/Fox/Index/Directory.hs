@@ -173,13 +173,17 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
 
 
         -- loop over all tokens and fields
-        _ <- foldlWithKeyM (\lastToken token fields ->
-                              let foldFields notFirst fieldName occs = do
-                                    writeTerm notFirst lastToken token fieldName occs
-                                    return True
-                              in do _ <- foldlWithKeyM foldFields False fields
-                                    return token
-                           ) Text.empty fieldIndex
+        let
+          foldTokens :: Text -> Text -> Map FieldName Occurrences -> IO Text
+          foldTokens lastToken token fields =
+            let
+              foldFields notFirst fieldName occs = do
+                writeTerm notFirst lastToken token fieldName occs
+                return True
+            in do
+              _ <- foldlWithKeyM foldFields False fields
+              return token
+        _ <- foldlWithKeyM foldTokens Text.empty fieldIndex
 
         flush tvBuf
         flush occBuf
