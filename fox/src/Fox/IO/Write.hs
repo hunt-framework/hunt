@@ -8,11 +8,13 @@ module Fox.IO.Write (
   , word8
   , word64
   , varint
+  , text
   ) where
 
 import           GHC.Exts
 import           GHC.Types
 
+import           Data.Bits
 import           Data.ByteString                      (ByteString)
 import qualified Data.ByteString                      as ByteString
 import qualified Data.ByteString.Internal             as ByteString
@@ -70,7 +72,6 @@ word64 :: Write Word64
 word64 = fromStorable
 {-# INLINE CONLIKE word64 #-}
 
-
 -- NB. be careful here with INLINE pragmas!
 -- Annotating `varword` with INLINE duplicates the small (and very fast)
 -- inner loop all over the place.
@@ -87,6 +88,20 @@ varword = W (\_ -> 9) go
       | otherwise =
         case writeWord8OffAddr# p 0# ((narrow8Word# (or# w (int2Word# 0x80#)))) s0 of
           s1 -> loop (uncheckedShiftRL# w 7#) (plusAddr# p 1#) s1
+
+text :: Write Text
+text = W size write
+  where
+    W vintSize vintWrite = varint
+
+    size t = case Text.lengthWord16 t `unsafeShiftL` 1 of
+               tsz -> vintSize tsz + tsz
+
+    write t op =  case Text.lengthWord16 t `unsafeShiftL` 1 of
+                    tsz -> do op'  <- vintWrite tsz op
+                              Text.unsafeCopyToPtr t $! (castPtr op')
+                              return $! op' `plusPtr` tsz
+{-# INLINE CONLIKE text #-}
 
 varint64 :: Write Int64
 varint64 = fromIntegral >$< varword

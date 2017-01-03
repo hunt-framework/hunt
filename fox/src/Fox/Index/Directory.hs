@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 module Fox.Index.Directory (
     IndexDirErr(..)
   , IndexDirectory
@@ -6,20 +7,25 @@ module Fox.Index.Directory (
   ) where
 
 import           Fox.Analyze            (Token)
-import           Fox.IO.Buffer          (WriteBuffer, offset, withWriteBuffer,
-                                         write)
+import           Fox.IO.Buffer          (WriteBuffer, flush, offset,
+                                         withWriteBuffer, write)
 import           Fox.IO.Files
 import           Fox.IO.Write
 import           Fox.Types
+import qualified Fox.Types.DocIdMap     as DocIdMap
 import           Fox.Types.Document
 import qualified Fox.Types.Positions    as Positions
 
 import           Control.Monad.Except
 import           Control.Monad.IO.Class
+import           Data.Bits
 import           Data.Foldable
 import           Data.Key
 import           Data.Map               (Map)
 import qualified Data.Map.Strict        as Map
+import           Data.Text              (Text)
+import qualified Data.Text              as Text
+import qualified Data.Text.Foreign      as Text
 import           System.Directory
 import           System.FilePath
 
@@ -60,12 +66,20 @@ occWrite :: Write (DocId, (Int, Offset))
 occWrite = docIdWrite >*< varint >*< varint
 {-# INLINE occWrite #-}
 
+-- unused due to GHC not being able to optimize big tuple
+-- away.
+_termWrite :: Write (Int, (Text, (FieldOrd, (Int, Offset))))
+_termWrite = varint >*< text >*< varint >*< varint >*< varint
+{-# INLINE _termWrite #-}
+
 writeTermIndex :: IndexDirectory
                -> SegmentId
-               -> (FieldName -> Int)
+               -> (FieldName -> FieldOrd)
                -> Map Token (Map FieldName Occurrences)
                -> IO ()
-writeTermIndex indexDirectory segmentId fieldTy fieldIndex = do
+writeTermIndex indexDirectory segmentId fieldOrd fieldIndex = do
+
+  -- open all files needed for index writing
   withAppendFile (termVectorFile indexDirectory segmentId) $ \tvFile ->
     withAppendFile (occurrenceFile indexDirectory segmentId) $ \occFile ->
     withAppendFile (positionFile indexDirectory segmentId) $ \posFile -> do
@@ -74,10 +88,14 @@ writeTermIndex indexDirectory segmentId fieldTy fieldIndex = do
         defaultBufSize :: Int
         defaultBufSize = 32 * 1024
 
+        -- Full buffers are flushed with these
         tvFlush  = append tvFile
         occFlush = append occFile
         posFlush = append posFile
 
+      -- allocate WriteBuffers for any file we want to write.
+      -- WriteBuffers keep track of the current offset which
+      -- is handy for cross referencing records between files.
       withWriteBuffer defaultBufSize tvFlush $ \tvBuf ->
         withWriteBuffer defaultBufSize occFlush $ \occBuf ->
         withWriteBuffer defaultBufSize posFlush $ \posBuf -> do
@@ -91,15 +109,59 @@ writeTermIndex indexDirectory segmentId fieldTy fieldIndex = do
           writeOccs docId positions = do
             positionsOffset <- offset posBuf
             for_ (Positions.toAscList positions) writePosition
-            write_ occBuf occWrite (docId, (Positions.size positions, positionsOffset))
+            write_ occBuf occWrite
+              (docId, (Positions.size positions, positionsOffset))
 
+
+          -- write the delta of a term to buffer. sameToken parameter
+          -- is an optimization when we know token is the same as lastToken.
           writeTerm :: Bool -> Token -> Token -> FieldName -> Occurrences -> IO ()
           writeTerm sameToken lastToken token fieldName occurrences = do
+
+            -- start by writing the occurrences to the occs file
+            -- remember the offset where we started for this term.
+            occOffset <- offset occBuf
             forWithKey_ occurrences $ \docId positions -> writeOccs docId positions
 
-        forWithKey_ fieldIndex $ \token fields -> do
-          forWithKey_ fields $ \fieldName occs -> do
-            writeTerm False token token fieldName occs
+            let
+              -- by calculating the common prefix with the last token
+              -- we only need to write the suffix of the current token
+              -- effectively delta encoding the terms.
+
+              -- if a token occurrs in different fields we know we can
+              -- skip the common prefix calculation.
+              (prefix, suffix) | sameToken = (lastToken, Text.empty)
+                               | otherwise =
+                                   case Text.commonPrefixes lastToken token of
+                                     Just (p, _, s) -> (p, s)
+                                     Nothing        -> (Text.empty, token)
+
+              prefixLen = Text.lengthWord16 prefix `unsafeShiftL` 2
+              numOccs   = DocIdMap.size occurrences
+              fieldOrd_ = fieldOrd fieldName
+
+            -- we need to split these guys up because GHC is not smart enough
+            -- to optimize the deeply nested tuples away.
+            write_ tvBuf (varint >*< text)
+              (prefixLen, suffix)
+            write_ tvBuf (varint >*< varint >*< varint)
+              (fieldOrd_, (numOccs, occOffset))
+
+
+        -- loop over all tokens and fields
+        _ <- foldlWithKeyM (\lastToken token fields ->
+                              let foldFields notFirst fieldName occs = do
+                                    writeTerm notFirst lastToken token fieldName occs
+                                    return True
+                              in do _ <- foldlWithKeyM foldFields False fields
+                                    return token
+                           ) Text.empty fieldIndex
+
+        flush tvBuf
+        flush occBuf
+        flush posBuf
+
+        return ()
   where
     write_ :: WriteBuffer -> Write a -> a -> IO ()
     write_ writeBuffer (W size put) a = do

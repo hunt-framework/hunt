@@ -6,6 +6,7 @@ module Fox.Types (
   , Document(..)
   , DocField(..)
   , FieldName
+  , FieldOrd
   , FieldType(..)
   , FieldValue(..)
   , fieldType
@@ -53,6 +54,8 @@ import           Fox.Types.SegmentMap  (SegmentMap, SegmentSet)
 
 import           Data.HashMap.Strict   (HashMap)
 
+-- | Indexed fields can be identified by number.
+type FieldOrd = Int
 
 -- | A @Schema@ keeps track which fields and their respective
 -- type are in the index.

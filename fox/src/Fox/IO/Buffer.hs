@@ -1,10 +1,15 @@
+{-# LANGUAGE MagicHash     #-}
+{-# LANGUAGE UnboxedTuples #-}
 module Fox.IO.Buffer (
     WriteBuffer
   , withWriteBuffer
   , offset
   , write
   , writeByteString
+  , flush
   ) where
+
+import           GHC.Exts
 
 import           Control.Exception
 import qualified Data.ByteString.Internal as ByteString
@@ -97,8 +102,8 @@ put buf insert = do
   return len
 {-# INLINE put #-}
 
-flush :: Buffer -> (Ptr Word8 -> Int -> IO a) -> IO a
-flush buf f = do
+flushBuffer :: Buffer -> (Ptr Word8 -> Int -> IO a) -> IO a
+flushBuffer buf f = do
   pos <- peekPos buf
   let start = bufferStart buf
   a <- f start (pos `minusPtr` start)
@@ -127,7 +132,7 @@ write :: WriteBuffer -> Int -> (Ptr Word8 -> IO (Ptr Word8)) -> IO Int
 write (WriteBuffer buffer flush_) sz insert = do
   hasEnough <- hasEnoughBytes buffer sz
   if not hasEnough
-    then do _ <- flush buffer flush_
+    then do _ <- flushBuffer buffer flush_
             return ()
     else return ()
   bytesWritten_ <- put buffer insert
@@ -139,7 +144,7 @@ writeByteString wb@(WriteBuffer buffer flush_) (ByteString.PS fop off len) = do
   withForeignPtr fop $ \op -> do
     bufSz <- size buffer
     if bufSz < len
-      then do _ <- flush buffer flush_
+      then do _ <- flushBuffer buffer flush_
               _ <- flush_ (op `plusPtr` off) len
               incrBytesWritten buffer len
               return len
@@ -147,3 +152,8 @@ writeByteString wb@(WriteBuffer buffer flush_) (ByteString.PS fop off len) = do
                                     return (dst `plusPtr` len)
                         )
 {-# INLINE writeByteString #-}
+
+flush :: WriteBuffer -> IO ()
+flush (WriteBuffer buffer flush_) = do
+  _ <- flushBuffer buffer flush_
+  return ()
