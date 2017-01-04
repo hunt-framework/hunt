@@ -1,12 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
 module Fox.Index.Directory (
-    IndexDirErr(..)
-  , IndexDirectory
-  , openIndexDirectory
-
+    IndexDirectory
   , IDir
+  , IDirError(..)
   , runIDir
 
+  , openIndexDirectory
   , writeTermIndex
   , writeDocuments
   ) where
@@ -33,9 +32,15 @@ import qualified Data.Text              as Text
 import qualified Data.Text.Foreign      as Text
 import           System.Directory
 import           System.FilePath
+import           System.IO.Error        (IOError, tryIOError)
 
--- | Small helper which carries the @IndexDirectory@ around.
-newtype IDir a = IDir { runIDir :: IndexDirectory -> IO a }
+-- | Root directory where the index files are stored.
+newtype IndexDirectory = IndexDirectory { _unIndexDirectory :: FilePath }
+                       deriving (Eq, Ord, Show)
+
+-- | Computation involving the physical directory where the
+-- index is stored are carried out in the @IDir@ monad.
+newtype IDir a = IDir { unIDir :: IndexDirectory -> IO a }
 
 instance Functor IDir where
   fmap f (IDir m) = IDir (\i -> fmap f (m i))
@@ -45,27 +50,31 @@ instance Applicative IDir where
   IDir fm <*> IDir fa = IDir $ \i -> fm i <*> fa i
 
 instance Monad IDir where
-  IDir m >>= f = IDir $ \i -> m i >>= \a -> runIDir (f a) i
+  IDir m >>= f = IDir $ \i -> m i >>= \a -> unIDir (f a) i
 
 instance MonadIO IDir where
   liftIO m = IDir $ \_ -> m
 
--- | Root directory where the index files are stored.
-newtype IndexDirectory = IndexDirectory { _unIndexDirectory :: FilePath }
-                       deriving (Eq, Ord, Show)
-
+runIDir :: IndexDirectory -> IDir a -> IO (Either IDirError a)
+runIDir indexDirectory action = do
+  ea <- tryIOError $ (unIDir action) indexDirectory
+  case ea of
+    Right a -> return (Right a)
+    Left e  -> return (Left (IDirIOError e))
+  
 -- | Errors occurring while opening an @IndexDirectory@.
-data IndexDirErr = ErrInvalidDirectory
-                 | ErrIndexLocked
+data IDirError = IDirInvalidDirectory
+               | IDirIndexLocked
+               | IDirIOError IOError
 
 -- | Opens a directory for reading and writing.
-openIndexDirectory :: FilePath -> IO (Either IndexDirErr IndexDirectory)
+openIndexDirectory :: FilePath -> IO (Either IDirError IndexDirectory)
 openIndexDirectory indexDir = runExceptT $ do
     -- bail out early so we don't overwrite anything
   -- in case indexDir refers to a file.
   fileExists <- liftIO $ doesFileExist indexDir
   when fileExists $
-    throwError ErrInvalidDirectory
+    throwError IDirInvalidDirectory
 
   -- check explicitly for existence to avoid
   -- exceptions.
@@ -207,8 +216,8 @@ writeDocuments _segmentId _fieldOrd _documents = do
 -- | Create an @AppendFile@ in the @IndexDirectory@ for appending.
 withAppendFile :: IDir FilePath -> (AppendFile -> IDir a) -> IDir a
 withAppendFile mkPath action = IDir $ \indexDirectory -> do
-  path <- runIDir mkPath indexDirectory
-  Files.withAppendFile path $ \af -> runIDir (action af) indexDirectory
+  path <- unIDir mkPath indexDirectory
+  Files.withAppendFile path $ \af -> unIDir (action af) indexDirectory
 
 -- selectors for file names in the @IndexDirectory@.
 

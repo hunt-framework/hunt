@@ -98,14 +98,18 @@ data IxWrState =
             , iwIndexer     :: !Indexer
             }
 
-data ErrWriter = ErrConflict [Conflict]
+data WriterError = WriterConflict [Conflict]
+               | WriterIDirErr IDirError
 
 -- | a write transaction over the @Index@. The @Index@ is updated
 -- transactionally.
 newtype IndexWriter a =
-  IndexWriter { unIndexWriter ::
-    forall r. (a -> IxWrState -> IO r) -> (ErrWriter -> IO r) -> IxWrEnv -> IxWrState -> IO r
-  }
+  IndexWriter { unIndexWriter :: forall r. (a -> IxWrState -> IO r)
+                              -> (WriterError -> IO r)
+                              -> IxWrEnv
+                              -> IxWrState
+                              -> IO r
+              }
 
 instance Functor IndexWriter where
   fmap f (IndexWriter m) = IndexWriter $ \succ_ fail_ env st ->
@@ -136,9 +140,12 @@ errConflict conflict = errConflicts [conflict]
 
 errConflicts :: [Conflict] -> IndexWriter a
 errConflicts conflicts = IndexWriter $ \_succ_ fail_ _env _st ->
-  fail_ (ErrConflict conflicts)
+  fail_ (WriterConflict conflicts)
 
-runIndexWriter :: IxWrEnv -> IxWrState -> IndexWriter a -> IO (Either ErrWriter (a, IxWrState))
+runIndexWriter :: IxWrEnv
+               -> IxWrState
+               -> IndexWriter a
+               -> IO (Either WriterError (a, IxWrState))
 runIndexWriter env st action =
   unIndexWriter action (\a _st -> pure $ Right (a, st)) (\e -> pure (Left e)) env st
 
@@ -153,11 +160,15 @@ withIndexer :: (Indexer -> Either Conflict Indexer) -> IndexWriter ()
 withIndexer f = IndexWriter $ \succ_ fail_ _env st ->
   case f (iwIndexer st) of
     Right indexer' -> succ_ () (st { iwIndexer = indexer' })
-    Left conflict  -> fail_ $ ErrConflict [conflict]
+    Left conflict  -> fail_ $ WriterConflict [conflict]
 
 withIndexDirectory :: IDir a -> IndexWriter a
-withIndexDirectory f = askEnv iwIndexDir >>= \indexDirectory ->
-  liftIO (runIDir f indexDirectory)
+withIndexDirectory f = askEnv iwIndexDir >>= \indexDirectory -> do
+  IndexWriter $ \succ_ fail_ _ st -> do
+    result <- runIDir indexDirectory f
+    case result of
+      Right a -> succ_ a st
+      Left e  -> fail_ (WriterIDirErr e)
 
 askEnv :: (IxWrEnv -> a) -> IndexWriter a
 askEnv f = IndexWriter $ \succ_ _ env st -> succ_ (f env) st
