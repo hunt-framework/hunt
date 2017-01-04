@@ -122,9 +122,9 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
         defaultBufSize = 32 * 1024
 
         -- Full buffers are flushed with these
-        tvFlush  x y = putStrLn "tvFlush: "  >> Files.append tvFile x y
-        occFlush x y = putStrLn "occFlush: " >> Files.append occFile x y
-        posFlush x y = putStrLn "posFlush: " >> Files.append posFile x y
+        tvFlush  = Files.append tvFile
+        occFlush = Files.append occFile
+        posFlush = Files.append posFile
 
       -- allocate WriteBuffers for any file we want to write.
       -- WriteBuffers keep track of the current offset which
