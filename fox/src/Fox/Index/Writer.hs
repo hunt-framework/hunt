@@ -24,24 +24,6 @@ import qualified Data.Sequence              as Seq
 -- global to a transaction.
 type GlobalFieldTy = FieldName -> Maybe FieldType
 
-maxNumBufferedDocs :: IndexWriter Int
-maxNumBufferedDocs = askConfig iwcMaxBufferedDocs
-
-numBufferedDocs :: IndexWriter Int
-numBufferedDocs = askIndexer indNumDocs
-
-indexSchema :: IndexWriter Schema
-indexSchema = askIndexer indSchema
-
-bufferedFieldIndex :: IndexWriter FieldIndex
-bufferedFieldIndex = askIndexer indIndex
-
-bufferedDocuments :: IndexWriter BufferedDocs
-bufferedDocuments = askIndexer indDocs
-
-clearIndexer :: IndexWriter ()
-clearIndexer = withIndexer (\_ -> pure emptyIndexer)
-
 insertDocument :: Document -> IndexWriter ()
 insertDocument doc = insertDocuments [doc]
 
@@ -205,6 +187,24 @@ createSegment = do
         IndexDirectory.writeDocuments segmentId fieldOrd documents
 
       return (segmentId, Segment firstGeneration)
+
+maxNumBufferedDocs :: IndexWriter Int
+maxNumBufferedDocs = askConfig iwcMaxBufferedDocs
+
+numBufferedDocs :: IndexWriter Int
+numBufferedDocs = askIndexer indNumDocs
+
+indexSchema :: IndexWriter Schema
+indexSchema = askIndexer indSchema
+
+bufferedFieldIndex :: IndexWriter FieldIndex
+bufferedFieldIndex = askIndexer indIndex
+
+bufferedDocuments :: IndexWriter BufferedDocs
+bufferedDocuments = askIndexer indDocs
+
+clearIndexer :: IndexWriter ()
+clearIndexer = withIndexer (\_ -> pure emptyIndexer)
 
 doc1 :: Document
 doc1 = Document { docWeight = 1.0
