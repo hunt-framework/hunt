@@ -2,15 +2,18 @@
 module Fox.Analyze (
     Token
   , Analyzer
+  , newAnalyzer
   , runAnalyzer
+
   , Tokenizer
   , runTokenizer
-  , Filter
-  , runFilter
-  , newAnalyzer
   , tokenizeAlpha
   , tokenizeDigits
   , tokenizeNonWhitespace
+
+  , Filter
+  , runFilter
+  , filterNonEmpty
   ) where
 
 import           Fox.Types
@@ -65,8 +68,8 @@ composeFilter f g = Filter $ \xs ->
 map :: (Token -> Token) -> Filter
 map f = Filter $ \xs -> List.map f xs
 
-filterEmpty :: Filter
-filterEmpty = filter (not . Text.null)
+filterNonEmpty :: Filter
+filterNonEmpty = filter (not . Text.null)
 
 splitText :: (Char -> Bool) -> FieldValue -> [Token]
 splitText p v =

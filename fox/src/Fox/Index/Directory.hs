@@ -66,6 +66,7 @@ runIDir indexDirectory action = do
 data IDirError = IDirInvalidDirectory
                | IDirIndexLocked
                | IDirIOError IOError
+               deriving (Show)
 
 -- | Opens a directory for reading and writing.
 openIndexDirectory :: FilePath -> IO (Either IDirError IndexDirectory)
@@ -116,15 +117,14 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
   withAppendFile (termVectorFile segmentId) $ \tvFile ->
     withAppendFile (occurrenceFile segmentId) $ \occFile ->
     withAppendFile (positionFile segmentId) $ \posFile -> liftIO $ do
-
       let
         defaultBufSize :: Int
         defaultBufSize = 32 * 1024
 
         -- Full buffers are flushed with these
-        tvFlush  = Files.append tvFile
-        occFlush = Files.append occFile
-        posFlush = Files.append posFile
+        tvFlush  x y = putStrLn "tvFlush: "  >> Files.append tvFile x y
+        occFlush x y = putStrLn "occFlush: " >> Files.append occFile x y
+        posFlush x y = putStrLn "posFlush: " >> Files.append posFile x y
 
       -- allocate WriteBuffers for any file we want to write.
       -- WriteBuffers keep track of the current offset which

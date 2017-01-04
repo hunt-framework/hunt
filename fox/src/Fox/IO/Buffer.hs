@@ -70,8 +70,8 @@ newBuffer bufSize = do
   -- we use cs malloc here to avoid
   -- copying this buffer during GCs.
   buf <- mallocBytes (bufSize + 2 * sizeOfPtr + 1 * sizeOfInt)
-  pokePos (Buffer buf) buf
-  pokeEnd (Buffer buf) (buf `plusPtr` bufSize)
+  pokePos (Buffer buf) (bufferStart (Buffer buf))
+  pokeEnd (Buffer buf) (bufferStart (Buffer buf)  `plusPtr` bufSize)
   pokeBytesWritten (Buffer buf) 0
   return (Buffer buf)
 

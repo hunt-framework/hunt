@@ -206,7 +206,7 @@ createSegment = do
         IndexDirectory.writeTermIndex segmentId fieldOrd fieldIndex
         IndexDirectory.writeDocuments segmentId fieldOrd documents
 
-      return (segmentId, undefined)
+      return (segmentId, Segment firstGeneration)
 
 doc1 :: Document
 doc1 = Document { docWeight = 1.0

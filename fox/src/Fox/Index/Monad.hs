@@ -8,6 +8,7 @@ import           Fox.Index.Directory
 import           Fox.Types
 import qualified Fox.Types.SegmentMap as SegmentMap
 
+import           Control.Exception
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
 import           Data.Map                   (Map)
@@ -52,6 +53,7 @@ emptyIndexer = Indexer { indSchema   = mempty
 -- @Segment@s.
 data Conflict = ConflictDelete SegmentId
               | ConflictFields FieldName FieldType FieldType
+              deriving (Show)
 
 type Commit a = Either [Conflict] a
 
@@ -99,7 +101,11 @@ data IxWrState =
             }
 
 data WriterError = WriterConflict [Conflict]
-               | WriterIDirErr IDirError
+                 | WriterIDirErr IDirError
+                 deriving (Show)
+
+instance Exception WriterError
+
 
 -- | a write transaction over the @Index@. The @Index@ is updated
 -- transactionally.

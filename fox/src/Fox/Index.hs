@@ -32,6 +32,24 @@ data Index =
         , ixWriterConfig :: !IxWrConfig
         }
 
+-- | Default @Analyzer@ tokenizes non-empty alpha-numeric
+-- terms.
+defaultAnalyzer :: Analyzer
+defaultAnalyzer = newAnalyzer tokenizeAlpha filterNonEmpty
+
+-- | Create a new index in a specified @IndexDirectory@.
+-- Does not load index if one exists.
+newIndex :: IndexDirectory -> IO IndexRef
+newIndex indexDirectory = do
+  segIdGen <- newSegIdGen
+  newMVar $! Index { ixIndexDir = indexDirectory
+                   , ixSegments = SegmentMap.empty
+                   , ixSegmentRefs = SegmentMap.empty
+                   , ixSegIdGen = segIdGen
+                   , ixSchema = HashMap.empty
+                   , ixWriterConfig = IxWrConfig { iwcMaxBufferedDocs = 0 }
+                   }
+
 -- | Run an @IndexWriter@ transaction over the @Index@.
 -- This only locks the @Index@ only in conflict checking
 -- phase so multiple concurrent @runIndexWriter@ calls
@@ -51,13 +69,15 @@ runWriter analyzer indexRef indexWriter = do
 
     -- run the transaction. Note that it can start merges
     -- by itself.
-    Right (result, writerState') <- runIndexWriter writerEnv writerState indexWriter
-
-    modIndex indexRef $ \index ->
-      case commit index writerEnv writerState' of
-        Right index'   -> (index', return result)
-        Left conflicts -> (index, throwError conflicts)
-  where
+    mresult <- runIndexWriter writerEnv writerState indexWriter
+    case mresult of
+      Right (result, writerState') -> do
+        modIndex indexRef $ \index ->
+          case commit index writerEnv writerState' of
+            Right index'   -> (index', return result)
+            Left conflicts -> (index, throwError conflicts)
+      Left err -> throwIO err
+      where
     -- Fork an environment for a new transaction
     forkIxWrEnv :: Analyzer -> IO IxWrEnv
     forkIxWrEnv anal = modIndex indexRef $ \index ->
