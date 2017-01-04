@@ -10,6 +10,7 @@ import           Data.Word           (Word8)
 import           Data.Int (Int32)
 
 newtype DocId = DocId { unDocId :: Int }
+              deriving (Eq, Ord, Show)
 
 firstDocId :: DocId
 firstDocId = DocId 0

@@ -49,15 +49,9 @@ insertDocuments :: [Document] -> IndexWriter ()
 insertDocuments docs = do
   analyzer        <- askAnalyzer
   schema          <- askSchema
-  bufferedDocs    <- numBufferedDocs
-  maxBufferedDocs <- maxNumBufferedDocs
-
   let
     lookupGlobalFieldTy fieldName =
       HashMap.lookup fieldName schema
-
-    freeBufferSpace =
-      min (maxBufferedDocs - bufferedDocs) 0
 
     -- put docs in batches of size `maxBufferedDocs`
     -- these batches can be indexed in parallel given
@@ -65,13 +59,17 @@ insertDocuments docs = do
     _batches =
       [docs]
 
+  withIndexer $ indexDocs analyzer docs lookupGlobalFieldTy
 
   -- Lots of documents have been indexed
   -- already. Flush buffer to disk to make
   -- room for new documents.
+  maxBufferedDocs <- maxNumBufferedDocs
+  bufferedDocs    <- numBufferedDocs
+  let
+    freeBufferSpace =
+      min (maxBufferedDocs - bufferedDocs) 0
   when (freeBufferSpace <= 0) flush
-
-  withIndexer $ indexDocs analyzer docs lookupGlobalFieldTy
 
 indexDocs :: Analyzer
           -> [Document]

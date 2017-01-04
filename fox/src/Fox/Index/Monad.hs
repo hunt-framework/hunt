@@ -33,7 +33,7 @@ data Indexer = Indexer { indSchema   :: !Schema
                        , indDocIdGen :: !DocIdGen
                        , indIndex    :: !FieldIndex
                        , indDocs     :: !BufferedDocs
-                       }
+                       } deriving (Show)
                        
 indNumDocs :: Indexer -> Int
 indNumDocs ind = Seq.length (indDocs ind)
@@ -153,7 +153,7 @@ runIndexWriter :: IxWrEnv
                -> IndexWriter a
                -> IO (Either WriterError (a, IxWrState))
 runIndexWriter env st action =
-  unIndexWriter action (\a _st -> pure $ Right (a, st)) (\e -> pure (Left e)) env st
+  unIndexWriter action (\a st' -> pure $ Right (a, st')) (\e -> pure (Left e)) env st
 
 askAnalyzer :: IndexWriter Analyzer
 askAnalyzer = IndexWriter $ \succ_ _ env st -> succ_ (iwAnalyzer env) st
