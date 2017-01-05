@@ -37,6 +37,7 @@ import           System.Directory
 import           System.FilePath
 import           System.IO.Error        (IOError, tryIOError)
 
+
 -- | Root directory where the index files are stored.
 newtype IndexDirectory = IndexDirectory { _unIndexDirectory :: FilePath }
                        deriving (Eq, Ord, Show)
@@ -44,21 +45,28 @@ newtype IndexDirectory = IndexDirectory { _unIndexDirectory :: FilePath }
 -- | Computation involving the physical directory where the
 -- index is stored are carried out in the @IDir@ monad.
 newtype IDir a = IDir { unIDir :: forall r. (a -> IO r)
-                               -> IndexDirectory -> IO r
+                               -> IndexDirectory
+                               -> IO r
                       }
 
 instance Functor IDir where
   fmap f (IDir m) = IDir (\k i -> m (\a -> k (f a)) i)
+  {-# INLINABLE fmap #-}
 
 instance Applicative IDir where
   pure a = IDir (\k _ -> k a)
+  {-# INLINABLE pure #-}
+
   IDir fm <*> IDir fa = IDir $ \k i -> fm (\f -> fa (\a -> k (f a) ) i) i
+  {-# INLINABLE (<*>) #-}
 
 instance Monad IDir where
   IDir m >>= f = IDir $ \k i -> m (\a -> unIDir (f a) k i) i
+  {-# INLINABLE (>>=) #-}
 
 instance MonadIO IDir where
   liftIO m = IDir $ \k _ -> m >>= k
+  {-# INLINABLe liftIO #-}
 
 runIDir :: IndexDirectory -> IDir a -> IO (Either IDirError a)
 runIDir indexDirectory action = do
@@ -226,7 +234,7 @@ withAppendFile mkPath action = IDir $ \k indexDirectory ->
     withPath path =
       let
         tmpPath  = path <.> "tmp"
-        finish a = renameFile tmpPath path >> k a
+        finish a = renamePath tmpPath path >> k a
         handler  = removeFile tmpPath
       in
         Files.withAppendFile tmpPath $ \af -> do
