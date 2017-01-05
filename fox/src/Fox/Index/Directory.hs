@@ -59,11 +59,11 @@ instance MonadIO IDir where
 
 runIDir :: IndexDirectory -> IDir a -> IO (Either IDirError a)
 runIDir indexDirectory action = do
-  ea <- tryIOError $ (unIDir action) (pure . Right) indexDirectory
+  ea <- tryIOError $ (unIDir action) pure indexDirectory
   case ea of
-    Right a -> return a
-    Left e  -> return (Left (IDirIOError e))
-  
+    Left e   -> return (Left (IDirIOError e))
+    Right a  -> return (Right a)
+
 -- | Errors occurring while opening an @IndexDirectory@.
 data IDirError = IDirInvalidDirectory
                | IDirIndexLocked
@@ -214,7 +214,9 @@ writeDocuments :: SegmentId
 writeDocuments _segmentId _fieldOrd _documents = do
   return ()
 
--- | Create an @AppendFile@ in the @IndexDirectory@ for appending.
+-- | Atomically creates an @AppendFile@ in the @IndexDirectory@.
+-- Files are created atomically, if an exception occurrs the
+-- created file is destroyed.
 withAppendFile :: IDir FilePath -> (AppendFile -> IDir a) -> IDir a
 withAppendFile mkPath action = IDir $ \k indexDirectory ->
   let
