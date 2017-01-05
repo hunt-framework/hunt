@@ -1,6 +1,9 @@
 module Fox.Types.SegmentId where
 
+import Data.Char (ord, chr)
 import Data.Primitive.PrimRef
+import Numeric (showIntAtBase)
+
 
 newtype SegmentId = SegmentId { unSegmentId :: Int }
                   deriving (Eq, Ord, Show)
@@ -10,6 +13,14 @@ firstSegmentId = SegmentId 0
 
 nextSegmentId :: SegmentId -> SegmentId
 nextSegmentId (SegmentId i) = SegmentId (i + 1)
+
+segmentIdToBase36 :: SegmentId -> String
+segmentIdToBase36 (SegmentId segmentId) =
+  showIntAtBase 36 intToDigit segmentId ""
+  where
+    intToDigit n
+      | n < 10    = chr (n + ord '0')
+      | otherwise = chr (n + ord 'a' - 10)
 
 -- | Used for generation of new 'SegmentId's in the 'IO' monad.
 newtype SegIdGen = SegIdGen (PrimRef (PrimState IO) Int)

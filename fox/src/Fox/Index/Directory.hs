@@ -14,13 +14,14 @@ module Fox.Index.Directory (
 import           Fox.Analyze            (Token)
 import           Fox.IO.Buffer          (WriteBuffer, flush, offset,
                                          withWriteBuffer, write)
-import           Fox.IO.Files (AppendFile)
-import qualified Fox.IO.Files as Files
+import           Fox.IO.Files           (AppendFile)
+import qualified Fox.IO.Files           as Files
 import           Fox.IO.Write
 import           Fox.Types
 import qualified Fox.Types.DocIdMap     as DocIdMap
 import           Fox.Types.Document
 import qualified Fox.Types.Positions    as Positions
+import           Fox.Types.SegmentId    (segmentIdToBase36)
 
 import           Control.Exception      (onException)
 import           Control.Monad.Except
@@ -42,7 +43,9 @@ newtype IndexDirectory = IndexDirectory { _unIndexDirectory :: FilePath }
 
 -- | Computation involving the physical directory where the
 -- index is stored are carried out in the @IDir@ monad.
-newtype IDir a = IDir { unIDir :: forall r. (a -> IO r) -> IndexDirectory -> IO r }
+newtype IDir a = IDir { unIDir :: forall r. (a -> IO r)
+                               -> IndexDirectory -> IO r
+                      }
 
 instance Functor IDir where
   fmap f (IDir m) = IDir (\k i -> m (\a -> k (f a)) i)
@@ -238,12 +241,12 @@ withIndexRoot f = IDir $ \k (IndexDirectory indexDirectory) ->
 
 termVectorFile :: SegmentId -> IDir FilePath
 termVectorFile segmentId =
-  withIndexRoot $ \root -> root </> show segmentId <.> "tv"
+  withIndexRoot $ \root -> root </> segmentIdToBase36 segmentId <.> "tv"
 
 occurrenceFile :: SegmentId -> IDir FilePath
 occurrenceFile segmentId =
-  withIndexRoot $ \root -> root </> show segmentId <.> "occs"
+  withIndexRoot $ \root -> root </> segmentIdToBase36 segmentId <.> "occs"
 
 positionFile :: SegmentId -> IDir FilePath
 positionFile segmentId =
-  withIndexRoot $ \root -> root </> show segmentId <.> "pos"
+  withIndexRoot $ \root -> root </> segmentIdToBase36 segmentId <.> "pos"
