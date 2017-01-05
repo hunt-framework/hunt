@@ -4,8 +4,8 @@
 module Fox.Index.Writer where
 
 import           Fox.Analyze                (Analyzer, runAnalyzer)
+import           Fox.Index.Directory        as IndexDirectory
 import           Fox.Index.Monad
-import Fox.Index.Directory as IndexDirectory
 import           Fox.Types
 import           Fox.Types.Document
 import qualified Fox.Types.Document         as Doc
@@ -137,11 +137,11 @@ indexDoc analyzer document getGlobalFieldTy indexer = runIndexer $ do
       let
         tokens = runAnalyzer anal fieldName fieldValue
 
-        invert !_position [] index          = index
-        invert !position (token:toks) index =
-          invert (position + 1) toks $! insertToken fieldName token docId position index
+        invert [] index                       = index
+        invert (Token position term:tx) index =
+          invert tx $! insertToken fieldName term docId position index
       in do
-        modify $ \s -> s { indIndex = invert 0 tokens (indIndex s) }
+        modify $ \s -> s { indIndex = invert tokens (indIndex s) }
 
 tryMerge :: IndexWriter ()
 tryMerge = return ()

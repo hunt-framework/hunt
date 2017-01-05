@@ -11,7 +11,6 @@ module Fox.Index.Directory (
   , writeDocuments
   ) where
 
-import           Fox.Analyze            (Token)
 import           Fox.IO.Buffer          (WriteBuffer, flush, offset,
                                          withWriteBuffer, write)
 import           Fox.IO.Files           (AppendFile)
@@ -122,7 +121,7 @@ _termWrite = varint >*< text >*< varint >*< varint >*< varint
 -- | Write a @FieldIndex@ to disk.
 writeTermIndex :: SegmentId
                -> (FieldName -> FieldOrd)
-               -> Map Token (Map FieldName Occurrences)
+               -> Map Term (Map FieldName Occurrences)
                -> IDir ()
 writeTermIndex segmentId fieldOrd fieldIndex = do
 
@@ -160,7 +159,7 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
 
           -- write the delta of a term to buffer. sameToken parameter
           -- is an optimization when we know token is the same as lastToken.
-          writeTerm :: Bool -> Token -> Token -> FieldName -> Occurrences -> IO ()
+          writeTerm :: Bool -> Term -> Term -> FieldName -> Occurrences -> IO ()
           writeTerm sameToken lastToken token fieldName occurrences = do
 
             -- start by writing the occurrences to the occs file
@@ -195,7 +194,7 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
 
         -- loop over all tokens and fields
         let
-          foldTokens :: Text -> Text -> Map FieldName Occurrences -> IO Text
+          foldTokens :: Term -> Term -> Map FieldName Occurrences -> IO Term
           foldTokens lastToken token fields =
             let
               foldFields notFirst fieldName occs = do

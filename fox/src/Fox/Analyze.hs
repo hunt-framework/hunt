@@ -1,7 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 module Fox.Analyze (
-    Token
-  , Analyzer
+    Analyzer
   , newAnalyzer
   , runAnalyzer
 
@@ -30,8 +29,6 @@ import qualified Data.Text as Text
 import           Data.Text.Internal
 import           Data.Text.Unsafe
 import           Prelude hiding (filter, map)
-
-type Token = Text
 
 -- | Split a @FieldValue@ into @Token@s.
 newtype Analyzer = Analyzer { runAnalyzer :: FieldName -> FieldValue -> [Token] }
@@ -74,7 +71,7 @@ mapFilter :: (Token -> Token) -> Filter
 mapFilter f = Filter $ \xs -> List.map f xs
 
 filterNonEmpty :: Filter
-filterNonEmpty = filter (not . Text.null)
+filterNonEmpty = filter (not . nullToken)
 
 splitText :: (Char -> Bool) -> FieldValue -> [Token]
 splitText p v =
@@ -84,17 +81,17 @@ splitText p v =
   where go s = split p s
 {-# INLINE splitText #-}
 
-split :: (Char -> Bool) -> Text -> [Text]
-split isDelim t@(Text arr off len) = loop 0 0
+split :: (Char -> Bool) -> Text -> [Token]
+split isDelim t@(Text arr off len) = loop 0 0 0
   where
-    loop !start !n
+    loop !i !start !n
       | n >= len = if start == n
                    then []
-                   else [Text arr (start+off) (n-start)]
+                   else [Token i (Text arr (start+off) (n-start))]
       | isDelim c =
           if start == n
-          then loop (start+1) (start+1)
-          else Text arr (start+off) (n-start) : loop (n+d) (n+d)
-      | otherwise = loop start (n+d)
+          then loop i (start+1) (start+1)
+          else (Token i (Text arr (start+off) (n-start))) : loop (i+1) (n+d) (n+d)
+      | otherwise = loop (i+1) start (n+d)
       where !(Iter !c !d) = iter t n
 {-# INLINE split #-}

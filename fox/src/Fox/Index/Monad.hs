@@ -21,7 +21,7 @@ type DocIdGen = DocId
 
 -- | A synonym for an inverted index optimized for
 -- insertions of terms.
-type FieldIndex = Map Token (Map FieldName Occurrences)
+type FieldIndex = Map Term (Map FieldName Occurrences)
 
 type BufferedDocs = Seq Document
 
