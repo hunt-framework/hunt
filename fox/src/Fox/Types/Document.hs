@@ -1,13 +1,11 @@
 {-# LANGUAGE ExistentialQuantification #-}
 module Fox.Types.Document where
 
-import           Fox.Types.DocDesc   (FieldName, FieldValue, FieldType, fieldType)
+import           Fox.Types.DocDesc   (FieldName, FieldValue,
+                                       FieldType, fieldType)
 
 import           Data.Bits
-import           Data.HashMap.Strict (HashMap)
-import qualified Data.HashMap.Strict as HashMap
 import           Data.Word           (Word8)
-import           Data.Int (Int32)
 
 newtype DocId = DocId { unDocId :: Int }
               deriving (Eq, Ord, Show)

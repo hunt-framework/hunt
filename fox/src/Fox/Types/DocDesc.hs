@@ -42,7 +42,7 @@ instance Monoid DocDesc where
   mappend = union
 
 mkDocDesc :: HashMap FieldName FieldValue -> DocDesc
-mkDocDesc fields = DocDesc fields
+mkDocDesc = DocDesc
 
 null :: DocDesc -> Bool
 null (DocDesc dd) = HashMap.null dd

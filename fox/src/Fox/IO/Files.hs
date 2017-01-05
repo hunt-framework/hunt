@@ -14,7 +14,7 @@ module Fox.IO.Files (
   ) where
 
 import           Control.Exception
-import           Data.ByteString.Internal (ByteString (PS))
+import           Data.ByteString.Internal (ByteString)
 import qualified Data.ByteString.Internal as ByteString
 import           Data.Word
 import           Foreign.Ptr
