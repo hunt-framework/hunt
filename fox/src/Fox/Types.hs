@@ -36,7 +36,6 @@ module Fox.Types (
 
   ) where
 
-import           Fox.Types.DocDesc     (DocDesc, mkDocDesc)
 import           Fox.Types.DocDesc     (FieldName, FieldType (..),
                                         FieldValue (..), fieldType)
 import           Fox.Types.DocIdMap    (DocIdMap)

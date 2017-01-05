@@ -43,15 +43,13 @@ where
 
 import           Control.Arrow      (first)
 import           Control.DeepSeq
-import           Control.Monad      (foldM, mzero)
 import           Data.Foldable      hiding (fold, foldl, foldr, null, toList)
 import qualified Data.IntMap.Strict as IM
 import qualified Data.Key           as K
 import qualified Data.List          as L
 import           Data.Monoid        ((<>))
-import qualified Data.Text          as T
 import           Data.Typeable
-import           Fox.Types.DocIdSet (DocIdSet (..), toIntSet)
+import           Fox.Types.DocIdSet (DocIdSet (..))
 import           Fox.Types.Document (DocId (..))
 import           Prelude            hiding (filter, foldl, foldr, lookup, map,
                                      null)

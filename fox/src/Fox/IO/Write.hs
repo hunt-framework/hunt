@@ -15,16 +15,12 @@ import           GHC.Exts
 import           GHC.Types
 
 import           Data.Bits
-import           Data.ByteString                      (ByteString)
-import qualified Data.ByteString                      as ByteString
-import qualified Data.ByteString.Internal             as ByteString
 import           Data.Functor.Contravariant
 import           Data.Functor.Contravariant.Divisible
 import           Data.Int
 import           Data.Text                            (Text)
 import qualified Data.Text.Foreign                    as Text
 import           Data.Word
-import           Foreign.ForeignPtr.Unsafe
 import           Foreign.Ptr
 import           Foreign.Storable
 

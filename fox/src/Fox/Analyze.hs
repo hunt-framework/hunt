@@ -13,7 +13,12 @@ module Fox.Analyze (
 
   , Filter
   , runFilter
+  , filter
+  , identityFilter
+  , composeFilter
+  , mapFilter
   , filterNonEmpty
+
   ) where
 
 import           Fox.Types
@@ -65,8 +70,8 @@ composeFilter :: Filter -> Filter -> Filter
 composeFilter f g = Filter $ \xs ->
   runFilter g (runFilter f xs)
 
-map :: (Token -> Token) -> Filter
-map f = Filter $ \xs -> List.map f xs
+mapFilter :: (Token -> Token) -> Filter
+mapFilter f = Filter $ \xs -> List.map f xs
 
 filterNonEmpty :: Filter
 filterNonEmpty = filter (not . Text.null)
