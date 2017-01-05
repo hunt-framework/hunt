@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE RankNTypes   #-}
 module Fox.Index.Directory (
     IndexDirectory
   , IDir
@@ -21,6 +22,7 @@ import qualified Fox.Types.DocIdMap     as DocIdMap
 import           Fox.Types.Document
 import qualified Fox.Types.Positions    as Positions
 
+import           Control.Exception      (onException)
 import           Control.Monad.Except
 import           Data.Bits
 import           Data.Foldable
@@ -40,26 +42,26 @@ newtype IndexDirectory = IndexDirectory { _unIndexDirectory :: FilePath }
 
 -- | Computation involving the physical directory where the
 -- index is stored are carried out in the @IDir@ monad.
-newtype IDir a = IDir { unIDir :: IndexDirectory -> IO a }
+newtype IDir a = IDir { unIDir :: forall r. (a -> IO r) -> IndexDirectory -> IO r }
 
 instance Functor IDir where
-  fmap f (IDir m) = IDir (\i -> fmap f (m i))
+  fmap f (IDir m) = IDir (\k i -> m (\a -> k (f a)) i)
 
 instance Applicative IDir where
-  pure a = IDir (\_ -> pure a)
-  IDir fm <*> IDir fa = IDir $ \i -> fm i <*> fa i
+  pure a = IDir (\k _ -> k a)
+  IDir fm <*> IDir fa = IDir $ \k i -> fm (\f -> fa (\a -> k (f a) ) i) i
 
 instance Monad IDir where
-  IDir m >>= f = IDir $ \i -> m i >>= \a -> unIDir (f a) i
+  IDir m >>= f = IDir $ \k i -> m (\a -> unIDir (f a) k i) i
 
 instance MonadIO IDir where
-  liftIO m = IDir $ \_ -> m
+  liftIO m = IDir $ \k _ -> m >>= k
 
 runIDir :: IndexDirectory -> IDir a -> IO (Either IDirError a)
 runIDir indexDirectory action = do
-  ea <- tryIOError $ (unIDir action) indexDirectory
+  ea <- tryIOError $ (unIDir action) (pure . Right) indexDirectory
   case ea of
-    Right a -> return (Right a)
+    Right a -> return a
     Left e  -> return (Left (IDirIOError e))
   
 -- | Errors occurring while opening an @IndexDirectory@.
@@ -145,7 +147,6 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
             write_ occBuf occWrite
               (docId, (Positions.size positions, positionsOffset))
 
-
           -- write the delta of a term to buffer. sameToken parameter
           -- is an optimization when we know token is the same as lastToken.
           writeTerm :: Bool -> Token -> Token -> FieldName -> Occurrences -> IO ()
@@ -169,7 +170,7 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
                                      Just (p, _, s) -> (p, s)
                                      Nothing        -> (Text.empty, token)
 
-              prefixLen = Text.lengthWord16 prefix `unsafeShiftL` 2
+              prefixLen = Text.lengthWord16 prefix `unsafeShiftL` 2 -- TODO: abstract away
               numOccs   = DocIdMap.size occurrences
               fieldOrd_ = fieldOrd fieldName
 
@@ -215,23 +216,32 @@ writeDocuments _segmentId _fieldOrd _documents = do
 
 -- | Create an @AppendFile@ in the @IndexDirectory@ for appending.
 withAppendFile :: IDir FilePath -> (AppendFile -> IDir a) -> IDir a
-withAppendFile mkPath action = IDir $ \indexDirectory -> do
-  path <- unIDir mkPath indexDirectory
-  Files.withAppendFile path $ \af -> unIDir (action af) indexDirectory
+withAppendFile mkPath action = IDir $ \k indexDirectory ->
+  let
+    withPath path =
+      let
+        tmpPath  = path <.> "tmp"
+        finish a = renameFile tmpPath path >> k a
+        handler  = removeFile tmpPath
+      in
+        Files.withAppendFile tmpPath $ \af -> do
+          unIDir (action af) finish indexDirectory `onException` handler
+  in unIDir mkPath withPath indexDirectory
 
 -- selectors for file names in the @IndexDirectory@.
 
+withIndexRoot :: (FilePath -> FilePath) -> IDir FilePath
+withIndexRoot f = IDir $ \k (IndexDirectory indexDirectory) ->
+  k (f indexDirectory)
+
 termVectorFile :: SegmentId -> IDir FilePath
-termVectorFile segmentId = IDir $ \indexDirectory ->
-  return $ indexDirectory <//> show segmentId <.> "tv"
+termVectorFile segmentId =
+  withIndexRoot $ \root -> root </> show segmentId <.> "tv"
 
 occurrenceFile :: SegmentId -> IDir FilePath
-occurrenceFile segmentId = IDir $ \indexDirectory ->
-  return $ indexDirectory <//> show segmentId <.> "occs"
+occurrenceFile segmentId =
+  withIndexRoot $ \root -> root </> show segmentId <.> "occs"
 
 positionFile :: SegmentId -> IDir FilePath
-positionFile segmentId = IDir $ \indexDirectory ->
-  return $ indexDirectory <//> show segmentId <.> "pos"
-
-(<//>) :: IndexDirectory -> FilePath -> FilePath
-(<//>) (IndexDirectory indexDirectory) path = indexDirectory </> path
+positionFile segmentId =
+  withIndexRoot $ \root -> root </> show segmentId <.> "pos"
