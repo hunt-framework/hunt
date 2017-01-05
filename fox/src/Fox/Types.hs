@@ -69,7 +69,7 @@ type Schema = HashMap FieldName FieldType
 type Term = Text
 
 -- | A @Token@ is a @Term@ annotated with a @Position@.
-data Token = Token !Position {-# UNPACK #-} !Term
+data Token = Token !Position !Term
            deriving (Eq, Show)
 
 nullToken :: Token -> Bool
