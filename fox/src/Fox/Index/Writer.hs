@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Fox.Index.Writer where
 
-import           Fox.Analyze                (Analyzer, runAnalyzer)
+import           Fox.Analyze                (Analyzer, analyze)
 import           Fox.Index.Directory        as IndexDirectory
 import           Fox.Index.Monad
 import           Fox.Types
@@ -135,7 +135,7 @@ indexDoc analyzer document getGlobalFieldTy indexer = runIndexer $ do
 
     invertField anal fieldName fieldValue docId =
       let
-        tokens = runAnalyzer anal fieldName fieldValue
+        tokens = analyze anal fieldName fieldValue
 
         invert [] index                       = index
         invert (Token position term:tx) index =

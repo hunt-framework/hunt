@@ -2,10 +2,10 @@
 module Fox.Analyze (
     Analyzer
   , newAnalyzer
-  , runAnalyzer
+  , analyze
 
   , Tokenizer
-  , runTokenizer
+  , tokenize
   , tokenizeAlpha
   , tokenizeDigits
   , tokenizeNonWhitespace
@@ -31,10 +31,10 @@ import           Data.Text.Unsafe
 import           Prelude hiding (filter, map)
 
 -- | Split a @FieldValue@ into @Token@s.
-newtype Analyzer = Analyzer { runAnalyzer :: FieldName -> FieldValue -> [Token] }
+newtype Analyzer = Analyzer { analyze :: FieldName -> FieldValue -> [Token] }
 
 -- | Split @Token@s from @FieldValue@.
-newtype Tokenizer = Tokenizer { runTokenizer :: FieldValue -> [Token] }
+newtype Tokenizer = Tokenizer { tokenize :: FieldValue -> [Token] }
 
 -- | Filters a sequence of @Token@s.
 newtype Filter = Filter { runFilter :: [Token] -> [Token] }
@@ -46,7 +46,7 @@ instance Monoid Filter where
 -- | Create an @Analyzer@ from @Tokenizer@ and @Filter@.
 newAnalyzer :: Tokenizer -> Filter -> Analyzer
 newAnalyzer tokenizer filters = Analyzer $ \_ value ->
-  runFilter filters (runTokenizer tokenizer value)
+  runFilter filters (tokenize tokenizer value)
 
 tokenizeAlpha :: Tokenizer
 tokenizeAlpha = Tokenizer $ splitText (\c -> not (Char.isAlphaNum c))
