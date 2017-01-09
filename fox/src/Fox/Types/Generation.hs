@@ -8,4 +8,3 @@ firstGeneration = Generation 1
 
 nextGeneration :: Generation -> Generation
 nextGeneration (Generation g) = Generation (g + 1)
-

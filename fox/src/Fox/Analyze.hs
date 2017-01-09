@@ -76,10 +76,8 @@ filterNonEmpty = filter (not . nullToken)
 splitText :: (Char -> Bool) -> FieldValue -> [Token]
 splitText p v =
   case v of
-    FV_Text s -> go s
-    _         -> go Text.empty
-  where go s = split p s
-{-# INLINE splitText #-}
+    FV_Text s -> split p s
+    _         -> split p Text.empty
 
 split :: (Char -> Bool) -> Text -> [Token]
 split isDelim t@(Text arr off len) = loop 0 0 0
