@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes   #-}
+{-# LANGUAGE RankNTypes #-}
 module Fox.Index.Directory (
     IndexDirectory
   , IDir
@@ -20,17 +20,14 @@ import qualified Fox.Types.DocIdMap   as DocIdMap
 import           Fox.Types.Document
 import qualified Fox.Types.Positions  as Positions
 import           Fox.Types.SegmentId  (segmentIdToBase36)
+import qualified Fox.Types.Term       as Term
 
 import           Control.Exception    (onException)
 import           Control.Monad.Except
-import           Data.Bits
 import           Data.Foldable
 import           Data.Key
 import           Data.Map             (Map)
 import           Data.Sequence        (Seq)
-import           Data.Text            (Text)
-import qualified Data.Text            as Text
-import qualified Data.Text.Foreign    as Text
 import           System.Directory
 import           System.FilePath
 import           System.IO.Error      (IOError, tryIOError)
@@ -113,9 +110,13 @@ occWrite = docIdWrite >*< varint >*< varint
 
 -- unused due to GHC not being able to optimize big tuple
 -- away.
-_termWrite :: Write (Int, (Text, (FieldOrd, (Int, Offset))))
-_termWrite = varint >*< text >*< varint >*< varint >*< varint
+_termWrite :: Write (Int, (Term, (FieldOrd, (Int, Offset))))
+_termWrite = varint >*< termWrite >*< varint >*< varint >*< varint
 {-# INLINE _termWrite #-}
+
+termWrite :: Write Term
+termWrite = Term.termWrite
+{-# INLINE termWrite #-}
 
 -- | Write a @FieldIndex@ to disk.
 writeTermIndex :: SegmentId
@@ -173,19 +174,19 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
 
               -- if a token occurrs in different fields we know we can
               -- skip the common prefix calculation.
-              (prefix, suffix) | sameToken = (lastToken, Text.empty)
+              (prefix, suffix) | sameToken = (lastToken, Term.empty)
                                | otherwise =
-                                   case Text.commonPrefixes lastToken token of
-                                     Just (p, _, s) -> (p, s)
-                                     Nothing        -> (Text.empty, token)
+                                   case Term.commonPrefixes lastToken token of
+                                     Just (p, s) -> (p, s)
+                                     Nothing     -> (Term.empty, token)
 
-              prefixLen = Text.lengthWord16 prefix `unsafeShiftL` 2 -- TODO: abstract away
+              prefixLen = Term.length prefix
               numOccs   = DocIdMap.size occurrences
               fieldOrd_ = fieldOrd fieldName
 
             -- we need to split these guys up because GHC is not smart enough
             -- to optimize the deeply nested tuples away.
-            write_ tvBuf (varint >*< text)
+            write_ tvBuf (varint >*< termWrite)
               (prefixLen, suffix)
             write_ tvBuf (varint >*< varint >*< varint)
               (fieldOrd_, (numOccs, occOffset))
@@ -202,7 +203,7 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
             in do
               _ <- foldlWithKeyM foldFields False fields
               return token
-        _ <- foldlWithKeyM foldTokens Text.empty fieldIndex
+        _ <- foldlWithKeyM foldTokens Term.empty fieldIndex
 
         flush tvBuf
         flush occBuf

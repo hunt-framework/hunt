@@ -21,6 +21,7 @@ module Fox.Analyze (
   ) where
 
 import           Fox.Types
+import qualified Fox.Types.Term     as Term
 
 import qualified Data.Char          as Char
 import qualified Data.List          as List
@@ -85,11 +86,11 @@ split isDelim t@(Text arr off len) = loop 0 0 0
     loop !i !start !n
       | n >= len = if start == n
                    then []
-                   else [Token i (Text arr (start+off) (n-start))]
+                   else [Token i (Term.fromText $ Text arr (start+off) (n-start))]
       | isDelim c =
           if start == n
           then loop i (start+1) (start+1)
-          else (Token i (Text arr (start+off) (n-start))) : loop (i+1) (n+d) (n+d)
+          else (Token i (Term.fromText $ Text arr (start+off) (n-start))) : loop (i+1) (n+d) (n+d)
       | otherwise = loop i start (n+d)
       where !(Iter !c !d) = iter t n
 {-# INLINE split #-}

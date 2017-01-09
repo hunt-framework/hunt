@@ -73,6 +73,11 @@ data IxWrConfig =
                -- documents in memory before flushing to disk.
              }
 
+defaultWriterConfig :: IxWrConfig
+defaultWriterConfig =
+  IxWrConfig { iwcMaxBufferedDocs = 0
+             }
+
 data IxWrEnv =
   IxWrEnv { iwIndexDir :: !IndexDirectory
           -- ^ When creating new @Segment@s we

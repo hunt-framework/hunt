@@ -53,10 +53,10 @@ import           Fox.Types.Positions   (Position, Positions)
 import           Fox.Types.SegmentId   (SegIdGen, SegmentId, firstSegmentId,
                                         genSegId, newSegIdGen)
 import           Fox.Types.SegmentMap  (SegmentMap, SegmentSet)
+import           Fox.Types.Term        (Term)
+import qualified Fox.Types.Term        as Term
 
 import           Data.HashMap.Strict   (HashMap)
-import           Data.Text             (Text)
-import qualified Data.Text             as Text
 
 -- | Indexed fields can be identified by number.
 type FieldOrd = Int
@@ -65,12 +65,8 @@ type FieldOrd = Int
 -- type are in the index.
 type Schema = HashMap FieldName FieldType
 
--- | A sequence of bytes suitable for indexing
-type Term = Text
-
 -- | A @Token@ is a @Term@ annotated with a @Position@.
 data Token = Token !Position !Term
-           deriving (Eq, Show)
 
 nullToken :: Token -> Bool
-nullToken (Token _ t) = Text.null t
+nullToken (Token _ t) = Term.null t

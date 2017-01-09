@@ -42,12 +42,12 @@ defaultAnalyzer = newAnalyzer tokenizeAlpha filterNonEmpty
 newIndex :: IndexDirectory -> IO IndexRef
 newIndex indexDirectory = do
   segIdGen <- newSegIdGen
-  newMVar $! Index { ixIndexDir = indexDirectory
-                   , ixSegments = SegmentMap.empty
-                   , ixSegmentRefs = SegmentMap.empty
-                   , ixSegIdGen = segIdGen
-                   , ixSchema = HashMap.empty
-                   , ixWriterConfig = IxWrConfig { iwcMaxBufferedDocs = 0 }
+  newMVar $! Index { ixIndexDir     = indexDirectory
+                   , ixSegments     = SegmentMap.empty
+                   , ixSegmentRefs  = SegmentMap.empty
+                   , ixSegIdGen     = segIdGen
+                   , ixSchema       = HashMap.empty
+                   , ixWriterConfig = defaultWriterConfig
                    }
 
 -- | Run an @IndexWriter@ transaction over the @Index@.

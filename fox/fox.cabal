@@ -35,6 +35,7 @@ library
                        Fox.Types.Score
                        Fox.Types.SegmentId
                        Fox.Types.SegmentMap
+                       Fox.Types.Term
 
   other-modules:       Data.IntSet.Cache
                        Data.Primitive.PrimRef
