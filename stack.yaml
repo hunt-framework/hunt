@@ -22,4 +22,5 @@ extra-deps:
   - store-0.3
   - store-core-0.3
   - containers-0.5.9.1
+  - directory-1.3.0.0
 resolver: nightly-2016-08-06
