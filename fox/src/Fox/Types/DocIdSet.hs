@@ -68,4 +68,3 @@ size (DIS s) = S.size s
 
 member :: DocId -> DocIdSet -> Bool
 member x s = unDocId x `S.member` unDIS s
-

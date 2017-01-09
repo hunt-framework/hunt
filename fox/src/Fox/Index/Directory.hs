@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RankNTypes   #-}
 module Fox.Index.Directory (
     IndexDirectory
@@ -11,30 +10,30 @@ module Fox.Index.Directory (
   , writeDocuments
   ) where
 
-import           Fox.IO.Buffer          (WriteBuffer, flush, offset,
-                                         withWriteBuffer, write)
-import           Fox.IO.Files           (AppendFile)
-import qualified Fox.IO.Files           as Files
+import           Fox.IO.Buffer        (WriteBuffer, flush, offset,
+                                       withWriteBuffer, write)
+import           Fox.IO.Files         (AppendFile)
+import qualified Fox.IO.Files         as Files
 import           Fox.IO.Write
 import           Fox.Types
-import qualified Fox.Types.DocIdMap     as DocIdMap
+import qualified Fox.Types.DocIdMap   as DocIdMap
 import           Fox.Types.Document
-import qualified Fox.Types.Positions    as Positions
-import           Fox.Types.SegmentId    (segmentIdToBase36)
+import qualified Fox.Types.Positions  as Positions
+import           Fox.Types.SegmentId  (segmentIdToBase36)
 
-import           Control.Exception      (onException)
+import           Control.Exception    (onException)
 import           Control.Monad.Except
 import           Data.Bits
 import           Data.Foldable
 import           Data.Key
-import           Data.Map               (Map)
-import           Data.Sequence          (Seq)
-import           Data.Text              (Text)
-import qualified Data.Text              as Text
-import qualified Data.Text.Foreign      as Text
+import           Data.Map             (Map)
+import           Data.Sequence        (Seq)
+import           Data.Text            (Text)
+import qualified Data.Text            as Text
+import qualified Data.Text.Foreign    as Text
 import           System.Directory
 import           System.FilePath
-import           System.IO.Error        (IOError, tryIOError)
+import           System.IO.Error      (IOError, tryIOError)
 
 
 -- | Root directory where the index files are stored.

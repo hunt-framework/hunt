@@ -22,13 +22,13 @@ module Fox.Analyze (
 
 import           Fox.Types
 
-import qualified Data.List as List
-import           Data.Text (Text)
-import qualified Data.Char as Char
-import qualified Data.Text as Text
+import qualified Data.Char          as Char
+import qualified Data.List          as List
+import           Data.Text          (Text)
+import qualified Data.Text          as Text
 import           Data.Text.Internal
 import           Data.Text.Unsafe
-import           Prelude hiding (filter, map)
+import           Prelude            hiding (filter, map)
 
 -- | Split a @FieldValue@ into @Token@s.
 newtype Analyzer = Analyzer { analyze :: FieldName -> FieldValue -> [Token] }

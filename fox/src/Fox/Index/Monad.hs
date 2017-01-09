@@ -6,15 +6,15 @@ module Fox.Index.Monad where
 import           Fox.Analyze
 import           Fox.Index.Directory
 import           Fox.Types
-import qualified Fox.Types.SegmentMap as SegmentMap
+import qualified Fox.Types.SegmentMap   as SegmentMap
 
 import           Control.Exception
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
-import           Data.Map                   (Map)
-import qualified Data.Map as Map
-import           Data.Sequence              (Seq)
-import qualified Data.Sequence              as Seq
+import           Data.Map               (Map)
+import qualified Data.Map               as Map
+import           Data.Sequence          (Seq)
+import qualified Data.Sequence          as Seq
 
 -- | Generate a new @DocId@ by incrementing.
 type DocIdGen = DocId
@@ -34,7 +34,7 @@ data Indexer = Indexer { indSchema   :: !Schema
                        , indIndex    :: !FieldIndex
                        , indDocs     :: !BufferedDocs
                        } deriving (Show)
-                       
+
 indNumDocs :: Indexer -> Int
 indNumDocs ind = Seq.length (indDocs ind)
 

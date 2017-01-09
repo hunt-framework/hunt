@@ -18,16 +18,16 @@ type IndexRef = MVar Index
 
 -- | @Index@ holds the meta data for the actual index.
 data Index =
-  Index { ixIndexDir    :: !IndexDirectory
+  Index { ixIndexDir     :: !IndexDirectory
           -- ^ the directory where the indexed data resides.
-        , ixSegments    :: !(SegmentMap Segment)
+        , ixSegments     :: !(SegmentMap Segment)
           -- ^ @Segment@s contained in this @Index@.
-        , ixSegmentRefs :: !(SegmentMap Int)
+        , ixSegmentRefs  :: !(SegmentMap Int)
           -- ^ Hold reference counts for @Segment@s which
           -- are used in transactions.
-        , ixSegIdGen    :: !SegIdGen
+        , ixSegIdGen     :: !SegIdGen
           -- ^ Generate new @SegmentId@s.
-        , ixSchema      :: !Schema
+        , ixSchema       :: !Schema
           -- ^ A mapping from fields to their types.
         , ixWriterConfig :: !IxWrConfig
         }

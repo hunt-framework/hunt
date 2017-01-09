@@ -1,8 +1,8 @@
 module Fox.Types.SegmentId where
 
-import Data.Char (ord, chr)
-import Data.Primitive.PrimRef
-import Numeric (showIntAtBase)
+import           Data.Char              (chr, ord)
+import           Data.Primitive.PrimRef
+import           Numeric                (showIntAtBase)
 
 
 newtype SegmentId = SegmentId { unSegmentId :: Int }
