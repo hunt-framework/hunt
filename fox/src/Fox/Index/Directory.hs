@@ -22,10 +22,12 @@ import qualified Fox.Types.Positions  as Positions
 import           Fox.Types.SegmentId  (segmentIdToBase36)
 import qualified Fox.Types.Term       as Term
 
+import           Control.Arrow        (first)
 import           Control.Exception    (onException)
 import           Control.Monad.Except
 import           Data.Foldable
 import           Data.Key
+import           Data.List            (sortOn)
 import           Data.Map             (Map)
 import           Data.Sequence        (Seq)
 import           System.Directory
@@ -118,6 +120,29 @@ termWrite :: Write Term
 termWrite = Term.termWrite
 {-# INLINE termWrite #-}
 
+fieldValueWrite :: Write FieldValue
+fieldValueWrite = W size put
+  where
+    W word8Size word8Put = word8
+    W vintSize vintPut   = fromIntegral >$< varint
+    W textSize textPut   = text
+
+    tagSize = word8Size 0
+
+    size (FV_Int i)     = tagSize + vintSize i
+    size (FV_Float _f)  = tagSize -- TODO
+    size (FV_Text t)    = tagSize + textSize t
+    size (FV_Json _b)   = tagSize -- TODO
+    size (FV_Binary _b) = tagSize -- TODO
+    size FV_Null        = 0
+
+    put (FV_Int i) op     = word8Put 0 op >>= vintPut i
+    put (FV_Float _f) op  = word8Put 1 op -- TODO
+    put (FV_Text s) op    = word8Put 2 op >>= textPut s
+    put (FV_Json _b) op   = word8Put 3 op -- TODO
+    put (FV_Binary _b) op = word8Put 4 op -- TODO
+    put FV_Null op        = return op
+
 -- | Write a @FieldIndex@ to disk.
 writeTermIndex :: SegmentId
                -> (FieldName -> FieldOrd)
@@ -130,9 +155,6 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
     withAppendFile (occurrenceFile segmentId) $ \occFile ->
     withAppendFile (positionFile segmentId) $ \posFile -> liftIO $ do
       let
-        defaultBufSize :: Int
-        defaultBufSize = 32 * 1024
-
         -- Full buffers are flushed with these
         tvFlush  = Files.append tvFile
         occFlush = Files.append occFile
@@ -216,13 +238,47 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
       _ <- write writeBuffer (size a) (put a)
       return ()
 
+defaultBufSize :: Int
+defaultBufSize = 32 * 1024
+
 -- | Write buffered docs to disk.
 writeDocuments :: SegmentId
                -> (FieldName -> FieldOrd)
                -> Seq Document
                -> IDir ()
-writeDocuments _segmentId _fieldOrd _documents = do
+writeDocuments segmentId fieldOrd documents = do
+  withAppendFile (fieldIndexFile segmentId) $ \fdxFile ->
+    withAppendFile (fieldDataFile segmentId) $ \fdtFile -> liftIO $ do
+
+    let 
+      fdxFlush = Files.append fdxFile
+      fdtFlush = Files.append fdtFile
+
+    withWriteBuffer defaultBufSize fdxFlush $ \fdxBuf ->
+      withWriteBuffer defaultBufSize fdtFlush $ \fdtBuf -> do
+
+      for_ documents $ \document -> do
+        pos <- offset fdtBuf
+        write_ fdxBuf word64 (fromIntegral pos)
+
+        -- sort the fields ascendingly with their order
+        let fields' = sortOn fst $ map (first fieldOrd) (docFields document)
+
+        for_ fields' $ \(ford, field) -> do
+          when (dfType field /= FT_Null) $ do 
+            write_ fdtBuf (varint >*< fieldValueWrite)
+              (ford, dfValue field)
+
+      flush fdxBuf
+      flush fdtBuf
+      return ()
+
   return ()
+  where
+    write_ :: WriteBuffer -> Write a -> a -> IO ()
+    write_ writeBuffer (W size put) a = do
+      _ <- write writeBuffer (size a) (put a)
+      return ()
 
 -- | Atomically creates an @AppendFile@ in the @IndexDirectory@.
 -- Files are created atomically, if an exception occurrs the
@@ -257,3 +313,11 @@ occurrenceFile segmentId =
 positionFile :: SegmentId -> IDir FilePath
 positionFile segmentId =
   withIndexRoot $ \root -> root </> segmentIdToBase36 segmentId <.> "pos"
+
+fieldIndexFile :: SegmentId -> IDir FilePath
+fieldIndexFile segmentId =
+  withIndexRoot $ \root -> root </> segmentIdToBase36 segmentId <.> "fdx"
+
+fieldDataFile :: SegmentId -> IDir FilePath
+fieldDataFile segmentId =
+  withIndexRoot $ \root -> root </> segmentIdToBase36 segmentId <.> "fdt"

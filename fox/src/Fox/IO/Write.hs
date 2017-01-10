@@ -64,8 +64,12 @@ word8 :: Write Word8
 word8 = fromStorable
 {-# INLINE CONLIKE word8 #-}
 
+be64 :: Word64 -> Word64
+be64 = byteSwap64
+{-# INLINE be64 #-}
+
 word64 :: Write Word64
-word64 = fromStorable
+word64 = be64 >$< fromStorable
 {-# INLINE CONLIKE word64 #-}
 
 -- NB. be careful here with INLINE pragmas!
