@@ -8,6 +8,7 @@ module Fox.IO.Write (
   , word8
   , word64
   , varint
+  , bytestring
   , text
   ) where
 
@@ -15,12 +16,15 @@ import           GHC.Exts
 import           GHC.Types
 
 import           Data.Bits
+import           Data.ByteString.Internal             (ByteString(..))
+import qualified Data.ByteString.Internal             as ByteString
 import           Data.Functor.Contravariant
 import           Data.Functor.Contravariant.Divisible
 import           Data.Int
 import           Data.Text                            (Text)
 import qualified Data.Text.Foreign                    as Text
 import           Data.Word
+import           Foreign.ForeignPtr
 import           Foreign.Ptr
 import           Foreign.Storable
 
@@ -102,6 +106,19 @@ text = W size write
                               Text.unsafeCopyToPtr t $! (castPtr op')
                               return $! op' `plusPtr` tsz
 {-# INLINE CONLIKE text #-}
+
+bytestring :: Write ByteString
+bytestring = W size write
+  where
+    W vintSize vintWrite = varint
+
+    size (PS _ _ len) = vintSize len + len
+
+    write (PS fpb off len) op = do
+      op' <- vintWrite len op
+      withForeignPtr fpb $ \src ->
+        ByteString.memcpy op' (src `plusPtr` off) len
+      return (op' `plusPtr` len)
 
 varint64 :: Write Int64
 varint64 = fromIntegral >$< varword

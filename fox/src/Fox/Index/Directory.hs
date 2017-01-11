@@ -47,22 +47,26 @@ newtype IDir a = IDir { unIDir :: forall r. (a -> IO r)
                       }
 
 instance Functor IDir where
-  fmap f (IDir m) = IDir (\k i -> m (\a -> k (f a)) i)
+  fmap f (IDir m) = IDir $ \k i ->
+    m (\a -> k (f a)) i
   {-# INLINABLE fmap #-}
 
 instance Applicative IDir where
-  pure a = IDir (\k _ -> k a)
+  pure a = IDir $ \k _ -> k a
   {-# INLINABLE pure #-}
 
-  IDir fm <*> IDir fa = IDir $ \k i -> fm (\f -> fa (\a -> k (f a) ) i) i
+  IDir fm <*> IDir fa = IDir $ \k i ->
+    fm (\f -> fa (\a -> k (f a) ) i) i
   {-# INLINABLE (<*>) #-}
 
 instance Monad IDir where
-  IDir m >>= f = IDir $ \k i -> m (\a -> unIDir (f a) k i) i
+  IDir m >>= f = IDir $ \k i ->
+    m (\a -> unIDir (f a) k i) i
   {-# INLINABLE (>>=) #-}
 
 instance MonadIO IDir where
-  liftIO m = IDir $ \k _ -> m >>= k
+  liftIO m = IDir $ \k _ ->
+    m >>= k
   {-# INLINABLe liftIO #-}
 
 runIDir :: IndexDirectory -> IDir a -> IO (Either IDirError a)
@@ -125,6 +129,7 @@ fieldValueWrite = W size put
   where
     W word8Size word8Put = word8
     W vintSize vintPut   = fromIntegral >$< varint
+    W bsSize bsPut       = bytestring
     W textSize textPut   = text
 
     tagSize = word8Size 0
@@ -132,15 +137,15 @@ fieldValueWrite = W size put
     size (FV_Int i)     = tagSize + vintSize i
     size (FV_Float _f)  = tagSize -- TODO
     size (FV_Text t)    = tagSize + textSize t
-    size (FV_Json _b)   = tagSize -- TODO
-    size (FV_Binary _b) = tagSize -- TODO
+    size (FV_Json b)    = tagSize + bsSize b
+    size (FV_Binary b)  = tagSize + bsSize b
     size FV_Null        = 0
 
     put (FV_Int i) op     = word8Put 0 op >>= vintPut i
     put (FV_Float _f) op  = word8Put 1 op -- TODO
     put (FV_Text s) op    = word8Put 2 op >>= textPut s
-    put (FV_Json _b) op   = word8Put 3 op -- TODO
-    put (FV_Binary _b) op = word8Put 4 op -- TODO
+    put (FV_Json b) op    = word8Put 3 op >>= bsPut b
+    put (FV_Binary b) op  = word8Put 4 op >>= bsPut b
     put FV_Null op        = return op
 
 -- | Write a @FieldIndex@ to disk.
