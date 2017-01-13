@@ -47,10 +47,9 @@ openAppendFile fp = do
   (fd, _) <- FD.openFile fp IO.AppendMode True
   return (MkAF fd)
 
-append :: AppendFile -> Ptr Word8 -> Int -> IO Int
+append :: AppendFile -> Ptr Word8 -> Int -> IO ()
 append (MkAF fd) op sz = do
   FD.write fd op sz
-  return (fromIntegral sz)
 
 closeAppendFile :: AppendFile -> IO ()
 closeAppendFile (MkAF fd) = FD.close fd

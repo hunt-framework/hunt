@@ -1,23 +1,47 @@
 {-# LANGUAGE MagicHash     #-}
+{-# LANGUAGE RankNTypes    #-}
 {-# LANGUAGE UnboxedTuples #-}
 module Fox.IO.Buffer (
-    WriteBuffer
-  , withWriteBuffer
+    Buffer
+  , withBuffer
+  , hasEnoughBytes
   , offset
-  , write
-  , writeByteString
+
+  , Get
+  , get
+
+  , Put
+  , put
+
+  , Flush
   , flush
+
+  , FillBuffer
+  , fill
   ) where
 
 import           GHC.Exts
 
 import           Control.Exception
-import qualified Data.ByteString.Internal as ByteString
 import           Data.Word
-import           Foreign.ForeignPtr
 import           Foreign.Marshal.Alloc
 import           Foreign.Ptr
 import           Foreign.Storable
+import           Prelude                  hiding (read)
+
+-- | An abstraction for flushing a buffer
+type Flush = Ptr Word8 -> Int -> IO ()
+
+-- | An abstraction for filling a buffer.
+-- Start of buffer, current position in buffer and buffer size.
+type FillBuffer = Ptr Word8 -> Ptr Word8 -> Int -> IO ()
+
+-- | Writing some bytes into the buffer starting
+-- from its current cursor.
+type Put = Ptr Word8 -> IO (Ptr Word8)
+
+-- | Read bytes from buffer starting from its current cursor.
+type Get a = forall r. (a -> Ptr Word8 -> IO r) -> Ptr Word8 -> IO r
 
 -- | Low-level off-heap buffer primitive.
 newtype Buffer = Buffer (Ptr Word8)
@@ -49,21 +73,21 @@ pokeEnd :: Buffer -> Ptr Word8 -> IO ()
 pokeEnd (Buffer op) end = pokeElemOff (castPtr op) 1 end
 {-# INLINE pokeEnd #-}
 
-peekBytesWritten :: Buffer -> IO Int
-peekBytesWritten (Buffer op) =
+peekOffset :: Buffer -> IO Int
+peekOffset (Buffer op) =
   peek (castPtr (op `plusPtr` (2 * sizeOfPtr)))
-{-# INLINE peekBytesWritten #-}
+{-# INLINE peekOffset #-}
 
-pokeBytesWritten :: Buffer -> Int -> IO ()
-pokeBytesWritten (Buffer op) n =
+pokeOffset :: Buffer -> Int -> IO ()
+pokeOffset (Buffer op) n =
   poke (castPtr (op `plusPtr` (2 * sizeOfPtr))) n
-{-# INLINE pokeBytesWritten #-}
+{-# INLINE pokeOffset #-}
 
-incrBytesWritten :: Buffer -> Int -> IO ()
-incrBytesWritten buf n = do
-  x <- peekBytesWritten buf
-  pokeBytesWritten buf (x + n)
-{-# INLINE incrBytesWritten #-}
+incrOffset :: Buffer -> Int -> IO ()
+incrOffset buf n = do
+  x <- peekOffset buf
+  pokeOffset buf (x + n)
+{-# INLINE incrOffset #-}
 
 newBuffer :: Int -> IO Buffer
 newBuffer bufSize = do
@@ -72,18 +96,15 @@ newBuffer bufSize = do
   buf <- mallocBytes (bufSize + 2 * sizeOfPtr + 1 * sizeOfInt)
   pokePos (Buffer buf) (bufferStart (Buffer buf))
   pokeEnd (Buffer buf) (bufferStart (Buffer buf)  `plusPtr` bufSize)
-  pokeBytesWritten (Buffer buf) 0
+  pokeOffset (Buffer buf) 0
   return (Buffer buf)
+
+withBuffer :: Int -> (Buffer -> IO a) -> IO a
+withBuffer bufSize action =
+  bracket (newBuffer bufSize) freeBuffer action
 
 freeBuffer :: Buffer -> IO ()
 freeBuffer (Buffer buf) = free buf
-
-size :: Buffer -> IO Int
-size buf = do
-  let start = bufferStart buf
-  end <- peekEnd buf
-  return $ end `minusPtr` start
-{-# INLINE size #-}
 
 hasEnoughBytes :: Buffer -> Int -> IO Bool
 hasEnoughBytes buf n = do
@@ -92,68 +113,47 @@ hasEnoughBytes buf n = do
   return $ end `minusPtr` pos >= n
 {-# INLINE hasEnoughBytes #-}
 
-put :: Buffer -> (Ptr Word8 -> IO (Ptr Word8)) -> IO Int
+offset :: Buffer -> IO Int
+offset buf = peekOffset buf
+{-# INLINE offset #-}
+
+put :: Buffer -> Put -> IO ()
 put buf insert = do
   pos <- peekPos buf
   pos' <- insert pos
   pokePos buf pos'
   let len = pos' `minusPtr` pos
-  incrBytesWritten buf len
-  return len
+  incrOffset buf len
 {-# INLINE put #-}
 
-flushBuffer :: Buffer -> (Ptr Word8 -> Int -> IO a) -> IO a
-flushBuffer buf f = do
+get :: Buffer
+    -> Get a
+    -> IO a
+get buf get_ = do
+  pos <- peekPos buf
+  get_ (\a pos' -> do
+           pokePos buf pos'
+           let len = pos' `minusPtr` pos
+           incrOffset buf len
+           return a
+       ) pos
+{-# INLINE get #-}
+
+fill :: Buffer -> FillBuffer -> IO ()
+fill buf filler = do
+  pos <- peekPos buf
+  end <- peekEnd buf
+  let start = bufferStart buf
+  pokePos buf start
+  filler start pos (end `minusPtr` start)
+{-# INLINE fill #-}
+
+flush :: Buffer -> Flush -> IO ()
+flush buf f = do
   pos <- peekPos buf
   let start = bufferStart buf
-  a <- f start (pos `minusPtr` start)
-  pokePos buf start
-  return a
-{-# INLINE flush #-}
-
-type Flush a = Ptr Word8 -> Int -> IO a
-
-data WriteBuffer =
-  WriteBuffer { _wbufBuffer :: {-# UNPACK #-} !Buffer
-              , _wbufFlush  :: Flush Int
-              }
-
-withWriteBuffer :: Int -> Flush Int -> (WriteBuffer -> IO a) -> IO a
-withWriteBuffer sz flsh action = do
-  bracket (newBuffer sz) freeBuffer $ \buffer ->
-    action (WriteBuffer buffer flsh)
-{-# INLINE withWriteBuffer #-}
-
-offset :: WriteBuffer -> IO Int
-offset (WriteBuffer buffer _) = peekBytesWritten buffer
-{-# INLINE offset #-}
-
-write :: WriteBuffer -> Int -> (Ptr Word8 -> IO (Ptr Word8)) -> IO Int
-write (WriteBuffer buffer flush_) sz insert = do
-  hasEnough <- hasEnoughBytes buffer sz
-  if not hasEnough
-    then do _ <- flushBuffer buffer flush_
-            return ()
+  if (start /= pos)
+    then do f start (pos `minusPtr` start)
+            pokePos buf start
     else return ()
-  bytesWritten_ <- put buffer insert
-  return bytesWritten_
-{-# INLINE write #-}
-
-writeByteString :: WriteBuffer -> ByteString.ByteString -> IO Int
-writeByteString wb@(WriteBuffer buffer flush_) (ByteString.PS fop off len) = do
-  withForeignPtr fop $ \op -> do
-    bufSz <- size buffer
-    if bufSz < len
-      then do _ <- flushBuffer buffer flush_
-              _ <- flush_ (op `plusPtr` off) len
-              incrBytesWritten buffer len
-              return len
-      else write wb len (\dst -> do ByteString.memcpy dst (op `plusPtr` off) len
-                                    return (dst `plusPtr` len)
-                        )
-{-# INLINE writeByteString #-}
-
-flush :: WriteBuffer -> IO ()
-flush (WriteBuffer buffer flush_) = do
-  _ <- flushBuffer buffer flush_
-  return ()
+{-# INLINE flush #-}

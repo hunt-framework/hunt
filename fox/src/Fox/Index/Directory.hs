@@ -10,8 +10,7 @@ module Fox.Index.Directory (
   , writeDocuments
   ) where
 
-import           Fox.IO.Buffer        (WriteBuffer, flush, offset,
-                                       withWriteBuffer, write)
+import qualified Fox.IO.Buffer.WriteBuffer as Writer
 import           Fox.IO.Files         (AppendFile)
 import qualified Fox.IO.Files         as Files
 import           Fox.IO.Write
@@ -168,9 +167,9 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
       -- allocate WriteBuffers for any file we want to write.
       -- WriteBuffers keep track of the current offset which
       -- is handy for cross referencing records between files.
-      withWriteBuffer defaultBufSize tvFlush $ \tvBuf ->
-        withWriteBuffer defaultBufSize occFlush $ \occBuf ->
-        withWriteBuffer defaultBufSize posFlush $ \posBuf -> do
+      Writer.withWriteBuffer defaultBufSize tvFlush $ \tvBuf ->
+        Writer.withWriteBuffer defaultBufSize occFlush $ \occBuf ->
+        Writer.withWriteBuffer defaultBufSize posFlush $ \posBuf -> do
 
         let
           writePosition :: Position -> IO ()
@@ -179,7 +178,7 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
 
           writeOccs :: DocId -> Positions -> IO ()
           writeOccs docId positions = do
-            positionsOffset <- offset posBuf
+            positionsOffset <- Writer.offset posBuf
             for_ (Positions.toAscList positions) writePosition
             write_ occBuf occWrite
               (docId, (Positions.size positions, positionsOffset))
@@ -191,7 +190,7 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
 
             -- start by writing the occurrences to the occs file
             -- remember the offset where we started for this term.
-            occOffset <- offset occBuf
+            occOffset <- Writer.offset occBuf
             forWithKey_ occurrences $ \docId positions -> writeOccs docId positions
 
             let
@@ -218,7 +217,6 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
             write_ tvBuf (varint >*< varint >*< varint)
               (fieldOrd_, (numOccs, occOffset))
 
-
         -- loop over all tokens and fields
         let
           foldTokens :: Term -> Term -> Map FieldName Occurrences -> IO Term
@@ -232,16 +230,11 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
               return token
         _ <- foldlWithKeyM foldTokens Term.empty fieldIndex
 
-        flush tvBuf
-        flush occBuf
-        flush posBuf
-
         return ()
   where
-    write_ :: WriteBuffer -> Write a -> a -> IO ()
-    write_ writeBuffer (W size put) a = do
-      _ <- write writeBuffer (size a) (put a)
-      return ()
+    write_ :: Writer.WriteBuffer -> Write a -> a -> IO ()
+    write_ writeBuffer (W size put) a =
+      Writer.put writeBuffer (size a) (put a)
 
 defaultBufSize :: Int
 defaultBufSize = 32 * 1024
@@ -259,11 +252,11 @@ writeDocuments segmentId fieldOrd documents = do
       fdxFlush = Files.append fdxFile
       fdtFlush = Files.append fdtFile
 
-    withWriteBuffer defaultBufSize fdxFlush $ \fdxBuf ->
-      withWriteBuffer defaultBufSize fdtFlush $ \fdtBuf -> do
+    Writer.withWriteBuffer defaultBufSize fdxFlush $ \fdxBuf ->
+      Writer.withWriteBuffer defaultBufSize fdtFlush $ \fdtBuf -> do
 
       for_ documents $ \document -> do
-        pos <- offset fdtBuf
+        pos <- Writer.offset fdtBuf
         write_ fdxBuf word64 (fromIntegral pos)
 
         -- sort the fields ascendingly with their order
@@ -274,16 +267,13 @@ writeDocuments segmentId fieldOrd documents = do
             write_ fdtBuf (varint >*< fieldValueWrite)
               (ford, dfValue field)
 
-      flush fdxBuf
-      flush fdtBuf
       return ()
 
   return ()
   where
-    write_ :: WriteBuffer -> Write a -> a -> IO ()
-    write_ writeBuffer (W size put) a = do
-      _ <- write writeBuffer (size a) (put a)
-      return ()
+    write_ :: Writer.WriteBuffer -> Write a -> a -> IO ()
+    write_ writeBuffer (W size put) a =
+      Writer.put writeBuffer (size a) (put a)
 
 -- | Atomically creates an @AppendFile@ in the @IndexDirectory@.
 -- Files are created atomically, if an exception occurrs the

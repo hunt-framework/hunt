@@ -22,6 +22,7 @@ library
                        Fox.Index.Monad
                        Fox.Index.Writer
                        Fox.IO.Buffer
+                       Fox.IO.Buffer.WriteBuffer
                        Fox.IO.Files
                        Fox.IO.Write
                        Fox.Types
