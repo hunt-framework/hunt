@@ -15,13 +15,14 @@ import           Control.Monad.Except
 import           Control.Monad.State.Strict
 import           Data.Foldable
 import qualified Data.HashMap.Strict        as HashMap
+import           Data.Key                   (forWithKey_)
 import           Data.Map                   (Map)
 import qualified Data.Map.Strict            as Map
 import qualified Data.Sequence              as Seq
 
 -- | Try to lookup the type of a field in an environment
 -- global to a transaction.
-type GlobalFieldTy = FieldName -> Maybe FieldType
+type GlobalFieldTy = FieldName -> Maybe (FieldName, FieldType)
 
 insertDocument :: Document -> IndexWriter ()
 insertDocument doc = insertDocuments [doc]
@@ -32,7 +33,7 @@ insertDocuments docs = do
   schema          <- askSchema
   let
     lookupGlobalFieldTy fieldName =
-      HashMap.lookup fieldName schema
+      (\ty -> (fieldName, ty)) <$> HashMap.lookup fieldName schema
 
     -- put docs in batches of size `maxBufferedDocs`
     -- these batches can be indexed in parallel given
@@ -68,12 +69,12 @@ indexDoc :: Analyzer
          -> Either Conflict Indexer
 indexDoc analyzer document getGlobalFieldTy indexer = runIndexer $ do
   docId <- insertDoc document
-  for_ (docFields document) $ \(fieldName, docField) -> do
+  forWithKey_ (docFields document) $ \fieldName docField -> do
     -- note the type of field even if field is not indexable
     -- we want to know all fields occurring in the docs.
-    checkFieldTy fieldName (dfValue docField)
+    fieldName' <- internFieldTy fieldName (dfValue docField)
     when (Doc.fieldIndexable (dfFlags docField)) $ do
-      invertField analyzer fieldName (dfValue docField) docId
+      invertField analyzer fieldName' (dfValue docField) docId
   where
     -- we are only interested in the Indexer, not
     -- in the result.
@@ -98,21 +99,23 @@ indexDoc analyzer document getGlobalFieldTy indexer = runIndexer $ do
 
     putFieldTy fieldName fieldTy = do
       modify $ \s -> s { indSchema =
-                           HashMap.insert fieldName fieldTy (indSchema s) }
+                           HashMap.insert fieldName (fieldName, fieldTy) (indSchema s) }
+      return fieldName
 
     fieldTyConflict fieldName fieldTy fieldTy' =
       throwError $ ConflictFields fieldName fieldTy fieldTy'
 
     -- Makes sure the FieldTypes match up if the FieldName
     -- exists already.
-    checkFieldTy fieldName fieldValue = do
+    internFieldTy fieldName fieldValue = do
       let fieldTy' = fieldType fieldValue
-      mFieldTy <- getFieldTy fieldName
-      putFieldTy fieldName fieldTy'
-      case mFieldTy of
-        Just fieldTy | fieldTy /= fieldTy' ->
-                         fieldTyConflict fieldName fieldTy fieldTy'
-        _ -> return ()
+      mField <- getFieldTy fieldName
+      case mField of
+        Just (fieldName', fieldTy) | fieldTy /= fieldTy'
+                                   -> fieldTyConflict fieldName fieldTy fieldTy'
+                                   | otherwise
+                                   -> putFieldTy fieldName' fieldTy
+        _ -> putFieldTy fieldName fieldTy'
 
     -- this is the meat: create a mapping: Token -> FieldName -> Occurrences
     insertToken fieldName token docId pos fieldIndex =
@@ -183,7 +186,7 @@ createSegment = do
 
       withIndexDirectory $ do
         IndexDirectory.writeTermIndex segmentId fieldOrd fieldIndex
-        IndexDirectory.writeDocuments segmentId fieldOrd documents
+        IndexDirectory.writeDocuments segmentId undefined fieldOrd documents
 
       return (segmentId, Segment firstGeneration)
 
@@ -194,7 +197,8 @@ numBufferedDocs :: IndexWriter Int
 numBufferedDocs = askIndexer indNumDocs
 
 indexSchema :: IndexWriter Schema
-indexSchema = askIndexer indSchema
+indexSchema = do
+  fmap snd <$> askIndexer indSchema
 
 bufferedFieldIndex :: IndexWriter FieldIndex
 bufferedFieldIndex = askIndexer indIndex
@@ -207,14 +211,16 @@ clearIndexer = withIndexer (\_ -> pure emptyIndexer)
 
 doc1 :: Document
 doc1 = Document { docWeight = 1.0
-                , docFields = [ ("name", DocField (FieldFlags 0x03) 1.0  (FV_Text "Moritz Drexl"))
-                              , ("lieblingsfarbe", DocField (FieldFlags 0x03) 1.0 (FV_Text "rot blau grün"))
-                              ]
+                , docFields = Map.fromList [
+                      ("name", DocField (FieldFlags 0x03) 1.0  (FV_Text "Moritz Drexl"))
+                    , ("lieblingsfarbe", DocField (FieldFlags 0x03) 1.0 (FV_Text "rot blau grün"))
+                    ]
                 }
 
 doc2 :: Document
 doc2 = Document { docWeight = 1.0
-                , docFields = [ ("name", DocField (FieldFlags 0x03) 1.0  (FV_Text "Alex Biehl"))
-                              , ("lieblingsfarbe", DocField (FieldFlags 0x03) 1.0 (FV_Text "lila rot grün"))
-                              ]
+                , docFields = Map.fromList [
+                      ("name", DocField (FieldFlags 0x03) 1.0  (FV_Text "Alex Biehl"))
+                    , ("lieblingsfarbe", DocField (FieldFlags 0x03) 1.0 (FV_Text "lila rot grün"))
+                    ]
                 }

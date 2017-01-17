@@ -139,7 +139,7 @@ runWriter analyzer indexRef indexWriter = do
         schemaConflicts =
           mconcat
           $ HashMap.elems
-          $ HashMap.intersectionWithKey check (indSchema iwIndexer) ixSchema
+          $ HashMap.intersectionWithKey check (indexerSchema iwIndexer) ixSchema
           where
             check fieldName fieldTy1 fieldTy2
               | fieldTy1 /= fieldTy2 = [ConflictFields fieldName fieldTy1 fieldTy2]

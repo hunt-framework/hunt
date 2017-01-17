@@ -36,6 +36,9 @@ readRandomAccessFile :: Int -> RandomAccessFile -> IO ByteString
 readRandomAccessFile n (MkRAF fd) =
   ByteString.createAndTrim n $ \buf -> FD.read fd buf n
 
+read :: Int -> Ptr Word8 -> RandomAccessFile -> IO Int
+read sz op (MkRAF fd) = FD.read fd op sz
+
 seekRandomAccessFile :: Word64 -> RandomAccessFile -> IO ()
 seekRandomAccessFile off (MkRAF fd) =
   FD.seek fd IO.AbsoluteSeek (fromIntegral off)
@@ -55,4 +58,5 @@ closeAppendFile :: AppendFile -> IO ()
 closeAppendFile (MkAF fd) = FD.close fd
 
 withAppendFile :: FilePath -> (AppendFile -> IO a) -> IO a
-withAppendFile fp = bracket (openAppendFile fp) closeAppendFile
+withAppendFile fp action =
+  bracket (openAppendFile fp) closeAppendFile action

@@ -29,7 +29,7 @@ type BufferedDocs = Seq Document
 -- the @Indexer@ first. It collects all kind of useful information
 -- and inverts the index which can then be processed into a more
 -- efficient form.
-data Indexer = Indexer { indSchema   :: !Schema
+data Indexer = Indexer { indSchema   :: !InternedSchema
                        , indDocIdGen :: !DocIdGen
                        , indIndex    :: !FieldIndex
                        , indDocs     :: !BufferedDocs
@@ -48,6 +48,9 @@ emptyIndexer = Indexer { indSchema   = mempty
                        , indIndex    = mempty
                        , indDocs     = mempty
                        }
+
+indexerSchema :: Indexer -> Schema
+indexerSchema indexer = fmap snd (indSchema indexer)
 
 -- | A @Conflict@ occurs if two transactions changed the same
 -- @Segment@s.

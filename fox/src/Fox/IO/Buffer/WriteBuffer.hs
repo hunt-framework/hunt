@@ -4,7 +4,7 @@ import Fox.IO.Buffer (Buffer)
 import qualified Fox.IO.Buffer as Buffer
 
 data WriteBuffer =
-  WriteBuffer !Buffer Buffer.Flush
+  WriteBuffer !Buffer !Buffer.Flush
 
 withWriteBuffer :: Int -> Buffer.Flush -> (WriteBuffer -> IO a) -> IO a
 withWriteBuffer bufSz flush action = do

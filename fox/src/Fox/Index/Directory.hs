@@ -21,14 +21,13 @@ import qualified Fox.Types.Positions  as Positions
 import           Fox.Types.SegmentId  (segmentIdToBase36)
 import qualified Fox.Types.Term       as Term
 
-import           Control.Arrow        (first)
 import           Control.Exception    (onException)
 import           Control.Monad.Except
 import           Data.Foldable
 import           Data.Key
-import           Data.List            (sortOn)
 import           Data.Map             (Map)
 import           Data.Sequence        (Seq)
+import           Data.Vector          (Vector)
 import           System.Directory
 import           System.FilePath
 import           System.IO.Error      (IOError, tryIOError)
@@ -241,10 +240,11 @@ defaultBufSize = 32 * 1024
 
 -- | Write buffered docs to disk.
 writeDocuments :: SegmentId
+               -> Vector FieldName
                -> (FieldName -> FieldOrd)
                -> Seq Document
                -> IDir ()
-writeDocuments segmentId fieldOrd documents = do
+writeDocuments segmentId _fields fieldOrd documents = do
   withAppendFile (fieldIndexFile segmentId) $ \fdxFile ->
     withAppendFile (fieldDataFile segmentId) $ \fdtFile -> liftIO $ do
 
@@ -259,14 +259,10 @@ writeDocuments segmentId fieldOrd documents = do
         pos <- Writer.offset fdtBuf
         write_ fdxBuf word64 (fromIntegral pos)
 
-        -- sort the fields ascendingly with their order
-        let fields' = sortOn fst $ map (first fieldOrd) (docFields document)
-
-        for_ fields' $ \(ford, field) -> do
-          when (dfType field /= FT_Null) $ do 
+        forWithKey_ (docFields document) $ \fieldName fieldValue -> do
+          when (dfType fieldValue /= FT_Null) $ do
             write_ fdtBuf (varint >*< fieldValueWrite)
-              (ford, dfValue field)
-
+              (fieldOrd fieldName, dfValue fieldValue)
       return ()
 
   return ()

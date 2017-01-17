@@ -1,6 +1,4 @@
-{-# LANGUAGE MagicHash     #-}
 {-# LANGUAGE RankNTypes    #-}
-{-# LANGUAGE UnboxedTuples #-}
 module Fox.IO.Buffer (
     Buffer
   , withBuffer
@@ -41,7 +39,7 @@ type FillBuffer = Ptr Word8 -> Ptr Word8 -> Int -> IO ()
 type Put = Ptr Word8 -> IO (Ptr Word8)
 
 -- | Read bytes from buffer starting from its current cursor.
-type Get a = forall r. (a -> Ptr Word8 -> IO r) -> Ptr Word8 -> IO r
+type Get a = Ptr Word8 -> IO (a, Ptr Word8)
 
 -- | Low-level off-heap buffer primitive.
 newtype Buffer = Buffer (Ptr Word8)
@@ -131,12 +129,13 @@ get :: Buffer
     -> IO a
 get buf get_ = do
   pos <- peekPos buf
-  get_ (\a pos' -> do
-           pokePos buf pos'
-           let len = pos' `minusPtr` pos
-           incrOffset buf len
-           return a
-       ) pos
+  r <- get_ pos
+  case r of
+    (a, pos') -> do
+      pokePos buf pos'
+      let len = pos' `minusPtr` pos
+      incrOffset buf len
+      return $! a
 {-# INLINE get #-}
 
 fill :: Buffer -> FillBuffer -> IO ()

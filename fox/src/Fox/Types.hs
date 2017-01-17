@@ -37,7 +37,7 @@ module Fox.Types (
   , SegmentSet
 
   , Schema
-
+  , InternedSchema
   ) where
 
 import           Fox.Types.DocDesc     (FieldName, FieldType (..),
@@ -64,6 +64,10 @@ type FieldOrd = Int
 -- | A @Schema@ keeps track which fields and their respective
 -- type are in the index.
 type Schema = HashMap FieldName FieldType
+
+-- | A schema which helps interning field names to reduce duplicate
+-- strings in memory.
+type InternedSchema = HashMap FieldName (FieldName, FieldType)
 
 -- | A @Token@ is a @Term@ annotated with a @Position@.
 data Token = Token !Position !Term
