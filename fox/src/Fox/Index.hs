@@ -122,17 +122,16 @@ runWriter analyzer indexRef indexWriter = do
     commit index@Index{..} IxWrEnv{..} IxWrState{..} =
       let
         -- checks for conflcts on two segments
-        checkSegmentConflict :: SegmentId -> Segment -> Segment -> [Conflict]
-        checkSegmentConflict segmentId old new =
-          [ ConflictDelete segmentId
-          | segDelGen old /= segDelGen new
-          ]
-
         indexConflicts :: [Conflict]
         indexConflicts =
           List.concat
           $ SegmentMap.elems
-          $ SegmentMap.intersectionWithKey checkSegmentConflict ixSegments iwNewSegments
+          $ SegmentMap.intersectionWithKey check ixSegments iwNewSegments
+          where
+            check segmentId old new =
+              [ ConflictDelete segmentId
+              | segDelGen old /= segDelGen new
+              ]
 
         -- check whether we have conflicting field definitions.
         schemaConflicts :: [Conflict]
