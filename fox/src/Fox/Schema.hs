@@ -29,8 +29,6 @@ data InternedSchema = InternedSchema
   , ischemaFieldCount :: !Int
   } deriving (Eq, Show)
 
-type LookupFieldType = FieldName -> Maybe FieldType
-
 -- | Insert a new field into the schema, if there is no type conflict with
 -- an existing field an interned version of the 'FieldName' is returned.
 insertField :: FieldName
@@ -90,6 +88,7 @@ checkTySchema schema1 schema2 =
 
 type FieldOrds = Vector FieldName
 
+-- | Every field in a Segment has a unique integer
 type FieldOrd = Int
 
 fieldOrds :: Schema -> FieldOrds

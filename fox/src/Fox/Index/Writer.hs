@@ -147,7 +147,7 @@ tryMerge = return ()
 flush :: IndexWriter ()
 flush = do
   mNewSegment <- createSegment
-  case mNewSegment of
+  case Just mNewSegment of
     Just (sid, segment) -> do
       insertSegment sid segment
       clearIndexer
@@ -155,31 +155,25 @@ flush = do
 
 -- | Create a new @Segment@ from indexed documents. If there are
 -- no documents buffered returns @Nothing@.
-createSegment :: IndexWriter (Maybe (SegmentId, Segment))
+createSegment :: IndexWriter (SegmentId, Segment)
 createSegment = do
-  isEmpty <- askIndexer indNull
-  if not isEmpty
-    then Just <$> createSegment_
-    else return Nothing
-  where
-    createSegment_ = do
-      segmentId  <- newSegmentId
-      schema     <- indexSchema
-      fieldIndex <- bufferedFieldIndex
-      documents  <- bufferedDocuments
+  segmentId  <- newSegmentId
+  schema     <- indexSchema
+  fieldIndex <- bufferedFieldIndex
+  documents  <- bufferedDocuments
 
-      let
-        -- fieldOrd is total over any field the indexer
-        -- saw.
-        fieldOrd :: FieldName -> Int
-        fieldOrd =
-          Schema.lookupFieldOrd (Schema.fieldOrds schema) 
+  let
+    -- fieldOrd is total over any field the indexer
+    -- saw.
+    fieldOrd :: FieldName -> Int
+    fieldOrd =
+      Schema.lookupFieldOrd (Schema.fieldOrds schema) 
 
-      withIndexDirectory $ do
-        IndexDirectory.writeTermIndex segmentId fieldOrd fieldIndex
-        IndexDirectory.writeDocuments segmentId undefined fieldOrd documents
-
-      return (segmentId, Segment firstGeneration)
+  withIndexDirectory $ do
+    IndexDirectory.writeTermIndex segmentId fieldOrd fieldIndex
+    IndexDirectory.writeDocuments segmentId undefined fieldOrd documents
+  
+  return (segmentId, Segment firstGeneration)
 
 maxNumBufferedDocs :: IndexWriter Int
 maxNumBufferedDocs = askConfig iwcMaxBufferedDocs
