@@ -4,14 +4,13 @@ module Fox.Index where
 import           Fox.Analyze
 import           Fox.Index.Directory
 import           Fox.Index.Monad
-import           Fox.Schema              (Schema, emptySchema)
+import           Fox.Schema              (Schema, checkTySchema, emptySchema)
 import           Fox.Types
 import qualified Fox.Types.SegmentMap    as SegmentMap
 
 import           Control.Concurrent.MVar
 import           Control.Exception
 import           Control.Monad.Except
-import qualified Data.HashMap.Strict     as HashMap
 import qualified Data.List               as List
 
 -- | A synchronized, mutable reference to an @Index@
@@ -136,14 +135,10 @@ runWriter analyzer indexRef indexWriter = do
 
         -- check whether we have conflicting field definitions.
         schemaConflicts :: [Conflict]
-        schemaConflicts = undefined
---          mconcat
---          $ HashMap.elems
---          $ HashMap.intersectionWithKey check (indexerSchema iwIndexer) ixSchema
---          where
---            check fieldName fieldTy1 fieldTy2
---              | fieldTy1 /= fieldTy2 = [ConflictFields fieldName fieldTy1 fieldTy2]
---              | otherwise            = []
+        schemaConflicts =
+          [ ConflictFields fieldName fieldTy fieldTy'
+          | (fieldName, fieldTy, fieldTy') <- checkTySchema (indexerSchema iwIndexer) ixSchema
+          ]
 
         mergedSegments :: SegmentMap Segment
         mergedSegments =

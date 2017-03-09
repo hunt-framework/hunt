@@ -4,6 +4,7 @@ module Fox.Schema where
 import           Fox.Types
 
 import           Data.Bits
+import           Data.Foldable
 import           Data.HashMap.Strict        (HashMap)
 import qualified Data.HashMap.Strict        as HashMap
 import           Data.Vector                (Vector)
@@ -79,14 +80,24 @@ internSchema schema =
                  , ischemaFieldCount = schemaFieldCount schema
                  }
 
+checkTySchema :: Schema -> Schema -> [(FieldName, FieldType, FieldType)]
+checkTySchema schema1 schema2 =
+  fold $ HashMap.intersectionWithKey check (schemaFields schema1) (schemaFields schema2)
+  where
+    check fieldName fieldTy fieldTy'
+      | fieldTy /= fieldTy' = [(fieldName, fieldTy, fieldTy')]
+      | otherwise = []
+
 type FieldOrds = Vector FieldName
+
+type FieldOrd = Int
 
 fieldOrds :: Schema -> FieldOrds
 fieldOrds schema =
   Vector.modify Tim.sort
   $ Vector.fromListN (schemaFieldCount schema) (HashMap.keys (schemaFields schema))
 
-lookupFieldOrd :: FieldOrds -> FieldName -> Int
+lookupFieldOrd :: FieldOrds -> FieldName -> FieldOrd
 lookupFieldOrd fields fieldName = go 0 (Vector.length fields)
   where
     go !l !u

@@ -11,26 +11,27 @@ module Fox.Index.Directory (
   ) where
 
 import qualified Fox.IO.Buffer.WriteBuffer as Writer
-import           Fox.IO.Files         (AppendFile)
-import qualified Fox.IO.Files         as Files
+import           Fox.IO.Files              (AppendFile)
+import qualified Fox.IO.Files              as Files
 import           Fox.IO.Write
+import           Fox.Schema                (FieldOrd)
 import           Fox.Types
-import qualified Fox.Types.DocIdMap   as DocIdMap
+import qualified Fox.Types.DocIdMap        as DocIdMap
 import           Fox.Types.Document
-import qualified Fox.Types.Positions  as Positions
-import           Fox.Types.SegmentId  (segmentIdToBase36)
-import qualified Fox.Types.Term       as Term
+import qualified Fox.Types.Positions       as Positions
+import           Fox.Types.SegmentId       (segmentIdToBase36)
+import qualified Fox.Types.Term            as Term
 
-import           Control.Exception    (onException)
+import           Control.Exception         (onException)
 import           Control.Monad.Except
 import           Data.Foldable
 import           Data.Key
-import           Data.Map             (Map)
-import           Data.Sequence        (Seq)
-import           Data.Vector          (Vector)
+import           Data.Map                  (Map)
+import           Data.Sequence             (Seq)
+import           Data.Vector               (Vector)
 import           System.Directory
 import           System.FilePath
-import           System.IO.Error      (IOError, tryIOError)
+import           System.IO.Error           (IOError, tryIOError)
 
 
 -- | Root directory where the index files are stored.
@@ -71,8 +72,8 @@ runIDir :: IndexDirectory -> IDir a -> IO (Either IDirError a)
 runIDir indexDirectory action = do
   ea <- tryIOError $ (unIDir action) pure indexDirectory
   case ea of
-    Left e   -> return (Left (IDirIOError e))
-    Right a  -> return (Right a)
+    Left e  -> return (Left (IDirIOError e))
+    Right a -> return (Right a)
 
 -- | Errors occurring while opening an @IndexDirectory@.
 data IDirError = IDirInvalidDirectory
@@ -132,19 +133,19 @@ fieldValueWrite = W size put
 
     tagSize = word8Size 0
 
-    size (FV_Int i)     = tagSize + vintSize i
-    size (FV_Float _f)  = tagSize -- TODO
-    size (FV_Text t)    = tagSize + textSize t
-    size (FV_Json b)    = tagSize + bsSize b
-    size (FV_Binary b)  = tagSize + bsSize b
-    size FV_Null        = 0
+    size (FV_Int i)    = tagSize + vintSize i
+    size (FV_Float _f) = tagSize -- TODO
+    size (FV_Text t)   = tagSize + textSize t
+    size (FV_Json b)   = tagSize + bsSize b
+    size (FV_Binary b) = tagSize + bsSize b
+    size FV_Null       = 0
 
-    put (FV_Int i) op     = word8Put 0 op >>= vintPut i
-    put (FV_Float _f) op  = word8Put 1 op -- TODO
-    put (FV_Text s) op    = word8Put 2 op >>= textPut s
-    put (FV_Json b) op    = word8Put 3 op >>= bsPut b
-    put (FV_Binary b) op  = word8Put 4 op >>= bsPut b
-    put FV_Null op        = return op
+    put (FV_Int i) op    = word8Put 0 op >>= vintPut i
+    put (FV_Float _f) op = word8Put 1 op -- TODO
+    put (FV_Text s) op   = word8Put 2 op >>= textPut s
+    put (FV_Json b) op   = word8Put 3 op >>= bsPut b
+    put (FV_Binary b) op = word8Put 4 op >>= bsPut b
+    put FV_Null op       = return op
 
 -- | Write a @FieldIndex@ to disk.
 writeTermIndex :: SegmentId
@@ -248,7 +249,7 @@ writeDocuments segmentId _fields fieldOrd documents = do
   withAppendFile (fieldIndexFile segmentId) $ \fdxFile ->
     withAppendFile (fieldDataFile segmentId) $ \fdtFile -> liftIO $ do
 
-    let 
+    let
       fdxFlush = Files.append fdxFile
       fdtFlush = Files.append fdtFile
 

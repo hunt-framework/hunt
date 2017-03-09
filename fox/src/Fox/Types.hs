@@ -6,7 +6,6 @@ module Fox.Types (
   , Document(..)
   , DocField(..)
   , FieldName
-  , FieldOrd
   , FieldType(..)
   , FieldValue(..)
   , fieldType
@@ -36,8 +35,6 @@ module Fox.Types (
   , SegmentMap
   , SegmentSet
 
---  , Schema
---  , InternedSchema
   ) where
 
 import           Fox.Types.DocDesc     (FieldName, FieldType (..),
@@ -55,19 +52,6 @@ import           Fox.Types.SegmentId   (SegIdGen, SegmentId, firstSegmentId,
 import           Fox.Types.SegmentMap  (SegmentMap, SegmentSet)
 import           Fox.Types.Term        (Term)
 import qualified Fox.Types.Term        as Term
-
-import           Data.HashMap.Strict   (HashMap)
-
--- | Indexed fields can be identified by number.
-type FieldOrd = Int
-
--- | A @Schema@ keeps track which fields and their respective
--- type are in the index.
-type Schema = HashMap FieldName FieldType
-
--- | A schema which helps interning field names to reduce duplicate
--- strings in memory.
-type InternedSchema = HashMap FieldName (FieldName, FieldType)
 
 -- | A @Token@ is a @Term@ annotated with a @Position@.
 data Token = Token !Position !Term
