@@ -5,6 +5,8 @@ module Fox.Index.Monad where
 
 import           Fox.Analyze
 import           Fox.Index.Directory
+import           Fox.Schema             (InternedSchema, Schema,
+                                         emptyInternedSchema, uninternSchema)
 import           Fox.Types
 import qualified Fox.Types.SegmentMap   as SegmentMap
 
@@ -29,10 +31,10 @@ type BufferedDocs = Seq Document
 -- the @Indexer@ first. It collects all kind of useful information
 -- and inverts the index which can then be processed into a more
 -- efficient form.
-data Indexer = Indexer { indSchema   :: !InternedSchema
-                       , indDocIdGen :: !DocIdGen
+data Indexer = Indexer { indDocIdGen :: !DocIdGen
                        , indIndex    :: !FieldIndex
                        , indDocs     :: !BufferedDocs
+                       , indSchema   :: !InternedSchema
                        } deriving (Show)
 
 indNumDocs :: Indexer -> Int
@@ -43,14 +45,15 @@ indNull :: Indexer -> Bool
 indNull ind = Map.null (indIndex ind)
 
 emptyIndexer :: Indexer
-emptyIndexer = Indexer { indSchema   = mempty
-                       , indDocIdGen = firstDocId
-                       , indIndex    = mempty
-                       , indDocs     = mempty
-                       }
+emptyIndexer =
+  Indexer { indDocIdGen = firstDocId
+          , indIndex    = mempty
+          , indDocs     = mempty
+          , indSchema   = emptyInternedSchema
+          }
 
 indexerSchema :: Indexer -> Schema
-indexerSchema indexer = fmap snd (indSchema indexer)
+indexerSchema indexer = uninternSchema (indSchema indexer)
 
 -- | A @Conflict@ occurs if two transactions changed the same
 -- @Segment@s.

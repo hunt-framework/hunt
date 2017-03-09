@@ -36,8 +36,8 @@ module Fox.Types (
   , SegmentMap
   , SegmentSet
 
-  , Schema
-  , InternedSchema
+--  , Schema
+--  , InternedSchema
   ) where
 
 import           Fox.Types.DocDesc     (FieldName, FieldType (..),

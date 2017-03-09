@@ -4,6 +4,7 @@ module Fox.Index where
 import           Fox.Analyze
 import           Fox.Index.Directory
 import           Fox.Index.Monad
+import           Fox.Schema              (Schema, emptySchema)
 import           Fox.Types
 import qualified Fox.Types.SegmentMap    as SegmentMap
 
@@ -46,7 +47,7 @@ newIndex indexDirectory = do
                    , ixSegments     = SegmentMap.empty
                    , ixSegmentRefs  = SegmentMap.empty
                    , ixSegIdGen     = segIdGen
-                   , ixSchema       = HashMap.empty
+                   , ixSchema       = emptySchema
                    , ixWriterConfig = defaultWriterConfig
                    }
 
@@ -95,7 +96,7 @@ runWriter analyzer indexRef indexWriter = do
         env = IxWrEnv { iwIndexDir = ixIndexDir index
                       , iwNewSegId = genSegId (ixSegIdGen index)
                       , iwSegments = ixSegments index
-                      , iwSchema   = ixSchema index
+                      , iwSchema   = ixSchema index -- TODO: do we really need this?
                       , iwAnalyzer = anal
                       , iwConfig   = ixWriterConfig index
                       }
@@ -135,14 +136,14 @@ runWriter analyzer indexRef indexWriter = do
 
         -- check whether we have conflicting field definitions.
         schemaConflicts :: [Conflict]
-        schemaConflicts =
-          mconcat
-          $ HashMap.elems
-          $ HashMap.intersectionWithKey check (indexerSchema iwIndexer) ixSchema
-          where
-            check fieldName fieldTy1 fieldTy2
-              | fieldTy1 /= fieldTy2 = [ConflictFields fieldName fieldTy1 fieldTy2]
-              | otherwise            = []
+        schemaConflicts = undefined
+--          mconcat
+--          $ HashMap.elems
+--          $ HashMap.intersectionWithKey check (indexerSchema iwIndexer) ixSchema
+--          where
+--            check fieldName fieldTy1 fieldTy2
+--              | fieldTy1 /= fieldTy2 = [ConflictFields fieldName fieldTy1 fieldTy2]
+--              | otherwise            = []
 
         mergedSegments :: SegmentMap Segment
         mergedSegments =

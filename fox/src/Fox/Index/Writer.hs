@@ -5,18 +5,17 @@ module Fox.Index.Writer where
 import           Fox.Analyze                (Analyzer, analyze)
 import           Fox.Index.Directory        as IndexDirectory
 import           Fox.Index.Monad
+import           Fox.Schema                 (Schema)
+import qualified Fox.Schema                 as Schema
 import           Fox.Types
 import           Fox.Types.Document
 import qualified Fox.Types.Document         as Doc
 import qualified Fox.Types.Occurrences      as Occurrences
 
-import           Control.Applicative
 import           Control.Monad.Except
 import           Control.Monad.State.Strict
 import           Data.Foldable
-import qualified Data.HashMap.Strict        as HashMap
 import           Data.Key                   (forWithKey_)
-import           Data.Map                   (Map)
 import qualified Data.Map.Strict            as Map
 import qualified Data.Sequence              as Seq
 
@@ -33,7 +32,7 @@ insertDocuments docs = do
   schema          <- askSchema
   let
     lookupGlobalFieldTy fieldName =
-      (\ty -> (fieldName, ty)) <$> HashMap.lookup fieldName schema
+      (\ty -> (fieldName, ty)) <$> Schema.lookupField fieldName schema
 
     -- put docs in batches of size `maxBufferedDocs`
     -- these batches can be indexed in parallel given
@@ -89,33 +88,30 @@ indexDoc analyzer document getGlobalFieldTy indexer = runIndexer $ do
                        }
       return docId
 
-    -- ask for type of FieldName through 1. and 2.
-    -- 1. Ask for the type in a Schema which is global to this transaction.
-    -- 2. If not found in 1. look in transaction local Schema
-    getFieldTy fieldName = do
-      schema <- gets indSchema
-      return $ getGlobalFieldTy fieldName
-        <|> HashMap.lookup fieldName schema
-
-    putFieldTy fieldName fieldTy = do
-      modify $ \s -> s { indSchema =
-                           HashMap.insert fieldName (fieldName, fieldTy) (indSchema s) }
-      return fieldName
-
     fieldTyConflict fieldName fieldTy fieldTy' =
       throwError $ ConflictFields fieldName fieldTy fieldTy'
 
+    insertFieldTy fieldName fieldTy = do
+      schema <- indSchema <$> get
+      case Schema.insertField fieldName fieldTy schema of
+        Right (fieldName', schema') -> do
+          modify $ \s -> s { indSchema = schema' }
+          pure fieldName'
+        Left fieldTy' ->
+          fieldTyConflict fieldName fieldTy fieldTy'
+
     -- Makes sure the FieldTypes match up if the FieldName
     -- exists already.
-    internFieldTy fieldName fieldValue = do
-      let fieldTy' = fieldType fieldValue
-      mField <- getFieldTy fieldName
-      case mField of
-        Just (fieldName', fieldTy) | fieldTy /= fieldTy'
-                                   -> fieldTyConflict fieldName fieldTy fieldTy'
-                                   | otherwise
-                                   -> putFieldTy fieldName' fieldTy
-        _ -> putFieldTy fieldName fieldTy'
+    internFieldTy fieldName fieldValue
+      | Just (fieldName', fieldTy') <- getGlobalFieldTy fieldName
+      = if fieldTy == fieldTy'
+        then insertFieldTy fieldName' fieldTy
+        else fieldTyConflict fieldName fieldTy fieldTy'
+
+      | otherwise
+      = insertFieldTy fieldName fieldTy
+      where
+        fieldTy = fieldType fieldValue
 
     -- this is the meat: create a mapping: Token -> FieldName -> Occurrences
     insertToken fieldName token docId pos fieldIndex =
@@ -173,16 +169,11 @@ createSegment = do
       documents  <- bufferedDocuments
 
       let
-        -- we sort every field known to the indexer to
-        -- use stable numbers as shorter field names.
-        sortedFields :: Map FieldName FieldType
-        sortedFields = Map.fromList (HashMap.toList schema)
-
         -- fieldOrd is total over any field the indexer
         -- saw.
         fieldOrd :: FieldName -> Int
-        fieldOrd fieldName =
-          Map.findIndex fieldName sortedFields
+        fieldOrd =
+          Schema.lookupFieldOrd (Schema.fieldOrds schema) 
 
       withIndexDirectory $ do
         IndexDirectory.writeTermIndex segmentId fieldOrd fieldIndex
@@ -197,8 +188,7 @@ numBufferedDocs :: IndexWriter Int
 numBufferedDocs = askIndexer indNumDocs
 
 indexSchema :: IndexWriter Schema
-indexSchema = do
-  fmap snd <$> askIndexer indSchema
+indexSchema = Schema.uninternSchema <$> askIndexer indSchema
 
 bufferedFieldIndex :: IndexWriter FieldIndex
 bufferedFieldIndex = askIndexer indIndex
