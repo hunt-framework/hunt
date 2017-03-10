@@ -61,8 +61,8 @@ lookupFieldType :: FieldName -> Schema -> Maybe FieldType
 lookupFieldType fieldName schema =
   snd <$> internFieldName fieldName schema
 
-checkTySchema :: Schema -> Schema -> [(FieldName, FieldType, FieldType)]
-checkTySchema schema1 schema2 =
+checkSchemaTys :: Schema -> Schema -> [(FieldName, FieldType, FieldType)]
+checkSchemaTys schema1 schema2 =
   fold $ HashMap.intersectionWithKey check (schemaFields schema1) (schemaFields schema2)
   where
     check fieldName (P _ fieldTy) (P _ fieldTy')
@@ -80,7 +80,7 @@ fieldOrds schema =
   $ Vector.fromListN (schemaFieldCount schema) (HashMap.keys (schemaFields schema))
 
 forFields_ :: Monad m => FieldOrds -> (FieldOrd -> FieldName -> m a) -> m ()
-forFields_ fieldOrds f = imapM_ f fieldOrds
+forFields_ fords f = imapM_ f fords
 
 lookupFieldOrd :: FieldOrds -> FieldName -> FieldOrd
 lookupFieldOrd fields fieldName = go 0 (Vector.length fields)

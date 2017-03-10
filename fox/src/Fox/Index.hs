@@ -4,7 +4,7 @@ module Fox.Index where
 import           Fox.Analyze
 import           Fox.Index.Directory
 import           Fox.Index.Monad
-import           Fox.Schema              (Schema, checkTySchema, emptySchema)
+import           Fox.Schema              (Schema, checkSchemaTys, emptySchema)
 import           Fox.Types
 import qualified Fox.Types.SegmentMap    as SegmentMap
 
@@ -137,7 +137,8 @@ runWriter analyzer indexRef indexWriter = do
         schemaConflicts :: [Conflict]
         schemaConflicts =
           [ ConflictFields fieldName fieldTy fieldTy'
-          | (fieldName, fieldTy, fieldTy') <- checkTySchema (indexerSchema iwIndexer) ixSchema
+          | (fieldName, fieldTy, fieldTy') <-
+              checkSchemaTys (indexerSchema iwIndexer) ixSchema
           ]
 
         mergedSegments :: SegmentMap Segment
