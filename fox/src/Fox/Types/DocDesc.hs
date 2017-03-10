@@ -1,12 +1,30 @@
 module Fox.Types.DocDesc where
 
 import           Data.ByteString     (ByteString)
+import           Data.Hashable
 import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.Int            (Int64)
+import           Data.String
 import           Data.Text           (Text)
 
-type FieldName = Text
+data FieldName = FieldName !Int {-# UNPACK #-}!Text
+               deriving (Show)
+
+instance Eq FieldName where
+  FieldName hash1 name1 == FieldName hash2 name2 =
+    hash1 == hash2 && name1 == name2
+
+instance Ord FieldName where
+  compare (FieldName _ name1) (FieldName _ name2) =
+    compare name1 name2
+
+instance Hashable FieldName where
+  hashWithSalt s (FieldName h _) = hashWithSalt s h
+
+instance IsString FieldName where
+  fromString s = let t = fromString s
+                 in FieldName (hash t) t
 
 data FieldValue = FV_Int  !Int64
                 | FV_Float !Float

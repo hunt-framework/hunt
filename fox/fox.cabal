@@ -54,6 +54,7 @@ library
                        directory >=1.2.7.0,
                        filepath,
                        ghc-prim,
+                       hashable,
                        keys >=3.0 && <4.0,
                        mtl,
                        primitive >0.6,
