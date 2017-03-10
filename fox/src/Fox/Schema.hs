@@ -11,42 +11,36 @@ import           Data.Vector                (Vector)
 import qualified Data.Vector                as Vector
 import qualified Data.Vector.Algorithms.Tim as Tim
 
-data Schema = Schema
-  {
-    schemaFields     :: !(HashMap FieldName FieldType)
-  , schemaFieldCount :: !Int
-  } deriving (Eq, Show)
-
 -- a strict tuple type to avoid space leak
 data Pair a b = P !a !b
               deriving (Eq, Show)
 
 -- | Helps to reduce duplicate FieldNames in memory while
 -- indexing documents.
-data InternedSchema = InternedSchema
+data Schema = Schema
   {
-    ischemaFields     :: !(HashMap FieldName (Pair FieldName FieldType))
-  , ischemaFieldCount :: !Int
+    schemaFields     :: !(HashMap FieldName (Pair FieldName FieldType))
+  , schemaFieldCount :: !Int
   } deriving (Eq, Show)
 
 -- | Insert a new field into the schema, if there is no type conflict with
 -- an existing field an interned version of the 'FieldName' is returned.
 insertField :: FieldName
             -> FieldType
-            -> InternedSchema
-            -> Either FieldType (FieldName, InternedSchema)
-insertField fieldName fieldTy internedSchema
+            -> Schema
+            -> Either FieldType (FieldName, Schema)
+insertField fieldName fieldTy schema
   | Just (P fieldName' fieldTy') <-
-      HashMap.lookup fieldName (ischemaFields internedSchema)
+      HashMap.lookup fieldName (schemaFields schema)
   = if fieldTy == fieldTy'
-    then Right (fieldName', internedSchema)
+    then Right (fieldName', schema)
     else Left fieldTy'
   | otherwise
-  = Right (fieldName, internedSchema')
+  = Right (fieldName, schema')
   where
-    internedSchema' = internedSchema {
-        ischemaFields     = HashMap.insert fieldName (P fieldName fieldTy) (ischemaFields internedSchema)
-      , ischemaFieldCount = ischemaFieldCount internedSchema + 1
+    schema' = schema {
+        schemaFields     = HashMap.insert fieldName (P fieldName fieldTy) (schemaFields schema)
+      , schemaFieldCount = schemaFieldCount schema + 1
       }
 
 emptySchema :: Schema
@@ -55,34 +49,23 @@ emptySchema =
          , schemaFieldCount = 0
          }
 
-emptyInternedSchema :: InternedSchema
-emptyInternedSchema =
-  InternedSchema { ischemaFields = HashMap.empty
-                 , ischemaFieldCount = 0
-                 }
+internFieldName :: FieldName -> Schema -> Maybe (FieldName, FieldType)
+internFieldName fieldName schema
+  | Just (P fieldName' fieldTy) <- HashMap.lookup fieldName (schemaFields schema)
+  = Just (fieldName', fieldTy)
+  | otherwise
+  = Nothing
 
 -- | Lookup a type for a field
-lookupField :: FieldName -> Schema -> Maybe FieldType
-lookupField fieldName schema =
-  HashMap.lookup fieldName (schemaFields schema)
-
-uninternSchema :: InternedSchema -> Schema
-uninternSchema schema =
-  Schema { schemaFields = HashMap.map (\(P _ ty) -> ty) (ischemaFields schema)
-         , schemaFieldCount = ischemaFieldCount schema
-         }
-
-internSchema :: Schema -> InternedSchema
-internSchema schema =
-  InternedSchema { ischemaFields = HashMap.mapWithKey P (schemaFields schema)
-                 , ischemaFieldCount = schemaFieldCount schema
-                 }
+lookupFieldType :: FieldName -> Schema -> Maybe FieldType
+lookupFieldType fieldName schema =
+  snd <$> internFieldName fieldName schema
 
 checkTySchema :: Schema -> Schema -> [(FieldName, FieldType, FieldType)]
 checkTySchema schema1 schema2 =
   fold $ HashMap.intersectionWithKey check (schemaFields schema1) (schemaFields schema2)
   where
-    check fieldName fieldTy fieldTy'
+    check fieldName (P _ fieldTy) (P _ fieldTy')
       | fieldTy /= fieldTy' = [(fieldName, fieldTy, fieldTy')]
       | otherwise = []
 

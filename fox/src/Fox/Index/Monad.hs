@@ -5,8 +5,7 @@ module Fox.Index.Monad where
 
 import           Fox.Analyze
 import           Fox.Index.Directory
-import           Fox.Schema             (InternedSchema, Schema,
-                                         emptyInternedSchema, uninternSchema)
+import           Fox.Schema             (Schema, emptySchema)
 import           Fox.Types
 import qualified Fox.Types.SegmentMap   as SegmentMap
 
@@ -34,7 +33,7 @@ type BufferedDocs = Seq Document
 data Indexer = Indexer { indDocIdGen :: !DocIdGen
                        , indIndex    :: !FieldIndex
                        , indDocs     :: !BufferedDocs
-                       , indSchema   :: !InternedSchema
+                       , indSchema   :: !Schema
                        } deriving (Show)
 
 indNumDocs :: Indexer -> Int
@@ -49,11 +48,11 @@ emptyIndexer =
   Indexer { indDocIdGen = firstDocId
           , indIndex    = mempty
           , indDocs     = mempty
-          , indSchema   = emptyInternedSchema
+          , indSchema   = emptySchema
           }
 
 indexerSchema :: Indexer -> Schema
-indexerSchema indexer = uninternSchema (indSchema indexer)
+indexerSchema indexer = indSchema indexer
 
 -- | A @Conflict@ occurs if two transactions changed the same
 -- @Segment@s.

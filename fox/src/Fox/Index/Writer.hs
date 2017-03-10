@@ -31,8 +31,10 @@ insertDocuments docs = do
   analyzer        <- askAnalyzer
   schema          <- askSchema
   let
+    -- lookup the type of a field and also increase
+    -- sharing of FieldNames if the type is known.
     lookupGlobalFieldTy fieldName =
-      (\ty -> (fieldName, ty)) <$> Schema.lookupField fieldName schema
+      Schema.internFieldName fieldName schema
 
     -- put docs in batches of size `maxBufferedDocs`
     -- these batches can be indexed in parallel given
@@ -182,7 +184,7 @@ numBufferedDocs :: IndexWriter Int
 numBufferedDocs = askIndexer indNumDocs
 
 indexSchema :: IndexWriter Schema
-indexSchema = Schema.uninternSchema <$> askIndexer indSchema
+indexSchema = askIndexer indSchema
 
 bufferedFieldIndex :: IndexWriter FieldIndex
 bufferedFieldIndex = askIndexer indIndex
