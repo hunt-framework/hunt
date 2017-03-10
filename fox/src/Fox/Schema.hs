@@ -7,7 +7,7 @@ import           Data.Bits
 import           Data.Foldable
 import           Data.HashMap.Strict        (HashMap)
 import qualified Data.HashMap.Strict        as HashMap
-import           Data.Vector                (Vector)
+import           Data.Vector                (Vector, imapM_)
 import qualified Data.Vector                as Vector
 import qualified Data.Vector.Algorithms.Tim as Tim
 
@@ -45,7 +45,7 @@ insertField fieldName fieldTy schema
 
 emptySchema :: Schema
 emptySchema =
-  Schema { schemaFields = HashMap.empty
+  Schema { schemaFields     = HashMap.empty
          , schemaFieldCount = 0
          }
 
@@ -78,6 +78,9 @@ fieldOrds :: Schema -> FieldOrds
 fieldOrds schema =
   Vector.modify Tim.sort
   $ Vector.fromListN (schemaFieldCount schema) (HashMap.keys (schemaFields schema))
+
+forFields_ :: Monad m => FieldOrds -> (FieldOrd -> FieldName -> m a) -> m ()
+forFields_ fieldOrds f = imapM_ f fieldOrds
 
 lookupFieldOrd :: FieldOrds -> FieldName -> FieldOrd
 lookupFieldOrd fields fieldName = go 0 (Vector.length fields)

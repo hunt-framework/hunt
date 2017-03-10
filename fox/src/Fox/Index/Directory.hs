@@ -14,7 +14,7 @@ import qualified Fox.IO.Buffer.WriteBuffer as Writer
 import           Fox.IO.Files              (AppendFile)
 import qualified Fox.IO.Files              as Files
 import           Fox.IO.Write
-import           Fox.Schema                (FieldOrd)
+import           Fox.Schema                (FieldOrd, FieldOrds, forFields_)
 import           Fox.Types
 import qualified Fox.Types.DocIdMap        as DocIdMap
 import           Fox.Types.Document
@@ -27,8 +27,8 @@ import           Control.Monad.Except
 import           Data.Foldable
 import           Data.Key
 import           Data.Map                  (Map)
+import qualified Data.Map                  as Map
 import           Data.Sequence             (Seq)
-import           Data.Vector               (Vector)
 import           System.Directory
 import           System.FilePath
 import           System.IO.Error           (IOError, tryIOError)
@@ -241,11 +241,10 @@ defaultBufSize = 32 * 1024
 
 -- | Write buffered docs to disk.
 writeDocuments :: SegmentId
-               -> Vector FieldName
-               -> (FieldName -> FieldOrd)
+               -> FieldOrds
                -> Seq Document
                -> IDir ()
-writeDocuments segmentId _fields fieldOrd documents = do
+writeDocuments segmentId fields documents = do
   withAppendFile (fieldIndexFile segmentId) $ \fdxFile ->
     withAppendFile (fieldDataFile segmentId) $ \fdtFile -> liftIO $ do
 
@@ -260,10 +259,13 @@ writeDocuments segmentId _fields fieldOrd documents = do
         pos <- Writer.offset fdtBuf
         write_ fdxBuf word64 (fromIntegral pos)
 
-        forWithKey_ (docFields document) $ \fieldName fieldValue -> do
-          when (dfType fieldValue /= FT_Null) $ do
-            write_ fdtBuf (varint >*< fieldValueWrite)
-              (fieldOrd fieldName, dfValue fieldValue)
+        forFields_ fields $ \fieldOrd fieldName ->
+          case Map.lookup fieldName (docFields document) of
+            Just docField
+              | dfType docField /= FT_Null
+              -> write_ fdtBuf (varint >*< fieldValueWrite)
+                  (fieldOrd, dfValue docField)
+            _ -> return ()
       return ()
 
   return ()

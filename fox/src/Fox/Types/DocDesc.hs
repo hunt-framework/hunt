@@ -8,6 +8,9 @@ import           Data.Int            (Int64)
 import           Data.String
 import           Data.Text           (Text)
 
+-- Additional to the text for the field name we store
+-- its hash. This way we don't need to compute the
+-- repeatedly when looking up in a hash map.
 data FieldName = FieldName !Int {-# UNPACK #-}!Text
                deriving (Show)
 

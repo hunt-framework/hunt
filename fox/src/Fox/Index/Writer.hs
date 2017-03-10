@@ -165,15 +165,12 @@ createSegment = do
   documents  <- bufferedDocuments
 
   let
-    -- fieldOrd is total over any field the indexer
-    -- saw.
-    fieldOrd :: FieldName -> Int
-    fieldOrd =
-      Schema.lookupFieldOrd (Schema.fieldOrds schema) 
+    fieldOrds = Schema.fieldOrds schema
+    lookupFieldOrd = Schema.lookupFieldOrd fieldOrds
 
   withIndexDirectory $ do
-    IndexDirectory.writeTermIndex segmentId fieldOrd fieldIndex
-    IndexDirectory.writeDocuments segmentId undefined fieldOrd documents
+    IndexDirectory.writeTermIndex segmentId lookupFieldOrd fieldIndex
+    IndexDirectory.writeDocuments segmentId (Schema.fieldOrds schema) documents
   
   return (segmentId, Segment firstGeneration)
 
