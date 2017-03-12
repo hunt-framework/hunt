@@ -21,12 +21,14 @@ library
                        Fox.Index.Directory
                        Fox.Index.Monad
                        Fox.Index.Writer
+                       Fox.Indexer
                        Fox.IO.Buffer
                        Fox.IO.Buffer.WriteBuffer
                        Fox.IO.Files
                        Fox.IO.Write
                        Fox.Schema
                        Fox.Types
+                       Fox.Types.Conflicts
                        Fox.Types.DocDesc
                        Fox.Types.DocIdMap
                        Fox.Types.DocIdSet

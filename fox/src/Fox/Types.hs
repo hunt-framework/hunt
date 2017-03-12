@@ -35,8 +35,11 @@ module Fox.Types (
   , SegmentMap
   , SegmentSet
 
+  , Conflict(..)
+  , Commit
   ) where
 
+import           Fox.Types.Conflicts   (Commit, Conflict (..))
 import           Fox.Types.DocDesc     (FieldName, FieldType (..),
                                         FieldValue (..), fieldType)
 import           Fox.Types.DocIdMap    (DocIdMap)

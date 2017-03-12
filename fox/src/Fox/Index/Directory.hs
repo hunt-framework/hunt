@@ -261,8 +261,7 @@ writeDocuments segmentId fields documents = do
 
         forFields_ fields $ \fieldOrd fieldName ->
           case Map.lookup fieldName (docFields document) of
-            Just docField
-              | dfType docField /= FT_Null
+            Just docField | dfType docField /= FT_Null
               -> write_ fdtBuf (varint >*< fieldValueWrite)
                   (fieldOrd, dfValue docField)
             _ -> return ()

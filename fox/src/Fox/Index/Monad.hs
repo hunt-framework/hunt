@@ -5,6 +5,7 @@ module Fox.Index.Monad where
 
 import           Fox.Analyze
 import           Fox.Index.Directory
+import           Fox.Indexer            (Indexer, emptyIndexer)
 import           Fox.Schema             (Schema, emptySchema)
 import           Fox.Types
 import qualified Fox.Types.SegmentMap   as SegmentMap
@@ -16,51 +17,6 @@ import           Data.Map               (Map)
 import qualified Data.Map               as Map
 import           Data.Sequence          (Seq)
 import qualified Data.Sequence          as Seq
-
--- | Generate a new @DocId@ by incrementing.
-type DocIdGen = DocId
-
--- | A synonym for an inverted index optimized for
--- insertions of terms.
-type FieldIndex = Map Term (Map FieldName Occurrences)
-
-type BufferedDocs = Seq Document
-
--- | Every @Document@ indexed by an @IndexWrter@ goes into
--- the @Indexer@ first. It collects all kind of useful information
--- and inverts the index which can then be processed into a more
--- efficient form.
-data Indexer = Indexer { indDocIdGen :: !DocIdGen
-                       , indIndex    :: !FieldIndex
-                       , indDocs     :: !BufferedDocs
-                       , indSchema   :: !Schema
-                       } deriving (Show)
-
-indNumDocs :: Indexer -> Int
-indNumDocs ind = Seq.length (indDocs ind)
-
--- | Check if an @Indexer@ has no buffered documents.
-indNull :: Indexer -> Bool
-indNull ind = Map.null (indIndex ind)
-
-emptyIndexer :: Indexer
-emptyIndexer =
-  Indexer { indDocIdGen = firstDocId
-          , indIndex    = mempty
-          , indDocs     = mempty
-          , indSchema   = emptySchema
-          }
-
-indexerSchema :: Indexer -> Schema
-indexerSchema indexer = indSchema indexer
-
--- | A @Conflict@ occurs if two transactions changed the same
--- @Segment@s.
-data Conflict = ConflictDelete SegmentId
-              | ConflictFields FieldName FieldType FieldType
-              deriving (Show)
-
-type Commit a = Either [Conflict] a
 
 data Segment = Segment { segDelGen :: !Generation }
 
