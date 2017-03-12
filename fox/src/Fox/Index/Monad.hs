@@ -5,18 +5,14 @@ module Fox.Index.Monad where
 
 import           Fox.Analyze
 import           Fox.Index.Directory
-import           Fox.Indexer            (Indexer, emptyIndexer)
-import           Fox.Schema             (Schema, emptySchema)
+import           Fox.Indexer            (Indexer)
+import           Fox.Schema             (Schema)
 import           Fox.Types
 import qualified Fox.Types.SegmentMap   as SegmentMap
 
 import           Control.Exception
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
-import           Data.Map               (Map)
-import qualified Data.Map               as Map
-import           Data.Sequence          (Seq)
-import qualified Data.Sequence          as Seq
 
 data Segment = Segment { segDelGen :: !Generation }
 
