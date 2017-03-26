@@ -14,7 +14,8 @@ import qualified Fox.IO.Buffer.WriteBuffer as Writer
 import           Fox.IO.Files              (AppendFile)
 import qualified Fox.IO.Files              as Files
 import           Fox.IO.Write
-import           Fox.Schema                (FieldOrd, FieldOrds, forFields_)
+import           Fox.Schema                (FieldOrd, FieldOrds, foldFields',
+                                            forFields_)
 import           Fox.Types
 import qualified Fox.Types.DocIdMap        as DocIdMap
 import           Fox.Types.Document
@@ -25,6 +26,8 @@ import qualified Fox.Types.Term            as Term
 import           Control.Exception         (onException)
 import           Control.Monad.Except
 import           Data.Foldable
+import           Data.HashMap.Strict       (HashMap)
+import qualified Data.HashMap.Strict       as HashMap
 import           Data.Key
 import           Data.Map                  (Map)
 import qualified Data.Map                  as Map
@@ -149,10 +152,10 @@ fieldValueWrite = W size put
 
 -- | Write a @FieldIndex@ to disk.
 writeTermIndex :: SegmentId
-               -> (FieldName -> FieldOrd)
-               -> Map Term (Map FieldName Occurrences)
+               -> FieldOrds
+               -> Map Term (HashMap FieldName Occurrences)
                -> IDir ()
-writeTermIndex segmentId fieldOrd fieldIndex = do
+writeTermIndex segmentId fieldOrds fieldIndex = do
 
   -- open all files needed for index writing
   withAppendFile (termVectorFile segmentId) $ \tvFile ->
@@ -185,8 +188,8 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
 
           -- write the delta of a term to buffer. sameToken parameter
           -- is an optimization when we know token is the same as lastToken.
-          writeTerm :: Bool -> Term -> Term -> FieldName -> Occurrences -> IO ()
-          writeTerm sameToken lastToken token fieldName occurrences = do
+          writeTerm :: Bool -> Term -> Term -> FieldOrd -> Occurrences -> IO ()
+          writeTerm sameToken lastToken token fieldOrd occurrences = do
 
             -- start by writing the occurrences to the occs file
             -- remember the offset where we started for this term.
@@ -208,25 +211,26 @@ writeTermIndex segmentId fieldOrd fieldIndex = do
 
               prefixLen = Term.length prefix
               numOccs   = DocIdMap.size occurrences
-              fieldOrd_ = fieldOrd fieldName
 
             -- we need to split these guys up because GHC is not smart enough
             -- to optimize the deeply nested tuples away.
             write_ tvBuf (varint >*< termWrite)
               (prefixLen, suffix)
             write_ tvBuf (varint >*< varint >*< varint)
-              (fieldOrd_, (numOccs, occOffset))
+              (fieldOrd, (numOccs, occOffset))
 
         -- loop over all tokens and fields
         let
-          foldTokens :: Term -> Term -> Map FieldName Occurrences -> IO Term
+          foldTokens :: Term -> Term -> HashMap FieldName Occurrences -> IO Term
           foldTokens lastToken token fields =
             let
-              foldFields notFirst fieldName occs = do
-                writeTerm notFirst lastToken token fieldName occs
-                return True
+              foldFields notFirst fieldOrd fieldName
+                | Just occs <- HashMap.lookup fieldName fields = do
+                  writeTerm notFirst lastToken token fieldOrd occs
+                  return True
+                | otherwise = return notFirst
             in do
-              _ <- foldlWithKeyM foldFields False fields
+              _ <- foldFields' foldFields False fieldOrds
               return token
         _ <- foldlWithKeyM foldTokens Term.empty fieldIndex
 

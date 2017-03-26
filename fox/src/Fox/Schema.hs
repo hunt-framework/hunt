@@ -7,7 +7,7 @@ import           Data.Bits
 import           Data.Foldable
 import           Data.HashMap.Strict        (HashMap)
 import qualified Data.HashMap.Strict        as HashMap
-import           Data.Vector                (Vector, imapM_)
+import           Data.Vector                (Vector, ifoldM', imapM_)
 import qualified Data.Vector                as Vector
 import qualified Data.Vector.Algorithms.Tim as Tim
 
@@ -81,6 +81,9 @@ fieldOrds schema =
 
 forFields_ :: Monad m => FieldOrds -> (FieldOrd -> FieldName -> m a) -> m ()
 forFields_ fords f = imapM_ f fords
+
+foldFields' :: Monad m => (a -> FieldOrd -> FieldName -> m a) -> a -> FieldOrds -> m a
+foldFields' f z fords = ifoldM' f z fords
 
 lookupFieldOrd :: FieldOrds -> FieldName -> FieldOrd
 lookupFieldOrd fields fieldName = go 0 (Vector.length fields)

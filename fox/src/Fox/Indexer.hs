@@ -12,6 +12,8 @@ import qualified Fox.Types.Occurrences      as Occurrences
 import           Control.Monad.Except
 import           Control.Monad.State.Strict
 import           Data.Foldable
+import           Data.HashMap.Strict        (HashMap)
+import qualified Data.HashMap.Strict        as HashMap
 import           Data.Key                   (forWithKey_)
 import           Data.Map                   (Map)
 import qualified Data.Map                   as Map
@@ -27,7 +29,7 @@ type DocIdGen = DocId
 
 -- | A synonym for an inverted index optimized for
 -- insertions of terms.
-type TermIndex = Map Term (Map FieldName Occurrences)
+type TermIndex = Map Term (HashMap FieldName Occurrences)
 
 type Documents = Seq Document
 
@@ -114,7 +116,7 @@ indexDoc analyzer document lookupGlobalFieldTy indexer = runIndexer $ do
       let
         singleton = Occurrences.singleton docId pos
 
-        updateOccs fields = Map.insertWith
+        updateOccs fields = HashMap.insertWith
                             (\_ occs -> Occurrences.insert docId pos occs)
                             fieldName
                             singleton
@@ -123,7 +125,7 @@ indexDoc analyzer document lookupGlobalFieldTy indexer = runIndexer $ do
         updateField index = Map.insertWith
                             (\_ fields -> updateOccs fields)
                             token
-                            (Map.singleton fieldName singleton)
+                            (HashMap.singleton fieldName singleton)
                             index
       in updateField fieldIndex
 

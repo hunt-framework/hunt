@@ -2,16 +2,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Fox.Index.Writer where
 
-import           Fox.Index.Directory        as IndexDirectory
+import           Fox.Index.Directory as IndexDirectory
 import           Fox.Index.Monad
 import           Fox.Indexer
-import           Fox.Schema                 (Schema)
-import qualified Fox.Schema                 as Schema
+import           Fox.Schema          (Schema)
+import qualified Fox.Schema          as Schema
 import           Fox.Types
 import           Fox.Types.Document
 
-import           Control.Monad              (when)
-import qualified Data.Map.Strict            as Map
+import           Control.Monad       (when)
+import qualified Data.Map.Strict     as Map
 
 insertDocument :: Document -> IndexWriter ()
 insertDocument doc = insertDocuments [doc]
@@ -63,11 +63,10 @@ createSegment = do
 
   let
     fieldOrds = Schema.fieldOrds schema
-    lookupFieldOrd = Schema.lookupFieldOrd fieldOrds
 
   withIndexDirectory $ do
-    IndexDirectory.writeTermIndex segmentId lookupFieldOrd fieldIndex
-    IndexDirectory.writeDocuments segmentId (Schema.fieldOrds schema) documents
+    IndexDirectory.writeTermIndex segmentId fieldOrds fieldIndex
+    IndexDirectory.writeDocuments segmentId fieldOrds documents
 
   return (segmentId, Segment firstGeneration)
 
