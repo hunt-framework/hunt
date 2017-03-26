@@ -61,11 +61,11 @@ lookupFieldType :: FieldName -> Schema -> Maybe FieldType
 lookupFieldType fieldName schema =
   snd <$> internFieldName fieldName schema
 
-checkSchemaTys :: Schema -> Schema -> [(FieldName, FieldType, FieldType)]
-checkSchemaTys schema1 schema2 =
-  fold $ HashMap.intersectionWithKey check (schemaFields schema1) (schemaFields schema2)
+diffCommonFields :: Schema -> Schema -> [(FieldName, FieldType, FieldType)]
+diffCommonFields schema1 schema2 =
+  fold $ HashMap.intersectionWithKey diff (schemaFields schema1) (schemaFields schema2)
   where
-    check fieldName (P _ fieldTy) (P _ fieldTy')
+    diff fieldName (P _ fieldTy) (P _ fieldTy')
       | fieldTy /= fieldTy' = [(fieldName, fieldTy, fieldTy')]
       | otherwise = []
 
