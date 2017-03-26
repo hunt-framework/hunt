@@ -1,12 +1,13 @@
 {-# LANGUAGE ExistentialQuantification #-}
 module Fox.Types.Document where
 
-import           Fox.Types.DocDesc (FieldName, FieldType, FieldValue, fieldType)
+import           Fox.Types.DocDesc   (FieldName, FieldType, FieldValue,
+                                      fieldType)
 
 import           Data.Bits
-import           Data.Map          (Map)
-import           Data.Map          as Map
-import           Data.Word         (Word8)
+import           Data.HashMap.Strict (HashMap)
+import qualified Data.HashMap.Strict as HashMap
+import           Data.Word           (Word8)
 
 
 newtype DocId = DocId { unDocId :: Int }
@@ -20,7 +21,7 @@ nextDocId (DocId d) = DocId (d + 1)
 
 data Document =
   Document { docWeight :: !Float
-           , docFields :: !(Map FieldName DocField)
+           , docFields :: !(HashMap FieldName DocField)
            } deriving (Show)
 
 newtype FieldFlags = FieldFlags Word8
@@ -48,8 +49,8 @@ dfType :: DocField -> FieldType
 dfType df = fieldType (dfValue df)
 
 emptyDocument :: Document
-emptyDocument = Document 0.0 Map.empty
+emptyDocument = Document 0.0 HashMap.empty
 
 filterStorable :: Document -> Document
 filterStorable doc =
-  doc { docFields = Map.filter (fieldStore . dfFlags) (docFields doc) }
+  doc { docFields = HashMap.filter (fieldStore . dfFlags) (docFields doc) }

@@ -11,7 +11,7 @@ import           Fox.Types
 import           Fox.Types.Document
 
 import           Control.Monad       (when)
-import qualified Data.Map.Strict     as Map
+import qualified Data.HashMap.Strict as HashMap
 
 insertDocument :: Document -> IndexWriter ()
 insertDocument doc = insertDocuments [doc]
@@ -96,7 +96,7 @@ clearIndexer = withIndexer (\_ -> pure emptyIndexer)
 
 doc1 :: Document
 doc1 = Document { docWeight = 1.0
-                , docFields = Map.fromList [
+                , docFields = HashMap.fromList [
                       ("name", DocField (FieldFlags 0x03) 1.0  (FV_Text "Moritz Drexl"))
                     , ("lieblingsfarbe", DocField (FieldFlags 0x03) 1.0 (FV_Text "rot blau grün"))
                     ]
@@ -104,7 +104,7 @@ doc1 = Document { docWeight = 1.0
 
 doc2 :: Document
 doc2 = Document { docWeight = 1.0
-                , docFields = Map.fromList [
+                , docFields = HashMap.fromList [
                       ("name", DocField (FieldFlags 0x03) 1.0  (FV_Text "Alex Biehl"))
                     , ("lieblingsfarbe", DocField (FieldFlags 0x03) 1.0 (FV_Text "lila rot grün"))
                     ]

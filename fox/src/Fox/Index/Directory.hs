@@ -30,7 +30,6 @@ import           Data.HashMap.Strict       (HashMap)
 import qualified Data.HashMap.Strict       as HashMap
 import           Data.Key
 import           Data.Map                  (Map)
-import qualified Data.Map                  as Map
 import           Data.Sequence             (Seq)
 import           System.Directory
 import           System.FilePath
@@ -264,7 +263,7 @@ writeDocuments segmentId fields documents = do
         write_ fdxBuf word64 (fromIntegral pos)
 
         forFields_ fields $ \fieldOrd fieldName ->
-          case Map.lookup fieldName (docFields document) of
+          case HashMap.lookup fieldName (docFields document) of
             Just docField | dfType docField /= FT_Null
               -> write_ fdtBuf (varint >*< fieldValueWrite)
                   (fieldOrd, dfValue docField)
