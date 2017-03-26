@@ -69,9 +69,11 @@ checkSchemaTys schema1 schema2 =
       | fieldTy /= fieldTy' = [(fieldName, fieldTy, fieldTy')]
       | otherwise = []
 
+-- | `FieldOrds` assignes a unique identifier to all fields
+-- in a `Schema`. Fields can then referenced by their much
+-- more compact identifier than their `FieldName`.
 newtype FieldOrds = FieldOrds (Vector FieldName)
 
--- | Every field in a Segment has a unique integer
 type FieldOrd = Int
 
 fieldOrds :: Schema -> FieldOrds
