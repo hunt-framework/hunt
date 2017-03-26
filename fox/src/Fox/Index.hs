@@ -1,5 +1,11 @@
 {-# LANGUAGE RecordWildCards #-}
-module Fox.Index where
+module Fox.Index (
+    IndexRef
+  , newIndex
+  , runWriter
+
+  , defaultAnalyzer
+  ) where
 
 import           Fox.Analyze
 import           Fox.Index.Directory
@@ -15,7 +21,7 @@ import           Control.Monad.Except
 import qualified Data.List               as List
 
 -- | A synchronized, mutable reference to an @Index@
-type IndexRef = MVar Index
+newtype IndexRef = IndexRef (MVar Index)
 
 -- | @Index@ holds the meta data for the actual index.
 data Index =
@@ -43,13 +49,14 @@ defaultAnalyzer = newAnalyzer tokenizeAlpha filterNonEmpty
 newIndex :: IndexDirectory -> IO IndexRef
 newIndex indexDirectory = do
   segIdGen <- newSegIdGen
-  newMVar $! Index { ixIndexDir     = indexDirectory
-                   , ixSegments     = SegmentMap.empty
-                   , ixSegmentRefs  = SegmentMap.empty
-                   , ixSegIdGen     = segIdGen
-                   , ixSchema       = emptySchema
-                   , ixWriterConfig = defaultWriterConfig
-                   }
+  index    <- newMVar $! Index { ixIndexDir     = indexDirectory
+                               , ixSegments     = SegmentMap.empty
+                               , ixSegmentRefs  = SegmentMap.empty
+                               , ixSegIdGen     = segIdGen
+                               , ixSchema       = emptySchema
+                               , ixWriterConfig = defaultWriterConfig
+                               }
+  return $! (IndexRef index)
 
 -- | Run an @IndexWriter@ transaction over the @Index@.
 -- This only locks the @Index@ only in conflict checking
@@ -151,5 +158,5 @@ runWriter analyzer indexRef indexWriter = do
         xs -> throwError xs
 
 modIndex :: IndexRef -> (Index -> (Index, a)) -> IO a
-modIndex indexRef f =
+modIndex (IndexRef indexRef) f =
   modifyMVar indexRef $ \index -> return $! f index
