@@ -69,24 +69,25 @@ checkSchemaTys schema1 schema2 =
       | fieldTy /= fieldTy' = [(fieldName, fieldTy, fieldTy')]
       | otherwise = []
 
-type FieldOrds = Vector FieldName
+newtype FieldOrds = FieldOrds (Vector FieldName)
 
 -- | Every field in a Segment has a unique integer
 type FieldOrd = Int
 
 fieldOrds :: Schema -> FieldOrds
 fieldOrds schema =
-  Vector.modify Tim.sort
+  FieldOrds
+  $ Vector.modify Tim.sort
   $ Vector.fromListN (schemaFieldCount schema) (HashMap.keys (schemaFields schema))
 
 forFields_ :: Monad m => FieldOrds -> (FieldOrd -> FieldName -> m a) -> m ()
-forFields_ fords f = imapM_ f fords
+forFields_ (FieldOrds fords) f = imapM_ f fords
 
 foldFields' :: Monad m => (a -> FieldOrd -> FieldName -> m a) -> a -> FieldOrds -> m a
-foldFields' f z fords = ifoldM' f z fords
+foldFields' f z (FieldOrds fords) = ifoldM' f z fords
 
 lookupFieldOrd :: FieldOrds -> FieldName -> FieldOrd
-lookupFieldOrd fields fieldName = go 0 (Vector.length fields)
+lookupFieldOrd (FieldOrds fields) fieldName = go 0 (Vector.length fields)
   where
     go !l !u
       | u <= l    = 0
