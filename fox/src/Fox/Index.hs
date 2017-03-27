@@ -126,6 +126,8 @@ runWriter analyzer indexRef indexWriter = do
                        }
       in (index', ())
 
+    -- add the new and modified segments to the index.
+    -- Fails on any kind of conflict.
     commit :: Index -> IxWrEnv -> IxWrState -> Commit Index
     commit index@Index{..} IxWrEnv{..} IxWrState{..} =
       let

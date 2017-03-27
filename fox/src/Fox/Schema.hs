@@ -1,5 +1,19 @@
 {-# LANGUAGE BangPatterns #-}
-module Fox.Schema where
+module Fox.Schema (
+    Schema
+  , emptySchema
+  , insertField
+  , internFieldName
+  , lookupFieldType
+  , diffCommonFields
+
+  , FieldOrds
+  , FieldOrd
+  , fieldOrds
+  , forFields_
+  , foldFields'
+  , lookupFieldTypeOrd
+  ) where
 
 import           Fox.Types
 
@@ -61,6 +75,7 @@ lookupFieldType :: FieldName -> Schema -> Maybe FieldType
 lookupFieldType fieldName schema =
   snd <$> internFieldName fieldName schema
 
+-- | Returns a list of common fields where the field types differ.
 diffCommonFields :: Schema -> Schema -> [(FieldName, FieldType, FieldType)]
 diffCommonFields schema1 schema2 =
   fold $ HashMap.intersectionWithKey diff (schemaFields schema1) (schemaFields schema2)
