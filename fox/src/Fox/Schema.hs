@@ -12,7 +12,7 @@ module Fox.Schema (
   , fieldOrds
   , forFields_
   , foldFields'
-  , lookupFieldTypeOrd
+  , lookupFieldOrd
   ) where
 
 import           Fox.Types
