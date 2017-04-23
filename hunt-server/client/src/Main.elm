@@ -9,7 +9,16 @@ import Json.Decode as Json
 import Navigation
 import UrlParser as Url
 import Page exposing (Page(..), urlParser, toPath)
-import Quickstart
+import Hunt.Http as Http exposing (BaseUrl)
+import Quickstart.Model as Quickstart
+import Quickstart.Messages as Quickstart
+import Quickstart.Update as Quickstart
+import Quickstart.View as Quickstart
+import Search.Model as Search
+import Search.Update as Search
+import Search.Messages as Search
+import Search.View as Search
+import Search.Subscriptions as Search
 
 
 -- MAIN
@@ -31,12 +40,20 @@ main =
 
 type alias Model =
     { page : Page
+    , baseUrl : Http.BaseUrl
+    , search : Search.Model
+    , quickstart : Quickstart.Model
     }
 
 
 init : Navigation.Location -> ( Model, Cmd Msg )
 init location =
-    update (UrlChange location) (Model Index)
+    update (UrlChange location)
+        { page = Index
+        , baseUrl = Http.parseBaseUrl "api"
+        , search = Search.init
+        , quickstart = Quickstart.init
+        }
 
 
 
@@ -45,8 +62,8 @@ init location =
 
 type Msg
     = UrlChange Navigation.Location
-    | CreateContexts Json.Value
-    | InsertDocs Json.Value
+    | UpdateSearch Search.Msg
+    | UpdateQuickstart Quickstart.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -55,15 +72,43 @@ update msg model =
         UrlChange location ->
             urlUpdate location model
 
-        CreateContexts contexts ->
-            ( model
-            , Cmd.none
-            )
+        UpdateSearch searchMsg ->
+            let
+                updateConfig =
+                    searchUpdateConfig model.baseUrl
 
-        InsertDocs docs ->
-            ( model
-            , Cmd.none
-            )
+                ( newSearch, searchCmd ) =
+                    Search.update updateConfig searchMsg model.search
+            in
+                ( { model | search = newSearch }
+                , Cmd.map UpdateSearch searchCmd
+                )
+
+        UpdateQuickstart quickstartMsg ->
+            let
+                updateConfig =
+                    quickstartUpdateConfig model.baseUrl
+
+                ( newQuickstart, quickstartCmd ) =
+                    Quickstart.update updateConfig quickstartMsg model.quickstart
+            in
+                ( { model | quickstart = newQuickstart }
+                , Cmd.map UpdateQuickstart quickstartCmd
+                )
+
+
+searchUpdateConfig : BaseUrl -> Search.UpdateConfig
+searchUpdateConfig baseUrl =
+    Search.updateConfig
+        { baseUrl = baseUrl
+        }
+
+
+quickstartUpdateConfig : BaseUrl -> Quickstart.UpdateConfig
+quickstartUpdateConfig baseUrl =
+    Quickstart.updateConfig
+        { baseUrl = baseUrl
+        }
 
 
 
@@ -92,22 +137,10 @@ view : Model -> Html Msg
 view model =
     case model.page of
         Index ->
-            div
-                []
-                [ text "Hello Hunt!"
-                , a [ href ("#/" ++ (toPath Quickstart)) ] [ text "Examples" ]
-                ]
+            Html.map UpdateSearch (Search.view model.search)
 
         Quickstart ->
-            Quickstart.view quickstartViewConfig
-
-
-quickstartViewConfig : Quickstart.ViewConfig Msg
-quickstartViewConfig =
-    Quickstart.viewConfig
-        { createContexts = CreateContexts
-        , insertDocs = InsertDocs
-        }
+            Html.map UpdateQuickstart (Quickstart.view model.quickstart)
 
 
 
@@ -116,4 +149,4 @@ quickstartViewConfig =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sub.map UpdateSearch (Search.subscriptions model.search)

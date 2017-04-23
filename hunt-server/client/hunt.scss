@@ -17,6 +17,21 @@ pre, code {
 }
 
 
+// HELP
+
+.help__option {
+  h5 {
+    margin-bottom: 0;
+    font-size: 0.75em;
+  }
+
+}
+
+.help__example {
+  font-size: 0.7em;
+  margin-left: $global-spacing-unit / 2;
+}
+
 
 // QUICKSTART
 

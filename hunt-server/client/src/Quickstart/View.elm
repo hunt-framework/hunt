@@ -1,8 +1,6 @@
-module Quickstart
+module Quickstart.View
     exposing
-        ( ViewConfig
-        , viewConfig
-        , view
+        ( view
         )
 
 import Html exposing (Html, article, section, div, button, pre, code, text)
@@ -11,31 +9,20 @@ import Html.Events exposing (onClick)
 import Json.Decode as Json exposing (Value)
 import Json.Encode as Json
 import Markdown
+import Quickstart.Model exposing (..)
+import Quickstart.Messages exposing (..)
 
 
-type ViewConfig msg
-    = ViewConfig
-        { createContexts : Value -> msg
-        , insertDocs : Value -> msg
-        }
+-- VIEW
 
 
-viewConfig :
-    { createContexts : Value -> msg
-    , insertDocs : Value -> msg
-    }
-    -> ViewConfig msg
-viewConfig =
-    ViewConfig
-
-
-view : ViewConfig msg -> Html msg
-view (ViewConfig config) =
+view : Model -> Html Msg
+view model =
     article
         [ class "quickstart" ]
         [ introduction
-        , contextCreation config.createContexts
-        , insertingDocuments config.insertDocs
+        , contextCreation
+        , insertingDocuments
         , executingQueries
         , conclusion
         ]
@@ -50,14 +37,15 @@ introduction =
     Markdown.toHtml [] <| """
 # Quickstart Guide
 
-The following short guide should give you a quick overview and some
-sample data to play around and dive into [Hunt](https://github.com/hunt-framework/hunt).
+The following short guide will provide a quick overview of
+[Hunt](https://github.com/hunt-framework/hunt) and some sample data,
+to play around with.
 
 
 ## Contexts
 
-The term context has already been introduced in the Holumbus framework.
-It is used to classify and distinguish indexed information.
+A *context* is used to classify and distinguish indexed information.
+
 
 
 ### Schema
@@ -117,13 +105,13 @@ search and filter the articles.
 -- 2. CONTEXT CREATION
 
 
-contextCreation : (Value -> msg) -> Html msg
-contextCreation toMsg =
+contextCreation : Html Msg
+contextCreation =
     section
         [ class "context-creation"
         ]
         [ contextCreationPreface
-        , runnableExample toMsg createContextCmds
+        , runnableExample CreateContexts createContextCmds
         ]
 
 
@@ -193,12 +181,12 @@ createContextCmds =
 -- 3. INSERTING DOCS
 
 
-insertingDocuments : (Value -> msg) -> Html msg
-insertingDocuments toMsg =
+insertingDocuments : Html Msg
+insertingDocuments =
     section
         [ class "inserting-documents" ]
         [ insertingDocumentsPreface
-        , runnableExample toMsg insertDocsCmds
+        , runnableExample InsertDocs insertDocsCmds
         ]
 
 

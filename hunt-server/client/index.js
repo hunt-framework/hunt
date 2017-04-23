@@ -1,6 +1,6 @@
-require('normalize.css');
-require('./hunt.scss');
 var Elm = require('./src/Main.elm');
+
+require('./hunt.scss');
 
 console.group('Hunt client');
 console.log('Starting up...');
