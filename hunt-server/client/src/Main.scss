@@ -1,0 +1,39 @@
+//
+// HEADER
+//
+
+.header {
+  background: #f1f1f1;
+  border-bottom: 1px solid #ddd;
+}
+
+
+.navigation {
+  max-width: $inuit-global-spacing-unit * 16;
+  margin: 0 auto;
+}
+
+.navigation__list {
+  list-style: none;
+  display: flex;
+  margin: 0;
+  justify-content: center;
+}
+
+.navigation__list__item {
+  flex: 1;
+}
+
+.navigation__list__item a {
+  display: block;
+  padding: $inuit-global-spacing-unit / 3;
+  text-align: center;
+  text-decoration: none;
+  color: #777;
+}
+
+.navigation__list__item--active a {
+  background: #f5f5f5;
+  color: #333;
+
+}

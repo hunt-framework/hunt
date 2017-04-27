@@ -3,12 +3,12 @@ module Main
         ( main
         )
 
-import Html exposing (Html, div, text, a)
-import Html.Attributes exposing (href)
+import Html exposing (Html, div, text, a, header, ul, li, nav)
+import Html.Attributes exposing (href, class, classList)
 import Json.Decode as Json
 import Navigation
 import UrlParser as Url
-import Page exposing (Page(..), urlParser, toPath)
+import Page exposing (Page(..), urlParser, toPath, toHash)
 import Hunt.Http as Http exposing (BaseUrl)
 import Quickstart.Model as Quickstart
 import Quickstart.Messages as Quickstart
@@ -135,12 +135,43 @@ urlUpdate location model =
 
 view : Model -> Html Msg
 view model =
-    case model.page of
-        Index ->
-            Html.map UpdateSearch (Search.view model.search)
+    div
+        [ class "hunt" ]
+        [ viewHeader model.page
+        , case model.page of
+            Index ->
+                Html.map UpdateSearch (Search.view model.search)
 
-        Quickstart ->
-            Html.map UpdateQuickstart (Quickstart.view model.quickstart)
+            Quickstart ->
+                Html.map UpdateQuickstart (Quickstart.view model.quickstart)
+        ]
+
+
+viewHeader : Page -> Html msg
+viewHeader page =
+    header
+        [ class "header" ]
+        [ nav
+            [ class "navigation" ]
+            [ ul
+                [ class "navigation__list" ]
+                [ li
+                    [ classList
+                        [ ( "navigation__list__item", True )
+                        , ( "navigation__list__item--active", page == Index )
+                        ]
+                    ]
+                    [ a [ href (toHash Index) ] [ text "Search" ] ]
+                , li
+                    [ classList
+                        [ ( "navigation__list__item", True )
+                        , ( "navigation__list__item--active", page == Quickstart )
+                        ]
+                    ]
+                    [ a [ href (toHash Quickstart) ] [ text "Quickstart" ] ]
+                ]
+            ]
+        ]
 
 
 

@@ -5,9 +5,11 @@ module Quickstart.Update
         , update
         )
 
+import Http
 import Hunt.Http exposing (BaseUrl)
 import Quickstart.Model exposing (..)
 import Quickstart.Messages exposing (..)
+import Quickstart.Requests as Req
 
 
 -- UPDATE
@@ -29,7 +31,8 @@ update (UpdateConfig config) msg model =
     case msg of
         CreateContexts contexts ->
             ( model
-            , Cmd.none
+            , Req.createContexts config.baseUrl contexts
+                |> Http.send CreateContextsResult
             )
 
         CreateContextsResult (Ok _) ->
@@ -44,7 +47,8 @@ update (UpdateConfig config) msg model =
 
         InsertDocs docs ->
             ( model
-            , Cmd.none
+            , Req.insertDocs config.baseUrl docs
+                |> Http.send InsertDocsResult
             )
 
         InsertDocsResult (Ok _) ->

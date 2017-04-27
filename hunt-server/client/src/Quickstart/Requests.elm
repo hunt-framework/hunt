@@ -6,14 +6,25 @@ module Quickstart.Requests
 
 import Http
 import Hunt.Http as Http exposing (BaseUrl)
+import Json.Decode as Json
 
 
 -- REQUESTS
 
 
-createContexts =
-    ()
+createContexts : BaseUrl -> Json.Value -> Http.Request ()
+createContexts baseUrl json =
+    Http.postJson baseUrl
+        { path = "eval"
+        , body = Http.jsonBody json
+        , decoder = Json.succeed ()
+        }
 
 
-insertDocs =
-    ()
+insertDocs : BaseUrl -> Json.Value -> Http.Request ()
+insertDocs baseUrl json =
+    Http.postJson baseUrl
+        { path = "eval"
+        , body = Http.jsonBody json
+        , decoder = Json.succeed ()
+        }

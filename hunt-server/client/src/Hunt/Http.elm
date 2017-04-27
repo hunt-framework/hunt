@@ -3,6 +3,7 @@ module Hunt.Http
         ( BaseUrl
         , parseBaseUrl
         , getJson
+        , postJson
         )
 
 import Http exposing (Request, encodeUri)
@@ -35,6 +36,18 @@ getJson (BaseUrl baseUrl) { path, queryParams, decoder } =
             baseUrl ++ "/" ++ path ++ toQueryParams queryParams
     in
         Http.get url decoder
+
+
+postJson :
+    BaseUrl
+    -> { path : String, body : Http.Body, decoder : Json.Decoder a }
+    -> Request a
+postJson (BaseUrl baseUrl) { path, body, decoder } =
+    let
+        url =
+            baseUrl ++ "/" ++ path
+    in
+        Http.post url body decoder
 
 
 

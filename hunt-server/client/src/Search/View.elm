@@ -3,8 +3,8 @@ module Search.View
         ( view
         )
 
-import Html exposing (Html, section, div, h2, h5, code, text, main_, input, a)
-import Html.Attributes exposing (id, class, classList, type_, name, value, href)
+import Html exposing (Html, section, div, h2, h5, code, text, main_, input, a, button)
+import Html.Attributes exposing (id, class, classList, type_, name, value, href, placeholder)
 import Html.Events exposing (onInput)
 import Search.Model exposing (..)
 import Search.Messages exposing (..)
@@ -17,9 +17,14 @@ import Autocomplete
 view : Model -> Html Msg
 view model =
     main_
-        []
-        [ a [ href "#quickstart" ] [ text "Quickstart" ]
-        , viewSearch model
+        [ class "search-page" ]
+        [ section
+            [ class "search" ]
+            [ viewSearch model
+            , button
+                [ class "" ]
+                [ text "Search" ]
+            ]
         , viewHelp
         ]
 
@@ -31,12 +36,13 @@ view model =
 viewSearch : Model -> Html Msg
 viewSearch model =
     section
-        [ class "search" ]
+        [ class "search__field" ]
         [ input
             [ type_ "text"
             , name "query"
             , value model.query
             , onInput SetQuery
+            , placeholder "Search"
             ]
             []
         , if model.menuVisible then
@@ -57,8 +63,8 @@ autocompleteConfig =
         customizedLi keySelected mouseSelected item =
             { attributes =
                 [ classList
-                    [ ( "autocomplete__list__item", True )
-                    , ( "autocomplete__list__item--selected", keySelected )
+                    [ ( "search__field__menu__item", True )
+                    , ( "search__field__menu__item--selected", keySelected )
                     ]
                 ]
             , children = [ text (Tuple.first item) ]
@@ -66,7 +72,7 @@ autocompleteConfig =
     in
         Autocomplete.viewConfig
             { toId = Tuple.first
-            , ul = [ class "autocomplete__list" ]
+            , ul = [ class "search__field__menu" ]
             , li = customizedLi
             }
 

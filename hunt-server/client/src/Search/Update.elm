@@ -38,11 +38,23 @@ update (UpdateConfig config) msg model =
         SetQuery query ->
             let
                 ( newDebounce, cmd ) =
-                    Debounce.push debounceConfig query model.debounce
+                    if String.isEmpty query then
+                        ( model.debounce, Cmd.none )
+                    else
+                        Debounce.push debounceConfig query model.debounce
             in
-                ( { model | query = query, debounce = newDebounce }
+                ( { model
+                    | query = query
+                    , debounce = newDebounce
+                    , menuVisible = not (String.isEmpty query)
+                  }
                 , cmd
                 )
+
+        SetQueryAndClose query ->
+            ( { model | query = query, menuVisible = False }
+            , Cmd.none
+            )
 
         SetAutocompleteState autoMsg ->
             let
@@ -72,17 +84,24 @@ update (UpdateConfig config) msg model =
             )
 
         SetRankedDocs (Err err) ->
-            ( { model | queryError = Just err }
+            ( { model
+                | queryError = Just err
+                , menuVisible = False
+              }
             , Cmd.none
             )
 
         SetCompletions (Ok completions) ->
-            ( { model | completions = completions, queryError = Nothing }
+            ( { model
+                | completions = completions
+                , queryError = Nothing
+                , menuVisible = not (List.isEmpty completions)
+              }
             , Cmd.none
             )
 
         SetCompletions (Err err) ->
-            ( { model | queryError = Just err }
+            ( { model | queryError = Just err, menuVisible = False }
             , Cmd.none
             )
 
@@ -102,6 +121,17 @@ update (UpdateConfig config) msg model =
                 , cmd
                 )
 
+        CloseAutocomplete ->
+            ( { model | menuVisible = False }
+            , Cmd.none
+            )
+
+        Search ->
+            ( { model | menuVisible = False }
+            , Req.search config.baseUrl model.query
+                |> Http.send SetRankedDocs
+            )
+
 
 
 -- DEBOUNCE
@@ -118,17 +148,25 @@ debounceConfig =
 -- AUTOCOMPLETE
 
 
+escCode : Int
+escCode =
+    27
+
+
 autocompleteConfig : Autocomplete.UpdateConfig Msg ( String, Float )
 autocompleteConfig =
     Autocomplete.updateConfig
         { toId = Tuple.first
         , onKeyDown =
             \code maybeId ->
-                Nothing
+                if code == escCode then
+                    Just CloseAutocomplete
+                else
+                    Nothing
         , onTooLow = Nothing
         , onTooHigh = Nothing
         , onMouseEnter = \_ -> Nothing
         , onMouseLeave = \_ -> Nothing
-        , onMouseClick = \_ -> Nothing
+        , onMouseClick = \value -> Just (SetQueryAndClose value)
         , separateSelections = False
         }

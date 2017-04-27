@@ -3,6 +3,7 @@ module Page
         ( Page(..)
         , urlParser
         , toPath
+        , toHash
         )
 
 import Navigation
@@ -33,3 +34,8 @@ toPath page =
 
         Quickstart ->
             "quickstart"
+
+
+toHash : Page -> String
+toHash page =
+    "#" ++ toPath page

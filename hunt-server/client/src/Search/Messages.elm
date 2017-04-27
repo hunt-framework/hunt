@@ -15,7 +15,10 @@ import Json.Decode as Json
 
 type Msg
     = SetQuery String
+    | SetQueryAndClose String
+    | Search
     | SetAutocompleteState Autocomplete.Msg
     | SetRankedDocs (Result Http.Error (LimitedResult (RankedDoc Json.Value)))
     | SetCompletions (Result Http.Error (List ( String, Float )))
     | SetCompletionDebounce Debounce.Msg
+    | CloseAutocomplete

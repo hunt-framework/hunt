@@ -1,62 +1,45 @@
 @import url('https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,700');
 
-@import "generic";
 
-// CODE
+// SETTINGS
 
-pre {
-  background: #FAFAFA;
-  color: #444;
-  padding: ($global-spacing-unit / 2);
-  box-shadow: inset 0px 0px 5px #eee;
-  overflow-x: auto;
+$inuit-global-font-size: 20px;
+$inuit-global-line-height: 36px;
+
+@import "node_modules/inuitcss/settings/settings.core";
+
+
+// TOOLS
+
+@import "node_modules/inuitcss/tools/tools.font-size";
+@import "node_modules/inuitcss/tools/tools.rem";
+
+
+// GENERIC
+
+@import "node_modules/inuitcss/generic/generic.box-sizing";
+@import "node_modules/inuitcss/generic/generic.normalize";
+@import "node_modules/inuitcss/generic/generic.reset";
+@import "node_modules/inuitcss/generic/generic.shared";
+
+
+// ELEMENTS
+
+@import "node_modules/inuitcss/elements/elements.page";
+@import "node_modules/inuitcss/elements/elements.headings";
+@import "node_modules/inuitcss/elements/elements.tables";
+
+body {
+  font-family: 'Open Sans', sans-serif;
+  font-weight: lighter;
 }
 
-pre, code {
-  font-size: 0.8rem;
-}
+// MENU
 
 
-// HELP
 
-.help__option {
-  h5 {
-    margin-bottom: 0;
-    font-size: 0.75em;
-  }
+// PAGES
 
-}
-
-.help__example {
-  font-size: 0.7em;
-  margin-left: $global-spacing-unit / 2;
-}
-
-
-// QUICKSTART
-
-.quickstart {
-  max-width: 820px;
-  padding: $global-spacing-unit;
-  margin: auto;
-
-  h1, h2, h3, h4, h5, h6 {
-    font-weight: lighter;
-  }
-}
-
-.executable-json {
-  position: relative;
-  
-  button {
-    position: absolute;
-    right: ($global-spacing-unit / 4);
-    top: ($global-spacing-unit / 4);
-    font-size: 0.8em;
-    padding: ($global-spacing-unit / 4) ($global-spacing-unit / 2);
-
-    &:hover {
-      cursor: pointer;
-    }
-  }
-}
+@import "src/Main";
+@import "src/Quickstart/View";
+@import "src/Search/View";
