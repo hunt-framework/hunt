@@ -50,7 +50,6 @@ viewSearchField model =
                 , name "query"
                 , value model.query
                 , onInput SetQuery
-                , onBlur CloseAutocomplete
                 , on "keydown" (Json.map dec keyCode)
                 , placeholder "Search"
                 ]

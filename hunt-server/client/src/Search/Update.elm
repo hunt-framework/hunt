@@ -140,8 +140,11 @@ update (UpdateConfig config) msg model =
 
         Search ->
             ( { model | menuVisible = False }
-            , Req.search config.baseUrl model.query
-                |> Http.send SetRankedDocs
+            , if String.isEmpty model.query then
+                Cmd.none
+              else
+                Req.search config.baseUrl model.query
+                    |> Http.send SetRankedDocs
             )
 
         NoOp ->
