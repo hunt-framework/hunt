@@ -8,7 +8,7 @@ import Autocomplete
 import Debounce exposing (Debounce)
 import Http
 import Json.Decode as Json
-import Search.Types exposing (LimitedResult, RankedDoc, emptyResult)
+import Search.Types exposing (LimitedResult, RankedDoc, Document, emptyResult)
 
 
 -- MODEL
@@ -18,7 +18,7 @@ type alias Model =
     { query : String
     , autoState : Autocomplete.State
     , debounce : Debounce String
-    , rankedDocs : LimitedResult (RankedDoc Json.Value)
+    , rankedDocs : LimitedResult (RankedDoc Document)
     , completions : List ( String, Float )
     , howManyCompletionsToShow : Int
     , menuVisible : Bool

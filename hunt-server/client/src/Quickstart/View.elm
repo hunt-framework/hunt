@@ -227,7 +227,7 @@ insertDocsCmds =
         "subject": "Something incredible happened in Paris",
         "publish_date": "2013-07-17",
         "content": "Ad eos audire dissentias. Rebum iusto offendit sit te, sonet accusam ei sed. Ceteros periculis imperdiet vim ex, te illum soluta pro. Vis alterum saperet feugait no, tamquam epicuri vituperatoribus nec ea, ex vel doctus democritum.",
-        "location": "48.858503-2.294809"
+        "location": "48.858503 -2.294809"
       },
       "description": {
         "subject": "Something incredible happened in Paris",
@@ -245,7 +245,7 @@ insertDocsCmds =
         "subject": "Something incredible happened in New York",
         "publish_date": "2012-07-17",
         "content": "Ridens essent ex eam. No viris facete admodum mei, ut lorem iuvaret duo. Augue appellantur dissentiunt cum ut, te vel cibo semper, quod impedit eam in. Id duo sanctus facilisis, an postea delicatissimi eam, fuisset forensibus pro ne. Id omnis dicam intellegebat quo, ne admodum consulatu aliquando has, impedit comprehensam sit te.",
-        "location": "40.722673--73.995008"
+        "location": "40.722673 -73.995008"
       },
       "description": {
         "subject": "Something incredible happened in New York",
@@ -263,7 +263,7 @@ insertDocsCmds =
         "subject": "Something incredible happened in Australia",
         "publish_date": "2011-07-17",
         "content": "Lorem ipsum dolor sit amet, apeirian consequat in pri, an enim falli fabulas usu. Ei mei nonumy eligendi qualisque, feugiat intellegat duo ut. Cu per brute nostro. Odio dicam nec at, everti interpretaris ea duo. Ne cum delicata assueverit. Eu vix malis voluptatibus, no debet numquam his, inimicus adversarium ne vix. Aliquando deterruisset mei cu.",
-        "location": "-33.890937-151.085129"
+        "location": "-33.890937 -151.085129"
       },
       "description": {
         "subject": "Something incredible happened in Australia",

@@ -3,11 +3,14 @@ module Search.View
         ( view
         )
 
-import Html exposing (Html, section, div, h2, h5, code, text, main_, input, a, button)
-import Html.Attributes exposing (id, class, classList, type_, name, value, href, placeholder)
-import Html.Events exposing (onInput)
+import Html exposing (Html, section, div, h2, h3, h5, code, text, main_, input, a, button, table, tbody, tr, td, th, thead, em, span, img)
+import Html.Attributes exposing (id, class, classList, type_, name, value, href, placeholder, src, width, height)
+import Html.Events exposing (onInput, onClick)
+import Date exposing (Date, Month(..))
+import Json.Decode as Json
 import Search.Model exposing (..)
 import Search.Messages exposing (..)
+import Search.Types exposing (..)
 import Autocomplete
 
 
@@ -20,10 +23,8 @@ view model =
         [ class "search-page" ]
         [ section
             [ class "search" ]
-            [ viewSearch model
-            , button
-                [ class "" ]
-                [ text "Search" ]
+            [ viewSearchField model
+            , viewResultTable model.query model.rankedDocs
             ]
         , viewHelp
         ]
@@ -33,8 +34,8 @@ view model =
 -- VIEW SEARCH
 
 
-viewSearch : Model -> Html Msg
-viewSearch model =
+viewSearchField : Model -> Html Msg
+viewSearchField model =
     section
         [ class "search__field" ]
         [ input
@@ -54,6 +55,12 @@ viewSearch model =
                     model.completions
           else
             text ""
+        , button
+            [ class "search__field__btn"
+            , onClick Search
+            ]
+            [ img [ src "images/search.svg", width 20, height 20 ] []
+            ]
         ]
 
 
@@ -75,6 +82,114 @@ autocompleteConfig =
             , ul = [ class "search__field__menu" ]
             , li = customizedLi
             }
+
+
+
+-- VIEW RESULT TABLE
+
+
+viewResultTable : String -> LimitedResult (RankedDoc Document) -> Html Msg
+viewResultTable query result =
+    div
+        [ class "results" ]
+        (viewRankedDocs query result)
+
+
+viewRankedDocs : String -> LimitedResult (RankedDoc Document) -> List (Html msg)
+viewRankedDocs query result =
+    case ( query, result.data ) of
+        ( "", [] ) ->
+            [ text "No search yet." ]
+
+        ( _, [] ) ->
+            [ text "No documents found. Have you already tried the "
+            , a [ href "#quickstart" ] [ text "Quickstart" ]
+            , text " guide?"
+            ]
+
+        _ ->
+            List.map viewRankedDoc result.data
+
+
+viewRankedDoc : RankedDoc Document -> Html msg
+viewRankedDoc doc =
+    div
+        [ class "ranked-doc" ]
+        [ h3 [ class "ranked-doc__title" ] [ text doc.uri ]
+        , div [ class "context" ]
+            [ span [ class "context__name" ] [ text "Score " ]
+            , span [ class "context__value" ] [ text (toString doc.score) ]
+            ]
+        , div [ class "context" ]
+            [ span [ class "context__name" ] [ text "Subject " ]
+            , span [ class "context__value" ] [ text doc.description.subject ]
+            ]
+        , div [ class "context" ]
+            [ span [ class "context__name" ] [ text "Published " ]
+            , span [ class "context__value" ] [ text (formatDate doc.description.publishDate) ]
+            ]
+        , div [ class "context" ]
+            [ span [ class "context__name" ] [ text "Content " ]
+            , span [ class "context__value" ] [ text doc.description.content ]
+            ]
+        , div [ class "context" ]
+            [ span [ class "context__name" ] [ text "Location " ]
+            , span [ class "context__value" ]
+                [ text (toString doc.description.location.latitude)
+                , text ", "
+                , text (toString doc.description.location.longitude)
+                ]
+            ]
+        ]
+
+
+formatDate : Date -> String
+formatDate date =
+    let
+        month =
+            case Date.month date of
+                Jan ->
+                    "January"
+
+                Feb ->
+                    "February"
+
+                Mar ->
+                    "March"
+
+                Apr ->
+                    "April"
+
+                May ->
+                    "May"
+
+                Jun ->
+                    "June"
+
+                Jul ->
+                    "July"
+
+                Aug ->
+                    "August"
+
+                Sep ->
+                    "September"
+
+                Oct ->
+                    "October"
+
+                Nov ->
+                    "November"
+
+                Dec ->
+                    "December"
+
+        day =
+            Date.day date
+                |> toString
+                |> String.padLeft 2 '0'
+    in
+        month ++ " " ++ day ++ ", " ++ (toString (Date.year date))
 
 
 

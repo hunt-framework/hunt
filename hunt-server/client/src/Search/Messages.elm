@@ -6,7 +6,7 @@ module Search.Messages
 import Autocomplete
 import Debounce
 import Http
-import Search.Types exposing (LimitedResult, RankedDoc)
+import Search.Types exposing (LimitedResult, RankedDoc, Document)
 import Json.Decode as Json
 
 
@@ -18,7 +18,7 @@ type Msg
     | SetQueryAndClose String
     | Search
     | SetAutocompleteState Autocomplete.Msg
-    | SetRankedDocs (Result Http.Error (LimitedResult (RankedDoc Json.Value)))
+    | SetRankedDocs (Result Http.Error (LimitedResult (RankedDoc Document)))
     | SetCompletions (Result Http.Error (List ( String, Float )))
     | SetCompletionDebounce Debounce.Msg
     | CloseAutocomplete

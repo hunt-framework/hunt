@@ -2,10 +2,13 @@ module Search.Types
     exposing
         ( RankedDoc
         , LimitedResult
+        , Document
+        , Location
         , emptyResult
         )
 
 import Json.Decode as Decode
+import Date exposing (Date)
 
 
 -- TYPES
@@ -15,7 +18,7 @@ type alias LimitedResult a =
     { offset : Int
     , max : Int
     , count : Int
-    , result : List a
+    , data : List a
     }
 
 
@@ -28,4 +31,18 @@ type alias RankedDoc a =
     { uri : String
     , score : Float
     , description : a
+    }
+
+
+type alias Document =
+    { subject : String
+    , publishDate : Date
+    , content : String
+    , location : Location
+    }
+
+
+type alias Location =
+    { latitude : Float
+    , longitude : Float
     }

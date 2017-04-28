@@ -3,7 +3,7 @@ module Search.Requests exposing (..)
 import Http exposing (Request)
 import Hunt.Http as Http exposing (BaseUrl)
 import Json.Decode as Decode
-import Search.Types exposing (LimitedResult, RankedDoc)
+import Search.Types exposing (LimitedResult, RankedDoc, Document)
 import Search.Json.Decode as Decode
 
 
@@ -12,12 +12,12 @@ import Search.Json.Decode as Decode
 
 {-|
 -}
-search : BaseUrl -> String -> Request (LimitedResult (RankedDoc Decode.Value))
+search : BaseUrl -> String -> Request (LimitedResult (RankedDoc Document))
 search baseUrl query =
     Http.getJson baseUrl
         { path = "search/" ++ query
         , queryParams = []
-        , decoder = Decode.limitedResult (Decode.rankedDoc Decode.value)
+        , decoder = Decode.limitedResult (Decode.rankedDoc Decode.document)
         }
 
 

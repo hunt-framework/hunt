@@ -3,7 +3,7 @@
 //
 
 .header {
-  background: #f1f1f1;
+  background: #81C784;
   border-bottom: 1px solid #ddd;
 }
 
@@ -26,14 +26,18 @@
 
 .navigation__list__item a {
   display: block;
-  padding: $inuit-global-spacing-unit / 3;
+  padding: $inuit-global-spacing-unit / 2;
   text-align: center;
   text-decoration: none;
-  color: #777;
+  color: white;
 }
 
 .navigation__list__item--active a {
-  background: #f5f5f5;
-  color: #333;
+  background: #A5D6A7;
+  color: white;
+  font-weight: normal;
+}
 
+h1, h2, h3 {
+  color: #81C784;
 }
