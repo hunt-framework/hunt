@@ -22,3 +22,4 @@ type Msg
     | SetCompletions (Result Http.Error (List ( String, Float )))
     | SetCompletionDebounce Debounce.Msg
     | CloseAutocomplete
+    | NoOp

@@ -52,9 +52,12 @@ update (UpdateConfig config) msg model =
                 )
 
         SetQueryAndClose query ->
-            ( { model | query = query, menuVisible = False }
-            , Cmd.none
-            )
+            update (UpdateConfig config)
+                Search
+                { model
+                    | query = query
+                    , menuVisible = False
+                }
 
         SetAutocompleteState autoMsg ->
             let
@@ -92,13 +95,22 @@ update (UpdateConfig config) msg model =
             )
 
         SetCompletions (Ok completions) ->
-            ( { model
-                | completions = completions
-                , queryError = Nothing
-                , menuVisible = not (List.isEmpty completions)
-              }
-            , Cmd.none
-            )
+            let
+                newAutoState =
+                    Autocomplete.resetToFirstItem
+                        autocompleteConfig
+                        completions
+                        model.howManyCompletionsToShow
+                        model.autoState
+            in
+                ( { model
+                    | completions = completions
+                    , queryError = Nothing
+                    , menuVisible = not (List.isEmpty completions)
+                    , autoState = newAutoState
+                  }
+                , Cmd.none
+                )
 
         SetCompletions (Err err) ->
             ( { model | queryError = Just err, menuVisible = False }
@@ -132,6 +144,9 @@ update (UpdateConfig config) msg model =
                 |> Http.send SetRankedDocs
             )
 
+        NoOp ->
+            ( model, Cmd.none )
+
 
 
 -- DEBOUNCE
@@ -153,13 +168,20 @@ escCode =
     27
 
 
+enterCode : Int
+enterCode =
+    13
+
+
 autocompleteConfig : Autocomplete.UpdateConfig Msg ( String, Float )
 autocompleteConfig =
     Autocomplete.updateConfig
         { toId = Tuple.first
         , onKeyDown =
             \code maybeId ->
-                if code == escCode then
+                if code == enterCode then
+                    Maybe.map SetQueryAndClose maybeId
+                else if code == escCode then
                     Just CloseAutocomplete
                 else
                     Nothing

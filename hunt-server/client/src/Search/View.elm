@@ -5,7 +5,7 @@ module Search.View
 
 import Html exposing (Html, section, div, h2, h3, h5, code, text, main_, input, a, button, table, tbody, tr, td, th, thead, em, span, img)
 import Html.Attributes exposing (id, class, classList, type_, name, value, href, placeholder, src, width, height)
-import Html.Events exposing (onInput, onClick)
+import Html.Events exposing (onInput, onClick, onBlur, on, keyCode)
 import Date exposing (Date, Month(..))
 import Json.Decode as Json
 import Search.Model exposing (..)
@@ -24,7 +24,7 @@ view model =
         [ section
             [ class "search" ]
             [ viewSearchField model
-            , viewResultTable model.query model.rankedDocs
+            , viewResultTable model.query model.completions model.rankedDocs
             ]
         , viewHelp
         ]
@@ -36,32 +36,41 @@ view model =
 
 viewSearchField : Model -> Html Msg
 viewSearchField model =
-    section
-        [ class "search__field" ]
-        [ input
-            [ type_ "text"
-            , name "query"
-            , value model.query
-            , onInput SetQuery
-            , placeholder "Search"
+    let
+        dec code =
+            if code == escCode then
+                CloseAutocomplete
+            else
+                NoOp
+    in
+        section
+            [ class "search__field" ]
+            [ input
+                [ type_ "text"
+                , name "query"
+                , value model.query
+                , onInput SetQuery
+                , onBlur CloseAutocomplete
+                , on "keydown" (Json.map dec keyCode)
+                , placeholder "Search"
+                ]
+                []
+            , if model.menuVisible then
+                Html.map SetAutocompleteState <|
+                    Autocomplete.view
+                        autocompleteConfig
+                        model.howManyCompletionsToShow
+                        model.autoState
+                        model.completions
+              else
+                text ""
+            , button
+                [ class "search__field__btn"
+                , onClick Search
+                ]
+                [ img [ src "images/search.svg", width 20, height 20 ] []
+                ]
             ]
-            []
-        , if model.menuVisible then
-            Html.map SetAutocompleteState <|
-                Autocomplete.view
-                    autocompleteConfig
-                    model.howManyCompletionsToShow
-                    model.autoState
-                    model.completions
-          else
-            text ""
-        , button
-            [ class "search__field__btn"
-            , onClick Search
-            ]
-            [ img [ src "images/search.svg", width 20, height 20 ] []
-            ]
-        ]
 
 
 autocompleteConfig : Autocomplete.ViewConfig ( String, Float )
@@ -88,22 +97,22 @@ autocompleteConfig =
 -- VIEW RESULT TABLE
 
 
-viewResultTable : String -> LimitedResult (RankedDoc Document) -> Html Msg
-viewResultTable query result =
+viewResultTable : String -> List ( String, Float ) -> LimitedResult (RankedDoc Document) -> Html Msg
+viewResultTable query completions result =
     div
         [ class "results" ]
-        (viewRankedDocs query result)
+        (viewRankedDocs query completions result)
 
 
-viewRankedDocs : String -> LimitedResult (RankedDoc Document) -> List (Html msg)
-viewRankedDocs query result =
-    case ( query, result.data ) of
-        ( "", [] ) ->
+viewRankedDocs : String -> List ( String, Float ) -> LimitedResult (RankedDoc Document) -> List (Html msg)
+viewRankedDocs query completions result =
+    case ( query, completions, result.data ) of
+        ( "", _, [] ) ->
             [ text "No search yet." ]
 
-        ( _, [] ) ->
-            [ text "No documents found. Have you already tried the "
-            , a [ href "#quickstart" ] [ text "Quickstart" ]
+        ( _, [], [] ) ->
+            [ text "No documents found. Did you run the examples in our "
+            , a [ href "#quickstart" ] [ text "quickstart" ]
             , text " guide?"
             ]
 
@@ -275,3 +284,12 @@ example content =
             [ text content
             ]
         ]
+
+
+
+-- HELPERS
+
+
+escCode : Int
+escCode =
+    27

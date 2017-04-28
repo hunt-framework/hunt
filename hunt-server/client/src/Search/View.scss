@@ -32,12 +32,24 @@
 }
 
 .search__field__btn {
+  background: #ddd;
+  border: 1px solid #ccc;
+  border-left: none;
   min-width: 66px;
+
+  &:hover {
+    cursor: pointer;
+  }
+
+  &:active {
+    box-shadow: inset 0px 0px 5px #bbb;
+  }
 }
 
 .search__field__menu {
   position: absolute;
   top: 40px;
+  left: 0;
   background: white;
   list-style: none;
   margin: 0;
