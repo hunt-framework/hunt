@@ -78,11 +78,14 @@ lookupFieldType fieldName schema =
 -- | Returns a list of common fields where the field types differ.
 diffCommonFields :: Schema -> Schema -> [(FieldName, FieldType, FieldType)]
 diffCommonFields schema1 schema2 =
-  fold $ HashMap.intersectionWithKey diff (schemaFields schema1) (schemaFields schema2)
+  fold (HashMap.intersectionWithKey
+         diff
+         (schemaFields schema1)
+         (schemaFields schema2))
   where
     diff fieldName (P _ fieldTy) (P _ fieldTy')
       | fieldTy /= fieldTy' = [(fieldName, fieldTy, fieldTy')]
-      | otherwise = []
+      | otherwise           = []
 
 -- | `FieldOrds` assignes a unique identifier to all fields
 -- in a `Schema`. Fields can then referenced by their much

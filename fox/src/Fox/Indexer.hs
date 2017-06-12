@@ -87,7 +87,7 @@ indexDoc analyzer document lookupGlobalFieldTy indexer = runIndexer $ do
       pure docId
 
     fieldTyConflict fieldName fieldTy fieldTy' =
-      throwError $ Conflicts.fieldTyConflict fieldName fieldTy fieldTy'
+      throwError (Conflicts.fieldTyConflict fieldName fieldTy fieldTy')
 
     insertFieldTy fieldName fieldTy = do
       schema <- gets indSchema
@@ -114,24 +114,28 @@ indexDoc analyzer document lookupGlobalFieldTy indexer = runIndexer $ do
     -- this is the meat: create a mapping: Token -> FieldName -> Occurrences
     insertToken fieldName token docId pos fieldIndex =
       let
-        singleton = Occurrences.singleton docId pos
+        occs = Occurrences.singleton docId pos
 
-        updateOccs fields = HashMap.insertWith
-                            (\_ occs -> Occurrences.insert docId pos occs)
-                            fieldName
-                            singleton
-                            fields
+        updateOccs fields =
+          HashMap.insertWith
+            (\_ -> Occurrences.insert docId pos)
+            fieldName
+            occs
+            fields
 
-        updateField index = Map.insertWith
-                            (\_ fields -> updateOccs fields)
-                            token
-                            (HashMap.singleton fieldName singleton)
-                            index
+        updateField index =
+          Map.insertWith
+            (\_ -> updateOccs)
+            token
+            (HashMap.singleton fieldName occs)
+            index
+
       in updateField fieldIndex
 
     invertField anal fieldName fieldValue docId =
       let
-        tokens = analyze anal fieldName fieldValue
+        tokens =
+          analyze anal fieldName fieldValue
 
         invert [] index                       = index
         invert (Token position term:tx) index =
