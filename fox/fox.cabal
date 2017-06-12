@@ -47,7 +47,7 @@ library
   ghc-options:         -O2 -Wall
 
   -- other-extensions:
-  build-depends:       base >=4.6 && <4.10,
+  build-depends:       base >=4.6 && <4.11,
                        binary,
                        bytestring,
                        containers >=0.5.9.1,
