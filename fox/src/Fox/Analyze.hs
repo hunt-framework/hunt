@@ -21,7 +21,7 @@ module Fox.Analyze (
   ) where
 
 import           Fox.Types
-import qualified Fox.Types.Term     as Term
+import qualified Fox.Types.Token    as Term
 
 import qualified Data.Char          as Char
 import qualified Data.List          as List
@@ -72,7 +72,7 @@ mapFilter :: (Token -> Token) -> Filter
 mapFilter f = Filter $ \xs -> List.map f xs
 
 filterNonEmpty :: Filter
-filterNonEmpty = filter (not . nullToken)
+filterNonEmpty = filter (not . Term.nullToken)
 
 splitText :: (Char -> Bool) -> FieldValue -> [Token]
 splitText p v =

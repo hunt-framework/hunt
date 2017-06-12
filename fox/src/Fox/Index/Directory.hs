@@ -21,7 +21,7 @@ import qualified Fox.Types.DocIdMap        as DocIdMap
 import           Fox.Types.Document
 import qualified Fox.Types.Positions       as Positions
 import           Fox.Types.SegmentId       (segmentIdToBase36)
-import qualified Fox.Types.Term            as Term
+import qualified Fox.Types.Token           as Term
 
 import           Control.Exception         (onException)
 import           Control.Monad.Except
@@ -122,7 +122,7 @@ _termWrite = varint >*< termWrite >*< varint >*< varint >*< varint
 {-# INLINE _termWrite #-}
 
 termWrite :: Write Term
-termWrite = Term.termWrite
+termWrite = undefined --Term.termWrite
 {-# INLINE termWrite #-}
 
 fieldValueWrite :: Write FieldValue

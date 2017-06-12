@@ -15,7 +15,6 @@ module Fox.Types (
 
   , Term
   , Token(..)
-  , nullToken
 
   , DocIdSet
   , DocIdMap
@@ -53,11 +52,5 @@ import           Fox.Types.Positions   (Position, Positions)
 import           Fox.Types.SegmentId   (SegIdGen, SegmentId, firstSegmentId,
                                         genSegId, newSegIdGen)
 import           Fox.Types.SegmentMap  (SegmentMap, SegmentSet)
-import           Fox.Types.Term        (Term)
-import qualified Fox.Types.Term        as Term
 
--- | A @Token@ is a @Term@ annotated with a @Position@.
-data Token = Token !Position !Term
-
-nullToken :: Token -> Bool
-nullToken (Token _ t) = Term.null t
+import           Fox.Types.Token       (Term, Token(..))
