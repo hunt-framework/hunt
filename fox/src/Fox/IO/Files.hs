@@ -10,12 +10,9 @@ module Fox.IO.Files (
   , closeRandomAccessFile
   , readRandomAccessFile
   , seekRandomAccessFile
-
   ) where
 
 import           Control.Exception
-import           Data.ByteString.Internal (ByteString)
-import qualified Data.ByteString.Internal as ByteString
 import           Data.Word
 import           Foreign.Ptr
 import qualified GHC.IO.Device            as FD
@@ -32,12 +29,8 @@ openRandomAccessFile fp = do
 closeRandomAccessFile :: RandomAccessFile -> IO ()
 closeRandomAccessFile (MkRAF fd) = FD.close fd
 
-readRandomAccessFile :: Int -> RandomAccessFile -> IO ByteString
-readRandomAccessFile n (MkRAF fd) =
-  ByteString.createAndTrim n $ \buf -> FD.read fd buf n
-
-read :: Int -> Ptr Word8 -> RandomAccessFile -> IO Int
-read sz op (MkRAF fd) = FD.read fd op sz
+readRandomAccessFile :: RandomAccessFile -> Int -> Ptr Word8 -> IO Int
+readRandomAccessFile (MkRAF fd) n buf = FD.read fd buf n
 
 seekRandomAccessFile :: Word64 -> RandomAccessFile -> IO ()
 seekRandomAccessFile off (MkRAF fd) =
