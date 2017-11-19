@@ -204,7 +204,7 @@ html = quickstart
 
 -- INTERPRETER HELPERS
 
-type HuntResult a = ExceptT ServantErr IO a
+type HuntResult a = Handler a
 
 
 -- | Evaluate a given command based on the given Hunt environment.
@@ -234,7 +234,7 @@ getCompletionResult _ = throwError err500 { errBody = "Internal server error" }
 -- everything else, throw an error.
 getOkResult :: CmdResult -> HuntResult ()
 getOkResult ResOK = return ()
-getOkResult _ = throwError err500 { errBody = "Internal server error" }
+getOkResult _     = throwError err500 { errBody = "Internal server error" }
 
 
 -- LOGGING HELPERS

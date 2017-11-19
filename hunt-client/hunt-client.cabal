@@ -18,7 +18,9 @@ library
   build-depends:       base >= 4.7 && < 5
                      , aeson
                      , bytestring
+                     , containers
                      , http-client
+                     , http-types
                      , hunt-api
                      , hunt-searchengine
                      , mtl

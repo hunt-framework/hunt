@@ -8,15 +8,15 @@ packages:
   - ./hunt-server
   - ./hunt-test/data/jokes
 extra-deps:
-  - aeson-1.0.2.1
+  - bzlib-0.5.0.5
+  - servant-0.12
+  - servant-server-0.12
+  - servant-client-0.12
+  - servant-client-core-0.12
   - data-r-tree-0.0.5.0
   - data-stringmap-1.0.1.1
-  - http-api-data-0.3.2
   - hxt-cache-9.1.0.1
   - hxt-xpath-9.1.2.2
-  - servant-0.9.1.1
-  - servant-client-0.9.1.1
-  - servant-server-0.9.1.1
   - store-0.3
   - store-core-0.3
-resolver: nightly-2016-08-06
+resolver: lts-9.13

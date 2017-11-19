@@ -37,14 +37,19 @@ module Hunt.Client
 import           Control.Monad.Except
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as LBS
+import qualified Data.Sequence              as Seq
 import qualified Data.Text                  as T
 import           Hunt.API
 import           Hunt.ClientInterface
 import           Hunt.Query.Intermediate    (RankedDoc)
 import           Network.HTTP.Client        (defaultManagerSettings, newManager)
+import           Network.HTTP.Types.Header  (hContentType)
+import           Network.HTTP.Types.Status  (status400, status500)
+import           Network.HTTP.Types.Version (http11)
 import           Servant.API
 import           Servant.Client             (BaseUrl (BaseUrl), ClientEnv (..),
-                                             ClientM, Scheme (Http),
+                                             ClientM, Response (..),
+                                             Scheme (Http),
                                              ServantError (DecodeFailure),
                                              client, runClientM)
 
@@ -71,7 +76,7 @@ search query offset limit = do
   where
     decodeFailure :: LBS.ByteString -> String -> ClientM a
     decodeFailure body err =
-      throwError $ DecodeFailure err "application/json" body
+      throwError $ DecodeFailure (T.pack err) (Response status500 body (Seq.singleton (hContentType, "application/json")) http11)
 
 
 searchText :: (FromJSON a) => T.Text -> Maybe Offset -> Maybe Limit -> ClientM (LimitedResult a)
@@ -169,4 +174,4 @@ parseQuery' query = either handleErr return $ parseQuery $ T.unpack query
   where
     handleErr :: T.Text -> ClientM Query
     handleErr err =
-      throwError $ DecodeFailure (T.unpack err) "text/plain" (LBS.pack $ T.unpack query)
+      throwError $ DecodeFailure err (Response status400 (LBS.pack (T.unpack query)) (Seq.singleton (hContentType, "text/plain")) http11)

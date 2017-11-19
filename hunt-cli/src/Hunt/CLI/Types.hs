@@ -16,7 +16,8 @@ import           Data.Aeson
 import qualified Data.Text      as T
 import           GHC.Generics
 import           Hunt.API       (Limit, Offset)
-import           Servant.Client (BaseUrl (..), Scheme (Http), ServantError (..))
+import           Servant.Client (BaseUrl (..), Response (..), Scheme (Http),
+                                 ServantError (..))
 
 
 -- COMMAND
@@ -56,10 +57,10 @@ formatErr :: CliErr -> String
 formatErr (JsonErr err) = "JSON parsing failed with err:\n" ++ err
 formatErr (HttpErr err) =
   case err of
-    FailureResponse status contentType body ->
+    FailureResponse (Response status body headers version) ->
       "Request failed with code " ++ show status ++ " and response body\n\n> " ++ show body
 
-    DecodeFailure err _ body ->
+    DecodeFailure err (Response status body headers version) ->
       "Decoding response failed with error\n" ++ show err ++ "\n\non body\n\n>" ++
       show body
 
