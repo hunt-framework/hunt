@@ -128,7 +128,7 @@ Both projects were developed at the [FH Wedel][fhwedel] under supervision and ac
 [sebastian]:     https://twitter.com/sgauck                 "Twitter: Sebastian M. Gauck"
 [uwe]:           http://www.fh-wedel.de/~si/                "FH-Wedel: Prof. Dr. Uwe Schmidt"
 
-[ghc-rts]:       https://www.haskell.org/ghc/docs/latest/html/users_guide/runtime-control.html "GHC RTS options"
+[ghc-rts]:       https://www.haskell.org/ghc/docs/latest/html/users_guide/runtime_control.html "GHC RTS options"
 
 [zlib]:          http://www.zlib.net/                       "zlib"
 [bzip]:          http://bzip.org/                           "bzip2"
