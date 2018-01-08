@@ -1,8 +1,16 @@
-module Main where
+module Main
+  ( main
+  ) where
 
-import           Hunt.CLI            (runCommand, huntCLI)
+
+import qualified Hunt.CLI            as CLI
 import           Options.Applicative (execParser)
 
 
+
+-- MAIN
+
+
 main :: IO ()
-main = execParser huntCLI >>= runCommand
+main =
+  execParser CLI.parser >>= CLI.run

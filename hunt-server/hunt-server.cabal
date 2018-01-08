@@ -13,9 +13,8 @@ build-type:          Simple
 -- extra-source-files:
 cabal-version:       >=1.10
 
-executable hunt-server
+library
   hs-source-dirs:      src
-  main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       aeson
                      , base >= 4.7 && < 5
@@ -36,7 +35,7 @@ executable hunt-server
                      , wai
                      , wai-extra
                      , warp
-  other-modules:       Hunt.Server
+  exposed-modules:     Hunt.Server
                      , Hunt.Server.API
                      , Hunt.Server.Configuration
                      , Hunt.Server.Template
