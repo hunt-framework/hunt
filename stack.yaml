@@ -9,14 +9,17 @@ packages:
   - ./hunt-test/data/jokes
 extra-deps:
   - bzlib-0.5.0.5
-  - servant-0.12
-  - servant-server-0.12
-  - servant-client-0.12
-  - servant-client-core-0.12
+  - servant-0.13
+  - servant-server-0.13
+  - servant-client-0.13
+  - servant-blaze-0.8
+  - servant-client-core-0.13
+  - http-types-0.12.1
+  - text-1.2.3.0
   - data-r-tree-0.0.5.0
   - data-stringmap-1.0.1.1
   - hxt-cache-9.1.0.1
   - hxt-xpath-9.1.2.2
   - store-0.3
   - store-core-0.3
-resolver: lts-9.13
+resolver: lts-10.5

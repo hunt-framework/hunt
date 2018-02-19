@@ -48,8 +48,8 @@ import           Network.HTTP.Types.Status  (status400, status500)
 import           Network.HTTP.Types.Version (http11)
 import           Servant.API
 import           Servant.Client             (BaseUrl (BaseUrl), ClientEnv (..),
-                                             ClientM, Response (..),
-                                             Scheme (Http),
+                                             ClientM, GenResponse (..),
+                                             Response, Scheme (Http),
                                              ServantError (DecodeFailure),
                                              client, runClientM)
 
@@ -63,7 +63,7 @@ huntBaseUrl = BaseUrl Http "localhost" 3000 ""
 withBaseUrl :: (MonadIO m) => BaseUrl -> m ClientEnv
 withBaseUrl baseUrl = do
   man <- liftIO $ newManager defaultManagerSettings
-  return $ ClientEnv man baseUrl
+  pure $ ClientEnv man baseUrl Nothing
 
 
 -- SEARCH
@@ -76,7 +76,11 @@ search query offset limit = do
   where
     decodeFailure :: LBS.ByteString -> String -> ClientM a
     decodeFailure body err =
-      throwError $ DecodeFailure (T.pack err) (Response status500 body (Seq.singleton (hContentType, "application/json")) http11)
+      let
+        headers =
+          Seq.singleton (hContentType, "application/json")
+      in
+        throwError $ DecodeFailure (T.pack err) (Response status500 headers http11 body)
 
 
 searchText :: (FromJSON a) => T.Text -> Maybe Offset -> Maybe Limit -> ClientM (LimitedResult a)
@@ -174,4 +178,11 @@ parseQuery' query = either handleErr return $ parseQuery $ T.unpack query
   where
     handleErr :: T.Text -> ClientM Query
     handleErr err =
-      throwError $ DecodeFailure err (Response status400 (LBS.pack (T.unpack query)) (Seq.singleton (hContentType, "text/plain")) http11)
+      let
+        headers =
+          Seq.singleton (hContentType, "text/plain")
+
+        body =
+          LBS.pack (T.unpack query)
+      in
+        throwError $ DecodeFailure err (Response status400 headers http11 body)
