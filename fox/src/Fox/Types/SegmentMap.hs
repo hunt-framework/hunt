@@ -101,3 +101,6 @@ findMax (SM m)
   | IM.null m = Nothing
   | otherwise = case IM.findMax m of
                   (k, v) -> Just (SegmentId k, v)
+
+toList :: SegmentMap a -> [(SegmentId, a)]
+toList (SM m) = fmap (first SegmentId) (IM.toList m)

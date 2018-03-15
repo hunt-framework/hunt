@@ -20,7 +20,10 @@ library
                        Fox.Index
                        Fox.Index.Directory
                        Fox.Index.InvertedFile
+                       Fox.Index.MetaFile
                        Fox.Index.Monad
+                       Fox.Index.Segment
+                       Fox.Index.State
                        Fox.Index.Writer
                        Fox.Indexer
                        Fox.IO.Buffer

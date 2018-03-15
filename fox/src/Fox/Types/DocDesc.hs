@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 module Fox.Types.DocDesc where
 
 import           Data.ByteString     (ByteString)
@@ -7,6 +8,8 @@ import qualified Data.HashMap.Strict as HashMap
 import           Data.Int            (Int64)
 import           Data.String
 import           Data.Text           (Text)
+
+import qualified GHC.Generics as Generics
 
 -- Additional to the text for the field name we store
 -- its hash. This way we don't need to compute the
@@ -29,6 +32,9 @@ instance IsString FieldName where
   fromString s = let t = fromString s
                  in FieldName (hash t) t
 
+fieldNameToText :: FieldName -> Text
+fieldNameToText (FieldName _ t) = t
+
 data FieldValue = FV_Int  !Int64
                 | FV_Float !Float
                 | FV_Text !Text
@@ -45,7 +51,7 @@ data FieldType = FT_Int
                | FT_Json
                | FT_Binary
                | FT_Null
-               deriving (Eq, Show)
+               deriving (Eq, Show, Generics.Generic)
 
 fieldType :: FieldValue -> FieldType
 fieldType FV_Int{}    = FT_Int

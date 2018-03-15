@@ -1,15 +1,17 @@
+{-# LANGUAGE DeriveGeneric #-}
 module Fox.Types.SegmentId where
 
 import           Data.Char              (chr, ord)
 import           Data.Primitive.PrimRef
 import           Numeric                (showIntAtBase)
 
+import GHC.Generics (Generic)
 
 newtype SegmentId = SegmentId { unSegmentId :: Int }
-                  deriving (Eq, Ord, Show)
+                  deriving (Eq, Ord, Show, Generic)
 
-firstSegmentId :: SegmentId
-firstSegmentId = SegmentId 0
+genesis :: SegmentId
+genesis = SegmentId 0
 
 nextSegmentId :: SegmentId -> SegmentId
 nextSegmentId (SegmentId i) = SegmentId (i + 1)

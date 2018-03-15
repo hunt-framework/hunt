@@ -7,6 +7,7 @@ import           Fox.Analyze
 import           Fox.Index.Directory
 import           Fox.Schema             (Schema)
 import           Fox.Types
+import qualified Fox.Index.Segment      as Segment
 import qualified Fox.Types.SegmentMap   as SegmentMap
 import qualified Fox.Index.InvertedFile as InvertedFile
 
@@ -16,8 +17,6 @@ import           Control.Monad.Reader
 import           System.IO.Error (tryIOError)
 import qualified Debug.Trace as Trace
 import qualified GHC.Stack as CallStack
-
-data Segment = Segment { segDelGen :: !Generation }
 
 data ModifiedSegment =
   ModifiedSegment
@@ -46,7 +45,7 @@ data IxWrEnv =
           -- ^ When creating new @Segment@s we
           -- need to be able to generate globally unique
           -- names for them.
-          , iwSegments :: !(SegmentMap Segment)
+          , iwSegments :: !(SegmentMap Segment.Segment)
           -- ^ An @IndexWriter@ action is transactional
           -- over the current state of the @Index@.
           , iwAnalyzer :: !Analyzer
@@ -55,7 +54,7 @@ data IxWrEnv =
           }
 
 data IxWrState =
-  IxWrState { iwNewSegments :: !(SegmentMap Segment)
+  IxWrState { iwNewSegments :: !(SegmentMap Segment.Segment)
               -- ^ new or modified @Segment@s created in
               -- an @IndexWriter@ action.
             , iwDeletedDocs :: !(SegmentMap DocIdSet)
@@ -109,7 +108,13 @@ trace :: (CallStack.HasCallStack, Show a)
       -> IndexWriter ()
 trace x =
   CallStack.withFrozenCallStack $
-    liftIO (Trace.traceM (show x ++ "\n" ++ show CallStack.callStack))
+    liftIO (Trace.traceM msg)
+  where
+    msg =
+      concat [ show x
+             , "\n"
+             , CallStack.prettyCallStack CallStack.callStack
+             ]
 
 errConflict :: Conflict -> IndexWriter a
 errConflict conflict = errConflicts [conflict]
@@ -150,7 +155,7 @@ setSchema :: Schema -> IndexWriter ()
 setSchema schema = IndexWriter $ \succ_ _ _ st ->
   succ_ () (st { iwSchema = schema })
 
-insertSegment :: SegmentId -> Segment -> IndexWriter ()
+insertSegment :: SegmentId -> Segment.Segment -> IndexWriter ()
 insertSegment segmentId segment = IndexWriter $ \succ_ _fail _ st ->
   succ_ () (st { iwNewSegments =
                   SegmentMap.insert segmentId segment  (iwNewSegments st)
@@ -165,5 +170,5 @@ runIfM action = IndexWriter $ \succ_ fail_ _ st -> do
 
 -- | A read-only transaction over the @Index@.
 newtype IndexReader a =
-  IndexReader { unIndexReader :: ReaderT (SegmentMap Segment) IO a }
+  IndexReader { unIndexReader :: ReaderT (SegmentMap Segment.Segment) IO a }
   deriving (Functor, Applicative, Monad, MonadIO)

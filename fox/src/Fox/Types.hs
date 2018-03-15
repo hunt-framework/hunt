@@ -11,7 +11,6 @@ module Fox.Types (
   , fieldType
   , dfType
   , SegmentId
-  , firstSegmentId
 
   , Term
   , Token(..)
@@ -22,10 +21,6 @@ module Fox.Types (
 
   , Position
   , Positions
-
-  , Generation
-  , firstGeneration
-  , nextGeneration
 
   , SegIdGen
   , newSegIdGen
@@ -45,11 +40,9 @@ import           Fox.Types.DocIdMap    (DocIdMap)
 import           Fox.Types.DocIdSet    (DocIdSet)
 import           Fox.Types.Document    (DocField (..), DocId, Document (..),
                                         dfType, firstDocId, nextDocId)
-import           Fox.Types.Generation  (Generation, firstGeneration,
-                                        nextGeneration)
 import           Fox.Types.Occurrences (Occurrences)
 import           Fox.Types.Positions   (Position, Positions)
-import           Fox.Types.SegmentId   (SegIdGen, SegmentId, firstSegmentId,
+import           Fox.Types.SegmentId   (SegIdGen, SegmentId,
                                         genSegId, newSegIdGen)
 import           Fox.Types.SegmentMap  (SegmentMap, SegmentSet)
 

@@ -7,14 +7,18 @@ module Fox.Schema (
   , lookupFieldType
   , diffCommonFields
   , union
+  , Fox.Schema.toList
 
   , FieldName
+  , FieldType
+
   , FieldOrds
   , FieldOrd
   , fieldOrds
   , forFields_
   , foldFields'
   , lookupFieldOrd
+
   ) where
 
 import           Fox.Types
@@ -22,8 +26,9 @@ import           Fox.Types
 import           Data.Bits
 import           Data.Foldable
 import           Data.HashMap.Strict        (HashMap)
-import qualified Data.HashMap.Strict        as HashMap
 import           Data.Vector                (Vector, ifoldM', imapM_)
+import qualified Data.Foldable as Foldable
+import qualified Data.HashMap.Strict        as HashMap
 import qualified Data.Vector                as Vector
 import qualified Data.Vector.Algorithms.Tim as Tim
 
@@ -129,3 +134,7 @@ lookupFieldOrd (FieldOrds fields) fieldName = go 0 (Vector.length fields)
             GT -> go l k
       where
         k = (u + l) `unsafeShiftR` 1
+
+toList :: Schema -> [(FieldName, FieldType)]
+toList =
+  map (\(P a b) -> (a, b)) . Foldable.toList . schemaFields

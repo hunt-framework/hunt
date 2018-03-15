@@ -6,9 +6,13 @@ module Fox.Index.Directory (
 
   , SegmentDirLayout(..)
   , segmentDirLayout
+
+  , MetaDirLayout(..)
+  , metaDirLayout
   ) where
 
 import qualified Fox.Types.SegmentId as SegmentId
+import qualified Fox.Types.Generation as Generation
 
 import System.FilePath ((</>), (<.>))
 import qualified System.Directory as Directory
@@ -24,6 +28,21 @@ defaultIndexDirectory = IndexDirectory "index"
 createIndexDirectory :: IndexDirectory -> IO ()
 createIndexDirectory (IndexDirectory indexDir) =
   Directory.createDirectoryIfMissing True indexDir
+
+data MetaDirLayout
+  = MetaDirLayout {
+        metaMetaFile :: Generation.Generation -> FilePath
+      }
+
+metaDirLayout :: IndexDirectory -> MetaDirLayout
+metaDirLayout (IndexDirectory indexDir) =
+  let
+    metaFile generation =
+      indexDir </> "meta" <.> Generation.pretty generation
+  in
+    MetaDirLayout {
+      metaMetaFile = metaFile
+    }
 
 data SegmentDirLayout
   = SegmentDirLayout {

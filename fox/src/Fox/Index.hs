@@ -11,10 +11,15 @@ module Fox.Index (
   ) where
 
 import           Fox.Analyze
-import qualified Fox.Index.Directory     as Directory
 import           Fox.Index.Monad
 import           Fox.Schema              (Schema, diffCommonFields, emptySchema)
 import           Fox.Types
+import qualified Fox.Index.Directory     as Directory
+import qualified Fox.Index.MetaFile      as MetaFile
+import qualified Fox.Index.Segment       as Segment
+import qualified Fox.Index.State         as State
+import qualified Fox.Schema as Schema
+import qualified Fox.Types.Generation    as Generation
 import qualified Fox.Types.SegmentMap    as SegmentMap
 
 import           Control.Concurrent.MVar
@@ -23,22 +28,17 @@ import           Control.Monad.Except
 import qualified Data.List               as List
 
 -- | A synchronized, mutable reference to an @Index@
-newtype IndexRef = IndexRef (MVar Index)
+newtype IndexRef = IndexRef Index
 
 -- | @Index@ holds the meta data for the actual index.
 data Index =
   Index { ixIndexDir     :: !Directory.IndexDirectory
           -- ^ the directory where the indexed data resides.
-        , ixSegments     :: !(SegmentMap Segment)
-          -- ^ @Segment@s contained in this @Index@.
-        , ixSegmentRefs  :: !(SegmentMap Int)
-          -- ^ Hold reference counts for @Segment@s which
-          -- are used in transactions.
         , ixSegIdGen     :: !SegIdGen
           -- ^ Generate new @SegmentId@s.
-        , ixSchema       :: !Schema
-          -- ^ A mapping from fields to their types.
         , ixWriterConfig :: !IxWrConfig
+          -- ^ Configuration for the @IndexWriter@s
+        , ixState        :: !State.IxStateRef
         }
 
 -- | Default @Analyzer@ tokenizes non-empty alpha-numeric
@@ -51,13 +51,26 @@ defaultAnalyzer = newAnalyzer tokenizeAlpha filterNonEmpty
 newIndex :: Directory.IndexDirectory -> IO IndexRef
 newIndex indexDirectory = do
   segIdGen <- newSegIdGen
-  index    <- newMVar $! Index { ixIndexDir     = indexDirectory
-                               , ixSegments     = SegmentMap.empty
-                               , ixSegmentRefs  = SegmentMap.empty
-                               , ixSegIdGen     = segIdGen
-                               , ixSchema       = emptySchema
-                               , ixWriterConfig = defaultWriterConfig
-                               }
+
+  let
+    indexState =
+      State.State {
+          State.ixGeneration  = Generation.genesis
+        , State.ixSchema      = emptySchema
+        , State.ixSegmentRefs = SegmentMap.empty
+        , State.ixSegments    = SegmentMap.empty
+        }
+
+  ixState <- newMVar $! indexState
+
+  let
+    index =
+      Index {
+          ixIndexDir     = indexDirectory
+        , ixSegIdGen     = segIdGen
+        , ixWriterConfig = defaultWriterConfig
+        , ixState        = ixState
+        }
 
   Directory.createIndexDirectory indexDirectory
 
@@ -68,7 +81,7 @@ newIndex indexDirectory = do
 -- phase so multiple concurrent @runIndexWriter@ calls
 -- are possible.
 runWriter :: Analyzer -> IndexRef -> IndexWriter a -> IO (Commit a)
-runWriter analyzer indexRef indexWriter = do
+runWriter analyzer (IndexRef indexRef) indexWriter = do
   -- we better bracket here. If there is an exception in
   -- the transaction we better dereference the referenced
   -- segments.
@@ -85,10 +98,22 @@ runWriter analyzer indexRef indexWriter = do
     mresult <- runIndexWriter writerEnv writerState indexWriter
     case mresult of
       Right (result, writerState') -> do
-        modIndex indexRef $ \index ->
+        mcommit <- modIndex indexRef $ \index ->
           case commit index writerEnv writerState' of
-            Right index'   -> (index', return result)
+            Right index'   -> (index', return (index', result))
             Left conflicts -> (index, throwError conflicts)
+
+        case mcommit of
+          Right (ixState', r) -> do
+            let
+              metaDirLayout =
+                Directory.metaDirLayout (ixIndexDir indexRef)
+
+            MetaFile.runMfM $ do
+              MetaFile.writeIndexMetaFile metaDirLayout ixState'
+            return (Right r)
+          Left conflicts ->
+            return (Left conflicts)
       Left err -> throwIO err
       where
     -- Fork an environment for a new transaction
@@ -98,20 +123,20 @@ runWriter analyzer indexRef indexWriter = do
         -- increase the ref count for every Segment.
         -- so we don't garbage collect any Segments
         -- used in a transaction.
-        index' = index { ixSegmentRefs =
+        index' = index { State.ixSegmentRefs =
                            SegmentMap.unionWith
                            (+)
-                           (SegmentMap.map (\_ -> 1) (ixSegments index))
-                           (ixSegmentRefs index)
+                           (SegmentMap.map (\_ -> 1) (State.ixSegments index))
+                           (State.ixSegmentRefs index)
                        }
 
-        env = IxWrEnv { iwIndexDir = ixIndexDir index
-                      , iwNewSegId = genSegId (ixSegIdGen index)
-                      , iwSegments = ixSegments index
+        env = IxWrEnv { iwIndexDir = ixIndexDir indexRef
+                      , iwNewSegId = genSegId (ixSegIdGen indexRef)
+                      , iwSegments = State.ixSegments index
                       , iwAnalyzer = anal
-                      , iwConfig   = ixWriterConfig index
+                      , iwConfig   = ixWriterConfig indexRef
                       }
-      in (index', (ixSchema index, env))
+      in (index', (State.ixSchema index, env))
 
     closeIxWrEnv :: (Schema, IxWrEnv) -> IO ()
     closeIxWrEnv (_, env) = modIndex indexRef $ \index ->
@@ -122,18 +147,18 @@ runWriter analyzer indexRef indexWriter = do
           | n - 1 > 0 = Just $! (n - 1)
           | otherwise = Nothing
 
-        index' = index { ixSegmentRefs =
+        index' = index { State.ixSegmentRefs =
                            SegmentMap.differenceWith
                            (\n _ -> deleteIfZero n)
-                           (ixSegmentRefs index)
+                           (State.ixSegmentRefs index)
                            (iwSegments env)
                        }
       in (index', ())
 
     -- add the new and modified segments to the index.
     -- Fails on any kind of conflict.
-    commit :: Index -> IxWrEnv -> IxWrState -> Commit Index
-    commit index@Index{..} IxWrEnv{..} IxWrState{..} =
+    commit :: State.State -> IxWrEnv -> IxWrState -> Commit State.State
+    commit index@State.State{..} IxWrEnv{..} IxWrState{..} =
       let
         -- checks for conflcts on two segments
         indexConflicts :: [Conflict]
@@ -144,7 +169,7 @@ runWriter analyzer indexRef indexWriter = do
           where
             check segmentId old new =
               [ ConflictDelete segmentId
-              | segDelGen old /= segDelGen new
+              | Segment.segGeneration old /= Segment.segGeneration new
               ]
 
         -- check whether we have conflicting field definitions.
@@ -155,14 +180,16 @@ runWriter analyzer indexRef indexWriter = do
               diffCommonFields iwSchema ixSchema
           ]
 
-        mergedSegments :: SegmentMap Segment
+        mergedSegments :: SegmentMap Segment.Segment
         mergedSegments =
           SegmentMap.unionWith (\new _old -> new) iwNewSegments ixSegments
 
       in case schemaConflicts ++ indexConflicts of
-        [] -> return $! index { ixSegments = mergedSegments }
+        [] -> return $! index { State.ixSegments = mergedSegments
+                              , State.ixSchema   = Schema.union iwSchema ixSchema
+                              }
         xs -> throwError xs
 
-modIndex :: IndexRef -> (Index -> (Index, a)) -> IO a
-modIndex (IndexRef indexRef) f =
-  modifyMVar indexRef $ \index -> return $! f index
+modIndex :: Index -> (State.State -> (State.State, a)) -> IO a
+modIndex indexRef f =
+  modifyMVar (ixState indexRef) $ \index -> return $! f index

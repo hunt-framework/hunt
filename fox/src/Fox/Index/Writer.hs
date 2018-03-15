@@ -14,8 +14,10 @@ import           Fox.Types
 import           Fox.Types.Document
 import qualified Fox.Index.Directory as Directory
 import qualified Fox.Index.InvertedFile as InvertedFile
+import qualified Fox.Index.Segment   as Segment
 import qualified Fox.Schema          as Schema
 import qualified Fox.Types.Conflicts as Conflicts
+import qualified Fox.Types.Generation as Generation
 
 import qualified Control.Parallel.Strategies as Parallel
 import qualified Data.Foldable as Foldable
@@ -58,11 +60,9 @@ insertDocuments docs = do
     indexers = Parallel.parMap Parallel.rpar
                  (Indexer.indexDocs analyzer lookupFieldType) batches
 
-    -- convenience function to avoid too bad
+    -- convenience function to avoid bad
     -- indentation by haskell-mode
     foldlM' z xs f = Foldable.foldlM f z xs
-
-  trace indexers
 
   -- Ok, we are indexing all the documents in parallel. We need
   -- to be careful to check for schema compatibility as otherwise
@@ -79,7 +79,11 @@ insertDocuments docs = do
 
         case conflictingFields of
           [] -> do
+            -- We know field types are consistent for this indexer.
+            -- Store the indexed data into inverted files and note the
+            -- new segment.
             (newSegId, segment) <- createSegment indexed
+            insertSegment newSegId segment
             return (Schema.union (Indexer.indSchema indexed) prevSchema)
 
           conflicts ->
@@ -94,7 +98,7 @@ insertDocuments docs = do
   return ()
 
 -- | Create a new @Segment@ from indexed documents.
-createSegment :: Indexer -> IndexWriter (SegmentId, Segment)
+createSegment :: Indexer -> IndexWriter (SegmentId, Segment.Segment)
 createSegment indexed = do
   segmentId <- newSegmentId
   indexDir  <- askEnv iwIndexDir
@@ -109,6 +113,9 @@ createSegment indexed = do
     fieldOrds =
       Schema.fieldOrds schema
 
+    numberOfDocuments =
+      indNumDocs indexed
+
     segmentDirLayout =
       Directory.segmentDirLayout indexDir segmentId
 
@@ -116,7 +123,15 @@ createSegment indexed = do
     InvertedFile.writeInvertedFiles segmentDirLayout
       fieldOrds termIndex
 
-  return (segmentId, Segment firstGeneration)
+  let
+    newSegment =
+      Segment.Segment {
+          Segment.segGeneration = Generation.genesis
+        , Segment.segSchema     = schema
+        , Segment.segNumDocs    = numberOfDocuments
+      }
+
+  return (segmentId, newSegment)
 
 maxNumBufferedDocs :: IndexWriter Int
 maxNumBufferedDocs = askConfig iwcMaxBufferedDocs
