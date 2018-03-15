@@ -34,8 +34,6 @@ newtype IndexRef = IndexRef Index
 data Index =
   Index { ixIndexDir     :: !Directory.IndexDirectory
           -- ^ the directory where the indexed data resides.
-        , ixSegIdGen     :: !SegIdGen
-          -- ^ Generate new @SegmentId@s.
         , ixWriterConfig :: !IxWrConfig
           -- ^ Configuration for the @IndexWriter@s
         , ixState        :: !State.IxStateRef
@@ -59,6 +57,7 @@ newIndex indexDirectory = do
         , State.ixSchema      = emptySchema
         , State.ixSegmentRefs = SegmentMap.empty
         , State.ixSegments    = SegmentMap.empty
+        , State.ixSegIdGen    = segIdGen
         }
 
   ixState <- newMVar $! indexState
@@ -67,7 +66,6 @@ newIndex indexDirectory = do
     index =
       Index {
           ixIndexDir     = indexDirectory
-        , ixSegIdGen     = segIdGen
         , ixWriterConfig = defaultWriterConfig
         , ixState        = ixState
         }
@@ -131,7 +129,7 @@ runWriter analyzer (IndexRef indexRef) indexWriter = do
                        }
 
         env = IxWrEnv { iwIndexDir = ixIndexDir indexRef
-                      , iwNewSegId = genSegId (ixSegIdGen indexRef)
+                      , iwNewSegId = genSegId (State.ixSegIdGen index)
                       , iwSegments = State.ixSegments index
                       , iwAnalyzer = anal
                       , iwConfig   = ixWriterConfig indexRef

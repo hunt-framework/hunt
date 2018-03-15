@@ -3,6 +3,7 @@
 module Fox.Index.MetaFile (
     MfM
   , runMfM
+  , readIndexMetaFile
   , writeIndexMetaFile
   ) where
 
@@ -15,6 +16,7 @@ import qualified Fox.Types.SegmentMap as SegmentMap
 import qualified Fox.Index.Segment as Segment
 import qualified Fox.Types.DocDesc as Document
 
+import qualified Control.Arrow as Arrow
 import qualified Data.Text as Text
 import qualified GHC.Generics as Generics
 import qualified Data.Binary as Binary
@@ -53,6 +55,57 @@ instance Binary.Binary Document.FieldType
 instance Binary.Binary MetaSegment
 instance Binary.Binary MetaState
 instance Binary.Binary MetaSchema
+
+data ErrReadMetaFile = ErrInvalidFormat
+
+readIndexMetaFile
+  :: FilePath
+  -> MfM (Either ErrReadMetaFile Index.State)
+readIndexMetaFile metaFilePath = do
+  mmetaState <- Binary.decodeFileOrFail metaFilePath
+
+  case mmetaState of
+    Right metaState ->
+
+      let
+        toSegment :: MetaSegment -> (SegmentId.SegmentId, Segment.Segment)
+        toSegment MetaSegment{..} =
+          let
+            segment =
+              Segment.Segment {
+                  Segment.segGeneration = msegGeneration
+                , Segment.segNumDocs    = msegNumDocs
+                }
+          in (msegSegmentId, segment)
+
+        toFieldName :: MetaFieldName -> Document.FieldName
+        toFieldName =
+          Document.fieldNameFromText
+
+        toSchema :: MetaSchema -> Schema.Schema
+        toSchema MetaSchema{..} =
+          Schema.fromList
+            (map (Arrow.first toFieldName) mschFields)
+
+        toState :: MetaState -> MfM Index.State
+        toState MetaState{..} = do
+          segIdGen <- SegmentId.newSegIdGen' msNextSegmentId
+
+          return
+            Index.State {
+              Index.ixGeneration  = msGeneration
+            , Index.ixSchema      = toSchema msSchema
+            , Index.ixSegmentRefs = SegmentMap.empty
+            , Index.ixSegments    =
+                SegmentMap.fromList (map toSegment msSegments)
+            , Index.ixSegIdGen    = segIdGen
+            }
+      in do
+        state <- toState metaState
+        return (Right state)
+
+    Left _ ->
+      return (Left ErrInvalidFormat)
 
 writeIndexMetaFile
   :: Directory.MetaDirLayout

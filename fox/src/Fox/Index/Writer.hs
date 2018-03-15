@@ -127,7 +127,6 @@ createSegment indexed = do
     newSegment =
       Segment.Segment {
           Segment.segGeneration = Generation.genesis
-        , Segment.segSchema     = schema
         , Segment.segNumDocs    = numberOfDocuments
       }
 

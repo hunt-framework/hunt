@@ -8,6 +8,5 @@ import qualified Fox.Types.Generation as Generation
 data Segment
   = Segment {
         segGeneration :: !Generation.Generation
-      , segSchema     :: !Schema.Schema
       , segNumDocs    :: !Int
       }

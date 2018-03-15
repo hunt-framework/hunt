@@ -7,6 +7,8 @@ module Fox.Schema (
   , lookupFieldType
   , diffCommonFields
   , union
+
+  , Fox.Schema.fromList
   , Fox.Schema.toList
 
   , FieldName
@@ -62,6 +64,19 @@ insertField fieldName fieldTy schema
     schema' = schema {
         schemaFields     = HashMap.insert fieldName (P fieldName fieldTy) (schemaFields schema)
       , schemaFieldCount = schemaFieldCount schema + 1
+      }
+
+fromList :: [(FieldName, FieldType)]
+--         -> Either (FieldName, FieldType, FieldType) Schema
+            -> Schema
+fromList fields =
+  Schema {
+        schemaFields =
+            HashMap.fromList [ (fieldName, P fieldName fieldType)
+                             | (fieldName, fieldType) <- fields
+                             ]
+      , schemaFieldCount =
+          length fields
       }
 
 emptySchema :: Schema

@@ -35,6 +35,9 @@ instance IsString FieldName where
 fieldNameToText :: FieldName -> Text
 fieldNameToText (FieldName _ t) = t
 
+fieldNameFromText :: Text -> FieldName
+fieldNameFromText t = FieldName (hash t) t
+
 data FieldValue = FV_Int  !Int64
                 | FV_Float !Float
                 | FV_Text !Text
