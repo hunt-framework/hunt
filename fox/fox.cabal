@@ -17,6 +17,9 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:     Fox.Analyze
+                       Fox.IO.Buffer
+                       Fox.IO.Files
+                       Fox.IO.Write
                        Fox.Index
                        Fox.Index.Directory
                        Fox.Index.InvertedFile
@@ -26,9 +29,6 @@ library
                        Fox.Index.State
                        Fox.Index.Writer
                        Fox.Indexer
-                       Fox.IO.Buffer
-                       Fox.IO.Files
-                       Fox.IO.Write
                        Fox.Schema
                        Fox.Types
                        Fox.Types.Conflicts

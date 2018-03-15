@@ -183,8 +183,12 @@ runWriter analyzer (IndexRef indexRef) indexWriter = do
           SegmentMap.unionWith (\new _old -> new) iwNewSegments ixSegments
 
       in case schemaConflicts ++ indexConflicts of
-        [] -> return $! index { State.ixSegments = mergedSegments
-                              , State.ixSchema   = Schema.union iwSchema ixSchema
+        [] -> return $! index { State.ixGeneration =
+                                  Generation.nextGeneration (State.ixGeneration index)
+                              , State.ixSegments =
+                                  mergedSegments
+                              , State.ixSchema   =
+                                  Schema.union iwSchema ixSchema
                               }
         xs -> throwError xs
 

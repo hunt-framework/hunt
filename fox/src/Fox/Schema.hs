@@ -72,8 +72,8 @@ fromList :: [(FieldName, FieldType)]
 fromList fields =
   Schema {
         schemaFields =
-            HashMap.fromList [ (fieldName, P fieldName fieldType)
-                             | (fieldName, fieldType) <- fields
+            HashMap.fromList [ (fieldName, P fieldName fieldTy)
+                             | (fieldName, fieldTy) <- fields
                              ]
       , schemaFieldCount =
           length fields
