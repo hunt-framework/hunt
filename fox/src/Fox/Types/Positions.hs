@@ -24,7 +24,7 @@ type Position = Int
 
 newtype Positions
     = PS {unPS :: IS.IntSet}
-      deriving (Eq, Ord, Read, Show, NFData, Monoid)
+      deriving (Eq, Ord, Read, Show, NFData, Semigroup, Monoid)
 
 -- | Empty positions.
 empty                :: Positions

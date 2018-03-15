@@ -58,6 +58,9 @@ fieldType FV_Null{}   = FT_Null
 newtype DocDesc = DocDesc { unDesc :: HashMap FieldName FieldValue }
                 deriving (Eq, Show)
 
+instance Semigroup DocDesc where
+  (<>) = union
+
 instance Monoid DocDesc where
   mempty  = empty
   mappend = union

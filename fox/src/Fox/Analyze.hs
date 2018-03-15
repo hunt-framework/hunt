@@ -40,9 +40,11 @@ newtype Tokenizer = Tokenizer { tokenize :: FieldValue -> [Token] }
 -- | Filters a sequence of @Token@s.
 newtype Filter = Filter { runFilter :: [Token] -> [Token] }
 
+instance Semigroup Filter where
+  (<>) = composeFilter
+
 instance Monoid Filter where
   mempty  = identityFilter
-  mappend = composeFilter
 
 -- | Create an @Analyzer@ from @Tokenizer@ and @Filter@.
 newAnalyzer :: Tokenizer -> Filter -> Analyzer

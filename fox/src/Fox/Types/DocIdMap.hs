@@ -67,7 +67,10 @@ type instance K.Key DocIdMap = DocId
 
 -- ------------------------------------------------------------
 
-instance Monoid v => Monoid (DocIdMap v) where
+instance Semigroup v => Semigroup (DocIdMap v) where
+    (<>) = unionWith (<>)
+
+instance Semigroup v => Monoid (DocIdMap v) where
     mempty  = DIM IM.empty
     mappend = unionWith (<>)
 

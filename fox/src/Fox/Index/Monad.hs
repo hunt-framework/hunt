@@ -5,14 +5,17 @@ module Fox.Index.Monad where
 
 import           Fox.Analyze
 import           Fox.Index.Directory
-import           Fox.Indexer            (Indexer)
 import           Fox.Schema             (Schema)
 import           Fox.Types
 import qualified Fox.Types.SegmentMap   as SegmentMap
+import qualified Fox.Index.InvertedFile as InvertedFile
 
 import           Control.Exception
 import           Control.Monad.IO.Class
 import           Control.Monad.Reader
+import           System.IO.Error (tryIOError)
+import qualified Debug.Trace as Trace
+import qualified GHC.Stack as CallStack
 
 data Segment = Segment { segDelGen :: !Generation }
 
@@ -32,7 +35,7 @@ data IxWrConfig =
 
 defaultWriterConfig :: IxWrConfig
 defaultWriterConfig =
-  IxWrConfig { iwcMaxBufferedDocs = 0
+  IxWrConfig { iwcMaxBufferedDocs = 10
              }
 
 data IxWrEnv =
@@ -46,8 +49,6 @@ data IxWrEnv =
           , iwSegments :: !(SegmentMap Segment)
           -- ^ An @IndexWriter@ action is transactional
           -- over the current state of the @Index@.
-          , iwSchema   :: !Schema
-          -- ^ We need to remember which fields have which types.
           , iwAnalyzer :: !Analyzer
           -- ^ @Document@s are analyzed by this @Analyzer@.
           , iwConfig   :: !IxWrConfig
@@ -59,15 +60,15 @@ data IxWrState =
               -- an @IndexWriter@ action.
             , iwDeletedDocs :: !(SegmentMap DocIdSet)
               -- ^ Remember deleted documents for each @Segment@.
-            , iwIndexer     :: !Indexer
+            , iwSchema      :: !Schema
+            -- ^ We need to remember which fields have which types
             }
 
 data WriterError = WriterConflict [Conflict]
-                 | WriterIDirErr IDirError
+                 | WriterIOError IOError
                  deriving (Show)
 
 instance Exception WriterError
-
 
 -- | a write transaction over the @Index@. The @Index@ is updated
 -- transactionally.
@@ -103,6 +104,13 @@ instance MonadIO IndexWriter where
     succ_ x st
   {-# INLINE liftIO #-}
 
+trace :: (CallStack.HasCallStack, Show a)
+      => a
+      -> IndexWriter ()
+trace x =
+  CallStack.withFrozenCallStack $
+    liftIO (Trace.traceM (show x ++ "\n" ++ show CallStack.callStack))
+
 errConflict :: Conflict -> IndexWriter a
 errConflict conflict = errConflicts [conflict]
 
@@ -124,43 +132,36 @@ withAnalyzer :: Analyzer -> IndexWriter a -> IndexWriter a
 withAnalyzer analyzer (IndexWriter m) = IndexWriter $ \succ_ fail_ env st ->
   m succ_ fail_ (env { iwAnalyzer = analyzer }) st
 
-withIndexer :: (Indexer -> Either Conflict Indexer) -> IndexWriter ()
-withIndexer f = IndexWriter $ \succ_ fail_ _env st ->
-  case f (iwIndexer st) of
-    Right indexer' -> succ_ () (st { iwIndexer = indexer' })
-    Left conflict  -> fail_ $ WriterConflict [conflict]
-
-withIndexDirectory :: IDir a -> IndexWriter a
-withIndexDirectory f = askEnv iwIndexDir >>= \indexDirectory -> do
-  IndexWriter $ \succ_ fail_ _ st -> do
-    result <- runIDir indexDirectory f
-    case result of
-      Right a -> succ_ a st
-      Left e  -> fail_ (WriterIDirErr e)
-
 askEnv :: (IxWrEnv -> a) -> IndexWriter a
 askEnv f = IndexWriter $ \succ_ _ env st -> succ_ (f env) st
 
 newSegmentId :: IndexWriter SegmentId
 newSegmentId = askEnv iwNewSegId >>= liftIO
 
-askIndexer :: (Indexer -> a) -> IndexWriter a
-askIndexer f = IndexWriter $ \succ_ _fail _env st ->
-  succ_ (f (iwIndexer st)) st
-
 askConfig :: (IxWrConfig -> a) -> IndexWriter a
 askConfig f = IndexWriter $ \ succ_ _fail env st ->
   succ_ (f (iwConfig env)) st
 
 askSchema :: IndexWriter Schema
-askSchema = IndexWriter $ \succ_ _fail_ env st ->
-  succ_ (iwSchema env) st
+askSchema = IndexWriter $ \succ_ _fail_ _ st ->
+  succ_ (iwSchema st) st
+
+setSchema :: Schema -> IndexWriter ()
+setSchema schema = IndexWriter $ \succ_ _ _ st ->
+  succ_ () (st { iwSchema = schema })
 
 insertSegment :: SegmentId -> Segment -> IndexWriter ()
 insertSegment segmentId segment = IndexWriter $ \succ_ _fail _ st ->
   succ_ () (st { iwNewSegments =
                   SegmentMap.insert segmentId segment  (iwNewSegments st)
               })
+
+runIfM :: InvertedFile.IfM a -> IndexWriter a
+runIfM action = IndexWriter $ \succ_ fail_ _ st -> do
+  mresult <- tryIOError (InvertedFile.runIfM action)
+  case mresult of
+    Right a -> succ_ a st
+    Left e  -> fail_ (WriterIOError e)
 
 -- | A read-only transaction over the @Index@.
 newtype IndexReader a =

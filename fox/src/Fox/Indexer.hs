@@ -42,7 +42,7 @@ data Indexer = Indexer
   , indTermIndex :: !TermIndex
   , indDocuments :: !Documents
   , indSchema    :: !Schema
-  }
+  } deriving (Show)
 
 emptyIndexer :: Indexer
 emptyIndexer =
@@ -144,10 +144,9 @@ indexDoc analyzer document lookupGlobalFieldTy indexer = runIndexer $ do
         modify $ \s -> s { indTermIndex = invert tokens (indTermIndex s) }
 
 indexDocs :: Analyzer
-          -> [Document]
           -> LookupGlobalFieldTy
-          -> Indexer
+          -> [Document]
           -> Either Conflict Indexer
-indexDocs analyzer documents getGlobalFieldTy indexer =
+indexDocs analyzer getGlobalFieldTy documents =
   foldlM (\indexer' doc ->
-            indexDoc analyzer doc getGlobalFieldTy indexer') indexer documents
+            indexDoc analyzer doc getGlobalFieldTy indexer') emptyIndexer documents

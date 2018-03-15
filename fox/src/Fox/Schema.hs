@@ -6,7 +6,9 @@ module Fox.Schema (
   , internFieldName
   , lookupFieldType
   , diffCommonFields
+  , union
 
+  , FieldName
   , FieldOrds
   , FieldOrd
   , fieldOrds
@@ -87,6 +89,15 @@ diffCommonFields schema1 schema2 =
       | fieldTy /= fieldTy' = [(fieldName, fieldTy, fieldTy')]
       | otherwise           = []
 
+
+-- | This is bad: we rather want
+-- Schema -> Schema -> Either (FieldName, FieldType, FieldType) Schema
+union :: Schema -> Schema -> Schema
+union schema1 schema2 =
+  let
+    fields = HashMap.union (schemaFields schema1) (schemaFields schema2)
+  in Schema fields (HashMap.size fields)
+
 -- | `FieldOrds` assignes a unique identifier to all fields
 -- in a `Schema`. Fields can then referenced by their much
 -- more compact identifier than their `FieldName`.
@@ -118,4 +129,3 @@ lookupFieldOrd (FieldOrds fields) fieldName = go 0 (Vector.length fields)
             GT -> go l k
       where
         k = (u + l) `unsafeShiftR` 1
-

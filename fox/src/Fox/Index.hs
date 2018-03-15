@@ -4,13 +4,15 @@ module Fox.Index (
   , newIndex
   , runWriter
 
+  , Directory.IndexDirectory
+  , Directory.defaultIndexDirectory
+
   , defaultAnalyzer
   ) where
 
 import           Fox.Analyze
-import           Fox.Index.Directory
+import qualified Fox.Index.Directory     as Directory
 import           Fox.Index.Monad
-import           Fox.Indexer             (emptyIndexer, indSchema)
 import           Fox.Schema              (Schema, diffCommonFields, emptySchema)
 import           Fox.Types
 import qualified Fox.Types.SegmentMap    as SegmentMap
@@ -25,7 +27,7 @@ newtype IndexRef = IndexRef (MVar Index)
 
 -- | @Index@ holds the meta data for the actual index.
 data Index =
-  Index { ixIndexDir     :: !IndexDirectory
+  Index { ixIndexDir     :: !Directory.IndexDirectory
           -- ^ the directory where the indexed data resides.
         , ixSegments     :: !(SegmentMap Segment)
           -- ^ @Segment@s contained in this @Index@.
@@ -46,7 +48,7 @@ defaultAnalyzer = newAnalyzer tokenizeAlpha filterNonEmpty
 
 -- | Create a new index in a specified @IndexDirectory@.
 -- Does not load index if one exists.
-newIndex :: IndexDirectory -> IO IndexRef
+newIndex :: Directory.IndexDirectory -> IO IndexRef
 newIndex indexDirectory = do
   segIdGen <- newSegIdGen
   index    <- newMVar $! Index { ixIndexDir     = indexDirectory
@@ -56,6 +58,9 @@ newIndex indexDirectory = do
                                , ixSchema       = emptySchema
                                , ixWriterConfig = defaultWriterConfig
                                }
+
+  Directory.createIndexDirectory indexDirectory
+
   return $! (IndexRef index)
 
 -- | Run an @IndexWriter@ transaction over the @Index@.
@@ -67,12 +72,12 @@ runWriter analyzer indexRef indexWriter = do
   -- we better bracket here. If there is an exception in
   -- the transaction we better dereference the referenced
   -- segments.
-  bracket (forkIxWrEnv analyzer) closeIxWrEnv $ \writerEnv -> do
+  bracket (forkIxWrEnv analyzer) closeIxWrEnv $ \(schema, writerEnv) -> do
     let
       writerState =
         IxWrState { iwNewSegments   = SegmentMap.empty
                   , iwDeletedDocs   = SegmentMap.empty
-                  , iwIndexer       = emptyIndexer
+                  , iwSchema        = schema
                   }
 
     -- run the transaction. Note that it can start merges
@@ -87,7 +92,7 @@ runWriter analyzer indexRef indexWriter = do
       Left err -> throwIO err
       where
     -- Fork an environment for a new transaction
-    forkIxWrEnv :: Analyzer -> IO IxWrEnv
+    forkIxWrEnv :: Analyzer -> IO (Schema, IxWrEnv)
     forkIxWrEnv anal = modIndex indexRef $ \index ->
       let
         -- increase the ref count for every Segment.
@@ -103,19 +108,18 @@ runWriter analyzer indexRef indexWriter = do
         env = IxWrEnv { iwIndexDir = ixIndexDir index
                       , iwNewSegId = genSegId (ixSegIdGen index)
                       , iwSegments = ixSegments index
-                      , iwSchema   = ixSchema index -- TODO: do we really need this?
                       , iwAnalyzer = anal
                       , iwConfig   = ixWriterConfig index
                       }
-      in (index', env)
+      in (index', (ixSchema index, env))
 
-    closeIxWrEnv :: IxWrEnv -> IO ()
-    closeIxWrEnv env = modIndex indexRef $ \index ->
+    closeIxWrEnv :: (Schema, IxWrEnv) -> IO ()
+    closeIxWrEnv (_, env) = modIndex indexRef $ \index ->
       let
         -- delete segments from ixSegmentRefs if they
         -- are not referenced anywhere.
         deleteIfZero n
-          | n - 1 > 0 = Just (n - 1)
+          | n - 1 > 0 = Just $! (n - 1)
           | otherwise = Nothing
 
         index' = index { ixSegmentRefs =
@@ -148,7 +152,7 @@ runWriter analyzer indexRef indexWriter = do
         schemaConflicts =
           [ ConflictFields fieldName fieldTy fieldTy'
           | (fieldName, fieldTy, fieldTy') <-
-              diffCommonFields (indSchema iwIndexer) ixSchema
+              diffCommonFields iwSchema ixSchema
           ]
 
         mergedSegments :: SegmentMap Segment

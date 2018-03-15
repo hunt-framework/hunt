@@ -30,6 +30,9 @@ import           Prelude            hiding (null)
 newtype DocIdSet = DIS { unDIS :: S.IntSet }
     deriving (Eq, Show, NFData)
 
+instance Semigroup DocIdSet where
+    (<>) = mappend
+
 instance Monoid DocIdSet where
     mempty
         = DIS S.empty

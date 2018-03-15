@@ -32,6 +32,9 @@ import           Foreign.Storable
 -- @Write@s can be composed using a contravariant interface.
 data Write a = W (a -> Int) (a -> Ptr Word8 -> IO (Ptr Word8))
 
+instance Semigroup (Write a) where
+  (<>) w1 w2 = divideW (\x -> (x, x)) w1 w2
+
 instance Contravariant Write where
   contramap f (W hint write) = W (hint . f) (write . f)
   {-# INLINE CONLIKE contramap #-}

@@ -29,7 +29,7 @@ newtype SegmentMap a = SM { unSM :: IntMap a }
                      deriving ( Functor, Keyed, Zip, ZipWithKey
                               , Lookup, Indexable, Adjustable
                               , FoldableWithKey, Foldable
-                              , Monoid
+                              , Semigroup, Monoid
                               , Traversable
                               , Show
                               , Binary
