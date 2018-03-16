@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Fox.Index.InvertedFile.Records where
 
 import qualified Data.Coerce as Coerce
@@ -12,7 +13,7 @@ import qualified Fox.Types.Token as Token
 
 import qualified Data.Count as Count
 import qualified Data.Offset as Offset
-
+import qualified Foreign.Storable as Storable
 
 -- | Convenience type for serialiasing occurrences for
 -- the occurrence file.
@@ -61,9 +62,9 @@ vocRead =
          <*> offsetOfRead
 
 -- | 'IxWrite' represents a row in the vocabulary lookup file
-data IxRec
-  = IxRec { ixVocOffset :: !(Offset.OffsetOf (VocRec Token.Term))
-          }
+newtype IxRec
+  = IxRec { ixVocOffset :: Offset.OffsetOf (VocRec Token.Term)
+          } deriving (Eq, Ord, Show, Storable.Storable)
 
 ixWrite :: Write.Write IxRec
 ixWrite =

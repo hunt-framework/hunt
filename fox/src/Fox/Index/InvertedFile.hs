@@ -8,6 +8,8 @@ module Fox.Index.InvertedFile (
   , writeInvertedFiles
 
   , InvFileInfo(..)
+
+  , readIxFile
   ) where
 
 import qualified Fox.IO.Buffer as Buffer
@@ -32,8 +34,13 @@ import qualified Data.Foldable as Foldable
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Key as Key
 import qualified Data.Offset as Offset
+import qualified Data.Vector.Storable as Vector
 import qualified Data.Word as Word
 import qualified GHC.Generics as GHC
+import qualified System.MemoryMap as MemoryMap
+import qualified Foreign.Ptr as Ptr
+
+import Prelude hiding (read)
 
 -- | A monad in which we write the inverted files. Currently this is an
 -- alias for 'IO', however in the future this might become something
@@ -43,6 +50,18 @@ type IfM a = IO a
 
 runIfM :: IfM a -> IO a
 runIfM = id
+
+read :: MemoryMap.FileMapping
+     -> Read.Read a
+     -> IfM a
+read mmap (Read.R runRead) = do
+  let
+    start =
+      MemoryMap.fileMappingPtr mmap
+    end =
+      start `Ptr.plusPtr` fromIntegral (MemoryMap.fileMappingSize mmap)
+  (a, _) <- runRead end start
+  return a
 
 -- | A buffered file abstraction. The `System.IO.Handle` type
 -- is synchronized with an MVar. In our special case we don't
@@ -111,6 +130,13 @@ instance ( Semigroup a
          , Semigroup b) => Semigroup (Pair a b) where
   P a b <> P c d =
     P (a <> c) (b <> d)
+
+-- | Get a memory map from a file. TODO: `IfM` should
+-- talk to a global, synchronized cache of open file
+-- mappings, and release the mappings automatically
+fileMapping :: FilePath -> IfM MemoryMap.FileMapping
+fileMapping fp =
+  MemoryMap.fileMapRead fp
 
 -- | Write the indexed vocabulary, occurrences and postings
 -- to the index directory.
@@ -249,4 +275,8 @@ readIxFile :: Directory.SegmentDirLayout
            -> InvFileInfo
            -> IfM TermIndex.TermIndex
 readIxFile Directory.SegmentDirLayout{ segmentIxFile } invFileInfo  = do
-  undefined
+  fileMapping <- fileMapping segmentIxFile
+  termIx <- read fileMapping $ do
+    Vector.generateM (Count.getInt (ifIxCount invFileInfo)) $ \_ ->
+      Records.ixRead
+  return (TermIndex.TermIndex termIx)

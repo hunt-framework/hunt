@@ -29,9 +29,9 @@ data BufferRange
                 !(Foreign.Ptr Word.Word8)
 
 newtype Read a
-  = R { _runRead :: Foreign.Ptr Word.Word8
-                 -> Foreign.Ptr Word.Word8
-                 -> IO (a, Foreign.Ptr Word.Word8) }
+  = R { runRead :: Foreign.Ptr Word.Word8
+                -> Foreign.Ptr Word.Word8
+                -> IO (a, Foreign.Ptr Word.Word8) }
 
 instance Functor Read where
   fmap = mapRead
@@ -40,6 +40,9 @@ instance Applicative Read where
   pure  = pureRead
   (<*>) = apRead
 
+instance Monad Read where
+  (>>=) = bindRead
+
 pureRead :: a -> Read a
 pureRead x = R (\_ op -> pure (x, op))
 
@@ -47,6 +50,10 @@ apRead :: Read (a -> b) -> Read a -> Read b
 apRead (R f) (R g) = R (\r op -> do (f', op') <- f r op
                                     (g', op'') <- g r op'
                                     return (f' g', op''))
+
+bindRead :: Read a -> (a -> Read b) -> Read b
+bindRead (R m) f = R (\r op -> do (a, op') <- m r op
+                                  runRead (f a) r op')
 
 mapRead :: (a -> b) -> Read a -> Read b
 mapRead f (R g) =

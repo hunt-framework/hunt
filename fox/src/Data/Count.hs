@@ -22,3 +22,6 @@ zero = CountOf 0
 
 one :: CountOf a
 one = CountOf 1
+
+getInt :: CountOf a -> Int
+getInt (CountOf x) = x
