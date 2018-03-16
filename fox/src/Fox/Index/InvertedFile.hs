@@ -4,10 +4,13 @@ module Fox.Index.InvertedFile (
     IfM
   , runIfM
   , writeInvertedFiles
+
+  , vocRead
   ) where
 
 import qualified Fox.IO.Buffer as Buffer
 import qualified Fox.IO.Files as Files
+import qualified Fox.IO.Read as Read
 import qualified Fox.IO.Write as Write
 import qualified Fox.Index.Directory as Directory
 import qualified Fox.Indexer as Indexer
@@ -84,58 +87,96 @@ offsetOfWrite :: Write.Write (OffsetOf a)
 offsetOfWrite =
   Coerce.coerce Write.>$< Write.varint
 
+offsetOfRead :: Read.Read (OffsetOf a)
+offsetOfRead =
+  Coerce.coerce `fmap` Read.varint
+
 countOfWrite :: Write.Write (CountOf a)
 countOfWrite =
   Coerce.coerce Write.>$< Write.varint
+
+countOfRead :: Read.Read (CountOf a)
+countOfRead =
+  Coerce.coerce `fmap` Read.varint
 
 docIdWrite :: Write.Write Document.DocId
 docIdWrite =
   Document.unDocId Write.>$< Write.varint
 
+docIdRead :: Read.Read Document.DocId
+docIdRead =
+  Coerce.coerce `fmap` Read.varint
+
 positionWrite :: Write.Write Positions.Position
 positionWrite = Write.varint
+
+fieldOrdWrite :: Write.Write Schema.FieldOrd
+fieldOrdWrite = Write.varint
+
+fieldOrdRead :: Read.Read Schema.FieldOrd
+fieldOrdRead = Read.varint
 
 termWrite :: Write.Write Token.Term
 termWrite = Write.text
 
 -- | Convenience type for serialiasing occurrences for
 -- the occurrence file.
-data OccWrite
-  = OccWrite { owDocId     :: !Document.DocId
-             , owPosCount  :: !(CountOf Positions.Position)
-             , owPosOffset :: !(OffsetOf Positions.Position)
-             }
+data OccRec
+  = OccRec { owDocId     :: !Document.DocId
+           , owPosCount  :: !(CountOf Positions.Position)
+           , owPosOffset :: !(OffsetOf Positions.Position)
+           }
 
-occurrenceWrite :: Write.Write OccWrite
+occurrenceWrite :: Write.Write OccRec
 occurrenceWrite =
   (owDocId     Write.>$< docIdWrite) <>
   (owPosCount  Write.>$< countOfWrite) <>
   (owPosOffset Write.>$< offsetOfWrite)
 
--- | 'VocWrite' represents a row in the vocabulary file
-data VocWrite
-  = VocWrite { vwLengthPrefix :: !(CountOf Word.Word16)
-             , vwTerm         :: !Token.Term
-             , vwField        :: !Schema.FieldOrd
-             , vwOccCount     :: !(CountOf Occurrences.Occurrences)
-             , vwOccOffset    :: !(OffsetOf Occurrences.Occurrences)
-             }
+occurrenceRead :: Read.Read OccRec
+occurrenceRead =
+  OccRec <$> docIdRead
+         <*> countOfRead
+         <*> offsetOfRead
 
-vocWrite :: Write.Write VocWrite
+-- | 'VocWrite' represents a row in the vocabulary file.
+-- 'VocRec' is abstract in the term field.
+data VocRec term
+  = VocRec { vwLengthPrefix :: !(CountOf Word.Word16)
+           , vwTerm         :: !term
+           , vwField        :: !Schema.FieldOrd
+           , vwOccCount     :: !(CountOf Occurrences.Occurrences)
+           , vwOccOffset    :: !(OffsetOf Occurrences.Occurrences)
+           }
+
+vocWrite :: Write.Write (VocRec Token.Term)
 vocWrite =
   (vwLengthPrefix Write.>$< countOfWrite) <>
   (vwTerm         Write.>$< termWrite) <>
+  (vwField        Write.>$< fieldOrdWrite) <>
   (vwOccCount     Write.>$< countOfWrite) <>
   (vwOccOffset    Write.>$< offsetOfWrite)
 
--- | 'IxWrite' represents a row in the vocabulary lookup file
-data IxWrite
-  = IxWrite { ixVocOffset :: !(OffsetOf Token.Term)
-            }
+vocRead :: Read.Read (VocRec Read.UTF16)
+vocRead =
+  VocRec <$> countOfRead
+         <*> Read.utf16
+         <*> fieldOrdRead
+         <*> countOfRead
+         <*> offsetOfRead
 
-ixWrite :: Write.Write IxWrite
+-- | 'IxWrite' represents a row in the vocabulary lookup file
+data IxRec
+  = IxRec { ixVocOffset :: !(OffsetOf Token.Term)
+          }
+
+ixWrite :: Write.Write IxRec
 ixWrite =
   ixVocOffset Write.>$< offsetOfWrite
+
+ixRead :: Read.Read IxRec
+ixRead =
+  IxRec <$> offsetOfRead
 
 -- | Write the indexed vocabulary, occurrences and postings
 -- to the index directory.
@@ -164,10 +205,10 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
           (Positions.toAscList positions) writePosition
 
         write occ occurrenceWrite
-          OccWrite { owDocId     = docId
-                   , owPosCount  = CountOf (Positions.size positions)
-                   , owPosOffset = posOffset
-                   }
+          OccRec { owDocId     = docId
+                 , owPosCount  = CountOf (Positions.size positions)
+                 , owPosOffset = posOffset
+                 }
 
       -- write a record to the vocabulary file
       writeVocabulary
@@ -183,8 +224,8 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
         Monad.when (prefixLength == 0) $ do
           vocOffset <- offset voc
           write ix ixWrite
-            IxWrite { ixVocOffset = vocOffset
-                    }
+            IxRec { ixVocOffset = vocOffset
+                  }
 
         -- start by writing the occurrences to the occs file
         -- remember the offset where we started for this term.
@@ -193,12 +234,12 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
           writeOccurrence docId positions
 
         write voc vocWrite
-          VocWrite { vwLengthPrefix = prefixLength
-                   , vwTerm         = term
-                   , vwField        = field
-                   , vwOccCount     = CountOf (DocIdMap.size occurrences)
-                   , vwOccOffset    = occOffset
-                   }
+          VocRec { vwLengthPrefix = prefixLength
+                 , vwTerm         = term
+                 , vwField        = field
+                 , vwOccCount     = CountOf (DocIdMap.size occurrences)
+                 , vwOccOffset    = occOffset
+                 }
 
       foldVocabulary
         :: Token.Term

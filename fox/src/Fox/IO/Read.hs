@@ -65,7 +65,13 @@ word64 :: Read Word.Word64
 word64 = readStorable
 
 utf16 :: Read UTF16
-utf16 = undefined
+utf16 = R go
+  where
+    R readVarint = varint
+
+    go r op = do
+      (l, op') <- readVarint r op
+      return (UTF16 op' l, op' `Foreign.plusPtr` l)
 
 varword :: Read Word.Word
 varword = R go
