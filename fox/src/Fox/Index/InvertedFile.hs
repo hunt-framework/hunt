@@ -277,6 +277,10 @@ readIxFile :: Directory.SegmentDirLayout
 readIxFile Directory.SegmentDirLayout{ segmentIxFile } invFileInfo  = do
   fileMapping <- fileMapping segmentIxFile
   termIx <- read fileMapping $ do
-    Vector.generateM (Count.getInt (ifIxCount invFileInfo)) $ \_ ->
-      Records.ixRead
-  return (TermIndex.TermIndex termIx)
+    let
+      ixCount =
+        Count.getInt (ifIxCount invFileInfo)
+    Vector.generateM ixCount
+      (\_ -> Records.ixRead)
+
+  return $! (TermIndex.TermIndex termIx)
