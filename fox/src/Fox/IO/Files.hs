@@ -5,6 +5,11 @@ module Fox.IO.Files (
   , withAppendFile
   , append
 
+  , MonotonicReadFile
+  , openMonotonicReadFile
+  , readMonotonicReadFile
+  , closeMonotonicReadFile
+
   , RandomAccessFile
   , openRandomAccessFile
   , closeRandomAccessFile
@@ -18,6 +23,21 @@ import           Foreign.Ptr
 import qualified GHC.IO.Device            as FD
 import qualified GHC.IO.FD                as FD
 import qualified System.IO                as IO
+
+newtype MonotonicReadFile = MkMRF FD.FD
+
+openMonotonicReadFile :: FilePath -> IO MonotonicReadFile
+openMonotonicReadFile fp = do
+  (fd, _) <- FD.openFile fp IO.ReadMode True
+  return (MkMRF fd)
+
+readMonotonicReadFile :: MonotonicReadFile -> Ptr Word8 -> Int -> IO Int
+readMonotonicReadFile (MkMRF fd) op n =
+  FD.read fd op n
+
+closeMonotonicReadFile :: MonotonicReadFile -> IO ()
+closeMonotonicReadFile (MkMRF fd) =
+  FD.close fd
 
 newtype RandomAccessFile = MkRAF FD.FD
 
