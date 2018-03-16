@@ -17,6 +17,7 @@ import qualified Fox.Index.Segment as Segment
 import qualified Fox.Types.DocDesc as Document
 
 import qualified Control.Arrow as Arrow
+import qualified Control.Exception as Exception
 import qualified Data.Text as Text
 import qualified GHC.Generics as Generics
 import qualified Data.Binary as Binary
@@ -59,7 +60,11 @@ instance Binary.Binary MetaSegment
 instance Binary.Binary MetaState
 instance Binary.Binary MetaSchema
 
-data ErrReadMetaFile = ErrInvalidFormat
+data ErrReadMetaFile =
+  ErrInvalidFormat
+  deriving (Show)
+
+instance Exception.Exception ErrReadMetaFile
 
 readIndexMetaFile
   :: FilePath
@@ -86,7 +91,7 @@ readIndexMetaFile metaFilePath = do
                   Just (internedFieldName, _) -> internedFieldName
                   Nothing                     -> fieldName
                     -- TODO: this is an inconsistency!!! and may never happen!!!
-                    -- make conversion monadic!!!
+                    -- make conversion monadic and fail here!!!
 
             fieldOrds =
               Vector.fromList (map toInternedFieldName msegFields)

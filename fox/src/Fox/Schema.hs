@@ -19,6 +19,7 @@ module Fox.Schema (
   , fieldOrds
   , forFields_
   , foldFields'
+  , indexFieldOrd
   , lookupFieldOrd
 
   ) where
@@ -138,6 +139,11 @@ forFields_ fords f = imapM_ f fords
 foldFields' :: Monad m => (a -> FieldOrd -> FieldName -> m a) -> a -> FieldOrds -> m a
 foldFields' f z fords = ifoldM' f z fords
 
+-- TODO: make this total
+indexFieldOrd :: FieldOrd -> FieldOrds -> FieldName
+indexFieldOrd ford fords = fords Vector.! ford
+
+-- TODO: make this total
 lookupFieldOrd :: FieldOrds -> FieldName -> FieldOrd
 lookupFieldOrd fields fieldName = go 0 (Vector.length fields)
   where

@@ -4,6 +4,8 @@ module Fox.Index.Directory (
   , defaultIndexDirectory
   , createIndexDirectory
 
+  , listMetaFiles
+
   , SegmentDirLayout(..)
   , segmentDirLayout
 
@@ -14,8 +16,12 @@ module Fox.Index.Directory (
 import qualified Fox.Types.SegmentId as SegmentId
 import qualified Fox.Types.Generation as Generation
 
+import qualified Data.List as List
+import qualified Data.Ord as Ord
 import System.FilePath ((</>), (<.>))
+import qualified System.FilePath as FilePath
 import qualified System.Directory as Directory
+import qualified Text.Read as Read
 
 
 -- | Root directory where the index files are stored.
@@ -28,6 +34,32 @@ defaultIndexDirectory = IndexDirectory "index"
 createIndexDirectory :: IndexDirectory -> IO ()
 createIndexDirectory (IndexDirectory indexDir) =
   Directory.createDirectoryIfMissing True indexDir
+
+listIndexDirectory :: IndexDirectory -> IO [FilePath]
+listIndexDirectory (IndexDirectory indexDir) =
+  Directory.listDirectory indexDir
+
+-- | List all the index meta files in the 'IndexDirectory'.
+-- Returns the meta file pathes in descending order of
+-- generations.
+listMetaFiles :: IndexDirectory -> IO [(Generation.Generation, FilePath)]
+listMetaFiles indexDir@(IndexDirectory ixDir) = do
+  files <- listIndexDirectory indexDir
+
+  let
+    toMetaFile fp
+      | "meta"   <- FilePath.takeBaseName fp
+      , '.':rest <- FilePath.takeExtension fp
+      , Just gen <- Read.readMaybe rest
+      = [ (Generation.fromInt gen, ixDir </> fp) ]
+      | otherwise
+      = []
+
+    metaFiles =
+      (List.concatMap toMetaFile files)
+
+  return (List.sortOn (Ord.Down . fst) metaFiles)
+
 
 data MetaDirLayout
   = MetaDirLayout {

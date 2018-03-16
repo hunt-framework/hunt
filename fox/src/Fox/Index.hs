@@ -1,7 +1,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Fox.Index (
     IndexRef
-  , newIndex
+  , openIndex
   , runWriter
 
   , Directory.IndexDirectory
@@ -46,21 +46,10 @@ defaultAnalyzer = newAnalyzer tokenizeAlpha filterNonEmpty
 
 -- | Create a new index in a specified @IndexDirectory@.
 -- Does not load index if one exists.
-newIndex :: Directory.IndexDirectory -> IO IndexRef
-newIndex indexDirectory = do
-  segIdGen <- newSegIdGen
+openIndex :: Directory.IndexDirectory -> IO IndexRef
+openIndex indexDirectory = do
 
-  let
-    indexState =
-      State.State {
-          State.ixGeneration  = Generation.genesis
-        , State.ixSchema      = emptySchema
-        , State.ixSegmentRefs = SegmentMap.empty
-        , State.ixSegments    = SegmentMap.empty
-        , State.ixSegIdGen    = segIdGen
-        }
-
-  ixState <- newMVar $! indexState
+  ixState <- openIndexState indexDirectory
 
   let
     index =
@@ -70,9 +59,39 @@ newIndex indexDirectory = do
         , ixState        = ixState
         }
 
+  return $! (IndexRef index)
+
+openIndexState :: Directory.IndexDirectory -> IO State.IxStateRef
+openIndexState indexDirectory = do
+
   Directory.createIndexDirectory indexDirectory
 
-  return $! (IndexRef index)
+  metaFiles <- Directory.listMetaFiles indexDirectory
+
+  ixState <- case metaFiles of
+    ((_, mostRecentMetaFile):_) -> do
+      MetaFile.runMfM $ do
+        mstate <- MetaFile.readIndexMetaFile mostRecentMetaFile
+        case mstate of
+          Right state -> return state
+          Left err    -> throwIO err
+    [] -> do
+      segIdGen <- newSegIdGen
+
+      let
+        indexState =
+          State.State {
+            State.ixGeneration  = Generation.genesis
+          , State.ixSchema      = emptySchema
+          , State.ixSegmentRefs = SegmentMap.empty
+          , State.ixSegments    = SegmentMap.empty
+          , State.ixSegIdGen    = segIdGen
+          }
+
+      return indexState
+
+  state <- newMVar $! ixState
+  return state
 
 -- | Run an @IndexWriter@ transaction over the @Index@.
 -- This only locks the @Index@ only in conflict checking

@@ -14,3 +14,6 @@ nextGeneration (Generation g) = Generation (g + 1)
 
 pretty :: Generation -> String
 pretty (Generation g) = show g
+
+fromInt :: Int -> Generation
+fromInt = Generation
