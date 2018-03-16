@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 module Fox.Index.Writer (
     insertDocument
   , insertDocuments
@@ -120,16 +121,24 @@ createSegment indexed = do
       Directory.segmentDirLayout indexDir segmentId
 
   runIfM $ do
-    invFileInfo <-
+    InvertedFile.InvFileInfo{..} <-
       InvertedFile.writeInvertedFiles segmentDirLayout fieldOrds termIndex
 
     let
-     newSegment =
+      -- TODO: ideally calling loadTermIndex twice should return the
+      -- same, cached 'TermIndex'. Put it on the big 'IfM' refactoring
+      loadTermIndex :: InvertedFile.IfM InvertedFile.TermIndex
+      loadTermIndex =
+        InvertedFile.readIxFile segmentDirLayout InvertedFile.InvFileInfo{..}
+
+      newSegment =
         Segment.Segment {
             Segment.segGeneration  = Generation.genesis
-          , Segment.segNumDocs     = numberOfDocuments
           , Segment.segFields      = fieldOrds
-          , Segment.segInvFileInfo = invFileInfo
+          , Segment.segDocCount    = numberOfDocuments
+          , Segment.segTermCount   = ifTermCount
+          , Segment.segTermIxCount = ifIxCount
+          , Segment.segLoadTermIx  = loadTermIndex
           }
 
     return (segmentId, newSegment)

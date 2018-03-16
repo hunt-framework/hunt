@@ -70,7 +70,7 @@ openIndexState indexDirectory = do
   ixState <- case metaFiles of
     ((_, mostRecentMetaFile):_) -> do
       MetaFile.runMfM $ do
-        mstate <- MetaFile.readIndexMetaFile mostRecentMetaFile
+        mstate <- MetaFile.readIndexMetaFile mostRecentMetaFile indexDirectory
         case mstate of
           Right state -> return state
           Left err    -> throwIO err

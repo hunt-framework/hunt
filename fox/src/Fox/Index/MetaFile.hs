@@ -17,6 +17,7 @@ import qualified Fox.Types.Document as Document
 import qualified Fox.Types.Generation as Generation
 import qualified Fox.Types.SegmentId as SegmentId
 import qualified Fox.Types.SegmentMap as SegmentMap
+import qualified Fox.Types.Token as Token
 
 import qualified Control.Arrow as Arrow
 import qualified Control.Exception as Exception
@@ -34,11 +35,12 @@ runMfM = id
 
 data MetaSegment
   = MetaSegment {
-       msegSegmentId  :: !SegmentId.SegmentId
-     , msegGeneration :: !Generation.Generation
-     , msegNumDocs    :: !(Count.CountOf Document.Document)
-     , msegFields     :: [MetaFieldName]
-     , msegInvInfo    :: !InvertedFile.InvFileInfo
+       msegSegmentId   :: !SegmentId.SegmentId
+     , msegGeneration  :: !Generation.Generation
+     , msegFields      :: [MetaFieldName]
+     , msegDocCount    :: !(Count.CountOf Document.Document)
+     , msegTermCount   :: !(Count.CountOf Token.Term)
+     , msegTermIxCount :: !(Count.CountOf Token.Term)
      } deriving (Generics.Generic)
 
 data MetaSchema
@@ -73,8 +75,9 @@ instance Exception.Exception ErrReadMetaFile
 
 readIndexMetaFile
   :: FilePath
+  -> Directory.IndexDirectory
   -> MfM (Either ErrReadMetaFile Index.State)
-readIndexMetaFile metaFilePath = do
+readIndexMetaFile metaFilePath indexDirectory = do
   mmetaState <- Binary.decodeFileOrFail metaFilePath
 
   case mmetaState of
@@ -100,15 +103,29 @@ readIndexMetaFile metaFilePath = do
                     -- TODO: this is an inconsistency!!! and may never happen!!!
                     -- make conversion monadic and fail here!!!
 
+            segmentDirLayout =
+              Directory.segmentDirLayout indexDirectory msegSegmentId
+
             fieldOrds =
               Vector.fromList (map toInternedFieldName msegFields)
+
+            invFileInfo =
+              InvertedFile.InvFileInfo {
+                  ifTermCount = msegTermCount
+                , ifIxCount   = msegTermIxCount
+                }
+
+            loadTermIx =
+              InvertedFile.readIxFile segmentDirLayout invFileInfo
 
             segment =
               Segment.Segment {
                   Segment.segGeneration  = msegGeneration
-                , Segment.segNumDocs     = msegNumDocs
                 , Segment.segFields      = fieldOrds
-                , Segment.segInvFileInfo = msegInvInfo
+                , Segment.segDocCount    = msegDocCount
+                , Segment.segTermCount   = msegTermCount
+                , Segment.segTermIxCount = msegTermIxCount
+                , Segment.segLoadTermIx  = loadTermIx
                 }
           in (msegSegmentId, segment)
 
@@ -155,11 +172,12 @@ writeIndexMetaFile Directory.MetaDirLayout{..} state = do
     toMetaSegment :: SegmentId.SegmentId -> Segment.Segment -> MetaSegment
     toMetaSegment segmentId Segment.Segment{..} =
       MetaSegment {
-          msegSegmentId  = segmentId
-        , msegGeneration = segGeneration
-        , msegNumDocs    = segNumDocs
-        , msegFields     = fmap toMetaFieldName (Foldable.toList segFields)
-        , msegInvInfo    = segInvFileInfo
+          msegSegmentId   = segmentId
+        , msegGeneration  = segGeneration
+        , msegFields      = fmap toMetaFieldName (Foldable.toList segFields)
+        , msegDocCount    = segDocCount
+        , msegTermCount   = segTermCount
+        , msegTermIxCount = segTermIxCount
         }
 
     toMetaFieldName :: Schema.FieldName -> MetaFieldName

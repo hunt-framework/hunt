@@ -9,6 +9,7 @@ module Fox.Index.InvertedFile (
 
   , InvFileInfo(..)
 
+  , TermIndex.TermIndex
   , readIxFile
   ) where
 
