@@ -62,8 +62,10 @@ insertField fieldName fieldTy schema
   = Right (fieldName, schema')
   where
     schema' = schema {
-        schemaFields     = HashMap.insert fieldName (P fieldName fieldTy) (schemaFields schema)
-      , schemaFieldCount = schemaFieldCount schema + 1
+        schemaFields     =
+            HashMap.insert fieldName (P fieldName fieldTy) (schemaFields schema)
+      , schemaFieldCount =
+          schemaFieldCount schema + 1
       }
 
 fromList :: [(FieldName, FieldType)]
@@ -121,24 +123,23 @@ union schema1 schema2 =
 -- | `FieldOrds` assignes a unique identifier to all fields
 -- in a `Schema`. Fields can then referenced by their much
 -- more compact identifier than their `FieldName`.
-newtype FieldOrds = FieldOrds (Vector FieldName)
+type FieldOrds = Vector FieldName
 
 type FieldOrd = Int
 
 fieldOrds :: Schema -> FieldOrds
 fieldOrds schema =
-  FieldOrds
-  $ Vector.modify Tim.sort
+  Vector.modify Tim.sort
   $ Vector.fromListN (schemaFieldCount schema) (HashMap.keys (schemaFields schema))
 
 forFields_ :: Monad m => FieldOrds -> (FieldOrd -> FieldName -> m a) -> m ()
-forFields_ (FieldOrds fords) f = imapM_ f fords
+forFields_ fords f = imapM_ f fords
 
 foldFields' :: Monad m => (a -> FieldOrd -> FieldName -> m a) -> a -> FieldOrds -> m a
-foldFields' f z (FieldOrds fords) = ifoldM' f z fords
+foldFields' f z fords = ifoldM' f z fords
 
 lookupFieldOrd :: FieldOrds -> FieldName -> FieldOrd
-lookupFieldOrd (FieldOrds fields) fieldName = go 0 (Vector.length fields)
+lookupFieldOrd fields fieldName = go 0 (Vector.length fields)
   where
     go !l !u
       | u <= l    = 0

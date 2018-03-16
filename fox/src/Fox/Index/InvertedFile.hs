@@ -222,7 +222,6 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
       Buffer.withBuffer defaultBufferSize $ \occbuf ->
       Buffer.withBuffer defaultBufferSize $ \posbuf -> do
 
-
       let
         voc = BufferedAppendFile vocbuf vocfile
         occ = BufferedAppendFile occbuf occfile

@@ -20,6 +20,8 @@ import qualified Control.Arrow as Arrow
 import qualified Data.Text as Text
 import qualified GHC.Generics as Generics
 import qualified Data.Binary as Binary
+import qualified Data.Foldable as Foldable
+import qualified Data.Vector as Vector
 
 type MfM a = IO a
 
@@ -31,6 +33,7 @@ data MetaSegment
        msegSegmentId  :: !SegmentId.SegmentId
      , msegGeneration :: !Generation.Generation
      , msegNumDocs    :: !Int
+     , msegFields     :: [MetaFieldName]
      } deriving (Generics.Generic)
 
 data MetaSchema
@@ -68,13 +71,31 @@ readIndexMetaFile metaFilePath = do
     Right metaState ->
 
       let
-        toSegment :: MetaSegment -> (SegmentId.SegmentId, Segment.Segment)
-        toSegment MetaSegment{..} =
+        toSegment
+          :: Schema.Schema
+          -> MetaSegment
+          -> (SegmentId.SegmentId, Segment.Segment)
+        toSegment schema MetaSegment{..} =
           let
+            toInternedFieldName :: MetaFieldName -> Document.FieldName
+            toInternedFieldName metaFieldName =
+              let
+                fieldName = toFieldName metaFieldName
+              in
+                case Schema.internFieldName fieldName schema of
+                  Just (internedFieldName, _) -> internedFieldName
+                  Nothing                     -> fieldName
+                    -- TODO: this is an inconsistency!!! and may never happen!!!
+                    -- make conversion monadic!!!
+
+            fieldOrds =
+              Vector.fromList (map toInternedFieldName msegFields)
+
             segment =
               Segment.Segment {
                   Segment.segGeneration = msegGeneration
                 , Segment.segNumDocs    = msegNumDocs
+                , Segment.segFields     = fieldOrds
                 }
           in (msegSegmentId, segment)
 
@@ -91,13 +112,17 @@ readIndexMetaFile metaFilePath = do
         toState MetaState{..} = do
           segIdGen <- SegmentId.newSegIdGen' msNextSegmentId
 
+          let
+            schema =
+              toSchema msSchema
+
           return
             Index.State {
               Index.ixGeneration  = msGeneration
-            , Index.ixSchema      = toSchema msSchema
+            , Index.ixSchema      = schema
             , Index.ixSegmentRefs = SegmentMap.empty
             , Index.ixSegments    =
-                SegmentMap.fromList (map toSegment msSegments)
+                SegmentMap.fromList (map (toSegment schema) msSegments)
             , Index.ixSegIdGen    = segIdGen
             }
       in do
@@ -120,6 +145,7 @@ writeIndexMetaFile Directory.MetaDirLayout{..} state = do
           msegSegmentId  = segmentId
         , msegGeneration = segGeneration
         , msegNumDocs    = segNumDocs
+        , msegFields     = fmap toMetaFieldName (Foldable.toList segFields)
         }
 
     toMetaFieldName :: Schema.FieldName -> MetaFieldName

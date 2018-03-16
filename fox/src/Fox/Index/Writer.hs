@@ -128,7 +128,8 @@ createSegment indexed = do
       Segment.Segment {
           Segment.segGeneration = Generation.genesis
         , Segment.segNumDocs    = numberOfDocuments
-      }
+        , Segment.segFields     = fieldOrds
+        }
 
   return (segmentId, newSegment)
 
