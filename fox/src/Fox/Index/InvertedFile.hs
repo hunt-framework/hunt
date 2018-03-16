@@ -67,6 +67,7 @@ atOffset
   -> Offset.OffsetOf a
   -> BufferRange
 atOffset (BufferRange start end) (Offset.OffsetOf off) =
+  -- TODO: check buffer range
   BufferRange (start `Ptr.plusPtr` off) end
 
 read
@@ -84,16 +85,6 @@ read'
 read' (BufferRange start end) (Read.R runRead) = do
   (a, start') <- runRead end start
   return $! (a, BufferRange start' end)
-
-readAtOffset
-  :: BufferRange
-  -> Offset.OffsetOf a
-  -> Read.Read a
-  -> IfM a
-readAtOffset (BufferRange start end) (Offset.OffsetOf off)
-  reader = do
-  -- TODO: check buffer range
-  read (BufferRange (start `Ptr.plusPtr` off) end) reader
 
 -- | A buffered file abstraction. The `System.IO.Handle` type
 -- is synchronized with an MVar. In our special case we don't
@@ -348,11 +339,13 @@ lookupTerm
         Just (Records.IxRec vocOffset) -> do
           (voc, buffer') <- read' (atOffset buffer vocOffset) Records.vocRead
           term' <- utf16ToTerm (Records.vwTerm voc)
-          trace voc
-          trace term'
           case Token.commonPrefixes term term' of
-            Just (prefix, suffix) ->
-              undefined
+            Just (prefix, suffix)
+              | not (Token.null prefix) -> do
+                  -- alright, we found an entry in the vocabulary
+                  -- which is a prefix of our searched word!
+                  -- now stop bisecting and go via a scan
+                  undefined
             Nothing ->
               -- not even a prefix match, compare
               -- and recurse left or right of the
