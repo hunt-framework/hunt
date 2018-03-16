@@ -82,6 +82,8 @@ readIndexMetaFile metaFilePath = do
           -> (SegmentId.SegmentId, Segment.Segment)
         toSegment schema MetaSegment{..} =
           let
+            -- to reduce the number of allocated 'FieldName' objects,
+            -- we intern 'Segment's fields to the 'Schema' ones.
             toInternedFieldName :: MetaFieldName -> Document.FieldName
             toInternedFieldName metaFieldName =
               let

@@ -60,9 +60,8 @@ write :: BufferedAppendFile
       -> IfM ()
 write (BufferedAppendFile buffer file) (Write.W size put) a = do
   enough <- Buffer.hasEnoughBytes buffer (size a)
-  if not enough
-    then Buffer.flush buffer (Files.append file)
-    else return ()
+  Monad.unless enough $
+    Buffer.flush buffer (Files.append file)
   Buffer.put buffer (put a)
 
 -- | Returns the count of bytes written so far.
