@@ -8,21 +8,24 @@ module Fox.Index.MetaFile (
   ) where
 
 import qualified Fox.Index.Directory as Directory
+import qualified Fox.Index.InvertedFile as InvertedFile
+import qualified Fox.Index.Segment as Segment
 import qualified Fox.Index.State as Index
 import qualified Fox.Schema as Schema
+import qualified Fox.Types.DocDesc as Document
+import qualified Fox.Types.Document as Document
 import qualified Fox.Types.Generation as Generation
 import qualified Fox.Types.SegmentId as SegmentId
 import qualified Fox.Types.SegmentMap as SegmentMap
-import qualified Fox.Index.Segment as Segment
-import qualified Fox.Types.DocDesc as Document
 
 import qualified Control.Arrow as Arrow
 import qualified Control.Exception as Exception
-import qualified Data.Text as Text
-import qualified GHC.Generics as Generics
 import qualified Data.Binary as Binary
+import qualified Data.Count as Count
 import qualified Data.Foldable as Foldable
+import qualified Data.Text as Text
 import qualified Data.Vector as Vector
+import qualified GHC.Generics as Generics
 
 type MfM a = IO a
 
@@ -33,8 +36,9 @@ data MetaSegment
   = MetaSegment {
        msegSegmentId  :: !SegmentId.SegmentId
      , msegGeneration :: !Generation.Generation
-     , msegNumDocs    :: !Int
+     , msegNumDocs    :: !(Count.CountOf Document.Document)
      , msegFields     :: [MetaFieldName]
+     , msegInvInfo    :: !InvertedFile.InvFileInfo
      } deriving (Generics.Generic)
 
 data MetaSchema
@@ -56,6 +60,7 @@ type MetaFieldName = Text.Text
 instance Binary.Binary SegmentId.SegmentId
 instance Binary.Binary Generation.Generation
 instance Binary.Binary Document.FieldType
+instance Binary.Binary InvertedFile.InvFileInfo
 instance Binary.Binary MetaSegment
 instance Binary.Binary MetaState
 instance Binary.Binary MetaSchema
@@ -100,9 +105,10 @@ readIndexMetaFile metaFilePath = do
 
             segment =
               Segment.Segment {
-                  Segment.segGeneration = msegGeneration
-                , Segment.segNumDocs    = msegNumDocs
-                , Segment.segFields     = fieldOrds
+                  Segment.segGeneration  = msegGeneration
+                , Segment.segNumDocs     = msegNumDocs
+                , Segment.segFields      = fieldOrds
+                , Segment.segInvFileInfo = msegInvInfo
                 }
           in (msegSegmentId, segment)
 
@@ -153,6 +159,7 @@ writeIndexMetaFile Directory.MetaDirLayout{..} state = do
         , msegGeneration = segGeneration
         , msegNumDocs    = segNumDocs
         , msegFields     = fmap toMetaFieldName (Foldable.toList segFields)
+        , msegInvInfo    = segInvFileInfo
         }
 
     toMetaFieldName :: Schema.FieldName -> MetaFieldName

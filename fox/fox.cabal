@@ -24,6 +24,8 @@ library
                        Fox.Index
                        Fox.Index.Directory
                        Fox.Index.InvertedFile
+                       Fox.Index.InvertedFile.IxFile
+                       Fox.Index.InvertedFile.Records
                        Fox.Index.MetaFile
                        Fox.Index.Monad
                        Fox.Index.Segment
@@ -45,7 +47,9 @@ library
                        Fox.Types.SegmentMap
                        Fox.Types.Token
 
-  other-modules:       Data.IntSet.Cache
+  other-modules:       Data.Count
+                       Data.IntSet.Cache
+                       Data.Offset
                        Data.Primitive.PrimRef
 
   ghc-options:         -O2

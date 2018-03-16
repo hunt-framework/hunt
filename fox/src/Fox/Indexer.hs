@@ -13,11 +13,12 @@ import           Control.Monad.Except
 import           Control.Monad.State.Strict
 import           Data.Foldable
 import           Data.HashMap.Strict        (HashMap)
-import qualified Data.HashMap.Strict        as HashMap
 import           Data.Key                   (forWithKey_)
 import           Data.Map                   (Map)
-import qualified Data.Map                   as Map
 import           Data.Sequence              (Seq)
+import qualified Data.Count  as Count
+import qualified Data.HashMap.Strict        as HashMap
+import qualified Data.Map                   as Map
 import qualified Data.Sequence              as Seq
 
 -- | Try to lookup the type of a field in an environment
@@ -56,8 +57,9 @@ emptyIndexer =
           , indSchema    = Schema.emptySchema
           }
 
-indNumDocs :: Indexer -> Int
-indNumDocs ind = Seq.length (indDocuments ind)
+indNumDocs :: Indexer -> Count.CountOf Document
+indNumDocs ind =
+  Count.CountOf (Seq.length (indDocuments ind))
 
 -- | Check if an @Indexer@ has no buffered documents.
 indNull :: Indexer -> Bool

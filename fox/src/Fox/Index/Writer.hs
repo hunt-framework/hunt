@@ -120,18 +120,19 @@ createSegment indexed = do
       Directory.segmentDirLayout indexDir segmentId
 
   runIfM $ do
-    InvertedFile.writeInvertedFiles segmentDirLayout
-      fieldOrds termIndex
+    invFileInfo <-
+      InvertedFile.writeInvertedFiles segmentDirLayout fieldOrds termIndex
 
-  let
-    newSegment =
-      Segment.Segment {
-          Segment.segGeneration = Generation.genesis
-        , Segment.segNumDocs    = numberOfDocuments
-        , Segment.segFields     = fieldOrds
-        }
+    let
+     newSegment =
+        Segment.Segment {
+            Segment.segGeneration  = Generation.genesis
+          , Segment.segNumDocs     = numberOfDocuments
+          , Segment.segFields      = fieldOrds
+          , Segment.segInvFileInfo = invFileInfo
+          }
 
-  return (segmentId, newSegment)
+    return (segmentId, newSegment)
 
 maxNumBufferedDocs :: IndexWriter Int
 maxNumBufferedDocs = askConfig iwcMaxBufferedDocs

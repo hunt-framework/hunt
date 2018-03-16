@@ -1,11 +1,13 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE NamedFieldPuns #-}
 module Fox.Index.InvertedFile (
     IfM
   , runIfM
   , writeInvertedFiles
 
-  , vocRead
+  , InvFileInfo(..)
   ) where
 
 import qualified Fox.IO.Buffer as Buffer
@@ -13,6 +15,7 @@ import qualified Fox.IO.Files as Files
 import qualified Fox.IO.Read as Read
 import qualified Fox.IO.Write as Write
 import qualified Fox.Index.Directory as Directory
+import qualified Fox.Index.InvertedFile.Records as Records
 import qualified Fox.Indexer as Indexer
 import qualified Fox.Schema as Schema
 import qualified Fox.Types.DocDesc  as Document
@@ -24,10 +27,13 @@ import qualified Fox.Types.Token as Token
 
 import qualified Control.Monad as Monad
 import qualified Data.Coerce as Coerce
+import qualified Data.Count as Count
 import qualified Data.Foldable as Foldable
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Key as Key
+import qualified Data.Offset as Offset
 import qualified Data.Word as Word
+import qualified GHC.Generics as GHC
 
 -- | A monad in which we write the inverted files. Currently this is an
 -- alias for 'IO', however in the future this might become something
@@ -45,16 +51,6 @@ runIfM = id
 data BufferedAppendFile
   = BufferedAppendFile !Buffer.Buffer !Files.AppendFile
 
--- | Offset with a type annotation, useful for not mixing up
--- offsets into different files.
-newtype OffsetOf a
-  = OffsetOf Int
-
--- | Same goes for 'CountOf'. Better not mix any of these up.
-newtype CountOf a
-  = CountOf Int
-  deriving (Eq, Ord, Num)
-
 -- | Write to a buffer. First check for overflow and flush
 -- as necessary.
 write :: BufferedAppendFile
@@ -69,9 +65,9 @@ write (BufferedAppendFile buffer file) (Write.W size put) a = do
 
 -- | Returns the count of bytes written so far.
 offset :: BufferedAppendFile
-       -> IfM (OffsetOf a)
+       -> IfM (Offset.OffsetOf a)
 offset (BufferedAppendFile buffer _) =
-  OffsetOf `fmap` Buffer.offset buffer
+  Offset.OffsetOf `fmap` Buffer.offset buffer
 
 flush :: BufferedAppendFile -> IfM ()
 flush (BufferedAppendFile buffer file) =
@@ -81,102 +77,38 @@ flush (BufferedAppendFile buffer file) =
 defaultBufferSize :: Int
 defaultBufferSize = 32 * 1024
 
--- | Various 'Write's for the types we want to serialize
--- down the road.
-offsetOfWrite :: Write.Write (OffsetOf a)
-offsetOfWrite =
-  Coerce.coerce Write.>$< Write.varint
+-- | Information about the written inverted file. Available
+-- after it has been written to disk.
+data InvFileInfo =
+  InvFileInfo { ifTermCount :: !(Count.CountOf Token.Term)
+                -- ^ Number of unique terms in this inverted
+                -- file
 
-offsetOfRead :: Read.Read (OffsetOf a)
-offsetOfRead =
-  Coerce.coerce `fmap` Read.varint
+              , ifIxCount   :: !(Count.CountOf Token.Term)
+                -- ^ Number of unique terms which that do not
+                -- share prefixes (e.g. vwlengthPrefix(x) == 0)
+              } deriving (GHC.Generic)
 
-countOfWrite :: Write.Write (CountOf a)
-countOfWrite =
-  Coerce.coerce Write.>$< Write.varint
+instance Semigroup InvFileInfo where
+  l <> r =
+    InvFileInfo {
+        ifTermCount = ifTermCount l <> ifTermCount r
+      , ifIxCount   = ifIxCount l <> ifIxCount r
+      }
 
-countOfRead :: Read.Read (CountOf a)
-countOfRead =
-  Coerce.coerce `fmap` Read.varint
+instance Monoid InvFileInfo where
+  mempty =
+    InvFileInfo { ifTermCount = mempty
+                , ifIxCount   = mempty
+                }
 
-docIdWrite :: Write.Write Document.DocId
-docIdWrite =
-  Document.unDocId Write.>$< Write.varint
+data Pair a b
+  = P !a !b
 
-docIdRead :: Read.Read Document.DocId
-docIdRead =
-  Coerce.coerce `fmap` Read.varint
-
-positionWrite :: Write.Write Positions.Position
-positionWrite = Write.varint
-
-fieldOrdWrite :: Write.Write Schema.FieldOrd
-fieldOrdWrite = Write.varint
-
-fieldOrdRead :: Read.Read Schema.FieldOrd
-fieldOrdRead = Read.varint
-
-termWrite :: Write.Write Token.Term
-termWrite = Write.text
-
--- | Convenience type for serialiasing occurrences for
--- the occurrence file.
-data OccRec
-  = OccRec { owDocId     :: !Document.DocId
-           , owPosCount  :: !(CountOf Positions.Position)
-           , owPosOffset :: !(OffsetOf Positions.Position)
-           }
-
-occurrenceWrite :: Write.Write OccRec
-occurrenceWrite =
-  (owDocId     Write.>$< docIdWrite) <>
-  (owPosCount  Write.>$< countOfWrite) <>
-  (owPosOffset Write.>$< offsetOfWrite)
-
-occurrenceRead :: Read.Read OccRec
-occurrenceRead =
-  OccRec <$> docIdRead
-         <*> countOfRead
-         <*> offsetOfRead
-
--- | 'VocWrite' represents a row in the vocabulary file.
--- 'VocRec' is abstract in the term field.
-data VocRec term
-  = VocRec { vwLengthPrefix :: !(CountOf Word.Word16)
-           , vwTerm         :: !term
-           , vwField        :: !Schema.FieldOrd
-           , vwOccCount     :: !(CountOf Occurrences.Occurrences)
-           , vwOccOffset    :: !(OffsetOf Occurrences.Occurrences)
-           }
-
-vocWrite :: Write.Write (VocRec Token.Term)
-vocWrite =
-  (vwLengthPrefix Write.>$< countOfWrite) <>
-  (vwTerm         Write.>$< termWrite) <>
-  (vwField        Write.>$< fieldOrdWrite) <>
-  (vwOccCount     Write.>$< countOfWrite) <>
-  (vwOccOffset    Write.>$< offsetOfWrite)
-
-vocRead :: Read.Read (VocRec Read.UTF16)
-vocRead =
-  VocRec <$> countOfRead
-         <*> Read.utf16
-         <*> fieldOrdRead
-         <*> countOfRead
-         <*> offsetOfRead
-
--- | 'IxWrite' represents a row in the vocabulary lookup file
-data IxRec
-  = IxRec { ixVocOffset :: !(OffsetOf Token.Term)
-          }
-
-ixWrite :: Write.Write IxRec
-ixWrite =
-  ixVocOffset Write.>$< offsetOfWrite
-
-ixRead :: Read.Read IxRec
-ixRead =
-  IxRec <$> offsetOfRead
+instance ( Semigroup a
+         , Semigroup b) => Semigroup (Pair a b) where
+  P l1 r1 <> P l2 r2 =
+    P (l1 <> l2) (r1 <> r2)
 
 -- | Write the indexed vocabulary, occurrences and postings
 -- to the index directory.
@@ -184,7 +116,7 @@ writeInvertedFiles
   :: Directory.SegmentDirLayout
   -> Schema.FieldOrds
   -> Indexer.TermIndex
-  -> IfM ()
+  -> IfM InvFileInfo
 writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
   withInvertedFileBuffers $ \voc occ pos ix -> do
 
@@ -194,7 +126,7 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
       -- positions
       writePosition :: Positions.Position -> IfM ()
       writePosition position =
-        write pos positionWrite position
+        write pos Records.positionWrite position
 
       -- write record to the occurrences file
       writeOccurrence :: Document.DocId -> Positions.Positions -> IfM ()
@@ -204,15 +136,16 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
         Foldable.for_
           (Positions.toAscList positions) writePosition
 
-        write occ occurrenceWrite
-          OccRec { owDocId     = docId
-                 , owPosCount  = CountOf (Positions.size positions)
-                 , owPosOffset = posOffset
-                 }
+        write occ Records.occurrenceWrite
+          Records.OccRec {
+              owDocId     = docId
+            , owPosCount  = Count.CountOf (Positions.size positions)
+            , owPosOffset = posOffset
+            }
 
       -- write a record to the vocabulary file
       writeVocabulary
-        :: CountOf Word.Word16
+        :: Count.CountOf Word.Word16
         -> Token.Term
         -> Schema.FieldOrd
         -> Occurrences.Occurrences
@@ -221,11 +154,12 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
 
         -- for vocabulary with a zero length shared prefix
         -- we make an entry in the index file.
-        Monad.when (prefixLength == 0) $ do
+        Monad.when (prefixLength == Count.zero) $ do
           vocOffset <- offset voc
-          write ix ixWrite
-            IxRec { ixVocOffset = vocOffset
-                  }
+          write ix Records.ixWrite
+            Records.IxRec {
+              ixVocOffset = vocOffset
+            }
 
         -- start by writing the occurrences to the occs file
         -- remember the offset where we started for this term.
@@ -233,43 +167,54 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
         Key.forWithKey_ occurrences $ \docId positions ->
           writeOccurrence docId positions
 
-        write voc vocWrite
-          VocRec { vwLengthPrefix = prefixLength
-                 , vwTerm         = term
-                 , vwField        = field
-                 , vwOccCount     = CountOf (DocIdMap.size occurrences)
-                 , vwOccOffset    = occOffset
-                 }
+        write voc Records.vocWrite
+          Records.VocRec {
+              vwLengthPrefix = prefixLength
+            , vwTerm         = term
+            , vwField        = field
+            , vwOccCount     = Count.CountOf (DocIdMap.size occurrences)
+            , vwOccOffset    = occOffset
+            }
 
+      -- we fold over each term and their occurrences in the vocabulary.
       foldVocabulary
-        :: Token.Term
+        :: Pair InvFileInfo Token.Term
         -> Token.Term
         -> HashMap.HashMap Document.FieldName Occurrences.Occurrences
-        -> IfM Token.Term
-      foldVocabulary lastTerm term fields =
+        -> IfM (Pair InvFileInfo Token.Term)
+      foldVocabulary (P lastInvInfo lastTerm) term fields =
         let
           (prefix, suffix) =
             case Token.commonPrefixes lastTerm term of
               Just ps -> ps
               Nothing -> (Token.empty, term)
 
-          prefixLength :: CountOf Word.Word16
+          prefixLength :: Count.CountOf Word.Word16
           prefixLength =
-            CountOf (Token.lengthWord16 prefix)
+            Count.CountOf (Token.lengthWord16 prefix)
+
+          invInfo :: InvFileInfo
+          invInfo =
+            InvFileInfo { ifTermCount = Count.one
+                        , ifIxCount   = if prefixLength == Count.zero
+                                        then Count.one
+                                        else Count.zero
+                        } <> lastInvInfo
 
           forField :: Schema.FieldOrd -> Schema.FieldName -> IfM ()
           forField fieldOrd fieldName =
             case HashMap.lookup fieldName fields of
-              Just occurrences ->
+              Just occurrences -> do
                 writeVocabulary prefixLength suffix fieldOrd occurrences
-              Nothing   ->
+              Nothing ->
                 return ()
         in do
           Schema.forFields_ fieldOrds forField
-          return term
+          return (P invInfo term)
 
-    _ <- Key.foldlWithKeyM foldVocabulary Token.empty vocabulary
-    return ()
+    P invInfo _ <-
+      Key.foldlWithKeyM foldVocabulary (P mempty Token.empty) vocabulary
+    return invInfo
   where
     -- Initialize all the resources we need. In the future we would
     -- want a buffer pool here to give an upper bound on memory
@@ -290,9 +235,15 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
         pos = BufferedAppendFile posbuf posfile
         ix  = BufferedAppendFile ixbuf  ixfile
 
-      _ <- action voc occ pos ix
+      x <- action voc occ pos ix
 
       flush voc
       flush occ
       flush pos
       flush ix
+      return x
+
+readIxFile :: Directory.SegmentDirLayout
+           -> IfM ()
+readIxFile Directory.SegmentDirLayout{ segmentIxFile } = do
+  undefined
