@@ -44,8 +44,7 @@ data Index =
 defaultAnalyzer :: Analyzer
 defaultAnalyzer = newAnalyzer tokenizeAlpha filterNonEmpty
 
--- | Create a new index in a specified @IndexDirectory@.
--- Does not load index if one exists.
+-- | Open an index in a specified @IndexDirectory@.
 openIndex :: Directory.IndexDirectory -> IO IndexRef
 openIndex indexDirectory = do
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards #-}
 module Fox.Index.InvertedFile (
     IfM
@@ -18,6 +19,7 @@ import qualified Fox.Types.Occurrences as Occurrences
 import qualified Fox.Types.Positions as Positions
 import qualified Fox.Types.Token as Token
 
+import qualified Control.Monad as Monad
 import qualified Data.Coerce as Coerce
 import qualified Data.Foldable as Foldable
 import qualified Data.HashMap.Strict as HashMap
@@ -48,6 +50,7 @@ newtype OffsetOf a
 -- | Same goes for 'CountOf'. Better not mix any of these up.
 newtype CountOf a
   = CountOf Int
+  deriving (Eq, Ord, Num)
 
 -- | Write to a buffer. First check for overflow and flush
 -- as necessary.
@@ -126,6 +129,15 @@ vocWrite =
   (vwOccCount     Write.>$< countOfWrite) <>
   (vwOccOffset    Write.>$< offsetOfWrite)
 
+-- | 'IxWrite' represents a row in the vocabulary lookup file
+data IxWrite
+  = IxWrite { ixVocOffset :: !(OffsetOf Token.Term)
+            }
+
+ixWrite :: Write.Write IxWrite
+ixWrite =
+  ixVocOffset Write.>$< offsetOfWrite
+
 -- | Write the indexed vocabulary, occurrences and postings
 -- to the index directory.
 writeInvertedFiles
@@ -134,7 +146,7 @@ writeInvertedFiles
   -> Indexer.TermIndex
   -> IfM ()
 writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
-  withInvertedFileBuffers $ \voc occ pos -> do
+  withInvertedFileBuffers $ \voc occ pos ix -> do
 
     let
       -- write a position to the positions file. TODO: make
@@ -166,6 +178,14 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
         -> Occurrences.Occurrences
         -> IfM ()
       writeVocabulary prefixLength term field occurrences = do
+
+        -- for vocabulary with a zero length shared prefix
+        -- we make an entry in the index file.
+        Monad.when (prefixLength == 0) $ do
+          vocOffset <- offset voc
+          write ix ixWrite
+            IxWrite { ixVocOffset = vocOffset
+                    }
 
         -- start by writing the occurrences to the occs file
         -- remember the offset where we started for this term.
@@ -218,17 +238,21 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
       Files.withAppendFile segmentVocabularyFile $ \vocfile ->
       Files.withAppendFile segmentOccurrencesFile $ \occfile ->
       Files.withAppendFile segmentPostingsFile $ \posfile ->
+      Files.withAppendFile segmentIxFile $ \ixfile ->
       Buffer.withBuffer defaultBufferSize $ \vocbuf ->
       Buffer.withBuffer defaultBufferSize $ \occbuf ->
-      Buffer.withBuffer defaultBufferSize $ \posbuf -> do
+      Buffer.withBuffer defaultBufferSize $ \posbuf ->
+      Buffer.withBuffer defaultBufferSize $ \ixbuf -> do
 
       let
         voc = BufferedAppendFile vocbuf vocfile
         occ = BufferedAppendFile occbuf occfile
         pos = BufferedAppendFile posbuf posfile
+        ix  = BufferedAppendFile ixbuf  ixfile
 
-      _ <- action voc occ pos
+      _ <- action voc occ pos ix
 
       flush voc
       flush occ
       flush pos
+      flush ix

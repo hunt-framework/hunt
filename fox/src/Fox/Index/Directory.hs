@@ -81,6 +81,7 @@ data SegmentDirLayout
       segmentVocabularyFile  :: FilePath
     , segmentOccurrencesFile :: FilePath
     , segmentPostingsFile    :: FilePath
+    , segmentIxFile          :: FilePath
     }
 
 segmentDirLayout
@@ -95,4 +96,5 @@ segmentDirLayout (IndexDirectory indexDir) segmentId =
       segmentVocabularyFile  = segmentBase <.> "voc"
     , segmentOccurrencesFile = segmentBase <.> "occ"
     , segmentPostingsFile    = segmentBase <.> "pos"
+    , segmentIxFile          = segmentBase <.> "ix"
     }
