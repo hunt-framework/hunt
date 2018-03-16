@@ -23,6 +23,7 @@ import Prelude hiding (Read)
 
 data UTF16
   = UTF16 !(Foreign.Ptr Word.Word8) !Int
+  deriving (Show)
 
 data BufferRange
   = BufferRange !(Foreign.Ptr Word.Word8)
@@ -86,12 +87,12 @@ varword :: Read Word.Word
 varword = R go
   where
     go _ (GHC.Ptr op) = GHC.IO $ \s0 ->
-      case loop 0## 1## op s0 of
+      case loop 0## 0# op s0 of
         (# s1, (# a, op' #) #) ->
           (# s1, (GHC.W# a, GHC.Ptr op') #)
 
     loop :: GHC.Word#
-         -> GHC.Word#
+         -> GHC.Int#
          -> GHC.Addr#
          -> GHC.State# GHC.RealWorld
          -> (# GHC.State# GHC.RealWorld, (# GHC.Word#, GHC.Addr# #) #)
@@ -100,17 +101,17 @@ varword = R go
         (# s1, w #) ->
           let
             acc' =
-              GHC.plusWord# acc (GHC.timesWord# (GHC.and# w 127##) shift)
+              GHC.or# acc (GHC.uncheckedShiftL# (GHC.and# w 127##) shift)
             op'  =
               GHC.plusAddr# op 1#
             shift' =
-              GHC.uncheckedShiftL# shift 7#
+              shift GHC.+# 7#
           in
             if GHC.isTrue# (GHC.ltWord# w (GHC.int2Word# 0x80#))
             then
               (# s1, (# acc', op' #) #)
             else
-              loop (GHC.plusWord# acc' shift') shift' op' s1
+              loop acc' shift' op' s1
 
 varint :: Read Int
 varint = fmap fromIntegral varword

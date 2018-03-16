@@ -30,6 +30,7 @@ library
                        Fox.Index.MetaFile
                        Fox.Index.Monad
                        Fox.Index.Segment
+                       Fox.Index.Reader
                        Fox.Index.State
                        Fox.Index.Writer
                        Fox.Indexer

@@ -1,10 +1,12 @@
 module Fox.Index.Segment where
 
+import qualified Fox.Index.Directory as Directory
 import qualified Fox.Index.InvertedFile as InvertedFile
 import qualified Fox.Index.InvertedFile.TermIndex as TermIndex
 import qualified Fox.Schema as Schema
 import qualified Fox.Types.Document as Document
 import qualified Fox.Types.Generation as Generation
+import qualified Fox.Types.Occurrences as Occurrences
 import qualified Fox.Types.Token as Token
 
 import qualified Data.Count as Count
@@ -35,3 +37,16 @@ data Segment
       , segLoadTermIx  :: InvertedFile.IfM TermIndex.TermIndex
         -- ^ An action to load the 'Segment's 'TermIndex'.
       }
+
+searchTerm
+  :: Directory.SegmentDirLayout
+  -> Segment
+  -> Token.Term
+  -> InvertedFile.IfM Occurrences.Occurrences
+searchTerm segmentDirLayout segment term = do
+  InvertedFile.trace "Loading term index"
+  termIndex <- segLoadTermIx segment
+  InvertedFile.trace termIndex
+
+  _ <- InvertedFile.lookupTerm segmentDirLayout termIndex term
+  return mempty

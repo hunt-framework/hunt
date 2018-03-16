@@ -43,7 +43,7 @@ data VocRec term
            , vwField        :: !Schema.FieldOrd
            , vwOccCount     :: !(Count.CountOf Occurrences.Occurrences)
            , vwOccOffset    :: !(Offset.OffsetOf Occurrences.Occurrences)
-           }
+           } deriving (Show)
 
 vocWrite :: Write.Write (VocRec Token.Term)
 vocWrite =
@@ -63,7 +63,7 @@ vocRead =
 
 -- | 'IxWrite' represents a row in the vocabulary lookup file
 newtype IxRec
-  = IxRec { ixVocOffset :: Offset.OffsetOf (VocRec Token.Term)
+  = IxRec { ixVocOffset :: Offset.OffsetOf (VocRec Read.UTF16)
           } deriving (Eq, Ord, Show, Storable.Storable)
 
 ixWrite :: Write.Write IxRec

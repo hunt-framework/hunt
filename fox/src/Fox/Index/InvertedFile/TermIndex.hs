@@ -17,11 +17,12 @@ import qualified Data.Vector.Storable as Vector
 -- a shared prefix of length 0. The 'TermIndex' may be bisected.
 newtype TermIndex
   = TermIndex { ixOffsets :: Vector.Vector Records.IxRec
-              }
+              } deriving (Show)
 
 -- | Type-explicit bisection of 'TermIndex'.
 data Bisect a
   = Bisect !Int !Int !Int a
+  deriving (Show)
 
 bisect :: TermIndex -> Bisect TermIndex
 bisect tix@(TermIndex ix) =
@@ -38,7 +39,7 @@ middle l u =
 
 label :: Bisect TermIndex -> Maybe Records.IxRec
 label (Bisect l u k (TermIndex ix))
-  | l <= u    =
+  | u <= l =
       Nothing
   | otherwise =
       Just $! (ix `Vector.unsafeIndex` k)

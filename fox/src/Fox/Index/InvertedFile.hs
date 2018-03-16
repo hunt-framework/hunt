@@ -6,6 +6,9 @@ module Fox.Index.InvertedFile (
     IfM
   , runIfM
   , writeInvertedFiles
+  , lookupTerm
+
+  , trace
 
   , InvFileInfo(..)
 
@@ -30,16 +33,20 @@ import qualified Fox.Types.Positions as Positions
 import qualified Fox.Types.Token as Token
 
 import qualified Control.Monad as Monad
+import qualified Data.Bits as Bits
 import qualified Data.Count as Count
 import qualified Data.Foldable as Foldable
 import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Key as Key
 import qualified Data.Offset as Offset
+import qualified Data.Text.Foreign as Text
 import qualified Data.Vector.Storable as Vector
 import qualified Data.Word as Word
-import qualified GHC.Generics as GHC
-import qualified System.MemoryMap as MemoryMap
+import qualified Debug.Trace as Trace
 import qualified Foreign.Ptr as Ptr
+import qualified GHC.Generics as GHC
+import qualified GHC.Stack as CallStack
+import qualified System.MemoryMap as MemoryMap
 
 import Prelude hiding (read)
 
@@ -52,17 +59,41 @@ type IfM a = IO a
 runIfM :: IfM a -> IO a
 runIfM = id
 
-read :: MemoryMap.FileMapping
-     -> Read.Read a
-     -> IfM a
-read mmap (Read.R runRead) = do
-  let
-    start =
-      MemoryMap.fileMappingPtr mmap
-    end =
-      start `Ptr.plusPtr` fromIntegral (MemoryMap.fileMappingSize mmap)
+data BufferRange =
+  BufferRange !(Ptr.Ptr Word.Word8) !(Ptr.Ptr Word.Word8)
+
+atOffset
+  :: BufferRange
+  -> Offset.OffsetOf a
+  -> BufferRange
+atOffset (BufferRange start end) (Offset.OffsetOf off) =
+  BufferRange (start `Ptr.plusPtr` off) end
+
+read
+  :: BufferRange
+  -> Read.Read a
+  -> IfM a
+read (BufferRange start end) (Read.R runRead) = do
   (a, _) <- runRead end start
   return a
+
+read'
+  :: BufferRange
+  -> Read.Read a
+  -> IfM (a, BufferRange)
+read' (BufferRange start end) (Read.R runRead) = do
+  (a, start') <- runRead end start
+  return $! (a, BufferRange start' end)
+
+readAtOffset
+  :: BufferRange
+  -> Offset.OffsetOf a
+  -> Read.Read a
+  -> IfM a
+readAtOffset (BufferRange start end) (Offset.OffsetOf off)
+  reader = do
+  -- TODO: check buffer range
+  read (BufferRange (start `Ptr.plusPtr` off) end) reader
 
 -- | A buffered file abstraction. The `System.IO.Handle` type
 -- is synchronized with an MVar. In our special case we don't
@@ -73,10 +104,11 @@ data BufferedAppendFile
 
 -- | Write to a buffer. First check for overflow and flush
 -- as necessary.
-write :: BufferedAppendFile
-      -> Write.Write a
-      -> a
-      -> IfM ()
+write
+  :: BufferedAppendFile
+  -> Write.Write a
+  -> a
+  -> IfM ()
 write (BufferedAppendFile buffer file) (Write.W size put) a = do
   enough <- Buffer.hasEnoughBytes buffer (size a)
   Monad.unless enough $
@@ -99,15 +131,16 @@ defaultBufferSize = 32 * 1024
 
 -- | Information about the written inverted file. Available
 -- after it has been written to disk.
-data InvFileInfo =
-  InvFileInfo { ifTermCount :: !(Count.CountOf Token.Term)
-                -- ^ Number of unique terms in this inverted
-                -- file
+data InvFileInfo
+  = InvFileInfo {
+        ifTermCount :: !(Count.CountOf Token.Term)
+        -- ^ Number of unique terms in this inverted
+        -- file
 
-              , ifIxCount   :: !(Count.CountOf Token.Term)
-                -- ^ Number of unique terms which that do not
-                -- share prefixes (e.g. vwlengthPrefix(x) == 0)
-              } deriving (GHC.Generic)
+      , ifIxCount   :: !(Count.CountOf Token.Term)
+        -- ^ Number of unique terms which that do not
+        -- share prefixes (e.g. vwlengthPrefix(x) == 0)
+      } deriving (GHC.Generic)
 
 instance Semigroup InvFileInfo where
   l <> r =
@@ -118,9 +151,10 @@ instance Semigroup InvFileInfo where
 
 instance Monoid InvFileInfo where
   mempty =
-    InvFileInfo { ifTermCount = mempty
-                , ifIxCount   = mempty
-                }
+    InvFileInfo {
+        ifTermCount = mempty
+      , ifIxCount   = mempty
+      }
 
 -- | A strict tuple to avoid space leaks in some folds further
 -- down the road.
@@ -135,9 +169,19 @@ instance ( Semigroup a
 -- | Get a memory map from a file. TODO: `IfM` should
 -- talk to a global, synchronized cache of open file
 -- mappings, and release the mappings automatically
-fileMapping :: FilePath -> IfM MemoryMap.FileMapping
-fileMapping fp =
-  MemoryMap.fileMapRead fp
+fileMapping :: FilePath -> IfM BufferRange
+fileMapping fp = do
+  mmap <- MemoryMap.fileMapRead fp
+  let
+    start =
+      MemoryMap.fileMappingPtr mmap
+    end =
+      start `Ptr.plusPtr` fromIntegral (MemoryMap.fileMappingSize mmap)
+    bufferRange =
+      BufferRange start end
+
+  return bufferRange
+
 
 -- | Write the indexed vocabulary, occurrences and postings
 -- to the index directory.
@@ -272,12 +316,13 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
       flush ix
       return x
 
-readIxFile :: Directory.SegmentDirLayout
-           -> InvFileInfo
-           -> IfM TermIndex.TermIndex
+readIxFile
+  :: Directory.SegmentDirLayout
+  -> InvFileInfo
+  -> IfM TermIndex.TermIndex
 readIxFile Directory.SegmentDirLayout{ segmentIxFile } invFileInfo  = do
-  fileMapping <- fileMapping segmentIxFile
-  termIx <- read fileMapping $ do
+  buffer <- fileMapping segmentIxFile
+  termIx <- read buffer $ do
     let
       ixCount =
         Count.getInt (ifIxCount invFileInfo)
@@ -285,3 +330,64 @@ readIxFile Directory.SegmentDirLayout{ segmentIxFile } invFileInfo  = do
       (\_ -> Records.ixRead)
 
   return $! (TermIndex.TermIndex termIx)
+
+lookupTerm
+  :: Directory.SegmentDirLayout
+  -> TermIndex.TermIndex
+  -> Token.Term
+  -> IfM [Token.Term]
+lookupTerm
+  Directory.SegmentDirLayout { segmentVocabularyFile }
+  termIndex term = do
+
+  buffer <- fileMapping segmentVocabularyFile
+
+  let
+    bisect termIxNode =
+      case TermIndex.label (Trace.traceShowId termIxNode) of
+        Just (Records.IxRec vocOffset) -> do
+          (voc, buffer') <- read' (atOffset buffer vocOffset) Records.vocRead
+          term' <- utf16ToTerm (Records.vwTerm voc)
+          trace voc
+          trace term'
+          case Token.commonPrefixes term term' of
+            Just (prefix, suffix) ->
+              undefined
+            Nothing ->
+              -- not even a prefix match, compare
+              -- and recurse left or right of the
+              -- 'TermIndex'
+              case compare term term' of
+                LT -> bisect (TermIndex.left termIxNode)
+                EQ ->
+                  -- impossible (we catch this with the prefix check already)
+                  -- we do this nevertheless as it might confuse the optimizer
+                  -- otherwise
+                  return [ term ]
+                GT -> bisect (TermIndex.right termIxNode)
+        Nothing -> return []
+
+    scan scanBuffer append = do
+      (voc, scanBuffer') <- read' scanBuffer Records.vocRead
+      term' <- utf16ToTerm (Records.vwTerm voc)
+      if term == term'
+        then return undefined
+        else scan scanBuffer' append
+
+  bisect (TermIndex.bisect termIndex)
+
+trace :: (CallStack.HasCallStack, Show a)
+      => a
+      -> IfM ()
+trace x =
+  CallStack.withFrozenCallStack (Trace.traceM msg)
+  where
+    msg =
+      concat [ show x
+             , "\n"
+             , CallStack.prettyCallStack CallStack.callStack
+             ]
+
+utf16ToTerm :: Read.UTF16 -> IfM Token.Term
+utf16ToTerm (Read.UTF16 op len) =
+  Text.fromPtr (Ptr.castPtr op) (fromIntegral (len `Bits.unsafeShiftR` 1))

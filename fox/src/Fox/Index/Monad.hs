@@ -10,10 +10,10 @@ import           Fox.Types
 import qualified Fox.Index.Segment      as Segment
 import qualified Fox.Types.SegmentMap   as SegmentMap
 import qualified Fox.Index.InvertedFile as InvertedFile
+import qualified Fox.Index.Reader as Reader
 
 import           Control.Exception
 import           Control.Monad.IO.Class
-import           Control.Monad.Reader
 import           System.IO.Error (tryIOError)
 import qualified Debug.Trace as Trace
 import qualified GHC.Stack as CallStack
@@ -158,7 +158,7 @@ setSchema schema = IndexWriter $ \succ_ _ _ st ->
 insertSegment :: SegmentId -> Segment.Segment -> IndexWriter ()
 insertSegment segmentId segment = IndexWriter $ \succ_ _fail _ st ->
   succ_ () (st { iwNewSegments =
-                  SegmentMap.insert segmentId segment  (iwNewSegments st)
+                   SegmentMap.insert segmentId segment (iwNewSegments st)
               })
 
 runIfM :: InvertedFile.IfM a -> IndexWriter a
@@ -168,7 +168,16 @@ runIfM action = IndexWriter $ \succ_ fail_ _ st -> do
     Right a -> succ_ a st
     Left e  -> fail_ (WriterIOError e)
 
--- | A read-only transaction over the @Index@.
-newtype IndexReader a =
-  IndexReader { unIndexReader :: ReaderT (SegmentMap Segment.Segment) IO a }
-  deriving (Functor, Applicative, Monad, MonadIO)
+liftIndexReader :: Reader.IndexReader a -> IndexWriter a
+liftIndexReader m = IndexWriter $ \succ_ _fail_ env st -> do
+
+  let
+    ixrEnv =
+      Reader.IxRdrEnv {
+          Reader.ixrIndexDir = iwIndexDir env
+        , Reader.ixrSegments =
+            iwSegments env `SegmentMap.union` iwNewSegments st
+        }
+
+  a <- Reader.runIndexReader m ixrEnv
+  succ_ a st

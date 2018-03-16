@@ -5,6 +5,8 @@ module Fox.Index.Writer (
     insertDocument
   , insertDocuments
 
+  , liftIndexReader
+
   , doc1
   , doc2
   ) where
