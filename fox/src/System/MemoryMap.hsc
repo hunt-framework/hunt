@@ -1,3 +1,5 @@
+-- stolen from https://github.com/haskell-foundation/foundation/blob/b74b9d9a2364892e30289beffb5bd20c1575958f/foundation/Foundation/Foreign/MemoryMap/Posix.hsc
+
 #include <sys/mman.h>
 #include <unistd.h>
 
