@@ -26,6 +26,7 @@ library
                        Fox.Index.InvertedFile
                        Fox.Index.InvertedFile.IxFile
                        Fox.Index.InvertedFile.Records
+                       Fox.Index.InvertedFile.String
                        Fox.Index.MetaFile
                        Fox.Index.Monad
                        Fox.Index.Segment
