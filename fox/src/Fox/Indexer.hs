@@ -22,16 +22,20 @@ import qualified Data.Sequence              as Seq
 
 -- | Try to lookup the type of a field in an environment
 -- global to a transaction.
-type LookupGlobalFieldTy = FieldName -> Maybe (FieldName, FieldType)
+type LookupGlobalFieldTy
+  = FieldName -> Maybe (FieldName, FieldType)
 
 -- | Generate a new @DocId@ by incrementing.
-type DocIdGen = DocId
+type DocIdGen
+  = DocId
 
 -- | A synonym for an inverted index optimized for
 -- insertions of terms.
-type TermIndex = Map Term (HashMap FieldName Occurrences)
+type TermIndex
+  = Map Term (HashMap FieldName Occurrences)
 
-type Documents = Seq Document
+type Documents
+  = Seq Document
 
 -- | Every @Document@ indexed by an @IndexWrter@ goes into
 -- the @Indexer@ first. It collects all kind of useful information
