@@ -29,7 +29,9 @@ data BufferRange
                 !(Foreign.Ptr Word.Word8)
 
 newtype Read a
-  = R (BufferRange -> Foreign.Ptr Word.Word8 -> IO (a, Foreign.Ptr Word.Word8))
+  = R { _runRead :: Foreign.Ptr Word.Word8
+                 -> Foreign.Ptr Word.Word8
+                 -> IO (a, Foreign.Ptr Word.Word8) }
 
 instance Functor Read where
   fmap = mapRead

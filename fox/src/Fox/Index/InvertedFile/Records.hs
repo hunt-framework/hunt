@@ -62,7 +62,7 @@ vocRead =
 
 -- | 'IxWrite' represents a row in the vocabulary lookup file
 data IxRec
-  = IxRec { ixVocOffset :: !(Offset.OffsetOf Token.Term)
+  = IxRec { ixVocOffset :: !(Offset.OffsetOf (VocRec Token.Term))
           }
 
 ixWrite :: Write.Write IxRec

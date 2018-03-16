@@ -52,6 +52,7 @@ library
                        Data.IntSet.Cache
                        Data.Offset
                        Data.Primitive.PrimRef
+                       System.MemoryMap
 
   ghc-options:         -O2
                        -Wall

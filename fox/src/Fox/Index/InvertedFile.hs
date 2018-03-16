@@ -16,6 +16,7 @@ import qualified Fox.IO.Read as Read
 import qualified Fox.IO.Write as Write
 import qualified Fox.Index.Directory as Directory
 import qualified Fox.Index.InvertedFile.Records as Records
+import qualified Fox.Index.InvertedFile.TermIndex as TermIndex
 import qualified Fox.Indexer as Indexer
 import qualified Fox.Schema as Schema
 import qualified Fox.Types.DocDesc  as Document
@@ -26,7 +27,6 @@ import qualified Fox.Types.Positions as Positions
 import qualified Fox.Types.Token as Token
 
 import qualified Control.Monad as Monad
-import qualified Data.Coerce as Coerce
 import qualified Data.Count as Count
 import qualified Data.Foldable as Foldable
 import qualified Data.HashMap.Strict as HashMap
@@ -102,13 +102,15 @@ instance Monoid InvFileInfo where
                 , ifIxCount   = mempty
                 }
 
+-- | A strict tuple to avoid space leaks in some folds further
+-- down the road.
 data Pair a b
   = P !a !b
 
 instance ( Semigroup a
          , Semigroup b) => Semigroup (Pair a b) where
-  P l1 r1 <> P l2 r2 =
-    P (l1 <> l2) (r1 <> r2)
+  P a b <> P c d =
+    P (a <> c) (b <> d)
 
 -- | Write the indexed vocabulary, occurrences and postings
 -- to the index directory.
@@ -244,6 +246,7 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
       return x
 
 readIxFile :: Directory.SegmentDirLayout
-           -> IfM ()
-readIxFile Directory.SegmentDirLayout{ segmentIxFile } = do
+           -> InvFileInfo
+           -> IfM TermIndex.TermIndex
+readIxFile Directory.SegmentDirLayout{ segmentIxFile } invFileInfo  = do
   undefined
