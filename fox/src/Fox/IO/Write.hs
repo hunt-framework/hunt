@@ -14,6 +14,7 @@ module Fox.IO.Write (
 
 import           GHC.Exts
 import           GHC.Types
+import qualified GHC.Exts as GHC
 
 import           Data.Bits
 import           Data.ByteString.Internal             (ByteString(..))
@@ -85,29 +86,40 @@ word64 = be64 >$< fromStorable
 varword :: Write Word
 varword = W (\_ -> 9) go
   where
-    go (W# w) (Ptr p) = IO $ \s0 -> case loop w p s0 of
-                                         (# s1, p' #) -> (# s1, Ptr p' #)
+    go (W# w) (Ptr p) = IO $ \s0 ->
+      case loop w p s0 of
+        (# s1, p' #) -> (# s1, Ptr p' #)
 
-    loop w p s0
-      | isTrue# (ltWord# w (int2Word# 0x80#)) =
-          case writeWord8OffAddr# p 0# (narrow8Word# w) s0 of
-            s1 -> (# s1, plusAddr# p 1# #)
-      | otherwise =
-        case writeWord8OffAddr# p 0# ((narrow8Word# (or# w (int2Word# 0x80#)))) s0 of
-          s1 -> loop (uncheckedShiftRL# w 7#) (plusAddr# p 1#) s1
+    loop :: GHC.Word#
+         -> GHC.Addr#
+         -> GHC.State# GHC.RealWorld
+         -> (# GHC.State# GHC.RealWorld, Addr# #)
+    loop w op s0 =
+      if (GHC.isTrue# (GHC.ltWord# w 0x80##))
+      then
+        case GHC.writeWord8OffAddr# op 0# w s0 of
+          s1 ->
+            (# s1, GHC.plusAddr# op 1# #)
+      else
+        case GHC.writeWord8OffAddr# op 0# (GHC.or# w 0x80##) s0 of
+          s1 ->
+            loop (GHC.uncheckedShiftRL# w 7#) (GHC.plusAddr# op 1#) s1
 
 text :: Write Text
 text = W size write
   where
     W vintSize vintWrite = varint
 
-    size t = case Text.lengthWord16 t `unsafeShiftL` 1 of
-               tsz -> vintSize tsz + tsz
+    size t =
+      case Text.lengthWord16 t `unsafeShiftL` 1 of
+        tsz -> vintSize tsz + tsz
 
-    write t op =  case Text.lengthWord16 t `unsafeShiftL` 1 of
-                    tsz -> do op'  <- vintWrite tsz op
-                              Text.unsafeCopyToPtr t $! (castPtr op')
-                              return $! op' `plusPtr` tsz
+    write t op =
+      case Text.lengthWord16 t `unsafeShiftL` 1 of
+        tsz -> do
+          op'  <- vintWrite tsz op
+          Text.unsafeCopyToPtr t $! (castPtr op')
+          return $! op' `plusPtr` tsz
 {-# INLINE CONLIKE text #-}
 
 bytestring :: Write ByteString
