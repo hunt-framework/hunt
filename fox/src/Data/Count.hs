@@ -23,5 +23,8 @@ zero = CountOf 0
 one :: CountOf a
 one = CountOf 1
 
+diff :: CountOf a -> CountOf a -> CountOf a
+diff (CountOf a) (CountOf b) = CountOf (abs (a - b))
+
 getInt :: CountOf a -> Int
 getInt (CountOf x) = x

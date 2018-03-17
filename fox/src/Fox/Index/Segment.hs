@@ -41,12 +41,13 @@ data Segment
 searchTerm
   :: Directory.SegmentDirLayout
   -> Segment
+  -> InvertedFile.TextSearchOp
   -> Token.Term
   -> InvertedFile.IfM Occurrences.Occurrences
-searchTerm segmentDirLayout segment term = do
+searchTerm segmentDirLayout segment searchOp term = do
   InvertedFile.trace "Loading term index"
   termIndex <- segLoadTermIx segment
   InvertedFile.trace termIndex
 
-  _ <- InvertedFile.lookupTerm segmentDirLayout termIndex term
+  _ <- InvertedFile.lookupTerm segmentDirLayout termIndex searchOp term
   return mempty

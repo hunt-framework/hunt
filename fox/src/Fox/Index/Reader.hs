@@ -65,8 +65,11 @@ asks f = IndexReader (\r -> pure (f r))
 runIfM :: InvertedFile.IfM a -> IndexReader a
 runIfM m = IndexReader (\_ -> m)
 
-searchTerm :: Token.Term -> IndexReader Occurrences.Occurrences
-searchTerm term = do
+searchTerm
+  :: InvertedFile.TextSearchOp
+  -> Token.Term
+  -> IndexReader Occurrences.Occurrences
+searchTerm searchOp term = do
   indexDir <- asks ixrIndexDir
   segments <- asks ixrSegments
 
@@ -75,5 +78,5 @@ searchTerm term = do
       let
         segmentDirLayout =
           Directory.segmentDirLayout indexDir segmentId
-      Segment.searchTerm segmentDirLayout segment term
+      Segment.searchTerm segmentDirLayout segment searchOp term
     return (mconcat (SegmentMap.elems occs))

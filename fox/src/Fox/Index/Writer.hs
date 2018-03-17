@@ -23,9 +23,10 @@ import qualified Fox.Types.Conflicts as Conflicts
 import qualified Fox.Types.Generation as Generation
 
 import qualified Control.Parallel.Strategies as Parallel
+import qualified Data.Coerce as Coerce
 import qualified Data.Foldable as Foldable
-import qualified Data.List as List
 import qualified Data.HashMap.Strict as HashMap
+import qualified Data.List as List
 
 insertDocument :: Document -> IndexWriter ()
 insertDocument doc = insertDocuments [doc]
@@ -138,8 +139,8 @@ createSegment indexed = do
             Segment.segGeneration  = Generation.genesis
           , Segment.segFields      = fieldOrds
           , Segment.segDocCount    = numberOfDocuments
-          , Segment.segTermCount   = ifTermCount
-          , Segment.segTermIxCount = ifIxCount
+          , Segment.segTermCount   = Coerce.coerce ifTermCount
+          , Segment.segTermIxCount = Coerce.coerce ifIxCount
           , Segment.segLoadTermIx  = loadTermIndex
           }
 

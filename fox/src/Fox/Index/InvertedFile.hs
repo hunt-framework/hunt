@@ -6,6 +6,8 @@ module Fox.Index.InvertedFile (
     IfM
   , runIfM
   , writeInvertedFiles
+
+  , TextSearchOp(..)
   , lookupTerm
 
   , trace
@@ -124,11 +126,11 @@ defaultBufferSize = 32 * 1024
 -- after it has been written to disk.
 data InvFileInfo
   = InvFileInfo {
-        ifTermCount :: !(Count.CountOf Token.Term)
+        ifTermCount :: !(Count.CountOf (Records.VocRec Read.UTF16))
         -- ^ Number of unique terms in this inverted
         -- file
 
-      , ifIxCount   :: !(Count.CountOf Token.Term)
+      , ifIxCount   :: !(Count.CountOf (Records.VocRec Read.UTF16))
         -- ^ Number of unique terms which that do not
         -- share prefixes (e.g. vwlengthPrefix(x) == 0)
       } deriving (GHC.Generic)
@@ -215,16 +217,6 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
         -> Occurrences.Occurrences
         -> IfM ()
       writeVocabulary prefixLength term field occurrences = do
-
-        -- for vocabulary with a zero length shared prefix
-        -- we make an entry in the index file.
-        Monad.when (prefixLength == Count.zero) $ do
-          vocOffset <- offset voc
-          write ix Records.ixWrite
-            Records.IxRec {
-              ixVocOffset = vocOffset
-            }
-
         -- start by writing the occurrences to the occs file
         -- remember the offset where we started for this term.
         occOffset <- offset occ
@@ -273,6 +265,16 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
               Nothing ->
                 return ()
         in do
+          -- for vocabulary with a zero length shared prefix
+          -- we make an entry in the index file.
+          Monad.when (prefixLength == Count.zero) $ do
+            vocOffset <- offset voc
+            write ix Records.ixWrite
+              Records.IxRec {
+                  ixVocOffset          = vocOffset
+                , ixPrecedingTermCount = ifTermCount lastInvInfo
+                }
+
           Schema.forFields_ fieldOrds forField
           return (P invInfo term)
 
@@ -313,31 +315,40 @@ readIxFile
   -> IfM TermIndex.TermIndex
 readIxFile Directory.SegmentDirLayout{ segmentIxFile } invFileInfo  = do
   buffer <- fileMapping segmentIxFile
+  let
+    termCount =
+      ifTermCount invFileInfo
+
+    ixCount =
+      Count.getInt (ifIxCount invFileInfo)
+
   termIx <- read buffer $ do
-    let
-      ixCount =
-        Count.getInt (ifIxCount invFileInfo)
     Vector.generateM ixCount
       (\_ -> Records.ixRead)
 
-  return $! (TermIndex.TermIndex termIx)
+  return $! (TermIndex.TermIndex termCount termIx)
+
+data TextSearchOp
+  = Case | NoCase | PrefixCase | PrefixNoCase
+  deriving (Eq, Show)
 
 lookupTerm
   :: Directory.SegmentDirLayout
   -> TermIndex.TermIndex
+  -> TextSearchOp
   -> Token.Term
   -> IfM [Token.Term]
 lookupTerm
   Directory.SegmentDirLayout { segmentVocabularyFile }
-  termIndex term = do
+  termIndex searchOp term = do
 
   buffer <- fileMapping segmentVocabularyFile
 
   let
     bisect termIxNode =
       case TermIndex.label (Trace.traceShowId termIxNode) of
-        Just (Records.IxRec vocOffset) -> do
-          (voc, buffer') <- read' (atOffset buffer vocOffset) Records.vocRead
+        Just (vocOffset, scanWidth) -> do
+          voc <- read (atOffset buffer vocOffset) Records.vocRead
           term' <- utf16ToTerm (Records.vwTerm voc)
           case Token.commonPrefixes term term' of
             Just (prefix, suffix)
@@ -345,7 +356,9 @@ lookupTerm
                   -- alright, we found an entry in the vocabulary
                   -- which is a prefix of our searched word!
                   -- now stop bisecting and go via a scan
+                  trace scanWidth
                   undefined
+
             Nothing ->
               -- not even a prefix match, compare
               -- and recurse left or right of the
@@ -360,12 +373,15 @@ lookupTerm
                 GT -> bisect (TermIndex.right termIxNode)
         Nothing -> return []
 
-    scan scanBuffer append = do
-      (voc, scanBuffer') <- read' scanBuffer Records.vocRead
-      term' <- utf16ToTerm (Records.vwTerm voc)
-      if term == term'
-        then return undefined
-        else scan scanBuffer' append
+    scan buffer = do
+      (voc, buffer') <- read' buffer Records.vocRead
+      undefined
+
+    match
+      :: Records.VocRec Read.UTF16
+      -> IfM [Records.VocRec Read.UTF16]
+    match voc = do
+      undefined
 
   bisect (TermIndex.bisect termIndex)
 

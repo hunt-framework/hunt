@@ -22,6 +22,7 @@ import qualified Fox.Types.Token as Token
 import qualified Control.Arrow as Arrow
 import qualified Control.Exception as Exception
 import qualified Data.Binary as Binary
+import qualified Data.Coerce as Coerce
 import qualified Data.Count as Count
 import qualified Data.Foldable as Foldable
 import qualified Data.Text as Text
@@ -111,8 +112,8 @@ readIndexMetaFile metaFilePath indexDirectory = do
 
             invFileInfo =
               InvertedFile.InvFileInfo {
-                  ifTermCount = msegTermCount
-                , ifIxCount   = msegTermIxCount
+                  ifTermCount = Coerce.coerce msegTermCount
+                , ifIxCount   = Coerce.coerce msegTermIxCount
                 }
 
             loadTermIx =

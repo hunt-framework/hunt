@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RecordWildCards #-}
 module Fox.Index.InvertedFile.Records where
 
 import qualified Data.Coerce as Coerce
@@ -14,6 +15,7 @@ import qualified Fox.Types.Token as Token
 import qualified Data.Count as Count
 import qualified Data.Offset as Offset
 import qualified Foreign.Storable as Storable
+import qualified Foreign.Ptr as Ptr
 
 -- | Convenience type for serialiasing occurrences for
 -- the occurrence file.
@@ -62,17 +64,41 @@ vocRead =
          <*> offsetOfRead
 
 -- | 'IxWrite' represents a row in the vocabulary lookup file
-newtype IxRec
-  = IxRec { ixVocOffset :: Offset.OffsetOf (VocRec Read.UTF16)
-          } deriving (Eq, Ord, Show, Storable.Storable)
+data IxRec
+  = IxRec { ixVocOffset          :: !(Offset.OffsetOf (VocRec Read.UTF16))
+          , ixPrecedingTermCount :: !(Count.CountOf (VocRec Read.UTF16))
+          } deriving (Eq, Ord, Show
+                     )
+
+instance Storable.Storable IxRec where
+  sizeOf _ =
+    Storable.sizeOf (ixVocOffset undefined) +
+    Storable.sizeOf (ixPrecedingTermCount undefined)
+  alignment _ =
+    Storable.alignment (ixVocOffset undefined)
+  peek op =
+    let
+      sizeVocOffset =
+        Storable.sizeOf (ixVocOffset undefined)
+    in
+      IxRec <$> Storable.peek (Ptr.castPtr op)
+            <*> Storable.peek (Ptr.castPtr op `Ptr.plusPtr` sizeVocOffset)
+  poke op IxRec{..} = do
+    let
+      sizeVocOffset =
+        Storable.sizeOf ixVocOffset
+    Storable.poke (Ptr.castPtr op) ixVocOffset
+    Storable.poke (Ptr.castPtr op `Ptr.plusPtr` sizeVocOffset) ixPrecedingTermCount
 
 ixWrite :: Write.Write IxRec
 ixWrite =
-  ixVocOffset Write.>$< offsetOfWrite
+  (ixVocOffset          Write.>$< offsetOfWrite) <>
+  (ixPrecedingTermCount Write.>$< countOfWrite)
 
 ixRead :: Read.Read IxRec
 ixRead =
   IxRec <$> offsetOfRead
+        <*> countOfRead
 
 positionWrite :: Write.Write Positions.Position
 positionWrite = Write.varint

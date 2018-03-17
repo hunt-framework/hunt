@@ -8,15 +8,19 @@ module Fox.Index.InvertedFile.TermIndex (
   , right
   ) where
 
-import Fox.Index.InvertedFile.Records as Records
+import qualified Fox.IO.Read as Read
+import qualified Fox.Index.InvertedFile.Records as Records
 
+import qualified Data.Offset as Offset
 import qualified Data.Bits as Bits
+import qualified Data.Count as Count
 import qualified Data.Vector.Storable as Vector
 
 -- | The 'TermIndex' indexes terms in vocabulary which have
 -- a shared prefix of length 0. The 'TermIndex' may be bisected.
-newtype TermIndex
-  = TermIndex { ixOffsets :: Vector.Vector Records.IxRec
+data TermIndex
+  = TermIndex { ixTermCount :: !(Count.CountOf (Records.VocRec Read.UTF16))
+              , ixOffsets   :: !(Vector.Vector Records.IxRec)
               } deriving (Show)
 
 -- | Type-explicit bisection of 'TermIndex'.
@@ -25,7 +29,7 @@ data Bisect a
   deriving (Show)
 
 bisect :: TermIndex -> Bisect TermIndex
-bisect tix@(TermIndex ix) =
+bisect tix@(TermIndex _ ix) =
   let
     l = 0
     u = Vector.length ix
@@ -37,12 +41,30 @@ middle :: Int -> Int -> Int
 middle l u =
   (u + l) `Bits.unsafeShiftR` 1
 
-label :: Bisect TermIndex -> Maybe Records.IxRec
-label (Bisect l u k (TermIndex ix))
+label
+  :: Bisect TermIndex
+  -> Maybe ( Offset.OffsetOf (Records.VocRec Read.UTF16)
+           , Count.CountOf (Records.VocRec Read.UTF16)
+           )
+label (Bisect l u k (TermIndex c ix))
   | u <= l =
       Nothing
   | otherwise =
-      Just $! (ix `Vector.unsafeIndex` k)
+      let
+        ixRec =
+          ix `Vector.unsafeIndex` k
+
+        x' =
+          if k + 1 < Vector.length ix
+          then
+            Records.ixPrecedingTermCount
+              (ix `Vector.unsafeIndex` (k + 1))
+          else
+            c
+
+      in Just $! ( Records.ixVocOffset ixRec
+                 , Count.diff x' (Records.ixPrecedingTermCount ixRec)
+                 )
 
 left :: Bisect TermIndex -> Bisect TermIndex
 left (Bisect l _ k tix) =
