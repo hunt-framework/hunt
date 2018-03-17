@@ -51,10 +51,20 @@ label (Bisect l u k (TermIndex c ix))
       Nothing
   | otherwise =
       let
-        ixRec =
+        ixrec :: Records.IxRec
+        ixrec =
           ix `Vector.unsafeIndex` k
 
-        x' =
+        vocOffset :: Offset.OffsetOf (Records.VocRec Read.UTF16)
+        vocOffset =
+          Records.ixVocOffset ixrec
+
+        precedingTermCount :: Count.CountOf (Records.VocRec Read.UTF16)
+        precedingTermCount =
+          Records.ixPrecedingTermCount ixrec
+
+        limit :: Count.CountOf (Records.VocRec Read.UTF16)
+        limit =
           if k + 1 < Vector.length ix
           then
             Records.ixPrecedingTermCount
@@ -62,9 +72,8 @@ label (Bisect l u k (TermIndex c ix))
           else
             c
 
-      in Just $! ( Records.ixVocOffset ixRec
-                 , Count.diff x' (Records.ixPrecedingTermCount ixRec)
-                 )
+      in Just $! ( vocOffset
+                 , Count.diff limit precedingTermCount )
 
 left :: Bisect TermIndex -> Bisect TermIndex
 left (Bisect l _ k tix) =
