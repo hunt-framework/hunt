@@ -91,11 +91,12 @@ varword = R go
         (# s1, (# a, op' #) #) ->
           (# s1, (GHC.W# a, GHC.Ptr op') #)
 
-    loop :: GHC.Word#
-         -> GHC.Int#
-         -> GHC.Addr#
-         -> GHC.State# GHC.RealWorld
-         -> (# GHC.State# GHC.RealWorld, (# GHC.Word#, GHC.Addr# #) #)
+    loop
+      :: GHC.Word#
+      -> GHC.Int#
+      -> GHC.Addr#
+      -> GHC.State# GHC.RealWorld
+      -> (# GHC.State# GHC.RealWorld, (# GHC.Word#, GHC.Addr# #) #)
     loop acc shift op s0 =
       case GHC.readWord8OffAddr# op 0# s0 of
         (# s1, w #) ->
@@ -107,11 +108,11 @@ varword = R go
             shift' =
               shift GHC.+# 7#
           in
-            if GHC.isTrue# (GHC.ltWord# w (GHC.int2Word# 0x80#))
+            if GHC.isTrue# (GHC.geWord# w 0x80##)
             then
-              (# s1, (# acc', op' #) #)
-            else
               loop acc' shift' op' s1
+            else
+              (# s1, (# acc', op' #) #)
 
 varint :: Read Int
 varint = fmap fromIntegral varword

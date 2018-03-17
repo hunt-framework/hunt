@@ -95,15 +95,17 @@ varword = W (\_ -> 9) go
          -> GHC.State# GHC.RealWorld
          -> (# GHC.State# GHC.RealWorld, Addr# #)
     loop w op s0 =
-      if (GHC.isTrue# (GHC.ltWord# w 0x80##))
+      if (GHC.isTrue# (GHC.geWord# w 0x80##))
       then
-        case GHC.writeWord8OffAddr# op 0# w s0 of
-          s1 ->
-            (# s1, GHC.plusAddr# op 1# #)
-      else
         case GHC.writeWord8OffAddr# op 0# (GHC.or# w 0x80##) s0 of
           s1 ->
             loop (GHC.uncheckedShiftRL# w 7#) (GHC.plusAddr# op 1#) s1
+
+      else
+        case GHC.writeWord8OffAddr# op 0# w s0 of
+          s1 ->
+            (# s1, GHC.plusAddr# op 1# #)
+
 
 text :: Write Text
 text = W size write
