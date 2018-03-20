@@ -117,7 +117,7 @@ readIndexMetaFile metaFilePath indexDirectory = do
                 }
 
             loadTermIx =
-              InvertedFile.readIxFile segmentDirLayout invFileInfo
+              InvertedFile.readTermIndexFile segmentDirLayout invFileInfo
 
             segment =
               Segment.Segment {

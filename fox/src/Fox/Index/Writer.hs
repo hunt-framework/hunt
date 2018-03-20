@@ -132,7 +132,8 @@ createSegment indexed = do
       -- same, cached 'TermIndex'. Put it on the big 'IfM' refactoring
       loadTermIndex :: InvertedFile.IfM InvertedFile.TermIndex
       loadTermIndex =
-        InvertedFile.readIxFile segmentDirLayout InvertedFile.InvFileInfo{..}
+
+        InvertedFile.readTermIndexFile segmentDirLayout InvertedFile.InvFileInfo{..}
 
       newSegment =
         Segment.Segment {

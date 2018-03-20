@@ -8,8 +8,11 @@ import qualified Fox.Types.Document as Document
 import qualified Fox.Types.Generation as Generation
 import qualified Fox.Types.Occurrences as Occurrences
 import qualified Fox.Types.Token as Token
+import qualified Fox.Types.TextSearchOp as TextSearchOp
 
 import qualified Data.Count as Count
+import qualified Streaming.Prelude as Stream
+import qualified Streaming as Stream
 
 -- | A description of a part of an index. A 'Segment' can be queried
 -- for data.
@@ -41,7 +44,7 @@ data Segment
 searchTerm
   :: Directory.SegmentDirLayout
   -> Segment
-  -> InvertedFile.TextSearchOp
+  -> TextSearchOp.TextSearchOp
   -> Token.Term
   -> InvertedFile.IfM Occurrences.Occurrences
 searchTerm segmentDirLayout segment searchOp term = do
@@ -49,5 +52,13 @@ searchTerm segmentDirLayout segment searchOp term = do
   termIndex <- segLoadTermIx segment
   InvertedFile.trace termIndex
 
-  _ <- InvertedFile.lookupTerm segmentDirLayout termIndex searchOp term
+  let
+    stream =
+      InvertedFile.iterateTerms segmentDirLayout termIndex searchOp term
+
+  _ <- Stream.mapM_ (\(term, voc) -> do
+                        InvertedFile.trace term
+                        return ()
+                    ) stream
+
   return mempty

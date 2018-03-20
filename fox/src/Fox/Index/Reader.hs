@@ -11,6 +11,7 @@ import qualified Fox.Index.Segment as Segment
 import qualified Fox.Types.Occurrences as Occurrences
 import qualified Fox.Types.SegmentMap as SegmentMap
 import qualified Fox.Types.Token as Token
+import qualified Fox.Types.TextSearchOp as TextSearchOp
 
 import qualified Data.Key as Key
 
@@ -66,7 +67,7 @@ runIfM :: InvertedFile.IfM a -> IndexReader a
 runIfM m = IndexReader (\_ -> m)
 
 searchTerm
-  :: InvertedFile.TextSearchOp
+  :: TextSearchOp.TextSearchOp
   -> Token.Term
   -> IndexReader Occurrences.Occurrences
 searchTerm searchOp term = do

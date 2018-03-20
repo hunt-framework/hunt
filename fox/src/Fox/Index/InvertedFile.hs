@@ -5,17 +5,16 @@
 module Fox.Index.InvertedFile (
     IfM
   , runIfM
+
+  , InvFileInfo(..)
   , writeInvertedFiles
 
-  , TextSearchOp(..)
-  , lookupTerm
+  , iterateTerms
 
   , trace
 
-  , InvFileInfo(..)
-
   , TermIndex.TermIndex
-  , readIxFile
+  , readTermIndexFile
   ) where
 
 import qualified Fox.IO.Buffer as Buffer
@@ -33,6 +32,7 @@ import qualified Fox.Types.Document as Document
 import qualified Fox.Types.Occurrences as Occurrences
 import qualified Fox.Types.Positions as Positions
 import qualified Fox.Types.Token as Token
+import qualified Fox.Types.TextSearchOp as TextSearchOp
 
 import qualified Control.Monad as Monad
 import qualified Data.Bits as Bits
@@ -49,6 +49,8 @@ import qualified Foreign.Ptr as Ptr
 import qualified GHC.Generics as GHC
 import qualified GHC.Stack as CallStack
 import qualified System.MemoryMap as MemoryMap
+import qualified Streaming as Stream
+import qualified Streaming.Prelude as Stream
 
 import Prelude hiding (read)
 
@@ -56,14 +58,19 @@ import Prelude hiding (read)
 -- alias for 'IO', however in the future this might become something
 -- different to support global buffer pools and better cleanup of files
 -- in case transaction fail here.
-type IfM a = IO a
+type IfM
+  = IO
 
 runIfM :: IfM a -> IO a
 runIfM = id
 
+-- | A range of bytes in a buffer represented by the pointer to the first byte
+-- of the range and the pointer to the first byte /after/ the range.
 data BufferRange =
   BufferRange !(Ptr.Ptr Word.Word8) !(Ptr.Ptr Word.Word8)
 
+-- | Moves the pointer to the first byte of the range to an offset. TODO: Ideally
+-- we would check for overflow here. ()
 atOffset
   :: BufferRange
   -> Offset.OffsetOf a
@@ -126,11 +133,11 @@ defaultBufferSize = 32 * 1024
 -- after it has been written to disk.
 data InvFileInfo
   = InvFileInfo {
-        ifTermCount :: !(Count.CountOf (Records.VocRec Read.UTF16))
+        ifTermCount :: !Records.VocCount
         -- ^ Number of unique terms in this inverted
         -- file
 
-      , ifIxCount   :: !(Count.CountOf (Records.VocRec Read.UTF16))
+      , ifIxCount   :: !Records.VocCount
         -- ^ Number of unique terms which that do not
         -- share prefixes (e.g. vwlengthPrefix(x) == 0)
       } deriving (GHC.Generic)
@@ -195,7 +202,10 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
         write pos Records.positionWrite position
 
       -- write record to the occurrences file
-      writeOccurrence :: Document.DocId -> Positions.Positions -> IfM ()
+      writeOccurrence
+        :: Document.DocId
+        -> Positions.Positions
+        -> IfM ()
       writeOccurrence docId positions = do
         posOffset <- offset pos
 
@@ -251,11 +261,12 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
 
           invInfo :: InvFileInfo
           invInfo =
-            InvFileInfo { ifTermCount = Count.one
-                        , ifIxCount   = if prefixLength == Count.zero
-                                        then Count.one
-                                        else Count.zero
-                        } <> lastInvInfo
+            InvFileInfo {
+                ifTermCount = Count.one
+              , ifIxCount   = if prefixLength == Count.zero
+                              then Count.one
+                              else Count.zero
+              } <> lastInvInfo
 
           forField :: Schema.FieldOrd -> Schema.FieldName -> IfM ()
           forField fieldOrd fieldName =
@@ -309,12 +320,13 @@ writeInvertedFiles Directory.SegmentDirLayout{..} fieldOrds vocabulary = do
       flush ix
       return x
 
-readIxFile
+-- | Loads the TermIndex from disk.
+readTermIndexFile
   :: Directory.SegmentDirLayout
   -> InvFileInfo
   -> IfM TermIndex.TermIndex
-readIxFile Directory.SegmentDirLayout{ segmentIxFile } invFileInfo  = do
-  buffer <- fileMapping segmentIxFile
+readTermIndexFile segmentDirLayout invFileInfo = do
+  buffer <- fileMapping (Directory.segmentIxFile segmentDirLayout)
   let
     termCount =
       ifTermCount invFileInfo
@@ -323,67 +335,68 @@ readIxFile Directory.SegmentDirLayout{ segmentIxFile } invFileInfo  = do
       Count.getInt (ifIxCount invFileInfo)
 
   termIx <- read buffer $ do
-    Vector.generateM ixCount
-      (\_ -> Records.ixRead)
+    Vector.replicateM ixCount Records.ixRead
 
   return $! (TermIndex.TermIndex termCount termIx)
 
-data TextSearchOp
-  = Case | NoCase | PrefixCase | PrefixNoCase
-  deriving (Eq, Show)
-
-lookupTerm
+-- | Iterate through the vocabulary and find matching texts
+iterateTerms
   :: Directory.SegmentDirLayout
   -> TermIndex.TermIndex
-  -> TextSearchOp
+  -> TextSearchOp.TextSearchOp
   -> Token.Term
-  -> IfM [Token.Term]
-lookupTerm
-  Directory.SegmentDirLayout { segmentVocabularyFile }
-  termIndex searchOp term = do
-
-  buffer <- fileMapping segmentVocabularyFile
+  -> Stream.Stream (Stream.Of (Token.Term, Records.VocRec Read.UTF16)) IfM ()
+iterateTerms segmentDirLayout termIndex searchOp term = do
 
   let
-    bisect termIxNode =
-      case TermIndex.label (Trace.traceShowId termIxNode) of
+    liftIfM
+      :: Functor f
+      => IfM a
+      -> Stream.Stream f IfM a
+    liftIfM =
+      Stream.lift
+
+  bufferRange <-
+    liftIfM $ fileMapping (Directory.segmentVocabularyFile segmentDirLayout)
+
+  let
+    bisect
+      :: BufferRange
+      -> TermIndex.Bisect TermIndex.TermIndex
+      -> Stream.Stream (Stream.Of (Token.Term, Records.VocRec Read.UTF16)) IfM ()
+    bisect buffer termIxNode =
+      case TermIndex.label termIxNode of
         Just (vocOffset, scanWidth) -> do
-          voc <- read (atOffset buffer vocOffset) Records.vocRead
-          term' <- utf16ToTerm (Records.vwTerm voc)
-          case Token.commonPrefixes term term' of
-            Just (prefix, suffix)
-              | not (Token.null prefix) -> do
-                  -- alright, we found an entry in the vocabulary
-                  -- which is a prefix of our searched word!
-                  -- now stop bisecting and go via a scan
-                  trace scanWidth
-                  undefined
+          (voc, buffer') <-
+            liftIfM $ read' (atOffset buffer vocOffset) Records.vocRead
+          term' <-
+            liftIfM $ utf16ToTerm (Records.vwTerm voc)
+          case TextSearchOp.matches searchOp term term' of
+            TextSearchOp.Smaller ->
+              bisect buffer (TermIndex.left termIxNode)
+            TextSearchOp.Matches -> do
+              Stream.yield (term', voc)
+              scan (Count.dec scanWidth) term' buffer'
+            TextSearchOp.Larger ->
+              bisect buffer (TermIndex.right termIxNode)
+        Nothing ->
+          return ()
 
-            Nothing ->
-              -- not even a prefix match, compare
-              -- and recurse left or right of the
-              -- 'TermIndex'
-              case compare term term' of
-                LT -> bisect (TermIndex.left termIxNode)
-                EQ ->
-                  -- impossible (we catch this with the prefix check already)
-                  -- we do this nevertheless as it might confuse the optimizer
-                  -- otherwise
-                  return [ term ]
-                GT -> bisect (TermIndex.right termIxNode)
-        Nothing -> return []
+    scan
+      :: Count.CountOf (Records.VocRec Read.UTF16)
+      -> Token.Term
+      -> BufferRange
+      -> Stream.Stream (Stream.Of (Token.Term, Records.VocRec Read.UTF16)) IfM ()
+    scan width prefix buffer
+      | Count.isZero width = return ()
+      | otherwise = do
+          (voc, buffer') <- liftIfM $ read' buffer Records.vocRead
+          term' <- liftIfM $ utf16ToTerm (Records.vwTerm voc)
+          Stream.yield (term', voc)
+          scan (Count.dec width) prefix buffer'
 
-    scan buffer = do
-      (voc, buffer') <- read' buffer Records.vocRead
-      undefined
+  bisect bufferRange (TermIndex.bisect termIndex)
 
-    match
-      :: Records.VocRec Read.UTF16
-      -> IfM [Records.VocRec Read.UTF16]
-    match voc = do
-      undefined
-
-  bisect (TermIndex.bisect termIndex)
 
 trace :: (CallStack.HasCallStack, Show a)
       => a
@@ -392,10 +405,11 @@ trace x =
   CallStack.withFrozenCallStack (Trace.traceM msg)
   where
     msg =
-      concat [ show x
-             , "\n"
-             , CallStack.prettyCallStack CallStack.callStack
-             ]
+      concat
+        [ show x
+        , "\n"
+        , CallStack.prettyCallStack CallStack.callStack
+        ]
 
 utf16ToTerm :: Read.UTF16 -> IfM Token.Term
 utf16ToTerm (Read.UTF16 op len) =

@@ -47,6 +47,12 @@ data VocRec term
            , vwOccOffset    :: !(Offset.OffsetOf Occurrences.Occurrences)
            } deriving (Show)
 
+type VocOffset
+  = Offset.OffsetOf (VocRec Read.UTF16)
+
+type VocCount
+  = Count.CountOf (VocRec Read.UTF16)
+
 vocWrite :: Write.Write (VocRec Token.Term)
 vocWrite =
   (vwLengthPrefix Write.>$< countOfWrite) <>
@@ -65,8 +71,8 @@ vocRead =
 
 -- | 'IxWrite' represents a row in the vocabulary lookup file
 data IxRec
-  = IxRec { ixVocOffset          :: !(Offset.OffsetOf (VocRec Read.UTF16))
-          , ixPrecedingTermCount :: !(Count.CountOf (VocRec Read.UTF16))
+  = IxRec { ixVocOffset          :: !VocOffset
+          , ixPrecedingTermCount :: !VocCount
           } deriving (Eq, Ord, Show
                      )
 

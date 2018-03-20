@@ -47,9 +47,11 @@ library
                        Fox.Types.Score
                        Fox.Types.SegmentId
                        Fox.Types.SegmentMap
+                       Fox.Types.TextSearchOp
                        Fox.Types.Token
 
-  other-modules:       Data.Count
+  -- other-modules:
+                       Data.Count
                        Data.IntSet.Cache
                        Data.Offset
                        Data.Primitive.PrimRef
@@ -74,6 +76,7 @@ library
                        mtl,
                        parallel,
                        primitive >0.6,
+                       streaming,
                        text,
                        unordered-containers,
                        vector >= 0.12.0.1,
