@@ -10,6 +10,8 @@ module Fox.Index.InvertedFile (
   , writeInvertedFiles
 
   , iterateTerms
+  , iterateOccurrences
+  , iteratePositions
 
   , trace
 
@@ -35,6 +37,7 @@ import qualified Fox.Types.Token as Token
 import qualified Fox.Types.TextSearchOp as TextSearchOp
 
 import qualified Control.Monad as Monad
+import qualified Control.Monad.IO.Class as IO
 import qualified Data.Bits as Bits
 import qualified Data.Count as Count
 import qualified Data.Foldable as Foldable
@@ -43,14 +46,15 @@ import qualified Data.Key as Key
 import qualified Data.Offset as Offset
 import qualified Data.Text.Foreign as Text
 import qualified Data.Vector.Storable as Vector
+import qualified Data.Vector.Storable.Mutable as MVector
 import qualified Data.Word as Word
 import qualified Debug.Trace as Trace
 import qualified Foreign.Ptr as Ptr
 import qualified GHC.Generics as GHC
 import qualified GHC.Stack as CallStack
-import qualified System.MemoryMap as MemoryMap
 import qualified Streaming as Stream
 import qualified Streaming.Prelude as Stream
+import qualified System.MemoryMap as MemoryMap
 
 import Prelude hiding (read)
 
@@ -334,10 +338,29 @@ readTermIndexFile segmentDirLayout invFileInfo = do
     ixCount =
       Count.getInt (ifIxCount invFileInfo)
 
-  termIx <- read buffer $ do
-    Vector.replicateM ixCount Records.ixRead
+  termIx <- MVector.unsafeNew ixCount
+  read buffer $ do
+    let
+      loop :: Int -> Read.Read ()
+      loop i
+        | i < ixCount
+        = do
+            ixRec <- Records.ixRead
+            IO.liftIO (MVector.unsafeWrite termIx i ixRec)
+            loop $! (i + 1)
+        | otherwise
+        = return ()
+    loop 0
 
-  return $! (TermIndex.TermIndex termCount termIx)
+  termIx' <- Vector.unsafeFreeze termIx
+  return $! (TermIndex.TermIndex termCount termIx')
+
+liftIfM
+  :: Functor f
+  => IfM a
+  -> Stream.Stream f IfM a
+liftIfM =
+  Stream.lift
 
 -- | Iterate through the vocabulary and find matching texts
 iterateTerms
@@ -347,14 +370,6 @@ iterateTerms
   -> Token.Term
   -> Stream.Stream (Stream.Of (Token.Term, Records.VocRec Read.UTF16)) IfM ()
 iterateTerms segmentDirLayout termIndex searchOp term = do
-
-  let
-    liftIfM
-      :: Functor f
-      => IfM a
-      -> Stream.Stream f IfM a
-    liftIfM =
-      Stream.lift
 
   bufferRange <-
     liftIfM $ fileMapping (Directory.segmentVocabularyFile segmentDirLayout)
@@ -371,7 +386,14 @@ iterateTerms segmentDirLayout termIndex searchOp term = do
             liftIfM $ read' (atOffset buffer vocOffset) Records.vocRead
           term' <-
             liftIfM $ utf16ToTerm (Records.vwTerm voc)
-          case TextSearchOp.matches searchOp term term' of
+
+          let
+            -- while bisecting through the vocabulary we
+            -- look for matching prefixes only
+            searchOp' =
+              TextSearchOp.toPrefixSearchOp searchOp
+
+          case TextSearchOp.matches searchOp' term term' of
             TextSearchOp.Smaller ->
               bisect buffer (TermIndex.left termIxNode)
             TextSearchOp.Matches -> do
@@ -397,6 +419,46 @@ iterateTerms segmentDirLayout termIndex searchOp term = do
 
   bisect bufferRange (TermIndex.bisect termIndex)
 
+iterateOccurrences
+  :: Directory.SegmentDirLayout
+  -> Records.VocRec a
+  -> Stream.Stream (Stream.Of Records.OccRec) IfM ()
+iterateOccurrences segmentDirLayout Records.VocRec{..} = do
+
+  bufferRange <-
+    liftIfM $ fileMapping (Directory.segmentOccurrencesFile segmentDirLayout)
+
+  let
+    loop i buffer
+      | i < vwOccCount = do
+          (occ, buffer') <- liftIfM $ read' buffer Records.occurrenceRead
+          Stream.yield occ
+          loop (Count.inc i) buffer'
+      | otherwise =
+          return ()
+
+  loop Count.zero bufferRange
+
+iteratePositions
+  :: Directory.SegmentDirLayout
+  -> Records.OccRec
+  -> Stream.Stream (Stream.Of Positions.Position) IfM ()
+iteratePositions segmentDirLayout Records.OccRec{..} = do
+
+  bufferRange <-
+    liftIfM $ fileMapping (Directory.segmentPostingsFile segmentDirLayout)
+
+  let
+    loop i buffer
+      | i < owPosCount = do
+          (pos, buffer') <- liftIfM $ read' buffer Records.positionRead
+          Stream.yield pos
+          loop (Count.inc i) buffer'
+      | otherwise =
+          return ()
+
+  loop Count.zero bufferRange
+
 
 trace :: (CallStack.HasCallStack, Show a)
       => a
@@ -413,4 +475,6 @@ trace x =
 
 utf16ToTerm :: Read.UTF16 -> IfM Token.Term
 utf16ToTerm (Read.UTF16 op len) =
-  Text.fromPtr (Ptr.castPtr op) (fromIntegral (len `Bits.unsafeShiftR` 1))
+  Text.fromPtr
+    (Ptr.castPtr op)
+    (fromIntegral (len `Bits.unsafeShiftR` 1))

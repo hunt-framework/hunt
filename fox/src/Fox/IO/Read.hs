@@ -16,6 +16,7 @@ module Fox.IO.Read (
 import qualified GHC.Exts as GHC
 import qualified GHC.Types as GHC
 
+import qualified Control.Monad.IO.Class as IO
 import qualified Foreign.Ptr as Foreign
 import qualified Foreign.Storable as Storable
 import qualified Data.Word as Word
@@ -43,6 +44,11 @@ instance Applicative Read where
 
 instance Monad Read where
   (>>=) = bindRead
+
+instance IO.MonadIO Read where
+  liftIO m = R (\_ op ->
+                   do a <- m
+                      return (a, op))
 
 pureRead :: a -> Read a
 pureRead x = R (\_ op -> pure (x, op))

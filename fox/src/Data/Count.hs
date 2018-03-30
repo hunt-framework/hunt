@@ -27,6 +27,9 @@ zero = CountOf 0
 one :: CountOf a
 one = CountOf 1
 
+inc :: CountOf a -> CountOf a
+inc (CountOf x) = CountOf (x + 1)
+
 dec :: CountOf a -> CountOf a
 dec (CountOf x) =
   if x > 1

@@ -8,12 +8,12 @@ data TextSearchOp
   = Case | NoCase | PrefixCase | PrefixNoCase
   deriving (Eq, Show)
 
-prefixSearchOp :: TextSearchOp -> Bool
-prefixSearchOp op =
+toPrefixSearchOp :: TextSearchOp -> TextSearchOp
+toPrefixSearchOp op =
   case op of
-    PrefixCase   -> True
-    PrefixNoCase -> True
-    _            -> False
+    Case   -> PrefixCase
+    NoCase -> PrefixNoCase
+    x      -> x
 
 data Match
   = Smaller | Matches | Larger

@@ -106,6 +106,9 @@ ixRead =
   IxRec <$> offsetOfRead
         <*> countOfRead
 
+positionRead :: Read.Read Positions.Position
+positionRead = Read.varint
+
 positionWrite :: Write.Write Positions.Position
 positionWrite = Write.varint
 
